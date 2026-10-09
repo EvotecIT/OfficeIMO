@@ -137,9 +137,75 @@ public sealed partial class HtmlRenderingTests {
         Check(html);
     }
 
-    private static IReadOnlyList<string> FloatTablePaginationPdfText(string html, HtmlRenderIntentProfile profile) {
+    [Theory]
+    [InlineData(1, 9)]
+    [InlineData(3, 9)]
+    [InlineData(9, 9)]
+    public void HtmlFloatPagination_ParallelTablesRetainEveryBodyRow(int leftCount, int rightCount) {
+        static string Rows(string prefix, int count) => string.Concat(Enumerable.Range(1, count)
+            .Select(index => $"<tr><td>{prefix}{index:00}</td></tr>"));
+        static string Table(string prefix, int count) => "<table id='" + prefix + "'><thead><tr><th>" + prefix + "HEAD</th></tr></thead><tbody>"
+            + Rows(prefix, count) + "</tbody><tfoot><tr><td>" + prefix + "FOOT</td></tr></tfoot></table>";
+        string html = FloatTablePaginationHtml("", "")
+            .Replace("<div class='float'><table></table></div>",
+                "<div class='float'>" + Table("A", leftCount) + "</div>"
+                + "<div style='float:right;width:100px'>" + Table("B", rightCount) + "</div>");
+        HtmlRenderOptions options = FloatTablePaginationOptions();
+        if (leftCount == 1) {
+            options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 400D / HtmlRenderOptions.CssPixelsPerInch);
+            options.ViewportHeight = 400D;
+        }
+        HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.DisplayList, options)).Document;
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        if (leftCount == 1) {
+            Assert.Single(rendered.Pages, page => EnumerateRenderVisuals(page.Scene)
+                .OfType<HtmlRenderText>().Any(text => text.Text is "AHEAD" or "A01" or "AFOOT"));
+            Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Source == "table#A"
+                && diagnostic.Detail?.StartsWith("parallel-table-repetition;", StringComparison.Ordinal) == true);
+        }
+        foreach (string marker in Enumerable.Range(1, leftCount).Select(index => $"A{index:00}")
+            .Concat(Enumerable.Range(1, rightCount).Select(index => $"B{index:00}"))) {
+            Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene)).OfType<HtmlRenderText>(), text => text.Text == marker);
+        }
+        string pdfText = string.Concat(FloatTablePaginationPdfText(html, HtmlRenderIntentProfile.PrintPaged, options));
+        foreach (string marker in Enumerable.Range(1, leftCount).Select(index => $"A{index:00}")
+            .Concat(Enumerable.Range(1, rightCount).Select(index => $"B{index:00}"))) Assert.Equal(1, CountFloatPaginationMarker(pdfText, marker));
+    }
+
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, false)]
+    [InlineData(HtmlRenderIntentProfile.ScreenMediaPaged, false)]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, true)]
+    public void HtmlFloatPagination_FooterCannotConsumeNeighboringParagraph(
+        HtmlRenderIntentProfile profile, bool rootFlow) {
+        string neighbor = "<p>" + string.Join("<br>", Enumerable.Range(1, 12).Select(index => $"TAIL_{index:00}")) + "</p>";
+        string rows = "<thead><tr><th>HEAD</th></tr></thead><tbody>" + FloatTableRows(1, 4)
+            + "</tbody><tfoot><tr><td>FOOT</td></tr></tfoot>";
+        string html = FloatTablePaginationHtml(rows, neighbor)
+            .Replace("font:16px Pinned", "font:16px/20px Pinned")
+            .Replace("td{padding:5px}", "p{margin:0}td{padding:5px 0}th{padding:0}");
+        if (rootFlow) html = html.Replace("<div style='overflow:hidden'>", "<div style='display:contents'>");
+        HtmlRenderDocument rendered = RenderFloatTablePagination(html, profile);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        var markers = Enumerable.Range(1, 12).Select(index => $"TAIL_{index:00}")
+            .Concat(Enumerable.Range(1, 4).Select(index => $"ROW_{index:00}")).Append("FOOT");
+        string pdfText = string.Concat(FloatTablePaginationPdfText(html, profile));
+        foreach (string marker in markers) {
+            Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+                .OfType<HtmlRenderText>(), text => text.Text == marker);
+            Assert.Equal(1, CountFloatPaginationMarker(pdfText, marker));
+        }
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    private static IReadOnlyList<string> FloatTablePaginationPdfText(string html, HtmlRenderIntentProfile profile, HtmlRenderOptions? options = null) {
         byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfResult(
-            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, FloatTablePaginationOptions())).ToBytes();
+            HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options ?? FloatTablePaginationOptions())).ToBytes();
         return PdfCore.PdfTextExtractor.ExtractTextByPage(pdf)
             .Select(text => string.Concat(text.Where(character => !char.IsWhiteSpace(character)))).ToArray();
     }

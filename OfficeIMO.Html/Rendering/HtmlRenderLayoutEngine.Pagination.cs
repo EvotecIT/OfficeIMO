@@ -101,6 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 RecordRunningStringAssignments(block, 0D, block.Height, y);
                 y += block.Height;
             } else {
+                block = QualifySharedTableRepetition(block);
                 double blockOffset = 0D;
                 while (blockOffset < block.Height - 0.0001D) {
                     CheckCancellation();
@@ -110,7 +111,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && block.Height > blockOffset + flexAvailable + 0.0001D
                         && TryRelayoutBlockForFlexPagination(block, blockOffset, flexAvailable, contentHeight,
                             pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock alignedFlexBlock)) {
-                        block = alignedFlexBlock.ForPagination();
+                        block = QualifySharedTableRepetition(alignedFlexBlock.ForPagination());
                         _pagedFlexAlignedBlocks.Add(block);
                     }
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
@@ -203,6 +204,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                     }
 
+                    ReportSharedTableRepetitionLoss(block, fragmentEnd);
                     if (repeatContinuation) {
                         AddTranslatedVisuals(visuals, continuationGroup!.Visuals, pageGeometry.Margins.Left, y, block);
                         y += continuationHeight;
@@ -240,7 +242,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         if (RequiresPageRelayout(block, pageGeometry)) {
                             if (continuationProgress.HasValue
                                 && TryRelayoutInlineContinuation(block, pageGeometry, continuationProgress.Value, out HtmlRenderFlowBlock reflowed)) {
-                                block = reflowed.ForPagination();
+                                block = QualifySharedTableRepetition(reflowed.ForPagination());
                                 blockOffset = 0D;
                             } else {
                                 ReportPageContinuationReflowPending(block, pageGeometry);

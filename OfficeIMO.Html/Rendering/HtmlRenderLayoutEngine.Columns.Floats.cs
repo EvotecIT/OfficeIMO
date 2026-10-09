@@ -39,7 +39,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < children.Count; index++) {
             HtmlRenderFlowBlock child = children[index];
             layers.Add(new FlowPaintLayer(child, 0D, height, index));
-            foreach (double offset in child.BreakOffsets) offsets.Add(height + offset);
+            foreach (double offset in child.BreakOffsets) {
+                // The float context owns an anonymous chunk's painted tail.
+                // It is not a content cut in a neighboring paragraph.
+                bool isAnonymousFloatTail = child.OwnerElement == null
+                    && child.PagedPaintExtent > child.Height + 0.0001D
+                    && offset >= child.PagedPaintExtent - 0.0001D;
+                if (!isAnonymousFloatTail) offsets.Add(height + offset);
+            }
             lineGroups.AddRange(child.LineBreakGroups.Select(group => group.Translate(height)));
             AppendKeepWithNextRange(children, index, height, keeps);
             if (child.AvoidBreakInside) keeps.Add(new HtmlRenderAvoidBreakRange(height, height + child.Height));

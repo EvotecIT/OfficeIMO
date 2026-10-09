@@ -410,7 +410,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
                 Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
             : outerHeight;
-        if (_options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible" && inlineLayout != null) {
+        if (_options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible" && inlineLayout != null
+            && inlineLayout.PagedPaintExtent > inlineLayout.Height + 0.0001D) {
             pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
         }
         HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style, contentHeight,
@@ -441,10 +442,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             group.Translate(
                 contentX,
                 contentYForBreaks,
-                // Only a footer at the normal-flow end inherits the box's tail.
-                // A float can end later; clamping it back to flow height would
-                // rewind pagination after its footer and repeat pages.
-                Math.Abs(group.SourceEndsAt - contentHeight) <= 0.0001D ? outerHeight : (double?)null));
+                // A terminal footer inherits the box tail only when that cannot
+                // move its source end before the body. A float may extend past
+                // normal flow; clamping it there would rewind pagination.
+                group.SourceEndsAt >= contentHeight - 0.0001D
+                    && outerHeight >= contentYForBreaks + group.ContentEndsAt - 0.0001D
+                    ? outerHeight : (double?)null));
         string? pageName = style.PageName;
         if (pageName == null && children.Count > 0) {
             pageName = children[0].PageName;

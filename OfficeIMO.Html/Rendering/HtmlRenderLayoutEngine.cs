@@ -75,6 +75,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedFloatValueFallbacks = new HashSet<IElement>();
+    private readonly HashSet<string> _reportedParallelTableRepeats = new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<HtmlRenderFlowBlock, IReadOnlyList<SuppressedTableRepeat>> _suppressedParallelTableRepeats = new Dictionary<HtmlRenderFlowBlock, IReadOnlyList<SuppressedTableRepeat>>();
     private readonly HashSet<IElement> _reportedOverflowValueFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedOverflowClipMarginFallbacks = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedOverflowScrollSnapshots = new HashSet<IElement>();
@@ -503,6 +505,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _registeredFixedElements.Clear();
         _registeredAbsoluteElements.Clear();
         _reportedPositionStaticAnchorFallbacks.Clear();
+        _reportedParallelTableRepeats.Clear();
+        _suppressedParallelTableRepeats.Clear();
         _activeSubgridOwner = null;
         _activeSubgridColumnSizes = null;
         _activeSubgridColumnLineNames = null;
