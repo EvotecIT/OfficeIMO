@@ -96,6 +96,31 @@ public partial class DrawingTests {
         Assert.Equal(1, CountPatternOccurrences(svg, "data:image/png;base64,"));
     }
 
+    [Theory]
+    [InlineData(true, true, 19D)]
+    [InlineData(true, false, 19D)]
+    [InlineData(false, true, 19D)]
+    [InlineData(true, true, -11D)]
+    public void OfficeDrawingImagePattern_SvgRetainsNonzeroOriginAndRepeatAxes(bool repeatX, bool repeatY, double tileX) {
+        var source = new OfficeRasterImage(2, 2);
+        source.SetPixel(0, 0, OfficeColor.Red);
+        source.SetPixel(1, 0, OfficeColor.Blue);
+        source.SetPixel(0, 1, OfficeColor.Green);
+        source.SetPixel(1, 1, OfficeColor.Yellow);
+        var layout = new OfficeImagePatternLayout(new OfficeImagePlacement(16D, 16D, 40D, 20D),
+            new OfficeImagePlacement(tileX, 17D, 8D, 4D), repeatX, repeatY, 12D, 6D);
+        var drawing = new OfficeDrawing(64D, 40D).AddImagePattern(OfficePngWriter.Encode(source), "image/png", layout);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing, 1D, OfficeSvgSizeUnit.Pixel);
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? restored, out int unsupported));
+        Assert.Equal(0, unsupported);
+        OfficeRasterImage expected = OfficeDrawingRasterRenderer.Render(drawing);
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(restored!);
+        // Nonzero/negative tile origins and gaps must survive a real SVG consumer.
+        for (int y = 16; y < 36; y++) {
+            for (int x = 16; x < 56; x++) Assert.Equal(expected.GetPixel(x, y), actual.GetPixel(x, y));
+        }
+    }
+
     [Fact]
     public void OfficeDrawingImagePattern_RendersInsideATransformedNestedGroup() {
         var sourceImage = new OfficeRasterImage(1, 1, OfficeColor.Red);

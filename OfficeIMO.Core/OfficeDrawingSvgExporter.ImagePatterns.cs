@@ -39,8 +39,10 @@ public static partial class OfficeDrawingSvgExporter {
             .AppendNumberAttribute("width", patternWidth)
             .AppendNumberAttribute("height", patternHeight)
             .Append("><image")
-            .AppendNumberAttribute("x", tile.X)
-            .AppendNumberAttribute("y", tile.Y)
+            // Pattern content uses coordinates relative to the tile viewport.
+            // Non-repeating axes retain the image's offset from the paint area.
+            .AppendNumberAttribute("x", tile.X - patternX)
+            .AppendNumberAttribute("y", tile.Y - patternY)
             .AppendNumberAttribute("width", tile.Width)
             .AppendNumberAttribute("height", tile.Height)
             .AppendAttribute("href", dataUri)

@@ -202,6 +202,15 @@ public sealed partial class HtmlRenderPage {
                 drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
             }
         } else if (visual is HtmlRenderImage image) {
+            if (image.X >= surfaceWidth || image.X + image.Width <= 0D
+                || image.Y >= surfaceHeight || image.Y + image.Height <= 0D) return;
+            if (image.X < 0D || image.Y < 0D || image.X + image.Width > surfaceWidth || image.Y + image.Height > surfaceHeight) {
+                // Retain the authored projection and source crop inside an
+                // expanded local buffer, then clip it to the current surface.
+                AddClipGroup(drawing, new HtmlRenderClipGroup(0D, 0D, surfaceWidth, surfaceHeight,
+                    true, true, new[] { image }, image.PaintOrder, image.Source), surfaceWidth, surfaceHeight, fonts, cancellationToken);
+                return;
+            }
             var placement = new OfficeImagePlacement(image.X, image.Y, image.Width, image.Height);
             drawing.AddImageShared(image.EncodedBytes, image.ContentType,
                 new OfficeImageProjection(placement, image.SourceCrop), image.AlternativeText);
@@ -212,10 +221,24 @@ public sealed partial class HtmlRenderPage {
                 .Then(OfficeTransform.Translate(vector.X, vector.Y));
             drawing.AddEffectDrawing(vector.InnerDrawing, transform);
         } else if (visual is HtmlRenderImagePattern imagePattern) {
+            OfficeImagePatternLayout pattern = imagePattern.Pattern;
+            OfficeImagePlacement area = pattern.Area;
+            double left = Math.Max(0D, area.X);
+            double top = Math.Max(0D, area.Y);
+            double right = Math.Min(drawing.Width, area.X + area.Width);
+            double bottom = Math.Min(drawing.Height, area.Y + area.Height);
+            if (right <= left || bottom <= top) return;
+            // HTML boxes may overflow the current drawing buffer. Crop only
+            // the paint area: the authored tile origin and repeat steps keep
+            // their phase, including inside translated clip/effect buffers.
+            pattern = new OfficeImagePatternLayout(
+                new OfficeImagePlacement(left, top, right - left, bottom - top),
+                pattern.Tile, pattern.RepeatX, pattern.RepeatY,
+                pattern.HorizontalStep, pattern.VerticalStep);
             drawing.AddImagePatternShared(
                 imagePattern.EncodedBytes,
                 imagePattern.ContentType,
-                imagePattern.Pattern,
+                pattern,
                 imagePattern.MaximumTileCount);
         } else if (visual is HtmlRenderClipGroup group) {
             AddClipGroup(drawing, group, surfaceWidth, surfaceHeight, fonts, cancellationToken);
