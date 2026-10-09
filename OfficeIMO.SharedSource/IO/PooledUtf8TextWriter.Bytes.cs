@@ -7,7 +7,7 @@ namespace OfficeIMO.SharedSource.IO {
             byte[] bytes = _bytes!;
             // A complete UTF-8 value cannot continue a pending UTF-16 surrogate.
             if ((_characterCount != 0 || _encoderMayHavePendingSurrogate)
-                && (!_canWriteAsciiBeforeUtf8 || !TryEncodeBufferedAscii(characters, bytes))) {
+                && !TryEncodeBufferedAscii(characters, bytes)) {
                 EncodeBufferedCharacters(flushEncoder: true);
             }
             while (!value.IsEmpty) {

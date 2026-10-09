@@ -20,7 +20,7 @@ namespace OfficeIMO.SharedSource.IO {
         private int _byteCount;
 #if NET8_0_OR_GREATER
         private bool _encoderMayHavePendingSurrogate;
-        private readonly bool _canWriteAsciiBeforeUtf8;
+        private readonly bool _canEncodeBufferedAscii;
 #endif
 
         internal PooledUtf8TextWriter(Stream stream, Encoding encoding, int bufferSize, bool leaveOpen = false) {
@@ -32,9 +32,9 @@ namespace OfficeIMO.SharedSource.IO {
 
             _encoder = encoding.GetEncoder();
 #if NET8_0_OR_GREATER
-            // Custom encoders and fallbacks can observe flush boundaries. Preserve
-            // their existing encoder calls even when the buffered text is ASCII.
-            _canWriteAsciiBeforeUtf8 = encoding.GetType() == typeof(UTF8Encoding)
+            // Custom encoders and fallbacks can change output or observe flush
+            // boundaries. Keep their character writes on the encoder path.
+            _canEncodeBufferedAscii = encoding.GetType() == typeof(UTF8Encoding)
                 && (_encoder.Fallback is EncoderReplacementFallback || _encoder.Fallback is EncoderExceptionFallback);
 #endif
             _leaveOpen = leaveOpen;
@@ -231,7 +231,7 @@ namespace OfficeIMO.SharedSource.IO {
         private bool TryEncodeBufferedAscii(char[] characters, byte[] bytes) {
             // ASCII never changes encoder state. A pending surrogate requires the
             // encoder even when the following buffered characters are all ASCII.
-            if (!_encoderMayHavePendingSurrogate && _encoding is UTF8Encoding
+            if (_canEncodeBufferedAscii && !_encoderMayHavePendingSurrogate
                 && _characterCount <= bytes.Length - _byteCount
                 && System.Text.Ascii.FromUtf16(characters.AsSpan(0, _characterCount),
                     bytes.AsSpan(_byteCount), out int bytesWritten) == OperationStatus.Done) {

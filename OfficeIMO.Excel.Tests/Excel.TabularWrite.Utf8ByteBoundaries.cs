@@ -95,6 +95,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PooledUtf8TextWriter_FlushUsesCustomUtf8EncoderForAscii() {
+            var encoding = new RecordingUtf8Encoding(uppercaseOutput: true);
+            using var output = new MemoryStream();
+            using (var writer = new PooledUtf8TextWriter(output, encoding, 16, leaveOpen: true)) {
+                writer.Write("prefix");
+                writer.Flush();
+                Assert.Equal("PREFIX"u8.ToArray(), output.ToArray());
+                Assert.Equal(new[] { (6, false) }, encoding.Calls);
+                writer.Write(" suffix");
+            }
+            Assert.Equal("PREFIX SUFFIX"u8.ToArray(), output.ToArray());
+        }
+
+        [Fact]
         public void PooledUtf8TextWriter_CustomFallbackRetainsBufferedCharacterIndex() {
             var encoding = (Encoding)new UTF8Encoding(false).Clone();
             encoding.EncoderFallback = new IndexEncoderFallback();
@@ -130,19 +144,29 @@ namespace OfficeIMO.Tests {
             Assert.Empty(output.ToArray());
         }
 
-        private sealed class RecordingUtf8Encoding : UTF8Encoding {
+        private sealed class RecordingUtf8Encoding(bool uppercaseOutput = false) : UTF8Encoding {
             internal List<(int CharacterCount, bool Flush)> Calls { get; } = [];
-            public override Encoder GetEncoder() => new RecordingEncoder(base.GetEncoder(), Calls);
+            public override Encoder GetEncoder() => new RecordingEncoder(base.GetEncoder(), Calls, uppercaseOutput);
         }
 
-        private sealed class RecordingEncoder(Encoder inner, List<(int CharacterCount, bool Flush)> calls) : Encoder {
+        private sealed class RecordingEncoder(Encoder inner, List<(int CharacterCount, bool Flush)> calls, bool uppercaseOutput) : Encoder {
             public override int GetByteCount(char[] chars, int index, int count, bool flush) => inner.GetByteCount(chars, index, count, flush);
-            public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, bool flush) =>
-                inner.GetBytes(chars, charIndex, charCount, bytes, byteIndex, flush);
+            public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, bool flush) {
+                int count = inner.GetBytes(chars, charIndex, charCount, bytes, byteIndex, flush);
+                TransformAscii(bytes, byteIndex, count);
+                return count;
+            }
             public override void Convert(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex, int byteCount,
                 bool flush, out int charsUsed, out int bytesUsed, out bool completed) {
                 calls.Add((charCount, flush));
                 inner.Convert(chars, charIndex, charCount, bytes, byteIndex, byteCount, flush, out charsUsed, out bytesUsed, out completed);
+                TransformAscii(bytes, byteIndex, bytesUsed);
+            }
+            private void TransformAscii(byte[] bytes, int index, int count) {
+                if (!uppercaseOutput) return;
+                for (int offset = index; offset < index + count; offset++) {
+                    if (bytes[offset] is >= (byte)'a' and <= (byte)'z') bytes[offset] -= (byte)('a' - 'A');
+                }
             }
         }
 
