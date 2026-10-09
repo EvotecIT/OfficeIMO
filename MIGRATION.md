@@ -149,8 +149,8 @@ for bounded chunks, tables, page citations and diagnostics.
 ## Publisher Reader transport identity
 
 Register `.AddPublisherHandler()` from `OfficeIMO.Reader.Publisher` for native
-`.pub` recovery. Results use `ReaderInputKind.Publisher` (`29`) and require
-document transport schema version 11. Update exhaustive input-kind switches and
+`.pub` recovery. Results use `ReaderInputKind.Publisher` (`29`) and document
+transport schema version 11 or later. Update exhaustive input-kind switches and
 transport consumers to accept this kind and version. Versions 5 through 10 remain
 readable for their existing formats; they cannot carry Publisher input kinds.
 

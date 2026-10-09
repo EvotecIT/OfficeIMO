@@ -59,6 +59,21 @@ $nonNativeValidated = @(
         evidence = 'Native MDB/ACCDB reading, inert application inspection, unchanged preservation and Jet 4/ACE 12 creation are qualified through managed .NET tests and independent Access/DAO evidence; no dedicated NativeAOT qualification host is claimed.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Publisher'
+        classification = 'managed-cross-platform'
+        evidence = 'Bounded native Publisher decoding, styled text flow and page SVG reconstruction are qualified through managed .NET tests and independent-producer fixtures; no dedicated whole-library NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Publisher.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The Publisher PDF bridge is qualified through managed conversion tests and packed .NET consumers; the PDF owner NativeAOT host does not qualify the complete bridge.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.Publisher'
+        classification = 'managed-cross-platform'
+        evidence = 'The modular Publisher Reader adapter is qualified through managed extraction, registration, transport and packed-consumer tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Xps'
         classification = 'managed-cross-platform'
         evidence = 'XPS/OpenXPS lifecycle and rendering are qualified through managed .NET tests; no dedicated NativeAOT qualification host is claimed.'

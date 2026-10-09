@@ -2,22 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 280,
-    "productionComponentCount": 139,
-    "testProjectCount": 54,
+    "projectCount": 284,
+    "productionComponentCount": 142,
+    "testProjectCount": 55,
     "benchmarkProjectCount": 36,
     "validationProjectCount": 52,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54105
+    "conceptualWordCount": 54193
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 30,
+      "componentCount": 31,
       "componentIndexes": [
-        86,
-        87,
         88,
         89,
         90,
@@ -45,12 +43,15 @@
         112,
         113,
         114,
-        115
+        115,
+        116,
+        117,
+        118
       ]
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 18,
+      "componentCount": 20,
       "componentIndexes": [
         14,
         20,
@@ -68,8 +69,10 @@
         72,
         73,
         74,
-        124,
-        125
+        86,
+        87,
+        127,
+        128
       ]
     },
     {
@@ -88,8 +91,8 @@
         64,
         65,
         85,
-        119,
-        138
+        122,
+        141
       ]
     },
     {
@@ -119,14 +122,14 @@
         81,
         82,
         83,
-        126,
-        127,
-        128,
         129,
         130,
         131,
         132,
-        133
+        133,
+        134,
+        135,
+        136
       ]
     },
     {
@@ -155,9 +158,9 @@
         53,
         76,
         77,
-        116,
-        117,
-        118
+        119,
+        120,
+        121
       ]
     },
     {
@@ -189,14 +192,14 @@
         62,
         75,
         84,
-        120,
-        121,
-        122,
         123,
-        134,
-        135,
-        136,
-        137
+        124,
+        125,
+        126,
+        137,
+        138,
+        139,
+        140
       ]
     }
   ],
@@ -377,7 +380,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1035,
+      "sourceFileCount": 1038,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -1196,7 +1199,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1374,
+      "sourceFileCount": 1380,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1318,6 +1321,32 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/provenance-c2pa/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Provenance.C2pa"
+    },
+    {
+      "name": "OfficeIMO.Publisher",
+      "packageId": "OfficeIMO.Publisher",
+      "category": "Formats and interoperability",
+      "description": "Managed Microsoft Publisher publication recovery with positioned drawing pages and fidelity reports.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Publisher/OfficeIMO.Publisher.csproj",
+      "sourceFileCount": 29,
+      "referencingTestProjectCount": 0,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher"
+    },
+    {
+      "name": "OfficeIMO.Publisher.Pdf",
+      "packageId": "OfficeIMO.Publisher.Pdf",
+      "category": "Formats and interoperability",
+      "description": "Managed Microsoft Publisher to PDF conversion through the shared OfficeIMO drawing and PDF engines.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Publisher.Pdf/OfficeIMO.Publisher.Pdf.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Publisher.Pdf"
     },
     {
       "name": "OfficeIMO.Reader.All",
@@ -1593,6 +1622,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.PowerPoint"
     },
     {
+      "name": "OfficeIMO.Reader.Publisher",
+      "packageId": "OfficeIMO.Reader.Publisher",
+      "category": "Extraction and ingestion",
+      "description": "Native Microsoft Publisher adapter for OfficeIMO.Reader modular ingestion.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Publisher/OfficeIMO.Reader.Publisher.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Publisher"
+    },
+    {
       "name": "OfficeIMO.Reader.Rtf",
       "packageId": "OfficeIMO.Reader.Rtf",
       "category": "Extraction and ingestion",
@@ -1846,7 +1888,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 763,
+      "sourceFileCount": 768,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1950,7 +1992,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 201,
+      "sourceFileCount": 202,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",
