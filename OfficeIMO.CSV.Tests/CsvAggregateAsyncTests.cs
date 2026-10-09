@@ -19,6 +19,7 @@ public sealed class CsvAggregateAsyncTests {
     [InlineData(1)]
     [InlineData(3)]
     [InlineData(4096)]
+    [InlineData(32768)]
     public async Task ShortReadsPreserveEveryBorrowedFieldAndOrderedIndependentState(int chunk) {
         Guid guid = Guid.Parse("03366c08-b412-48af-9106-386b7da35f77");
         string text = "Id,Name,Money,When,Flag,Key\r\n" + string.Concat(Enumerable.Range(1, 32).Select(
@@ -114,6 +115,8 @@ public sealed class CsvAggregateAsyncTests {
     [InlineData(true, 1)]
     [InlineData(false, 4096)]
     [InlineData(true, 4096)]
+    [InlineData(false, 32768)]
+    [InlineData(true, 32768)]
     public async Task BoundedReadAheadAndCancellationJoinAnAlreadyRunningCallback(bool loadToken, int chunk) {
         byte[] bytes = Encoding.UTF8.GetBytes("Id\n" + string.Concat(Enumerable.Repeat("1\n", 20_000)));
         using var input = new AsyncInput(bytes, chunk, blockAtEnd: true);

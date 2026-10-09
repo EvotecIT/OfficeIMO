@@ -16,6 +16,7 @@ public class CsvRecordTextBatchTests
     [Theory]
     [InlineData(1)]
     [InlineData(4096)]
+    [InlineData(32768)]
     public async Task CapturedFieldsAndPrimitiveValuesSurviveSourceAdvanceAndClose(int chunk)
     {
         const int rows = 259;

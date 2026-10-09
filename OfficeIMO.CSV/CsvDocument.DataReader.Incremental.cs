@@ -18,7 +18,8 @@ public sealed partial class CsvDocument
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        return CreateIncrementalReaderAsync(options => CsvFile.OpenTextReaderForAsyncRead(path, options, 4096),
+        return CreateIncrementalReaderAsync(
+            options => CsvFile.OpenTextReaderForAsyncRead(path, options, CsvLineReader.DefaultBufferSize),
             loadOptions, readerOptions, cancellationToken);
     }
 
@@ -35,7 +36,8 @@ public sealed partial class CsvDocument
     {
         if (stream is null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-        return CreateIncrementalReaderAsync(options => CsvFile.OpenTextReader(stream, options, leaveOpen: true, 4096),
+        return CreateIncrementalReaderAsync(
+            options => CsvFile.OpenTextReader(stream, options, leaveOpen: true, CsvLineReader.DefaultBufferSize),
             loadOptions, readerOptions, cancellationToken);
     }
 

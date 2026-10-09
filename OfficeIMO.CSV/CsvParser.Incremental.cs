@@ -13,7 +13,7 @@ internal static partial class CsvParser
     {
         private readonly TextReader _reader;
         private readonly CsvLoadOptions _options;
-        private readonly char[] _buffer = new char[4096];
+        private readonly char[] _buffer = new char[CsvLineReader.DefaultBufferSize];
         private readonly Queue<CsvLine> _pending = new();
         private readonly Dictionary<string, string>? _cache;
         private readonly string _delimiter;

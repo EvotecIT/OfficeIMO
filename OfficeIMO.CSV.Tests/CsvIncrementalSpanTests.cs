@@ -17,6 +17,7 @@ public class CsvIncrementalSpanTests
     [InlineData(1)]
     [InlineData(3)]
     [InlineData(4096)]
+    [InlineData(32768)]
     public async Task EveryFieldMatchesCanonicalParsingAcrossRefillsAndMixedRecords(int chunk)
     {
         const int columns = 19;
@@ -70,14 +71,16 @@ public class CsvIncrementalSpanTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task CarriageReturnAtTransportBoundaryPreservesFollowingRecord(bool lineFeed)
+    [InlineData(false, 4096)]
+    [InlineData(true, 4096)]
+    [InlineData(false, 32768)]
+    [InlineData(true, 32768)]
+    public async Task CarriageReturnAtTransportBoundaryPreservesFollowingRecord(bool lineFeed, int chunk)
     {
-        // The CR is the final character of the incremental reader's first 4096-character buffer.
-        string value = new string('a', 4092);
+        // The CR ends the first transport chunk, whether that refill is partial or full.
+        string value = new string('a', chunk - 4);
         string csv = "V\n" + value + "x\r" + (lineFeed ? "\n" : "") + "next\r\nlast";
-        using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), 4096);
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), chunk);
         using var reader = await CsvDocument.OpenDataReaderAsync(input);
         Assert.True(await reader.ReadAsync());
         Assert.Equal(value + "x", reader.GetString(0));
