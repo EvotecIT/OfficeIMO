@@ -47,6 +47,16 @@ namespace OfficeIMO.Excel {
         public bool DisableFastPackageWriter { get; set; }
 
         /// <summary>
+        /// Selects string storage when creating a native XLSB workbook. <c>true</c> deduplicates
+        /// text cells in a shared-string table; <c>false</c> writes inline strings. The default
+        /// <c>null</c> preserves the normal inline output for new workbooks and the original
+        /// storage of imported XLSB packages. Shared strings retain each distinct text value
+        /// in memory during save. Explicit values are rejected for imported XLSB workbooks
+        /// and for output formats other than XLSB before the destination is written.
+        /// </summary>
+        public bool? XlsbUseSharedStrings { get; set; }
+
+        /// <summary>
         /// When true, evaluates supported formulas and writes cached values before this save.
         /// Unsupported formulas are preserved for Excel-compatible applications to calculate.
         /// </summary>
@@ -98,6 +108,7 @@ namespace OfficeIMO.Excel {
                 ValidateOpenXml = ValidateOpenXml,
                 SafePreflight = SafePreflight,
                 DisableFastPackageWriter = DisableFastPackageWriter,
+                XlsbUseSharedStrings = XlsbUseSharedStrings,
                 EvaluateFormulasBeforeSave = EvaluateFormulasBeforeSave,
                 ClearCachedFormulaResultsBeforeSave = ClearCachedFormulaResultsBeforeSave,
                 MarkFormulasDirtyBeforeSave = MarkFormulasDirtyBeforeSave,

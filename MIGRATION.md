@@ -668,6 +668,22 @@ path also writes directly and can leave a partial append on failure.
 `SaveAsync(Stream, ...)` now throws `ArgumentException` instead of silently
 ignoring it.
 
+## Excel tabular imports preserve missing cells
+
+`InsertDataTable`, `InsertDataSet`, `InsertDataReader`, and projected object
+imports preserve `null` and `DBNull.Value` as blank cells through direct and
+materialized save paths.
+An explicit `string.Empty` remains a text cell. Readers return `DBNull` for the
+missing value and an empty string for the text value.
+
+If an application requires empty text for a missing imported value, replace
+that value with `string.Empty` before importing it. The existing
+`CellValue(null)` and `CellValue(DBNull.Value)` empty-text behavior is unchanged.
+
+Native XLS saves preserve explicitly authored empty strings as text, including
+styled cells. Readers now return an empty string for those cells where previous
+XLS saves wrote a blank record.
+
 ## Excel typed formula caches
 
 OfficeIMO calculation now saves Boolean formulas as Boolean cached values.

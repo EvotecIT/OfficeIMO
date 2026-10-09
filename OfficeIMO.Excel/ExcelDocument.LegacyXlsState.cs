@@ -479,7 +479,6 @@ namespace OfficeIMO.Excel {
             if (sheet.HasTable
                 || sheet.IncludeAutoFilter
                 || sheet.AutoFitColumns
-                || sheet.OmitBlankCells
                 || sheet.Metadata?.IsEmpty == false
                 || sheet.ColumnNumberFormats != null
                 || !A1.TryParseRange(sheet.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
@@ -500,7 +499,8 @@ namespace OfficeIMO.Excel {
             source = new ExcelDirectTabularSource(
                 sheet.SheetName,
                 sheet.Table,
-                sheet.IncludeHeaders);
+                sheet.IncludeHeaders,
+                preserveMissingValues: sheet.OmitBlankCells);
             return true;
         }
 
