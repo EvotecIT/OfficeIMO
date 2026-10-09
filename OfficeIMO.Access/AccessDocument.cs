@@ -63,7 +63,7 @@ namespace OfficeIMO.Access {
         public IReadOnlyDictionary<string, object?> Properties { get; internal set; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?>());
         /// <summary>Exact database property map, including unqualified chunks.</summary>
         public AccessOpaqueValue? NativeProperties { get; internal set; }
-        /// <summary>Stored legacy database code page. Jet4/ACE text values use Unicode; this marker does not authorize lossy decoding.</summary>
+        /// <summary>Stored database code page. Jet3 uses qualified single-byte maps; Jet4/ACE text values use Unicode. Unsupported encodings are not converted lossily.</summary>
         public int? CodePage { get; internal set; }
         /// <summary>Stored collation identifier. Reading metadata does not implement engine sorting or query evaluation.</summary>
         public int? SortOrder { get; internal set; }

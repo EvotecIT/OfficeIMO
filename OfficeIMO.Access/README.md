@@ -1,6 +1,6 @@
 # OfficeIMO.Access
 
-OfficeIMO.Access reads native Jet 4 MDB and ACE ACCDB files, inspects their application objects and VBA, preserves unchanged files, and creates fresh Jet 4/ACE 12 databases from one typed document model. It exposes catalogs, selected table schemas and properties, indexes, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
+OfficeIMO.Access reads native Jet 3/Jet 4 MDB and ACE ACCDB files, inspects qualified Jet 4/ACE application objects and VBA, preserves unchanged files, and creates fresh Jet 4/ACE 12 databases from one typed document model. It exposes catalogs, selected table schemas and properties, indexes, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
 
 The library runs on .NET without Microsoft Access, DAO, OLE DB or a database provider. It references OfficeIMO.Core for shared document contracts and binary primitives. File inspection never executes SQL, VBA, macros, calculated expressions or linked-table connections.
 
@@ -41,6 +41,8 @@ while (reader.Read()) {
 ```
 
 The same API reads both file families. `AccessDataReader` implements `DbDataReader` and works with `DataTable.Load`. Field order and types come from the native schema. `RowCount` is the declared native count; a complete scan validates it. Linked tables expose `LinkedTable` metadata and reject row access because the library never resolves external targets.
+
+Access 97 files use the same `Load` and `OpenDataReader` calls and report `Profile = AccessFormatProfile.Jet3`. The Jet 3 reader handles 2048-byte pages, legacy table definitions and variable-field directories, and the qualified single-byte code pages 1250, 1252, 437, 850 and MacRoman (10000). Unsupported column encodings return exact `AccessOpaqueValue` bytes with diagnostics; unsupported catalog encodings keep the whole catalog unavailable. Jet 3 property maps and application definitions remain preserve-only, and VBA inspection is unavailable for this generation.
 
 `Tables` contains user tables. `SystemTables` exposes native system/backing tables separately, and `Catalog` retains native identifiers, flags, owner metadata and exact catalog-row representations. Each collection has its own `CatalogStatus`. An application inventory can be decoded while individual definitions remain preserve-only.
 
@@ -93,7 +95,7 @@ Ordinary linked-table views and the `MSysObjects.Connect` reader redact credenti
 
 ## Inspection, limits and lifetime
 
-`AccessDocument.Inspect(path)` performs header-only inspection. `Load` decodes qualified catalogs by default; `DecodeCatalog = false` keeps header-only loading. Protected and Jet 3 inputs retain `NotDecoded` catalogs with explicit diagnostics. Header inspection checks signatures, generation, page alignment and byte/page budgets and hashes a bounded snapshot. It does not establish protection state, object absence or whole-database validity.
+`AccessDocument.Inspect(path)` performs header-only inspection. `Load` decodes qualified catalogs by default; `DecodeCatalog = false` keeps header-only loading. Protected inputs and unsupported Jet 3 catalog encodings retain `NotDecoded` catalogs with explicit diagnostics. Header inspection checks signatures, generation, page alignment and byte/page budgets and hashes a bounded snapshot. It does not establish protection state, object absence or whole-database validity.
 
 Loading snapshots the bounded file into memory and closes its file handle. Table selection limits user-schema decoding, while required system metadata is still decoded. User rows and large fields are not materialized into the document model. Limits cover input bytes, pages, catalog objects, total metadata bytes, value bytes, rows traversed and chain depth. Cancellation reaches loading, page traversal and payload reads; in-memory reader async methods complete synchronously.
 

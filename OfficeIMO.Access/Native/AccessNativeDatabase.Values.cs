@@ -23,9 +23,9 @@ namespace OfficeIMO.Access {
                     try { return DateTime.SpecifyKind(DateTime.FromOADate(F64(bytes, 0)), DateTimeKind.Unspecified); }
                     catch (ArgumentException exception) { throw new InvalidDataException("Native Access date is outside its supported range.", exception); }
                 case 9: case 17: return bytes.ToArray();
-                case 10: { string value = Text(bytes); return column.RedactConnection ? RedactConnection(value)! : value; }
+                case 10: { object value = NativeText(column, bytes, cancellation); return column.RedactConnection && value is string text ? RedactConnection(text)! : value; }
                 case 11: return LongValue(bytes, cancellation, maximumBytes);
-                case 12: { string value = Text(LongValue(bytes, cancellation, maximumBytes)); return column.RedactConnection ? RedactConnection(value)! : value; }
+                case 12: { object value = NativeText(column, LongValue(bytes, cancellation, maximumBytes), cancellation); return column.RedactConnection && value is string text ? RedactConnection(text)! : value; }
                 case 15: return new Guid(bytes.ToArray());
                 case 19: return I64(bytes, 0);
                 case 16: return Numeric(column, bytes);

@@ -72,13 +72,13 @@ namespace OfficeIMO.Access {
             AccessTable table = new AccessTable(_document, definition.Name) { NativeTable = definition, IsSystem = system }; definition.Model = table;
             foreach (AccessNativeColumn native in definition.Columns) {
                 AccessDataType dataType = DataType(native);
-                AccessColumn column = new AccessColumn(table, native.Name, dataType, dataType == AccessDataType.ShortText ? native.Size / 2 : (int?)null) {
+                AccessColumn column = new AccessColumn(table, native.Name, dataType, dataType == AccessDataType.ShortText ? native.Size / (Layout.IsJet3 ? 1 : 2) : (int?)null) {
                     IsAutoNumber = (native.Flags & 0x44) != 0, AutoNumberSeed = null, IsHyperlink = (native.Flags & 0x80) != 0, IsCalculated = native.Calculated,
                     Precision = native.Type == 16 ? native.Precision : (int?)null, Scale = native.Type == 16 ? native.Scale : (int?)null
                 };
                 native.Model = column; table.Columns.AddNativeItem(column);
                 native.RedactConnection = definition.Name == "MSysObjects" && native.Name == "Connect";
-                string? opaque = native.Calculated ? "calculated" : column.DataType == AccessDataType.Unknown ? "unknown-type" : native.Type == 16 && (native.Precision < 1 || native.Precision > 28 || native.Scale > 28) ? "decimal-precision" : null;
+                string? opaque = native.Calculated ? "calculated" : column.DataType == AccessDataType.Unknown ? "unknown-type" : Layout.IsJet3 && native.CodePage != 0 && !QualifiedJet3CodePage(native.CodePage) ? "encoding" : native.Type == 16 && (native.Precision < 1 || native.Precision > 28 || native.Scale > 28) ? "decimal-precision" : null;
                 if (opaque != null) column.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.value.opaque." + opaque, "The field's native payload is retained exactly without evaluation, narrowing or coercion.", column.Id) });
             }
             foreach (AccessNativeIndex native in definition.Indexes) table.Indexes.AddNativeItem(new AccessIndex(table, native.Name,

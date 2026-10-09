@@ -18,7 +18,7 @@ namespace OfficeIMO.Access {
         internal bool RedactConnection;
         internal string Name = string.Empty;
         internal byte Type, Flags, ExtraFlags, Precision, Scale;
-        internal int Number, VariableIndex, FixedOffset, Size, ComplexId;
+        internal int Number, VariableIndex, FixedOffset, Size, ComplexId, CodePage;
         internal bool Variable => (Flags & 1) == 0;
         internal bool Calculated => (ExtraFlags & 0xc0) != 0;
         internal AccessColumn? Model;

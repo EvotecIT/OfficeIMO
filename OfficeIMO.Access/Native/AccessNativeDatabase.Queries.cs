@@ -5,7 +5,8 @@ namespace OfficeIMO.Access {
         private void LoadQueries(CancellationToken cancellation) {
             Dictionary<int, List<AccessQueryRecord>> records = new Dictionary<int, List<AccessQueryRecord>>();
             if (_tables.TryGetValue("MSysQueries", out AccessNativeTable? table)) {
-                RequireFields(table, "ObjectId", "Attribute", "Name1", "Name2", "Expression", "Flag", "LvExtra", "Order");
+                RequireFields(table, "ObjectId", "Attribute", "Name1", "Name2", "Expression", "Flag", "Order");
+                if (!Layout.IsJet3) RequireFields(table, "LvExtra");
                 using AccessNativeRowCursor rows = new AccessNativeRowCursor(table, cancellation, rowLimit: MaxCatalogObjects);
                 while (rows.Read(cancellation)) {
                     int id = Convert.ToInt32(RequiredField(table, rows, "ObjectId", cancellation));
