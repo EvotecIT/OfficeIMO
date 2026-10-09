@@ -237,6 +237,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
         ReaderInputKind.Word => OfficeDocumentFormat.Word,
         ReaderInputKind.Excel => OfficeDocumentFormat.Excel,
         ReaderInputKind.PowerPoint => OfficeDocumentFormat.PowerPoint,
+        ReaderInputKind.Publisher => OfficeDocumentFormat.Publisher,
         ReaderInputKind.Markdown => OfficeDocumentFormat.Markdown,
         ReaderInputKind.Text => OfficeDocumentFormat.Text,
         ReaderInputKind.Pdf => OfficeDocumentFormat.Pdf,
@@ -259,6 +260,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
         ReaderInputKind.Opml => OfficeDocumentFormat.Opml,
         ReaderInputKind.DocBook => OfficeDocumentFormat.DocBook,
         ReaderInputKind.IWork => OfficeDocumentFormat.IWork,
+        ReaderInputKind.Xps => OfficeDocumentFormat.Xps,
         _ => OfficeDocumentFormat.Unknown
     };
 

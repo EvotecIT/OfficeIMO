@@ -1,5 +1,6 @@
 using OfficeIMO.Publisher;
 using OfficeIMO.Markdown;
+using OfficeIMO.Pdf;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Publisher;
 using System.Security.Cryptography;
@@ -102,10 +103,22 @@ public sealed class ReaderPublisherTests {
     }
 
     [Fact]
+    public void SemanticPdfProjectionRetainsStoryTextAndSourceLosses() {
+        OfficeDocumentReadResult source = CreateReader().ReadDocument(Fixture("Sample.pub"), "source.pub");
+        Assert.Equal(OfficeDocumentFormat.Publisher, OfficeDocumentReadResultPdfExtensions.MapFormat(source.Kind));
+        PdfDocumentConversionResult conversion = source.ToPdfDocumentResult(new PdfProjectionOptions {
+            PagePolicy = PdfProjectionPagePolicy.ContinuousFlow
+        });
+        string text = PdfReadDocument.Open(conversion.ToBytes()).ExtractText();
+        Assert.Contains("This is some text", text); Assert.Contains("Bottom Right", text); Assert.Contains("second page", text);
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "PUB_READER_LAYOUT_OMITTED" && warning.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void LiteralSourcePunctuationDoesNotActivateMarkdownOrHtml() {
         const string text = "[click](https://example.test) <script>alert(1)</script> # title *value*";
         string escaped = ReaderMarkdownEscaping.EscapeLiteral(text);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse(escaped).Blocks));
+        var paragraph = Assert.IsType<OfficeIMO.Markdown.ParagraphBlock>(Assert.Single(MarkdownReader.Parse(escaped).Blocks));
         var literal = new System.Text.StringBuilder();
         ((IPlainTextMarkdownInline)paragraph.Inlines).AppendPlainText(literal);
         Assert.Equal(text, literal.ToString());

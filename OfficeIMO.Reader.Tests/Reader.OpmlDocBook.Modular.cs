@@ -641,6 +641,7 @@ public sealed class ReaderOpmlDocBookModularTests {
     [Theory]
     [InlineData(ReaderInputKind.Opml, OfficeDocumentFormat.Opml)]
     [InlineData(ReaderInputKind.DocBook, OfficeDocumentFormat.DocBook)]
+    [InlineData(ReaderInputKind.Xps, OfficeDocumentFormat.Xps)]
     public void PdfBridgeRetainsNewReaderFormats(ReaderInputKind readerKind, OfficeDocumentFormat expectedFormat) {
         Assert.Equal(expectedFormat, OfficeDocumentReadResultPdfExtensions.MapFormat(readerKind));
     }
