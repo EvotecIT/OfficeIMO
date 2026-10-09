@@ -627,7 +627,10 @@
           return { value: order.join(','), problem: moved ? '' : 'Drag the pages into a new order first.' };
         }
         var list = selectedList();
-        if (!list.length) return { value: '', problem: mode === 'remove' ? 'Click the pages you want to delete.' : mode === 'rotate' ? 'Click the pages you want to rotate.' : 'Click the pages you want to keep.' };
+        if (!list.length) {
+          var verb = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click';
+          return { value: '', problem: verb + (mode === 'remove' ? ' the pages you want to delete.' : mode === 'rotate' ? ' the pages you want to rotate.' : ' the pages you want to keep.') };
+        }
         if (mode === 'remove' && list.length >= count) return { value: ranges(list), problem: 'You can’t delete every page.' };
         return { value: ranges(list), problem: '' };
       },

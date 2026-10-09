@@ -70,7 +70,7 @@ h1{font-size:2.75rem;font-weight:800} h2{font-size:2rem;font-weight:800} h3{font
 
 /* Buttons */
 .imo-btn{display:inline-flex;align-items:center;justify-content:center;gap:0.5rem;border:1.5px solid transparent;cursor:pointer;transition:all var(--imo-duration) var(--imo-ease);text-decoration:none;white-space:nowrap}
-.imo-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--imo-accent-glow)}
+.imo-btn:focus-visible{outline:2px solid var(--imo-accent);outline-offset:3px;box-shadow:0 0 0 3px var(--imo-accent-glow)}
 .imo-btn-primary{background:var(--imo-accent-gradient);color:var(--imo-on-accent,#fff);border:none;box-shadow:0 4px 16px var(--imo-accent-glow)}
 .imo-btn-primary:hover{box-shadow:var(--imo-shadow-glow);transform:translateY(-2px);color:var(--imo-on-accent,#fff)}
 .imo-btn-ghost{background:var(--imo-glass);backdrop-filter:blur(12px);color:var(--imo-text);border-color:var(--imo-glass-border-hover)}

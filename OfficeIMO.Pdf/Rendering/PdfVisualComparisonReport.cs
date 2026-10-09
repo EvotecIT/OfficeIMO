@@ -34,35 +34,82 @@ public sealed class PdfVisualComparisonReport {
         long maximumOutputBytes,
         CancellationToken cancellationToken = default) {
         var html = new BoundedUtf8HtmlBuilder(maximumOutputBytes);
-        html.Append("<!doctype html><html><head><meta charset=\"utf-8\"><style>body{font-family:sans-serif}section{margin:1rem 0}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}img{max-width:100%;border:1px solid #ccc}.fail{color:#b00020}</style></head><body>");
-        html.Append("<h1>");
-        html.AppendHtmlEncoded(title ?? "PDF visual comparison");
-        html.Append("</h1>");
-        foreach (string difference in StructuralDifferences) {
-            cancellationToken.ThrowIfCancellationRequested();
-            html.Append("<p class=\"fail\">");
-            html.AppendHtmlEncoded(difference);
+        string heading = title ?? "PDF visual comparison";
+        html.Append("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>");
+        html.AppendHtmlEncoded(heading);
+        html.Append("</title><style>").Append(GalleryStyles).Append("</style></head><body><main>");
+        int differing = Pages.Count(static page => !page.IsMatch);
+        html.Append("<header><p class=\"eyebrow\">PDF visual comparison</p><h1>");
+        html.AppendHtmlEncoded(heading);
+        html.Append("</h1><p class=\"summary\"><span class=\"badge ").Append(IsMatch ? "ok\">Match" : "bad\">Different").Append("</span>")
+            .Append(Pages.Count.ToString(CultureInfo.InvariantCulture)).Append(Pages.Count == 1 ? " page compared" : " pages compared")
+            .Append(" · ").Append((Pages.Count - differing).ToString(CultureInfo.InvariantCulture)).Append(" matching · ")
+            .Append(differing.ToString(CultureInfo.InvariantCulture)).Append(" different</p>");
+        if (differing > 0) {
+            html.Append("<p class=\"jump\">Go to ");
+            int listed = 0;
+            foreach (PdfVisualPageComparison page in Pages) {
+                if (page.IsMatch) continue;
+                if (listed == 20) { html.Append(" …"); break; }
+                cancellationToken.ThrowIfCancellationRequested();
+                string number = page.PageNumber.ToString(CultureInfo.InvariantCulture);
+                html.Append(listed++ == 0 ? string.Empty : " ").Append("<a href=\"#page-").Append(number).Append("\">page ").Append(number).Append("</a>");
+            }
             html.Append("</p>");
+        }
+        html.Append("</header>");
+        if (StructuralDifferences.Count > 0) {
+            html.Append("<section class=\"alert\"><h2>Structural differences</h2><ul>");
+            foreach (string difference in StructuralDifferences) {
+                cancellationToken.ThrowIfCancellationRequested();
+                html.Append("<li>");
+                html.AppendHtmlEncoded(difference);
+                html.Append("</li>");
+            }
+            html.Append("</ul></section>");
         }
         foreach (PdfVisualPageComparison page in Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            html.Append("<section><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
+            html.Append("<section id=\"page-").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("\" class=\"page").Append(page.IsMatch ? "\">" : " differs\">").Append("<div class=\"page-head\"><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
             if (page.ActualPageNumber != page.PageNumber) html.Append(" vs. ").Append(page.ActualPageNumber.ToString(CultureInfo.InvariantCulture));
-            html.Append(page.IsMatch ? " - match" : " - differs").Append("</h2><p>")
-                .Append(page.DifferentPixels.ToString(CultureInfo.InvariantCulture)).Append(" changed pixels; ratio ").Append(page.DifferenceRatio.ToString("0.######", CultureInfo.InvariantCulture)).Append("</p>");
+            html.Append("</h2><span class=\"badge ").Append(page.IsMatch ? "ok\">Match" : "bad\">Differs").Append("</span><p>")
+                .Append(page.DifferentPixels.ToString("N0", CultureInfo.InvariantCulture)).Append(" changed pixels · ")
+                .Append((page.DifferenceRatio * 100D).ToString("0.###", CultureInfo.InvariantCulture)).Append("% of the page</p></div>");
             if (PdfRenderCapabilities.HasIncompleteVisualProjection(page.ExpectedCapabilityDiagnostics) ||
                 PdfRenderCapabilities.HasIncompleteVisualProjection(page.ActualCapabilityDiagnostics)) {
-                html.Append("<p class=\"fail\">Managed rendering is incomplete; these pixel images alone cannot prove a match.</p>");
+                html.Append("<p class=\"note\">Managed rendering is incomplete; these pixel images alone cannot prove a match.</p>");
             }
             html.Append("<div class=\"grid\">");
             AppendImage(html, "Expected", page.ExpectedPng, cancellationToken);
             AppendImage(html, "Actual", page.ActualPng, cancellationToken);
-            AppendImage(html, "Diff", page.DiffPng, cancellationToken);
+            AppendImage(html, "Changes", page.DiffPng, cancellationToken);
             html.Append("</div></section>");
         }
 
-        return html.Append("</body></html>").ToString();
+        return html.Append("</main></body></html>").ToString();
     }
+
+    // Self-contained styles: readable on phones, light or dark with the viewer's preference, no external assets.
+    private const string GalleryStyles =
+        ":root{color-scheme:light dark;--bg:#f5f7fb;--card:#fff;--line:#dde3ec;--text:#0d1526;--muted:#5b6880;--ok:#047857;--bad:#be123c;--warn:#92400e}" +
+        "@media (prefers-color-scheme:dark){:root{--bg:#0b1020;--card:#131a2e;--line:#26304a;--text:#e7edf6;--muted:#97a3ba;--ok:#34d399;--bad:#fb7185;--warn:#fbbf24}}" +
+        "*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}" +
+        "main{max-width:1180px;margin:0 auto;padding:28px 20px 48px}header{margin-bottom:20px}" +
+        ".eyebrow{margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}" +
+        "h1{margin:0 0 10px;font-size:clamp(22px,4vw,32px);line-height:1.2}h2{margin:0;font-size:17px}" +
+        ".summary{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;color:var(--muted)}" +
+        ".badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}" +
+        ".badge.bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}" +
+        ".alert,.page{margin:0 0 14px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--card)}" +
+        ".alert{border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}.alert ul{margin:8px 0 0;padding-left:20px}" +
+        ".page.differs{border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}" +
+        ".page-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:12px}.page-head p{flex-basis:100%;margin:0;font-size:13px;color:var(--muted)}" +
+        ".note{margin:0 0 12px;font-size:13px;color:var(--warn)}" +
+        ".jump{margin:10px 0 0;font-size:14px;color:var(--muted)}.jump a{margin-right:4px;padding:2px 9px;border-radius:999px;color:var(--bad);text-decoration:none;font-weight:600;background:color-mix(in srgb,var(--bad) 12%,transparent)}" +
+        ".grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}" +
+        "figure{margin:0}figcaption{margin-bottom:6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}" +
+        "img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff}" +
+        "@media (max-width:640px){main{padding:18px 14px 32px}.grid{grid-template-columns:1fr 1fr}.grid figure:last-child{grid-column:1/-1}}";
 
     private static void AppendImage(
         BoundedUtf8HtmlBuilder html,
