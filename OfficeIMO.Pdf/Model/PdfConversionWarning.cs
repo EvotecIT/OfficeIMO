@@ -36,8 +36,9 @@ public sealed class PdfConversionWarning {
         OfficeConversionLossKind lossKind,
         PdfLayoutDiagnostic? layoutDiagnostic = null,
         IReadOnlyDictionary<string, string>? details = null) {
-        if (lossKind < OfficeConversionLossKind.None || lossKind > OfficeConversionLossKind.Failure)
+        if (!Enum.IsDefined(typeof(OfficeConversionLossKind), lossKind)) {
             throw new ArgumentOutOfRangeException(nameof(lossKind));
+        }
         Converter = string.IsNullOrWhiteSpace(converter) ? "OfficeIMO.Pdf" : converter;
         Code = string.IsNullOrWhiteSpace(code) ? "PdfConversionWarning" : code;
         Source = source ?? string.Empty;

@@ -102,7 +102,7 @@ public sealed class EmailDiagnostic {
     public bool IsRetryable { get; }
 
     private static void ValidateLossKind(OfficeConversionLossKind lossKind) {
-        if (lossKind < OfficeConversionLossKind.None || lossKind > OfficeConversionLossKind.Failure) {
+        if (!Enum.IsDefined(typeof(OfficeConversionLossKind), lossKind)) {
             throw new ArgumentOutOfRangeException(nameof(lossKind));
         }
     }

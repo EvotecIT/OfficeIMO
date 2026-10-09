@@ -380,7 +380,7 @@ public static class OfficeDocumentModelPdfExtensions {
             if (severity != PdfConversionWarningSeverity.Error &&
                 diagnostic.Attributes.TryGetValue("lossKind", out string? value) &&
                 Enum.TryParse(value, out OfficeConversionLossKind sourceLoss) &&
-                sourceLoss >= OfficeConversionLossKind.None && sourceLoss <= OfficeConversionLossKind.Failure) {
+                Enum.IsDefined(typeof(OfficeConversionLossKind), sourceLoss)) {
                 lossKind = sourceLoss;
             }
             report.Add(new PdfConversionWarning(
