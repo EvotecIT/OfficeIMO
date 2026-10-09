@@ -51,4 +51,35 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(paperHeight - 53D * 0.75D, destination.DestinationTop!.Value, 6);
         Assert.DoesNotContain("Hidden", string.Join("", PdfCore.PdfReadDocument.Open(pdf).Pages.Select(page => page.ExtractText())));
     }
+
+    [Theory]
+    [InlineData(HtmlRenderIntentProfile.PrintPaged, true, 0D, 1)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 0D, 1)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, false, 150D, 3)]
+    [InlineData(HtmlRenderIntentProfile.ScreenSnapshotPaged, true, 150D, 1)]
+    public void HtmlLegacyClip_ProjectionPreservesClippedTargetsOnTheirTransformedPage(
+        HtmlRenderIntentProfile profile, bool stitched, double shift, int expectedPage) {
+        string html = "<style>html,body{height:300px;margin:0}</style><a href='#target'>Go</a>"
+            + "<div style='position:absolute;left:10px;top:50px;width:40px;height:30px;clip:rect(0,0,0,0);"
+            + "transform:translateY(" + shift.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + "px);transform-origin:0 0'><div id='target'>Hidden</div></div>";
+        var options = new HtmlToPdfOptions {
+            PageSize = new OfficePageSize(300D / 96D, 100D / 96D),
+            Margins = HtmlRenderMargins.All(0), ViewportWidth = 300, ViewportHeight = 300,
+            HonorCssPageRules = false, AllowSystemFontFallback = false
+        };
+        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options);
+        if (stitched) request = request.WithPageSet(HtmlRenderPageSet.Stitched());
+        byte[] pdf = HtmlConversionDocument.Parse(html).RenderToPdfBytes(request);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        PdfCore.PdfNamedDestination destination = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).NamedDestinations);
+
+        Assert.Equal(new[] { "html-fragment:target" }, info.LinkDestinationNames);
+        Assert.Equal(expectedPage, destination.PageNumber);
+        Assert.Equal(7.5D, destination.DestinationLeft!.Value, 6);
+        Assert.DoesNotContain("Hidden", PdfCore.PdfReadDocument.Open(pdf).ExtractText());
+        double surfaceHeight = PdfCore.PdfReadDocument.Open(pdf).Pages[expectedPage - 1].GetPageSize().Height;
+        double sourceY = 50D + shift - (stitched ? 0D : (expectedPage - 1) * 100D);
+        Assert.Equal(surfaceHeight - sourceY * 0.75D, destination.DestinationTop!.Value, 6);
+    }
 }

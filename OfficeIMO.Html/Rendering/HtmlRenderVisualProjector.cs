@@ -84,9 +84,13 @@ internal sealed class HtmlRenderVisualProjector {
         }
         // Container frames describe flow, not transformed or overflowing child paint.
         // Select leaves in destination coordinates and retain their enclosing graphics state.
-        if (!Intersects(visual, transform, left, top, right, bottom)) return null;
-        if ((visual is HtmlRenderNamedDestination || visual is HtmlRenderBookmarkAnchor)
-            && !_ownedNavigation.Add(visual)) {
+        if (visual is HtmlRenderNamedDestination or HtmlRenderBookmarkAnchor) {
+            // Navigation has a point and page owner even when its element paints
+            // nothing. Ancestor paint clips must not remove an incoming target.
+            OfficePoint point = transform.TransformPoint(new OfficePoint(visual.X, visual.Y));
+            if (point.X < left || point.X >= right || point.Y < top || point.Y >= bottom
+                || !_ownedNavigation.Add(visual)) return null;
+        } else if (!Intersects(visual, transform, left, top, right, bottom)) {
             return null;
         }
         if (visual is HtmlRenderText text && !_ownedText.Add(text)) {

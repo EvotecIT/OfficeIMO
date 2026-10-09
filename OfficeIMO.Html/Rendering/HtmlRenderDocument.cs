@@ -205,11 +205,11 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order, int? LogicalOrder, bool IsAnchor)>();
         foreach (HtmlRenderPage page in pages) {
-            foreach (HtmlRenderBookmarkAnchor anchor in EnumerateVisuals(page.Scene).OfType<HtmlRenderBookmarkAnchor>()) {
+            foreach (var (anchor, point) in EnumerateBookmarkAnchors(page.Scene, OfficeTransform.Identity)) {
                 if (bookmarks == null || !bookmarks.TryGetValue(anchor.SemanticNodeId, out HtmlRenderBookmarkDefinition? definition) || definition.Suppressed) continue;
-                fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, anchor.X, anchor.Y, anchor.PaintOrder, null, true));
+                fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, point.X, point.Y, anchor.PaintOrder, null, true));
             }
-            foreach (HtmlRenderTextFragment text in EnumerateTextFragments(page.Scene)) {
+            foreach (HtmlRenderTextFragment text in EnumerateTextFragments(page.Scene, OfficeTransform.Identity)) {
                 if (!text.SemanticNodeId.HasValue) continue;
                 bool automatic = HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level);
                 if (bookmarks != null && bookmarks.TryGetValue(text.SemanticNodeId.Value, out HtmlRenderBookmarkDefinition? definition)) {
@@ -247,7 +247,23 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
         return headings;
     }
 
-    private static IEnumerable<HtmlRenderTextFragment> EnumerateTextFragments(IEnumerable<HtmlRenderVisual> visuals) {
+    private static IEnumerable<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)> EnumerateBookmarkAnchors(
+        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
+            if (visual is HtmlRenderBookmarkAnchor anchor) {
+                yield return (anchor, transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y)));
+            }
+            IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
+            if (children == null) continue;
+            OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
+                ? effect.Transform.Then(transform) : transform;
+            foreach (var child in EnumerateBookmarkAnchors(children, childTransform)) yield return child;
+        }
+    }
+
+    private static IEnumerable<HtmlRenderTextFragment> EnumerateTextFragments(
+        IEnumerable<HtmlRenderVisual> visuals, OfficeTransform transform) {
         foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
@@ -255,25 +271,29 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 HtmlRenderText? representative = EnumerateVisuals(logicalTextGroup.Visuals).OfType<HtmlRenderText>().FirstOrDefault();
                 if (representative != null) {
+                    OfficePoint point = transform.TransformPoint(new OfficePoint(logicalTextGroup.X, logicalTextGroup.Y));
                     yield return new HtmlRenderTextFragment(
                         logicalTextGroup.Text,
                         representative.SemanticRole,
                         representative.SemanticNodeId,
-                        logicalTextGroup.X,
-                        logicalTextGroup.Y,
+                        point.X,
+                        point.Y,
                         logicalTextGroup.PaintOrder,
                         representative.SemanticFragmentOrder);
                 }
                 continue;
             }
             if (visual is HtmlRenderText text) {
-                yield return new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, text.X, text.Y, text.PaintOrder, text.SemanticFragmentOrder);
+                OfficePoint point = transform.TransformPoint(new OfficePoint(text.X, text.Y));
+                yield return new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, point.X, point.Y, text.PaintOrder, text.SemanticFragmentOrder);
                 continue;
             }
 
             IEnumerable<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
-            foreach (HtmlRenderTextFragment fragment in EnumerateTextFragments(children)) yield return fragment;
+            OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
+                ? effect.Transform.Then(transform) : transform;
+            foreach (HtmlRenderTextFragment fragment in EnumerateTextFragments(children, childTransform)) yield return fragment;
         }
     }
 

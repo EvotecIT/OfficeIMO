@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("translateX(15px)", true)]
     [InlineData("scale(0)", false)]
-    public void HtmlLegacyClip_TransformedAncestorClipConstrainsFixedViewportPaint(string transform, bool visible) {
+    public void HtmlLegacyClip_TransformedAncestorClipConstrainsLocallyFixedPaint(string transform, bool visible) {
         string html = "<style>body{margin:0}</style><div style='position:absolute;left:10px;top:10px;"
             + "width:100px;height:100px;clip:rect(10px,50px,40px,20px);transform:" + transform
             + ";transform-origin:0 0'>" + FixedClipLink() + "</div>";
@@ -98,7 +98,7 @@ public sealed partial class HtmlRenderingTests {
             PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(links);
             Assert.Equal(33.75D, link.X1, 6);
             Assert.Equal(22.5D, link.Width, 6);
-            Assert.Equal(22.5D, link.Height, 6);
+            Assert.Equal(15D, link.Height, 6);
         } else Assert.Empty(links);
     }
 

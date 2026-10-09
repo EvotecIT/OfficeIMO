@@ -20,8 +20,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement root = _document.Body ?? _document.DocumentElement ?? container;
         IReadOnlyList<PositionedArtifactBoundary> artifactBoundaries = ResolvePositionedArtifactBoundaries(element.ParentElement, parentStyle);
         IReadOnlyList<FlattenedSemanticBoundary> flattenedSemanticBoundaries = ResolvePositionedFlattenedSemanticBoundaries(element.ParentElement);
-        if (style.Position == "fixed") {
-            if (!_registeredFixedElements.Add(element)) return;
+        bool authoredFixed = style.Position == "fixed";
+        if (authoredFixed ? !_registeredFixedElements.Add(element)
+            : style.Position != "absolute" || !_registeredAbsoluteElements.Add(element)) return;
+        IElement? fixedContainingBlock = authoredFixed
+            ? ResolveTransformedContainingBlock(container, parentStyle)
+            : null;
+        if (authoredFixed && fixedContainingBlock == null) {
             _fixedPositionedElements.Add(new PositionedElementRequest(
                 element,
                 container,
@@ -33,12 +38,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 GetPositionedSourceOrder(element),
                 staticAnchor,
                 artifactBoundaries,
-                flattenedSemanticBoundaries));
+                flattenedSemanticBoundaries,
+                isViewportFixed: true));
             return;
         }
-        if (style.Position != "absolute" || !_registeredAbsoluteElements.Add(element)) return;
 
-        IElement containingBlock = ResolveAbsoluteContainingBlock(element, container, parentStyle);
+        IElement containingBlock = fixedContainingBlock ?? ResolveAbsoluteContainingBlock(element, container, parentStyle);
         var request = new PositionedElementRequest(
             element,
             container,
@@ -52,7 +57,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             artifactBoundaries,
             flattenedSemanticBoundaries);
         if (IsRootLayoutContainer(containingBlock)
-            && (!_layoutStyles.TryGetValue(containingBlock, out HtmlRenderBoxStyle? rootStyle) || rootStyle.Position == "static")) {
+            && !authoredFixed
+            && (!_layoutStyles.TryGetValue(containingBlock, out HtmlRenderBoxStyle? rootStyle)
+                || rootStyle.Position == "static" && !EstablishesTransformedContainingBlock(rootStyle))) {
             _rootPositionedElements.Add(request);
             return;
         }
@@ -107,7 +114,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (IElement? ancestor = directParent.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
             if (ReferenceEquals(ancestor, root)) return root;
             HtmlRenderBoxStyle ancestorStyle = _styleResolver.Resolve(ancestor, referenceWidth);
-            if (ancestorStyle.Position != "static") return ancestor;
+            if (ancestorStyle.Position != "static" || EstablishesTransformedContainingBlock(ancestorStyle)) return ancestor;
             if (flattenedFlexOrGridChild && (ancestorStyle.Display == "flex" || ancestorStyle.Display == "grid" || ancestorStyle.Display == "inline-flex" || ancestorStyle.Display == "inline-grid")) {
                 return ancestor;
             }
@@ -119,7 +126,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool EstablishesSupportedAbsoluteContainingBlock(HtmlRenderBoxStyle style) {
         if (style.Display == "flex" || style.Display == "grid" || style.Display == "inline-flex" || style.Display == "inline-grid") return true;
-        return style.Position != "static";
+        return style.Position != "static" || EstablishesTransformedContainingBlock(style);
     }
 
     private void AppendLocalPositionedVisuals(
@@ -132,6 +139,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlRenderVisual> visuals,
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
         if (!_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) return;
+        PrepareLocalPositionedRequests(requests, containingWidth, containingHeight);
         foreach (PositionedElementRequest request in OrderPositionedRequests(requests, band)) {
             AppendLocalPositionedRequest(request, containingWidth, containingHeight, originX, originY, visuals, runningStringAssignments);
         }
@@ -152,6 +160,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<HtmlCssRunningStringAssignment> runningStringAssignments) {
         var layers = new List<(int ZIndex, int SourceOrder, PositionedElementRequest? Request, HtmlPseudoElementKind? Pseudo, FlowPaintLayer? Flow)>();
         if (_localPositionedElements.TryGetValue(container, out List<PositionedElementRequest>? requests)) {
+            PrepareLocalPositionedRequests(requests, containingWidth, containingHeight);
             layers.AddRange(requests.Select(request => (request.ZIndex, request.SourceOrder, (PositionedElementRequest?)request, (HtmlPseudoElementKind?)null, (FlowPaintLayer?)null)));
         }
         if (flowLayers != null) {
@@ -195,11 +204,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double requestOriginX = hasRect ? rect!.X : 0D;
         double requestOriginY = hasRect ? rect!.Y : 0D;
         PositionedLayer layer = request.Resolve(this, requestWidth, requestHeight);
+        IReadOnlyList<HtmlRenderVisual> clipEnvelopes = ResolveLocalFixedAncestorClips(request, containingWidth, containingHeight, originX, originY);
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
-            visuals.Add(visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count).IdentifyOutOfFlowPaint());
+            HtmlRenderVisual painted = visual.Translate(originX + requestOriginX + layer.X, originY + requestOriginY + layer.Y, visuals.Count);
+            visuals.Add(ApplyFixedLegacyClipEnvelopes(painted, clipEnvelopes).IdentifyOutOfFlowPaint());
         }
         foreach (HtmlCssRunningStringAssignment assignment in layer.Block.RunningStringAssignments) {
             runningStringAssignments.Add(assignment.Translate(originY + requestOriginY + layer.Y));
+        }
+    }
+
+    private void PrepareLocalPositionedRequests(List<PositionedElementRequest> requests, double width, double height) {
+        // Resolving a positioned ancestor can discover fixed descendants belonging
+        // to this same transformed containing block. Finish discovery before sorting.
+        for (int index = 0; index < requests.Count; index++) {
+            PositionedElementRequest request = requests[index];
+            bool hasRect = _positionedContainingRects.TryGetValue(request.Element, out PositionedContainingRect? rect);
+            request.Resolve(this, hasRect ? rect!.Width : width, hasRect ? rect!.Height : height);
         }
     }
 
@@ -296,14 +317,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PositionedRequestPlacement placement,
         PositionedPaintBand band) {
         PositionedLayer layer = placement.Request.Resolve(this, placement.Width, placement.Height);
-        if (_options.Mode == HtmlRenderMode.Paged && !placement.Request.IsFixed
+        if (_options.Mode == HtmlRenderMode.Paged && !placement.Request.IsViewportFixed
             && IsWhollyBeforePagedArea(layer)) return;
         foreach (HtmlRenderVisual visual in layer.Block.Visuals) {
             int fallback = band == PositionedPaintBand.Negative ? -1000000000 : _paintOrder++;
             int paintOrder = ResolveRootStackingPaintOrder(placement.Request.SourceOrder, fallback);
             HtmlRenderVisual painted = visual.Translate(placement.OriginX + layer.X, placement.OriginY + layer.Y, paintOrder).IdentifyOutOfFlowPaint();
             visuals.Add(painted);
-            if (placement.Request.IsFixed) _fixedClipPaintRequests[painted] = placement.Request;
+            if (placement.Request.IsViewportFixed) _fixedClipPaintRequests[painted] = placement.Request;
         }
     }
 
@@ -344,7 +365,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private PositionedLayer LayoutPositionedElement(PositionedElementRequest request, double containingWidth, double containingHeight) {
         HtmlRenderBoxStyle parentStyle = request.ParentStyle;
         HtmlRenderBoxStyle style = request.Style.Clone();
-        if (request.IsFixed) {
+        if (request.IsViewportFixed) {
             parentStyle = ResolveFixedPositionedParentStyle(request);
             style = _styleResolver.Resolve(request.Element, containingWidth, parentStyle);
         }
@@ -369,15 +390,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.ZIndex = "auto";
         HtmlRenderFlowBlock block = LayoutElementWithoutEditableRegionMarker(
             request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
-        if (!request.IsFixed && CapturePrintLayoutBoxes) {
-            // Absolute boxes retain their own scrollable print geometry even when
+        if (!request.IsViewportFixed && CapturePrintLayoutBoxes) {
+            // Locally positioned boxes retain their scrollable print geometry even when
             // an ancestor clips their paint. Paint effects may wrap the border
             // box, so search those groups without marking descendant boxes.
             MarkAbsolutePrintOverflow(block.Visuals, source);
         }
         double translatedX = 0D;
         double translatedY = 0D;
-        bool localPagedBox = _options.Mode == HtmlRenderMode.Paged && !request.IsFixed
+        bool localPagedBox = _options.Mode == HtmlRenderMode.Paged && !request.IsViewportFixed
             && !ReferenceEquals(request.ContainingBlock, _document.Body ?? _document.DocumentElement);
         bool tookTranslation = localPagedBox && TryTakePositionedTranslation(
             ref block, style, Math.Max(1D, outerWidth), out translatedX, out translatedY);
@@ -508,7 +529,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int sourceOrder,
             PositionedStaticAnchor? staticAnchor,
             IReadOnlyList<PositionedArtifactBoundary> artifactBoundaries,
-            IReadOnlyList<FlattenedSemanticBoundary> flattenedSemanticBoundaries) {
+            IReadOnlyList<FlattenedSemanticBoundary> flattenedSemanticBoundaries,
+            bool isViewportFixed = false) {
             Element = element;
             DirectParent = directParent;
             ContainingBlock = containingBlock;
@@ -520,6 +542,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             StaticAnchor = staticAnchor;
             ArtifactBoundaries = artifactBoundaries;
             FlattenedSemanticBoundaries = flattenedSemanticBoundaries;
+            IsViewportFixed = isViewportFixed;
         }
         internal IElement Element { get; }
         internal IElement DirectParent { get; }
@@ -532,9 +555,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal PositionedStaticAnchor? StaticAnchor { get; }
         internal IReadOnlyList<PositionedArtifactBoundary> ArtifactBoundaries { get; }
         internal IReadOnlyList<FlattenedSemanticBoundary> FlattenedSemanticBoundaries { get; }
-        internal bool IsFixed => string.Equals(Style.Position, "fixed", StringComparison.Ordinal);
+        // Authored position stays in Style; only viewport-fixed requests repeat per page.
+        internal bool IsViewportFixed { get; }
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
-            bool pageViewportChanged = IsFixed && engine._options.Mode == HtmlRenderMode.Paged
+            bool pageViewportChanged = IsViewportFixed && engine._options.Mode == HtmlRenderMode.Paged
                 && (Math.Abs(engine._activePageGeometry.Width - _pageViewportWidth) > 0.0001D
                     || Math.Abs(engine._activePageGeometry.Height - _pageViewportHeight) > 0.0001D);
             if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D

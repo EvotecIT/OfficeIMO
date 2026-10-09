@@ -429,12 +429,19 @@ The static contract includes normal-flow, flex, grid with column and row subgrid
 Legacy `clip: rect(top, right, bottom, left)` clips the whole border box of an
 absolute or fixed element, including its background, border and link area. Each
 edge accepts a finite length or `auto`; comma-separated and historical
-whitespace-separated rectangles are supported. Empty rectangles suppress paint
-and PDF link annotations while preserving the source DOM and named destinations.
+whitespace-separated rectangles are supported. Ancestor rectangles also clip fixed
+descendants. Empty rectangles suppress paint and PDF link annotations while
+preserving the source DOM, named destinations and heading navigation, including
+when screen output is split into pages or stitched into one surface.
 `clip: auto` leaves overflow visible; `rect(auto, auto, auto, auto)` clips at the
 border box. Clipped form controls use the diagnosed static fallback because PDF
 widgets cannot preserve that authored clipping; strict loss policy rejects it.
 An unsupported applicable rectangle reports `HtmlRenderClipValueUnsupported`.
+
+A supported box with a non-none CSS transform establishes a local padding-box
+containing block for absolute and fixed descendants. These fixed descendants
+follow that box through pagination; viewport-fixed boxes repeat on print pages.
+Heading destinations retain the coordinates produced by enclosing transforms.
 
 Shrink-to-fit sizing for inline blocks, floats and absolute-positioned boxes measures
 styled child text, generated content and replaced images or SVG. Atomic child widths

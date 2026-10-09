@@ -591,7 +591,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private bool IsInRepeatedPageContent(IElement element) {
         for (IElement? current = element; current != null; current = current.ParentElement) {
             if (current.LocalName == "thead" || current.LocalName == "tfoot") return true;
-            if (_styleResolver.Resolve(current, _options.PageWidth).Position == "fixed") return true;
+            if (_styleResolver.Resolve(current, _options.PageWidth).Position == "fixed"
+                && ResolveTransformedContainingBlock(current.ParentElement) == null) return true;
         }
         return false;
     }

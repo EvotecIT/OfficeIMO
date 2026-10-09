@@ -161,7 +161,7 @@ public static partial class HtmlRenderCapabilityCatalog {
         Qualified("layout-positioning", "Layout", HtmlRenderCapabilityKind.Css,
             CssScope(HtmlCapabilityStage.Layout | HtmlCapabilityStage.PaintAndOutput, HtmlCapabilitySpecificationIds.CssPosition),
             Features("position:relative", "position:absolute", "position:fixed", "position:sticky", "position:running()", "insets", "z-index"),
-            "Places relative, absolute, and fixed boxes in the declared containing-block model, captures named running elements for paged margin boxes, retains deterministic stacking, and captures sticky content at its stable static position."),
+            "Places relative, absolute, and fixed boxes in the declared containing-block model. A supported box with a non-none transform establishes a local padding-box containing block for absolute and fixed descendants; only viewport-fixed boxes repeat on print pages. Captures named running elements for paged margin boxes, retains deterministic stacking, and captures sticky content at its stable static position."),
         Fallback("layout-positioning-fallback", "Layout", HtmlRenderCapabilityKind.Css,
             CssScope(HtmlCapabilityStage.Layout, HtmlCapabilitySpecificationIds.CssPosition),
             Features("unsupported positioning modes", "unresolved insets", "unsupported static anchors"),

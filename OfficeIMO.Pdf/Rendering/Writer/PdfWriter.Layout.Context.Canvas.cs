@@ -129,11 +129,6 @@ internal static partial class PdfWriter {
             sb.Append("EMC\n");
         }
 
-        private void RenderCanvasNamedDestination(PdfCanvasNamedDestinationItem item) {
-            EnsurePage();
-            currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = item.Name, X = item.X, Y = currentOpts.PageHeight - item.Y });
-        }
-
         private void RenderCanvasNamedDestinationLink(PdfCanvasNamedDestinationLinkItem item) {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas named-destination link");
             double topY = currentOpts.PageHeight - item.Y;
@@ -384,18 +379,6 @@ internal static partial class PdfWriter {
                 _suppressCanvasAccessibilityWrappers = previous;
             }
             sb.Append("EMC\n");
-        }
-
-        private void RenderCanvasOutline(PdfCanvasOutlineItem item) {
-            EnsurePage();
-            currentPage!.Bookmarks.Add(new PageBookmark {
-                Level = item.Level,
-                Title = item.Title,
-                Y = currentOpts.PageHeight - item.Y,
-                OutlineState = item.State,
-                DocumentOrder = item.DocumentOrder, X = item.X, Uri = item.Uri
-            });
-            pageDirty = true;
         }
 
         private void RenderCanvasText(PdfCanvasTextItem item) {
@@ -731,58 +714,6 @@ internal static partial class PdfWriter {
             pageDirty = true;
         }
 
-        private static void TransformCanvasRectangles(System.Collections.Generic.List<LinkAnnotation> annotations, int startIndex, OfficeTransform transform) {
-            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
-        }
-
-        private static void TransformCanvasRectangles(System.Collections.Generic.List<TextAnnotation> annotations, int startIndex, OfficeTransform transform) {
-            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
-        }
-
-        private static void TransformCanvasRectangles(System.Collections.Generic.List<FreeTextAnnotation> annotations, int startIndex, OfficeTransform transform) {
-            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
-        }
-
-        private static void TransformCanvasRectangles(System.Collections.Generic.List<HighlightAnnotation> annotations, int startIndex, OfficeTransform transform) {
-            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
-        }
-
-        private static void TransformCanvasRectangles(System.Collections.Generic.List<FormFieldAnnotation> annotations, int startIndex, OfficeTransform transform) {
-            for (int index = startIndex; index < annotations.Count; index++) TransformCanvasRectangle(annotations[index], transform);
-        }
-
-        private static void TransformCanvasRectangle(LinkAnnotation annotation, OfficeTransform transform) {
-            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
-        }
-
-        private static void TransformCanvasRectangle(TextAnnotation annotation, OfficeTransform transform) {
-            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
-        }
-
-        private static void TransformCanvasRectangle(FreeTextAnnotation annotation, OfficeTransform transform) {
-            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
-        }
-
-        private static void TransformCanvasRectangle(HighlightAnnotation annotation, OfficeTransform transform) {
-            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
-        }
-
-        private static void TransformCanvasRectangle(FormFieldAnnotation annotation, OfficeTransform transform) {
-            if (transform.M11 > 0D && transform.M11 == transform.M22 && transform.M12 == 0D && transform.M21 == 0D) {
-                annotation.AppearanceScale *= transform.M11;
-            }
-            (annotation.X1, annotation.Y1, annotation.X2, annotation.Y2) = TransformRectangle(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2, transform);
-            for (int index = 0; index < annotation.RadioWidgets.Count; index++) {
-                RadioButtonWidgetAnnotation widget = annotation.RadioWidgets[index];
-                (widget.X1, widget.Y1, widget.X2, widget.Y2) = TransformRectangle(widget.X1, widget.Y1, widget.X2, widget.Y2, transform);
-            }
-        }
-
-        private static (double X1, double Y1, double X2, double Y2) TransformRectangle(double x1, double y1, double x2, double y2, OfficeTransform transform) {
-            (double left, double top, double right, double bottom) = transform.TransformRectangleBounds(x1, y1, x2 - x1, y2 - y1);
-            return (left, top, right, bottom);
-        }
-
         private void ValidateCanvasBox(double x, double yFromTop, double boxWidth, double boxHeight, string name) {
             if (double.IsNaN(x) || double.IsNaN(yFromTop) || double.IsInfinity(x) || double.IsInfinity(yFromTop)) {
                 throw new ArgumentOutOfRangeException(name, name + " coordinates must be finite.");
@@ -798,90 +729,6 @@ internal static partial class PdfWriter {
 
             if (x + boxWidth > currentOpts.PageWidth + 0.001D || yFromTop + boxHeight > currentOpts.PageHeight + 0.001D) {
                 throw new ArgumentException(name + " exceeds the current page bounds.");
-            }
-        }
-
-        private static void ClipCanvasLinkAnnotations(System.Collections.Generic.List<LinkAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, OfficeClipPath clipPath) {
-            double clipRight = clipX + clipWidth;
-            double clipTop = clipBottomY + clipHeight;
-            for (int i = annotations.Count - 1; i >= startIndex; i--) {
-                LinkAnnotation annotation = annotations[i];
-                double x1 = System.Math.Max(annotation.X1, clipX);
-                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
-                double x2 = System.Math.Min(annotation.X2, clipRight);
-                double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
-                    annotations.RemoveAt(i);
-                    continue;
-                }
-
-                annotation.X1 = x1;
-                annotation.Y1 = y1;
-                annotation.X2 = x2;
-                annotation.Y2 = y2;
-            }
-        }
-
-        private static void ClipCanvasTextAnnotations(System.Collections.Generic.List<TextAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, OfficeClipPath clipPath) {
-            double clipRight = clipX + clipWidth;
-            double clipTop = clipBottomY + clipHeight;
-            for (int i = annotations.Count - 1; i >= startIndex; i--) {
-                TextAnnotation annotation = annotations[i];
-                double x1 = System.Math.Max(annotation.X1, clipX);
-                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
-                double x2 = System.Math.Min(annotation.X2, clipRight);
-                double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
-                    annotations.RemoveAt(i);
-                    continue;
-                }
-
-                annotation.X1 = x1;
-                annotation.Y1 = y1;
-                annotation.X2 = x2;
-                annotation.Y2 = y2;
-            }
-        }
-
-        private static void ClipCanvasFreeTextAnnotations(System.Collections.Generic.List<FreeTextAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, OfficeClipPath clipPath) {
-            double clipRight = clipX + clipWidth;
-            double clipTop = clipBottomY + clipHeight;
-            for (int i = annotations.Count - 1; i >= startIndex; i--) {
-                FreeTextAnnotation annotation = annotations[i];
-                double x1 = System.Math.Max(annotation.X1, clipX);
-                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
-                double x2 = System.Math.Min(annotation.X2, clipRight);
-                double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
-                    annotations.RemoveAt(i);
-                    continue;
-                }
-
-                annotation.X1 = x1;
-                annotation.Y1 = y1;
-                annotation.X2 = x2;
-                annotation.Y2 = y2;
-            }
-        }
-
-        private static void ClipCanvasHighlightAnnotations(System.Collections.Generic.List<HighlightAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight, OfficeClipPath clipPath) {
-            double clipRight = clipX + clipWidth;
-            double clipTop = clipBottomY + clipHeight;
-            for (int i = annotations.Count - 1; i >= startIndex; i--) {
-                HighlightAnnotation annotation = annotations[i];
-                double x1 = System.Math.Max(annotation.X1, clipX);
-                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
-                double x2 = System.Math.Min(annotation.X2, clipRight);
-                double y2 = System.Math.Min(annotation.Y2, clipTop);
-                if (x2 <= x1 || y2 <= y1 || !TryClipCanvasAnnotationRectangle(clipPath, clipX, clipBottomY, clipHeight, ref x1, ref y1, ref x2, ref y2)) {
-                    annotations.RemoveAt(i);
-                    continue;
-                }
-
-                annotation.X1 = x1;
-                annotation.Y1 = y1;
-                annotation.X2 = x2;
-                annotation.Y2 = y2;
             }
         }
 
