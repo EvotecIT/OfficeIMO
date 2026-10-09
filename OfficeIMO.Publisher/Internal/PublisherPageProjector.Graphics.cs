@@ -11,29 +11,28 @@ internal sealed partial class PublisherPageProjector {
         shape.StrokeColor = style.LineEnabled != false ? Resolve(style.LineColor, source.Id) : null;
         shape.StrokeWidth = Math.Max(0, (style.LineWidthEmus ?? 9525) / 12700D);
         shape.FillOpacity = style.FillOpacity; shape.StrokeOpacity = style.LineOpacity;
+        ProjectFill(source, shape, geometryWidth, geometryHeight);
         ProjectLineDetails(source, shape);
         if (style.HasProjectableShadow) {
             shape.Shadow = new OfficeShadow(Resolve(style.ShadowColor, source.Id) ?? OfficeColor.Black, style.ShadowOpacity ?? 1,
                 (style.ShadowOffsetXEmus ?? 0) / 12700D, (style.ShadowOffsetYEmus ?? 0) / 12700D, Math.Max(0, (style.ShadowSoftnessEmus ?? 0) / 12700D));
         }
-        if (style.FillEnabled != false && style.FillType.HasValue && style.FillType > 0) {
-            _context.Add("PUB_FILL_APPROXIMATED", "A non-solid native fill was approximated by its primary color.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(source.Id));
-        }
         uint? imageId = source.Property(0x104);
         if (!imageId.HasValue) {
-            if (shape.FillColor.HasValue || shape.StrokeColor.HasValue || shape.Shadow != null) drawing.AddShape(shape, 0, 0);
+            if (HasFill(shape) || shape.StrokeColor.HasValue || shape.Shadow != null) drawing.AddShape(shape, 0, 0);
             return;
         }
         // A picture paints inside its frame, before the outline. Keep fill and
         // shadow beneath it while preserving the native outline above it.
         OfficeShape background = shape.Clone();
         background.StrokeColor = null;
-        if (background.FillColor.HasValue || background.Shadow != null) drawing.AddShape(background, 0, 0);
+        if (HasFill(background) || background.Shadow != null) drawing.AddShape(background, 0, 0);
         ProjectPicture(source, drawing, imageId.Value);
         OfficeShape outline = shape.Clone();
-        outline.FillColor = null; outline.Shadow = null;
+        outline.FillColor = null; outline.FillGradient = null; outline.FillRadialGradient = null; outline.Shadow = null;
         if (outline.StrokeColor.HasValue) drawing.AddShape(outline, 0, 0);
     }
+    private static bool HasFill(OfficeShape shape) => shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null;
     private void ProjectPicture(PublisherEscherShape source, OfficeDrawing drawing, uint imageId) {
         if (imageId > int.MaxValue || !_escher.Images.TryGetValue((int)imageId, out PublisherImage? image)) {
             _context.Add("PUB_IMAGE_REFERENCE_UNRESOLVED", "A native picture refers to an unavailable embedded image.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id)); return;

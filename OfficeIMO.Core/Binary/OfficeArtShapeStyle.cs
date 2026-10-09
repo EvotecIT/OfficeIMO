@@ -21,9 +21,13 @@ public sealed class OfficeArtShapeStyle {
         FillBlipStoreIndex = GetBlipStoreIndex(0x0186);
         FillAngleDegrees = GetSignedFixedPoint(0x018B);
         FillFocusPercent = GetInt32(0x018C);
+        FillShadeType = GetUInt32(0x019C);
         FillGradientStops = ReadGradientStops(out bool gradientStopsTruncated);
         IsFillGradientStopTableTruncated = gradientStopsTruncated;
         FillEnabled = GetBoolean(0x01BF, 0x00100000U, 0x00000010U);
+        FillRotatesWithShape = GetBoolean(0x01BF, 0x00200000U, 0x00000020U);
+        FillAlignedWithShape = GetBoolean(0x01BF, 0x00040000U, 0x00000004U);
+        FillUsesCustomRectangle = GetBoolean(0x01BF, 0x00020000U, 0x00000002U);
         LineColor = GetColor(0x01C0);
         LineOpacity = GetFixedPoint(0x01C1);
         LineType = GetUInt32(0x01C4);
@@ -86,6 +90,9 @@ public sealed class OfficeArtShapeStyle {
     /// <summary>Gets the gradient focus position from -100 through 100.</summary>
     public int? FillFocusPercent { get; }
 
+    /// <summary>Gets the native MSOSHADETYPE interpolation flags, or null when inherited.</summary>
+    public uint? FillShadeType { get; }
+
     /// <summary>Gets decoded MSOSHADECOLOR gradient stops in source order.</summary>
     public IReadOnlyList<OfficeArtGradientStop> FillGradientStops { get; }
 
@@ -94,6 +101,15 @@ public sealed class OfficeArtShapeStyle {
 
     /// <summary>Gets explicit fill visibility, or null when the property inherits its default.</summary>
     public bool? FillEnabled { get; }
+
+    /// <summary>Gets whether the fill explicitly rotates with its shape, or null when inherited.</summary>
+    public bool? FillRotatesWithShape { get; }
+
+    /// <summary>Gets whether the fill is explicitly aligned to the shape rather than the view origin, or null when inherited.</summary>
+    public bool? FillAlignedWithShape { get; }
+
+    /// <summary>Gets whether an explicit fill rectangle replaces the shape bounds, or null when inherited.</summary>
+    public bool? FillUsesCustomRectangle { get; }
 
     /// <summary>Gets the line color reference.</summary>
     public OfficeArtColorReference? LineColor { get; }
@@ -188,6 +204,7 @@ public sealed class OfficeArtShapeStyle {
     public bool HasProjectableStyle => FillEnabled.HasValue || FillColor.HasValue || FillOpacity.HasValue
         || FillBackColor.HasValue || FillBackOpacity.HasValue || FillBlipStoreIndex.HasValue
         || FillAngleDegrees.HasValue || FillFocusPercent.HasValue
+        || FillShadeType.HasValue || FillRotatesWithShape.HasValue || FillAlignedWithShape.HasValue || FillUsesCustomRectangle.HasValue
         || LineEnabled.HasValue || LineColor.HasValue || LineOpacity.HasValue || LineWidthEmus.HasValue
         || LineMiterLimit.HasValue || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
         || LineJoinStyle.HasValue || LineEndCapStyle.HasValue || HasProjectableShadow;
