@@ -48,7 +48,7 @@ The Apple-saved edit also qualifies the reader's modern solid text-fill preceden
 
 The [rich-run reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) separately qualifies two authored text boxes and a blank slide on Keynote 15.4. Independent schema decoding checks character offsets, surrogate boundaries, complete style references and explicit decoration resets. Native PPTX export agrees with the saved OfficeIMO PPTX's complete text/run order, decoration flags, font sizes and frame geometry. Native PDF inspection covers all three slides with Helvetica Neue, Arial, Times New Roman and Apple Color Emoji. Changing a plain run from `plain` to `reset` survives native save/close/reopen and strict saved PPTX conversion. This evidence does not qualify direct OfficeIMO PDF appearance, other font environments or broader scripts and layouts.
 
-The [image reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies three 96 × 64-pixel images: opaque PNG, PNG with 0/128/255 alpha and JPEG in a stretched frame. Independent decoding checks native image-class metadata, complete object/data references, payload checksums and exclusion of reserved metadata identities. Keynote 15.4 opens the three-slide graph without repair; all native slides and PDF pages are inspected. Apple and saved OfficeIMO PPTX retain identical image payloads, frame geometry, descriptions and object order. A native JPEG position edit from 60 to 80 points survives save/close/reopen and strict saved PPTX conversion. Direct OfficeIMO PDF inspection confirms the images and stacking for this fixture; font substitutions and reported text overflow prevent a text-layout equivalence claim. Other versions, media formats, image transformations and layout combinations remain unqualified.
+The [image reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies three 96 × 64-pixel images: opaque PNG, PNG with 0/128/255 alpha and JPEG in a stretched frame. Independent decoding checks native image-class metadata, complete object/data references, payload checksums and exclusion of reserved metadata identities. Keynote 15.4 opens the three-slide graph without repair; all native slides and PDF pages are inspected. Apple and saved OfficeIMO PPTX retain identical image payloads, frame geometry, descriptions and object order. A native JPEG position edit from 60 to 80 points survives save/close/reopen and strict saved PPTX conversion. Direct OfficeIMO PDF inspection confirms complete visible text, images and stacking for this fixture, with explicit default-policy font substitutions. Empty trailing paragraphs retain their flow without reporting clipped visible content. Native text-layout equivalence, other versions, media formats, image transformations and layout combinations remain unqualified.
 
 ## Bounded NativeAOT qualification
 
@@ -89,6 +89,16 @@ text fill. Existing-path protection and pre-cancelled replacement preserve bytes
 active stream-copy cancellation stops after the first 64 KiB and leaves the
 caller stream open. This does not qualify native encoding or path-staging
 cancellation latency, every writer limit, additional architectures or font rendering.
+
+The [macOS native creation evidence](Compatibility/iwork-keynote-creation-native-aot-macos-arm64-2026-10-09.json)
+extends this host's qualification to rich character runs and PNG/JPEG images under
+.NET 8.0.31 and .NET 10.0.12. Actual `osx-arm64` native executables create the
+Apple-qualified 8,281-byte rich-run and 13,399-byte image packages with identical
+SHA-256 values on both runtimes. The image model uses identical encoded inputs;
+valid encodings of the same pixels can differ across runtime versions. Readback,
+saved/reopened PPTX, decoration resets, image alpha, descriptions, geometry,
+stacking and configured run/image budgets are checked. This bounded evidence does
+not extend the rich-run/image claims to Windows, Linux or other architectures.
 
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts

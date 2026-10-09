@@ -153,8 +153,31 @@
   "reproduction": "Generate ImageExample in IWorkKeynoteImageWritingTests. Decode with verify-keynote-creation.py and the pinned descriptor. Open in Keynote 15.4, export PDF at best quality with all slides and optional content/password off, and PPTX without a password. Save As a separate native package, move the third-slide JPEG X 60 to 80, save, close and reopen. Compare PPTX picture payloads, descriptions, complete object order and geometry independently.",
   "boundaries": [
     "Fixed unmasked image frames fill the full image, stretching when aspect ratios differ. Crops, masks, rotations and adjustments are not authored.",
-    "The direct OfficeIMO PDF retains the image pixels and frame/stacking in this fixture; font substitutions and four text-overflow diagnostics are separately recorded and not qualified as native text-layout equivalence.",
+    "Direct OfficeIMO PDF retains all three pages, visible text, images, frames and stacking in this fixture. Default-policy font substitutions remain explicit; native text-layout equivalence is unqualified.",
     "Other application versions, image codecs, fonts, scripts, layout combinations, tables and loaded-source save-back remain unqualified.",
     "PNG encoders can produce different valid compressed bytes across runtimes; deterministic native qualification uses identical encoded inputs, not separately re-encoded pixels."
-  ]
+  ],
+  "directPdfQualification": {
+    "sourceRevision": "d96a7548be27cd632a5368397e3e1eb753efbc2c",
+    "pages": 3,
+    "allPagesVisuallyInspected": true,
+    "completeExtractedTextUnchanged": true,
+    "textOverflowDiagnostics": 0,
+    "fontSubstitutions": [
+      "Helvetica Neue to Helvetica",
+      "Arial to Helvetica",
+      "Times New Roman to TimesRoman"
+    ],
+    "regression": "empty trailing paragraphs do not report clipped visible content; displaced visible text retains clipping diagnostics in text boxes and table cells"
+  },
+  "nativeAotQualification": {
+    "evidence": "../../../../Docs/Compatibility/iwork-keynote-creation-native-aot-macos-arm64-2026-10-09.json",
+    "runtimeIdentifier": "osx-arm64",
+    "runtimeVersions": [
+      "8.0.31",
+      "10.0.12"
+    ],
+    "nativeExecutionPassed": true,
+    "imagePackageSha256": "5523dbe029b9a508d2bf3e3ad1a54c6266ac6c3bddf8f23d6051fcc5f1e2f765"
+  }
 }
