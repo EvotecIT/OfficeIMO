@@ -220,6 +220,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override bool GetBoolean(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Boolean(ordinal, out var utf8Boolean))
+        {
+            return utf8Boolean;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText))
         {
             if (bool.TryParse(directText, out var directBoolean))
@@ -258,6 +263,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override byte GetByte(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<byte>(ordinal, out var utf8Byte))
+        {
+            return utf8Byte;
+        }
+#endif
         object value = GetValue(ordinal);
         if (value is byte byteValue)
         {
@@ -328,6 +339,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override DateTime GetDateTime(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8DateTime(ordinal, out var utf8DateTime))
+        {
+            return utf8DateTime;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText) &&
             CsvDataProjectionConverter.TryParseDateTime(
                 directText,
@@ -357,6 +373,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override decimal GetDecimal(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<decimal>(ordinal, out var utf8Decimal))
+        {
+            return utf8Decimal;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText))
         {
             if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
@@ -397,6 +418,18 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override double GetDouble(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<double>(ordinal, out var utf8Double))
+        {
+            return utf8Double;
+        }
+
+        if (TryGetDirectTextSpan(ordinal, out var directText) &&
+            double.TryParse(directText, NumberStyles.Any, _culture, out var directDouble))
+        {
+            return directDouble;
+        }
+#endif
         var value = GetValue(ordinal);
         if (value is double doubleValue)
         {
@@ -447,6 +480,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override float GetFloat(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<float>(ordinal, out var utf8Float))
+        {
+            return utf8Float;
+        }
+#endif
         object value = GetValue(ordinal);
         if (value is float floatValue)
         {
@@ -465,6 +504,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override Guid GetGuid(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Guid(ordinal, out var utf8Guid))
+        {
+            return utf8Guid;
+        }
+#endif
         object value = GetValue(ordinal);
         if (value is Guid guidValue)
         {
@@ -482,6 +527,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override short GetInt16(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<short>(ordinal, out var utf8Int16))
+        {
+            return utf8Int16;
+        }
+#endif
         var value = GetValue(ordinal);
         if (value is short int16)
         {
@@ -501,6 +552,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override int GetInt32(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<int>(ordinal, out var utf8Int32))
+        {
+            return utf8Int32;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText))
         {
             if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
@@ -541,6 +597,18 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override long GetInt64(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<long>(ordinal, out var utf8Int64))
+        {
+            return utf8Int64;
+        }
+
+        if (TryGetDirectTextSpan(ordinal, out var directText) &&
+            long.TryParse(directText, NumberStyles.Any, _culture, out var directInt64))
+        {
+            return directInt64;
+        }
+#endif
         var value = GetValue(ordinal);
         if (value is long int64)
         {
