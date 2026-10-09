@@ -61,6 +61,7 @@ internal sealed class Jb2Decoder {
             if (record == 11) return new Jb2Image(_width, _height, _library, _placements);
             if (record == 10) {
                 int length = Number(13, 0, Maximum);
+                _budget.Jb2CommentBytes(length);
                 for (int i = 0; i < length; i++) { if ((i & 4095) == 0) _budget.Cancellation.ThrowIfCancellationRequested(); Number(14, 0, 255); }
                 continue;
             }
@@ -114,6 +115,7 @@ internal sealed class Jb2Decoder {
         CheckBuffers(count);
         var bitmap = new Jb2Bitmap(width, height, new byte[(int)count]);
         _bitmapBytes += count;
+        if (count == 0) return bitmap;
         int dx = reference == null ? 0 : (reference.Width - 1) / 2 - (width - 1) / 2;
         int dy = reference == null ? 0 : (reference.Height - 1) / 2 - (height - 1) / 2;
         for (int y = height - 1; y >= 0; y--) {

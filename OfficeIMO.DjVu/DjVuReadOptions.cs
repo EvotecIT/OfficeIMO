@@ -38,6 +38,8 @@ public sealed class DjVuReadOptions {
     public int MaxSymbolPlacements { get; set; } = 2_000_000;
     /// <summary>Maximum aggregate bitmap samples decoded for JB2 page and inherited dictionary symbols in one render.</summary>
     public long MaxJb2DecodedSamples { get; set; } = 128L * 1024 * 1024;
+    /// <summary>Maximum aggregate comment bytes decoded in JB2 page and inherited dictionary streams in one render.</summary>
+    public long MaxJb2CommentBytes { get; set; } = 1024L * 1024;
     /// <summary>Maximum cumulative progressive slices in one IW44 image, across all chunks.</summary>
     public int MaxIw44Slices { get; set; } = 256;
     /// <summary>Maximum padded coefficient positions visited by IW44 slices across all colour planes and layers in a render operation.</summary>
@@ -76,6 +78,7 @@ public sealed class DjVuReadOptions {
         if (MaxSymbols <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSymbols));
         if (MaxSymbolPlacements <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSymbolPlacements));
         if (MaxJb2DecodedSamples <= 0) throw new ArgumentOutOfRangeException(nameof(MaxJb2DecodedSamples));
+        if (MaxJb2CommentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxJb2CommentBytes));
         if (MaxIw44Slices <= 0) throw new ArgumentOutOfRangeException(nameof(MaxIw44Slices));
         if (MaxIw44CoefficientSamples <= 0) throw new ArgumentOutOfRangeException(nameof(MaxIw44CoefficientSamples));
     }

@@ -105,6 +105,7 @@ public sealed partial class DjVuPage {
             int right = (int)Math.Max(0L, Math.Min(placement.Bitmap.Width, (long)region.X + region.Width - placement.X));
             int bottom = (int)Math.Max(0L, Math.Min(placement.Bitmap.Height, (long)region.Y - placement.Y));
             int top = (int)Math.Max(0L, Math.Min(placement.Bitmap.Height, (long)region.Y + region.Height - placement.Y));
+            if (left == right || bottom == top) continue;
             long count = (long)(right - left) * (top - bottom);
             if (count > maxSamples - samples) throw new DjVuResourceLimitException(nameof(DjVuRenderOptions.MaxMaskPaintSamples));
             samples += count;

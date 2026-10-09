@@ -8,6 +8,8 @@ internal sealed class Jb2Bitmap {
     internal int At(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height ? Pixels[y * Width + x] : 0;
 
     internal Jb2Bitmap Trim(CancellationToken cancellation) {
+        cancellation.ThrowIfCancellationRequested();
+        if (Pixels.Length == 0) return new Jb2Bitmap(0, 0, Array.Empty<byte>());
         int left = Width, right = -1, bottom = Height, top = -1;
         for (int y = 0; y < Height; y++) {
             cancellation.ThrowIfCancellationRequested();

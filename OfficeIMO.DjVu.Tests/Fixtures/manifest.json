@@ -14,7 +14,7 @@
     }
   ],
   "families": {
-    "Authored": "OfficeIMO-authored pixels/text, MIT. c44 progressive/colour/gray IW44; cpaldjvu palettes; cjb2 symbols; djvused text/outline/rotation; djvumake JPEG and constructed MMR; minidjvu shared bundled and indirect JB2. PPM/PBM references decoded by ddjvu.",
+    "Authored": "OfficeIMO-authored pixels/text, MIT. c44 progressive/colour/gray IW44; cpaldjvu palettes; cjb2 symbols; djvused text/outline/rotation; djvumake JPEG and constructed MMR; minidjvu shared bundled and indirect JB2. PPM/PBM references decoded by ddjvu. JB2 work-limit inputs use OfficeIMO-authored record sequences with native ZP encoding; DjVuLibre independently decodes their geometry and selected empty pixels.",
     "Bzz": "OfficeIMO-authored input .bin files, MIT; native bzz -e10 output.",
     "Archive": "Public domain source pages, unchanged FORM bytes. See Archive/manifest.json for source URL, source hash, rights basis and extraction offsets."
   },
@@ -98,6 +98,21 @@
       "path": "Authored/Shared/shared.djvu",
       "bytes": 285,
       "sha256": "1b89d37eb73e99cbcccea2330a50dbb81926a3a25866271d2af988233cc9f02a"
+    },
+    {
+      "path": "Authored/clipped-masks.djvu",
+      "bytes": 72,
+      "sha256": "de632f4981f5615dbb7623524553a5be16b226835f590c46a8861c6c0479f8c9"
+    },
+    {
+      "path": "Authored/comments-dictionary.jb2",
+      "bytes": 18,
+      "sha256": "a1038ee3abdbc45816f6585fad22ecf7ac98c3b879b33a5542fbdd1f5766bc52"
+    },
+    {
+      "path": "Authored/comments-page.djvu",
+      "bytes": 66,
+      "sha256": "89a55122f1f7809a766489fac9b4cd2345b79c536fc7aac89c7787793d280424"
     },
     {
       "path": "Authored/corrupt.djvu",
@@ -283,6 +298,11 @@
       "path": "Authored/unicode.zones",
       "bytes": 133,
       "sha256": "fb8d2b70268995ddf846af700b2a51529f48642d060e01554d0da27d267b84f3"
+    },
+    {
+      "path": "Authored/zero-area.djvu",
+      "bytes": 82,
+      "sha256": "0642f65cdb38d709656b7ae437ba0204684c742072d2df14202f17a2262ec2ff"
     },
     {
       "path": "Bzz/binary.bin",

@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--source-fixtures", type=Path, default=Path(__file__).resolve().parents[2] / "OfficeIMO.DjVu.Tests/Fixtures")
     parser.add_argument("--minidjvu", type=Path)
     parser.add_argument("--cjpeg", type=Path)
+    parser.add_argument("--jb2-work-producer", type=Path)
     args = parser.parse_args()
     output = args.output.resolve()
     if output.exists():
@@ -129,6 +130,16 @@ def main():
         indirect = shared / "Indirect"
         indirect.mkdir()
         subprocess.run([str(args.minidjvu.resolve()), "-i", str(first), str(second), "index.djvu"], cwd=indirect, check=True)
+
+    if args.jb2_work_producer:
+        subprocess.run([str(args.jb2_work_producer.resolve()), str(output)], check=True)
+        info = next(payload for tag, payload in page_chunks((output / "palette.djvu").read_bytes()) if tag == b"INFO")
+        for name in ["comments-page", "zero-area", "clipped-masks"]:
+            width, height = (2, 65535) if name == "clipped-masks" else (128, 96)
+            body = b"DJVU" + chunk(b"INFO", struct.pack(">HH", width, height) + info[4:])
+            body += chunk(b"Sjbz", (output / (name + ".jb2")).read_bytes())
+            (output / (name + ".djvu")).write_bytes(b"AT&T" + chunk(b"FORM", body))
+            reference(name)
 
     manifest = [{"path": str(path.relative_to(output)), "bytes": path.stat().st_size,
                  "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}

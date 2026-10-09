@@ -10,6 +10,7 @@ internal sealed class DjVuReadBudget {
     private long _retainedBytes;
     private long _iw44CoefficientSamples;
     private long _jb2DecodedSamples;
+    private long _jb2CommentBytes;
 
     internal DjVuReadBudget(DjVuReadOptions options, CancellationToken cancellation) {
         Options = options;
@@ -59,5 +60,11 @@ internal sealed class DjVuReadBudget {
         if (count < 0 || count > Options.MaxJb2DecodedSamples - _jb2DecodedSamples)
             throw new DjVuResourceLimitException(nameof(Options.MaxJb2DecodedSamples));
         _jb2DecodedSamples += count;
+    }
+
+    internal void Jb2CommentBytes(long count) {
+        if (count < 0 || count > Options.MaxJb2CommentBytes - _jb2CommentBytes)
+            throw new DjVuResourceLimitException(nameof(Options.MaxJb2CommentBytes));
+        _jb2CommentBytes += count;
     }
 }
