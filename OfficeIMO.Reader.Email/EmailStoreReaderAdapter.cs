@@ -22,7 +22,7 @@ internal static class EmailStoreReaderAdapter {
                 projection.EmailFormat,
                 path,
                 readerOptions,
-                cancellationToken, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions));
+                cancellationToken, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions), concealedTextPolicy: adapterOptions.ConcealedTextPolicy);
         }
     }
 
@@ -48,7 +48,7 @@ internal static class EmailStoreReaderAdapter {
                     projection.EmailFormat,
                     logicalSourceName,
                     readerOptions,
-                    cancellationToken, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions)).ToArray();
+                    cancellationToken, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions), concealedTextPolicy: adapterOptions.ConcealedTextPolicy).ToArray();
             }
         } finally {
             if (ownsParseStream) parseStream.Dispose();
@@ -73,7 +73,7 @@ internal static class EmailStoreReaderAdapter {
                 path,
                 readerOptions,
                 cancellationToken,
-                computeSourceHash: adapterOptions.ComputeSourceHash, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions));
+                computeSourceHash: adapterOptions.ComputeSourceHash, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions), concealedTextPolicy: adapterOptions.ConcealedTextPolicy);
             return EmailStoreReaderProjection.EnrichResult(result, projection);
         }
     }
@@ -102,7 +102,7 @@ internal static class EmailStoreReaderAdapter {
                     parseStream,
                     readerOptions,
                     cancellationToken,
-                    computeSourceHash: adapterOptions.ComputeSourceHash, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions));
+                    computeSourceHash: adapterOptions.ComputeSourceHash, includeEmbeddedMessageContent: IncludesEmbeddedContent(adapterOptions), concealedTextPolicy: adapterOptions.ConcealedTextPolicy);
                 return EmailStoreReaderProjection.EnrichResult(result, projection);
             }
         } finally {

@@ -256,15 +256,38 @@ public static class HtmlRenderEngine {
         return resolved;
     }
 
+    // Mark only the isolated render DOM; preserve the authored source document.
+    internal static HtmlRenderDocument RenderForRegionInspection(
+        HtmlConversionDocument document, HtmlRenderOptions? options, IReadOnlyList<string> regionIds,
+        CancellationToken cancellationToken) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        var request = HtmlRenderRequest.FromLegacy(options, HtmlRenderEncoder.DisplayList, HtmlRenderPageSet.All());
+        HtmlRenderOptions resolved = PrepareOptions(document, request);
+        if (regionIds.Count > 0) resolved.EnableEditableLayoutRegions = true;
+        return ExecuteWithDeadline(resolved, cancellationToken,
+            operationCancellationToken => ExecuteCore(document, request, resolved, operationCancellationToken,
+                regionIds: regionIds).Document);
+    }
+
     internal static HtmlRenderResult ExecuteCore(
         HtmlConversionDocument document,
         HtmlRenderRequest request,
         HtmlRenderOptions resolved,
         CancellationToken cancellationToken,
-        HtmlResourceSession? sharedResources = null) {
+        HtmlResourceSession? sharedResources = null,
+        IReadOnlyList<string>? regionIds = null) {
         HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
         cancellationToken.ThrowIfCancellationRequested();
         IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+        if (regionIds != null && regionIds.Count > 0) {
+            var identifiedElements = renderDocument.QuerySelectorAll("[id]").ToLookup(e => e.Id, StringComparer.Ordinal);
+            foreach (string id in regionIds) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var matches = identifiedElements[id].ToArray();
+                if (matches.Length != 1) throw new InvalidDataException("Region inspection requires one element with id: " + id);
+                HtmlEditableLayoutProjector.SetRegionSourceKey(matches[0], id);
+            }
+        }
         HtmlRenderInputGuard.ValidateFormState(document.SourceHtml.Length, renderDocument, resolved, cancellationToken);
         HtmlRenderDocument rendered = RenderDocument(
             renderDocument, resolved, initialDiagnostics: null, document.Limits, cancellationToken, sharedResources);

@@ -106,18 +106,29 @@ internal static class PdfImageExportEngine {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        OfficeDrawing drawing = page.ToDrawing(cancellationToken, drawing => drawing.ApplyImageExportOptions(options));
+        var pageSize = page.GetVisualPageSize();
         PdfImageExportOptions effective = options.Clone();
         double requestedScale = options.Scale;
-        effective.Scale = options.ResolveScale(drawing);
+        effective.Scale = options.ResolveScale(pageSize.Width, pageSize.Height);
         if (options.TargetDpi.HasValue && effective.Scale < requestedScale) {
             double effectiveDpi = effective.Scale * effective.LogicalUnitsPerInch;
-            effective.RasterEncoding.DpiX = effectiveDpi;
-            effective.RasterEncoding.DpiY = effectiveDpi;
+            effective.RasterEncoding.Resolution = new OfficeImageResolution(effectiveDpi, effectiveDpi);
         }
         // The target DPI has already been resolved into Scale. Keeping it on the clone would let
         // the shared validation step overwrite a stricter thumbnail scale.
         effective.TargetDpi = null;
+        string name = pageNumber.HasValue ? "Page " + pageNumber.Value : "Page";
+        string source = pageNumber.HasValue ? "PDF page " + pageNumber.Value : "PDF page";
+        OfficeRasterExportPlan plan = default;
+        double functionScale;
+        if (format.IsRaster()) {
+            plan = OfficeRasterExportPlanner.Resolve(pageSize.Width, pageSize.Height, format, effective, source);
+            functionScale = plan.Limit.Scale;
+        } else if (format == OfficeImageExportFormat.Svg) functionScale = effective.GetEffectiveScale(pageSize.Width, pageSize.Height);
+        else throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
+        OfficeDrawing drawing = page.ToDrawing(cancellationToken, scene => scene.ApplyImageExportOptions(options),
+            functionScale, effective.MaximumRasterPixels);
+
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics =
             page.GetRenderCapabilityDiagnostics(options.MaxDiagnosticsPerPage,
                 options.MaxDiagnosticCharactersPerPage, cancellationToken);
@@ -125,8 +136,7 @@ internal static class PdfImageExportEngine {
             (initialDiagnostics?.Count ?? 0) + capabilityDiagnostics.Count);
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         diagnostics.AddRange(MapDiagnostics(capabilityDiagnostics, pageNumber));
-        string name = pageNumber.HasValue ? "Page " + pageNumber.Value : "Page";
-        string source = pageNumber.HasValue ? "PDF page " + pageNumber.Value : "PDF page";
+
         drawing.AppendFontDiagnostics(diagnostics, source);
         var fallbackCodec = new OfficeRasterImageFallbackCodec(effective.ImageCodec, diagnostics, source);
 
@@ -157,12 +167,6 @@ internal static class PdfImageExportEngine {
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported image export format.");
         }
 
-        OfficeRasterExportPlan plan = OfficeRasterExportPlanner.Resolve(
-            drawing.Width,
-            drawing.Height,
-            format,
-            effective,
-            source);
         if (plan.Diagnostic != null) diagnostics.Add(plan.Diagnostic);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {

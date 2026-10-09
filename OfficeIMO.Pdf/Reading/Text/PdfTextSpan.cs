@@ -44,6 +44,8 @@ public sealed partial class PdfTextSpan {
     internal string? DrawingFontFamily { get; }
     internal double PaintOrder { get; }
     internal PdfContentOrderKey? ContentOrderKey { get; }
+    // Source-run occurrence within a text-show operator, assigned by encoded-glyph reading.
+    internal int GlyphSourceRunOrdinal { get; set; }
     internal PdfContentOrderKey? TextObjectOrderKey { get; }
     internal int LogicalLineBreaksBefore { get; }
     internal bool LogicalLeadingSpace { get; }

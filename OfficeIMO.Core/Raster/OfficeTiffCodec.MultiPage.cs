@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -9,14 +10,23 @@ public static partial class OfficeTiffCodec {
     /// <summary>Encodes one or more RGBA pages as a bounded classic TIFF IFD chain.</summary>
     public static byte[] EncodePages(
         IReadOnlyList<OfficeRasterImage> pages,
-        OfficeTiffEncodeOptions? options = null) {
+        OfficeTiffEncodeOptions? options = null) => EncodePages(pages, options, CancellationToken.None);
+
+    /// <summary>Encodes bounded TIFF pages while observing cancellation during planning, compression, and copying.</summary>
+    public static byte[] EncodePages(IReadOnlyList<OfficeRasterImage> pages,
+        OfficeTiffEncodeOptions? options, CancellationToken cancellationToken) => EncodePages(pages, options, cancellationToken, OfficeRasterGuards.MaximumEncodedBytes, 0L);
+
+    internal static byte[] EncodePages(IReadOnlyList<OfficeRasterImage> pages,
+        OfficeTiffEncodeOptions? options, CancellationToken cancellationToken, long maximumEncodedBytes, long additionallyRetainedBytes) {
         if (pages == null) throw new ArgumentNullException(nameof(pages));
         if (pages.Count < 1 || pages.Count > 1024) throw new ArgumentOutOfRangeException(nameof(pages));
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeTiffEncodeOptions effective = options ?? new OfficeTiffEncodeOptions();
         ValidateOptions(effective);
 
         long totalPixels = 0;
         for (int index = 0; index < pages.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRasterImage page = pages[index] ?? throw new ArgumentException("TIFF pages cannot contain null images.", nameof(pages));
             totalPixels = checked(totalPixels + (long)page.Width * page.Height);
             if (totalPixels > OfficeRasterGuards.MaximumPixels) {
@@ -27,20 +37,21 @@ public static partial class OfficeTiffCodec {
         int entryCount = BaseEntryCount - (effective.WriteResolution ? 0 : 3) + (UsesHorizontalPredictor(effective) ? 1 : 0);
         int ifdBlockLength = 2 + entryCount * 12 + 4 + 8 + (effective.WriteResolution ? 16 : 0);
         long headerLength = checked(8L + (long)pages.Count * ifdBlockLength);
-        long sourceBytes = checked(totalPixels * 4L);
+        long sourceBytes = checked(totalPixels * 4L + additionallyRetainedBytes + pages.Count * 64L);
         var strips = new byte[pages.Count][];
         long stripBytes = 0;
         long retainedStripBytes = 0;
         for (int index = 0; index < pages.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRasterImage page = pages[index];
-            long pendingAllocationBytes = EstimateMultiPageStripEncodingPeak(page, effective);
+            long pendingAllocationBytes = EstimateMultiPageStripEncodingPeak(page, effective, cancellationToken);
             if (!CanBeginMultiPageStripEncoding(sourceBytes, retainedStripBytes, pendingAllocationBytes)) {
                 throw new ArgumentException("The multi-page TIFF encoding working set exceeds the managed limit.", nameof(pages));
             }
-            byte[] strip = EncodeTiffStrip(pages[index], effective);
+            byte[] strip = EncodeTiffStrip(pages[index], effective, cancellationToken);
             strips[index] = strip;
             stripBytes = checked(stripBytes + strip.Length);
-            if (headerLength + stripBytes > OfficeRasterGuards.MaximumEncodedBytes) {
+            if (headerLength + stripBytes > maximumEncodedBytes) {
                 throw new ArgumentException("The multi-page TIFF exceeds the encoded-size limit.", nameof(pages));
             }
             if (!ReferenceEquals(strip, pages[index].PixelBuffer)) {
@@ -65,6 +76,7 @@ public static partial class OfficeTiffCodec {
 
         int stripOffset = checked((int)headerLength);
         for (int index = 0; index < pages.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             OfficeRasterImage page = pages[index];
             int ifdOffset = checked(8 + index * ifdBlockLength);
             int bitsOffset = checked(ifdOffset + 2 + entryCount * 12 + 4);
@@ -73,9 +85,13 @@ public static partial class OfficeTiffCodec {
             int nextIfdOffset = index + 1 < pages.Count ? ifdOffset + ifdBlockLength : 0;
             WritePageIfd(output, ifdOffset, page, effective, stripOffset, strips[index].Length,
                 bitsOffset, xResolutionOffset, yResolutionOffset, nextIfdOffset);
-            Buffer.BlockCopy(strips[index], 0, output, stripOffset, strips[index].Length);
+            for (int offset = 0; offset < strips[index].Length; offset += 65536) {
+                cancellationToken.ThrowIfCancellationRequested();
+                Buffer.BlockCopy(strips[index], offset, output, stripOffset + offset, Math.Min(65536, strips[index].Length - offset));
+            }
             stripOffset = checked(stripOffset + strips[index].Length);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return output;
     }
 
@@ -135,12 +151,12 @@ public static partial class OfficeTiffCodec {
 
     private static long EstimateMultiPageStripEncodingPeak(
         OfficeRasterImage page,
-        OfficeTiffEncodeOptions options) {
+        OfficeTiffEncodeOptions options, CancellationToken cancellationToken) {
         long sourceLength = page.PixelBuffer.LongLength;
         return options.Compression switch {
             OfficeTiffCompression.None => 0L,
             OfficeTiffCompression.PackBits => EncodePackBitsRows(
-                page.PixelBuffer, checked(page.Width * 4), page.Height, output: null, outputOffset: 0),
+                page.PixelBuffer, checked(page.Width * 4), page.Height, output: null, outputOffset: 0, cancellationToken),
             OfficeTiffCompression.Lzw => checked(sourceLength *
                 (UsesHorizontalPredictor(options) ? 6L : 5L)),
             OfficeTiffCompression.Deflate => checked(sourceLength *
@@ -154,29 +170,39 @@ public static partial class OfficeTiffCodec {
     public static void EncodePagesTo(
         IReadOnlyList<OfficeRasterImage> pages,
         Stream destination,
-        OfficeTiffEncodeOptions? options = null) {
+        OfficeTiffEncodeOptions? options = null) => EncodePagesTo(pages, destination, options, CancellationToken.None);
+
+    /// <summary>Encodes TIFF pages to a writable stream while observing cancellation during encoding and writes.</summary>
+    /// <remarks>The destination remains open and may contain partial output after cancellation or an I/O failure.</remarks>
+    public static void EncodePagesTo(IReadOnlyList<OfficeRasterImage> pages, Stream destination,
+        OfficeTiffEncodeOptions? options, CancellationToken cancellationToken) {
         OfficeRasterOutput.EnsureWritable(destination);
-        byte[] encoded = EncodePages(pages, options);
-        destination.Write(encoded, 0, encoded.Length);
+        byte[] encoded = EncodePages(pages, options, cancellationToken);
+        for (int offset = 0; offset < encoded.Length; offset += 65536) {
+            cancellationToken.ThrowIfCancellationRequested();
+            destination.Write(encoded, offset, Math.Min(65536, encoded.Length - offset));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
-    private static byte[] EncodeTiffStrip(OfficeRasterImage image, OfficeTiffEncodeOptions options) {
+    private static byte[] EncodeTiffStrip(OfficeRasterImage image, OfficeTiffEncodeOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] pixels = image.PixelBuffer;
         switch (options.Compression) {
             case OfficeTiffCompression.None:
                 return pixels;
             case OfficeTiffCompression.Lzw:
-                return EncodeTiffLzw(pixels, image.Width, image.Height, options);
+                return EncodeTiffLzw(pixels, image.Width, image.Height, options, cancellationToken);
             case OfficeTiffCompression.PackBits:
-                int length = EncodePackBitsRows(pixels, image.Width * 4, image.Height, null, 0);
+                int length = EncodePackBitsRows(pixels, image.Width * 4, image.Height, null, 0, cancellationToken);
                 var packed = new byte[length];
-                if (EncodePackBitsRows(pixels, image.Width * 4, image.Height, packed, 0) != length) {
+                if (EncodePackBitsRows(pixels, image.Width * 4, image.Height, packed, 0, cancellationToken) != length) {
                     throw new InvalidOperationException("TIFF PackBits length changed while encoding.");
                 }
                 return packed;
             case OfficeTiffCompression.Deflate:
                 return OfficeZlibCodec.Compress(
-                    PrepareTiffCompressionInput(pixels, image.Width, image.Height, options));
+                    PrepareTiffCompressionInput(pixels, image.Width, image.Height, options, cancellationToken), cancellationToken);
             default:
                 throw new ArgumentOutOfRangeException(nameof(options.Compression));
         }
@@ -212,14 +238,15 @@ public static partial class OfficeTiffCodec {
             WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
         }
         WriteShortEntry(output, ref entry, 284, 1);
-        if (options.WriteResolution) WriteShortEntry(output, ref entry, 296, 2);
+        GetEncodingResolution(options, out double resolutionX, out double resolutionY, out int resolutionUnit);
+        if (options.WriteResolution) WriteShortEntry(output, ref entry, 296, resolutionUnit);
         if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)options.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, nextIfdOffset);
         for (int sample = 0; sample < 4; sample++) WriteUInt16(output, bitsOffset + sample * 2, 8);
         if (options.WriteResolution) {
-            WriteRational(output, xResolutionOffset, options.DpiX);
-            WriteRational(output, yResolutionOffset, options.DpiY);
+            WriteRational(output, xResolutionOffset, resolutionX);
+            WriteRational(output, yResolutionOffset, resolutionY);
         }
     }
 }

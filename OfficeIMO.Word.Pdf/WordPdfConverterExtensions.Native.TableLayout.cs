@@ -5,7 +5,6 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private const int NativeOfficeImoScaffoldCellWidthTwips = 2400;
         private const double NativeAutoFitGridMinimumScale = 0.8D;
 
         private static void ApplyNativeColumnWidths(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
@@ -147,7 +146,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableProperties? properties = table._tableProperties;
-            if (ShouldUseNativeAutoFitTableLayout(table, properties, tableStyleDefaults)) {
+            if (ShouldUseNativeAutoFitTableLayout(properties, tableStyleDefaults)) {
                 style.AutoFitColumns = true;
             }
 
@@ -174,9 +173,20 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            if (style.AutoFitColumns && style.CellSpacing <= 0D && IsNativeTableAutoFitToContents(properties)) {
+                // A valid automatic grid can contain only zero/automatic widths.
+                // Its physical content minimum still determines the table frame.
+                style.AutoFitWidthUsesContentMinimum = true;
+                style.AutoFitUnspecifiedWidthToContent = true;
+                style.PreserveWidth = true;
+            }
+
+            // tblInd applies only to left-aligned tables. A floating coordinate
+            // remains a placement coordinate even in the column fallback path.
             double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
-                GetNativeTableLeftIndent(properties?.TableIndentation) ??
-                tableStyleDefaults.LeftIndent;
+                (MapNativeTableAlignment(ResolveNativeTableAlignment(table, tableStyleDefaults)) == PdfCore.PdfAlign.Left
+                    ? GetNativeTableLeftIndent(properties?.TableIndentation) ?? tableStyleDefaults.LeftIndent
+                    : null);
             if (leftIndent.HasValue) {
                 style.LeftIndent = leftIndent.Value;
             }
@@ -201,21 +211,7 @@ namespace OfficeIMO.Word.Pdf {
                 : gridWidth;
         }
 
-        private static bool HasNativeTableAuthoredFixedCellWidths(WordTable table) {
-            foreach (WordTableRow row in table.Rows) {
-                foreach (WordTableCell cell in row.Cells) {
-                    if (cell.Width.GetValueOrDefault() > 0 &&
-                        cell.WidthType == WordTableWidthUnit.Dxa &&
-                        cell.Width.GetValueOrDefault() != NativeOfficeImoScaffoldCellWidthTwips) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private static bool ShouldUseNativeAutoFitTableLayout(WordTable table, W.TableProperties? properties, NativeTableStyleDefaults tableStyleDefaults) {
+        private static bool ShouldUseNativeAutoFitTableLayout(W.TableProperties? properties, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableLayoutValues? effectiveLayout = properties?.TableLayout?.Type?.Value ?? tableStyleDefaults.Layout;
             if (effectiveLayout == W.TableLayoutValues.Fixed) {
                 return false;
@@ -225,7 +221,8 @@ namespace OfficeIMO.Word.Pdf {
                 return true;
             }
 
-            return !HasNativeTableAuthoredFixedCellWidths(table);
+            // Preferred cell widths constrain sizing without changing DOCX's default algorithm.
+            return true;
         }
 
         private static bool IsNativeTableAutoFitToContents(W.TableProperties? properties) =>

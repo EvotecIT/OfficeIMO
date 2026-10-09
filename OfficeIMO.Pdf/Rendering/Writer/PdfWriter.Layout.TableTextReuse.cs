@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
         }
 
         private bool CanReuse(TableCellLayout cell, double runFontSizeScale) {
-            if (runFontSizeScale < 0.999D || cell.Paragraphs.Count != 0 || cell.Runs.Count != 1 ||
+            if (cell.TextRotation != 0 || runFontSizeScale < 0.999D || cell.Paragraphs.Count != 0 || cell.Runs.Count != 1 ||
                 options.HasDiagnosticsReport || options.TextShapingProviderSnapshot != null ||
                 options.TextHyphenationCallbackSnapshot != null || options.TextLineBreakCallbackSnapshot != null) {
                 return false;

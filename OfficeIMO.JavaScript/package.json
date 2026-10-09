@@ -13,9 +13,15 @@
     "./opc": { "types": "./dist/opc/index.d.ts", "import": "./dist/opc/index.js" },
     "./xlsx": { "types": "./dist/xlsx/index.d.ts", "import": "./dist/xlsx/index.js" },
     "./csv": { "types": "./dist/csv/index.d.ts", "import": "./dist/csv/index.js" },
+    "./pdf": { "types": "./dist/pdf/index.d.ts", "import": "./dist/pdf/index.js" },
+    "./integrations/datatables": { "types": "./dist/integrations/datatables/index.d.ts", "import": "./dist/integrations/datatables/index.js" },
+    "./integrations/canopyx": { "types": "./dist/integrations/canopyx/index.d.ts", "import": "./dist/integrations/canopyx/index.js" },
+    "./canopyx.js": "./bundles/officeimo-canopyx.js",
+    "./datatables.js": "./bundles/officeimo-datatables.js",
     "./classic.js": "./bundles/officeimo.js",
     "./xlsx.js": "./bundles/officeimo-xlsx.js",
-    "./csv.js": "./bundles/officeimo-csv.js"
+    "./csv.js": "./bundles/officeimo-csv.js",
+    "./pdf.js": "./bundles/officeimo-pdf.js"
   },
   "files": ["dist", "bundles", "LICENSE", "README.md"],
   "scripts": {
@@ -24,6 +30,8 @@
     "test": "npm run check && node scripts/test.mjs",
     "test:consumer": "node node_modules/typescript/bin/tsc -p test/consumer/tsconfig.json",
     "test:pack": "node scripts/pack-test.mjs",
+    "test:datatables-types": "node ../Build/BrowserExports/test-datatables-types.mjs",
+    "test:canopy-types": "node ../Build/BrowserExports/test-canopy-types.mjs",
     "test:browser": "node scripts/browser-test.mjs",
     "sizes": "node scripts/sizes.mjs",
     "prepack": "npm run check"
@@ -31,5 +39,5 @@
   "devDependencies": { "typescript": "5.9.3" },
   "engines": { "node": ">=18" },
   "repository": { "type": "git", "url": "https://github.com/EvotecIT/OfficeIMO.git", "directory": "OfficeIMO.JavaScript" },
-  "keywords": ["officeimo", "xlsx", "csv", "excel", "browser", "streaming", "typescript"]
+  "keywords": ["officeimo", "xlsx", "csv", "pdf", "excel", "browser", "streaming", "typescript"]
 }

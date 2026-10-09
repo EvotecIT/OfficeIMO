@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Automation;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.VisualTree;
@@ -14,15 +15,13 @@ public sealed class RedactionReviewVisualTests {
     [Theory]
     [InlineData(960, 620, false)]
     [InlineData(1280, 900, true)]
-    public async Task ReviewControlsApplyOnlyIncludedMarks(int width, int height, bool dark) {
-        string root = Path.Combine(Path.GetTempPath(), "officeimo-redaction-visual-" + Guid.NewGuid().ToString("N"));
+    public async Task ChangedSearchPolicyShowsConflictAndDisablesPreviouslyReviewedApply(int width, int height, bool dark) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-redaction-policy-visual-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf");
-            PdfDocument.Create(compose => {
-                compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Private account 123")))));
-                compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Private account 456")))));
-            }).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+                item.Paragraph(text => text.Text("Before private account after")))))).Save(source);
             using var app = TestAppBuilder.StartSession();
             await app.Dispatch(async () => {
                 var services = ((App)Application.Current!).Services;
@@ -33,10 +32,98 @@ public sealed class RedactionReviewVisualTests {
                     await window.TabHost.OpenDocumentAsync(source);
                     var model = window.ViewModel;
                     model.ShowProtectModeCommand.Execute(null);
+                    model.RedactionSearchText = "private account";
+                    await model.SearchRedactionsCommand.ExecuteAsync(null);
+                    PdfRedactionMarkViewModel original = Assert.Single(model.RedactionMarks);
+                    await model.ReviewRedactionsCommand.ExecuteAsync(null);
+                    Assert.True(model.CanApplyReviewedRedactions);
+                    model.RedactionSearchExpanded = true;
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                        () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
+                    var inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
+                    var exact = inspector.GetVisualDescendants().OfType<CheckBox>()
+                        .Single(check => AutomationProperties.GetAutomationId(check) == "RedactionMatchedTextOnly");
+                    exact.BringIntoView();
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                        () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
+                    Click(window, exact);
+                    Assert.True(model.RedactionSearchMatchedTextOnly);
+                    var underlay = inspector.GetVisualDescendants().OfType<CheckBox>()
+                        .Single(check => AutomationProperties.GetAutomationId(check) == "RedactionPreserveUnderlay");
+                    Assert.False(underlay.IsChecked);
+                    underlay.BringIntoView();
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
+                        () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
+                    Click(window, underlay);
+                    Assert.True(model.RedactionSearchPreserveUnderlay);
+                    var search = inspector.GetVisualDescendants().OfType<Button>()
+                        .Single(button => ReferenceEquals(button.Command, model.SearchRedactionsCommand));
+                    Click(window, search);
+                    if (model.SearchRedactionsCommand.ExecutionTask is { } searchTask) await searchTask;
+                    window.UpdateLayout();
+                    Assert.True(model.HasError);
+                    Assert.Same(original, Assert.Single(model.RedactionMarks));
+                    Assert.Same(original, model.SelectedRedactionMark);
+                    var apply = inspector.GetVisualDescendants().OfType<Button>()
+                        .Single(button => ReferenceEquals(button.Command, model.ApplyPendingRedactionCommand));
+                    Assert.False(apply.IsEnabled);
+                    TextBlock error = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == model.ErrorMessage);
+                    Assert.True(error.IsEffectivelyVisible);
+                    Capture(window, $"redaction-policy-conflict-{width}-{dark}.png");
+                } finally {
+                    foreach (var tab in window.TabHost.Tabs.ToArray()) tab.Document.CompletePreparedClose();
+                    window.Close();
+                    window.TabHost.Dispose();
+                }
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData(960, 620, false, false, 0)]
+    [InlineData(1280, 900, true, false, 0)]
+    [InlineData(840, 600, false, true, 90)]
+    [InlineData(1280, 900, true, true, 270)]
+    public async Task ReviewControlsApplyOnlyIncludedMarks(int width, int height, bool dark, bool precise, int rotation) {
+        string captureKey = $"{width}-{dark}-{precise}-{rotation}";
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-redaction-visual-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string source = Path.Combine(root, "source.pdf");
+            PdfDocument document = PdfDocument.Create(compose => {
+                compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Before Private account 123 after")))));
+                compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Before Private account 456 after")))));
+            });
+            if (rotation != 0) document = document.Pages.Rotate(rotation, 1);
+            document.Save(source);
+            using var app = TestAppBuilder.StartSession();
+            await app.Dispatch(async () => {
+                var services = ((App)Application.Current!).Services;
+                services.Preferences.Update(current => current with { Theme = dark ? StudioThemePreference.Dark : StudioThemePreference.Light });
+                var window = new MainWindow(services) { Width = width, Height = height };
+                try {
+                    window.Show();
+                    await window.TabHost.OpenDocumentAsync(source);
+                    var model = window.ViewModel;
+                    model.ShowProtectModeCommand.Execute(null);
+                    window.UpdateLayout();
+                    var inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
+                    if (precise) {
+                        var exact = inspector.GetVisualDescendants().OfType<CheckBox>()
+                            .Single(check => AutomationProperties.GetAutomationId(check) == "RedactionMatchedTextOnly");
+                        Click(window, exact);
+                        Assert.True(model.RedactionSearchMatchedTextOnly);
+                        var underlay = inspector.GetVisualDescendants().OfType<CheckBox>()
+                            .Single(check => AutomationProperties.GetAutomationId(check) == "RedactionPreserveUnderlay");
+                        Click(window, underlay);
+                        Assert.True(model.RedactionSearchPreserveUnderlay);
+                        window.UpdateLayout();
+                        Capture(window, $"redaction-options-{captureKey}.png");
+                    }
                     model.RedactionSearchText = "Private account";
                     await model.SearchRedactionsCommand.ExecuteAsync(null);
                     window.UpdateLayout();
-                    var inspector = Assert.Single(window.GetVisualDescendants().OfType<RedactionInspectorView>());
                     var marks = Assert.Single(inspector.GetVisualDescendants().OfType<ListBox>());
                     Assert.Equal(2, marks.ItemCount);
                     var included = inspector.GetVisualDescendants().OfType<CheckBox>()
@@ -57,7 +144,7 @@ public sealed class RedactionReviewVisualTests {
                     Point position = apply.TranslatePoint(default, window)!.Value;
                     Assert.InRange(position.X, 0, window.Bounds.Width - apply.Bounds.Width + 1);
                     Assert.InRange(position.Y, 0, window.Bounds.Height - apply.Bounds.Height + 1);
-                    Capture(window, $"redaction-reviewed-{width}-{dark}.png");
+                    Capture(window, $"redaction-reviewed-{captureKey}.png");
                     Click(window, apply);
                     if (model.ApplyPendingRedactionCommand.ExecutionTask is { } applyTask) await applyTask;
                     Assert.False(model.HasError, model.ErrorMessage);
@@ -65,7 +152,7 @@ public sealed class RedactionReviewVisualTests {
                     Assert.Equal(1, model.LastRedactionSummary!.AreaCount);
                     Assert.Empty(model.RedactionMarks);
                     window.UpdateLayout();
-                    Capture(window, $"redaction-applied-{width}-{dark}.png");
+                    Capture(window, $"redaction-applied-{captureKey}.png");
                 } finally {
                     foreach (var tab in window.TabHost.Tabs.ToArray()) tab.Document.CompletePreparedClose();
                     window.Close();
@@ -76,7 +163,7 @@ public sealed class RedactionReviewVisualTests {
         } finally { Directory.Delete(root, recursive: true); }
     }
 
-    private static void Click(Window window, Button button) {
+    private static void Click(Window window, Control button) {
         button.BringIntoView();
         window.UpdateLayout();
         Point point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;

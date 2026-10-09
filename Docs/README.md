@@ -10,6 +10,8 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Agent plugin](../.agents/plugins/officeimo-document-tools/README.md) — local MCP and portable skills, Codex and Claude installation, authorized file access, and supported operations.
 - [Roadmap](ROADMAP.md) — the single backlog for open cross-package and product work.
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.
+- [Microsoft Access milestones](ROADMAP.md#microsoft-access-document-library) — native MDB/ACCDB lifecycle, application objects, VBA, integrations, and independent acceptance evidence.
+- [Access native API](../OfficeIMO.Access/README.md) and [support contract](../OfficeIMO.Access/SUPPORT.md) — MDB/ACCDB catalogs and typed rows, application/VBA inspection, unchanged preservation and seed-free creation.
 - [Project document API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent XML, native MPP/MPT, MPX, advanced calculation, portable reports, mapped data exchange, and producer-specific limits.
 - [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) — release notes, version history, and downloadable artifacts.
 - [Website guide](officeimo.website.md) — local build and publication workflow.
@@ -43,6 +45,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Apple iWork reading and native creation support](officeimo.iwork-support-matrix.md) and [shared conversion workflows](../OfficeIMO.Workflows.IWork/README.md)
 - [Reader package family](officeimo.reader.md)
 - [Google Workspace package family](../OfficeIMO.GoogleWorkspace/README.md)
+- [XPS/OpenXPS package API](../OfficeIMO.Xps/README.md), [support matrix](../OfficeIMO.Xps/SUPPORT.md), [PDF export](../OfficeIMO.Xps.Pdf/README.md), and [Reader adapter](../OfficeIMO.Reader.Xps/README.md)
 - [OpenDocument package family](../OfficeIMO.OpenDocument/README.md)
 - [PowerPoint package guide](../OfficeIMO.PowerPoint/README.md)
 - [Visio package guide](../OfficeIMO.Visio/README.md)
@@ -77,6 +80,7 @@ The package README is the primary usage guide for its public API. These reposito
 
 ## Architecture
 
+- [Access document design](officeimo.access-design.md) — proposed typed API, native codec ownership, database-provider boundary, preservation, security, and qualification. Open milestones live in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
 - [Owned HTML documents and providers](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html) — current snapshot, edit, parsing and charset contracts; lightweight packages and retained runtime dependencies.
 - [Independent HTML engine design](officeimo.html-engine-design.md) — proposed shared DOM, CSS, layout, conversion and optional web-runtime boundaries, with staged dependency retirement. Open milestones live in the [roadmap](ROADMAP.md#independent-html-engine).
 - [Document assistant design](officeimo.document-assistant-design.md) — headless AI operations, Studio integration, evidence contracts and support limits. [Evidence measurements](../Build/Benchmarks/README.md) cover local preparation and snapshot reuse. Open work lives in the [roadmap](ROADMAP.md#document-assistant).

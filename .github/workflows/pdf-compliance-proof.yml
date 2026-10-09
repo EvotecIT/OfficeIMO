@@ -159,12 +159,18 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore OfficeIMO.sln
 
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
       - name: Install external PDF proof tools
         shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes openjdk-17-jre-headless qpdf poppler-utils
+          sudo apt-get install --yes qpdf poppler-utils
 
       - name: Prepare veraPDF validator
         if: github.event_name != 'workflow_dispatch' || inputs.verapdf_path == '' || inputs.pdfua_validator_path == ''

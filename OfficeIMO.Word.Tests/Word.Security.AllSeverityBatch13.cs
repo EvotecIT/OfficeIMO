@@ -133,6 +133,8 @@ public sealed class WordAllSeverityBatch13SecurityTests {
 
         stream.Position = 0;
         using WordDocument document = WordDocument.Load(stream);
+        Assert.Throws<InvalidDataException>(() => WordDocumentTraversal.BuildListIndices(document));
+        Assert.Throws<InvalidDataException>(() => WordDocumentTraversal.BuildListMarkers(document));
         Assert.Throws<InvalidDataException>(() =>
             document.ToMarkdown(new WordToMarkdownOptions { MaxListNestingDepth = 8 }));
         Assert.Throws<InvalidDataException>(() =>
@@ -158,13 +160,9 @@ public sealed class WordAllSeverityBatch13SecurityTests {
     [Fact]
     public void MacroParserStopsOnCyclicDirectorySectorChain() {
         byte[] compound = CreateCyclicCompoundFile();
-        Type parser = typeof(WordMacro).GetNestedType("Parser", BindingFlags.NonPublic)!;
-        MethodInfo method = parser.GetMethod("GetModuleNames", BindingFlags.Static | BindingFlags.NonPublic)!;
-        using var stream = new MemoryStream(compound, writable: false);
-
-        var modules = (IReadOnlyList<string>)method.Invoke(null, new object[] { stream })!;
-
-        Assert.Empty(modules);
+        using WordDocument document = WordDocument.Create();
+        document.AddMacro(compound);
+        Assert.Empty(document.Macros);
     }
 
     private static byte[] CreateCyclicCompoundFile() {

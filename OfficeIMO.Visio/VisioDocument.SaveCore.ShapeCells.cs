@@ -12,7 +12,7 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
-        private static void WriteRemainingModeledShapeCells(
+        private void WriteRemainingModeledShapeCells(
             XmlWriter writer,
             string ns,
             VisioShape shape,
@@ -66,7 +66,7 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static bool TryWriteModeledShapeCell(
+        private bool TryWriteModeledShapeCell(
             XmlWriter writer,
             string ns,
             VisioShape shape,
@@ -146,14 +146,10 @@ namespace OfficeIMO.Visio {
                     }
                     return true;
                 case "TextBkgnd":
-                    if (shape.TextStyle?.BackgroundColor.HasValue == true) {
-                        WriteCellValue(writer, ns, "TextBkgnd", shape.TextStyle.BackgroundColor.Value.ToVisioHex());
-                    }
+                    WriteTextBackgroundColorCell(writer, ns, shape.TextStyle);
                     return true;
                 case "TextBkgndTrans":
-                    if (shape.TextStyle?.BackgroundTransparency.HasValue == true) {
-                        WriteCell(writer, ns, "TextBkgndTrans", shape.TextStyle.BackgroundTransparency.Value);
-                    }
+                    WriteTextBackgroundTransparencyCell(writer, ns, shape.TextStyle);
                     return true;
                 case "TxtPinX":
                     if (shape.TextStyle?.TextPinX.HasValue == true) {
@@ -191,7 +187,7 @@ namespace OfficeIMO.Visio {
                     }
                     return true;
                 case "LayerMember":
-                    WriteLayerMemberCell(writer, ns, shape.LayerNames, layerIndexes);
+                    WriteLayerMemberCell(writer, ns, shape.LayerNames, layerIndexes, shape.NativeLayerMembership);
                     return true;
                 case "Relationships":
                     WriteRelationshipCell(writer, ns, shape, persistedIds);

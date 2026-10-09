@@ -17,7 +17,7 @@ public sealed class OfficeRichTextLine {
     /// </summary>
     /// <param name="segments">Measured segments on the line.</param>
     /// <param name="lineHeight">Optional resolved height for this line. A value of zero lets block renderers fall back to the containing layout line height.</param>
-    /// <param name="offsetX">Additional x offset applied to this line inside the text frame.</param>
+    /// <param name="offsetX">Additional x offset relative to the text frame. Negative offsets retain aligned text that extends beyond its left edge.</param>
     public OfficeRichTextLine(IReadOnlyList<OfficeRichTextSegment> segments, double lineHeight = 0D, double offsetX = 0D) {
         Segments = segments ?? Array.Empty<OfficeRichTextSegment>();
         double width = 0D;
@@ -30,7 +30,7 @@ public sealed class OfficeRichTextLine {
         Width = width;
         FontSize = fontSize;
         LineHeight = lineHeight > 0D && !double.IsNaN(lineHeight) && !double.IsInfinity(lineHeight) ? lineHeight : 0D;
-        OffsetX = offsetX > 0D && !double.IsNaN(offsetX) && !double.IsInfinity(offsetX) ? offsetX : 0D;
+        OffsetX = !double.IsNaN(offsetX) && !double.IsInfinity(offsetX) ? offsetX : 0D;
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public sealed class OfficeRichTextLine {
     public double LineHeight { get; }
 
     /// <summary>
-    /// Gets the additional x offset applied to this line inside the text frame.
+    /// Gets the additional x offset relative to the text frame, including negative offsets for aligned overflow.
     /// </summary>
     public double OffsetX { get; }
 }

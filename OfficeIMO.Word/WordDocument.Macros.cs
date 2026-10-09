@@ -20,8 +20,9 @@ namespace OfficeIMO.Word {
         public bool HasMacros => _wordprocessingDocument.MainDocumentPart?.VbaProjectPart != null;
 
         /// <summary>
-        /// Gets all macros (module streams) in the document.
+        /// Gets all VBA modules in the document, including host document and designer modules.
         /// </summary>
+        /// <remarks>Named removal supports standard and class modules. Use <see cref="RemoveMacros"/> to remove the entire VBA project.</remarks>
         public IReadOnlyList<WordMacro> Macros {
             get {
                 return WordMacro.GetMacros(this);
@@ -61,9 +62,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Removes a single macro module from the document.
+        /// Removes a standard or class VBA module from the document.
         /// </summary>
         /// <param name="name">Module name to remove.</param>
+        /// <exception cref="NotSupportedException">The named module belongs to the host document or a designer.</exception>
         public void RemoveMacro(string name) {
             WordMacro.RemoveMacro(this, name);
         }

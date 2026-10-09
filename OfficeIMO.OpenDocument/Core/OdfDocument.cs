@@ -178,6 +178,10 @@ public abstract partial class OdfDocument {
         return Package.GetXml(partPath);
     }
 
+    /// <summary>Resolves the style scope of an XML-backed drawing or text element.</summary>
+    internal string GetPartPath(XElement element) => Package.ContainsEntry("styles.xml") &&
+        ReferenceEquals(element.Document, GetXml("styles.xml")) ? "styles.xml" : "content.xml";
+
     internal void MarkPartDirty(string partPath) {
         Package.MarkXmlDirtyFromDocument(partPath);
     }
@@ -225,6 +229,7 @@ public abstract partial class OdfDocument {
             case OdfDocumentKind.Text: return new OdtDocument(package, sourcePath);
             case OdfDocumentKind.Spreadsheet: return new OdsDocument(package, sourcePath);
             case OdfDocumentKind.Presentation: return new OdpPresentation(package, sourcePath);
+            case OdfDocumentKind.Graphics: return new OdgDocument(package, sourcePath);
             default: throw new InvalidDataException("Unsupported OpenDocument package kind.");
         }
     }

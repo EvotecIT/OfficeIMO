@@ -88,7 +88,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal("•", markers[cell].Marker);
         Assert.Equal("•", markers[textBox.Paragraphs[0]].Marker);
         Assert.Equal("•", markers[header].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("• Cell marker", pdfText, StringComparison.Ordinal);
         Assert.Contains("• Box marker", pdfText, StringComparison.Ordinal);
         Assert.Contains("• Header marker", pdfText, StringComparison.Ordinal);
@@ -326,7 +326,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
         NumberingInstance instance = numbering.Elements<NumberingInstance>()
             .Single(candidate => candidate.NumberID?.Value == list.NumberId);
-        instance.Elements<LevelOverride>().Single(level => level.LevelIndex?.Value == 0).Remove();
+        instance.Elements<LevelOverride>().FirstOrDefault(level => level.LevelIndex?.Value == 0)?.Remove();
         instance.Append(new LevelOverride(new Level(
             new StartNumberingValue { Val = 7 },
             new NumberingFormat { Val = NumberFormatValues.Bullet },
@@ -341,7 +341,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordDocumentTraversal.ListInfo info = WordDocumentTraversal.GetListInfo(item)!.Value;
         Assert.False(info.Ordered);
         Assert.Equal(WordNumberFormat.Bullet, info.NumberFormat);
-        Assert.Equal(7, info.Start);
+        Assert.Equal(1, info.Start); // A formatting-only override keeps the abstract start.
         Assert.Equal("◆", info.LevelText);
         Assert.Equal("Arial", info.MarkerFontFamily);
         Assert.Equal("FF0000", info.MarkerColorHex);
@@ -540,7 +540,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
         NumberingInstance instance = numbering.Elements<NumberingInstance>()
             .Single(candidate => candidate.NumberID?.Value == list.NumberId);
-        instance.Elements<LevelOverride>().Single(level => level.LevelIndex?.Value == 2).Remove();
+        instance.Elements<LevelOverride>().FirstOrDefault(level => level.LevelIndex?.Value == 2)?.Remove();
         instance.Append(new LevelOverride(new Level(
             new NumberingFormat { Val = NumberFormatValues.Decimal },
             new LevelText { Val = "%3." }) { LevelIndex = 2 }) { LevelIndex = 2 });

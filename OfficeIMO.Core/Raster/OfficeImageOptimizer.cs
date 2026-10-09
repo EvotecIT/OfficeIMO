@@ -435,8 +435,7 @@ public static class OfficeImageOptimizer {
         long retainedManagedBytes) {
         OfficeImageExportFormat exportFormat = ToExportFormat(format);
         var options = new OfficeRasterEncodingOptions {
-            DpiX = dpiX,
-            DpiY = dpiY,
+            Resolution = new OfficeImageResolution(dpiX, dpiY),
             WriteResolutionMetadata = writeResolution,
             Png = new OfficePngEncodeOptions {
                 Compression = request.PngCompression
@@ -474,7 +473,7 @@ public static class OfficeImageOptimizer {
             throw new ArgumentOutOfRangeException(nameof(request.Mode));
         }
         if (request.ResamplingMode < OfficeRasterResamplingMode.NearestNeighbor ||
-            request.ResamplingMode > OfficeRasterResamplingMode.Lanczos3) {
+            request.ResamplingMode > OfficeRasterResamplingMode.Welch) {
             throw new ArgumentOutOfRangeException(nameof(request.ResamplingMode));
         }
         if (request.ResamplingColorSpace < OfficeRasterResamplingColorSpace.EncodedSrgb ||

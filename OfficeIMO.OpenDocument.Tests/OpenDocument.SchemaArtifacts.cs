@@ -108,6 +108,21 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.True(pivotDocument.Validate().IsValid);
             }
             {
+                OdgDocument drawing = OdgDocument.Create();
+                OdgPage page = drawing.AddPage("Drawing proof");
+                OdgShape box = page.Shapes.AddRectangle(OdfRect.FromCentimeters(1, 1, 6, 3));
+                box.Text = "Native ODG";
+                box.FontSize = OdfLength.Points(18);
+                box.FillColor = OdfColor.Parse("#D1E9FF");
+                page.Shapes.AddGroup("Group").Children.AddEllipse(OdfRect.FromCentimeters(9, 1, 4, 3)).Text = "Grouped";
+                page.Shapes.AddLine(OdfLength.Centimeters(7), OdfLength.Centimeters(2), OdfLength.Centimeters(9), OdfLength.Centimeters(2));
+                page.Shapes.AddImage(TinyPng, "pixel.png", OdfRect.FromCentimeters(1, 5, 2, 2));
+                drawing.Save(Path.Combine(output, "schema-proof-1.4.odg"));
+                drawing.SaveFlatXml(Path.Combine(output, "schema-proof-1.4.fodg"));
+                drawing.Save(Path.Combine(output, "schema-proof-1.3.odg"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
+                Assert.True(drawing.Validate().IsValid);
+            }
+            {
                 OdpPresentation presentation = OdpPresentation.Create();
                 OdpSlide slide = presentation.AddSlide("Schema proof");
                 presentation.MasterPages[0].BackgroundColor = OdfColor.Parse("#F8FBFF");
@@ -148,8 +163,9 @@ public class OpenDocumentSchemaArtifactTests {
         string[] files = Directory.GetFiles(input, "*.*", SearchOption.AllDirectories)
             .Where(path => path.EndsWith(".odt", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".ods", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".odp", StringComparison.OrdinalIgnoreCase)).ToArray();
-        Assert.Equal(10, files.Length);
+                path.EndsWith(".odp", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(".odg", StringComparison.OrdinalIgnoreCase)).ToArray();
+        Assert.Equal(12, files.Length);
 
         foreach (string path in files) {
             OdfDocument document = OdfDocument.Load(path);
@@ -167,6 +183,11 @@ public class OpenDocumentSchemaArtifactTests {
                     note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Footnote schema proof", StringComparison.Ordinal) >= 0));
                 Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Endnote &&
                     note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Endnote schema proof", StringComparison.Ordinal) >= 0));
+            } else if (document is OdgDocument drawing) {
+                OdgPage page = Assert.Single(drawing.Pages);
+                Assert.Equal("Native ODG", page.Shapes[0].Text);
+                Assert.Equal("Grouped", page.Shapes[1].Children[0].Text);
+                Assert.Equal(TinyPng, page.Shapes[3].GetImageBytes());
             } else if (document is OdsDocument spreadsheet) {
                 if (Path.GetFileName(path).StartsWith("schema-chart", StringComparison.Ordinal)) {
                     OdsChart chart = Assert.Single(spreadsheet.GetSheet("ChartData")!.Charts);

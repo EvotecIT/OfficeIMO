@@ -214,24 +214,18 @@ namespace OfficeIMO.Word.Pdf {
                     lineHeight ?? 0D,
                     ResolveNativeWordSingleLineHeight(
                         nativeFontMap,
-                        run.FontFamily,
-                        run.FontFamilyHighAnsi,
-                        run.FontFamilyEastAsia,
-                        run.FontFamilyComplexScript,
-                        characterStyle.FontFamily,
-                        styleDefaults.FontFamily,
-                        tableRunStyleDefaults.FontFamily,
-                        nativeDefaults.FontFamily));
+                        EnumerateNativeParagraphOwnFontFamilies(run).Concat(EnumerateNativeStyleFontFamilies(
+                            characterStyle, styleDefaults, tableRunStyleDefaults, nativeDefaults,
+                            nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true)).ToArray()));
             }
 
             if (lineHeight.HasValue) return lineHeight.Value;
             W.RunFonts? markFonts = GetNativeEmptyParagraphMarkFonts(paragraph, runs);
             return ResolveNativeWordSingleLineHeight(
                 nativeFontMap,
-                ResolveNativeRunFontsFamily(paragraph._document, markFonts),
-                styleDefaults.FontFamily,
-                tableRunStyleDefaults.FontFamily,
-                nativeDefaults.FontFamily);
+                EnumerateNativeLatinFontFamilies(paragraph._document, markFonts).Concat(EnumerateNativeStyleFontFamilies(
+                    default, styleDefaults, tableRunStyleDefaults, nativeDefaults,
+                    nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true)).ToArray());
         }
 
         private static double ResolveNativeLineSpacingHeight(double lineSpacingPoints, W.LineSpacingRuleValues? lineSpacingRule, double fontSize, double naturalLineHeight) {
@@ -609,12 +603,12 @@ namespace OfficeIMO.Word.Pdf {
                 return (0D, 0D);
             }
 
-            double headerExpansion = GetNativeHeaderFooterMarginExpansion(
+            double headerExpansion = UsesNativeRunningHeader(section, options) ? 0D : GetNativeHeaderFooterMarginExpansion(
                 listMarkers,
                 section.Header?.Default,
                 section.DifferentFirstPage ? section.Header?.First : null,
                 section.DifferentOddAndEvenPages ? section.Header?.Even : null);
-            double footerExpansion = GetNativeFooterMarginExpansion(
+            double footerExpansion = UsesNativeRunningFooter(section, options) ? 0D : GetNativeFooterMarginExpansion(
                 listMarkers,
                 section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,

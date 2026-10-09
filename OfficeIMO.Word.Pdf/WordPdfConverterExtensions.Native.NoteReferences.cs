@@ -28,11 +28,11 @@ namespace OfficeIMO.Word.Pdf {
                     tableDefaults, defaults, fontMap);
                 double? size = source != null ? style.FontSize ?? (useConfiguredTypography ? null : defaults.FontSize) :
                     GetNativeParagraphStyleDefaults(paragraph).FontSize ?? tableDefaults.FontSize ?? (useConfiguredTypography ? null : defaults.FontSize);
-                yield return new PdfCore.PdfTextRun(numbersById.GetLabel(number),
+                yield return style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(numbersById.GetLabel(number),
                     bold: style.Bold, underline: style.Underline, italic: style.Italic, strike: style.Strike,
                     color: style.Color, fontSize: size, font: style.Font, fontFamily: style.FontFamily,
                     baseline: PdfCore.PdfTextBaseline.Superscript, backgroundColor: style.BackgroundColor,
-                    underlineStyle: style.UnderlineStyle, strikeStyle: style.StrikeStyle);
+                    underlineStyle: style.UnderlineStyle, strikeStyle: style.StrikeStyle));
             }
         }
     }

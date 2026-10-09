@@ -26,8 +26,10 @@ internal static class PdfOutlineDictionaryBuilder {
         int lastChildId,
         int descendantCount,
         int destinationPageId,
-        double destinationTop) {
+        double destinationTop, double destinationLeft = 0D, string? uri = null) {
         Guard.NotNullOrWhiteSpace(title, nameof(title));
+        Guard.OptionalUriAction(uri, nameof(uri));
+        if (double.IsNaN(destinationLeft) || double.IsInfinity(destinationLeft)) throw new ArgumentOutOfRangeException(nameof(destinationLeft));
 
         if (double.IsNaN(destinationTop) || double.IsInfinity(destinationTop)) {
             throw new ArgumentOutOfRangeException(nameof(destinationTop), destinationTop, "PDF outline destination coordinate must be finite.");
@@ -53,9 +55,10 @@ internal static class PdfOutlineDictionaryBuilder {
             item.Append(" /Count ").Append(descendantCount.ToString(CultureInfo.InvariantCulture));
         }
 
-        item.Append(" /Dest [")
+        if (uri != null) item.Append(" /A << /S /URI /URI ").Append(PdfSyntaxEscaper.UriString(uri)).Append(" >> >>\n");
+        else item.Append(" /Dest [")
             .Append(PdfSyntaxEscaper.IndirectReference(destinationPageId))
-            .Append(" /XYZ 0 ")
+            .Append(" /XYZ ").Append(FormatCoordinate(destinationLeft)).Append(' ')
             .Append(FormatCoordinate(destinationTop))
             .Append(" 0] >>\n");
 

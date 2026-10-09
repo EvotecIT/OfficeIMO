@@ -260,11 +260,13 @@ public sealed class OfficeShape {
     }
 
     /// <summary>Creates a freeform path descriptor while preserving a declared local coordinate canvas.</summary>
+    /// <remarks>Gradient coordinates use the declared canvas even when the path occupies only part of it.</remarks>
     public static OfficeShape Path(double width, double height,
         params OfficePathCommand[] commands) =>
         Path(width, height, (IEnumerable<OfficePathCommand>)commands);
 
     /// <summary>Creates a freeform path descriptor while preserving a declared local coordinate canvas.</summary>
+    /// <remarks>Gradient coordinates use the declared canvas even when the path occupies only part of it.</remarks>
     public static OfficeShape Path(double width, double height,
         IEnumerable<OfficePathCommand> commands) {
         if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D) {
@@ -354,6 +356,15 @@ public sealed class OfficeShape {
             Height = canvasHeight ?? occupiedHeight,
             PathCommands = resolvedCommands
         };
+    }
+
+    /// <summary>Creates a detached path with replacement geometry and this descriptor's paint and effects.</summary>
+    internal OfficeShape CloneWithPath(double width, double height, IReadOnlyList<OfficePathCommand> commands) {
+        OfficeShape geometry = Path(width, height, commands);
+        OfficeShape copy = Clone();
+        copy.Kind = OfficeShapeKind.Path; copy.Width = width; copy.Height = height;
+        copy.Points = Array.Empty<OfficePoint>(); copy.PathCommands = geometry.PathCommands;
+        return copy;
     }
 
     /// <summary>Creates a detached copy of this shape.</summary>

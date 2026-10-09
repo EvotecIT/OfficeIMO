@@ -16,7 +16,7 @@ $sourceCase = $bundle.cases | Where-Object { $_.contract.id -eq 'native-pptx' } 
 if ($null -eq $sourceCase) { $sourceCase = $bundle.cases | Select-Object -First 1 }
 if ($null -eq $sourceCase) { throw 'Expected at least one fixture in the source bundle.' }
 
-foreach ($failure in @('missing-label', 'missing-image', 'changed-image', 'duplicate-page')) {
+foreach ($failure in @('missing-label', 'missing-image', 'missing-format', 'changed-image', 'duplicate-page')) {
     $target = Join-Path $OutputPath $failure
     New-Item -ItemType Directory -Path $target | Out-Null
     Copy-Item -LiteralPath (Join-Path $BundlePath $sourceCase.contract.id) -Destination $target -Recurse
@@ -26,6 +26,7 @@ foreach ($failure in @('missing-label', 'missing-image', 'changed-image', 'dupli
     switch ($failure) {
         'missing-label' { $entry.contract.pages[0].text += 'REQUIRED-BUT-ABSENT' }
         'missing-image' { $entry.images[0].path = $entry.contract.id + '/missing.png' }
+        'missing-format' { $entry.images = @($entry.images | Where-Object { $_.format -ne 'Webp' }) }
         'changed-image' { [IO.File]::AppendAllText((Join-Path $target $entry.images[0].path), 'tampered') }
         'duplicate-page' { $entry.images += $entry.images[0] }
     }
@@ -34,6 +35,9 @@ foreach ($failure in @('missing-label', 'missing-image', 'changed-image', 'dupli
     if ($LASTEXITCODE -ne 1) { throw "$failure did not return a structured verification failure." }
     $report = Get-Content -LiteralPath (Join-Path $target 'consistency-result.json') -Raw | ConvertFrom-Json -Depth 100
     if ($report.passed -or $report.cases[0].passed) { throw "$failure was incorrectly accepted." }
+    if ($failure -eq 'missing-format' -and $report.cases[0].errors -notcontains 'Webp page sequence is missing, duplicated, or unexpected.') {
+        throw 'The missing WebP format was not rejected by the required page-sequence contract.'
+    }
 }
 
 $browserCases = @($bundle.cases | Where-Object { $null -ne $_.browserReference })
@@ -83,7 +87,7 @@ if ($null -ne $browserCase) {
 if ($LASTEXITCODE -ne 2) { throw 'An unknown CLI option was not rejected.' }
 & dotnet $ToolPath verify --output $BundlePath --output $BundlePath *> (Join-Path $OutputPath 'duplicate-option.log')
 if ($LASTEXITCODE -ne 2) { throw 'A duplicate CLI option was not rejected.' }
-Write-Host 'PASS: missing content, missing/corrupt images, duplicate pages, browser-reference tampering, archived browser identity, and invalid CLI options are enforced.'
+Write-Host 'PASS: missing content, missing/corrupt images, missing formats, duplicate pages, browser-reference tampering, archived browser identity, and invalid CLI options are enforced.'
 # Expected native failures above have been validated; do not leak their exit code
 # into callers such as the GitHub Actions PowerShell wrapper.
 $global:LASTEXITCODE = 0

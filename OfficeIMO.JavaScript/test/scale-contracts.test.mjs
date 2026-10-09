@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkbook, StyleRegistry } from "../dist/xlsx/index.js";
+import { Workbook, StyleRegistry } from "../dist/xlsx/index.js";
 import { writeCsvTo } from "../dist/csv/index.js";
 import { readZip } from "./zip-reader.mjs";
 import { ZipWriter } from "../dist/zip/index.js";
@@ -28,18 +28,21 @@ test("XLSX emits rows before input completes, awaits its sink and finishes seque
   let produced = 0, release, blocked;
   const waiting = new Promise(resolve => { blocked = resolve; });
   const gate = new Promise(resolve => { release = resolve; });
+  const decoder = new TextDecoder();
+  let held = false;
   const sink = { async write(bytes) {
-    if (chunks.length === 1) { blocked(); await gate; }
+    // Hold actual row output, rather than a ZIP header whose flush timing can vary.
+    if (!held && decoder.decode(bytes).includes('r="A2"')) { held = true; blocked(); await gate; }
     chunks.push(new Uint8Array(bytes));
   } };
-  const book = createWorkbook({ sink, compression: "store" });
-  const first = book.addSheet("First", { columns: [{ header: "Value" }] });
+  const book = new Workbook({ sink, compression: "store" });
+  const first = book.addWorksheet("First", { columns: [{ header: "Value" }] });
   function* rows() { for (let i = 0; i < 1000; i++) { produced++; yield ["Łódź 🧪 ".repeat(80) + i]; } }
   const append = first.addRows(rows());
   await waiting;
   assert.ok(produced > 0 && produced < 1000, "backpressure must reach the source before all rows are retained");
   release(); await append;
-  await book.addSheet("Second", { columns: [{ header: "Number", type: "number" }] }).addRows([[125.75]]);
+  await book.addWorksheet("Second", { columns: [{ header: "Number", type: "number" }] }).addRows([[125.75]]);
   await assert.rejects(first.addRows([["late"]]), /closed/);
   const result = await book.finish();
   assert.equal(result.rows, 1001); assert.equal(result.sheets, 2);
@@ -71,34 +74,34 @@ test("XLSX and CSV resource ceilings stop their sources and reject oversized out
     function* rows() { try { yield [1]; yield [2]; yield [3]; } finally { returned = true; } }
     const columns = [{ header: "Value", type: "number" }];
     if (format === "xlsx") {
-      const book = createWorkbook({ limits: { maxRows: 2 } });
-      await assert.rejects(book.addSheet("Data", { columns }).addRows(rows()), { code: "RESOURCE_LIMIT" });
+      const book = new Workbook({ limits: { maxRows: 2 } });
+      await assert.rejects(book.addWorksheet("Data", { columns }).addRows(rows()), { code: "RESOURCE_LIMIT" });
       await assert.rejects(book.toBlob(), { code: "RESOURCE_LIMIT" });
     } else await assert.rejects(writeCsvTo(rows(), { write() {} }, { columns, limits: { maxRows: 2 } }), { code: "RESOURCE_LIMIT" });
     assert.ok(returned);
   }
   let accepted = 0;
   const sink = { write(bytes) { accepted += bytes.length; } };
-  const book = createWorkbook({ sink, compression: "store", limits: { maxOutputBytes: 100 } });
-  await assert.rejects(book.addSheet("Data", { columns: [{ header: "Value" }] }).addRows([["x".repeat(1000)]]), { code: "RESOURCE_LIMIT" });
+  const book = new Workbook({ sink, compression: "store", limits: { maxOutputBytes: 100 } });
+  await assert.rejects(book.addWorksheet("Data", { columns: [{ header: "Value" }] }).addRows([["x".repeat(1000)]]), { code: "RESOURCE_LIMIT" });
   assert.ok(accepted <= 100);
   await assert.rejects(writeCsvTo([["long text"]], sink, { columns: [{ header: "Value" }], limits: { maxTextCharacters: 8 } }), { code: "RESOURCE_LIMIT" });
-  const small = createWorkbook({ limits: { maxStyles: 1, maxSheets: 1 } });
+  const small = new Workbook({ limits: { maxStyles: 1, maxSheets: 1 } });
   assert.throws(() => small.styles.add({ fill: { color: "FF0000" } }), { code: "RESOURCE_LIMIT" });
-  small.addSheet("Only");
-  assert.throws(() => small.addSheet("Extra"), { code: "RESOURCE_LIMIT" });
+  small.addWorksheet("Only");
+  assert.throws(() => small.addWorksheet("Extra"), { code: "RESOURCE_LIMIT" });
 });
 
 for (const compression of ["auto", "store"]) test("streamed XLSX preserves sink failure and cancellation: " + compression, async () => {
   const failure = new Error("sink failed");
-  const failed = createWorkbook({ compression, sink: { write() { throw failure; } } });
-  await assert.rejects(failed.addSheet("Data", { columns: [{ header: "Value" }] }).addRows([[1]]), error => error === failure);
+  const failed = new Workbook({ compression, sink: { write() { throw failure; } } });
+  await assert.rejects(failed.addWorksheet("Data", { columns: [{ header: "Value" }] }).addRows([[1]]), error => error === failure);
   await assert.rejects(failed.finish(), error => error === failure);
   const controller = new AbortController();
   let started;
   const blocked = new Promise(resolve => { started = resolve; });
-  const cancelled = createWorkbook({ compression, signal: controller.signal, sink: { write() { started(); return new Promise(() => {}); } } });
-  const append = cancelled.addSheet("Data", { columns: [{ header: "Value" }] }).addRows([[1]]);
+  const cancelled = new Workbook({ compression, signal: controller.signal, sink: { write() { started(); return new Promise(() => {}); } } });
+  const append = cancelled.addWorksheet("Data", { columns: [{ header: "Value" }] }).addRows([[1]]);
   await blocked; controller.abort(failure);
   await assert.rejects(append, error => error === failure);
 });

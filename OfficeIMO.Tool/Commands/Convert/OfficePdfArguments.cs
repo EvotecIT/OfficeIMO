@@ -12,6 +12,10 @@ internal sealed class OfficePdfArguments {
     internal string? OutputPath { get; private set; }
     internal bool Force { get; private set; }
     internal bool AllowLegacyLoss { get; private set; }
+    internal bool RequireNoLoss { get; private set; }
+    internal bool DiagramForPrint { get; private set; } = true;
+    private bool HasDiagramOptions { get; set; }
+    internal bool IsDrawInput => Path.GetExtension(InputPath ?? string.Empty).ToLowerInvariant() is ".odg" or ".fodg";
     internal string? TextEncoding { get; private set; }
     internal int TabSize { get; private set; } = 8;
     private bool HasTextOptions { get; set; }
@@ -41,6 +45,18 @@ internal sealed class OfficePdfArguments {
                     break;
                 case "--allow-legacy-loss":
                     parsed.AllowLegacyLoss = true;
+                    break;
+                case "--require-no-loss":
+                    parsed.HasDiagramOptions = true;
+                    parsed.RequireNoLoss = true;
+                    break;
+                case "--diagram-layers":
+                    parsed.HasDiagramOptions = true;
+                    parsed.DiagramForPrint = NextValue(args, ref index, token) switch {
+                        "print" => true,
+                        "screen" => false,
+                        _ => throw new OfficePdfUsageException("Choose diagram layers: screen or print.")
+                    };
                     break;
                 case "--text-encoding":
                     parsed.HasTextOptions = true;
@@ -82,15 +98,16 @@ internal sealed class OfficePdfArguments {
 
     private void Validate() {
         if (string.IsNullOrWhiteSpace(InputPath)) {
-            throw new OfficePdfUsageException("The convert command requires an input DOC, DOCX, TXT, XLSX, or PPTX file.");
+            throw new OfficePdfUsageException("The convert command requires an input DOC, DOCX, TXT, XLSX, PPTX, ODG, or FODG file.");
         }
 
         string extension = Path.GetExtension(InputPath).ToLowerInvariant();
-        if (extension is not ".doc" and not ".docx" and not ".txt" and not ".xlsx" and not ".pptx") {
-            throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, and PPTX input.");
+        if (extension is not ".doc" and not ".docx" and not ".txt" and not ".xlsx" and not ".pptx" and not ".odg" and not ".fodg") {
+            throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, PPTX, ODG, and FODG input.");
         }
         if (AllowLegacyLoss && extension != ".doc") throw new OfficePdfUsageException("--allow-legacy-loss requires DOC input.");
         if (HasTextOptions && extension != ".txt") throw new OfficePdfUsageException("Text encoding and tabs require TXT input.");
+        if (HasDiagramOptions && !IsDrawInput) throw new OfficePdfUsageException("Diagram options require ODG or FODG input.");
 
         OutputPath ??= Path.ChangeExtension(InputPath, ".pdf");
         if (Path.GetExtension(OutputPath).Equals(".pdf", StringComparison.OrdinalIgnoreCase) == false) {

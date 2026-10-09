@@ -224,6 +224,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core`; legacy binary suppor
 #### [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
 
 - [x] Create, load, edit, inspect, and save drawing, template, stencil, and macro-enabled Open XML Visio packages without Visio automation
+- [x] Explicit VDX/VSX/VTX XML import/export through the same model, with bounded loading and fidelity reports
 - [x] Multi-page documents, page settings, scale, backgrounds, metadata, document settings, and stream/file lifecycles
 - [x] Rectangles, ellipses, diamonds, triangles, callouts, custom/master geometry, groups, and shape duplication
 - [x] Connectors, connection points, arrows, routing, line jumps, endpoint queries, and topology inspection
@@ -328,14 +329,25 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 
 #### [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md)
 
-- [x] Native ODT, ODS, and ODP package and flat-XML loading, editing, inspection, and deterministic saving
+- [x] Native ODT, ODS, ODP, and ODG package and flat-XML loading, editing, inspection, and deterministic saving
 - [x] ODT paragraphs, headings, runs, styles, lists, tables, links, bookmarks, sections, page layout, headers/footers, images, and tracked changes
 - [x] ODS sparse/repeated cells, typed values, formulas, styles, merges, sizing, visibility, names, validation, and print ranges
 - [x] ODP slides, masters/layouts, text, shapes, groups, images, crop, tables, notes, backgrounds, transitions, and basic animation metadata
+- [x] ODG pages, groups, basic shapes, text and image editing, FODG conversion, and a reported drawing projection for shared exporters
 - [x] Unknown XML and package-part preservation with explicit loss and capability reports
 - [x] Dependency-free AES-256-CBC password encryption/decryption with bounded aggregate KDF work and hash-pinned LibreOffice interoperability evidence
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
+
+#### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
+
+Portable XPS/OpenXPS package reading, native page editing, and writing, with
+embedded fonts, paths, images, and explicit conversion diagnostics. SVG and raster
+export reuse the shared drawing engine; [OfficeIMO.Xps.Pdf](OfficeIMO.Xps.Pdf/README.md)
+adds vector PDF export. [Rendering and preservation boundaries](OfficeIMO.Xps/SUPPORT.md)
+are documented separately. [OfficeIMO.Reader.Xps](OfficeIMO.Reader.Xps/README.md)
+adds bounded Unicode, logical-order and page ingestion. The core package references
+only `OfficeIMO.Core`.
 
 #### [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md)
 

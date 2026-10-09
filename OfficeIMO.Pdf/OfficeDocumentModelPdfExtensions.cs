@@ -32,7 +32,12 @@ public static class OfficeDocumentModelPdfExtensions {
         PdfDocument document = PdfDocument.Create(pdfOptions)
             .Meta(source.Source.Title, source.Source.Author, source.Source.Subject, source.Source.Keywords);
         OfficeRasterDecodeOptions rasterDecodeOptions = options.SnapshotRasterDecodeOptions();
-        rasterDecodeOptions.CancellationToken = cancellationToken;
+        rasterDecodeOptions.MaximumDecodedPixels = Math.Min(
+            rasterDecodeOptions.MaximumDecodedPixels, OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels);
+        using var rasterCancellation = rasterDecodeOptions.CancellationToken.CanBeCanceled
+            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(rasterDecodeOptions.CancellationToken, cancellationToken)
+            : null;
+        rasterDecodeOptions.CancellationToken = rasterCancellation?.Token ?? cancellationToken;
         var identities = new ProjectionIdentitySet();
         AssetProjectionSummary assetSummary = default;
 
@@ -191,9 +196,14 @@ public static class OfficeDocumentModelPdfExtensions {
             if (policy == PdfProjectionAssetPolicy.EmbedSupportedImages &&
                 asset.PayloadBytes != null &&
                 TryPreparePdfImage(asset.PayloadBytes, rasterDecodeOptions, report, sourceLabel + "/" + label, out byte[] imageBytes, out OfficeImageInfo? info)) {
-                double width = Math.Min(480D, Math.Max(36D, (info?.Width ?? asset.Width ?? 320) * 0.75D));
-                double height = Math.Max(24D, (info?.Height ?? asset.Height ?? 180) * width / Math.Max(1D, info?.Width ?? asset.Width ?? 320));
-                document.Image(imageBytes, width, height, label);
+                double pixelWidth = Math.Max(1D, info?.Width ?? asset.Width ?? 320);
+                double pixelHeight = Math.Max(1D, info?.Height ?? asset.Height ?? 180);
+                double width = Math.Min(480D, pixelWidth * 0.75D);
+                double height = pixelHeight * width / pixelWidth;
+                document.Image(imageBytes, width, height, style: new PdfImageStyle {
+                    ScaleDownToFit = true,
+                    AlternativeText = label
+                });
                 embedded++;
                 continue;
             }
@@ -229,11 +239,9 @@ public static class OfficeDocumentModelPdfExtensions {
             return true;
         }
 
-        if (!identified ||
-            !OfficeImagePdfCompatibility.TryValidateTranscodeDimensions(
-                identifiedInfo,
-                OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
-                out _)) return false;
+        // The shared decoder applies the captured pixel ceiling to the selected frame/page.
+        // The first TIFF page can have different dimensions and cannot preflight that selection.
+        if (!identified) return false;
 
         bool converted = OfficeImagePngConverter.TryConvertToPng(
             sourceBytes,
@@ -247,7 +255,7 @@ public static class OfficeDocumentModelPdfExtensions {
                     sourceLabel,
                     "Frame " + decodeInfo.SelectedFrameIndex + " of " + decodeInfo.FrameCount + " was embedded as a static image; remaining animation frames were not retained."));
             } else {
-                string code = rasterDecodeOptions.AnimationPolicy == OfficeRasterAnimationPolicy.RejectAnimated
+                string code = rasterDecodeOptions.FrameLossPolicy == OfficeRasterFrameLossPolicy.RejectMultipleFrames
                     ? "pdf-projection-asset-animation-rejected"
                     : "pdf-projection-asset-animation-not-supported";
                 report.Add(Warning(code, sourceLabel, decodeInfo.Diagnostic ?? "The animated raster asset could not be represented as a static PDF image."));
@@ -256,7 +264,7 @@ public static class OfficeDocumentModelPdfExtensions {
         if (!converted || !OfficeImagePdfCompatibility.TryValidate(normalizedPng, out OfficeImageInfo? normalizedInfo, out _)) return false;
 
         imageBytes = normalizedPng;
-        imageInfo = identified ? identifiedInfo : normalizedInfo;
+        imageInfo = normalizedInfo;
         return true;
     }
 
@@ -358,16 +366,34 @@ public static class OfficeDocumentModelPdfExtensions {
     private static void AddSourceDiagnostics(OfficeDocumentModel source, PdfConversionReport report, System.Threading.CancellationToken cancellationToken) {
         foreach (OfficeDocumentModelDiagnostic diagnostic in source.Diagnostics) {
             cancellationToken.ThrowIfCancellationRequested();
+            PdfConversionWarningSeverity severity = diagnostic.Severity == OfficeDocumentModelDiagnosticSeverity.Error
+                ? PdfConversionWarningSeverity.Error
+                : diagnostic.Severity == OfficeDocumentModelDiagnosticSeverity.Information
+                    ? PdfConversionWarningSeverity.Information
+                    : PdfConversionWarningSeverity.Warning;
+            OfficeConversionLossKind lossKind = severity == PdfConversionWarningSeverity.Error
+                ? OfficeConversionLossKind.Failure
+                : severity == PdfConversionWarningSeverity.Information
+                    ? OfficeConversionLossKind.None
+                    : OfficeConversionLossKind.Approximation;
+            // Source adapters retain the category separately from presentation severity.
+            if (severity != PdfConversionWarningSeverity.Error &&
+                diagnostic.Attributes.TryGetValue("lossKind", out string? value) &&
+                Enum.TryParse(value, out OfficeConversionLossKind sourceLoss) &&
+#if NET8_0_OR_GREATER
+                Enum.IsDefined(sourceLoss)) {
+#else
+                Enum.IsDefined(typeof(OfficeConversionLossKind), sourceLoss)) {
+#endif
+                lossKind = sourceLoss;
+            }
             report.Add(new PdfConversionWarning(
                 ConverterName,
                 string.IsNullOrWhiteSpace(diagnostic.Code) ? "pdf-projection-source-diagnostic" : diagnostic.Code,
                 diagnostic.Source ?? source.Format.ToString(),
                 diagnostic.Message,
-                diagnostic.Severity == OfficeDocumentModelDiagnosticSeverity.Error
-                    ? PdfConversionWarningSeverity.Error
-                    : diagnostic.Severity == OfficeDocumentModelDiagnosticSeverity.Information
-                        ? PdfConversionWarningSeverity.Information
-                        : PdfConversionWarningSeverity.Warning,
+                severity,
+                lossKind,
                 details: diagnostic.Attributes));
         }
     }

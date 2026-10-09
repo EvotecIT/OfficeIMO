@@ -3,6 +3,13 @@
 ###############################################################################
 * text=auto
 
+# Access producer exports and expected-value captures have manifest-bound bytes.
+OfficeIMO.Access.Tests/Fixtures/** -text -whitespace
+OfficeIMO.Access.Tests/Fixtures/**/*.mdb -diff
+OfficeIMO.Access.Tests/Fixtures/**/*.accdb -diff
+OfficeIMO.Access.Tests/Fixtures/**/*.pdf -diff
+OfficeIMO.Access.Tests/Fixtures/**/manifest.json text eol=lf diff
+
 # Browser assets are generated and hashed from canonical UTF-8/LF bytes.
 OfficeIMO.Browser/** text eol=lf
 OfficeIMO.JavaScript/** text eol=lf
@@ -55,6 +62,10 @@ OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
 OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
 OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
 
+# Independent redaction fixtures include ASCII containers and embedded fonts.
+# Preserve source fingerprints and PDF stream/xref byte offsets on every OS.
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/Redaction/*.pdf -text -diff
+
 # Frozen HTML qualification inputs and manifests identify exact source bytes.
 # Preserve their authored line endings rather than changing their integrity pins.
 OfficeIMO.TestAssets/Documents/Html/Qualification/** -text
@@ -70,6 +81,9 @@ OfficeIMO.Email.Tests/Corpora/native-apple-20261003/manifest.json text eol=lf di
 # Independent LaTeX input hashes identify the upstream bytes on every platform.
 OfficeIMO.Latex.Tests/Fixtures/latex2e/*.tex -text
 OfficeIMO.Latex.Tests/Fixtures/latex2e/*.txt -text
+
+# Hash-bound EPUB producer fixtures retain upstream bytes on every checkout platform.
+OfficeIMO.TestAssets/Documents/Epub/IdpfPublishing/childrens-literature/** -text -whitespace
 
 # Public showcase downloads are generated binary evidence. Preserve exact bytes
 # so the committed manifest hashes remain stable across platforms and checkouts.
@@ -173,7 +187,23 @@ OfficeIMO.TestAssets/OcrQuality/*.json -text
 # bytes and original whitespace across checkout platforms.
 OfficeIMO.Studio/Licenses/ThirdParty/* -text -whitespace
 
+# Legacy Visio producer inputs are hash-bound evidence, including line endings.
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vdx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vsx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vtx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*LICENSE.txt -text -whitespace
+OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.xml -text -whitespace
+OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodg -text
+OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodp -text
+
 # Captured benchmark packets retain exact member bytes inside verified archives.
 Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
 Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
 Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff
+
+# Preserve the independent composite-font refusal fixture across checkout platforms.
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -text -diff
+
+# Predefined-font fixtures and pinned Adobe resources are byte-level evidence.
+OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/PredefinedCjk/*.pdf -text -diff
+OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace

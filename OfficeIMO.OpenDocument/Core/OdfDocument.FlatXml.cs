@@ -11,7 +11,7 @@ public abstract partial class OdfDocument {
         root.SetAttributeValue(OdfNamespaces.Office + "version", Version.ToToken());
         root.SetAttributeValue(OdfNamespaces.Office + "mimetype", OdfMediaTypes.ForKind(Kind));
 
-        XDocument content = GetXml("content.xml");
+        XDocument content = new XDocument(GetXml("content.xml"));
         XDocument styles = Package.ContainsEntry("styles.xml") ? GetXml("styles.xml") : OdfPackageTemplates.CreateStyles(Version);
         styles = PrepareFlatStyleScopes(content, styles);
         XDocument meta = Package.ContainsEntry("meta.xml") ? GetXml("meta.xml") : OdfPackageTemplates.CreateMetadata(Version);
@@ -22,7 +22,7 @@ public abstract partial class OdfDocument {
         AddClone(root, content.Root?.Element(OdfNamespaces.Office + "scripts"));
         root.Add(MergeContainers(OdfNamespaces.Office + "font-face-decls", content.Root, styles.Root));
         AddClone(root, styles.Root?.Element(OdfNamespaces.Office + "styles"));
-        root.Add(MergeContainers(OdfNamespaces.Office + "automatic-styles", content.Root, styles.Root));
+        root.Add(MergeFlatAutomaticStyles(content.Root, styles.Root));
         AddClone(root, styles.Root?.Element(OdfNamespaces.Office + "master-styles"));
         XElement body = new XElement(content.Root?.Element(OdfNamespaces.Office + "body")
             ?? throw new InvalidDataException("OpenDocument content has no body."));
@@ -49,7 +49,7 @@ public abstract partial class OdfDocument {
         return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
-    /// <summary>Loads a flat ODT, ODS, or ODP XML document.</summary>
+    /// <summary>Loads a flat ODT, ODS, ODP, or ODG XML document.</summary>
     public static OdfDocument LoadFlatXml(Stream stream, OdfLoadOptions? options = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Flat OpenDocument stream must be readable.", nameof(stream));
@@ -59,7 +59,7 @@ public abstract partial class OdfDocument {
         return LoadFlatXml(flat, effective);
     }
 
-    /// <summary>Loads a flat ODT, ODS, or ODP XML document from a path.</summary>
+    /// <summary>Loads a flat ODT, ODS, ODP, or ODG XML document from a path.</summary>
     public static OdfDocument LoadFlatXml(string path, OdfLoadOptions? options = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
@@ -95,7 +95,7 @@ public abstract partial class OdfDocument {
         ReplaceContainer(meta.Root!, OdfNamespaces.Office + "meta", root.Element(OdfNamespaces.Office + "meta"));
         XDocument settings = OdfPackageTemplates.CreateSettings(version);
         XElement? flatSettings = root.Element(OdfNamespaces.Office + "settings");
-        ReplaceContainer(settings.Root!, OdfNamespaces.Office + "settings", flatSettings);
+        if (flatSettings != null) ReplaceContainer(settings.Root!, OdfNamespaces.Office + "settings", flatSettings);
 
         package.AddOrReplaceEntry("content.xml", OdfXmlCodec.Save(content), "text/xml");
         package.AddOrReplaceEntry("styles.xml", OdfXmlCodec.Save(styles), "text/xml");
@@ -108,7 +108,7 @@ public abstract partial class OdfDocument {
     }
 
     private void EmbedFlatBinaryData(XElement flatRoot) {
-        foreach (XElement image in flatRoot.Descendants(OdfNamespaces.Draw + "image")) {
+        foreach (XElement image in FlatImages(flatRoot)) {
             string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
             if (string.IsNullOrWhiteSpace(href) || href!.Contains("://")) continue;
             string normalized = OdfPackagePath.NormalizeHref(href);
@@ -118,17 +118,20 @@ public abstract partial class OdfDocument {
             image.SetAttributeValue(OdfNamespaces.XLink + "type", null);
             image.SetAttributeValue(OdfNamespaces.XLink + "show", null);
             image.SetAttributeValue(OdfNamespaces.XLink + "actuate", null);
-            image.SetAttributeValue(OdfNamespaces.Draw + "mime-type", entry.MediaType);
+            // Fill-image permits binary data but has no draw:mime-type attribute.
+            if (image.Name == OdfNamespaces.Draw + "image") image.SetAttributeValue(OdfNamespaces.Draw + "mime-type", entry.MediaType);
             image.Elements(OdfNamespaces.Office + "binary-data").Remove();
-            image.Add(new XElement(OdfNamespaces.Office + "binary-data", Convert.ToBase64String(entry.GetOriginalBytes())));
+            // The image payload precedes draw-text content in the ODF child sequence.
+            image.AddFirst(new XElement(OdfNamespaces.Office + "binary-data", Convert.ToBase64String(entry.GetOriginalBytes())));
         }
     }
 
     private static void ExtractFlatBinaryData(XElement flatRoot, OdfPackage package, OdfLoadOptions options) {
         int index = 1;
-        foreach (XElement image in flatRoot.Descendants(OdfNamespaces.Draw + "image").ToList()) {
+        foreach (XElement image in FlatImages(flatRoot).ToList()) {
             XElement? binary = image.Element(OdfNamespaces.Office + "binary-data");
             if (binary == null) continue;
+            bool fillImage = image.Name == OdfNamespaces.Draw + "fill-image";
             byte[] data;
             try { data = Convert.FromBase64String(new string(binary.Value.Where(character => !char.IsWhiteSpace(character)).ToArray())); }
             catch (FormatException ex) { throw new InvalidDataException("Flat OpenDocument image contains invalid base64 data.", ex); }
@@ -137,7 +140,10 @@ public abstract partial class OdfDocument {
             string extension;
             if (OfficeImageReader.TryValidateContent(data, fileName: null, out OfficeImageInfo imageInfo)) {
                 if (!OdfImageFormats.TryGetExtension(imageInfo.Format, out string detectedExtension)) {
-                    throw new InvalidDataException("Flat OpenDocument image content uses unsupported detected format '" + imageInfo.Format + "'.");
+                    if (!fillImage) throw new InvalidDataException("Flat OpenDocument image content uses unsupported detected format '" + imageInfo.Format + "'.");
+                    // Common fills retain recognized resources even when their paint is not projected.
+                    detectedExtension = OfficeImageInfo.GetDefaultExtension(imageInfo.Format);
+                    if (detectedExtension == ".bin") throw new InvalidDataException("Flat OpenDocument fill image has an unknown resource format.");
                 }
                 extension = detectedExtension;
             } else if (OfficeImageReader.TryIdentifyByContent(data, fileName: null, out OfficeImageInfo identifiedInfo)) {
@@ -146,17 +152,29 @@ public abstract partial class OdfDocument {
             } else if (OdfImageFormats.TryGetFormat(mediaType, out OfficeImageFormat declaredFormat) &&
                        OdfImageFormats.TryGetExtension(declaredFormat, out string declaredExtension)) {
                 extension = declaredExtension;
+            } else if (data.Length >= 6 && Encoding.ASCII.GetString(data, 0, 6) == "VCLMTF") {
+                // LibreOffice stores drawing previews as StarView metafiles. Preserve bounded opaque bytes;
+                // this is a container mapping, not validation or rendering support for SVM.
+                extension = ".svm";
             } else {
                 throw new InvalidDataException("Flat OpenDocument image has neither a supported media type nor identifiable image content.");
             }
             if (extension == ".svg") {
-                if (!OfficeSvgDrawingReader.TryRead(data, out OfficeDrawing? drawing) || drawing == null) {
-                    throw new InvalidDataException("Flat OpenDocument SVG image is not a supported bounded vector image.");
+                // Ordinary image projection retains its established SVG safety normalization.
+                // Unprojected fill resources remain bounded source data, including producer metadata.
+                if (fillImage) {
+                    if (!OfficeSvgDrawingReader.IsWithinSafetyLimits(data))
+                        throw new InvalidDataException("Flat OpenDocument SVG fill image exceeds the bounded resource profile.");
+                } else {
+                    if (!OfficeSvgDrawingReader.TryRead(data, out OfficeDrawing? drawing) || drawing == null)
+                        throw new InvalidDataException("Flat OpenDocument SVG image is not a supported bounded vector image.");
+                    data = Encoding.UTF8.GetBytes(OfficeDrawingSvgExporter.ToSvg(drawing));
                 }
-                data = Encoding.UTF8.GetBytes(OfficeDrawingSvgExporter.ToSvg(drawing));
             }
             string path = "Pictures/flat-image" + index++.ToString(CultureInfo.InvariantCulture) + extension;
             OdfImageFormats.TryGetMediaType(extension, out string resolvedMediaType);
+            if (fillImage && resolvedMediaType.Length == 0) resolvedMediaType = OfficeImageInfo.GetMimeTypeFromExtension(extension);
+            if (extension == ".svm") resolvedMediaType = "application/x-openoffice-gdimetafile";
             package.AddOrReplaceEntry(path, data, resolvedMediaType);
             image.SetAttributeValue(OdfNamespaces.XLink + "href", path);
             image.SetAttributeValue(OdfNamespaces.XLink + "type", "simple");
@@ -188,9 +206,10 @@ public abstract partial class OdfDocument {
         foreach (XElement element in automaticStyles) {
             string? name = (string?)element.Attribute(OdfNamespaces.Style + "name");
             if (string.IsNullOrEmpty(name)) continue;
-            if (!stylesByName.TryGetValue(name!, out List<XElement>? namedStyles)) {
+            string key = DefinitionKey(element, false);
+            if (!stylesByName.TryGetValue(key, out List<XElement>? namedStyles)) {
                 namedStyles = new List<XElement>();
-                stylesByName.Add(name!, namedStyles);
+                stylesByName.Add(key, namedStyles);
             }
             namedStyles.Add(element);
         }
@@ -201,10 +220,18 @@ public abstract partial class OdfDocument {
             var queued = new HashSet<string>(StringComparer.Ordinal);
             void Queue(XElement element) {
                 foreach (XAttribute attribute in element.DescendantsAndSelf().Attributes()) {
-                    if (queued.Add(attribute.Value)) pending.Enqueue(attribute.Value);
+                    string? kind = ReferenceKind(attribute);
+                    if (kind == null) continue;
+                    string[] names = attribute.Name.LocalName == "class-names" ? attribute.Value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries) : new[] { attribute.Value };
+                    foreach (string name in names) {
+                        string key = kind + "\0" + name;
+                        if (queued.Add(key)) pending.Enqueue(key);
+                    }
                 }
             }
             if (references != null) Queue(references);
+            // Include data/list bindings in common definitions owned by styles.xml.
+            if (includeLayouts && flatRoot.Element(OdfNamespaces.Office + "styles") is XElement common) Queue(common);
             if (includeLayouts) foreach (XElement element in automaticStyles) {
                 if (element.Name == OdfNamespaces.Style + "page-layout" || element.Name == OdfNamespaces.Style + "presentation-page-layout") {
                     found.Add(element); Queue(element);
@@ -267,13 +294,16 @@ public abstract partial class OdfDocument {
     }
 
     private void AddRepresentedImages(XDocument document, HashSet<string> represented) {
-        foreach (XElement image in document.Descendants(OdfNamespaces.Draw + "image")) {
+        foreach (XElement image in FlatImages(document)) {
             string? href = (string?)image.Attribute(OdfNamespaces.XLink + "href");
             if (string.IsNullOrWhiteSpace(href) || href!.Contains("://")) continue;
             string normalized = OdfPackagePath.NormalizeHref(href);
             if (Package.ContainsEntry(normalized)) represented.Add(normalized);
         }
     }
+
+    private static IEnumerable<XElement> FlatImages(XContainer root) => root.Descendants().Where(element =>
+        element.Name == OdfNamespaces.Draw + "image" || element.Name == OdfNamespaces.Draw + "fill-image");
 
     private static void AddUnprojectedPart(List<string> lossy, string partPath, XElement? root, params XName[] projectedChildren) {
         if (root == null) return;

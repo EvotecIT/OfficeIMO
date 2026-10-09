@@ -99,6 +99,10 @@ internal static class PdfQualityCorpusWorker {
                 item => item.Operation.ToString(),
                 item => item.ExecutionMode.ToString(),
                 StringComparer.Ordinal);
+            metrics.MutationPlanBlockerCodes = portfolio.Plans.ToDictionary(
+                item => item.Operation.ToString(),
+                item => (IReadOnlyList<string>)item.BlockerCodes.ToArray(),
+                StringComparer.Ordinal);
         });
         Run(checks, "declared-compliance-claims", () => {
             PdfDeclaredComplianceClaimsReport claims = Require(document).AssessDeclaredComplianceClaims();

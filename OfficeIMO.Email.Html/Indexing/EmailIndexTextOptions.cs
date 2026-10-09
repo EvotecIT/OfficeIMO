@@ -2,6 +2,10 @@ namespace OfficeIMO.Email;
 
 /// <summary>Controls a bounded indexing projection. Quote and signature exclusions are opt-in heuristics.</summary>
 public sealed class EmailIndexTextOptions {
+    /// <summary>Inspect the selected body and include advisory evidence in the result.</summary>
+    public bool InspectContentSafety { get; set; }
+    /// <summary>Controls concealed HTML in indexing text. Exclusion also enables inspection.</summary>
+    public EmailConcealedTextPolicy ConcealedTextPolicy { get; set; }
     /// <summary>Maximum source characters accepted before parsing; oversized input is rejected.</summary>
     public int MaxSourceChars { get; set; } = 2 * 1024 * 1024;
     /// <summary>Separate maximum for generated HTML after text encoding or RTF conversion.</summary>
@@ -43,6 +47,8 @@ public sealed class EmailIndexTextRegion {
 
 /// <summary>Markup-free text and the evidence used for optional exclusions.</summary>
 public sealed class EmailIndexTextResult {
+    /// <summary>Selected-body evidence without private text; null when inspection was not requested.</summary>
+    public EmailBodyContentSafetyReport? ContentSafety { get; internal set; }
     internal EmailIndexTextResult(string fullText, string selectedText, EmailBodySourceKind sourceKind,
         IReadOnlyList<EmailIndexTextRegion> regions, bool truncated, IReadOnlyList<EmailDiagnostic> diagnostics) {
         FullText = fullText; SelectedText = selectedText; SourceKind = sourceKind;

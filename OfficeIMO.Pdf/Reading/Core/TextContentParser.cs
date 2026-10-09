@@ -353,7 +353,9 @@ internal static partial class TextContentParser {
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
         bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0",
         MarkedContentState? inheritedActualTextState = null,
-        Action<int, MarkedContentState>? onActualTextForm = null) {
+        Action<int, MarkedContentState>? onActualTextForm = null,
+        bool preserveGlyphText = false,
+        bool requireMappedText = false) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -946,20 +948,34 @@ internal static partial class TextContentParser {
         void ShowTextRun(byte[] bytes, double paintOrder, bool forceCannotRestamp) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
-            string DecodeRun(byte[] value, int? maximumCharacters = null) {
+            var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
+            bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
+            bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
+            bool isHidden = HasActiveHiddenContent();
+            PdfUnsupportedTextMappingException? unsupportedMapping = null;
+            string DecodeRun(byte[] value, int? maximumCharacters = null, bool probe = false) {
+                if (unsupportedMapping is not null) return string.Empty;
                 int remaining = maximumCharacters ?? textOutputBudget.GetRemainingDecodedTextCharacters();
                 if (remaining == 0) {
                     textOutputBudget.ThrowDecodedTextLimitExceeded();
                 }
-                return decodeWithFontWithinLimit != null
-                    ? decodeWithFontWithinLimit(font, value, remaining)
-                    : decodeWithFont(font, value);
+                try {
+                    return decodeWithFontWithinLimit != null
+                        ? decodeWithFontWithinLimit(font, value, remaining)
+                        : decodeWithFont(font, value);
+                } catch (PdfUnsupportedTextMappingException error) when (probe ||
+                    (useLogicalTextFilters && !requireMappedText && (isArtifact || isHidden || actualTextState is not null))) {
+                    // Width probes may supply only a prefix of a composite code. Logical
+                    // extraction can also use ActualText or exclude this decoration.
+                    if (!probe) unsupportedMapping ??= error;
+                    return string.Empty;
+                }
             }
             // Detect 2-byte CIDs (Identity-H) vs single-byte
             bool twoByte = false;
             if (bytes.Length >= 2) {
-                string one = DecodeRun(new byte[] { bytes[0] });
-                string two = DecodeRun(new byte[] { bytes[0], bytes[1] });
+                string one = DecodeRun(new byte[] { bytes[0] }, probe: true);
+                string two = DecodeRun(new byte[] { bytes[0], bytes[1] }, probe: true);
                 double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
                 double secondByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[1] });
                 double pairWidth = sumWidth1000ForFont(font, new byte[] { bytes[0], bytes[1] });
@@ -981,6 +997,7 @@ internal static partial class TextContentParser {
             bool usedWholeDecodedText = false;
             bool usedVisualEncoding = false;
             for (int idx = 0; idx < bytes.Length;) {
+                cancellationCheck?.Invoke();
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
                 int remainingGlyphCharacters = textOutputBudget.GetRemainingDecodedTextCharacters() - decodedGlyphCharacters;
@@ -1038,11 +1055,7 @@ internal static partial class TextContentParser {
                 decodedGlyphLogicalTexts.Clear();
                 usedWholeDecodedText = true;
             }
-            var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
             bool replaceInvisibleAnchor = false;
-            bool hasActiveArtifact = initialArtifactContent || HasActiveArtifact();
-            bool isArtifact = useLogicalTextFilters && !includeArtifactText && hasActiveArtifact;
-            bool isHidden = HasActiveHiddenContent();
             bool usesVisibleFill = UsesFillTextPaint(textRenderingMode) && !fillColorSpace.SuppressesPaint;
             bool usesVisibleStroke = UsesStrokeTextPaint(textRenderingMode) && !strokeColorSpace.SuppressesPaint;
             bool isVisibleText = usesVisibleFill || usesVisibleStroke;
@@ -1136,7 +1149,7 @@ internal static partial class TextContentParser {
                     StringComparison.Ordinal);
                 // Visual projection draws the painted glyphs: interior whitespace runs stay as painted,
                 // while logical text collapses them. Only edge whitespace is removed from the visual run.
-                string spanText = normalizedText;
+                string spanText = preserveGlyphText && actualTextState is null ? paintedText : normalizedText;
                 int visualTrimmedLeadingChars = 0;
                 if (!useLogicalTextFilters && actualTextState is null) {
                     string paintedVisual = TrimUnpaintedEdgeWhitespace(paintedText, decodedGlyphCharacterLengths,

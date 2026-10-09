@@ -17,7 +17,8 @@ internal static class HtmlCssPrintFitResolver {
 
         double contentWidth = options.PageWidth - options.Margins.Left - options.Margins.Right;
         if (contentWidth <= 0D) return false;
-        var resolver = new HtmlRenderStyleResolver(styles, options, new HtmlDiagnosticReport(), cancellationToken, operationBudget);
+        var resolver = new HtmlRenderStyleResolver(styles, options, new HtmlDiagnosticReport(),
+            style => style.Font.Size * 0.5D, cancellationToken, operationBudget);
         IElement? root = document.DocumentElement;
         if (root == null) return false;
         HtmlRenderBoxStyle rootStyle = resolver.Resolve(root, contentWidth);

@@ -45,7 +45,8 @@ public sealed class OfficeRasterFrameInfo {
         OfficeRasterFrameBlend blend,
         bool isDefaultImage,
         double? dpiX = null,
-        double? dpiY = null) {
+        double? dpiY = null,
+        OfficeImageOrientation orientation = OfficeImageOrientation.Normal) {
         Index = index;
         Kind = kind;
         Width = width;
@@ -58,6 +59,7 @@ public sealed class OfficeRasterFrameInfo {
         IsDefaultImage = isDefaultImage;
         DpiX = dpiX;
         DpiY = dpiY;
+        Orientation = orientation;
     }
 
     /// <summary>Zero-based display or page index.</summary>
@@ -84,6 +86,8 @@ public sealed class OfficeRasterFrameInfo {
     public double? DpiX { get; }
     /// <summary>Selected frame or page vertical physical resolution when independently available.</summary>
     public double? DpiY { get; }
+    /// <summary>Stored orientation before decoder normalization. Descriptors remain source evidence after pixel edits.</summary>
+    public OfficeImageOrientation Orientation { get; }
 }
 
 /// <summary>Bounded format-neutral inventory of the images, frames, or pages in a raster container.</summary>
@@ -97,13 +101,15 @@ public sealed class OfficeRasterContainerInfo {
         int canvasHeight,
         OfficeRasterFrameInfo[] frames,
         int loopCount,
-        OfficeColor background) {
+        OfficeColor background,
+        int? playCount = null) {
         Format = format;
         CanvasWidth = canvasWidth;
         CanvasHeight = canvasHeight;
         _frames = (OfficeRasterFrameInfo[])frames.Clone();
         _readOnlyFrames = Array.AsReadOnly(_frames);
         LoopCount = loopCount;
+        PlayCount = playCount ?? loopCount;
         Background = background;
     }
 
@@ -119,6 +125,9 @@ public sealed class OfficeRasterContainerInfo {
     public int Count => _frames.Length;
     /// <summary>Animation loop count; zero means infinite when <see cref="IsAnimated"/> is true.</summary>
     public int LoopCount { get; }
+    /// <summary>Total animation plays; zero means infinite. Static images and pages report one.</summary>
+    /// <remarks>Unlike the format-specific <see cref="LoopCount"/>, this value normalizes GIF repeat counts and APNG play counts.</remarks>
+    public int PlayCount { get; }
     /// <summary>Container canvas background, when defined.</summary>
     public OfficeColor Background { get; }
     /// <summary>Whether the container has timed animation frames.</summary>

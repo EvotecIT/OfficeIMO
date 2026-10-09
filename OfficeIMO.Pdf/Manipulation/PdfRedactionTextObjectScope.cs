@@ -24,7 +24,7 @@ internal sealed class PdfRedactionTextObjectScope {
                     span,
                     spanPaintOrderContext);
                 sourceGlyphs.Add(aggregate);
-                if (reviewedAreas != null && IntersectsAny(reviewedAreas, aggregate.Bounds)) {
+                if (reviewedAreas != null && IntersectsAny(reviewedAreas, aggregate.Bounds, aggregate.PreciseBounds)) {
                     reviewedIntersection = true;
                     requiresWholeObjectFallback = true;
                 } else {
@@ -36,7 +36,7 @@ internal sealed class PdfRedactionTextObjectScope {
             sourceGlyphs.AddRange(glyphs);
             for (int glyphIndex = 0; glyphIndex < glyphs.Length; glyphIndex++) {
                 PdfRedactionTextGlyphIdentity glyph = glyphs[glyphIndex];
-                if (reviewedAreas != null && IntersectsAny(reviewedAreas, glyph.Bounds)) {
+                if (reviewedAreas != null && IntersectsAny(reviewedAreas, glyph.Bounds, glyph.PreciseBounds)) {
                     reviewedIntersection = true;
                 } else {
                     expectedSurvivors.Add(glyph);
@@ -114,16 +114,17 @@ internal sealed class PdfRedactionTextObjectScope {
                     ? span.GlyphBytes[index]
                     : null,
                 TranslateTextTransform(span, glyphOffset),
-                paintOrderContext);
+                paintOrderContext, PdfTextSpanGeometry.GetRedactionGlyphBounds(span, glyphOffset, glyphAdvance));
             characterOffset += characterLength;
         }
         return true;
     }
 
-    private static bool IntersectsAny(IReadOnlyList<PdfRedactionArea> areas, PdfTextSpanBounds bounds) {
+    private static bool IntersectsAny(IReadOnlyList<PdfRedactionArea> areas, PdfTextSpanBounds bounds, PdfTextSpanBounds preciseBounds) {
         for (int index = 0; index < areas.Count; index++) {
             PdfRedactionArea area = areas[index];
-            if (area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) return true;
+            PdfTextSpanBounds tested = area.RequiresGlyphRewrite ? preciseBounds : bounds;
+            if (area.IntersectsRectangle(tested.Left, tested.Bottom, tested.Width, tested.Height)) return true;
         }
         return false;
     }
@@ -206,7 +207,9 @@ internal readonly struct PdfRedactionPaintOrderContext : IEquatable<PdfRedaction
     public override int GetHashCode() => unchecked(((PathPaintsBefore * 397) ^ RetainedImagePaintsBefore) * 397 ^ RetainedTextPaintsBefore);
 }
 
-internal readonly struct PdfRedactionTextGlyphIdentity {
+// A glyph's immutable evidence is shared by the source and survivor sequences. Keeping
+// it as a reference avoids copying every state field into each temporary/list array.
+internal sealed class PdfRedactionTextGlyphIdentity {
     private const double Tolerance = 0.01D;
 
     private PdfRedactionTextGlyphIdentity(
@@ -215,9 +218,10 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
         PdfTextSpanBounds bounds,
         byte[]? encodedBytes,
         Matrix2D? textToPageTransform,
-        PdfRedactionPaintOrderContext paintOrderContext) {
+        PdfRedactionPaintOrderContext paintOrderContext, PdfTextSpanBounds? preciseBounds = null) {
         Text = text;
         Bounds = bounds;
+        PreciseBounds = preciseBounds ?? bounds;
         FontResource = span.FontResource;
         BaseFont = span.BaseFont;
         FontSize = span.FontSize;
@@ -235,6 +239,7 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
 
     internal string Text { get; }
     internal PdfTextSpanBounds Bounds { get; }
+    internal PdfTextSpanBounds PreciseBounds { get; }
     internal string FontResource { get; }
     internal string? BaseFont { get; }
     internal double FontSize { get; }
@@ -255,8 +260,8 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
         PdfTextSpanBounds bounds,
         byte[]? encodedBytes,
         Matrix2D? textToPageTransform,
-        PdfRedactionPaintOrderContext paintOrderContext) =>
-        new PdfRedactionTextGlyphIdentity(span, text, bounds, encodedBytes, textToPageTransform, paintOrderContext);
+        PdfRedactionPaintOrderContext paintOrderContext, PdfTextSpanBounds? preciseBounds = null) =>
+        new PdfRedactionTextGlyphIdentity(span, text, bounds, encodedBytes, textToPageTransform, paintOrderContext, preciseBounds);
 
     internal static PdfRedactionTextGlyphIdentity FromSpan(
         PdfTextSpan span,
@@ -267,7 +272,7 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
             PdfTextSpanGeometry.GetAxisAlignedBounds(span),
             span.GlyphBytes?.SelectMany(static bytes => bytes).ToArray(),
             span.TextToPageTransform,
-            paintOrderContext);
+            paintOrderContext, PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance));
 
     internal bool MatchesBounds(PdfTextSpanBounds other) =>
         NearlyEqual(Bounds.Left, other.Left) &&

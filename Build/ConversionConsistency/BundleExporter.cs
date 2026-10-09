@@ -45,7 +45,7 @@ internal static partial class BundleExporter {
             var images = new List<ImageArtifact>();
             var diagnostics = new List<string>(exported.Diagnostics);
             var diagnosticDetails = new HashSet<string>(StringComparer.Ordinal);
-            foreach (OfficeImageExportFormat format in Enum.GetValues<OfficeImageExportFormat>()) {
+            foreach (OfficeImageExportFormat format in ComparedImageFormats.All) {
                 int page = 0;
                 foreach (OfficeImageExportResult image in exported.Images(format)) {
                     cancellationToken.ThrowIfCancellationRequested();

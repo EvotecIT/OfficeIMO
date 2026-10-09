@@ -16,7 +16,7 @@ namespace OfficeIMO.Visio {
         public double OffsetY { get; set; } = -0.35D;
 
         /// <summary>
-        /// Whether connectors between duplicated shapes should also be copied.
+        /// Whether connectors whose attached shapes are all duplicated should also be copied, including partial connectors.
         /// </summary>
         public bool IncludeInternalConnectors { get; set; } = true;
 

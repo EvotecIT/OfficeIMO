@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
                 result.Bold[row] = bold;
                 result.Lines[row] = new TableCellTextLayout[columns];
                 int maxLines = 1;
-                double maxHeight = leading + GetTableRowMaxPaddingTop(table, style, row, columns) + GetTableRowMaxPaddingBottom(table, style, row, columns);
+                double maxHeight = GetTableRowInitialTextHeight(table, row, columns, leading) + GetTableRowMaxPaddingTop(table, style, row, columns) + GetTableRowMaxPaddingBottom(table, style, row, columns);
                 for (int column = 0; column < columns; column++) {
                     result.Lines[row][column] = new TableCellTextLayout(new() { new() }, new() { leading });
                 }
@@ -39,7 +39,7 @@ internal static partial class PdfWriter {
                         : textLayouts.Create(cell, innerWidth, font, size, leading, runScale, style.MinimumShrinkFontSize ?? 6D, style.AutoFitWidthUsesContentMinimum);
                     result.Lines[row][cell.Column] = lines;
                     if (cell.RowSpan <= 1 && cell.Viewport == null) {
-                        maxLines = Math.Max(maxLines, lines.LineCount);
+                        maxLines = Math.Max(maxLines, cell.TextRotation == 0 ? lines.LineCount : 1);
                         maxHeight = Math.Max(maxHeight, MeasureTableCellContentHeight(cell, lines, consumedLines > 0 && continued ? consumedLines : 0,
                             continued ? Math.Max(0, lines.LineCount - consumedLines) : lines.LineCount, leading, innerWidth, includeObjects: !continued) +
                             GetTableCellPaddingTop(style, row, cell.Column) + GetTableCellPaddingBottom(style, row, cell.Column));

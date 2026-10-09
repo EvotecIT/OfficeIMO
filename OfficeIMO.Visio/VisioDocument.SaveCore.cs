@@ -87,7 +87,9 @@ namespace OfficeIMO.Visio {
             Uri documentUri = new("/visio/document.xml", UriKind.Relative);
             PackagePart documentPart = package.CreatePart(documentUri,
                 VisioPackageFormat.GetContentType(_packageType));
-            package.CreateRelationship(documentUri, TargetMode.Internal, DocumentRelationshipType, "rId1");
+            // Package-relative targets let independent readers locate the document stream directly.
+            package.CreateRelationship(new Uri(documentUri.OriginalString.TrimStart('/'), UriKind.Relative),
+                TargetMode.Internal, DocumentRelationshipType, "rId1");
 
                 Uri coreUri = new("/docProps/core.xml", UriKind.Relative);
                 PackagePart corePart = package.CreatePart(coreUri, "application/vnd.openxmlformats-package.core-properties+xml");
@@ -100,10 +102,6 @@ namespace OfficeIMO.Visio {
                 Uri customUri = new("/docProps/custom.xml", UriKind.Relative);
                 PackagePart customPart = package.CreatePart(customUri, "application/vnd.openxmlformats-officedocument.custom-properties+xml");
                 package.CreateRelationship(customUri, TargetMode.Internal, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties", "rId4");
-
-                Uri thumbUri = new("/docProps/thumbnail.emf", UriKind.Relative);
-                PackagePart thumbPart = package.CreatePart(thumbUri, "image/x-emf");
-                package.CreateRelationship(thumbUri, TargetMode.Internal, "http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail", "rId5");
 
                 Uri pagesUri = new("/visio/pages/pages.xml", UriKind.Relative);
                 PackagePart pagesPart = package.CreatePart(pagesUri, PagesContentType);
@@ -197,59 +195,35 @@ namespace OfficeIMO.Visio {
                     }
                 }
 
-                // Write visio/document.xml
-                {
-                    XDocument docXml = CreateVisioDocumentXml(
-                        _requestRecalcOnOpen,
-                        PreservedDocumentAttributes,
-                        PreservedDocumentElements,
-                        PreservedDocumentSettingsAttributes,
-                        PreservedDocumentSettingsElements,
-                        PreservedColorsAttributes,
-                        PreservedColorsElements,
-                        PreservedFaceNamesAttributes,
-                        PreservedFaceNamesElements,
-                        PreservedStyleSheetsAttributes,
-                        PreservedStyleSheetsElements,
-                        PreservedGeneratedStyleSheets,
-                        PreservedAdditionalStyleSheets);
-                    using Stream s = documentPart.GetStream(FileMode.Create, FileAccess.Write);
-                    using StreamWriter sw = new(s, new UTF8Encoding(false));
-                    sw.Write(docXml.Declaration + Environment.NewLine + docXml.ToString(SaveOptions.DisableFormatting));
-                }
+                // Complete document XML after shape parts assign their native identities.
+                XDocument documentXml = CreateVisioDocumentXml(
+                    _requestRecalcOnOpen,
+                    PreservedDocumentAttributes,
+                    PreservedDocumentElements,
+                    PreservedDocumentSettingsAttributes,
+                    PreservedDocumentSettingsElements,
+                    PreservedColorsAttributes,
+                    PreservedColorsElements,
+                    PreservedFaceNamesAttributes,
+                    PreservedFaceNamesElements,
+                    PreservedStyleSheetsAttributes,
+                    PreservedStyleSheetsElements,
+                    PreservedGeneratedStyleSheets,
+                    PreservedAdditionalStyleSheets);
 
-                // Write visio/windows.xml with minimal expected structure
-                {
-                    XNamespace vNs = VisioNamespace;
-                    XElement root = new(vNs + "Windows",
-                        new XAttribute("ClientWidth", XmlConvert.ToString(8.5)),
-                        new XAttribute("ClientHeight", XmlConvert.ToString(11.0)));
-                    root.Add(new XElement(vNs + "Window",
-                        new XAttribute("WindowType", 1),
-                        new XAttribute("WindowState", 0),
-                        new XAttribute("ClientWidth", XmlConvert.ToString(8.5)),
-                        new XAttribute("ClientHeight", XmlConvert.ToString(11.0))));
-                    XDocument winXml = new(root);
-                    using Stream s = windowsPart.GetStream(FileMode.Create, FileAccess.Write);
-                    using StreamWriter sw = new(s, new UTF8Encoding(false));
-                    sw.Write(winXml.Declaration + Environment.NewLine + winXml.ToString(SaveOptions.DisableFormatting));
-                }
+                WritePackageMetadata(appPart, customPart, windowsPart, pagesToSave);
 
                 Dictionary<VisioPage, Dictionary<string, VisioMaster>> effectivePageMasters = new();
                 List<VisioMaster> masterCandidates = new();
-                if (IsStencil) masterCandidates.AddRange(_registeredMasters);
+                if (IsStencil || IsTemplate) masterCandidates.AddRange(_registeredMasters);
                 foreach (VisioPage page in pagesToSave) {
                     Dictionary<string, VisioMaster> pageMasters = BuildEffectiveShapeMasterMap(page);
                     effectivePageMasters[page] = pageMasters;
                     AddMastersInShapeOrder(page.Shapes, pageMasters, masterCandidates);
 
                     foreach (VisioConnector connector in page.Connectors) {
-                        if (connector.Kind == ConnectorKind.Dynamic &&
-                            (UseMastersByDefault ||
-                             connector.PreserveDynamicConnectorMaster)) {
-                            masterCandidates.Add(EnsureBuiltinMaster(
-                                "Dynamic connector"));
-                        }
+                        VisioMaster? master = ResolveEffectiveMaster(connector);
+                        if (master != null) masterCandidates.Add(master);
                     }
                 }
 
@@ -271,86 +245,21 @@ namespace OfficeIMO.Visio {
                             part.CreateRelationship(new Uri($"../masters/master{entry.PartNumber}.xml", UriKind.Relative), TargetMode.Internal, MasterRelationshipType, $"rId{entry.PartNumber}");
                         }
 
+                        var foreignResources = master.ForeignResources.Concat(ShapeForeignResources(new[] { master.Shape })).ToList();
+                        if ((foreignResources.Count > 0 && master.LoadedModelShapeXml == null) ||
+                            (master.RawMasterContentXml == null && RequiresCompleteMasterShape(master.Shape))) {
+                            WriteModeledMasterContent(masterPart, master, ns, settings);
+                            WriteForeignResources(masterPart, foreignResources);
+                            continue;
+                        }
                         if (master.RawMasterContentXml != null) {
-                            using Stream stream = masterPart.GetStream(FileMode.Create, FileAccess.Write);
-                            using StreamWriter streamWriter = new(stream, new UTF8Encoding(false));
-                            XDocument rawMasterContent = MergeRawMasterMetadata(master.RawMasterContentXml, master);
-                            streamWriter.Write(rawMasterContent.Declaration + Environment.NewLine + rawMasterContent.ToString(SaveOptions.DisableFormatting));
+                            WriteLoadedMasterContent(masterPart, master);
                             WriteRawMasterRelationships(package, masterPart, master, entry.PartNumber);
+                            WriteForeignResources(masterPart, foreignResources);
                             continue;
                         }
 
-                        using (XmlWriter writer = XmlWriter.Create(masterPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
-                            writer.WriteStartDocument();
-                            writer.WriteStartElement("MasterContents", ns);
-                            writer.WriteAttributeString("xmlns", "r", null, "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
-                            writer.WriteAttributeString("xml", "space", "http://www.w3.org/XML/1998/namespace", "preserve");
-                            WritePreservedAttributes(writer, master.PreservedMasterContentAttributes);
-                            writer.WriteStartElement("Shapes", ns);
-                            WritePreservedAttributes(writer, master.PreservedShapesAttributes);
-                            VisioShape s = master.Shape;
-                            double masterWidth = s.Width > 0 ? s.Width : 1;
-                            double masterHeight = s.Height > 0 ? s.Height : 1;
-                            double masterLocPinX = Math.Abs(s.LocPinX) < double.Epsilon ? masterWidth / 2 : s.LocPinX;
-                            double masterLocPinY = Math.Abs(s.LocPinY) < double.Epsilon ? masterHeight / 2 : s.LocPinY;
-                            TryGetBuiltinMasterDefinition(master.NameU, out var masterDefinition);
-                            writer.WriteStartElement("Shape", ns);
-                            writer.WriteAttributeString("ID", "1");
-                            string masterShapeName = s.Name ?? s.NameU ?? "MasterShape";
-                            writer.WriteAttributeString("Name", masterShapeName);
-                            writer.WriteAttributeString("NameU", master.NameU);
-                            writer.WriteAttributeString("Type", "Shape");
-                            if (masterDefinition?.GeometryKind == BuiltinGeometryKind.DynamicConnector) {
-                                writer.WriteAttributeString("LineStyle", "0");
-                                writer.WriteAttributeString("FillStyle", "0");
-                                writer.WriteAttributeString("TextStyle", "0");
-                                WriteXForm1D(writer, ns, 0, 0, 1, 0);
-                                WriteCell(writer, ns, "OneD", 1);
-                                WriteCell(writer, ns, "ObjType", 2);
-                                WriteCell(writer, ns, "LineWeight", s.LineWeight);
-                                WriteCell(writer, ns, "LinePattern", s.LinePattern);
-                                WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
-                                WriteCell(writer, ns, "FillPattern", 0);
-                                WriteCellValue(writer, ns, "FillForegnd", Color.Transparent.ToVisioHex());
-                                WriteCell(writer, ns, "LockHeight", 1);
-                                WriteCell(writer, ns, "LockCalcWH", 1);
-                                WriteCell(writer, ns, "GlueType", 2);
-                                WriteCell(writer, ns, "NoAlignBox", 1);
-                                WriteCell(writer, ns, "DynFeedback", 2);
-                                WriteCell(writer, ns, "ShapeSplittable", 1);
-                                WriteCell(writer, ns, "LayerMember", 0);
-                                WriteConnectorControlSection(writer, ns, masterHeight);
-                            } else {
-                                writer.WriteAttributeString("LineStyle", "1");
-                                writer.WriteAttributeString("FillStyle", "1");
-                                writer.WriteAttributeString("TextStyle", "1");
-                                WriteXForm(writer, ns, s.PinX, s.PinY, masterWidth, masterHeight, masterLocPinX, masterLocPinY, s.Angle);
-                                WriteCell(writer, ns, "ObjType", 1);
-                                if (masterDefinition?.LockAspect == true) {
-                                    WriteCell(writer, ns, "LockAspect", 1);
-                                }
-                                WriteCell(writer, ns, "LineWeight", s.LineWeight);
-                                WriteCell(writer, ns, "LinePattern", s.LinePattern);
-                                WriteCellValue(writer, ns, "LineColor", s.LineColor.ToVisioHex());
-                                WriteCell(writer, ns, "FillPattern", s.FillPattern);
-                                WriteCellValue(writer, ns, "FillForegnd", s.FillColor.ToVisioHex());
-                                WriteShapeGeometry(writer, ns, s.PreservedGeometrySections, master.NameU, masterWidth, masterHeight);
-                                WriteDefaultTextBlock(writer, ns, masterWidth, masterHeight);
-                            }
-                            WriteCell(writer, ns, "ShapeSplit", 1);
-                            WriteCell(writer, ns, "QuickStyleType", 2);
-                            WriteConnectionSection(writer, ns, s.ConnectionPoints);
-                            WriteMasterUserSection(writer, ns);
-                            WriteMasterCharacterSection(writer, ns);
-                            WriteDataSection(writer, ns, s.Data, s.PreservedDataRows, shapeDataRows: s.ShapeData, sectionName: s.ShapeDataSectionName);
-                            WriteTextElement(writer, ns, s.Text, s.PreservedTextElement, s.PreservedTextValue);
-                            writer.WriteEndElement();
-                            WritePreservedElements(writer, master.PreservedAdditionalShapeElements);
-                            writer.WriteEndElement();
-                            WritePreservedElements(writer, master.PreservedMasterContentElements);
-                            writer.WriteEndElement();
-                            writer.WriteEndDocument();
-                        }
+                        WriteSimpleMasterContent(masterPart, master, ns, settings);
                     }
 
                     // Write masters list (masters.xml)
@@ -366,27 +275,7 @@ namespace OfficeIMO.Visio {
                             VisioMaster m = entry.Master;
                             TryGetBuiltinMasterDefinition(m.NameU, out var masterDefinition);
                             writer.WriteStartElement("Master", ns);
-                            writer.WriteAttributeString("ID", entry.PackageId);
-                            writer.WriteAttributeString("Name", m.NameU);
-                            writer.WriteAttributeString("NameU", m.NameU);
-                            writer.WriteAttributeString("IsCustomNameU", "1");
-                            writer.WriteAttributeString("IsCustomName", "1");
-                            writer.WriteAttributeString("Prompt", masterDefinition?.Prompt ?? "Drag onto the page.");
-                            writer.WriteAttributeString("IconSize", "1");
-                            writer.WriteAttributeString("AlignName", "2");
-                            writer.WriteAttributeString("MatchByName", masterDefinition?.MatchByName == true ? "1" : "0");
-                            writer.WriteAttributeString("IconUpdate", masterDefinition?.IconUpdate == false ? "0" : "1");
-                            writer.WriteAttributeString("UniqueID", masterDefinition?.UniqueId ?? Guid.Empty.ToString("B").ToUpperInvariant());
-                            writer.WriteAttributeString("BaseID", masterDefinition?.BaseId ?? Guid.Empty.ToString("B").ToUpperInvariant());
-                            writer.WriteAttributeString("PatternFlags", "0");
-                            writer.WriteAttributeString("Hidden", "0");
-                            writer.WriteAttributeString("MasterType", XmlConvert.ToString(masterDefinition?.MasterType ?? 2));
-                            foreach (XAttribute preservedAttribute in m.PreservedMasterAttributes) {
-                                writer.WriteAttributeString(
-                                    preservedAttribute.Name.LocalName,
-                                    preservedAttribute.Name.NamespaceName.Length == 0 ? null : preservedAttribute.Name.NamespaceName,
-                                    preservedAttribute.Value);
-                            }
+                            WriteMasterCatalogAttributes(writer, m, entry.PackageId, masterDefinition);
                             WriteMasterPageSheet(writer, ns, m, masterDefinition);
                             WritePreservedElements(writer, m.PreservedMasterElements);
                             writer.WriteStartElement("Rel", ns);
@@ -437,91 +326,7 @@ namespace OfficeIMO.Visio {
                                 preservedAttribute.Value);
                         }
 
-                        writer.WriteStartElement("PageSheet", ns);
-                        writer.WriteAttributeString("LineStyle", "0");
-                        writer.WriteAttributeString("FillStyle", "0");
-                        writer.WriteAttributeString("TextStyle", "0");
-
-                        bool useUnits = page.DefaultUnit != VisioMeasurementUnit.Inches ||
-                                        page.Width != 8.26771653543307 ||
-                                        page.Height != 11.69291338582677;
-                        if (useUnits) {
-                            string pageUnitCode = page.DefaultUnit.ToVisioUnitCode();
-                            WritePageCell(writer, ns, "PageWidth", page.Width.FromInches(page.DefaultUnit), pageUnitCode);
-                            WritePageCell(writer, ns, "PageHeight", page.Height.FromInches(page.DefaultUnit), pageUnitCode);
-                            WritePageCell(writer, ns, "ShdwOffsetX", 0.1181102362204724, "MM");
-                            WritePageCell(writer, ns, "ShdwOffsetY", -0.1181102362204724, "MM");
-                        } else {
-                            WritePageCell(writer, ns, "PageWidth", page.Width);
-                            WritePageCell(writer, ns, "PageHeight", page.Height);
-                            WritePageCell(writer, ns, "ShdwOffsetX", 0.1181102362204724);
-                            WritePageCell(writer, ns, "ShdwOffsetY", -0.1181102362204724);
-                        }
-                        VisioScaleSetting pageScale = page.GetEffectivePageScale();
-                        WritePageCell(writer, ns, "PageScale", pageScale.ToInches(), pageScale.Unit.ToVisioUnitCode());
-                        VisioScaleSetting drawingScale = page.GetEffectiveDrawingScale();
-                        WritePageCell(writer, ns, "DrawingScale", drawingScale.ToInches(), drawingScale.Unit.ToVisioUnitCode());
-                        WritePageCell(writer, ns, "DrawingSizeType", (int)page.DrawingSizeType);
-                        WritePageCell(writer, ns, "DrawingScaleType", 0);
-                        WritePageCell(writer, ns, "InhibitSnap", page.Snap ? 0 : 1);
-                        WritePageCell(writer, ns, "PageLockReplace", page.PageLockReplace ? 1 : 0, "BOOL");
-                        WritePageCell(writer, ns, "PageLockDuplicate", page.PageLockDuplicate ? 1 : 0, "BOOL");
-                        WritePageCell(writer, ns, "UIVisibility", (int)page.UiVisibility);
-                        WritePageCell(writer, ns, "ShdwType", 0);
-                        WritePageCell(writer, ns, "ShdwObliqueAngle", 0);
-                        WritePageCell(writer, ns, "ShdwScaleFactor", 1);
-                        WritePageCell(writer, ns, "DrawingResizeType", page.AutoResizeDrawing ? 1 : 0);
-                        WritePageCell(writer, ns, "PageShapeSplit", page.AllowShapeSplitting ? 1 : 0);
-                        WritePagePlacementCells(writer, ns, page);
-                        WritePageLayoutGridCells(writer, ns, page);
-                        WritePageLayoutRoutingCells(writer, ns, page);
-                        WritePageRoutingSpacingCells(writer, ns, page);
-                        WritePreservedElements(writer, page.PreservedPageSheetCells);
-                        // For non-default page sizes, include theme/margin metadata like the asset samples
-                        bool hasPreservedUserSection = page.PreservedPageSheetSections.Any(section =>
-                            string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase));
-                        if (useUnits) {
-                            WritePageCell(writer, ns, "ColorSchemeIndex", 60);
-                            WritePageCell(writer, ns, "EffectSchemeIndex", 60);
-                            WritePageCell(writer, ns, "ConnectorSchemeIndex", 60);
-                            WritePageCell(writer, ns, "FontSchemeIndex", 60);
-                            WritePageCell(writer, ns, "ThemeIndex", 60);
-                            WriteMarginCells(writer, ns, page, useUnits);
-                            if (page.PrintOrientation.HasValue) {
-                                WritePageCell(writer, ns, "PrintPageOrientation", (int)page.PrintOrientation.Value);
-                            }
-                            if (!hasPreservedUserSection) {
-                                writer.WriteStartElement("Section", ns);
-                                writer.WriteAttributeString("N", "User");
-                                writer.WriteStartElement("Row", ns);
-                                writer.WriteAttributeString("N", "msvThemeOrder");
-                                writer.WriteStartElement("Cell", ns);
-                                writer.WriteAttributeString("N", "Value");
-                                writer.WriteAttributeString("V", "0");
-                                writer.WriteEndElement();
-                                writer.WriteStartElement("Cell", ns);
-                                writer.WriteAttributeString("N", "Prompt");
-                                writer.WriteAttributeString("V", "");
-                                writer.WriteAttributeString("F", "No Formula");
-                                writer.WriteEndElement();
-                                writer.WriteEndElement();
-                                writer.WriteEndElement();
-                            }
-                        } else {
-                            if (page.HasExplicitMargins) {
-                                WriteMarginCells(writer, ns, page, useUnits);
-                            }
-
-                            if (page.PrintOrientation.HasValue) {
-                                WritePageCell(writer, ns, "PrintPageOrientation", (int)page.PrintOrientation.Value);
-                            }
-                        }
-                        BuildLayerIndexMap(page, out List<VisioLayer> layersToWrite);
-                        if (layersToWrite.Count > 0) {
-                            WriteLayerSection(writer, ns, layersToWrite);
-                        }
-                        WritePreservedElements(writer, page.PreservedPageSheetSections);
-                        writer.WriteEndElement();
+                        WritePageSheet(writer, ns, page);
                         writer.WriteStartElement("Rel", ns);
                         writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", pageRelationship.Id);
                         writer.WriteEndElement();
@@ -658,7 +463,13 @@ namespace OfficeIMO.Visio {
                         writer.WriteEndElement(); // PageContents
                         writer.WriteEndDocument();
                     }
+                    WriteForeignResources(pagePart, page.ForeignResources.Concat(ShapeForeignResources(page.Shapes)).Concat(page.Connectors.SelectMany(connector => connector.ForeignResources)));
                 }
+                CollectNativeCellMetadata(documentXml, package, pageParts, masters, pagesPart, mastersPart);
+                WriteNativeFontNames(documentXml, package, pageParts, masters, pagesPart, mastersPart);
+                using (Stream stream = documentPart.GetStream(FileMode.Create, FileAccess.Write))
+                using (StreamWriter writer = new(stream, new UTF8Encoding(false)))
+                    writer.Write(documentXml.Declaration + Environment.NewLine + documentXml.ToString(SaveOptions.DisableFormatting));
                 masterCount = masters.Count;
                 pagePartNames.Clear();
                 pagePartNames.AddRange(pageParts

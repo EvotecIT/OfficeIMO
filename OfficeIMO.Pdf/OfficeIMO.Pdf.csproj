@@ -32,6 +32,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\sRGB_IEC61966-2-1_no_black_scaling.icc" />
+    <EmbeddedResource Include="Resources/AdobeCMaps/Uni*-UCS2-H;Resources/AdobeCMaps/Adobe-*-UCS2" LogicalName="OfficeIMO.Pdf.AdobeCMaps.%(Filename)%(Extension)" />
+    <None Include="Resources/AdobeCMaps/LICENSE.md;Resources/AdobeCMaps/LICENSE.txt;Resources/AdobeCMaps/source.json" Pack="true" PackagePath="licenses/AdobeCMaps/" />
+    <None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="THIRD-PARTY-NOTICES.md" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
@@ -79,6 +82,9 @@
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Visio.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odg.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Xps.Pdf" />
   </ItemGroup>
 
 </Project>

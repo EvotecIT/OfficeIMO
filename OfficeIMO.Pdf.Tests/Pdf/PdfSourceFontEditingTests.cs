@@ -10,10 +10,10 @@ public class PdfSourceFontEditingTests {
     [InlineData("aes-128")]
     [InlineData("aes-256")]
     public void IndependentProducerFontsRemainEmbeddedAfterPartialReplacement(string producer) {
-        string root = FindRepositoryRoot();
+        string root = AppContext.BaseDirectory;
         bool encrypted = producer != "reportlab";
         var options = new PdfLoadOptions { Password = encrypted ? "owner" : null };
-        PdfDocument source = PdfDocument.Load(File.ReadAllBytes(Path.Combine(root, "OfficeIMO.TestAssets", "PdfEditing", "source-font-" + producer + ".pdf")), options);
+        PdfDocument source = PdfDocument.Load(File.ReadAllBytes(Path.Combine(root, "PdfEditing", "source-font-" + producer + ".pdf")), options);
         PdfFontInfo before = Assert.Single(source.Resources.Fonts(new PdfFontInspectionOptions { IncludeEmbeddedProgramBytes = true }).Fonts, font => font.IsEmbedded);
         PdfTextEditResult edit = source.Text.ReplaceAll("alpha", "gamma");
         Assert.Empty(edit.Warnings);
@@ -126,8 +126,7 @@ public class PdfSourceFontEditingTests {
     }
 
     private static PdfDocument CreateSource(bool encrypted, string? baseFontAlias = null) {
-        string root = FindRepositoryRoot();
-        byte[] font = File.ReadAllBytes(Path.Combine(root, "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
+        byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "OfficeIMOBaselineSans-Regular.ttf"));
         var options = new PdfOptions().RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Baseline", font));
         if (encrypted) options.SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes256 });
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("alpha beta gamma"))), options).ToBytes();
@@ -155,11 +154,4 @@ public class PdfSourceFontEditingTests {
         return PdfDocument.Load(source, new PdfLoadOptions { Password = encrypted ? "owner" : null });
     }
 
-    private static string FindRepositoryRoot() {
-        string root = AppContext.BaseDirectory;
-        while (!File.Exists(Path.Combine(root, "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"))) {
-            root = Directory.GetParent(root)?.FullName ?? throw new FileNotFoundException("The checked-in baseline font was not found.");
-        }
-        return root;
-    }
 }

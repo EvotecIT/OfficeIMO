@@ -354,7 +354,8 @@ public partial class Word {
             else table.Rows[0].Height = 360;
             table.Rows[0].Cells[0].Width = 2200;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-            table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";
+            // Keep enough wrapped lines to exceed the minimum height under font substitution too.
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon Phi Chi Psi Omega";
             table.Rows[1].Cells[0].Paragraphs[0].Text = followingRowText;
 
             document.Save();

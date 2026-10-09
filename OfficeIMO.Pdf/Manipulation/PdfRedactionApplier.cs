@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Applies reviewed redaction areas by removing intersecting content and annotations, then painting matching redaction marks.
-/// Unsupported text mappings fall back to removal of the complete PDF text object.
+/// Redaction requires a reviewable inspection plan before any content is removed or marks are painted.
 /// </summary>
 internal static partial class PdfRedactionApplier {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
@@ -69,6 +69,13 @@ internal static partial class PdfRedactionApplier {
             generatedGrowth: out generatedGrowth,
             appliedImageMatches: out appliedImageMatches);
         VerifySearchedTextRemoved(output, pdf, plan, layoutOptions, readOptions, generatedGrowth, effectiveOptions.CancellationToken);
+        if (plan.Areas.Any(static area => area.RequiresGlyphRewrite)) {
+            // Even the non-evidence Apply route must preserve unselected text for precise plans.
+            PdfRedactionVerification.VerifyAppliedPlan(output, plan, new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true, FailOnUndecodablePdfStreams = true,
+                CancellationToken = effectiveOptions.CancellationToken
+            }, PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth), appliedImageMatches).ThrowIfFailed();
+        }
         return output;
     }
 
@@ -235,6 +242,14 @@ internal static partial class PdfRedactionApplier {
         effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         if (!plan.Preflight.CanReadLogicalObjects) {
             throw new InvalidOperationException("PDF redaction cannot be applied because logical content cannot be read. " + string.Join(" ", plan.Preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects)));
+        }
+        // Image/annotation removal consumes plan matches. A blocked plan may have discarded
+        // those matches even when the unsupported content is on an unselected page. The
+        // independent text-editing primitive instead rewrites only its supplied geometry.
+        if (!plan.IsReviewable && mutationScope != RedactionMutationScope.Text) {
+            throw new InvalidOperationException("PDF content removal cannot be applied because its inspection plan is blocked. " +
+                string.Join(" ", plan.Findings.Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
+                    .Select(static finding => finding.Message)));
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, effectiveOptions.CancellationToken);
@@ -845,17 +860,17 @@ internal static partial class PdfRedactionApplier {
             PdfRedactionArea area = areas[i];
             PdfRedactionGeometry? geometry = area.ExactGeometry;
             if (geometry is null) {
-                content.Rectangle(area.X, area.Y, area.Width, area.Height).FillPath();
+                content.Rectangle(area.X, area.Y, area.Width, area.Height, preciseCoordinates: true).FillPath();
             } else if (geometry.Kind == PdfRedactionRegionKind.Freehand) {
-                content.LineWidth(geometry.StrokeWidth)
+                content.LineWidth(geometry.StrokeWidth, preciseCoordinates: true)
                     .LineCap(1)
-                    .MoveTo(geometry.Points[0].X, geometry.Points[0].Y)
-                    .LineTo(geometry.Points[1].X, geometry.Points[1].Y)
+                    .MoveTo(geometry.Points[0].X, geometry.Points[0].Y, preciseCoordinates: true)
+                    .LineTo(geometry.Points[1].X, geometry.Points[1].Y, preciseCoordinates: true)
                     .StrokePath();
             } else {
-                content.MoveTo(geometry.Points[0].X, geometry.Points[0].Y);
+                content.MoveTo(geometry.Points[0].X, geometry.Points[0].Y, preciseCoordinates: true);
                 for (int point = 1; point < geometry.Points.Count; point++) {
-                    content.LineTo(geometry.Points[point].X, geometry.Points[point].Y);
+                    content.LineTo(geometry.Points[point].X, geometry.Points[point].Y, preciseCoordinates: true);
                 }
                 content.ClosePath().FillPath();
             }

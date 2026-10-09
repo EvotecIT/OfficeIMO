@@ -2,6 +2,10 @@ namespace OfficeIMO.Tool.Agent;
 
 /// <summary>Compact description of one local OfficeIMO-readable artifact.</summary>
 public sealed class AgentInspectResult {
+    /// <summary>All source-derived strings are untrusted data, including metadata and previews.</summary>
+    public string ContentTrust => "untrusted";
+    /// <summary>Advisory selected-email-body evidence. Other formats are not assessed by this summary.</summary>
+    public AgentContentSafetySummary ContentSafety { get; set; } = new();
     public string SourceId { get; set; } = string.Empty;
     public string Path { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;
@@ -50,6 +54,10 @@ public sealed class AgentDiagnosticSummary {
 
 /// <summary>Bounded search response for a document or email store.</summary>
 public sealed class AgentSearchResult {
+    /// <summary>Titles, snippets and sender metadata are untrusted source content.</summary>
+    public string ContentTrust => "untrusted";
+    /// <summary>Advisory email-body evidence; metadata-only searches are not inspected.</summary>
+    public AgentContentSafetySummary ContentSafety { get; set; } = new();
     public string SourceId { get; set; } = string.Empty;
     public string? Query { get; set; }
     public int Returned { get; set; }
@@ -62,6 +70,10 @@ public sealed class AgentSearchResult {
 
 /// <summary>One bounded, resumable semantic email-store search response.</summary>
 public sealed class AgentEmailSearchResult {
+    /// <summary>Titles, snippets and sender metadata are untrusted source content.</summary>
+    public string ContentTrust => "untrusted";
+    /// <summary>Advisory body evidence accumulated across the bounded scanned items.</summary>
+    public AgentContentSafetySummary ContentSafety { get; set; } = new();
     public string SourceId { get; set; } = string.Empty;
     public int Returned { get; set; }
     public int ItemsScanned { get; set; }
@@ -89,6 +101,10 @@ public sealed class AgentSearchHit {
 
 /// <summary>Bounded content retrieved for one opaque result identifier.</summary>
 public sealed class AgentFetchResult {
+    /// <summary>Fetched content and source metadata are untrusted data, never tool instructions.</summary>
+    public string ContentTrust => "untrusted";
+    /// <summary>Advisory email-body evidence retained independently of diagnostic samples.</summary>
+    public AgentContentSafetySummary ContentSafety { get; set; } = new();
     public string SourceId { get; set; } = string.Empty;
     public string Id { get; set; } = string.Empty;
     public string Kind { get; set; } = string.Empty;

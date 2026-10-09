@@ -1,0 +1,10 @@
+file,gamma,mode,r,g,b,a,calibrated_r,calibrated_g,calibrated_b
+gamma-linear.png,100000,RGBA,128,64,32,128,188,137,99
+gamma-half.png,50000,RGBA,64,128,192,255,71,137,198
+gamma-standard-power.png,45455,RGBA,128,64,32,255,129,62,26
+p3.png,45455,RGBA,128,64,32,255,139,57,11
+adobe.png,55556,RGBA,32,128,192,128,0,146,205
+d50.png,50000,RGBA,128,64,32,255,142,72,38
+gray.png,100000,LA,128,128,128,128,188,188,188
+indexed.png,100000,P,128,64,32,128,197,135,92
+canonical-cicp.png,100000,RGBA,128,64,32,128,,,

@@ -282,6 +282,43 @@ public class PdfEngineRoadmapFoundationTests {
     }
 
     [Fact]
+    public void ReaderProjection_HonorsRasterDecodeBoundsAndCancellationWithoutChangingCallerSettings() {
+        byte[] animatedGif = CreateTwoFrameGif();
+        var source = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Unknown,
+            Assets = new[] {
+                new OfficeDocumentAsset { Id = "animation", Kind = "image", FileName = "animation.gif", MediaType = "image/gif", PayloadBytes = animatedGif }
+            }
+        };
+        using var callerCancellation = new System.Threading.CancellationTokenSource();
+        var decodeOptions = new OfficeRasterDecodeOptions {
+            MaximumEncodedBytes = 1,
+            MaximumDecodedPixels = 1,
+            ApplyExifOrientation = false,
+            CancellationToken = callerCancellation.Token
+        };
+        var projectionOptions = new PdfProjectionOptions { RasterDecodeOptions = decodeOptions };
+
+        PdfDocumentConversionResult limited = source.ToPdfDocumentResult(projectionOptions);
+        Assert.Empty(limited.Value.Images.Placements());
+        Assert.Contains(limited.Warnings, warning => warning.Code == "pdf-projection-asset-listed-not-embedded");
+        Assert.Equal(1, decodeOptions.MaximumEncodedBytes);
+        Assert.Equal(1L, decodeOptions.MaximumDecodedPixels);
+        Assert.False(decodeOptions.ApplyExifOrientation);
+        Assert.Equal(callerCancellation.Token, decodeOptions.CancellationToken);
+
+        decodeOptions.MaximumEncodedBytes = animatedGif.Length;
+        PdfDocumentConversionResult accepted = source.ToPdfDocumentResult(projectionOptions);
+        Assert.Single(accepted.Value.Images.Placements());
+        Assert.Equal(animatedGif.Length, decodeOptions.MaximumEncodedBytes);
+        Assert.Equal(callerCancellation.Token, decodeOptions.CancellationToken);
+
+        callerCancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => source.ToPdfDocumentResult(projectionOptions));
+        Assert.Equal(callerCancellation.Token, decodeOptions.CancellationToken);
+    }
+
+    [Fact]
     public void ReaderProjection_ReportsSelectedAnimationFrameAndHonorsExactPolicy() {
         byte[] animatedGif = CreateTwoFrameGif();
         var source = new OfficeDocumentReadResult {
@@ -294,7 +331,7 @@ public class PdfEngineRoadmapFoundationTests {
         PdfDocumentConversionResult selected = source.ToPdfDocumentResult();
         PdfDocumentConversionResult rejected = source.ToPdfDocumentResult(new PdfProjectionOptions {
             RasterDecodeOptions = new OfficeRasterDecodeOptions {
-                AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+                FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
             }
         });
 
@@ -316,7 +353,7 @@ public class PdfEngineRoadmapFoundationTests {
         PdfDocumentConversionResult selected = source.ToPdfDocumentResult();
         PdfDocumentConversionResult rejected = source.ToPdfDocumentResult(new PdfProjectionOptions {
             RasterDecodeOptions = new OfficeRasterDecodeOptions {
-                AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+                FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
             }
         });
 

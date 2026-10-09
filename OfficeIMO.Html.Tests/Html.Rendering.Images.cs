@@ -435,7 +435,7 @@ public sealed partial class HtmlRenderingTests {
         AngleSharp.Dom.IElement image = document.QuerySelector("img")!;
         HtmlComputedStyle imageStyle = computed[image];
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 320D);
         HtmlRenderBoxStyle resolved = resolver.Resolve(image, 320D, parent);
 

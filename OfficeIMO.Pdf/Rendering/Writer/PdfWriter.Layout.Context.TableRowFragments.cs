@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
             int rowIndex, int startLine, int lineCount, bool suppressCellObjects) {
             if (startLine == 0 && lineCount == rows.LineCounts[rowIndex]) return rows.Heights[rowIndex];
             double leading = rows.Leadings[rowIndex];
-            double height = leading + GetTableRowMaxPaddingTop(table, style, rowIndex, columns) +
+            double height = GetTableRowInitialTextHeight(table, rowIndex, columns, leading) + GetTableRowMaxPaddingTop(table, style, rowIndex, columns) +
                 GetTableRowMaxPaddingBottom(table, style, rowIndex, columns);
             foreach (TableCellLayout cell in GetTableCellLayouts(table, rowIndex, columns)) {
                 double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);

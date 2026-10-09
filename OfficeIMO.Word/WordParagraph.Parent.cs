@@ -44,7 +44,11 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return new WordTextBox(document, hostParagraph, hostRun);
+            OpenXmlElement? owner = paragraph.Ancestors<OpenXmlElement>()
+                .FirstOrDefault(element => element is Wps.TextBoxInfo2 || element is V.TextBox);
+            return new WordTextBox(document, hostParagraph, hostRun,
+                selectedVmlTextBox: owner as V.TextBox,
+                selectedDrawing: owner is Wps.TextBoxInfo2 ? owner.Ancestors<DocumentFormat.OpenXml.Wordprocessing.Drawing>().FirstOrDefault() : null);
         }
 
         private static WordTableCell? CreateWordTableCell(WordDocument document, TableCell tableCell) {

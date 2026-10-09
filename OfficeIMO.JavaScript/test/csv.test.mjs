@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { writeCsv } from "../dist/csv/index.js";
+import { writeCsv, writeCsvTo } from "../dist/csv/index.js";
 
 const vectors = JSON.parse(await readFile(new URL("../../OfficeIMO.TestAssets/CSV/browser-exports.json", import.meta.url), "utf8"));
 for (const vector of vectors.cases) test("shared CSV vector: " + vector.name, async () => {
@@ -46,7 +46,42 @@ test("CSV cancels pending producer input promptly and returns its iterator", asy
 test("CSV cancellation during encoding returns no partial Blob", async () => {
   const controller = new AbortController();
   function* rows() { for (let i = 0; i < 100000; i++) yield ["=unsafe " + i]; }
-  const writing = writeCsv(rows(), { columns: [{ header: "V" }], signal: controller.signal });
-  setTimeout(() => controller.abort(), 10);
+  // Abort at an actual encoding boundary; a faster export can finish before a timer fires.
+  const writing = writeCsv(rows(), { columns: [{ header: "V" }], signal: controller.signal,
+    onProgress: event => { if (event.phase === "rows") controller.abort(); } });
   await assert.rejects(writing, { name: "AbortError" });
+});
+test("CSV preserves promised rows and the original consumer failure when producer return fails", async () => {
+  const failure = new Error("formatter failure"); let returned = 0;
+  const source = { [Symbol.iterator]() { let row = 0; return {
+    next() { return row++ < 2 ? { value: Promise.resolve([row]), done: false } : { done: true }; },
+    return() { returned++; throw Error("cleanup failure"); }
+  }; } };
+  const calls = [];
+  await assert.rejects(writeCsv(source, { columns: [{ header: "Value", valueFormatter(value, context) {
+    calls.push([value, context.rowIndex]); if (context.rowIndex === 1) throw failure; return value;
+  } }] }), error => error === failure);
+  assert.equal(returned, 1); assert.deepEqual(calls, [[1, 0], [2, 1]]);
+});
+
+test("CSV flushes inside a formatted row without repeating callbacks or losing its snapshot", async () => {
+  const values = ["=unsafe", "Łódź 🧪".repeat(9000), '"quoted"', "last"], calls = [], snapshots = [];
+  const columns = values.map((_, column) => ({ header: "Column " + column, valueFormatter(value, context) {
+    calls.push([context.rowIndex, context.columnIndex]); snapshots.push(context.values); return value;
+  } }));
+  const blob = await writeCsv([values], { columns, includeHeader: false, quote: "all", limits: { maxCells: 4 } });
+  const expected = '"\'=unsafe","' + values[1] + '","""quoted""","last"\r\n';
+  assert.equal(await blob.text(), expected);
+  assert.deepEqual(calls, [[0, 0], [0, 1], [0, 2], [0, 3]]);
+  assert.ok(snapshots.every(snapshot => snapshot === snapshots[0] && Object.isFrozen(snapshot)));
+  assert.deepEqual(snapshots[0], values);
+});
+
+test("CSV does not exhaust a synchronous producer while a destination waits and cancellation returns it", async () => {
+  let produced = 0, returned = 0;
+  const controller = new AbortController(), reason = new Error("destination cancelled");
+  function* source() { try { for (let i = 0; i < 10; i++) { produced++; yield ["x".repeat(20000)]; } } finally { returned++; } }
+  const destination = new WritableStream({ write() { setTimeout(() => controller.abort(reason), 0); return new Promise(() => {}); } });
+  await assert.rejects(writeCsvTo(source(), destination, { columns: [{ header: "V" }], includeHeader: false, signal: controller.signal }), error => error === reason);
+  assert.ok(produced > 0 && produced <= 2); assert.equal(returned, 1); assert.equal(destination.locked, false);
 });

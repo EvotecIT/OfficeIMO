@@ -20,7 +20,7 @@ public sealed partial class OfficeIccColorProfile {
 
         int inputChannels = bytes[range.Offset + 8];
         int outputChannels = bytes[range.Offset + 9];
-        if (inputChannels != expectedInputChannels || inputChannels is < 3 or > 4 || outputChannels != 3) return false;
+        if (inputChannels != expectedInputChannels || inputChannels is < 3 or > 8 || outputChannels != 3) return false;
 
         int bOffset = ReadRelativeOffset(bytes, range.Offset + 12);
         int matrixOffset = ReadRelativeOffset(bytes, range.Offset + 16);
@@ -33,7 +33,7 @@ public sealed partial class OfficeIccColorProfile {
             return false;
         }
 
-        var regions = new ElementRegion[12];
+        var regions = new ElementRegion[Math.Max(inputChannels, outputChannels) + 8];
         int regionCount = 0;
         if (!TryReadEmbeddedCurveSet(bytes, range, bOffset, outputChannels, out ToneCurve[] bCurves, out ElementRange[] bRegions)) {
             return false;
@@ -100,7 +100,7 @@ public sealed partial class OfficeIccColorProfile {
             return false;
         }
 
-        var regions = new ElementRegion[12];
+        var regions = new ElementRegion[Math.Max(inputChannels, outputChannels) + 8];
         int regionCount = 0;
         if (!TryReadEmbeddedCurveSet(bytes, range, bOffset, inputChannels, out ToneCurve[] bCurves, out ElementRange[] bRegions)) {
             return false;
@@ -238,24 +238,23 @@ public sealed partial class OfficeIccColorProfile {
         int tagEnd = checked(tagRange.Offset + tagRange.Length);
         if (start > tagEnd - 20) return false;
 
-        int grid0 = bytes[start];
-        int grid1 = bytes[start + 1];
-        int grid2 = bytes[start + 2];
-        int grid3 = inputChannels == 4 ? bytes[start + 3] : 1;
-        if (grid0 is < 2 or > MaximumMabClutGridPoints ||
-            grid1 is < 2 or > MaximumMabClutGridPoints ||
-            grid2 is < 2 or > MaximumMabClutGridPoints ||
-            (inputChannels == 4 && grid3 is < 2 or > MaximumMabClutGridPoints)) return false;
+        var grid = new int[inputChannels];
+        long sampleCount = 1;
+        for (int channel = 0; channel < inputChannels; channel++) {
+            grid[channel] = bytes[start + channel];
+            if (grid[channel] is < 2 or > MaximumMabClutGridPoints) return false;
+            sampleCount *= grid[channel];
+            if (sampleCount > int.MaxValue) return false;
+        }
         for (int index = inputChannels; index < 16; index++) {
             if (bytes[start + index] != 0) return false;
         }
 
         int precision = bytes[start + 16];
         if (precision is not (1 or 2) || !AreZero(bytes, start + 17, 3)) return false;
-        long sampleCount = (long)grid0 * grid1 * grid2 * grid3;
         long dataLength = sampleCount * outputChannels * precision;
         long elementLength = 20L + dataLength;
-        if (elementLength > int.MaxValue) return false;
+        if (elementLength > int.MaxValue - 3L) return false;
         int paddedLength = Align4((int)elementLength);
         if (start > tagEnd - paddedLength || !AreZero(bytes, start + (int)elementLength, paddedLength - (int)elementLength)) {
             return false;
@@ -263,7 +262,7 @@ public sealed partial class OfficeIccColorProfile {
 
         var payload = new byte[(int)dataLength];
         Buffer.BlockCopy(bytes, start + 20, payload, 0, payload.Length);
-        clut = new MabClut(payload, inputChannels, outputChannels, grid0, grid1, grid2, grid3, precision);
+        clut = new MabClut(payload, grid, outputChannels, precision);
         region = new ElementRange(start, start + paddedLength);
         return true;
     }
@@ -384,42 +383,26 @@ public sealed partial class OfficeIccColorProfile {
         public bool TryTransform(IReadOnlyList<double> components, XyzValue whitePoint, out XyzValue pcsXyz) {
             pcsXyz = default;
             if (components.Count < _inputChannels) return false;
-            return TryTransform(
-                components[0],
-                components[1],
-                components[2],
-                _inputChannels == 4 ? components[3] : 0D,
-                whitePoint,
-                out pcsXyz);
+            return Transform(new DeviceComponentValues(components, _inputChannels), whitePoint, out pcsXyz);
         }
 
         public bool TryTransform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz) {
             pcsXyz = default;
-            if (components.Count < _inputChannels) return false;
-            return TryTransform(
-                components[0],
-                components[1],
-                components[2],
-                _inputChannels == 4 ? components[3] : 0D,
-                whitePoint,
-                out pcsXyz);
+            return components.Count >= _inputChannels && Transform(components, whitePoint, out pcsXyz);
         }
 
-        private bool TryTransform(
-            double component0,
-            double component1,
-            double component2,
-            double component3,
-            XyzValue whitePoint,
-            out XyzValue pcsXyz) {
-            double value0 = Evaluate(_aCurves, 0, component0);
-            double value1 = Evaluate(_aCurves, 1, component1);
-            double value2 = Evaluate(_aCurves, 2, component2);
-            double value3 = _inputChannels == 4 ? Evaluate(_aCurves, 3, component3) : 0D;
-
-            if (_clut != null) {
-                _clut.Interpolate(value0, value1, value2, value3, out value0, out value1, out value2, out _);
-            }
+        private bool Transform(DeviceComponentValues components, XyzValue whitePoint, out XyzValue pcsXyz) {
+            var values = new DeviceComponentValues(_inputChannels,
+                Evaluate(_aCurves, 0, components[0]),
+                Evaluate(_aCurves, 1, components[1]),
+                Evaluate(_aCurves, 2, components[2]),
+                _inputChannels > 3 ? Evaluate(_aCurves, 3, components[3]) : 0D,
+                _inputChannels > 4 ? Evaluate(_aCurves, 4, components[4]) : 0D,
+                _inputChannels > 5 ? Evaluate(_aCurves, 5, components[5]) : 0D,
+                _inputChannels > 6 ? Evaluate(_aCurves, 6, components[6]) : 0D,
+                _inputChannels > 7 ? Evaluate(_aCurves, 7, components[7]) : 0D);
+            double value0 = values[0], value1 = values[1], value2 = values[2];
+            if (_clut != null) _clut.Interpolate(values, out value0, out value1, out value2, out _);
             value0 = Evaluate(_mCurves, 0, value0);
             value1 = Evaluate(_mCurves, 1, value1);
             value2 = Evaluate(_mCurves, 2, value2);
@@ -561,86 +544,6 @@ public sealed partial class OfficeIccColorProfile {
 
         private static double Clamp(double value, double minimum, double maximum) =>
             value < minimum ? minimum : value > maximum ? maximum : value;
-    }
-
-    private sealed class MabClut {
-        private readonly byte[] _payload;
-        private readonly int _inputChannels;
-        private readonly int _outputChannels;
-        private readonly int _grid0;
-        private readonly int _grid1;
-        private readonly int _grid2;
-        private readonly int _grid3;
-        private readonly int _precision;
-
-        internal MabClut(
-            byte[] payload,
-            int inputChannels,
-            int outputChannels,
-            int grid0,
-            int grid1,
-            int grid2,
-            int grid3,
-            int precision) {
-            _payload = payload;
-            _inputChannels = inputChannels;
-            _outputChannels = outputChannels;
-            _grid0 = grid0;
-            _grid1 = grid1;
-            _grid2 = grid2;
-            _grid3 = grid3;
-            _precision = precision;
-        }
-
-        internal long RetainedByteCount => checked(64L + _payload.LongLength);
-
-        internal void Interpolate(
-            double input0,
-            double input1,
-            double input2,
-            double input3,
-            out double output0,
-            out double output1,
-            out double output2,
-            out double output3) {
-            GetGridPosition(input0, _grid0, out int lower0, out double fraction0);
-            GetGridPosition(input1, _grid1, out int lower1, out double fraction1);
-            GetGridPosition(input2, _grid2, out int lower2, out double fraction2);
-            GetGridPosition(input3, _grid3, out int lower3, out double fraction3);
-            output0 = 0D;
-            output1 = 0D;
-            output2 = 0D;
-            output3 = 0D;
-            int cornerCount = 1 << _inputChannels;
-            for (int corner = 0; corner < cornerCount; corner++) {
-                double weight = 1D;
-                int gridIndex = 0;
-                for (int channel = 0; channel < _inputChannels; channel++) {
-                    bool upper = (corner & (1 << channel)) != 0;
-                    int lower = channel == 0 ? lower0 : channel == 1 ? lower1 : channel == 2 ? lower2 : lower3;
-                    double fraction = channel == 0 ? fraction0 : channel == 1 ? fraction1 : channel == 2 ? fraction2 : fraction3;
-                    int grid = channel == 0 ? _grid0 : channel == 1 ? _grid1 : channel == 2 ? _grid2 : _grid3;
-                    weight *= upper ? fraction : 1D - fraction;
-                    gridIndex = gridIndex * grid + lower + (upper ? 1 : 0);
-                }
-                if (weight == 0D) continue;
-                int offset = gridIndex * _outputChannels * _precision;
-                output0 += ReadNormalized(offset) * weight;
-                output1 += ReadNormalized(offset + _precision) * weight;
-                output2 += ReadNormalized(offset + 2 * _precision) * weight;
-                if (_outputChannels == 4) output3 += ReadNormalized(offset + 3 * _precision) * weight;
-            }
-        }
-
-        private static void GetGridPosition(double input, int grid, out int lower, out double fraction) {
-            double position = Clamp01(input) * (grid - 1);
-            lower = Math.Min((int)Math.Floor(position), grid - 2);
-            fraction = position - lower;
-        }
-
-        private double ReadNormalized(int offset) => _precision == 1
-            ? _payload[offset] / 255D
-            : ReadUInt16(_payload, offset) / 65535D;
     }
 
     private static long RetainedCurveBytes(ToneCurve[]? curves) {

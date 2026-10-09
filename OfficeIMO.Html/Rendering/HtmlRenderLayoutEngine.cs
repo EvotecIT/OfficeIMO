@@ -133,7 +133,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _options = options;
         _diagnostics = diagnostics;
-        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, cancellationToken, _operationBudget);
+        _styleResolver = new HtmlRenderStyleResolver(computedStyles, options, diagnostics, MeasureCharacterAdvance,
+            cancellationToken, _operationBudget);
         _counterStyles = HtmlCounterStyleRegistry.Parse(document, options);
         _generatedContent = HtmlGeneratedContentResolver.Resolve(document, computedStyles, diagnostics, options.MaxLayoutDepth, _counterStyles, _disclosures);
         foreach (string id in _generatedContent.TargetPageIds) _namedDestinationIds.Add(id);
@@ -168,7 +169,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private bool TryResolveLength(string? value, double reference, double fontSize, out double result) =>
+    private bool TryResolveLength(string? value, double reference, double fontSize, out double result, double characterAdvance = double.NaN) =>
         HtmlRenderCssValues.TryLength(
             value,
             reference,
@@ -176,7 +177,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _styleResolver.RootFontSize,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Width : _options.ViewportWidth,
             _options.Mode == HtmlRenderMode.Paged ? _activePageGeometry.Height : _options.ViewportHeight ?? 1056D,
-            out result);
+            out result, characterAdvance);
 
     private void SetActivePageGeometry(HtmlCssPageGeometry geometry) {
         _activePageGeometry = geometry;
@@ -264,24 +265,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = initialGeometry.ContentWidth;
         HtmlRenderBoxStyle rootStyle = _styleResolver.Resolve(root, contentWidth);
         _layoutStyles[root] = rootStyle.Clone();
-        _surfaceRootElement = root;
-        _surfaceRootStyle = rootStyle;
-        _viewportOverflowElement = root;
-        _viewportOverflowStyle = rootStyle;
-        IElement? documentRoot = _document.DocumentElement;
-        if (documentRoot != null && !ReferenceEquals(documentRoot, root)) {
-            HtmlRenderBoxStyle documentRootStyle = _styleResolver.Resolve(documentRoot, contentWidth);
-            if (HasDeclaredCanvasBackground(documentRootStyle)) {
-                _surfaceRootElement = documentRoot;
-                _surfaceRootStyle = documentRootStyle;
-            }
-            if (HasNonVisibleOverflow(documentRootStyle)) {
-                _viewportOverflowElement = documentRoot;
-                _viewportOverflowStyle = documentRootStyle;
-            }
-        }
+        ConfigureRootSurface(root, rootStyle, contentWidth);
 
-        IReadOnlyList<HtmlRenderFlowBlock> blocks = BuildRootBlocks(root, contentWidth, rootStyle);
+        IReadOnlyList<HtmlRenderFlowBlock> blocks = rootStyle.Display == "none"
+            ? Array.Empty<HtmlRenderFlowBlock>()
+            : BuildRootBlocks(root, contentWidth, rootStyle);
         blocks = AddDocumentTopDestination(blocks, contentWidth);
         if (_options.Mode == HtmlRenderMode.Paged && blocks.Count > 0 && blocks[0].PageName != null) {
             HtmlCssPageGeometry namedGeometry = _pageRules.ResolveGeometry(1, blocks[0].PageName, _options);
@@ -291,8 +279,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentWidth = namedGeometry.ContentWidth;
                 rootStyle = _styleResolver.Resolve(root, contentWidth);
                 _layoutStyles[root] = rootStyle.Clone();
-                _surfaceRootStyle = rootStyle;
-                blocks = BuildRootBlocks(root, contentWidth, rootStyle);
+                ConfigureRootSurface(root, rootStyle, contentWidth);
+                blocks = rootStyle.Display == "none"
+                    ? Array.Empty<HtmlRenderFlowBlock>()
+                    : BuildRootBlocks(root, contentWidth, rootStyle);
                 blocks = AddDocumentTopDestination(blocks, contentWidth);
             }
         }
@@ -329,7 +319,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && HasAuthoredRootBoxGeometry(root, rootStyle)))) {
             return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
         }
-        if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {
+        if (!RequiresRootBox(root, rootStyle) && (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle))) {
             IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(root, contentWidth, rootStyle, 0);
             // Overflowing top-level siblings must share one positioned paint
             // surface; paginating them separately would move later siblings.
@@ -350,11 +340,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int continuationLogicalCharacters = 0,
         PagedFloatBoundary? pageBoundary = null) {
         HtmlRenderBoxStyle resolved = ResolveNormalFlowHorizontalAutoMargins(root, rootStyle, contentWidth);
-        HtmlRenderFlowBlock block = LayoutElement(root, contentWidth, resolved, resolved, 0,
-            continuationTarget, continuationLogicalCharacters, pageBoundary);
-        return _options.Mode == HtmlRenderMode.Paged
-            ? block.WithLayoutViewport(_activePageGeometry.Width, _activePageGeometry.Height)
-            : block;
+        return LayoutRootBox(root, contentWidth, resolved, continuationTarget, continuationLogicalCharacters, pageBoundary);
     }
 
     private bool HasDescendantPageDirective(IElement root) {
@@ -553,7 +539,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!_options.ClipContinuousSurfaceToViewport) {
             double maximumRight = placements.Count == 0
                 ? width
-                : placements.Max(placement => placement.X + MaximumScrollRight(placement.Block.Visuals));
+                : placements.Max(placement => placement.X + Math.Max(MaximumScrollRight(placement.Block.Visuals),
+                    ReferenceEquals(placement.Block.OwnerElement, _surfaceRootElement)
+                        && _surfaceRootStyle != null && HasDeclaredCanvasBackground(_surfaceRootStyle)
+                        ? placement.Block.Width : 0D));
             width = Math.Max(width, maximumRight);
         }
 
@@ -586,7 +575,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         AppendGlobalPositionedRequests(visuals, includeRoot: true, viewportWidth, viewportHeight, rootContainingWidth, rootContainingHeight, PositionedPaintBand.NonNegative);
         ApplyViewportOverflow(visuals, width, height);
-        var page = new HtmlRenderPage(1, width, height, visuals, fonts: _fonts);
+        var page = new HtmlRenderPage(1, width, height, OrderPageFloatPaint(visuals), fonts: _fonts);
         return new HtmlRenderDocument(HtmlRenderMode.Continuous, new[] { page }, _diagnostics, _fonts, _metadata, _bookmarkDefinitions);
     }
 
@@ -726,7 +715,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         reflowed = source;
         if (source.OwnerElement == null || continuation.OwnerElement == null) return false;
         IElement root = _document.Body ?? _document.DocumentElement ?? source.OwnerElement;
-        if (ReferenceEquals(source.OwnerElement, root)) {
+        if (ReferenceEquals(source.OwnerElement, root) && ContainsElementOrSelf(root, continuation.OwnerElement)) {
             HtmlRenderBoxStyle bodyStyle = _styleResolver.Resolve(root, geometry.ContentWidth);
             reflowed = LayoutRootElement(root, geometry.ContentWidth, bodyStyle,
                 continuation.OwnerElement, continuation.LogicalCharacters);
@@ -869,7 +858,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         ApplyViewportOverflow(visuals, width, height);
         AddPrintProductionMarks(visuals, geometry);
-        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, visuals, pageName, _fonts, _currentRunningStringPage, geometry.Margins, geometry.PrintProduction));
+        pages.Add(new HtmlRenderPage(pages.Count + 1, width, height, OrderPageFloatPaint(visuals), pageName, _fonts, _currentRunningStringPage, geometry.Margins, geometry.PrintProduction));
         _currentPageRunningStringAssignments.Clear();
         _currentRunningStringPage = new HtmlCssRunningStringPageContext(_runningStringValues);
     }

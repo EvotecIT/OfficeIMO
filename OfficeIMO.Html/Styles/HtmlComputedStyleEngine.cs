@@ -52,6 +52,7 @@ public static partial class HtmlComputedStyleEngine {
         "pointer-events",
         "quotes",
         "text-align",
+        "text-indent",
         "text-shadow",
         "text-underline-offset",
         "text-underline-position",

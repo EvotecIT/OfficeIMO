@@ -43,6 +43,27 @@ table.Style = WordTableStyle.TableGrid;
 document.Save();
 ```
 
+Run width and tracking are readable and writable on `WordParagraph`:
+
+```csharp
+var text = document.AddParagraph("Condensed text");
+text.CharacterScale = 75; // Percentage, from 1 through 600.
+text.Spacing = 10;        // Twips: 10 adds half a point per glyph.
+```
+
+Set `CharacterScale` to 100 for an explicit normal-width override, or to `null`
+to remove the direct setting and restore style inheritance. DOCX and supported
+native DOC round trips retain run width and tracking in body text, tables, links,
+headers, footers and notes. Native DOC also preserves character width in paragraph
+styles and document defaults, including explicit normal-width overrides.
+
+`WordHyperLink.Tooltip` and `TargetFrame` retain hyperlink descriptions and target
+windows through DOCX and supported native DOC conversions. External links and
+internal bookmark links preserve these settings in body text, tables, headers,
+footers and notes. Adjacent links can retain different descriptions or targets.
+Native DOC saving rejects line breaks in tooltip or target-window metadata;
+these values remain supported in DOCX.
+
 When a Word file comes from an untrusted source, pass the bounded load profile before parsing it:
 
 ```csharp
@@ -86,6 +107,10 @@ paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
 `OutlineLevel` returns directly authored formatting. Word fixes the effective outline level of paragraphs using built-in Heading1–Heading9 styles to the corresponding heading level, even if a different direct value is stored.
 
 PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when the paragraph's style starts paragraphs on a new page. Storing line-number suppression, hyphenation suppression, mirrored indentation, or outline levels does not establish PDF rendering support for those features; see the [Word PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) and [native DOC limits](../Docs/officeimo.word.legacy-doc-compatibility.md).
+
+`document.CompatibilitySettings.SplitPageBreakAndParagraphMark` controls the blank line after a manual page break that ends a paragraph. In older Word layout, enabling it moves the paragraph mark and its line height onto the next page. DOCX retains both explicit values; Word 2013 compatibility mode ignores the stored option during layout. Native DOC import uses the legacy enabled behavior and retains that layout when saved as DOCX. Native DOC saving rejects an explicitly disabled value; save as DOCX to retain it.
+
+`document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop` controls whether a list's paragraph indent acts as an implicit numbering tab stop. In Word 2003, 2007 and 2010 compatibility modes, enabling it lets an explicit or default numbering tab determine the first line while continuation lines retain the paragraph indent. An explicit tab before the continuation indent is honored in every compatibility mode. Ordinary numbered headers and footers use the same paragraph layout as body content. For stories without tables or SECTIONPAGES fields, text boxes or indents outside either available text frame retain the bounded text layout; exact numbering-tab geometry in those stories remains a fidelity limitation. Tables and SECTIONPAGES fields select the shared flow engine and retain its documented limits. Word 2013 compatibility mode ignores the stored flag during PDF layout. DOCX retains explicit true and false values. Native DOC imports project their effective legacy behavior as enabled; native DOC saving rejects an explicitly disabled value. Save as DOCX when that stored value must be retained.
 
 ## Page sizes and orientation
 
@@ -186,6 +211,10 @@ Appending comments to older DOCX files assigns missing paragraph identities to e
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
 - Uses `OfficeIMO.Drawing` for shared colors, image metadata, page rendering, and the reusable math expression tree.
+
+Native `.doc` lists retain supported numbering definitions, marker formatting, abstract starts and per-instance restarts through the normal load/save API. Missing or malformed native list definitions appear in `LegacyDocUnsupportedFeatures` as `Numbering` losses and block normal saving. The [DOC compatibility contract](../Docs/officeimo.word.legacy-doc-compatibility.md) describes supported levels and numbering limits.
+
+The List Paragraph style retains contextual spacing and its supported paragraph formatting in native DOC, including when the style is used only in a header or footer.
 
 Advanced drawing, structured comparison, field evaluation, and evidence boundaries are documented in [Word advanced editing and evidence contracts](../Docs/officeimo.word-advanced-contracts.md). The contracts distinguish persisted drawing geometry from desktop Word layout, detected relocation from native move revisions, and supported legacy DOC writing from arbitrary DOC authoring.
 
@@ -431,8 +460,37 @@ content binding with CMS signature, caller-controlled certificate-chain,
 revocation, and RFC 3161 timestamp policy. Set
 `ValidateWithWindowsSipWhenAvailable` only when a registered Microsoft Office
 SIP should provide an additional differential check. Microsoft Office, SignTool,
-and `offclearsig.exe` are not runtime dependencies. OfficeIMO does not execute
-VBA or edit VBA source modules.
+and `offclearsig.exe` are not runtime dependencies. OfficeIMO does not execute VBA.
+
+### VBA source editing
+
+`ReadVbaProject()` returns a detached [native VBA model](../OfficeIMO.Core/README.md#native-vba-projects),
+or `null` when the document has no project. Apply edits explicitly:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("automation.docm");
+OfficeVbaProject project = document.ReadVbaProject()!;
+project.SetModuleSource("Helpers",
+    "Public Function Value() As Long\r\nValue = 73\r\nEnd Function\r\n");
+document.SetVbaProject(project);
+document.Save("updated.docm");
+```
+
+To create a project without a seed file, use `OfficeVbaProject.Create()`, add
+standard/class modules, and pass it to `SetVbaProject`. Word supplies the required
+`ThisDocument` identity and supplementary VBA data when absent. Existing
+supplementary data and opaque designer content are preserved. Document classes
+from another Office host are rejected. Source editing adds no runtime dependency.
+
+Changes to a signed VBA project require
+`new OfficeVbaWriteOptions { AllowSignatureRemoval = true }`; unchanged projects
+retain signatures. Re-sign after editing. `Macros` reports logical directory
+names for valid projects, and `RemoveMacro` uses the shared native editor for
+standard/class modules. Host document/designer removal and protected-project
+mutation are rejected.
 
 ### Content controls
 
@@ -446,6 +504,17 @@ document.FillContentControlValues(new Dictionary<string, object?> {
 Dictionary<string, object?> values = document.ExtractContentControlValues();
 document.ValidateContentControlValues(values).EnsureValid();
 ```
+
+Form filling respects content-control locks. A supplied value for a control with
+`contentLocked` or `sdtContentLocked` causes `FillContentControlValues` to throw
+`InvalidOperationException` before applying any form values. Validation reports
+`WordContentControlFormIssueKind.LockedControl` for the same target. Omit locked
+fields from the map when filling the editable fields of a form.
+
+An `sdtLocked` control remains fillable because that lock only prevents deleting
+the control. Replacing a picture or repeating section also rejects locked nested
+controls that would be removed. Direct control setters remain authoring APIs for
+intentional document edits.
 
 ### Legacy DOC files
 

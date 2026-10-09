@@ -30,7 +30,7 @@ internal static partial class PdfWriter {
             double tableWidth = ResolveTableColumnLayout(table, currentOpts, style, count, frameWidth,
                 GetTableBodyFontSize(style, fontSize), style.HeaderRowCount, table.Rows.Count - style.FooterRowCount).Width;
             double flowY = y;
-            double left = PositionTableX(position, tableWidth);
+            double left = PositionTableX(position, tableWidth) + style.HorizontalOffset;
             y = PositionTableY(position, height);
             AvoidFloatingTable(position, left, tableWidth, height);
             bottom = y - height;

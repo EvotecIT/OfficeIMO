@@ -49,6 +49,31 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.OpenDocument.Odg.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The Draw PDF bridge is qualified through managed conversion tests and packed .NET consumers; no complete-bridge NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Access'
+        classification = 'managed-cross-platform'
+        evidence = 'Native MDB/ACCDB reading, inert application inspection, unchanged preservation and Jet 4/ACE 12 creation are qualified through managed .NET tests and independent Access/DAO evidence; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Xps'
+        classification = 'managed-cross-platform'
+        evidence = 'XPS/OpenXPS lifecycle and rendering are qualified through managed .NET tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Xps.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The optional XPS PDF bridge is qualified through managed conversion and artifact tests; the PDF owner NativeAOT host does not qualify the complete bridge.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.Xps'
+        classification = 'managed-cross-platform'
+        evidence = 'The modular XPS Reader adapter is qualified through managed extraction and registration tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.ChartForgeX.Markdown'
         classification = 'managed-cross-platform'
         evidence = 'Static Mermaid Word/PDF/HTML/PowerPoint integration, packed .NET 8 and 10 consumers and .NET Framework 4.7.2 cross-compilation are validated; complete adapter NativeAOT qualification is separate.'

@@ -18,6 +18,8 @@ public sealed partial class OfficeWorkflowRunner {
             [".docx"] = "docx-pdf",
             [".xlsx"] = "xlsx-pdf",
             [".pptx"] = "pptx-pdf",
+            [".xps"] = "xps-pdf",
+            [".oxps"] = "xps-pdf",
             [".html"] = "html-pdf",
             [".htm"] = "html-pdf"
         };
@@ -56,10 +58,12 @@ public sealed partial class OfficeWorkflowRunner {
                 diagnostics,
                 out inputBytes,
                 cancellationToken);
-            if (validated.OutputProfile != OfficeWorkflowOutputProfile.Faithful &&
-                sources.Any(static source => source.Route?.Id == "html-pdf")) {
+            OfficeWorkflowRoute? unsupportedProfile = sources.Select(static source => source.Route)
+                .FirstOrDefault(route => route != null && !route.SupportedOutputProfiles.Contains(validated.OutputProfile));
+            if (unsupportedProfile != null) {
                 throw new ArgumentException(
-                    "HTML assembly sources currently support only the Faithful output profile.",
+                    "Assembly route '" + unsupportedProfile.Id + "' supports only these output profiles: " +
+                    string.Join(", ", unsupportedProfile.SupportedOutputProfiles) + ".",
                     nameof(request));
             }
             sourceCount = sources.Count;
@@ -71,7 +75,7 @@ public sealed partial class OfficeWorkflowRunner {
                 Report(progress, validated.Id, "normalize", $"Preparing {index + 1:N0} of {sources.Count:N0} inputs", fraction);
                 long remainingOutputBytes = validated.Limits.MaximumOutputBytes - normalizedBytes;
                 if (remainingOutputBytes <= 0L) {
-                    throw new InvalidOperationException(
+                    throw OfficeWorkflowOutputLimitErrors.Create(
                         $"Normalized inputs exceed the configured {validated.Limits.MaximumOutputBytes:N0}-byte output limit.");
                 }
                 PdfDocument normalized = NormalizeAssemblySource(
@@ -190,19 +194,22 @@ public sealed partial class OfficeWorkflowRunner {
                 "Cancelled",
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
-            ReportInputStagingCleanupFailure(ex, diagnostics);
+            Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
+            if (ex is WorkflowConversionFailureException conversionFailure)
+                AddConversionDiagnostics(conversionFailure.Evidence, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PdfAssemblyFailed",
                 ex.Message,
                 OfficeWorkflowDiagnosticSeverity.Error,
                 GetDiagnosticStage(failureStage),
-                new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = ex.GetType().Name }));
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = failure.GetType().Name }));
             return new PdfAssemblyResult(
                 validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Failed,
-                ClassifyFailure(ex, failureStage),
+                ClassifyFailure(failure, failureStage),
                 null,
                 sourceCount,
                 pageCount,
@@ -768,7 +775,8 @@ public sealed partial class OfficeWorkflowRunner {
                     request.OutputProfile,
                     new OfficeWorkflowLimits {
                         MaximumInputBytes = request.Limits.MaximumInputBytes,
-                        MaximumOutputBytes = maximumNormalizedBytes
+                        MaximumOutputBytes = maximumNormalizedBytes,
+                        MaximumXmlCharactersInPart = request.Limits.MaximumXmlCharactersInPart
                     },
                     request.PdfLoadOptions,
                     request.PdfLoadOptions,

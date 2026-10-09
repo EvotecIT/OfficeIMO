@@ -1,6 +1,11 @@
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
+    private static readonly HashSet<string> DublinCoreElementNames = new HashSet<string>(new[] {
+        "contributor", "coverage", "creator", "date", "description", "format", "identifier", "language",
+        "publisher", "relation", "rights", "source", "subject", "title", "type"
+    }, StringComparer.Ordinal);
+
     /// <summary>Primary title. Other titles and refinements are retained.</summary>
     public string Title { get => GetDc("title"); set => SetDc("title", value); }
     /// <summary>Primary language. Chapter-level language declarations are edited independently.</summary>
@@ -35,6 +40,8 @@ public sealed partial class EpubPublication {
     /// <summary>Adds an ordered Dublin Core value; existing unknown metadata remains intact.</summary>
     public void AddDublinCoreMetadata(string name, string value, string? id = null, string? language = null) {
         XmlConvert.VerifyNCName(name); RequireText(value, nameof(value));
+        if (!DublinCoreElementNames.Contains(name))
+            throw new ArgumentException("Expected a Dublin Core element name supported by EPUB metadata.", nameof(name));
         if (name == "language") EpubLanguageTag.Require(value, nameof(value));
         if (language != null) EpubLanguageTag.Require(language, nameof(language));
         if (id != null) VerifyAvailableId(id);

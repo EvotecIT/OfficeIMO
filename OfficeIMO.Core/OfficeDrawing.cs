@@ -687,6 +687,7 @@ public sealed partial class OfficeDrawing {
         Fonts.AddRange(drawing.Fonts);
         for (int i = 0; i < drawing.Elements.Count; i++) {
             OfficeDrawingElement element = drawing.Elements[i];
+            int firstAddedElement = _elements.Count;
             if (element is OfficeDrawingShape shape) {
                 AddNestedShape(shape, x, y, frameTransform, allowOverflow);
             } else if (element is OfficeDrawingText text) {
@@ -717,6 +718,9 @@ public sealed partial class OfficeDrawing {
                 _elements.Add(new OfficeDrawingLink(link.Uri, linkX, linkY, link.Width, link.Height, link.AlternativeText));
             } else if (element is OfficeDrawingGroup group) {
                 AddNestedGroup(group, x, y, frameTransform, allowOverflow);
+            }
+            for (int added = firstAddedElement; added < _elements.Count; added++) {
+                _elements[added].SourceElementIds = element.SourceElementIds;
             }
         }
 
@@ -833,7 +837,8 @@ public sealed partial class OfficeDrawing {
             flipHorizontal,
             flipVertical,
             richText.Padding,
-            richText.ParagraphIndent);
+            richText.ParagraphIndent).WithParagraphs(richText.Paragraphs).WithTextAreaAlignment(richText.TextAreaAlignment);
+        item.NormalizeHorizontalPaint = richText.NormalizeHorizontalPaint;
         if (!allowOverflow && (item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(richText), "Drawing rich text must fit inside the drawing bounds.");
         }
@@ -1039,6 +1044,7 @@ public sealed partial class OfficeDrawing {
         var clone = new OfficeDrawing(Width, Height) { Fonts = Fonts.Clone(), TextShapingProvider = TextShapingProvider, TextShapingLanguage = TextShapingLanguage };
         for (int i = 0; i < _elements.Count; i++) {
             OfficeDrawingElement element = _elements[i].CloneElement();
+            element.SourceElementIds = _elements[i].SourceElementIds;
             clone._elements.Add(element);
             if (_behindContentElements.Contains(_elements[i])) {
                 clone._behindContentElements.Add(element);

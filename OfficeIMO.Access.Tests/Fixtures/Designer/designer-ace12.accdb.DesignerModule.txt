@@ -1,0 +1,6 @@
+Option Compare Database
+Option Explicit
+'Za¿ó³æ gêœl¹ jaŸñ
+Public Function ConstantValue() As Long
+    ConstantValue = 42
+End Function

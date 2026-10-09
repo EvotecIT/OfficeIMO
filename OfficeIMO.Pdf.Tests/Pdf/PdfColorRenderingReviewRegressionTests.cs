@@ -8,14 +8,14 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfColorRenderingReviewRegressionTests {
     [Fact]
-    public void JpegDecoder_ComplementsAdobeYcckColorantsBeforeCmykConversion() {
+    public void JpegDecoder_MatchesNativeAdobeYcckColorantPolarity() {
         byte[] jpeg = Convert.FromBase64String(
             "/9j/7gAOQWRvYmUAZAAAAAAC/9sAQwABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB/8AAFAgAAQABBEMRAE0RAFkRAEsRAP/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/aAA4EQwBNAFkASwAAPwD+/iq9V6/v4r//2Q==");
 
         Assert.True(OfficeJpegCodec.TryDecodeColorComponents(
             jpeg,
             requestedColorTransform: null,
-            usePdfColorTransformDefault: true,
+            usePdfColorTransformDefault: false,
             out byte[] components,
             out int width,
             out int height,
@@ -23,13 +23,15 @@ public class PdfColorRenderingReviewRegressionTests {
         Assert.Equal(1, width);
         Assert.Equal(1, height);
         Assert.Equal(4, componentCount);
-        Assert.All(components, component => Assert.InRange(component, 0, 5));
+        // Native Pillow/libjpeg-turbo CMYK is (254,255,253,0), a near-black pixel.
+        Assert.All(components.Take(3), component => Assert.InRange(component, 250, 255));
+        Assert.InRange(components[3], 0, 5);
 
         Assert.True(OfficeJpegCodec.TryDecode(jpeg, out OfficeRasterImage? raster));
         OfficeColor pixel = raster!.GetPixel(0, 0);
-        Assert.InRange(pixel.R, 250, 255);
-        Assert.InRange(pixel.G, 250, 255);
-        Assert.InRange(pixel.B, 250, 255);
+        Assert.InRange(pixel.R, 0, 5);
+        Assert.InRange(pixel.G, 0, 5);
+        Assert.InRange(pixel.B, 0, 5);
     }
 
     [Fact]

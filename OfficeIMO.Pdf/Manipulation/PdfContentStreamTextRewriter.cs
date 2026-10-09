@@ -143,7 +143,11 @@ internal static class PdfContentStreamTextRewriter {
             maxOperands: limits.MaxContentOperands,
             dispatchInvalidOperations: true);
 
-        if (!safe || !sawTextShowOperator) return false;
+        if (!safe) return false;
+        // Producers may emit state-only BT/ET objects before real text. With no
+        // text-show operator there are no encoded glyphs to redact; retain the
+        // object because its font and spacing state can affect later objects.
+        if (!sawTextShowOperator) return true;
         rewritten = removedAnyGlyph ? ApplyEdits(textObject, edits) : textObject;
         return true;
     }
@@ -348,8 +352,10 @@ internal static class PdfContentStreamTextRewriter {
                         span.TextToPageTransform.Value.B * span.TextToPageTransform.Value.B)
                     : 1D;
                 double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
-                PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span, offset, advance);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
+                    PdfTextSpanBounds bounds = targets[targetIndex].Area.RequiresGlyphRewrite
+                        ? PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, advance)
+                        : PdfTextSpanGeometry.GetAxisAlignedBounds(span, offset, advance);
                     if (targets[targetIndex].Intersects(bounds, span.TextRenderingMode)) {
                         remove = true;
                         break;
@@ -452,10 +458,15 @@ internal static class PdfContentStreamTextRewriter {
             byte[] first = { bytes[0] };
             byte[] second = { bytes[1] };
             byte[] pair = { bytes[0], bytes[1] };
-            string one = decoder(first) ?? string.Empty;
-            string two = decoder(pair) ?? string.Empty;
+            string one = DecodeProbe(first);
+            string two = DecodeProbe(pair);
             twoByte = (string.IsNullOrEmpty(one.Trim('\0')) && !string.IsNullOrEmpty(two.Trim('\0'))) ||
                 (widthProvider(first) <= 0D && widthProvider(second) <= 0D && widthProvider(pair) > 0D);
+        }
+
+        string DecodeProbe(byte[] code) {
+            try { return decoder(code) ?? string.Empty; }
+            catch (PdfUnsupportedTextMappingException) { return string.Empty; }
         }
 
         for (int index = 0; index < bytes.Length;) {

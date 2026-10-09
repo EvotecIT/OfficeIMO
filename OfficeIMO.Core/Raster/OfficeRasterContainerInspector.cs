@@ -77,8 +77,22 @@ public static class OfficeRasterContainerInspector {
                 if (!OfficeBmpReader.TryValidatePayload(encodedBytes, effective.CancellationToken)) return false;
                 container = CreateStatic(imageInfo);
                 return true;
+            case OfficeImageFormat.JpegXr:
+                if (enforceAllTiffPagePixelLimits && !OfficeJpegXrDecoder.TryDecode(encodedBytes, effective, out _)) return false;
+                container = CreateStatic(imageInfo);
+                return true;
             case OfficeImageFormat.Avif:
                 if (enforceAllTiffPagePixelLimits && !OfficeAvifCodec.TryDecode(encodedBytes, effective, out _)) return false;
+                container = CreateStatic(imageInfo);
+                return true;
+            case OfficeImageFormat.Icon:
+                return OfficeIconDecoder.TryInspect(encodedBytes, effective, out container);
+            case OfficeImageFormat.PortableMap:
+                if (!OfficePortableMapCodec.TryDecode(encodedBytes, effective, out inspectedImage)) return false;
+                container = CreateStatic(imageInfo);
+                return true;
+            case OfficeImageFormat.Tga:
+                if (!OfficeTgaCodec.TryDecode(encodedBytes, effective, out inspectedImage)) return false;
                 container = CreateStatic(imageInfo);
                 return true;
             default:
@@ -269,7 +283,8 @@ public static class OfficeRasterContainerInspector {
             imageInfo.Height,
             frames.ToArray(),
             loopCount,
-            background);
+            background,
+            playCount: hasLoopExtension ? (loopCount == 0 ? 0 : loopCount + 1) : 1);
         return true;
     }
 
@@ -298,7 +313,7 @@ public static class OfficeRasterContainerInspector {
             canvasWidth = imageInfo.Height;
             canvasHeight = imageInfo.Width;
         }
-        container = CreateStatic(imageInfo, canvasWidth, canvasHeight);
+        container = CreateStatic(imageInfo, canvasWidth, canvasHeight, orientation);
         return true;
     }
 
@@ -590,7 +605,8 @@ public static class OfficeRasterContainerInspector {
     private static OfficeRasterContainerInfo CreateStatic(
         OfficeImageInfo info,
         int canvasWidth,
-        int canvasHeight) =>
+        int canvasHeight,
+        OfficeImageOrientation orientation = OfficeImageOrientation.Normal) =>
         new OfficeRasterContainerInfo(
             info.Format,
             canvasWidth,
@@ -606,7 +622,8 @@ public static class OfficeRasterContainerInspector {
                     TimeSpan.Zero,
                     OfficeRasterFrameDisposal.None,
                     OfficeRasterFrameBlend.Source,
-                    true)
+                    true,
+                    orientation: orientation)
             },
             1,
             OfficeColor.Transparent);

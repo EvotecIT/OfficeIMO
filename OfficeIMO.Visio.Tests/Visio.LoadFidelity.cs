@@ -37,6 +37,7 @@ namespace OfficeIMO.Tests {
                 XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
                 XElement connectorShape = GetConnectorShape(pageDoc, ns);
                 XElement geometry = connectorShape.Elements(ns + "Section").First(section => (string?)section.Attribute("N") == "Geometry");
+                connectorShape.Elements(ns + "Cell").Single(cell => (string?)cell.Attribute("N") == "Angle").SetAttributeValue("V", "0");
                 geometry.RemoveNodes();
                 geometry.Add(
                     new XElement(ns + "Row",
@@ -238,7 +239,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ColorsAndFaceNamesFragmentsArePreservedOnRoundTrip() {
+        public void OlderNumericFontPackagesNormalizeNativeWireAndPreserveLegacyMetadata() {
             string filePath = CreateShapeDocument();
 
             RewriteEntry(filePath, "visio/document.xml", """
@@ -271,13 +272,51 @@ namespace OfficeIMO.Tests {
                 </VisioDocument>
                 """);
 
-            string originalFragments = ReadColorsAndFaceNamesFragments(filePath);
-
-            VisioDocument loaded = VisioDocument.Load(filePath);
             string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            loaded.Save(savedPath);
+            try {
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XDocument original = XDocument.Parse(ReadEntry(filePath, "visio/document.xml"));
+                RewritePage(filePath, xml => {
+                    XElement shape = GetFirstShape(xml, ns);
+                    shape.Elements(ns + "Section").Where(section => (string?)section.Attribute("N") == "Character").Remove();
+                    shape.Add(new XElement(ns + "Section", new XAttribute("N", "Character"),
+                        new XElement(ns + "Row", new XAttribute("IX", "0"),
+                            new XElement(ns + "Cell", new XAttribute("N", "Font"), new XAttribute("V", "0")))));
+                });
 
-            Assert.Equal(originalFragments, ReadColorsAndFaceNamesFragments(savedPath));
+                VisioDocument loaded = VisioDocument.Load(filePath);
+                VisioShape loadedShape = Assert.Single(loaded.Pages[0].Shapes);
+                Assert.Equal("Aptos", loadedShape.TextStyle!.FontFamily);
+                loadedShape.TextStyle.FontFamily = "Consolas";
+                loaded.Save(savedPath);
+
+                XDocument native = XDocument.Parse(ReadEntry(savedPath, "visio/document.xml"));
+                Assert.True(XNode.DeepEquals(original.Root!.Element(ns + "Colors"), native.Root!.Element(ns + "Colors")));
+                XElement faces = native.Root.Element(ns + "FaceNames")!;
+                Assert.All(faces.Elements(ns + "FaceName"), face => {
+                    Assert.False(string.IsNullOrWhiteSpace((string?)face.Attribute("NameU")));
+                    Assert.Null(face.Attribute("ID"));
+                    Assert.Null(face.Attribute("Name"));
+                });
+                Assert.Equal("0-255", (string?)faces.Elements(ns + "FaceName").Single(face => (string?)face.Attribute("NameU") == "Aptos").Attribute("UnicodeRanges"));
+                Assert.Equal("020B0609030504040204", (string?)faces.Elements(ns + "FaceName").Single(face => (string?)face.Attribute("NameU") == "Consolas").Attribute("Panos"));
+
+                VisioDocument reopened = VisioDocument.Load(savedPath);
+                Assert.Equal("Consolas", Assert.Single(reopened.Pages[0].Shapes).TextStyle!.FontFamily);
+                XNamespace legacy = "http://schemas.microsoft.com/visio/2003/core";
+                XDocument exported = XDocument.Load(new MemoryStream(reopened.ToLegacyXmlResult().Value));
+                XElement legacyFaces = exported.Root!.Element(legacy + "FaceNames")!;
+                Assert.Equal("KeepMeToo", (string?)legacyFaces.Attribute("CustomFonts"));
+                foreach (XElement source in original.Root.Element(ns + "FaceNames")!.Elements(ns + "FaceName")) {
+                    XElement restored = legacyFaces.Elements(legacy + "FaceName").Single(face => (string?)face.Attribute("ID") == (string?)source.Attribute("ID"));
+                    Assert.Equal(source.Attributes().OrderBy(attribute => attribute.Name.ToString()).Select(attribute => attribute.ToString()),
+                        restored.Attributes().OrderBy(attribute => attribute.Name.ToString()).Select(attribute => attribute.ToString()));
+                }
+                Assert.Equal("1", exported.Descendants(legacy + "Page").Descendants(legacy + "Font").Single().Value);
+            } finally {
+                File.Delete(filePath);
+                File.Delete(savedPath);
+            }
         }
 
         [Fact]
@@ -663,10 +702,10 @@ namespace OfficeIMO.Tests {
                 .Elements(ns + "StyleSheet")
                 .First(style => (string?)style.Attribute("ID") == "0");
 
-            Assert.Null(styleSheet.Attribute("BasedOn"));
-            Assert.Null(styleSheet.Attribute("LineStyle"));
-            Assert.Null(styleSheet.Attribute("FillStyle"));
-            Assert.Null(styleSheet.Attribute("TextStyle"));
+            foreach (string name in new[] { "BasedOn", "LineStyle", "FillStyle", "TextStyle" }) {
+                Assert.Equal("0", (string?)styleSheet.Attribute(name));
+                Assert.Single(styleSheet.Attributes(), attribute => attribute.Name == name);
+            }
             Assert.Equal("Keep0", (string?)styleSheet.Attribute("CustomAttr0"));
             Assert.Single(styleSheet.Attributes(), attribute =>
                 string.Equals(attribute.Name.LocalName, "CustomAttr0", StringComparison.OrdinalIgnoreCase));
@@ -1581,28 +1620,6 @@ namespace OfficeIMO.Tests {
                 styleSheets.Elements(ns + "StyleSheet")
                     .Where(styleSheet => (string?)styleSheet.Attribute("ID") == "7")
                     .Select(styleSheet => styleSheet.ToString(SaveOptions.DisableFormatting)));
-        }
-
-        private static string ReadColorsAndFaceNamesFragments(string vsdxPath) {
-            using ZipArchive archive = ZipFile.OpenRead(vsdxPath);
-            using Stream stream = archive.GetEntry("visio/document.xml")!.Open();
-            XDocument documentDoc = XDocument.Load(stream);
-            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
-            XElement root = documentDoc.Root!;
-            XElement colors = root.Element(ns + "Colors")!;
-            XElement faceNames = root.Element(ns + "FaceNames")!;
-
-            return string.Concat(
-                colors.Attributes()
-                    .Where(attribute => attribute.Name.LocalName == "CustomPalette")
-                    .Select(attribute => attribute.ToString()),
-                colors.Elements()
-                    .Select(element => element.ToString(SaveOptions.DisableFormatting)),
-                faceNames.Attributes()
-                    .Where(attribute => attribute.Name.LocalName == "CustomFonts")
-                    .Select(attribute => attribute.ToString()),
-                faceNames.Elements()
-                    .Select(element => element.ToString(SaveOptions.DisableFormatting)));
         }
 
         private static string ReadFirstPageContentFragments(string vsdxPath) {

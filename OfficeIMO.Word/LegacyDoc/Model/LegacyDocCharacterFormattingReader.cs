@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
         private const ushort SprmCDxaSpace = 0x8840;
+        private const ushort SprmCCharScale = 0x4852;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHpsKern = 0x484B;
@@ -133,7 +134,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int offset,
             int count,
             IReadOnlyList<string> fontFamilies,
-            IReadOnlyList<string>? revisionAuthors = null) {
+            IReadOnlyList<string>? revisionAuthors = null,
+            bool requireComplete = false) {
             int end = offset + count;
             bool bold = false;
             bool italic = false;
@@ -154,6 +156,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? colorHex = null;
             string? fontFamily = null;
             int? characterSpacingTwips = null;
+            int? characterScalePercentage = null;
             int? kerningMinimumFontSizeHalfPoints = null;
             string? language = null;
             string? eastAsiaLanguage = null;
@@ -331,6 +334,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                // MS-DOC sprmCCharScale is an unsigned percentage, 1 through 600.
+                if (sprm == SprmCCharScale) {
+                    if (offset + 4 > end) break;
+                    int percentage = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    if (percentage >= 1 && percentage <= 600) {
+                        characterScalePercentage = percentage;
+                        specified |= LegacyDocCharacterFormatProperties.CharacterScale;
+                    }
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmCHpsKern) {
                     if (offset + 4 > end) break;
                     int threshold = unchecked((short)LegacyDocFib.ReadUInt16(bytes, offset + 2));
@@ -416,6 +431,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 offset += 2 + operandLength;
             }
 
+            if (requireComplete && offset != end)
+                throw new InvalidDataException("Truncated native list character formatting operand.");
+
             LegacyDocCapsKind? capsKind = caps
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
@@ -451,7 +469,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 revision,
                 kerningMinimumFontSizeHalfPoints,
                 styleRelative,
-                styleInverted);
+                styleInverted,
+                characterScalePercentage);
         }
 
         private static string ResolveRevisionAuthor(IReadOnlyList<string>? revisionAuthors, int authorIndex) {

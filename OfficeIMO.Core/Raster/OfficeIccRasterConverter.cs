@@ -61,13 +61,13 @@ public sealed class OfficeIccRasterConversionOptions {
     public CancellationToken CancellationToken { get; set; }
 }
 
-/// <summary>Converts bounded, tightly packed 8-bit RGB or CMYK device samples to opaque sRGB.</summary>
+/// <summary>Converts bounded, tightly packed 8-bit RGB, CMYK, or three-to-eight-channel device samples to opaque sRGB.</summary>
 /// <remarks>
 /// This API accepts raw device samples and ICC bytes supplied by the caller. It does not extract
 /// metadata from encoded images, alter the source buffer, or change image optimizer metadata reports.
 /// Alpha, planar samples, higher bit depths, and implicit device-color conversion are outside this contract.
 /// </remarks>
-public static class OfficeIccRasterConverter {
+public static partial class OfficeIccRasterConverter {
     /// <summary>Attempts one complete conversion, returning a typed rejection instead of partial pixels.</summary>
     public static OfficeIccRasterConversionStatus TryConvertToSrgb(
         byte[] deviceSamples,
@@ -109,7 +109,7 @@ public static class OfficeIccRasterConverter {
             return OfficeIccRasterConversionStatus.UnsupportedProfile;
         }
         int channels = profile.ComponentCount;
-        if (channels != 3 && channels != 4) {
+        if (channels < 3 || channels > 8) {
             return OfficeIccRasterConversionStatus.UnsupportedProfile;
         }
         if (deviceSamples.LongLength != pixels * channels) {

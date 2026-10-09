@@ -11,11 +11,34 @@ internal static partial class PdfRedactionPlanner {
         return Plan(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText: false, excludeGeneratedRedactionMarks: false, cancellationToken);
     }
 
+    private static PdfRedactionPlan CreateUnsupportedTextMappingPlan(byte[] pdf, PdfUnsupportedTextMappingException error,
+        PdfLoadOptions? options, string code, CancellationToken cancellationToken) =>
+        new(PdfInspector.Preflight(pdf, options, cancellationToken), Array.Empty<PdfRedactionArea>(),
+            Array.Empty<PdfRedactionMatch>(), new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, code, error.Message) },
+            Array.Empty<string>(), PdfRedactionPlan.ComputeSourceSha256(pdf));
+
     internal static PdfRedactionPlan PlanForVerification(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfLoadOptions? options, CancellationToken cancellationToken = default) {
         return Plan(pdf, areas, layoutOptions: null, options, includeHiddenOptionalContentText: true, excludeGeneratedRedactionMarks: true, cancellationToken);
     }
 
     private static PdfRedactionPlan Plan(
+        byte[] pdf,
+        IEnumerable<PdfRedactionArea> areas,
+        PdfTextLayoutOptions? layoutOptions,
+        PdfLoadOptions? options,
+        bool includeHiddenOptionalContentText,
+        bool excludeGeneratedRedactionMarks,
+        CancellationToken cancellationToken) {
+        try {
+            return PlanCore(pdf, areas, layoutOptions, options, includeHiddenOptionalContentText,
+                excludeGeneratedRedactionMarks, cancellationToken);
+        } catch (PdfUnsupportedTextMappingException error) {
+            return CreateUnsupportedTextMappingPlan(pdf, error, options,
+                "RedactionSourceTextMappingUnsupported", cancellationToken);
+        }
+    }
+
+    private static PdfRedactionPlan PlanCore(
         byte[] pdf,
         IEnumerable<PdfRedactionArea> areas,
         PdfTextLayoutOptions? layoutOptions,
@@ -62,12 +85,22 @@ internal static partial class PdfRedactionPlanner {
         var matches = new List<PdfRedactionMatch>();
         var nestedPathPrimitivesByPage = new Dictionary<int, IReadOnlyList<PdfPageVisualPrimitive>>();
         var hiddenTextSpansByPage = new Dictionary<int, IReadOnlyList<PdfTextSpan>>();
+        var glyphTextSpansByPage = new Dictionary<int, IReadOnlyList<PdfTextSpan>>();
         var hiddenImagePlacementsByPage = new Dictionary<int, IReadOnlyList<PdfImagePlacement>>();
         var inconclusiveOptionalContentPages = new HashSet<int>();
 
         foreach (PdfRedactionArea area in areaArray) {
             cancellationToken.ThrowIfCancellationRequested();
-            AddTextMatches(area, logical, matches);
+            if (area.RequiresGlyphRewrite && area.PageNumber <= readDocument.Pages.Count) {
+                if (!glyphTextSpansByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfTextSpan>? glyphSpans)) {
+                    glyphSpans = readDocument.Pages[area.PageNumber - 1].GetGlyphTextSpans(
+                        includeHiddenOptionalContentText, cancellationToken);
+                    glyphTextSpansByPage.Add(area.PageNumber, glyphSpans);
+                }
+                AddGlyphTextMatches(area, glyphSpans, matches, cancellationToken);
+            } else {
+                AddTextMatches(area, logical, matches);
+            }
             if (includeHiddenOptionalContentText && area.PageNumber <= readDocument.Pages.Count) {
                 PdfReadPage residualPage = readDocument.Pages[area.PageNumber - 1];
                 if (residualPage.HasUnsupportedOptionalContentViewUsageApplications()) {
@@ -78,7 +111,7 @@ internal static partial class PdfRedactionPlanner {
                             "Residual redaction inspection cannot determine optional-content visibility because the PDF uses unsupported View usage applications.",
                             pageNumber: area.PageNumber));
                     }
-                } else {
+                } else if (!area.RequiresGlyphRewrite) {
                     if (!hiddenTextSpansByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfTextSpan>? hiddenSpans)) {
                         hiddenSpans = residualPage.GetHiddenOptionalContentTextSpans(includeArtifactText: true);
                         hiddenTextSpansByPage.Add(area.PageNumber, hiddenSpans);
@@ -164,6 +197,17 @@ internal static partial class PdfRedactionPlanner {
                 block.Text,
                 null,
                 null));
+        }
+    }
+
+    private static void AddGlyphTextMatches(PdfRedactionArea area, IReadOnlyList<PdfTextSpan> spans,
+        List<PdfRedactionMatch> matches, CancellationToken cancellationToken) {
+        foreach (PdfTextSpan span in spans) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!PdfTextSpanGeometry.IntersectsAreaAtCharacterLevel(span, area)) continue;
+            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, 0D, span.Advance);
+            matches.Add(new PdfRedactionMatch(PdfRedactionMatchKind.TextBlock, area, area.PageNumber,
+                bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, span.Text, null, null));
         }
     }
 
@@ -276,9 +320,11 @@ internal static partial class PdfRedactionPlanner {
             placement));
 
         findings.Add(new PdfDiagnosticFinding(
-            PdfDiagnosticSeverity.Warning,
+            area.ContentScope == PdfRedactionContentScope.TextOnly ? PdfDiagnosticSeverity.Info : PdfDiagnosticSeverity.Warning,
             "RedactionPlanImageIntersection",
-            "Redaction area intersects an image placement. Applying the plan rewrites supported image pixels and otherwise follows the configured fail-closed, whole-placement removal, or explicit visual-overlay policy.",
+            area.ContentScope == PdfRedactionContentScope.TextOnly
+                ? "Redaction area intersects an image placement retained by the TextOnly policy."
+                : "Redaction area intersects an image placement. Applying the plan rewrites supported image pixels and otherwise follows the configured fail-closed, whole-placement removal, or explicit visual-overlay policy.",
             placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
             placement.PageNumber));
     }
@@ -338,11 +384,13 @@ internal static partial class PdfRedactionPlanner {
                 primitive.Kind.ToString(),
                 null));
             findings.Add(new PdfDiagnosticFinding(
-                PdfDiagnosticSeverity.Warning,
+                area.ContentScope == PdfRedactionContentScope.TextOnly ? PdfDiagnosticSeverity.Info : PdfDiagnosticSeverity.Warning,
                 primitive.ContentOrderKey?.Depth > 1
                     ? "RedactionPlanNestedVectorIntersection"
                     : "RedactionPlanVectorIntersection",
-                primitive.ContentOrderKey?.Depth > 1
+                area.ContentScope == PdfRedactionContentScope.TextOnly
+                    ? "The redaction area intersects vector content retained by the TextOnly policy."
+                    : primitive.ContentOrderKey?.Depth > 1
                     ? "The redaction area intersects vector content inside a nested Form XObject. The current writer cannot remove that path; applied-plan verification will remain unverified while the nested vector content remains."
                     : "The redaction area intersects a page-level vector path. Applying the plan removes supported intersecting paths when path removal is enabled; otherwise applied-plan verification remains unverified while the path survives.",
                 pageNumber: area.PageNumber));
@@ -360,10 +408,14 @@ internal static partial class PdfRedactionPlanner {
             }
             bool rectangleMark = primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle && primitive.HasFillPaint && !primitive.HasStrokePaint;
             bool exactMark = area.ExactGeometry is not null && (primitive.HasFillPaint || primitive.HasStrokePaint);
-            if ((rectangleMark || exactMark) && AreClose(primitive.X, visualArea.Left) &&
-                AreClose(primitive.Y, visualArea.Top) &&
-                AreClose(primitive.Width, visualArea.Width) &&
-                AreClose(primitive.Height, visualArea.Height)) {
+            // Freehand review bounds include the round-cap stroke radius;
+            // primitive bounds describe the centerline before that padding.
+            double strokePadding = area.ExactGeometry?.Kind == PdfRedactionRegionKind.Freehand && primitive.HasStrokePaint
+                ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
+            if ((rectangleMark || exactMark) && AreClose(primitive.X - strokePadding, visualArea.Left) &&
+                AreClose(primitive.Y - strokePadding, visualArea.Top) &&
+                AreClose(primitive.Width + strokePadding * 2D, visualArea.Width) &&
+                AreClose(primitive.Height + strokePadding * 2D, visualArea.Height)) {
                 return i;
             }
         }

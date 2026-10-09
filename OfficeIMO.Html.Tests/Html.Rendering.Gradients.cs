@@ -8,6 +8,23 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("linear-gradient(to right,red,transparent)")]
+    [InlineData("radial-gradient(circle closest-side at center,red,transparent)")]
+    public void HtmlGradient_PremultipliesInteriorStopsWhenCompositingOverWhite(string background) {
+        string html = "<div style='width:100px;height:100px;background:" + background + "'></div>";
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 140D, Margins = HtmlRenderMargins.All(0D) };
+        var rendered = HtmlRenderTestDriver.Render(html, options);
+        var visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null || shape.Shape.FillRadialGradient != null);
+        var drawing = rendered.Pages[0].CreateDrawing();
+        var raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+        var pixel = raster.GetPixel((int)(visual.X + visual.Shape.Width * .75D), (int)(visual.Y + visual.Shape.Height * .5D));
+        Assert.Equal(255, pixel.R);
+        Assert.InRange(pixel.G, 30, 240);
+        Assert.Equal(pixel.G, pixel.B);
+    }
+
     [Fact]
     public void HtmlLinearGradient_PremultipliesSynthesizedBoundaryStops() {
         const string html = "<div style='width:100px;height:20px;background:linear-gradient(to right,rgba(255 0 0 / 0) -100%,blue 100%)'></div>";
@@ -152,7 +169,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<radialGradient", svg, StringComparison.Ordinal);
         Assert.Equal(3, CountBackgroundOccurrences(svg, "<stop "));
         Assert.Contains("/ShadingType 3", pdfSource, StringComparison.Ordinal);
-        Assert.Contains("/Coords [0.5 0.5 0 0.5 0.5 0.707]", pdfSource, StringComparison.Ordinal);
+        OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(
+            PdfCore.PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), scale: 4D / 3D);
+        Assert.True(pdfRaster.GetPixel(88, 38).R > pdfRaster.GetPixel(88, 38).B);
+        Assert.True(pdfRaster.GetPixel(9, 66).B > pdfRaster.GetPixel(9, 66).R);
         Assert.Contains("RadialMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
@@ -215,7 +235,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0.5D, gradient.EndRadiusY, 4);
         Assert.True(raster.GetPixel(48, 38).R > raster.GetPixel(48, 38).B);
         Assert.True(raster.GetPixel(78, 38).B > raster.GetPixel(78, 38).R);
-        Assert.Contains("gradientTransform=\"matrix(0.188 0 0 0.5 0.25 0.5)\"", svg, StringComparison.Ordinal);
+        var radial = System.Xml.Linq.XDocument.Parse(svg).Descendants()
+            .Single(element => element.Name.LocalName == "radialGradient");
+        double[] transform = ((string)radial.Attribute("gradientTransform")!).Substring(7).TrimEnd(')')
+            .Split(' ').Select(value => double.Parse(value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        Assert.Equal(new[] { 0.1875D, 0D, 0D, 0.5D, 0.25D, 0.5D }, transform);
         Assert.Contains("/ShadingType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.Contains("CircleMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
@@ -741,8 +765,15 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.NotEmpty(visual.Drawing.Elements);
         Assert.NotEqual(raster.GetPixel(20, 20), raster.GetPixel(70, 50));
-        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor.HasValue && shape.Shape.FillColor.Value.G > shape.Shape.FillColor.Value.R);
-        Assert.Contains(pdfDrawing.Shapes, shape => shape.Shape.FillColor.HasValue && shape.Shape.FillColor.Value.B > shape.Shape.FillColor.Value.G);
+        OfficeRasterImage pdfRaster = OfficeDrawingRasterRenderer.Render(pdfDrawing, scale: 4D / 3D);
+        Assert.Contains(Enumerable.Range(0, pdfRaster.Width * pdfRaster.Height), index => {
+            OfficeColor pixel = pdfRaster.GetPixel(index % pdfRaster.Width, index / pdfRaster.Width);
+            return pixel.G > pixel.R;
+        });
+        Assert.Contains(Enumerable.Range(0, pdfRaster.Width * pdfRaster.Height), index => {
+            OfficeColor pixel = pdfRaster.GetPixel(index % pdfRaster.Width, index / pdfRaster.Width);
+            return pixel.B > pixel.G;
+        });
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 

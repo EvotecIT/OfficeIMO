@@ -129,6 +129,7 @@ internal sealed partial class OfficeImoAgentService {
                 ComputeHashes = false
             },
             new ReaderEmailStoreOptions {
+                ConcealedTextPolicy = EmailConcealedTextPolicy.ExcludeRemovable,
                 StoreOptions = CreateEmailStoreOptions(),
                 ItemReadOptions = new EmailStoreItemReadOptions(
                     AgentEmailParts,
@@ -156,6 +157,7 @@ internal sealed partial class OfficeImoAgentService {
         AddMetadata(metadata, "hasAttachments", item.Summary?.HasAttachments?.ToString());
         AddMetadata(metadata, "folderId", item.Reference.FolderId);
         return new AgentFetchResult {
+            ContentSafety = AgentContentSafetySummary.FromDiagnostics(item.Diagnostics.Select(value => value.Code)),
             SourceId = source.SourceId,
             Id = id,
             Kind = item.Summary?.OutlookItemKind.ToString() ?? "email",

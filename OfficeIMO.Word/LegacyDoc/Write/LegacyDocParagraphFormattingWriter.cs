@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                 byte[]? papx = segment.PapxOverride;
                 if (papx == null && segment.Formatting.HasFormatting) {
-                    papx = CreatePapx(segment.Formatting);
+                    papx = CreatePapx(segment.Formatting, out _);
                 }
 
                 if (papx != null) {
@@ -102,7 +102,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             stream[pageOffset + oleSectorSize - 1] = (byte)segments.Count;
         }
 
-        private static byte[] CreatePapx(LegacyDocWritableParagraphFormatting formatting) {
+        private static byte[] CreatePapx(LegacyDocWritableParagraphFormatting formatting, out int propertyByteCount) {
             var grpprl = new List<byte>(6) {
                 (byte)((formatting.StyleIndex ?? 0) & 0xFF),
                 (byte)((formatting.StyleIndex ?? 0) >> 8)
@@ -299,19 +299,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmTTableHeader, 1);
             }
 
-            if (grpprl.Count % 2 != 0) {
-                grpprl.Add(0);
-            }
-
-            int cb = grpprl.Count / 2;
+            propertyByteCount = grpprl.Count;
+            bool oddLength = grpprl.Count % 2 != 0;
+            int cb = oddLength ? (grpprl.Count + 1) / 2 : grpprl.Count / 2;
             if (cb > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving cannot write paragraph formatting because the PAPX record is too large.");
             }
 
-            var papx = new byte[grpprl.Count + 2];
-            papx[0] = 0;
-            papx[1] = (byte)cb;
-            grpprl.CopyTo(papx, 2);
+            int headerLength = oddLength ? 1 : 2;
+            var papx = new byte[grpprl.Count + headerLength];
+            if (oddLength) papx[0] = (byte)cb;
+            else papx[1] = (byte)cb;
+            grpprl.CopyTo(papx, headerLength);
             return papx;
         }
 
@@ -320,9 +319,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return Array.Empty<byte>();
             }
 
-            byte[] papx = CreatePapx(formatting);
-            var upx = new byte[papx.Length - 2];
-            Buffer.BlockCopy(papx, 2, upx, 0, upx.Length);
+            byte[] papx = CreatePapx(formatting, out int propertyByteCount);
+            // The enclosing style record owns alignment; UPX contains only properties.
+            var upx = new byte[propertyByteCount];
+            Buffer.BlockCopy(papx, papx[0] == 0 ? 2 : 1, upx, 0, upx.Length);
             return upx;
         }
 
@@ -485,13 +485,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AddTabStopsSprm(List<byte> grpprl, IReadOnlyList<LegacyDocTabStop> tabStops) {
             var clearTabStops = tabStops
                 .Where(tabStop => tabStop.Alignment == LegacyDocTabStopAlignment.Clear)
+                .OrderBy(tabStop => tabStop.PositionTwips)
                 .ToArray();
             var addedTabStops = tabStops
                 .Where(tabStop => tabStop.Alignment != LegacyDocTabStopAlignment.Clear)
+                .OrderBy(tabStop => tabStop.PositionTwips)
                 .ToArray();
 
-            if (clearTabStops.Length > byte.MaxValue || addedTabStops.Length > byte.MaxValue) {
-                throw new NotSupportedException("Native DOC saving cannot write more than 255 tab stops in one paragraph.");
+            if (clearTabStops.Length > 64 || addedTabStops.Length > 64) {
+                throw new NotSupportedException("Native DOC saving cannot write more than 64 added or cleared tab stops in one paragraph.");
             }
 
             var operand = new List<byte>(2 + (clearTabStops.Length * 2) + (addedTabStops.Length * 3));
@@ -533,6 +535,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     return true;
                 case LegacyDocTabStopAlignment.Bar:
                     value = 4;
+                    return true;
+                case LegacyDocTabStopAlignment.Number:
+                    value = 6;
                     return true;
                 default:
                     value = 0;

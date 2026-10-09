@@ -338,7 +338,10 @@ namespace OfficeIMO.Tests {
                 directory = directory.Parent;
             }
 
-            throw new DirectoryNotFoundException("Could not locate OfficeIMO test project root from test runtime base directory.");
+            string projectName = typeof(VisualBaselineTestSupport).Assembly.GetName().Name!;
+            string projectRoot = Path.Combine(RepositoryTestPaths.Find(), projectName);
+            if (File.Exists(Path.Combine(projectRoot, projectName + ".csproj"))) return projectRoot;
+            throw new DirectoryNotFoundException("Could not locate OfficeIMO test project root from test runtime base directory or source checkout.");
         }
     }
 

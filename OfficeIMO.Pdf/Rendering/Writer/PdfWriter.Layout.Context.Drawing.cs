@@ -209,40 +209,43 @@ internal static partial class PdfWriter {
         }
 
         private void DrawDrawingElements(OfficeDrawing drawing, double originX, double originTopY, OfficeDrawingTextMetrics? textMetrics = null) {
-            textMetrics ??= CreateDrawingTextMetrics(currentOpts);
+            textMetrics ??= CreateDrawingTextMetrics(currentOpts, cancellationToken);
             for (int i = 0; i < drawing.Elements.Count; i++) {
-                if (drawing.Elements[i] is OfficeDrawingShape shape) {
+                cancellationToken.ThrowIfCancellationRequested();
+                OfficeDrawingElement element = drawing.Elements[i];
+                DrawSourceStructuredElement(element, () => DrawDrawingElement(element, originX, originTopY, textMetrics));
+            }
+        }
+
+        private void DrawDrawingElement(OfficeDrawingElement element, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
+                if (element is OfficeDrawingShape shape) {
                     double xShape = originX + shape.X;
                     double bottomY = originTopY - shape.Y - shape.Shape.Height;
                     DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
-                } else if (drawing.Elements[i] is OfficeDrawingText text) {
+                } else if (element is OfficeDrawingLink link) {
+                    DrawDrawingLinkAt(link, originX, originTopY);
+                } else if (element is OfficeDrawingText text) {
                     DrawDrawingTextAt(text, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingRichText richText) {
+                } else if (element is OfficeDrawingRichText richText) {
                     DrawDrawingRichTextAt(richText, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingImage image) {
+                } else if (element is OfficeDrawingImage image) {
                     DrawDrawingImageAt(image, originX, originTopY);
-                } else if (drawing.Elements[i] is OfficeDrawingGroup group) {
+                } else if (element is OfficeDrawingGroup group) {
                     DrawDrawingGroupAt(group, originX, originTopY, textMetrics);
-                } else if (drawing.Elements[i] is OfficeDrawingEffectGroup effectGroup) {
-                    if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask != null) {
-                        throw new NotSupportedException("OfficeIMO.Pdf does not yet support drawing effect groups with a blend mode or soft mask.");
-                    }
-
-                    OfficeTransform pageTransform = ToTopLeftPageTransform(effectGroup.Transform, originX, originTopY);
-                    RenderEffectGroup(
-                        pageTransform,
-                        effectGroup.Opacity,
-                        () => DrawDrawingElements(effectGroup.InnerDrawing, originX, originTopY, textMetrics));
+                } else if (element is OfficeDrawingEffectGroup effectGroup) {
+                    DrawDrawingEffectAt(effectGroup, originX, originTopY, textMetrics);
+                } else if (element is OfficeDrawingTilingPattern pattern) {
+                    DrawDrawingPatternAt(pattern, originX, originTopY, textMetrics);
                 } else {
                     throw new NotSupportedException(
                         "OfficeIMO.Pdf does not yet support drawing elements of type " +
-                        drawing.Elements[i].GetType().Name + ".");
+                        element.GetType().Name + ".");
                 }
-            }
         }
 
         private void DrawDrawingGroupAt(OfficeDrawingGroup group, double originX, double originTopY, OfficeDrawingTextMetrics textMetrics) {
             void DrawGroupContent() {
+                int linkStart = currentPage!.Annotations.Count;
                 double clipX = originX + group.X;
                 double clipBottomY = originTopY - group.Y - group.ClipPath.Height;
                 new ContentStreamBuilder(sb).SaveState();
@@ -251,6 +254,7 @@ internal static partial class PdfWriter {
                     group.InnerDrawing,
                     clipX + group.ContentOffsetX,
                     originTopY - group.Y - group.ContentOffsetY, textMetrics);
+                ClipCanvasLinkAnnotations(currentPage.Annotations, linkStart, clipX, clipBottomY, group.ClipPath.Width, group.ClipPath.Height, group.ClipPath);
                 new ContentStreamBuilder(sb).RestoreState();
             }
 
@@ -318,6 +322,7 @@ internal static partial class PdfWriter {
                 targetBottomY,
                 projection.Width,
                 projection.Height);
+            pageImage.Interpolate = image.Interpolate;
             pageImage.Opacity = image.Opacity;
             pageImage.GraphicsStateName = EnsureGraphicsState(image.Opacity, image.Opacity);
             pageImage.HorizontalFlip = projection.FlipHorizontal;

@@ -35,6 +35,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocStyleSheet StyleSheet { get; private set; } = LegacyDocStyleSheet.Empty;
 
+        internal LegacyDocNumbering Numbering { get; private set; } = LegacyDocNumbering.Empty;
+
         internal LegacyDocSectionFormat SectionFormat { get; private set; } = LegacyDocSectionFormat.Default;
 
         internal IReadOnlyList<LegacyDocSection> Sections { get; private set; } = Array.Empty<LegacyDocSection>();
@@ -191,6 +193,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
             }
 
+            Numbering = LegacyDocNumberingReader.Read(tableStream, fib, fontFamilies, out string? numberingWarning);
+            if (numberingWarning != null) {
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Numbering,
+                    "DOC-NUMBERING-INVALID", numberingWarning, detailCode: "PlfLst/PlfLfo"), options.ReportUnsupportedContent);
+            }
+
             Sections = ApplyDopEndnotePlacement(
                 LegacyDocSectionFormattingReader.ReadSections(wordDocumentStream, tableStream, fib, out string? sectionFormattingWarning),
                 fib,
@@ -212,9 +220,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-CHPX-INVALID", formattingWarning);
             }
 
-            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges = LegacyDocParagraphFormattingReader.ReadParagraphFormatting(wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning);
+            byte[] dataStream = TryGetRootStream(compoundFile, "Data", out byte[]? dataStreamCandidate)
+                ? dataStreamCandidate!
+                : Array.Empty<byte>();
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges = LegacyDocParagraphFormattingReader.ReadParagraphFormatting(
+                wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning, dataStream, options);
             if (paragraphFormattingWarning != null) {
                 AddWarning("DOC-PAPX-INVALID", paragraphFormattingWarning);
+            }
+
+            if (numberingWarning == null && paragraphFormattingRanges.Select(item => item.Format)
+                .Concat(StyleSheet.ParagraphStyles.Select(item => item.ParagraphFormat))
+                .Any(format => !Numbering.ContainsReference(format))) {
+                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(LegacyDocUnsupportedFeatureKind.Numbering,
+                    "DOC-NUMBERING-REFERENCE-INVALID", "A paragraph or style references a missing native list instance or level.",
+                    detailCode: "sprmPIlfo/sprmPIlvl"), options.ReportUnsupportedContent);
             }
 
             Bookmarks = LegacyDocBookmarkReader.Read(tableStream, fib, out string? bookmarkWarning);
@@ -225,9 +245,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedContent);
 
-            byte[] dataStream = TryGetRootStream(compoundFile, "Data", out byte[]? dataStreamCandidate)
-                ? dataStreamCandidate!
-                : Array.Empty<byte>();
             LegacyDocPictureReader.LegacyDocPictureReadResult pictures = LegacyDocPictureReader.Read(
                 dataStream,
                 textContent.AllCharacters,

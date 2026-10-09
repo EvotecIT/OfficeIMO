@@ -70,8 +70,20 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
           ./Build/BrowserExports/Test-NpmConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'npm')
-          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate (Join-Path $evidence 'npm/packed-consumer.xlsx')
+          npm --prefix OfficeIMO.JavaScript --script-shell pwsh run test:datatables-types -- (Join-Path $evidence 'npm')
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- --validate-directory (Join-Path $evidence 'npm')
           ./Build/BrowserExports/Test-NugetConsumer.ps1 -EvidenceDirectory (Join-Path $evidence 'nuget')
+      - name: Verify optional DataTables interoperability
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $evidence = Join-Path $env:RUNNER_TEMP 'officeimo-browser-exports'
+          $assets = Join-Path $evidence 'comparison-assets'
+          node Build/BrowserExports/fetch-comparison.mjs $assets
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'datatables') --datatables "--comparison-assets=$assets"
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-current') --pdf "--comparison-assets=$assets"
+          dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-bundled') --pdf --stack=bundled "--comparison-assets=$assets"
       - name: Upload browser contract evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -79,6 +91,10 @@ jobs:
           name: browser-export-contracts
           path: |
             ${{ runner.temp }}/officeimo-browser-exports/browser/interop
+            ${{ runner.temp }}/officeimo-browser-exports/datatables
+            ${{ runner.temp }}/officeimo-browser-exports/pdf-current
+            ${{ runner.temp }}/officeimo-browser-exports/pdf-bundled
+            ${{ runner.temp }}/officeimo-browser-exports/npm/datatables-types.json
             ${{ runner.temp }}/officeimo-browser-exports/npm/archive.json
             ${{ runner.temp }}/officeimo-browser-exports/npm/*.tgz
             ${{ runner.temp }}/officeimo-browser-exports/nuget/*.nupkg
@@ -227,7 +243,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -755,6 +771,8 @@ jobs:
             project: OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj
           - name: DocBook
             project: OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj
+          - name: Access
+            project: OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj
           - name: AsciiDoc
             project: OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj
           - name: AsciiDoc-Markdown
@@ -789,6 +807,8 @@ jobs:
             project: OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
           - name: Markup
             project: OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
+          - name: Xps
+            project: OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
           - name: OpenDocument
             project: OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
           - name: OpenDocument-Converters
@@ -852,7 +872,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
@@ -1217,8 +1237,10 @@ jobs:
             dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
             dotnet restore OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj
             dotnet restore OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
+            dotnet restore OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
+            dotnet restore OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj
             dotnet restore OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
             dotnet restore OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj
             dotnet restore OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
@@ -1269,8 +1291,10 @@ jobs:
             dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1338,6 +1362,10 @@ jobs:
             echo ""
             echo "== OfficeIMO.Visio.Tests =="
             dotnet test OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          }
+
+          run_access_tests() {
+            dotnet test OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
           run_rtf_tests() {
@@ -1512,10 +1540,12 @@ jobs:
               run_googleworkspace_tests
               dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_markup_tests
+              dotnet test OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_opendocument_tests
               dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_powerpoint_tests
               run_visio_tests
+              run_access_tests
               run_reader_tests
               dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_shared_tests "shared-contracts"
@@ -1552,7 +1582,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
@@ -1563,6 +1593,7 @@ jobs:
             } catch {
               Write-Host "Warning: Could not parse TRX file $($file.Name): $($_.Exception.Message)"
             }
+
           }
 
           if ($failureCount -eq 0) {
@@ -1825,7 +1856,7 @@ jobs:
 
           foreach ($file in $trxFiles) {
             try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+              Select-Xml -Path $file.FullName -XPath "//*[local-name()='UnitTestResult' and @outcome='Failed']" |
                 ForEach-Object {
                   $name = $_.Node.testName
                   $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"

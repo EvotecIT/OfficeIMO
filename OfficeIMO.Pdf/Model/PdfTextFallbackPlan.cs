@@ -174,7 +174,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }
@@ -205,7 +205,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }
@@ -229,7 +229,7 @@ public sealed class PdfTextFallbackPlan {
             underlineStyle: styleTemplate.UnderlineStyle,
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
-            .WithFeatureSettings(styleTemplate.FeatureSettings)
+            .WithSpacingFrom(styleTemplate).WithFeatureSettings(styleTemplate.FeatureSettings)
             .WithHorizontalOffset(styleTemplate.HorizontalOffset)
             .WithTextDirection(styleTemplate.TextDirection);
     }

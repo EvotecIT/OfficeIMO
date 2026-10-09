@@ -2,7 +2,7 @@ export { Crc32 } from "./entry.js";
 export type { Compression, EntryInfo } from "./entry.js";
 import { EntryWriter, zipSize } from "./entry.js";
 import type { Compression, PreparedEntry, EntryInfo } from "./entry.js";
-import { checkAbort, withAbort, pause } from "../core/iteration.js";
+import { checkAbort, withAbort, pause, taskYieldDue } from "../core/iteration.js";
 import { OfficeIMOError } from "../core/errors.js";
 import { BlobByteSink, writeBytes } from "../core/sinks.js";
 import type { ByteSink, ByteSource } from "../core/sinks.js";
@@ -138,7 +138,7 @@ export class ZipWriter {
     this.state = "writing";
     const offset = this.offset;
     try {
-      for (let i = 0; i < this.central.length; i++) { await this.emit(this.central[i]!); if (i % 256 === 255) await pause(); }
+      for (let i = 0; i < this.central.length; i++) { await this.emit(this.central[i]!); if (i % 256 === 255 && taskYieldDue()) await pause(); }
       const end = header(0x06054b50, 22);
       end.data.setUint16(8, this.central.length, true); end.data.setUint16(10, this.central.length, true);
       end.data.setUint32(12, this.offset - offset, true); end.data.setUint32(16, offset, true);

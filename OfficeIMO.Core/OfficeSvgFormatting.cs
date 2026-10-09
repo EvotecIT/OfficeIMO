@@ -10,6 +10,8 @@ namespace OfficeIMO.Drawing;
 /// Shared SVG formatting helpers used by OfficeIMO renderers.
 /// </summary>
 public static partial class OfficeSvgFormatting {
+    private static string FormatPreciseNumber(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+
     /// <summary>
     /// Formats a numeric SVG attribute value using invariant culture and compact precision.
     /// </summary>
@@ -271,7 +273,9 @@ public static partial class OfficeSvgFormatting {
             .Append(FormatNumber(gradient.EndX * 100D))
             .Append("%\" y2=\"")
             .Append(FormatNumber(gradient.EndY * 100D))
-            .Append("%\">");
+            .Append("%\"");
+        if (gradient.ColorInterpolation == OfficeGradientColorInterpolation.LinearRgb) builder.Append(" color-interpolation=\"linearRGB\"");
+        builder.Append('>');
 
         for (int i = 0; i < gradient.Stops.Count; i++) {
             OfficeGradientStop stop = gradient.Stops[i];
@@ -300,9 +304,21 @@ public static partial class OfficeSvgFormatting {
     /// <param name="id">Gradient identifier.</param>
     /// <param name="gradient">Gradient definition.</param>
     /// <returns>The supplied builder for call chaining.</returns>
-    public static StringBuilder AppendRadialGradientDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) {
+    public static StringBuilder AppendRadialGradientDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) =>
+        AppendRadialGradientDefinitionCore(builder, id, gradient, false);
+
+    // Native paint composition supplies the missing outside-cone paint and alpha.
+    // Its fields use explicit user coordinates, independent of each paint rectangle.
+    internal static StringBuilder AppendRadialGradientFieldDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) =>
+        AppendRadialGradientDefinitionCore(builder, id, gradient, true);
+
+    private static StringBuilder AppendRadialGradientDefinitionCore(StringBuilder builder, string id, OfficeRadialGradient gradient, bool userSpace) {
         if (gradient == null) {
             throw new ArgumentNullException(nameof(gradient));
+        }
+
+        if (gradient.OutsideColor != null && !userSpace) {
+            throw new NotSupportedException("Native radial boundary/exterior Pad fields cannot be represented by ordinary SVG without loss.");
         }
 
         bool elliptical = !gradient.EndRadiusX.Equals(gradient.EndRadiusY);
@@ -313,37 +329,40 @@ public static partial class OfficeSvgFormatting {
         double startY = elliptical ? (gradient.StartY - gradient.EndY) / gradient.EndRadiusY : gradient.StartY;
         double startRadius = elliptical ? gradient.StartRadiusX / gradient.EndRadiusX : gradient.StartRadius;
 
+        double multiplier = userSpace ? 1D : 100D;
+        string unit = userSpace ? "" : "%";
         builder.Append("<defs><radialGradient id=\"")
             .Append(Escape(id))
             .Append("\" cx=\"")
-            .Append(FormatNumber(endX * 100D))
-            .Append("%\" cy=\"")
-            .Append(FormatNumber(endY * 100D))
-            .Append("%\" r=\"")
-            .Append(FormatNumber(endRadius * 100D))
-            .Append("%\" fx=\"")
-            .Append(FormatNumber(startX * 100D))
-            .Append("%\" fy=\"")
-            .Append(FormatNumber(startY * 100D))
-            .Append('%')
+            .Append(FormatPreciseNumber(endX * multiplier))
+            .Append(unit).Append("\" cy=\"")
+            .Append(FormatPreciseNumber(endY * multiplier))
+            .Append(unit).Append("\" r=\"")
+            .Append(FormatPreciseNumber(endRadius * multiplier))
+            .Append(unit).Append("\" fx=\"")
+            .Append(FormatPreciseNumber(startX * multiplier))
+            .Append(unit).Append("\" fy=\"")
+            .Append(FormatPreciseNumber(startY * multiplier))
+            .Append(unit)
             .Append('"');
 
-        if (elliptical) {
+        if (gradient.ColorInterpolation == OfficeGradientColorInterpolation.LinearRgb) builder.Append(" color-interpolation=\"linearRGB\"");
+        if (gradient.SpreadMode != OfficeGradientSpreadMode.Pad) builder.Append(" spreadMethod=\"").Append(gradient.SpreadMode == OfficeGradientSpreadMode.Repeat ? "repeat" : "reflect").Append('"');
+        if (userSpace) builder.Append(" gradientUnits=\"userSpaceOnUse\"");
+
+        var coordinates = (elliptical ? new OfficeTransform(gradient.EndRadiusX, 0D, 0D, gradient.EndRadiusY, gradient.EndX, gradient.EndY)
+            : OfficeTransform.Identity).Then(gradient.CoordinateTransform);
+        if (coordinates != OfficeTransform.Identity) {
             builder.Append(" gradientTransform=\"matrix(")
-                .Append(FormatNumber(gradient.EndRadiusX))
-                .Append(" 0 0 ")
-                .Append(FormatNumber(gradient.EndRadiusY))
-                .Append(' ')
-                .Append(FormatNumber(gradient.EndX))
-                .Append(' ')
-                .Append(FormatNumber(gradient.EndY))
-                .Append(")\"");
+                .Append(FormatPreciseNumber(coordinates.M11)).Append(' ').Append(FormatPreciseNumber(coordinates.M12)).Append(' ')
+                .Append(FormatPreciseNumber(coordinates.M21)).Append(' ').Append(FormatPreciseNumber(coordinates.M22)).Append(' ')
+                .Append(FormatPreciseNumber(coordinates.OffsetX)).Append(' ').Append(FormatPreciseNumber(coordinates.OffsetY)).Append(")\"");
         }
 
         if (startRadius > 0D) {
             builder.Append(" fr=\"")
-                .Append(FormatNumber(startRadius * 100D))
-                .Append("%\"");
+                .Append(FormatPreciseNumber(startRadius * multiplier))
+                .Append(unit).Append("\"");
         }
 
         builder.Append('>');
@@ -351,7 +370,7 @@ public static partial class OfficeSvgFormatting {
         for (int i = 0; i < gradient.Stops.Count; i++) {
             OfficeGradientStop stop = gradient.Stops[i];
             builder.Append("<stop offset=\"")
-                .Append(FormatNumber(stop.Offset * 100D))
+                .Append(FormatPreciseNumber(stop.Offset * 100D))
                 .Append("%\" stop-color=\"")
                 .Append(ToCssColor(stop.Color))
                 .Append('"');
@@ -951,70 +970,6 @@ public static partial class OfficeSvgFormatting {
 
         if (closePath && points.Count > 0) {
             builder.Append(" Z");
-        }
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Formats SVG path data for shared Office path commands using invariant numeric formatting.
-    /// </summary>
-    /// <param name="commands">Path commands to serialize.</param>
-    /// <param name="offsetX">Additional x offset applied to command points.</param>
-    /// <param name="offsetY">Additional y offset applied to command points.</param>
-    /// <returns>SVG path data, or an empty string when no commands are supplied.</returns>
-    public static string FormatPathData(IReadOnlyList<OfficePathCommand> commands, double offsetX = 0D, double offsetY = 0D) {
-        var builder = new StringBuilder();
-        builder.AppendPathData(commands, offsetX, offsetY);
-        return builder.ToString();
-    }
-
-    /// <summary>
-    /// Appends SVG path data for shared Office path commands using invariant numeric formatting.
-    /// </summary>
-    /// <param name="builder">Markup builder.</param>
-    /// <param name="commands">Path commands to serialize.</param>
-    /// <param name="offsetX">Additional x offset applied to command points.</param>
-    /// <param name="offsetY">Additional y offset applied to command points.</param>
-    /// <returns>The supplied builder for call chaining.</returns>
-    public static StringBuilder AppendPathData(this StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX = 0D, double offsetY = 0D) {
-        if (commands == null) {
-            throw new ArgumentNullException(nameof(commands));
-        }
-
-        for (int i = 0; i < commands.Count; i++) {
-            OfficePathCommand command = commands[i];
-            switch (command.Kind) {
-                case OfficePathCommandKind.MoveTo:
-                    builder.Append('M')
-                        .Append(FormatNumber(command.Point.X + offsetX)).Append(' ')
-                        .Append(FormatNumber(command.Point.Y + offsetY));
-                    break;
-                case OfficePathCommandKind.LineTo:
-                    builder.Append('L')
-                        .Append(FormatNumber(command.Point.X + offsetX)).Append(' ')
-                        .Append(FormatNumber(command.Point.Y + offsetY));
-                    break;
-                case OfficePathCommandKind.QuadraticBezierTo:
-                    builder.Append('Q')
-                        .Append(FormatNumber(command.ControlPoint1.X + offsetX)).Append(' ')
-                        .Append(FormatNumber(command.ControlPoint1.Y + offsetY)).Append(' ')
-                        .Append(FormatNumber(command.Point.X + offsetX)).Append(' ')
-                        .Append(FormatNumber(command.Point.Y + offsetY));
-                    break;
-                case OfficePathCommandKind.CubicBezierTo:
-                    builder.Append('C')
-                        .Append(FormatNumber(command.ControlPoint1.X + offsetX)).Append(' ')
-                        .Append(FormatNumber(command.ControlPoint1.Y + offsetY)).Append(' ')
-                        .Append(FormatNumber(command.ControlPoint2.X + offsetX)).Append(' ')
-                        .Append(FormatNumber(command.ControlPoint2.Y + offsetY)).Append(' ')
-                        .Append(FormatNumber(command.Point.X + offsetX)).Append(' ')
-                        .Append(FormatNumber(command.Point.Y + offsetY));
-                    break;
-                case OfficePathCommandKind.Close:
-                    builder.Append('Z');
-                    break;
-            }
         }
 
         return builder;

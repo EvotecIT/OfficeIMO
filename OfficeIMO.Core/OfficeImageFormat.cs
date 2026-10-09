@@ -33,5 +33,11 @@ public enum OfficeImageFormat {
     /// <summary>Raw JPEG 2000 codestream without a JP2 container.</summary>
     Jpeg2000Codestream,
     /// <summary>AV1 Image File Format still-item container.</summary>
-    Avif
+    Avif,
+    /// <summary>JPEG XR / HD Photo image in the tagged container format.</summary>
+    JpegXr,
+    /// <summary>Portable bitmap, graymap, or pixmap.</summary>
+    PortableMap,
+    /// <summary>Truevision TGA raster image.</summary>
+    Tga
 }

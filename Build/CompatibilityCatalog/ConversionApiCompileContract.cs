@@ -54,6 +54,7 @@ internal static class ConversionApiCompileContract {
         OdtDocument odt,
         OdsDocument ods,
         OdpPresentation odp,
+        OdgDocument odg,
         PdfDocument pdf,
         PowerPointPresentation powerPoint,
         RtfDocument rtf,
@@ -140,6 +141,7 @@ internal static class ConversionApiCompileContract {
         galleryResult.Diagnostics.Add(new HtmlDiagnostic("Compatibility", "EstablishedApi", "Established gallery diagnostics API"));
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdfDocumentResult(rtf);
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(pdf);
+        _ = OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfConversionExtensions.ToPdfDocumentResult(odg);
         _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToPdfDocumentResult(odt);
         _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToOdtDocumentResult(pdf);
         _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToPdfDocumentResult(ods);

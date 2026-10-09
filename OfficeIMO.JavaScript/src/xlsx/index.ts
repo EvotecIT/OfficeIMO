@@ -1,5 +1,9 @@
-export { Workbook, createWorkbook } from "./workbook.js";
+export { Workbook } from "./workbook.js";
+export { writeXlsx, writeXlsxTo } from "./write.js";
+export type { XlsxOptions } from "./write.js";
+export type { XlsxColumn } from "./types.js";
 export { Worksheet } from "./worksheet.js";
+export type { PortableCellStyle, PortableSheetOptions, PortableWorkbookOptions } from "./portable.js";
 export { Cell } from "./values.js";
 export { StyleRegistry, NumberFormats } from "./styles.js";
 export type { Font, Fill, Border, BorderEdge, BorderLineStyle, CellStyle } from "./styles.js";
@@ -9,4 +13,4 @@ export type { ConditionalFormat, ConditionalRange, ConditionalStyle, Conditional
 export { saveBlob } from "../core/index.js";
 export { ExportCell } from "../core/presentation.js";
 export type { CellPresentation, ExportValue } from "../core/presentation.js";
-export type { CellValue, Column, Row, Rows, StreamOptions, ExportProgress } from "../core/index.js";
+export type { CellValue, Column, ColumnValueContext, Row, Rows, StreamOptions, ExportProgress, ExportResult, OutputDestination } from "../core/index.js";

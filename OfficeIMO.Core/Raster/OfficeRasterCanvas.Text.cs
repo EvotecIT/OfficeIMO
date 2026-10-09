@@ -183,6 +183,10 @@ public sealed partial class OfficeRasterCanvas {
         string value = text!;
         bool retainOverflow = overflowBehavior == OfficeTextOverflowBehavior.Clip;
         double size = ResolveRasterTextSize(fontSize, height, textAdvanceWidth.HasValue);
+        if (!retainOverflow) {
+            value = FitRasterText(value, size, Math.Max(1D, width - 6D), fontFamily, style, featureSettings, textDirection);
+            if (value.Length == 0) return;
+        }
         if (TryDrawMixedText(
             value,
             x,
@@ -210,19 +214,6 @@ public sealed partial class OfficeRasterCanvas {
         if (font != null) {
             double measured = MeasureResolvedText(value, font, size, featureSettings, textDirection);
             double availableWidth = Math.Max(retainOverflow ? .01D : 1D, retainOverflow ? width : width - 6D);
-            if (!retainOverflow) {
-                while (measured > availableWidth && value.Length > 0) {
-                    value = OfficeTextElements.RemoveLast(value);
-                    if (value.Length == 0) break;
-                    measured = MeasureResolvedText(value + "...", font, size, featureSettings, textDirection);
-                }
-
-                if (value.Length == 0 && MeasureResolvedText("...", font, size, featureSettings, textDirection) > availableWidth) return;
-                if (!string.Equals(value, text, StringComparison.Ordinal)) {
-                    value += "...";
-                    measured = MeasureResolvedText(value, font, size, featureSettings, textDirection);
-                }
-            }
 
             double resolvedAdvance = textAdvanceWidth.HasValue && string.Equals(value, text, StringComparison.Ordinal)
                 ? textAdvanceWidth.Value
@@ -271,15 +262,23 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        if (_textInkObserver != null) { _textInkObserver(null); return; }
         DrawFallbackText(
             value,
-            retainOverflow ? x : x + 3D,
-            retainOverflow ? y : y + 3D,
-            retainOverflow ? width : width - 6D,
-            retainOverflow ? height : height - 6D,
+            x,
+            y,
+            width,
+            height,
             color,
+            size,
             alignment,
-            overflowBehavior);
+            style,
+            overflowBehavior,
+            textAdvanceWidth,
+            underlineStyle,
+            strikethroughStyle,
+            decorationColor,
+            baselineFontSize);
     }
 
     /// <summary>
@@ -420,7 +419,7 @@ public sealed partial class OfficeRasterCanvas {
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
         if (font != null) {
-            double outlineTop = top + fontHeight * 0.84D - ResolveRasterBaseline(font, fontHeight);
+            double outlineTop = ResolveRasterTextLineOutlineTop(font, fontHeight, top);
             double bottom = top + fontHeight;
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
                 GetResolvedTextContours(value, font, x, outlineTop, fontHeight),
@@ -450,6 +449,7 @@ public sealed partial class OfficeRasterCanvas {
             return;
         }
 
+        if (_textInkObserver != null) { _textInkObserver(null); return; }
         DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
         DrawTextLineDecorations(x, width, top, fontHeight, decorationColor ?? color, rotationRadians, rotationCenterX, rotationCenterY, underlineStyle != OfficeTextDecorationStyle.None ? underlineStyle : underline ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, strikethroughStyle != OfficeTextDecorationStyle.None ? strikethroughStyle : strikethrough ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None, flipHorizontal, flipVertical);
     }
@@ -511,7 +511,7 @@ public sealed partial class OfficeRasterCanvas {
         double width = MeasureText(value, fontHeight, fontFamily, fontStyle);
         double x = ResolveAnchoredTextX(anchorX, width, alignment);
         if (font != null) {
-            double outlineTop = top + fontHeight * 0.84D - ResolveRasterBaseline(font, fontHeight);
+            double outlineTop = ResolveRasterTextLineOutlineTop(font, fontHeight, top);
             IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
                 GetResolvedTextContours(value, font, x, outlineTop, fontHeight),
                 top + fontHeight,
@@ -576,6 +576,9 @@ public sealed partial class OfficeRasterCanvas {
         bool flipVertical) {
         double thickness = Math.Max(1D, fontHeight / 16D);
         double separation = Math.Max(2D, thickness * 1.8D);
+        if (InspectTextDecoration(x, width, y, fontHeight, style, rotationRadians, rotationCenterX,
+            rotationCenterY, flipHorizontal, flipVertical)) return;
+
         if (style == OfficeTextDecorationStyle.Double) {
             DrawTransformedTextDecoration(x, width, y - (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);
             DrawTransformedTextDecoration(x, width, y + (separation / 2D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, OfficeTextDecorationStyle.Single, flipHorizontal, flipVertical);
@@ -650,25 +653,6 @@ public sealed partial class OfficeRasterCanvas {
         DrawLine(start.X, start.Y, end.X, end.Y, color, Math.Max(1D, fontHeight / 16D));
     }
 
-    private void DrawFallbackText(string text, double x, double y, double width, double height, OfficeColor color, OfficeTextAlignment alignment, OfficeTextOverflowBehavior overflowBehavior) {
-        if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) {
-            return;
-        }
-
-        string value = text;
-        double fontHeight = Math.Max(1D, height);
-        if (overflowBehavior == OfficeTextOverflowBehavior.Ellipsis) {
-            while (MeasureStrokeText(value, fontHeight) > width && value.Length > 0) {
-                value = OfficeTextElements.RemoveLast(value);
-            }
-        }
-
-        double anchorX = alignment == OfficeTextAlignment.Right
-            ? x + width
-            : alignment == OfficeTextAlignment.Center ? x + (width / 2D) : x;
-        DrawStrokeText(value, anchorX, y + (fontHeight / 2D), fontHeight, color, false, false, alignment, 0D, x, y, flipHorizontal: false, flipVertical: false);
-    }
-
     private static double ResolveTextX(double left, double width, double measured, OfficeTextAlignment alignment) {
         if (alignment == OfficeTextAlignment.Right) {
             return left + Math.Max(0D, width - measured);
@@ -716,29 +700,6 @@ public sealed partial class OfficeRasterCanvas {
         return MeasureStrokeText(text, fontSize);
     }
 
-    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, double size) =>
-        ResolveTextFont(text, fontFamily, style, size, out _);
-
-    private IOfficeFontProgram? ResolveTextFont(string? text, string? fontFamily, OfficeFontStyle style, double size, out OfficeFontStyle resolvedStyle) {
-        resolvedStyle = OfficeFontStyle.Regular;
-        if (_fonts != null) {
-            IOfficeFontProgram? scoped = _fonts.ResolveForText(text ?? string.Empty, fontFamily, RequestedTextFace(style), size / FontMetricScale, out resolvedStyle);
-            if (scoped != null) {
-                return ResolveMetricScale(scoped);
-            }
-        }
-
-        if (_scopedFontResolutionOnly) return null;
-        if (string.IsNullOrWhiteSpace(fontFamily)) {
-            return ResolveMetricScale(_font);
-        }
-
-        OfficeTrueTypeFont? installed = OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, RequestedTextFace(style), text, out resolvedStyle);
-        installed = installed?.ForInstalledOpticalSize(size / FontMetricScale, RequestedTextFace(style).Weight >= 600);
-        if (installed?.HasSelectedBoldWeight == true) resolvedStyle |= OfficeFontStyle.Bold;
-        return ResolveMetricScale(installed ?? _font);
-    }
-
     private static double ResolveAnchoredTextX(double anchorX, double width, OfficeTextAlignment alignment) {
         if (alignment == OfficeTextAlignment.Right) {
             return anchorX - width;
@@ -751,91 +712,4 @@ public sealed partial class OfficeRasterCanvas {
         return anchorX;
     }
 
-    private static OfficePoint GlyphPoint(double x, double y, double cell, int col, int row) {
-        return new OfficePoint(x + ((col + 0.5D) * cell), y + ((row + 0.5D) * cell));
-    }
-
-    private static double MeasureStrokeText(string text, double height) {
-        if (string.IsNullOrEmpty(text)) {
-            return 0D;
-        }
-
-        double cell = Math.Max(1D, height / 7D);
-        double gap = cell * 0.9D;
-        double width = 0D;
-        foreach (char c in text) {
-            width += (GlyphWidth(c) * cell) + gap;
-        }
-
-        return width > 0D ? width - gap : 0D;
-    }
-
-    private static int GlyphWidth(char c) => c == ' ' ? 3 : 5;
-
-    private static string[] GlyphRows(char c) {
-        switch (char.ToUpperInvariant(c)) {
-            case 'A': return new[] { "01110", "10001", "10001", "11111", "10001", "10001", "10001" };
-            case 'B': return new[] { "11110", "10001", "10001", "11110", "10001", "10001", "11110" };
-            case 'C': return new[] { "01111", "10000", "10000", "10000", "10000", "10000", "01111" };
-            case 'D': return new[] { "11110", "10001", "10001", "10001", "10001", "10001", "11110" };
-            case 'E': return new[] { "11111", "10000", "10000", "11110", "10000", "10000", "11111" };
-            case 'F': return new[] { "11111", "10000", "10000", "11110", "10000", "10000", "10000" };
-            case 'G': return new[] { "01111", "10000", "10000", "10111", "10001", "10001", "01110" };
-            case 'H': return new[] { "10001", "10001", "10001", "11111", "10001", "10001", "10001" };
-            case 'I': return new[] { "11111", "00100", "00100", "00100", "00100", "00100", "11111" };
-            case 'J': return new[] { "00111", "00010", "00010", "00010", "10010", "10010", "01100" };
-            case 'K': return new[] { "10001", "10010", "10100", "11000", "10100", "10010", "10001" };
-            case 'L': return new[] { "10000", "10000", "10000", "10000", "10000", "10000", "11111" };
-            case 'M': return new[] { "10001", "11011", "10101", "10101", "10001", "10001", "10001" };
-            case 'N': return new[] { "10001", "11001", "10101", "10011", "10001", "10001", "10001" };
-            case 'O': return new[] { "01110", "10001", "10001", "10001", "10001", "10001", "01110" };
-            case 'P': return new[] { "11110", "10001", "10001", "11110", "10000", "10000", "10000" };
-            case 'Q': return new[] { "01110", "10001", "10001", "10001", "10101", "10010", "01101" };
-            case 'R': return new[] { "11110", "10001", "10001", "11110", "10100", "10010", "10001" };
-            case 'S': return new[] { "01111", "10000", "10000", "01110", "00001", "00001", "11110" };
-            case 'T': return new[] { "11111", "00100", "00100", "00100", "00100", "00100", "00100" };
-            case 'U': return new[] { "10001", "10001", "10001", "10001", "10001", "10001", "01110" };
-            case 'V': return new[] { "10001", "10001", "10001", "10001", "10001", "01010", "00100" };
-            case 'W': return new[] { "10001", "10001", "10001", "10101", "10101", "10101", "01010" };
-            case 'X': return new[] { "10001", "10001", "01010", "00100", "01010", "10001", "10001" };
-            case 'Y': return new[] { "10001", "10001", "01010", "00100", "00100", "00100", "00100" };
-            case 'Z': return new[] { "11111", "00001", "00010", "00100", "01000", "10000", "11111" };
-            case '0': return new[] { "01110", "10001", "10011", "10101", "11001", "10001", "01110" };
-            case '1': return new[] { "00100", "01100", "00100", "00100", "00100", "00100", "01110" };
-            case '2': return new[] { "01110", "10001", "00001", "00010", "00100", "01000", "11111" };
-            case '3': return new[] { "11110", "00001", "00001", "01110", "00001", "00001", "11110" };
-            case '4': return new[] { "00010", "00110", "01010", "10010", "11111", "00010", "00010" };
-            case '5': return new[] { "11111", "10000", "10000", "11110", "00001", "00001", "11110" };
-            case '6': return new[] { "01110", "10000", "10000", "11110", "10001", "10001", "01110" };
-            case '7': return new[] { "11111", "00001", "00010", "00100", "01000", "01000", "01000" };
-            case '8': return new[] { "01110", "10001", "10001", "01110", "10001", "10001", "01110" };
-            case '9': return new[] { "01110", "10001", "10001", "01111", "00001", "00001", "01110" };
-            case '-': return new[] { "00000", "00000", "00000", "11111", "00000", "00000", "00000" };
-            case '_': return new[] { "00000", "00000", "00000", "00000", "00000", "00000", "11111" };
-            case '+': return new[] { "00000", "00100", "00100", "11111", "00100", "00100", "00000" };
-            case '=': return new[] { "00000", "00000", "11111", "00000", "11111", "00000", "00000" };
-            case '/': return new[] { "00001", "00001", "00010", "00100", "01000", "10000", "10000" };
-            case '\\': return new[] { "10000", "10000", "01000", "00100", "00010", "00001", "00001" };
-            case '.': return new[] { "00000", "00000", "00000", "00000", "00000", "01100", "01100" };
-            case ',': return new[] { "00000", "00000", "00000", "00000", "00000", "01100", "01000" };
-            case ':': return new[] { "00000", "01100", "01100", "00000", "01100", "01100", "00000" };
-            case ';': return new[] { "00000", "01100", "01100", "00000", "01100", "01000", "10000" };
-            case '!': return new[] { "00100", "00100", "00100", "00100", "00100", "00000", "00100" };
-            case '?': return new[] { "01110", "10001", "00001", "00010", "00100", "00000", "00100" };
-            case '&': return new[] { "01100", "10010", "10100", "01000", "10101", "10010", "01101" };
-            case '%': return new[] { "11001", "11010", "00010", "00100", "01000", "01011", "10011" };
-            case '#': return new[] { "01010", "01010", "11111", "01010", "11111", "01010", "01010" };
-            case '(': return new[] { "00010", "00100", "01000", "01000", "01000", "00100", "00010" };
-            case ')': return new[] { "01000", "00100", "00010", "00010", "00010", "00100", "01000" };
-            case '[': return new[] { "01110", "01000", "01000", "01000", "01000", "01000", "01110" };
-            case ']': return new[] { "01110", "00010", "00010", "00010", "00010", "00010", "01110" };
-            case '<': return new[] { "00010", "00100", "01000", "10000", "01000", "00100", "00010" };
-            case '>': return new[] { "01000", "00100", "00010", "00001", "00010", "00100", "01000" };
-            case '|': return new[] { "00100", "00100", "00100", "00100", "00100", "00100", "00100" };
-            case '\'': return new[] { "01100", "00100", "01000", "00000", "00000", "00000", "00000" };
-            case '"': return new[] { "01010", "01010", "01010", "00000", "00000", "00000", "00000" };
-            case ' ': return new[] { "000", "000", "000", "000", "000", "000", "000" };
-            default: return new[] { "11111", "10001", "00001", "00010", "00100", "00000", "00100" };
-        }
-    }
 }

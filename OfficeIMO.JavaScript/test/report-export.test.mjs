@@ -15,7 +15,7 @@ test("table presentation retains typed values and number/date formats across hig
     headerStyle: header, freezeHeader: true, freezeColumns: 1, headerHeight: 30, rowHeight: 22,
     alternatingRowStyle: { fill: { color: "EAF1F8" } },
     rowStyle: ({ values }) => values[3] === false ? { fill: { color: "FCE4D6" }, font: { bold: true } } : undefined,
-    cellStyle: ({ value, columnIndex }) => columnIndex === 2 && value > 100 ? { font: { color: "C00000", underline: true } } : undefined
+    cellStyle: ({ value, columnIndex }) => columnIndex === 1 && value > 100 ? { font: { color: "C00000", underline: true } } : undefined
   });
   await sheet.addRows([{ name: "Łódź 🧪", latency: 12.5, seen, healthy: true }]);
   await sheet.addRows([{ name: "Warsaw", latency: 125.75, seen, healthy: false }]);

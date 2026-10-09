@@ -1,0 +1,6 @@
+Attribute VB_Name = "FixtureModule"
+Option Compare Database
+Option Explicit
+Public Function FixtureValue() As Long
+    FixtureValue = 42
+End Function

@@ -23,7 +23,7 @@ public sealed partial class HtmlRenderingTests {
 
         if (property == "hyphenate-limit-zone") {
             var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
-            var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+            var resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
             HtmlRenderBoxStyle parent = resolver.Resolve(parentElement, 120D);
             HtmlRenderBoxStyle child = resolver.Resolve(childElement, 120D, parent);
             Assert.Equal(20D, parent.HyphenateLimitZone, 3);
@@ -109,12 +109,8 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRendering_BreakAllUsesRemainingSpaceBeforeMovingAWordThatFitsAnEmptyLine() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='width:30px;font-size:12px;word-break:break-all'>A WWW</div>",
-            new HtmlRenderOptions {
-                Mode = HtmlRenderMode.Continuous,
-                ViewportWidth = 120D,
-                Margins = HtmlRenderMargins.All(0D)
-            });
+            "<div style='width:28px;font-family:monospace;font-size:12px;word-break:break-all'>A WWW</div>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D) });
         string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
             .GroupBy(fragment => fragment.Y)
             .OrderBy(group => group.Key)
@@ -241,7 +237,7 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyDictionary<AngleSharp.Dom.IElement, HtmlComputedStyle> computed = HtmlComputedStyleEngine.Compute(document);
         var styles = new HtmlComputedStyleSet(computed, new Dictionary<AngleSharp.Dom.IElement, HtmlPseudoElementStylePair>());
 
-        HtmlRenderStyleResolver resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport());
+        HtmlRenderStyleResolver resolver = new HtmlRenderStyleResolver(styles, new HtmlRenderOptions(), new HtmlDiagnosticReport(), _ => double.NaN);
         HtmlRenderBoxStyle parent = resolver.Resolve(document.QuerySelector("div")!, 120D);
         HtmlRenderBoxStyle style = resolver.Resolve(document.QuerySelector("span")!, 120D, parent);
 

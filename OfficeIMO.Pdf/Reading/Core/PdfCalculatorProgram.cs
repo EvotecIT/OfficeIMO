@@ -4,8 +4,11 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Parsed, bounded evaluator for the calculator language defined by PDF Type 4 functions.</summary>
 internal sealed partial class PdfCalculatorProgram {
-    internal const int MaxProgramBytes = 64 * 1024;
+    internal const int MaxProgramBytes = 1024 * 1024;
     internal const long MaxValidationWork = 4L * 1024L * 1024L;
+    // A balanced color-stop tree can contain many branches while executing only
+    // a short path. Bound stored syntax separately from per-sample execution.
+    private const int MaxParsedInstructions = 65536;
     private const int MaxInstructions = 4096;
     private const int MaxProcedureDepth = 16;
     private const int MaxStackValues = 256;
@@ -199,7 +202,8 @@ internal sealed partial class PdfCalculatorProgram {
         internal bool TryParse(out PdfCalculatorProgram program) {
             program = null!;
             if (!TryReadToken(out Token open) || open.Kind != TokenKind.OpenBrace ||
-                !TryParseBlock(depth: 0, out Instruction[] instructions, out int maximumSteps) ||
+                !TryParseBlock(depth: 0, out Instruction[] instructions, out int maximumSteps, out int executionInstructions) ||
+                executionInstructions > MaxInstructions ||
                 !TryReadToken(out Token end) || end.Kind != TokenKind.End) return false;
 
             program = new PdfCalculatorProgram(
@@ -213,7 +217,8 @@ internal sealed partial class PdfCalculatorProgram {
             return true;
         }
 
-        private bool TryParseBlock(int depth, out Instruction[] instructions, out int maximumSteps) {
+        private bool TryParseBlock(int depth, out Instruction[] instructions, out int maximumSteps, out int executionInstructions) {
+            executionInstructions = 0;
             instructions = Array.Empty<Instruction>();
             maximumSteps = 0;
             if (depth > MaxProcedureDepth) return false;
@@ -227,13 +232,15 @@ internal sealed partial class PdfCalculatorProgram {
 
                 Instruction instruction;
                 int instructionSteps = 1;
+                int executedInstructions = 1;
                 if (token.Kind == TokenKind.OpenBrace) {
-                    if (!TryParseBlock(depth + 1, out Instruction[] trueBranch, out int trueSteps) ||
+                    if (!TryParseBlock(depth + 1, out Instruction[] trueBranch, out int trueSteps, out int trueInstructions) ||
                         !TryReadToken(out Token conditionalToken)) return false;
                     Instruction[]? falseBranch = null;
                     int falseSteps = 0;
+                    int falseInstructions = 0;
                     if (conditionalToken.Kind == TokenKind.OpenBrace) {
-                        if (!TryParseBlock(depth + 1, out falseBranch, out falseSteps) ||
+                        if (!TryParseBlock(depth + 1, out falseBranch, out falseSteps, out falseInstructions) ||
                             !TryReadToken(out conditionalToken)) return false;
                     }
                     if (conditionalToken.Kind != TokenKind.Word ||
@@ -242,27 +249,40 @@ internal sealed partial class PdfCalculatorProgram {
                     instruction = Instruction.Conditional(trueBranch, falseBranch);
                     _hasConditional = true;
                     instructionSteps = checked(1 + Math.Max(trueSteps, falseSteps));
+                    executedInstructions = 1 + Math.Max(trueInstructions, falseInstructions);
                 } else if (token.Kind != TokenKind.Word || !TryCreateInstruction(token.Text!, out instruction)) {
                     return false;
                 } else {
                     if (instruction.Kind == InstructionKind.Operator && IsUnboundedDiscontinuityOperator(instruction.Operator)) {
                         _hasUnboundedDiscontinuities = true;
                     }
-                    instructionSteps = GetEvaluationWork(instruction);
+                    instructionSteps = GetEvaluationWork(instruction, result);
                 }
 
-                if (++_instructionCount > MaxInstructions) return false;
+                if (++_instructionCount > MaxParsedInstructions) return false;
+                executionInstructions += executedInstructions;
+                if (executionInstructions > MaxInstructions) return false;
                 maximumSteps = checked(maximumSteps + instructionSteps);
                 result.Add(instruction);
             }
             return false;
         }
 
-        private static int GetEvaluationWork(Instruction instruction) {
+        private static int GetEvaluationWork(Instruction instruction, List<Instruction> preceding) {
+            // Immediate integer operands are invariant on every path through this
+            // block. Dynamic stack counts retain the full bounded-stack charge.
+            int LiteralCount(int distance) {
+                int index = preceding.Count - distance;
+                if (index < 0 || preceding[index].Kind != InstructionKind.Integer) return MaxStackValues;
+                int count = preceding[index].IntegerValue;
+                return count >= 0 && count <= MaxStackValues ? count : MaxStackValues;
+            }
             if (instruction.Kind != InstructionKind.Operator) return 1;
             return instruction.Operator switch {
-                CalculatorOperator.Copy => MaxStackValues,
-                CalculatorOperator.Roll => MaxStackValues * 3,
+                CalculatorOperator.Copy => Math.Max(1, LiteralCount(1)),
+                CalculatorOperator.Roll => Math.Max(1,
+                    (preceding.Count > 0 && preceding[preceding.Count - 1].Kind == InstructionKind.Integer
+                        ? LiteralCount(2) : MaxStackValues) * 3),
                 _ => 1
             };
         }

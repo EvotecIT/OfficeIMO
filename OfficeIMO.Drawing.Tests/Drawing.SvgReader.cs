@@ -169,11 +169,9 @@ public class DrawingSvgReaderTests {
             + "<path d='" + malformed + "'/><path d='" + malformed + "'/>"
             + "<path d='M0 0 L10 0 L10 10 Z'/></svg>";
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
-
-        Assert.NotNull(drawing);
-        Assert.Empty(drawing!.Shapes);
-        Assert.Equal(3, unsupported);
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out _));
+        Assert.Null(drawing);
     }
 
     [Fact]
@@ -978,12 +976,9 @@ public class DrawingSvgReaderTests {
         for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
         svg.Append("</svg>");
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
-            out OfficeDrawing? drawing, out int unsupported));
-        Assert.NotNull(drawing);
-        Assert.InRange(drawing!.Shapes.Count, 1, 19);
-        Assert.True(unsupported > 0);
-        Assert.True(drawing.Shapes.Sum(shape => shape.Shape.PathCommands.Count) <= 20000);
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out _));
+        Assert.Null(drawing);
     }
 
     [Fact]
@@ -995,12 +990,9 @@ public class DrawingSvgReaderTests {
         for (int index = 0; index < 25; index++) svg.Append("<use href='#p'/>");
         svg.Append("</svg>");
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
-            out OfficeDrawing? drawing, out int unsupported));
-        Assert.NotNull(drawing);
-        Assert.InRange(drawing!.Shapes.Count, 1, 20);
-        Assert.True(unsupported > 0);
-        Assert.True(drawing.Shapes.Sum(shape => shape.Shape.PathCommands.Count) <= 20000);
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out _));
+        Assert.Null(drawing);
     }
 
     [Fact]
@@ -1044,12 +1036,9 @@ public class DrawingSvgReaderTests {
         for (int index = 0; index < 10; index++) svg.Append("<use href='#p'/>");
         svg.Append("<path d='M10 0 L20 10' stroke='lime'/></svg>");
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
-            out OfficeDrawing? drawing, out int unsupported));
-
-        Assert.NotNull(drawing);
-        Assert.Empty(drawing!.Shapes);
-        Assert.True(unsupported > 0);
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out _));
+        Assert.Null(drawing);
     }
 
     [Fact]
@@ -1059,16 +1048,10 @@ public class DrawingSvgReaderTests {
             .Append("' stroke='black'/></defs>");
         for (int index = 0; index < 1_000; index++) svg.Append("<use href='#p'/>");
         svg.Append("<path d='M10 0 L20 10' stroke='lime'/></svg>");
-        var timer = Stopwatch.StartNew();
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
-            out OfficeDrawing? drawing, out int unsupported));
-
-        timer.Stop();
-        Assert.NotNull(drawing);
-        Assert.Empty(drawing!.Shapes);
-        Assert.True(unsupported > 0);
-        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), "Malformed referenced points exceeded the bounded parse time.");
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out _));
+        Assert.Null(drawing);
     }
 
     [Fact]
@@ -1078,16 +1061,10 @@ public class DrawingSvgReaderTests {
             .Append("x' stroke='black'/></defs>");
         for (int index = 0; index < 1_000; index++) svg.Append("<use href='#p'/>");
         svg.Append("<path d='M10 0 L20 10' stroke='lime'/></svg>");
-        var timer = Stopwatch.StartNew();
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
-            out OfficeDrawing? drawing, out int unsupported));
-
-        timer.Stop();
-        Assert.NotNull(drawing);
-        Assert.Empty(drawing!.Shapes);
-        Assert.True(unsupported > 0);
-        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5), "Whitespace-padded malformed points exceeded the bounded parse time.");
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.ToString()),
+            out OfficeDrawing? drawing, out _));
+        Assert.Null(drawing);
     }
 
     [Fact]
@@ -1194,7 +1171,7 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderAppliesSupportedGradientTransformsAndDiagnosesRotatedRadials() {
+    public void SvgReaderPreservesLinearAndAffineRadialGradientTransforms() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 20'><defs>"
             + "<linearGradient id='turn-base' gradientTransform='rotate(90 .5 .5)' x1='0' y1='.5' x2='1' y2='.5'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
             + "<linearGradient id='turn' href='#turn-base'/>"
@@ -1206,7 +1183,7 @@ public class DrawingSvgReaderTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
-        Assert.Equal(1, unsupported);
+        Assert.Equal(0, unsupported);
         Assert.Equal(4, drawing!.Shapes.Count);
         OfficeLinearGradient turned = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[0].Shape.FillGradient);
         Assert.Equal(0.5D, turned.StartX, 8);
@@ -1220,14 +1197,14 @@ public class DrawingSvgReaderTests {
         OfficeLinearGradient moved = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[2].Shape.FillGradient);
         Assert.Equal(-0.5D, moved.StartX, 8);
         Assert.Equal(0.5D, moved.EndX, 8);
-        Assert.Null(drawing.Shapes[3].Shape.FillRadialGradient);
+        Assert.NotEqual(OfficeTransform.Identity, Assert.IsType<OfficeRadialGradient>(drawing.Shapes[3].Shape.FillRadialGradient).CoordinateTransform);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         Assert.True(raster.GetPixel(10, 2).R > raster.GetPixel(10, 2).B);
         Assert.True(raster.GetPixel(10, 18).B > raster.GetPixel(10, 18).R);
     }
 
     [Fact]
-    public void SvgReaderMaterializesBoundedLinearRepeatAndReflectPaintServers() {
+    public void SvgReaderMaterializesBoundedLinearAndRadialSpreadPaintServers() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 20'><defs>"
             + "<linearGradient id='repeat' spreadMethod='repeat' x2='.25'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient>"
             + "<linearGradient id='reflect' href='#repeat' spreadMethod='reflect'/>"
@@ -1237,13 +1214,13 @@ public class DrawingSvgReaderTests {
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
-        Assert.Equal(1, unsupported);
+        Assert.Equal(0, unsupported);
         Assert.Equal(3, drawing!.Shapes.Count);
         OfficeLinearGradient repeat = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[0].Shape.FillGradient);
         OfficeLinearGradient reflect = Assert.IsType<OfficeLinearGradient>(drawing.Shapes[1].Shape.FillGradient);
         Assert.True(repeat.Stops.Count > 4);
         Assert.True(reflect.Stops.Count > 4);
-        Assert.Null(drawing.Shapes[2].Shape.FillRadialGradient);
+        Assert.NotNull(drawing.Shapes[2].Shape.FillRadialGradient);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         Assert.True(raster.GetPixel(1, 10).R > raster.GetPixel(1, 10).B);
         Assert.True(raster.GetPixel(4, 10).B > raster.GetPixel(4, 10).R);

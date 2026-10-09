@@ -41,6 +41,17 @@ public abstract class PdfInlineElement {
 /// </summary>
 public sealed class PdfInlineImage : PdfInlineElement {
     internal ImageBlock Block { get; }
+    internal int TableTextRotation { get; }
+
+    /// <summary>Projects the inline frame onto turned text axes without decoding or changing the image payload.</summary>
+    internal PdfInlineImage ForTableTextRotation(int rotation) => rotation == 0 ? this : new PdfInlineImage(this, rotation);
+
+    private PdfInlineImage(PdfInlineImage source, int rotation)
+        : base(source.Height, source.Width, source.BaselineOffset, source.AlternativeText) {
+        Block = source.Block;
+        Fit = source.Fit;
+        TableTextRotation = rotation;
+    }
 
     /// <summary>Image fitting mode inside the requested inline frame.</summary>
     public OfficeImageFit Fit { get; }
@@ -76,6 +87,10 @@ public sealed class PdfInlineImage : PdfInlineElement {
 /// Fixed-size filled and/or bordered box that flows between text runs.
 /// </summary>
 public sealed class PdfInlineBox : PdfInlineElement {
+    // Imported text spacers belong to the adjacent word when finding the
+    // minimum automatic table width; ordinary inline visuals can wrap alone.
+    internal bool IsTextSpacer { get; set; }
+
     /// <summary>Optional fill color.</summary>
     public PdfColor? Background { get; }
 

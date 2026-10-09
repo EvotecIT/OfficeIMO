@@ -2,11 +2,12 @@ namespace OfficeIMO.Pdf;
 
 internal sealed partial class ContentStreamBuilder {
     private double _textA = 1, _textB, _textC, _textD = 1, _textE, _textF, _lineE, _lineF;
-    private double _textScale = 1, _textLeading, _textWordSpacing;
-    private const double SyntheticObliqueShear = 1D / 3D;
+    private double _textScale = 1, _textLeading, _textWordSpacing, _textCharacterSpacing;
+    // Shared with drawing ink measurement so clip bounds enclose the painted text matrix.
+    internal const double SyntheticObliqueShear = 1D / 3D;
     private bool _syntheticOblique, _hasTextMatrix;
     private bool _isolatedText;
-    private readonly Stack<(double Scale, double Leading, double WordSpacing, bool SyntheticOblique)> _textStates = new();
+    private readonly Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique)> _textStates = new();
 
     private void ResetTrackedTextMatrix() {
         _textA = _textD = 1; _textB = _textC = _textE = _textF = _lineE = _lineF = 0;
@@ -54,7 +55,7 @@ internal sealed partial class ContentStreamBuilder {
                 if (singleMarked) _sb.Append("EMC\n");
                 double trackingAdvance1000 = command.TrackingBoundaries != null && command.TrackingBoundaries[index]
                     ? tracking1000 : 0D;
-                AdvanceTrackedText((single.AdvanceWidth1000 + trackingAdvance1000) * fontSize / 1000D);
+                AdvanceTrackedText((single.AdvanceWidth1000 + trackingAdvance1000) * fontSize / 1000D + _textCharacterSpacing);
                 index++;
                 continue;
             }
@@ -81,7 +82,7 @@ internal sealed partial class ContentStreamBuilder {
             else ShowHexText(string.Concat(cluster.Select(glyph => glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture))));
             if (marked) _sb.Append("EMC\n");
             AdvanceTrackedText((cluster.Sum(glyph => glyph.AdvanceWidth1000)
-                + tracking1000 * (boundaries?.Count(boundary => boundary) ?? 0)) * fontSize / 1000D);
+                + tracking1000 * (boundaries?.Count(boundary => boundary) ?? 0)) * fontSize / 1000D + cluster.Count * _textCharacterSpacing);
         }
         _sb.Append("ET\nBT\n");
         TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);

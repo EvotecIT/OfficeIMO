@@ -196,6 +196,14 @@
           "OfficeIMO.Core": "[3.4.4, )"
         }
       },
+      "officeimo.opendocument.odg.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.OpenDocument": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )"
+        }
+      },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
@@ -286,6 +294,14 @@
           "System.IO.Packaging": "[10.0.8, )"
         }
       },
+      "officeimo.visio.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Visio": "[3.4.4, )"
+        }
+      },
       "officeimo.word": {
         "type": "Project",
         "dependencies": {
@@ -329,6 +345,7 @@
           "OfficeIMO.Markdown.Pdf": "[3.4.4, )",
           "OfficeIMO.Ocr": "[3.4.4, )",
           "OfficeIMO.OpenDocument": "[3.4.4, )",
+          "OfficeIMO.OpenDocument.Odg.Pdf": "[3.4.4, )",
           "OfficeIMO.Pdf": "[3.4.4, )",
           "OfficeIMO.Pdf.Ocr": "[3.4.4, )",
           "OfficeIMO.PowerPoint": "[3.4.4, )",
@@ -338,9 +355,25 @@
           "OfficeIMO.Reader.Ocr": "[3.4.4, )",
           "OfficeIMO.Rtf.Pdf": "[3.4.4, )",
           "OfficeIMO.Visio": "[3.4.4, )",
+          "OfficeIMO.Visio.Pdf": "[3.4.4, )",
           "OfficeIMO.Word": "[3.4.4, )",
           "OfficeIMO.Word.Html": "[3.4.4, )",
-          "OfficeIMO.Word.Pdf": "[3.4.4, )"
+          "OfficeIMO.Word.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps.Pdf": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.xps.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Pdf": "[3.4.4, )",
+          "OfficeIMO.Xps": "[3.4.4, )"
         }
       }
     },

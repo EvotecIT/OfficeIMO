@@ -130,12 +130,8 @@ public class PdfInvoiceLocalizationTests {
             }));
     }
 
-    private static string Asset(params string[] parts) {
-        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln"))) directory = directory.Parent;
-        Assert.NotNull(directory);
-        return Path.Combine(new[] { directory!.FullName }.Concat(parts).ToArray());
-    }
+    private static string Asset(params string[] parts) =>
+        Path.Combine(new[] { OfficeIMO.Tests.RepositoryTestPaths.Find() }.Concat(parts).ToArray());
 
     private static void WriteEvidence(string name, byte[] pdf, byte[] xml) {
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_PDF_EVIDENCE");

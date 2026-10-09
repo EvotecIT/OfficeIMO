@@ -16,15 +16,24 @@ public readonly struct OfficeJpegDecodeOptions {
     public bool HighQualityChroma { get; }
 
     /// <summary>
-    /// Allows truncated scan data (best-effort decode).
+    /// Allows truncated DCT-based scan data (best-effort decode). Lossless scans require complete entropy data.
     /// </summary>
     public bool AllowTruncated { get; }
+
+    /// <summary>Returns stored sample order without applying the JPEG's optional EXIF display orientation.</summary>
+    public bool IgnoreExifOrientation { get; }
 
     /// <summary>
     /// Creates JPEG decode options.
     /// </summary>
-    public OfficeJpegDecodeOptions(bool highQualityChroma = false, bool allowTruncated = false) {
+    public OfficeJpegDecodeOptions(bool highQualityChroma = false, bool allowTruncated = false)
+        : this(highQualityChroma, allowTruncated, ignoreExifOrientation: false) {
+    }
+
+    /// <summary>Creates JPEG decode options with an explicit EXIF orientation policy.</summary>
+    public OfficeJpegDecodeOptions(bool highQualityChroma, bool allowTruncated, bool ignoreExifOrientation) {
         HighQualityChroma = highQualityChroma;
         AllowTruncated = allowTruncated;
+        IgnoreExifOrientation = ignoreExifOrientation;
     }
 }

@@ -129,13 +129,19 @@ namespace OfficeIMO.Word {
         private static string GetItemText(OpenXmlElement item) {
             var typedText = item.Descendants<Text>().ToList();
             if (typedText.Count > 0) {
-                return string.Concat(typedText.Select(text => text.Text));
+                return string.Concat(typedText.Select(WordParagraph.ReadVisibleText));
             }
 
             if (!string.IsNullOrWhiteSpace(item.OuterXml)) {
                 try {
                     var xml = System.Xml.Linq.XElement.Parse(item.OuterXml);
-                    return string.Concat(xml.Descendants().Where(element => element.Name.LocalName == "t").Select(element => element.Value));
+                    System.Xml.Linq.XNamespace wordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+                    return string.Concat(xml.Descendants(wordNamespace + "t").Select(element =>
+                        WordParagraph.ReadVisibleText(new Text(element.Value) {
+                            Space = (string?)element.Attribute(System.Xml.Linq.XNamespace.Xml + "space") == "preserve"
+                                ? SpaceProcessingModeValues.Preserve
+                                : SpaceProcessingModeValues.Default
+                        })));
                 } catch (System.Xml.XmlException) {
                     return string.Empty;
                 }

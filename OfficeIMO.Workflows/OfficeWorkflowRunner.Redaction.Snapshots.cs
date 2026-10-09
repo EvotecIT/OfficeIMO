@@ -20,7 +20,7 @@ public sealed partial class OfficeWorkflowRunner {
             SignaturePolicy = request.Recipe.SignaturePolicy,
             Rules = request.Recipe.Rules?.Select(static rule => rule is null
                 ? throw new ArgumentException("Recipe rules cannot contain null entries.")
-                : new PdfRedactionRule { Name = rule.Name, Kind = rule.Kind, Value = rule.Value, ContentScope = rule.ContentScope, AppearanceMode = rule.AppearanceMode }).ToList()
+                : new PdfRedactionRule { Name = rule.Name, Kind = rule.Kind, Value = rule.Value, TextSelection = rule.TextSelection, ContentScope = rule.ContentScope, AppearanceMode = rule.AppearanceMode }).ToList()
                 ?? throw new ArgumentException("Recipe rules cannot be null."),
             Regions = request.Recipe.Regions?.Select(region => SnapshotRegion(region, visited, 1)).ToList()
                 ?? throw new ArgumentException("Recipe regions cannot be null.")

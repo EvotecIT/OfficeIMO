@@ -39,63 +39,13 @@ namespace OfficeIMO.Visio {
         }
 
         private static List<(double X, double Y)> GetConnectorPoints(VisioConnector connector) {
-            ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
-            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
-            if (connector.Waypoints.Count > 0) {
-                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    waypoints.Add((waypoint.X, waypoint.Y));
-                }
-            }
-
-            return OfficeGeometry.BuildConnectorPolyline(
-                (startX, startY),
-                (endX, endY),
-                waypoints,
-                connector.Kind == ConnectorKind.RightAngle);
+            return VisioConnectorGeometry.GetPoints(connector);
         }
 
-        private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
-            if (connector.FromConnectionPoint != null) {
-                (startX, startY) = GetPagePoint(connector.From, connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
-            } else {
-                (double fromLeft, double fromBottom, double fromRight, double fromTop) = GetPageBounds(connector.From);
-                (double toLeft, double toBottom, double toRight, double toTop) = GetPageBounds(connector.To);
-                ResolveFallbackEndpoint(fromLeft, fromBottom, fromRight, fromTop, toLeft, toBottom, toRight, toTop, out startX, out startY);
-            }
-
-            if (connector.ToConnectionPoint != null) {
-                (endX, endY) = GetPagePoint(connector.To, connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
-            } else {
-                (double toLeft, double toBottom, double toRight, double toTop) = GetPageBounds(connector.To);
-                (double fromLeft, double fromBottom, double fromRight, double fromTop) = GetPageBounds(connector.From);
-                ResolveFallbackEndpoint(toLeft, toBottom, toRight, toTop, fromLeft, fromBottom, fromRight, fromTop, out endX, out endY);
-            }
-        }
-
-        private static (double X, double Y) ResolveConnectorLabelPoint(VisioConnector connector, IReadOnlyList<(double X, double Y)> points) {
-            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
-            if (placement?.AbsolutePinX.HasValue == true && placement.AbsolutePinY.HasValue) {
-                return (placement.AbsolutePinX.Value, placement.AbsolutePinY.Value);
-            }
-
-            double position = VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D);
-            (double x, double y) = OfficeGeometry.InterpolatePolyline(points, position);
-            return (x + (placement?.OffsetX ?? 0D), y + (placement?.OffsetY ?? 0D));
-        }
-
-        private static VisioRenderConnectorLabelPlacement ResolveConnectorLabel(VisioConnector connector, IReadOnlyList<(double X, double Y)> points) {
-            (double x, double y) = ResolveConnectorLabelPoint(connector, points);
-            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
-            double width = Math.Max(0.6D, connector.TextStyle?.TextWidth ?? placement?.Width ?? 1.35D);
-            double height = Math.Max(0.18D, connector.TextStyle?.TextHeight ?? placement?.Height ?? 0.34D);
-            return new VisioRenderConnectorLabelPlacement(x, y, width, height, adjusted: false);
-        }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
-            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
-            return shape.Parent != null
-                ? GetPagePoint(shape.Parent, absX, absY)
-                : (absX, absY);
+            OfficePoint point = VisioNativeShapeTransform.Create(shape).PagePoint(x, y);
+            return (point.X, point.Y);
         }
 
         private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {
@@ -134,12 +84,12 @@ namespace OfficeIMO.Visio {
                 out y);
         }
 
-        private static (double X, double Y) ToRaster(VisioPage page, double x, double y, double scale) =>
-            (x * scale, (page.Height - y) * scale);
+        private static (double X, double Y) ToRaster(VisioPage page, double x, double y, VisioRenderProjection projection) =>
+            projection.PagePoint(x, y);
 
-        private static (double X, double Y) ToRasterPoint(VisioPage page, VisioShape shape, double x, double y, double scale) {
+        private static (double X, double Y) ToRasterPoint(VisioPage page, VisioShape shape, double x, double y, VisioRenderProjection projection) {
             (double pageX, double pageY) = GetPagePoint(shape, x, y);
-            return ToRaster(page, pageX, pageY, scale);
+            return ToRaster(page, pageX, pageY, projection);
         }
 
         private static double Distance((double X, double Y) a, (double X, double Y) b) =>

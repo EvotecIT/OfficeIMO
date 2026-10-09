@@ -90,20 +90,20 @@ namespace OfficeIMO.Visio {
                 foreach (VisioConnector connector in page.Connectors) {
                     ReserveId(connector.Id, "Connector");
 
-                    if (!pageShapes.Contains(connector.From)) {
+                    if (connector.From != null && !pageShapes.Contains(connector.From)) {
                         issues.Add($"Connector '{connector.Id}' on page '{page.Name}' references a source shape that is not part of the page.");
                     }
 
-                    if (!pageShapes.Contains(connector.To)) {
+                    if (connector.To != null && !pageShapes.Contains(connector.To)) {
                         issues.Add($"Connector '{connector.Id}' on page '{page.Name}' references a target shape that is not part of the page.");
                     }
 
-                    if (connector.FromConnectionPoint != null && !connector.From.ConnectionPoints.Contains(connector.FromConnectionPoint)) {
-                        issues.Add($"Connector '{connector.Id}' on page '{page.Name}' references a source connection point that does not belong to shape '{connector.From.Id}'.");
+                    if (connector.FromConnectionPoint != null && (connector.From == null || !connector.From.ConnectionPoints.Contains(connector.FromConnectionPoint))) {
+                        issues.Add($"Connector '{connector.Id}' on page '{page.Name}' references a source connection point that does not belong to shape '{connector.From?.Id}'.");
                     }
 
-                    if (connector.ToConnectionPoint != null && !connector.To.ConnectionPoints.Contains(connector.ToConnectionPoint)) {
-                        issues.Add($"Connector '{connector.Id}' on page '{page.Name}' references a target connection point that does not belong to shape '{connector.To.Id}'.");
+                    if (connector.ToConnectionPoint != null && (connector.To == null || !connector.To.ConnectionPoints.Contains(connector.ToConnectionPoint))) {
+                        issues.Add($"Connector '{connector.Id}' on page '{page.Name}' references a target connection point that does not belong to shape '{connector.To?.Id}'.");
                     }
                 }
             }

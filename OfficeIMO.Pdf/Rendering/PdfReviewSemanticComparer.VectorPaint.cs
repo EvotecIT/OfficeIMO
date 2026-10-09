@@ -240,7 +240,7 @@ internal static partial class PdfReviewSemanticComparer {
     }
 
     private static bool IsSimpleVectorPaint(PdfPageVisualPrimitive primitive) =>
-        primitive.FillGradient == null && primitive.FillRadialGradient == null &&
+        primitive.FunctionPaint == null && primitive.FillGradient == null && primitive.FillRadialGradient == null &&
         primitive.StrokeGradient == null && primitive.StrokeRadialGradient == null &&
         primitive.FillTilingPattern == null && primitive.StrokeTilingPattern == null;
 

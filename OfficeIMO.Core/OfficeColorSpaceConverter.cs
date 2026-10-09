@@ -177,11 +177,9 @@ public static class OfficeColorSpaceConverter {
         double cube = value * value * value;
         return cube > 216D / 24389D ? cube : (116D * value - 16D) / 903.3D;
     }
-    private static byte ToSrgbByte(double linear) {
-        double value = linear <= 0.0031308D ? 12.92D * linear : (1.055D * Math.Pow(Math.Max(0D, linear), 1D / 2.4D)) - 0.055D;
-        return ToByte(value);
-    }
-    private static double FromSrgb(double value) => value <= 0.04045D ? value / 12.92D : Math.Pow((value + 0.055D) / 1.055D, 2.4D);
+    private static byte ToSrgbByte(double linear) => ToByte(ToSrgb(linear));
+    internal static double ToSrgb(double linear) => linear <= 0.0031308D ? 12.92D * linear : (1.055D * Math.Pow(Math.Max(0D, linear), 1D / 2.4D)) - 0.055D;
+    internal static double FromSrgb(double value) => value <= 0.04045D ? value / 12.92D : Math.Pow((value + 0.055D) / 1.055D, 2.4D);
     private static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
     private static double Component(IReadOnlyList<double>? values, int index, double fallback) => values != null && index < values.Count ? values[index] : fallback;
     private static double Clamp01(double value) => Clamp(value, 0D, 1D);

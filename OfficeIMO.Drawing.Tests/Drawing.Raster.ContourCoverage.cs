@@ -4,6 +4,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingRasterTests {
+    [Fact]
+    public void DenseThinDashesWithRepeatedVertexHeightsStayWithinActualCrossingWork() {
+        var image = new OfficeRasterImage(790, 64, OfficeColor.Transparent);
+        var canvas = new OfficeRasterCanvas(image);
+        canvas.DrawPatternedPolyline(new[] { (1D, 1D), (1D, 59D), (786D, 59D), (786D, 1D) },
+            OfficeColor.Black, .25D, new[] { 1D, .5D });
+        Assert.Contains(Enumerable.Range(700, 80), x => image.GetPixel(x, 58).A > 0);
+        Assert.Equal(0, image.GetPixel(400, 30).A);
+    }
+
+    [Fact]
+    public void DistinctDenseContourIntervalsStillEnforceCrossingWorkLimit() {
+        OfficePoint[] points = Enumerable.Range(0, 20_000)
+            .Select(index => new OfficePoint(index % 2 == 0 ? 1 : 9, 2D + index / 20_000D)).ToArray();
+        var canvas = new OfficeRasterCanvas(new OfficeRasterImage(10, 4, OfficeColor.Transparent));
+        Assert.Throws<InvalidOperationException>(() => canvas.FillPolygon(points, OfficeColor.Black));
+    }
+
     [Theory]
     [InlineData(false, 48)]
     [InlineData(true, 48)]
@@ -17,12 +35,15 @@ public partial class DrawingRasterTests {
         var image = new OfficeRasterImage(2 * columns, 8, OfficeColor.Transparent);
         var canvas = new OfficeRasterCanvas(image);
         var color = OfficeColor.FromRgba(200, 40, 80, 128);
+        // Shared vertex heights must not exhaust the work limit on the final
+        // fractional row, even after scratch buffers grow for a wide fill.
+        Fill(contours);
         if (columns == 2049) {
-            // The final fractional row exceeds the public work limit after three
-            // complete rows. Reusing the canvas must not reuse that failed fill's state.
-            Assert.Throws<InvalidOperationException>(() => Fill(contours));
-        } else {
-            Fill(contours);
+            // Distinct subdivisions still exceed the public work limit. The next
+            // fill must not reuse scratch state left by that rejected operation.
+            var excessive = Enumerable.Range(0, 6000).Select(i =>
+                new OfficePoint(i % 2 == 0 ? 0.1D : 0.9D, 4.1D + 0.8D * i / 6000D)).ToArray();
+            Assert.Throws<InvalidOperationException>(() => Fill(new[] { excessive }));
         }
         // Rejected geometry must not leave partial contour state in the next fill.
         Fill(new[] { new[] { new OfficePoint(0, 4), new OfficePoint(5, 4), new OfficePoint(double.NaN, 6) } });
@@ -32,7 +53,7 @@ public partial class DrawingRasterTests {
         for (int y = 0; y < image.Height; y++) {
             for (int x = 0; x < image.Width; x++) {
                 double firstArea = (x % 2 == 0 ? 0.75D : 0.5D)
-                    * Math.Max(0D, Math.Min(y + 1D, columns == 2049 ? 3D : 3.25D) - y);
+                    * Math.Max(0D, Math.Min(y + 1D, 3.25D) - y);
                 double secondArea = Math.Max(0D, Math.Min(x + 1D, 5.75D) - Math.Max(x, 0.25D))
                     * Math.Max(0D, Math.Min(y + 1D, 7.75D) - Math.Max(y, 5.25D));
                 Assert.Equal((byte)Math.Round(128D * (firstArea + secondArea)), image.GetPixel(x, y).A);

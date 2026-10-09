@@ -59,7 +59,7 @@ internal static partial class PdfWriter {
             Kind = "L";
         }
     }
-    private sealed class ColTable : ColItem { public TableBlock Block = null!; public PdfTableStyle Style = null!; public int Columns; public double[] ColumnWidths = null!; public TableCellTextLayout[][] RowLines = null!; public int[] RowLineCounts = null!; public double[] RowHeights = null!; public double[] RowLeadings = null!; public double[] RowSizes = null!; public bool[] RowBold = null!; public double Width; public double Size; public int HeaderRowCount; public int RepeatHeaderRowCount; public int FooterStartRowIndex; public System.Collections.Generic.IReadOnlyList<PdfTextRun>? CaptionRuns; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? CaptionLines; public System.Collections.Generic.List<double>? CaptionLineHeights; public double CaptionLeading; public double CaptionHeight; public ColTable() { Kind = "T"; } }
+    private sealed class ColTable : ColItem { public TableBlock Block = null!; public PdfTableStyle Style = null!; public int Columns; public double[] ColumnWidths = null!; public TableCellTextLayout[][] RowLines = null!; public int[] RowLineCounts = null!; public double[] RowHeights = null!; public double[] RowLeadings = null!; public double[] RowSizes = null!; public double[] RowRunFontSizeScales = null!; public bool[] RowBold = null!; public double Width; public double Size; public int HeaderRowCount; public int RepeatHeaderRowCount; public int FooterStartRowIndex; public System.Collections.Generic.IReadOnlyList<PdfTextRun>? CaptionRuns; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? CaptionLines; public System.Collections.Generic.List<double>? CaptionLineHeights; public double CaptionLeading; public double CaptionHeight; public ColTable() { Kind = "T"; } }
     private sealed class TableColumnLayout { public double[] Widths = null!; public double Width; }
     private sealed class TableCellTextLayout {
         public TableCellTextLayout(System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, System.Collections.Generic.List<PdfAlign?>? lineAlignments = null, System.Collections.Generic.List<double>? lineXOffsets = null, System.Collections.Generic.List<double>? lineWidths = null, double topSpacing = 0D, System.Collections.Generic.List<double>? lineBoxHeights = null, System.Collections.Generic.List<TableCellParagraphRange>? paragraphRanges = null) {
@@ -89,7 +89,7 @@ internal static partial class PdfWriter {
     }
     private readonly record struct TableCellParagraphRange(PdfTableCellParagraph Paragraph, int StartLine, int LineCount);
     private readonly struct TableCellLayout {
-        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images, bool noWrap, PdfTableCellViewport? viewport) {
+        public TableCellLayout(int column, int columnSpan, int rowSpan, string text, System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, string? linkUri, string? linkDestinationName, string? linkContents, string? namedDestinationName, System.Collections.Generic.IReadOnlyList<PdfTableCellCheckBox> checkBoxes, System.Collections.Generic.IReadOnlyList<PdfTableCellFormField> formFields, System.Collections.Generic.IReadOnlyList<PdfTableCellImage> images, bool noWrap, PdfTableCellViewport? viewport, int textRotation) {
             Column = column;
             ColumnSpan = columnSpan;
             RowSpan = rowSpan;
@@ -105,6 +105,7 @@ internal static partial class PdfWriter {
             Images = images;
             NoWrap = noWrap;
             Viewport = viewport;
+            TextRotation = textRotation;
         }
 
         public int Column { get; }
@@ -122,6 +123,8 @@ internal static partial class PdfWriter {
         public System.Collections.Generic.IReadOnlyList<PdfTableCellImage> Images { get; }
         public bool NoWrap { get; }
         public PdfTableCellViewport? Viewport { get; }
+        public int TextRotation { get; }
+        public double? OrientedRowTextHeight { get; init; }
     }
 
     private static LayoutResult LayoutBlocks(
@@ -134,20 +137,29 @@ internal static partial class PdfWriter {
         IReadOnlyList<SectionBlock> sections = Array.Empty<SectionBlock>();
         IReadOnlyDictionary<string, int>? pageNumbers = null;
         var deferredMaterializations = new Dictionary<FlowMaterializationKey, IReadOnlyList<IPdfBlock>>();
+        var runningAssets = new RunningContentImageAssets();
+        IReadOnlyList<PageNumberInfo>? previousRunningPages = null;
+        int previousDocumentPages = 1;
         LayoutResult result = null!;
         for (int pass = 0; pass < 5; pass++) {
             cancellationToken.ThrowIfCancellationRequested();
             result?.Dispose();
-            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations, cancellationToken);
+            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations,
+                runningAssets: runningAssets, previousRunningPages: previousRunningPages,
+                previousDocumentPages: previousDocumentPages, cancellationToken: cancellationToken);
             result = context.Layout(blockList);
-            if (!result.HasTableOfContents) {
+            IReadOnlyList<PageNumberInfo> runningPages = BuildPageNumberInfos(result.Pages);
+            bool runningStable = RunningContentContextsMatch(result, runningPages);
+            previousRunningPages = runningPages;
+            previousDocumentPages = result.Pages.Count;
+            if (!result.HasTableOfContents && runningStable) {
                 ApplySectionReferences(result);
                 return result;
             }
 
             IReadOnlyDictionary<string, int> resolved = BuildSectionPageNumbers(result);
             IReadOnlyList<SectionBlock> resolvedSections = result.SectionDefinitions;
-            if (pageNumbers != null &&
+            if (pageNumbers != null && runningStable &&
                 SectionPageNumbersEqual(pageNumbers, resolved) &&
                 SectionDefinitionsEqual(sections, resolvedSections)) {
                 ApplySectionReferences(result);
@@ -158,8 +170,11 @@ internal static partial class PdfWriter {
             sections = resolvedSections;
         }
 
+        bool hasDynamicRunningContent = result?.Pages.Any(page => page.HasDynamicRunningContent) == true;
         result?.Dispose();
-        throw new InvalidOperationException("Generated table of contents did not stabilize within five layout passes.");
+        throw new InvalidOperationException(hasDynamicRunningContent
+            ? "Running PDF content did not stabilize within five layout passes."
+            : "Generated table of contents did not stabilize within five layout passes.");
     }
 
     private static bool SectionDefinitionsEqual(IReadOnlyList<SectionBlock> left, IReadOnlyList<SectionBlock> right) {

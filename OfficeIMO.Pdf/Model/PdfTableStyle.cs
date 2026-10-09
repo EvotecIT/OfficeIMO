@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Describes visual and layout options for table rendering.
 /// Attach an instance to a table block or use the presets in <see cref="TableStyles"/>.
 /// </summary>
-public class PdfTableStyle {
+public partial class PdfTableStyle {
     private PdfAlign _captionAlign = PdfAlign.Left;
     private System.Collections.Generic.List<PdfColumnAlign>? _alignments;
     private System.Collections.Generic.List<PdfCellVerticalAlign>? _verticalAlignments;
@@ -49,7 +49,6 @@ public class PdfTableStyle {
     private double _rowBaselineOffset;
     private double? _preferredWidth;
     private double? _maxWidth;
-    private double _leftIndent;
     private double? _fontSize;
     private double? _lineHeight;
     private double? _headerFontSize;
@@ -80,6 +79,8 @@ public class PdfTableStyle {
     /// wrap within the preferred grid, rather than for the unwrapped line width.
     /// </summary>
     internal bool AutoFitWidthUsesContentMinimum { get; set; }
+    /// <summary>Document adapters can size an explicit automatic grid that has no positive authored width from its content minimum.</summary>
+    internal bool AutoFitUnspecifiedWidthToContent { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
@@ -582,14 +583,6 @@ public class PdfTableStyle {
             _minimumShrinkFontSize = value;
         }
     }
-    /// <summary>Left indentation before table placement, in points. Negative values extend the table into the leading margin.</summary>
-    public double LeftIndent {
-        get => _leftIndent;
-        set {
-            ValidateFiniteValue(value, nameof(LeftIndent), "Table left indent must be a finite value.");
-            _leftIndent = value;
-        }
-    }
     /// <summary>Optional per-column alignment; defaults to Left.</summary>
     public System.Collections.Generic.List<PdfColumnAlign>? Alignments {
         get => _alignments;
@@ -725,8 +718,10 @@ public class PdfTableStyle {
             ShrinkTextToFit = ShrinkTextToFit,
             MinimumShrinkFontSize = MinimumShrinkFontSize,
             LeftIndent = LeftIndent,
+            HorizontalOffset = HorizontalOffset,
             AutoFitColumns = AutoFitColumns,
             AutoFitWidthUsesContentMinimum = AutoFitWidthUsesContentMinimum,
+            AutoFitUnspecifiedWidthToContent = AutoFitUnspecifiedWidthToContent,
             RightAlignNumeric = RightAlignNumeric,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext,

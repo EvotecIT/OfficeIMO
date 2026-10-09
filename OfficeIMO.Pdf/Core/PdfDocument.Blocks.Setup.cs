@@ -249,7 +249,7 @@ public sealed partial class PdfDocument {
     /// <summary>Defines the document-wide default header layout and content.</summary>
     internal PdfDocument Header(System.Action<PdfHeaderBuilder> build) {
         Guard.NotNull(build, nameof(build));
-        var header = new PdfHeaderBuilder(_options);
+        var header = new PdfHeaderBuilder(this, _options);
         build(header);
         return this;
     }
@@ -257,7 +257,7 @@ public sealed partial class PdfDocument {
     /// <summary>Defines the document-wide default footer layout and content.</summary>
     internal PdfDocument Footer(System.Action<PdfFooterBuilder> build) {
         Guard.NotNull(build, nameof(build));
-        var footer = new PdfFooterBuilder(_options);
+        var footer = new PdfFooterBuilder(this, _options);
         build(footer);
         return this;
     }

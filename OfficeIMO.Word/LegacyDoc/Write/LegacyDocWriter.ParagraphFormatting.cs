@@ -403,6 +403,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             } else if (value == TabStopValues.Bar) {
                 alignment = LegacyDocTabStopAlignment.Bar;
                 return true;
+            } else if (value == TabStopValues.Number) {
+                alignment = LegacyDocTabStopAlignment.Number;
+                return true;
             } else if (value == TabStopValues.Clear) {
                 alignment = LegacyDocTabStopAlignment.Clear;
                 return true;
@@ -440,8 +443,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
             string? styleId = paragraphStyleId.Val?.Value;
             if (string.IsNullOrWhiteSpace(styleId)
-                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(styleId, "ListParagraph", StringComparison.OrdinalIgnoreCase)) {
+                || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
 
@@ -453,7 +455,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return customStyleIndex;
             }
 
-            throw new NotSupportedException($"Native DOC saving currently supports only built-in Normal and Heading1 through Heading9 paragraph styles. Unsupported paragraph style: {styleId}.");
+            throw new NotSupportedException($"Native DOC saving cannot resolve paragraph style '{styleId}' in the document style sheet.");
         }
 
         private static bool TryMapBuiltInParagraphStyleIndex(string styleId, out ushort styleIndex) {

@@ -23,6 +23,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<FooterSegment> segments,
         int page,
         int pages,
+        int documentPages,
         PdfStandardFont font,
         double fontSize,
         PdfColor? color,
@@ -35,6 +36,7 @@ internal static partial class PdfWriter {
                 FooterSegmentKind.Text => segment.Text ?? string.Empty,
                 FooterSegmentKind.PageNumber => FormatPageNumber(page, opts.PageNumberStyle),
                 FooterSegmentKind.TotalPages => FormatPageNumber(pages, opts.PageNumberStyle),
+                FooterSegmentKind.DocumentPages => FormatPageNumber(documentPages, opts.PageNumberStyle),
                 _ => throw new System.ArgumentOutOfRangeException(nameof(segments), segment.Kind, "PDF header/footer segment kind is not supported.")
             };
 
@@ -94,7 +96,7 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? namedFont = opts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
                 : null;
-            width += run.InlineElement?.Width ?? MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), namedFont, run.FontSize ?? fontSize, run.Baseline, opts, run.FeatureSettings);
+            width += run.InlineElement?.Width ?? MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), namedFont, run.FontSize ?? fontSize, run.Baseline, opts, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
         }
 
         return width;
@@ -208,11 +210,13 @@ internal static partial class PdfWriter {
                     content.TextRise(textRise);
                     currentTextRise = textRise;
                 }
+                ApplyRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
                 content
                     .TextMatrix(cursorX, baselines[lineIndex])
                     .FillColor(ResolvePageTextColor(run.Color ?? color, opts))
                     .ShowText(EncodeTextShowCommand(text, runFont, namedFont, opts, run.FeatureSettings, run.TextDirection), runFontSize);
-                cursorX += MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, opts, run.FeatureSettings);
+                ResetRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
+                cursorX += MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, opts, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
             }
         }
 
@@ -269,25 +273,6 @@ internal static partial class PdfWriter {
     private static PdfColor ResolvePageTextColor(PdfColor? color, PdfOptions opts) =>
         color ?? opts.DefaultTextColor ?? PdfColor.Black;
 
-    private static string BuildPageTextFromSegments(System.Collections.Generic.IReadOnlyList<FooterSegment> segments, int page, int pages, PdfPageNumberStyle style) {
-        var sb = new StringBuilder();
-        foreach (var segment in segments) {
-            switch (segment.Kind) {
-                case FooterSegmentKind.Text:
-                    sb.Append(segment.Text);
-                    break;
-                case FooterSegmentKind.PageNumber:
-                    sb.Append(FormatPageNumber(page, style));
-                    break;
-                case FooterSegmentKind.TotalPages:
-                    sb.Append(FormatPageNumber(pages, style));
-                    break;
-            }
-        }
-
-        return sb.ToString();
-    }
-
     private static string FormatPageText(string format, int page, int pages, int documentPages, PdfPageNumberStyle style) {
         string pageText = FormatPageNumber(page, style);
         string pagesText = FormatPageNumber(pages, style);
@@ -299,20 +284,7 @@ internal static partial class PdfWriter {
     }
 
     private static string FormatPageNumber(int number, PdfPageNumberStyle style) {
-        Guard.PageNumberStyle(style, nameof(style));
-        if (number < 1) {
-            throw new ArgumentOutOfRangeException(nameof(number), "PDF page number must be positive.");
-        }
-
-        OfficeIMO.Core.OfficeNumberStyle commonStyle = style switch {
-            PdfPageNumberStyle.Arabic => OfficeIMO.Core.OfficeNumberStyle.Decimal,
-            PdfPageNumberStyle.LowerRoman => OfficeIMO.Core.OfficeNumberStyle.LowerRoman,
-            PdfPageNumberStyle.UpperRoman => OfficeIMO.Core.OfficeNumberStyle.UpperRoman,
-            PdfPageNumberStyle.LowerLetter => OfficeIMO.Core.OfficeNumberStyle.LowerLetter,
-            PdfPageNumberStyle.UpperLetter => OfficeIMO.Core.OfficeNumberStyle.UpperLetter,
-            _ => throw new ArgumentException("PDF page number style must be Arabic, LowerRoman, UpperRoman, LowerLetter, or UpperLetter.", nameof(style))
-        };
-        return OfficeIMO.Core.OfficeNumberFormatter.Format(number, commonStyle);
+        return PdfPageNumberFormatter.Format(number, style);
     }
 
 }

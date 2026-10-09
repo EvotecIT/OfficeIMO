@@ -11,29 +11,36 @@ public static partial class OfficeDrawingRasterRenderer {
         if (effectGroup.Opacity <= 0D) return;
         canvas = canvas.WithDrawingTextProfile(effectGroup.InnerDrawing);
         cancellationToken.ThrowIfCancellationRequested();
-        double width = System.Math.Ceiling(effectGroup.InnerDrawing.Width * scale);
-        double height = System.Math.Ceiling(effectGroup.InnerDrawing.Height * scale);
+        if (!effectGroup.Transform.TryInvert(out _)) return;
+        EffectTextLayerPlan layerPlan = PlanEffectTextLayer(effectGroup, canvas, scale,
+            canvas.CoordinateScaleX, canvas.CoordinateScaleY);
+        double scaleX = layerPlan.ScaleX, scaleY = layerPlan.ScaleY;
+        double layerScale = System.Math.Max(scaleX, scaleY);
+        if (scaleX <= 0D || scaleY <= 0D) return;
+        double width = System.Math.Ceiling(layerPlan.Drawing.Width * scaleX);
+        double height = System.Math.Ceiling(layerPlan.Drawing.Height * scaleY);
+        OfficeTransform transform = OfficeTransform.Translate(layerPlan.Left, 0D).Then(effectGroup.Transform);
+        OfficeTransform pixelTransform = new OfficeTransform(
+            transform.M11 * scale / scaleX, transform.M12 * scale / scaleX,
+            transform.M21 * scale / scaleY, transform.M22 * scale / scaleY,
+            transform.OffsetX * scale, transform.OffsetY * scale);
+        // Cull the complete expanded and rounded layer before charging storage.
+        if (!double.IsInfinity(width) && !double.IsInfinity(height) &&
+            !canvas.IntersectsVisibleSurface(pixelTransform, width, height)) return;
         if (width > long.MaxValue || height > long.MaxValue || width * height > long.MaxValue) {
-            throw new OfficeImageExportLimitException(scale, long.MaxValue, maximumRasterPixels,
+            throw new OfficeImageExportLimitException(layerScale, long.MaxValue, maximumRasterPixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
         }
         canvas.ChargeIntermediateSurfacePixels((long)width * (long)height, maximumRasterPixels);
-        OfficeRasterImage layer = Render(effectGroup.InnerDrawing, new OfficeDrawingRasterRenderOptions {
-            Scale = scale,
-            ImageCodec = imageCodec,
-            TextShapingProvider = canvas.TextShapingProvider,
-            TextShapingLanguage = canvas.TextShapingLanguage,
-            DiagnosticSink = canvas.DiagnosticSink,
-            DiagnosticSource = canvas.DiagnosticSource,
-            TransformedTextBudget = canvas.TransformedTextBudget,
-            MaximumRasterPixels = maximumRasterPixels,
-            CancellationToken = cancellationToken
-        });
+        OfficeRasterImage layer = RenderEffectLayer(layerPlan.Drawing, canvas, scaleX, scaleY,
+            imageCodec, maximumRasterPixels, cancellationToken);
         if (effectGroup.SoftMask != null) {
             layer = ApplySoftMask(
                 layer,
                 effectGroup.SoftMask,
-                scale,
+                layerPlan.Left,
+                canvas.Fonts,
+                scaleX, scaleY,
                 imageCodec,
                 canvas.TextShapingProvider,
                 canvas.TextShapingLanguage,
@@ -43,16 +50,47 @@ public static partial class OfficeDrawingRasterRenderer {
                 maximumRasterPixels,
                 cancellationToken);
         }
-        OfficeTransform transform = effectGroup.Transform;
-        var pixelTransform = new OfficeTransform(transform.M11, transform.M12, transform.M21, transform.M22, transform.OffsetX * scale, transform.OffsetY * scale);
-        var surfaceBounds = (Left: 0D, Top: 0D, Right: effectGroup.InnerDrawing.Width, Bottom: effectGroup.InnerDrawing.Height);
-        var samplingInspection = new SamplingInspectionContext(cancellationToken);
-        bool interpolate =
-            !ContainsNonInterpolatedImage(effectGroup.InnerDrawing, surfaceBounds, samplingInspection) &&
-            (effectGroup.SoftMask == null || !ContainsVisibleNonInterpolatedImage(effectGroup.SoftMask, surfaceBounds, samplingInspection));
-        canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode, interpolate);
+        canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity, effectGroup.BlendMode, layerPlan.Interpolate);
     }
 
+    private static OfficeRasterImage RenderEffectLayer(OfficeDrawing drawing, OfficeRasterCanvas canvas,
+        double scaleX, double scaleY, IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels,
+        System.Threading.CancellationToken cancellationToken) =>
+        RenderCore(drawing, new OfficeDrawingRasterRenderOptions {
+            Scale = System.Math.Max(scaleX, scaleY),
+            ImageCodec = imageCodec,
+            TextShapingProvider = canvas.TextShapingProvider,
+            TextShapingLanguage = canvas.TextShapingLanguage,
+            DiagnosticSink = canvas.DiagnosticSink,
+            DiagnosticSource = canvas.DiagnosticSource,
+            TransformedTextBudget = canvas.TransformedTextBudget,
+            MaximumRasterPixels = maximumRasterPixels,
+            CancellationToken = cancellationToken
+        }, scaleX, scaleY, fonts: canvas.Fonts);
+
+    private static (double X, double Y) GetEffectAxisScales(OfficeTransform transform, double parentX, double parentY) {
+        double a = transform.M11 * parentX, b = transform.M12 * parentY;
+        double c = transform.M21 * parentX, d = transform.M22 * parentY;
+        double maximumX = System.Math.Max(System.Math.Abs(a), System.Math.Abs(b));
+        double maximumY = System.Math.Max(System.Math.Abs(c), System.Math.Abs(d));
+        a /= maximumX; b /= maximumX; c /= maximumY; d /= maximumY;
+        double x = System.Math.Sqrt(a * a + b * b), y = System.Math.Sqrt(c * c + d * d);
+        // Normalized columns have largest singular value sqrt(1 + |dot|).
+        // This bounded shear factor prevents undersampling without imposing one
+        // axis's potentially enormous stretch on the other orthogonal axis.
+        double correlation = System.Math.Min(1D, System.Math.Abs((a / x) * (c / y) + (b / x) * (d / y)));
+        if (correlation < 1E-12D) correlation = 0D;
+        double shear = System.Math.Sqrt(1D + correlation);
+        return (NormalizeAxisDensity(maximumX * x * shear), NormalizeAxisDensity(maximumY * y * shear));
+    }
+
+    private static double NormalizeAxisDensity(double value) {
+        // Rotating an exact unit (or integer) density can introduce a few ulps
+        // of norm error. Do not let that error add a whole row and column.
+        const double roundingTolerance = 4D * 2.2204460492503131E-16D;
+        double nearest = System.Math.Round(value);
+        return nearest > 0D && System.Math.Abs(value - nearest) <= value * roundingTolerance ? nearest : value;
+    }
     private static bool ContainsNonInterpolatedImage(OfficeDrawing drawing) {
         return ContainsNonInterpolatedImage(
             drawing,
@@ -85,6 +123,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingGroup group,
         (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
         SamplingInspectionContext inspection) {
+        if (group.ClipPath.Kind == OfficeClipPathKind.Empty || group.ClipPath.Width <= 0D || group.ClipPath.Height <= 0D) return false;
         var groupBounds = (
             Left: group.X,
             Top: group.Y,
@@ -162,6 +201,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeDrawingTilingPattern pattern,
         (double Left, double Top, double Right, double Bottom)? parentVisibleBounds,
         SamplingInspectionContext inspection) {
+        if (pattern.Area.Width <= 0D || pattern.Area.Height <= 0D) return false;
         if (!ContainsAnyNonInterpolatedImage(pattern.InnerTile, inspection)) return false;
         if (!parentVisibleBounds.HasValue) return true;
         var patternBounds = (
@@ -237,16 +277,21 @@ public static partial class OfficeDrawingRasterRenderer {
     private static bool IntersectsVisibleBounds(
         (double Left, double Top, double Right, double Bottom) bounds,
         (double Left, double Top, double Right, double Bottom)? visibleBounds) =>
-        !visibleBounds.HasValue ||
-        bounds.Right > visibleBounds.Value.Left &&
-        bounds.Left < visibleBounds.Value.Right &&
-        bounds.Bottom > visibleBounds.Value.Top &&
-        bounds.Top < visibleBounds.Value.Bottom;
+        bounds.Right > bounds.Left && bounds.Bottom > bounds.Top &&
+        (!visibleBounds.HasValue ||
+        bounds.Right >= visibleBounds.Value.Left &&
+        bounds.Left <= visibleBounds.Value.Right &&
+        bounds.Bottom >= visibleBounds.Value.Top &&
+        bounds.Top <= visibleBounds.Value.Bottom);
 
     private static bool TryIntersectBounds(
         (double Left, double Top, double Right, double Bottom) bounds,
         (double Left, double Top, double Right, double Bottom)? visibleBounds,
         out (double Left, double Top, double Right, double Bottom) intersection) {
+        if (bounds.Right <= bounds.Left || bounds.Bottom <= bounds.Top) {
+            intersection = bounds;
+            return false;
+        }
         if (!visibleBounds.HasValue) {
             intersection = bounds;
             return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
@@ -257,13 +302,17 @@ public static partial class OfficeDrawingRasterRenderer {
             System.Math.Max(bounds.Top, visibleBounds.Value.Top),
             System.Math.Min(bounds.Right, visibleBounds.Value.Right),
             System.Math.Min(bounds.Bottom, visibleBounds.Value.Bottom));
-        return intersection.Right > intersection.Left && intersection.Bottom > intersection.Top;
+        // A reflected source can include its maximum edge at a destination pixel
+        // centre. Touching bounds therefore remain inconclusive for nearest sampling.
+        return intersection.Right >= intersection.Left && intersection.Bottom >= intersection.Top;
     }
 
     private static OfficeRasterImage ApplySoftMask(
         OfficeRasterImage source,
         OfficeDrawingSoftMask softMask,
-        double scale,
+        double sourceLeft,
+        OfficeFontFaceCollection? fonts,
+        double scaleX, double scaleY,
         IOfficeRasterImageCodec? imageCodec,
         IOfficeTextShapingProvider? textShapingProvider,
         string? textShapingLanguage,
@@ -274,10 +323,23 @@ public static partial class OfficeDrawingRasterRenderer {
         System.Threading.CancellationToken cancellationToken) {
         long surfacePixels = (long)source.Width * source.Height;
         transformedTextBudget.ChargeIntermediateSurfacePixels(surfacePixels * 2L, maximumRasterPixels);
-        var maskScene = new OfficeDrawing(source.Width / scale, source.Height / scale);
-        maskScene.AddEffectDrawing(softMask.InnerDrawing, softMask.Transform);
-        OfficeRasterImage mask = Render(maskScene, new OfficeDrawingRasterRenderOptions {
-            Scale = scale,
+        OfficeDrawing maskScene = new OfficeDrawing(source.Width / scaleX, source.Height / scaleY);
+        // A mask canvas remains an explicit coverage boundary, including text overflow.
+        OfficeDrawing clippedMask = new OfficeDrawing(softMask.InnerDrawing.Width, softMask.InnerDrawing.Height);
+        clippedMask.AddClippedDrawing(softMask.InnerDrawing, 0D, 0D,
+            OfficeClipPath.Rectangle(softMask.InnerDrawing.Width, softMask.InnerDrawing.Height));
+        clippedMask.TextShapingProvider = softMask.InnerDrawing.TextShapingProvider;
+        clippedMask.TextShapingLanguage = softMask.InnerDrawing.TextShapingLanguage;
+        maskScene.AddEffectDrawing(clippedMask, softMask.Transform.Then(OfficeTransform.Translate(-sourceLeft, 0D)));
+        // The source already fixes the mask dimensions. Reuse that exact grid
+        // rather than rounding a fractional density into an extra row or column.
+        OfficeRasterExportPlan maskPlan = OfficeRasterExportPlanner.Resolve(source.Width, source.Height,
+            OfficeImageExportFormat.Png, new OfficeImageExportOptions {
+                MaximumRasterPixels = maximumRasterPixels,
+                RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+            });
+        OfficeRasterImage mask = RenderCore(maskScene, new OfficeDrawingRasterRenderOptions {
+            Scale = System.Math.Max(scaleX, scaleY),
             ImageCodec = imageCodec,
             TextShapingProvider = textShapingProvider,
             TextShapingLanguage = textShapingLanguage,
@@ -286,8 +348,8 @@ public static partial class OfficeDrawingRasterRenderer {
             TransformedTextBudget = transformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
-        });
-        var result = new OfficeRasterImage(source.Width, source.Height);
+        }, scaleX, scaleY, maskPlan, fonts);
+        OfficeRasterImage result = new OfficeRasterImage(source.Width, source.Height);
         double backdrop = GetMaskFactor(softMask.BackdropColor, softMask.Mode, softMask.LuminosityStandard);
         for (int y = 0; y < source.Height; y++) {
             cancellationToken.ThrowIfCancellationRequested();

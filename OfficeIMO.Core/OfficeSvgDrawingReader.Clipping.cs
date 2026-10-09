@@ -40,8 +40,8 @@ public static partial class OfficeSvgDrawingReader {
                 "rect" => CreateRectangle(child, style, viewX, viewY, content.Width, content.Height, ref unsupported),
                 "circle" => CreateCircle(child, style, viewX, viewY, content.Width, content.Height),
                 "ellipse" => CreateEllipse(child, style, viewX, viewY, content.Width, content.Height),
-                "polygon" => CreatePolygon(child, style, viewX, viewY, true, ref pathCommands, ref pathCommandLimitExceeded),
-                "path" => CreatePath(child, style, viewX, viewY, ref pathCommands, ref pathCommandLimitExceeded),
+                "polygon" => CreatePolygon(child, style, viewX, viewY, true, ref pathCommands, ref pathCommandLimitExceeded, references.MaximumGeometryCommands),
+                "path" => CreatePath(child, style, viewX, viewY, ref pathCommands, ref pathCommandLimitExceeded, references.MaximumGeometryCommands),
                 _ => null
             };
             if (shape == null) {

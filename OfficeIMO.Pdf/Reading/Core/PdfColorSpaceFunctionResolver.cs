@@ -29,7 +29,8 @@ internal static partial class PdfColorSpaceFunctionResolver {
     private const int MaxFunctionDepth = 16;
     private const int MaxParsedFunctionNodes = 1024;
     private const int MaxSampledInputs = 4;
-    private const int MaxStitchingFunctions = 32;
+    // Accommodate bounded 256-stop gradients emitted by the shared drawing engine.
+    private const int MaxStitchingFunctions = 256;
     private const int MaxSuggestedSampleBreakpoints = 128;
     private static readonly double[] DefaultC0 = { 0D };
     private static readonly double[] DefaultC1 = { 1D };

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
@@ -42,7 +43,8 @@ namespace OfficeIMO.Tests {
             loaded.Save(roundTripPath);
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
-            AssertPageSettingsXml(roundTripPath, "Settings", "1", "1", "1", "1", "1", "1", "0", unit: "CM");
+            string centimeterInches = XmlConvert.ToString(1D.ToInches(VisioMeasurementUnit.Centimeters));
+            AssertPageSettingsXml(roundTripPath, "Settings", centimeterInches, centimeterInches, centimeterInches, centimeterInches, "1", "1", "0", unit: "CM");
 
             VisioDocument reloadedRoundTrip = VisioDocument.Load(roundTripPath);
             VisioPage reloadedSettings = reloadedRoundTrip.Pages.Single(current => current.Name == "Settings");
@@ -62,7 +64,7 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             Assert.Empty(VisioValidator.Validate(filePath));
-            AssertPageSettingsXml(filePath, "Metric", "0.635", "0.635", "0.635", "0.635", null, "0", "0", unit: "CM");
+            AssertPageSettingsXml(filePath, "Metric", "0.25", "0.25", "0.25", "0.25", null, "0", "0", unit: "CM");
         }
 
         [Fact]
@@ -148,7 +150,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
             AssertPageRoutingXml(roundTripPath, "Routing", "9", "1", "3", "1", "2", "1");
-            AssertPageRoutingSpacingXml(roundTripPath, "Routing", "8", "9", "10", "11", "MM");
+            AssertPageRoutingSpacingXml(roundTripPath, "Routing", MillimeterCache(8), MillimeterCache(9), MillimeterCache(10), MillimeterCache(11), "MM");
 
             VisioDocument cleared = VisioDocument.Load(roundTripPath);
             VisioPage clearedPage = cleared.Pages.Single(current => current.Name == "Routing");
@@ -209,7 +211,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ConnectorSpacingLoadsEachCellWithItsDeclaredUnit() {
+        public void ConnectorSpacingCachesRemainInchesWithMixedDisplayUnits() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
@@ -219,8 +221,8 @@ namespace OfficeIMO.Tests {
 
             RewritePageSheetCells(filePath, "Mixed Routing", (pageSheet, ns) => {
                 SetPageSheetCell(pageSheet, ns, "LineToLineX", "2", "IN");
-                SetPageSheetCell(pageSheet, ns, "LineToLineY", "5.08", "CM");
-                SetPageSheetCell(pageSheet, ns, "LineToNodeX", "50.8", "MM");
+                SetPageSheetCell(pageSheet, ns, "LineToLineY", "2", "CM");
+                SetPageSheetCell(pageSheet, ns, "LineToNodeX", "2", "MM");
                 SetPageSheetCell(pageSheet, ns, "LineToNodeY", "2", "IN");
             });
 
@@ -262,7 +264,7 @@ namespace OfficeIMO.Tests {
             loaded.Save(roundTripPath);
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
-            AssertPageLayoutGridXml(roundTripPath, "Grid", "0", "20", "21", "8", "9", "MM");
+            AssertPageLayoutGridXml(roundTripPath, "Grid", "0", MillimeterCache(20), MillimeterCache(21), MillimeterCache(8), MillimeterCache(9), "MM");
 
             VisioDocument cleared = VisioDocument.Load(roundTripPath);
             cleared.Pages.Single(current => current.Name == "Grid").ClearLayoutGridPolicy();
@@ -273,7 +275,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LayoutGridSizingLoadsEachCellWithItsDeclaredUnit() {
+        public void LayoutGridCachesRemainInchesWithMixedDisplayUnits() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
@@ -284,8 +286,8 @@ namespace OfficeIMO.Tests {
 
             RewritePageSheetCells(filePath, "Mixed Grid", (pageSheet, ns) => {
                 SetPageSheetCell(pageSheet, ns, "BlockSizeX", "2", "IN");
-                SetPageSheetCell(pageSheet, ns, "BlockSizeY", "5.08", "CM");
-                SetPageSheetCell(pageSheet, ns, "AvenueSizeX", "50.8", "MM");
+                SetPageSheetCell(pageSheet, ns, "BlockSizeY", "2", "CM");
+                SetPageSheetCell(pageSheet, ns, "AvenueSizeX", "2", "MM");
                 SetPageSheetCell(pageSheet, ns, "AvenueSizeY", "2", "IN");
             });
 
@@ -295,6 +297,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, loadedPage.LayoutAvenueSizeX.GetValueOrDefault(), 6);
             Assert.Equal(2, loadedPage.LayoutAvenueSizeY.GetValueOrDefault(), 6);
         }
+
+        private static string MillimeterCache(double value) => XmlConvert.ToString(value.ToInches(VisioMeasurementUnit.Millimeters));
 
         private static void AssertPageSettingsXml(
             string filePath,

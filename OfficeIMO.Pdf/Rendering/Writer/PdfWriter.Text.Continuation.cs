@@ -11,16 +11,15 @@ internal static partial class PdfWriter {
                 for (int segmentIndex = 0; segmentIndex < line.Count; segmentIndex++) {
                     RichSeg segment = line[segmentIndex];
                     if (segment.LeadingIsTab) runs.Add(PdfTextRun.Tab(segment.LeadingTabLeader, segment.LeadingTabAlignment));
+                    if (segment.LeadingSpace && !segment.LeadingIsTab) {
+                        AppendPreservedSpaceRuns(runs, segment);
+                    }
                     if (segment.InlineElement != null) {
-                        if (segment.LeadingSpace && !segment.LeadingIsTab) {
-                            runs.Add(BuildTextRunFromWrappedSegment(" ", segment));
-                        }
-
                         runs.Add(PdfTextRun.Inline(segment.InlineElement));
                         continue;
                     }
 
-                    string text = (segment.LeadingSpace && !segment.LeadingIsTab ? " " : string.Empty) + segment.Text;
+                    string text = segment.Text;
                     if (text.Length == 0) {
                         continue;
                     }
@@ -61,6 +60,8 @@ internal static partial class PdfWriter {
                 underlineStyle: segment.UnderlineStyle,
                 strikeStyle: segment.StrikeStyle,
                 decorationColor: segment.DecorationColor);
+            if (HasRichTextSpacing(segment.HorizontalTextScaling, segment.CharacterSpacing))
+                run = run.WithHorizontalTextScaling(segment.HorizontalTextScaling).WithCharacterSpacing(segment.CharacterSpacing);
             if (!segment.FeatureSettings.Equals(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default))
                 run = run.WithFeatureSettings(segment.FeatureSettings);
             if (segment.TextDirection != OfficeIMO.Drawing.OfficeTextDirection.Auto)

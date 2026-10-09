@@ -67,6 +67,9 @@ public sealed class PdfRedactionRule {
     public PdfRedactionRuleKind Kind { get; set; }
     /// <summary>Rule value. Required except for <see cref="PdfRedactionRuleKind.RedactAnnotations"/>; omitted from result evidence.</summary>
     public string? Value { get; set; }
+    /// <summary>Native text selection policy. MatchedGlyphs requires a Literal or Regex rule and NativeOnly detection.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public PdfRedactionTextSelection TextSelection { get; set; }
     /// <summary>Intersecting content removal policy for candidates produced by this rule.</summary>
     public PdfRedactionContentScope ContentScope { get; set; } = PdfRedactionContentScope.TextAndUnderlay;
     /// <summary>Visible privacy-appearance policy for candidates produced by this rule.</summary>

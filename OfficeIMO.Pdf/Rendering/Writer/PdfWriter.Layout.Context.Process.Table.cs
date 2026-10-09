@@ -189,7 +189,7 @@ internal static partial class PdfWriter {
                 colPixel[0],
                 colPixel[colPixel.Length - 1]);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
-            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth);
+            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth) + style.HorizontalOffset;
 
             double TableBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : currentOpts.MarginBottom;
             double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
@@ -215,10 +215,10 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
-            void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0) {
+            void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0, bool paddingChanged = false) {
                 maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
                 double newContentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-                if (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D) return;
+                if (!paddingChanged && (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D)) return;
                 contentWidth = newContentWidth;
                 preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
                 tableWidth = preparedColumns.Width;
@@ -258,7 +258,7 @@ internal static partial class PdfWriter {
                 if (style.Position is { } position) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
-                    xOrigin = PositionTableX(position, tableWidth);
+                    xOrigin = PositionTableX(position, tableWidth) + style.HorizontalOffset;
                     y = PositionTableY(position, Math.Min(maxContentHeight, tableContentHeight));
                 }
             }
@@ -431,6 +431,7 @@ internal static partial class PdfWriter {
 
             void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false) {
                 FlushPairedBorders();
+                PrepareTableFrameContinuation(tb, rowIndex);
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     ColumnFlowScope scope = activeColumnFlow!;
                     QueueColumnBalanceRemainder(MeasurePreparedTableColumnBalanceUnits(tb, style, preparedRows, cols, colPixel, rowGapPx,
@@ -438,7 +439,10 @@ internal static partial class PdfWriter {
                         rowIndex, startLine), tb, blockList, blockIndex);
                 }
                 NewPage();
-                ReflowTableForCurrentFrame(rowIndex, startLine);
+                PdfTableStyle continuationStyle = PrepareTableBorderContinuation(tb, style, rowIndex);
+                bool paddingChanged = !ReferenceEquals(style, continuationStyle);
+                style = continuationStyle;
+                ReflowTableForCurrentFrame(rowIndex, startLine, paddingChanged);
                 repeatHeaderHeight = 0D;
                 for (int header = 0; header < repeatHeaderRowCount; header++)
                     repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
@@ -446,7 +450,7 @@ internal static partial class PdfWriter {
                 if (style.Position is { } continuationPosition) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
-                    xOrigin = PositionTableX(continuationPosition, tableWidth);
+                    xOrigin = PositionTableX(continuationPosition, tableWidth) + style.HorizontalOffset;
                     double continuationHeight = remainingRowHeights[rowIndex];
                     if (startLine > 0)
                         continuationHeight += MeasureTableRowSegmentHeight(rowIndex, startLine, rowLineCounts[rowIndex] - startLine, suppressCellObjects: false) - rowHeights[rowIndex];
@@ -694,7 +698,9 @@ internal static partial class PdfWriter {
                     int sourceStartLine = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? 0 : startLine;
                     int requestedLineCount = cell.Viewport != null || wholeRowSegment && cell.RowSpan > 1 ? lines.LineCount : lineCount;
                     double availableTextHeight = Math.Max(0, contentFrame.Height - cellPadTop - cellPadBottom);
-                    int visibleLineCount = LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, style.PreservePartialCellLines);
+                    // A neighboring horizontal cell can continue the row after the
+                    // turned cell's content has already been painted on its first fragment.
+                    int visibleLineCount = cell.TextRotation != 0 ? (sourceStartLine == 0 ? 1 : 0) : LimitTableCellLineCountToHeight(lines, sourceStartLine, requestedLineCount, rowLeading, availableTextHeight, style.PreservePartialCellLines);
                     double verticalOffset = 0;
                     double visibleTextHeight = 0D;
                     if (visibleLineCount > 0) {
@@ -762,9 +768,12 @@ internal static partial class PdfWriter {
                             OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                                 paragraph.Align, firstBaseline, contentFrame.Left + cellPadLeft, innerW,
                                 xi, cellBottom, cellWidth, cellHeight, rowLeading, rowSize, currentOpts, cellFont);
-                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - textClipBleed, textClipWidth, cellHeight + (textClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths, baselineFont: cellFont);
+                        if (cell.TextRotation != 0)
+                            RenderOrientedTableCellContent(cell, style, rowIndex, c, contentFrame, xi, y, cellWidth, cellHeight, cellFont, rowSize, rowLeading, preparedRows.RunFontSizeScales[rowIndex], paragraph, markedStructureType, markedContentId, includeCellObjects: !suppressCellObjects);
+                        else
+                            WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, textClipX, cellBottom - textClipBleed, textClipWidth, cellHeight + (textClipBleed * 2D), contentFrame.Left + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, lineAlignments: visibleAlignments, lineXOffsets: visibleXOffsets, lineWidths: visibleWidths, baselineFont: cellFont);
                     }
-                    if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
+                    if (cell.TextRotation == 0 && !suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                         if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
                             RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, AdjustRichLineBaseline(firstBaseline, lines.Lines[sourceStartLine], currentOpts, rowSize, cellFont));
                         } else {
@@ -775,7 +784,7 @@ internal static partial class PdfWriter {
                         }
                     }
 
-                    if (HasCellLinkTarget(linkUri, linkDestinationName)) {
+                    if (HasCellLinkTarget(linkUri, linkDestinationName) && (cell.TextRotation == 0 || sourceStartLine == 0)) {
                         double x1 = xi + cellPadLeft - textClipBleed;
                         double x2 = xi + cellWidth - cellPadRight + textClipBleed;
                         double linkCellHeight = sourceStartLine == 0 && cell.RowSpan > 1

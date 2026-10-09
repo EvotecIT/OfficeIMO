@@ -52,7 +52,13 @@ public sealed partial class PdfPageCanvas {
         return AddOutline(title, level, y, state, documentOrder);
     }
 
-    private PdfPageCanvas AddOutline(string title, int level, double y, PdfOutlineState state, int? documentOrder) {
+    internal PdfPageCanvas OutlineNavigation(string title, int level, double x, double y, string? uri, int documentOrder) {
+        ValidateCanvasCoordinate(x, nameof(x)); Guard.OptionalUriAction(uri, nameof(uri));
+        if (documentOrder < 0) throw new ArgumentOutOfRangeException(nameof(documentOrder), "Outline order must be nonnegative.");
+        return AddOutline(title, level, y, PdfOutlineState.Default, documentOrder, x, uri);
+    }
+
+    private PdfPageCanvas AddOutline(string title, int level, double y, PdfOutlineState state, int? documentOrder, double x = 0D, string? uri = null) {
         Guard.NotNull(title, nameof(title));
         if (string.IsNullOrWhiteSpace(title)) {
             throw new ArgumentException("Canvas outline titles cannot be empty or whitespace.", nameof(title));
@@ -66,7 +72,7 @@ public sealed partial class PdfPageCanvas {
         if (state != PdfOutlineState.Default && state != PdfOutlineState.Open && state != PdfOutlineState.Closed) {
             throw new ArgumentOutOfRangeException(nameof(state));
         }
-        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y, state, documentOrder));
+        _items.Add(new PdfCanvasOutlineItem(title.Trim(), level, y, state, documentOrder, x, uri));
         return this;
     }
 
@@ -112,7 +118,7 @@ public sealed partial class PdfPageCanvas {
 
     /// <summary>Groups absolute canvas content under a typed tagged-PDF structure container.</summary>
     public PdfPageCanvas Structure(PdfCanvasStructureRole role, Action<PdfPageCanvas> build, PdfCanvasStructureOptions? options = null) {
-        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.Formula) {
+        if ((int)role < (int)PdfCanvasStructureRole.Section || (int)role > (int)PdfCanvasStructureRole.TableBody) {
             throw new ArgumentOutOfRangeException(nameof(role));
         }
         Guard.NotNull(build, nameof(build));
@@ -554,7 +560,7 @@ public sealed partial class PdfPageCanvas {
                 run.UnderlineStyle,
                 run.StrikeStyle,
                 run.DecorationColor)
-                .WithFeatureSettings(run.FeatureSettings)
+                .WithSpacingFrom(run).WithFeatureSettings(run.FeatureSettings)
                 .WithTextDirection(run.TextDirection));
         }
 
@@ -628,18 +634,19 @@ internal abstract class PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasOutlineItem : PdfCanvasItem {
-    public PdfCanvasOutlineItem(string title, int level, double y, PdfOutlineState state, int? documentOrder)
-        : base(0D, y) {
+    public PdfCanvasOutlineItem(string title, int level, double y, PdfOutlineState state, int? documentOrder, double x = 0D, string? uri = null)
+        : base(x, y) {
         Title = title;
         Level = level;
         State = state;
-        DocumentOrder = documentOrder;
+        DocumentOrder = documentOrder; Uri = uri;
     }
 
     public string Title { get; }
     public int Level { get; }
     public PdfOutlineState State { get; }
     public int? DocumentOrder { get; }
+    public string? Uri { get; }
 }
 
 internal sealed class PdfCanvasNamedDestinationItem : PdfCanvasItem {
@@ -757,6 +764,7 @@ internal sealed class PdfCanvasShapeItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasDrawingItem : PdfCanvasItem {
+    internal IReadOnlyDictionary<string, PdfCanvasSourceContent>? SourceStructure { get; set; }
     public PdfCanvasDrawingItem(DrawingBlock block, double x, double y, double width, double height, double rotationAngle)
         : base(x, y) {
         Block = block;

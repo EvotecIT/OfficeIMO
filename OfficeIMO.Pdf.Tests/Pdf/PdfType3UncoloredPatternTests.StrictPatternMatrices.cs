@@ -5,14 +5,62 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfType3UncoloredPatternTests {
-    [Fact]
-    public void RenderPage_FailsClosedWhenStrictShadingPatternOmitsType() {
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Type null")]
+    public void RenderPage_UsesStrictShadingPatternWithOptionalType(string typeEntry) {
         byte[] pdf = BuildUncoloredType3PatternPdf(
             pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
             pageColorSpaceResources: string.Empty,
-            patternDictionary: "<< /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
+            patternDictionary: "<< " + typeEntry + " /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>",
             patternContent: string.Empty,
             patternIsStream: false);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.True(raster.GetPixel(22, 96).R > raster.GetPixel(22, 96).B);
+        Assert.True(raster.GetPixel(27, 96).B > raster.GetPixel(27, 96).R);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Type null")]
+    public void RenderPage_UsesStrictTilingPatternWithOptionalType(string typeEntry) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< " + typeEntry + " /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>",
+            patternContent: "1 0 0 rg 0 0 5 5 re f",
+            glyphContent: "500 0 d0 /Pattern cs /P1 scn 0 0 500 700 re f",
+            glyphResources: "<< /Pattern << /P1 7 0 R >> >>",
+            type3PaintType: 1);
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.Type3FontSubstitutionId);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(22, 96));
+    }
+
+    [Theory]
+    [InlineData(false, "/Other")]
+    [InlineData(false, "42")]
+    [InlineData(false, "99 0 R")]
+    [InlineData(true, "/Other")]
+    [InlineData(true, "42")]
+    [InlineData(true, "99 0 R")]
+    public void RenderPage_FailsClosedWhenStrictPatternTypeIsInvalid(bool tiling, string typeValue) {
+        byte[] pdf = BuildUncoloredType3PatternPdf(
+            pageContent: "/Pattern cs /P1 scn BT /FType3 18 Tf 20 100 Td (A) Tj ET",
+            pageColorSpaceResources: string.Empty,
+            patternDictionary: "<< /Type " + typeValue + (tiling
+                ? " /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >>"
+                : " /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 100 30 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>"),
+            patternContent: tiling ? "1 0 0 rg 0 0 5 5 re f" : string.Empty,
+            patternIsStream: tiling);
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
 
@@ -195,7 +243,7 @@ public partial class PdfType3UncoloredPatternTests {
     }
 
     [Fact]
-    public void VisualParser_RejectsApproximatelyAxisAlignedRadialShadingTransform() {
+    public void VisualParser_AcceptsApproximatelyAxisAlignedRadialShadingTransform() {
         var shading = new PdfPageShadingResource(
             0D, 0D, 0D,
             10D, 10D, 5D,
@@ -207,6 +255,6 @@ public partial class PdfType3UncoloredPatternTests {
             pattern,
             new Matrix2D(1D, 0.0000000001D, 0D, 2D, 0D, 0D));
 
-        Assert.False(supported);
+        Assert.True(supported);
     }
 }

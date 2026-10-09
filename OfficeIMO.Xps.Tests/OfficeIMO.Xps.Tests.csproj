@@ -1,0 +1,85 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\JpegXrTestFixture.cs" Link="JpegXrTestFixture.cs" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.jxr;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.rgba;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.tif;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.linear;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\manifest.csv;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.cmyk;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\cmyk-manifest.csv;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\*.nchannel;..\OfficeIMO.Drawing.Tests\TestAssets\JpegXr\nchannel-manifest.csv" Link="Fixtures\JpegXr\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Xps\OfficeIMO.Xps.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Xps\OfficeIMO.Reader.Xps.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\TiffUnsigned16\*.tif;..\OfficeIMO.Drawing.Tests\TestAssets\TiffUnsigned16\*.rgba;..\OfficeIMO.Drawing.Tests\TestAssets\TiffUnsigned16\manifest.csv" Link="Fixtures/TiffUnsigned16/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/MicrosoftWpf/*.xps" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/ColorImages/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/PngColorimetry/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/ImageDefaults/*.tif;Fixtures/ImageDefaults/*.jpg;Fixtures/ImageDefaults/expected.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup><ProjectReference Include="..\OfficeIMO.Xps.Pdf\OfficeIMO.Xps.Pdf.csproj" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\IccColorCorpus\*" Link="Fixtures/IccColorCorpus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\RobotoFlex.ttf" Link="Fixtures/RobotoFlex.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/*.rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffFloating/manifest.csv" Link="Fixtures/TiffFloating/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffPacked/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffPacked/manifest.csv" Link="Fixtures/TiffPacked/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffFax/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffFax/manifest.csv" Link="Fixtures/TiffFax/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpeg/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpeg/manifest.csv" Link="Fixtures/TiffJpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegExtended/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegExtended/manifest.csv" Link="Fixtures/TiffJpegExtended/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegPlanar/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegPlanar/manifest.csv" Link="Fixtures/TiffJpegPlanar/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegCosited/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegCosited/manifest.csv" Link="Fixtures/TiffJpegCosited/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegAlpha/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegAlpha/manifest.csv" Link="Fixtures/TiffJpegAlpha/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLowAlpha/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLowAlpha/manifest.csv" Link="Fixtures/TiffJpegLowAlpha/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffFaxUncompressed/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffFaxUncompressed/*.rgb;../OfficeIMO.Drawing.Tests/TestAssets/TiffFaxUncompressed/manifest.csv" Link="Fixtures/TiffFaxUncompressed/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffExtraSamples/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffExtraSamples/manifest.csv" Link="Fixtures/TiffExtraSamples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless/manifest.csv" Link="Fixtures/TiffJpegLossless/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless16/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless16/manifest.csv" Exclude="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless16/*.reference.tif" Link="Fixtures/TiffJpegLossless16/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChroma16/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChroma16/manifest.csv" Link="Fixtures/TiffJpegChroma16/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/manifest.csv" Exclude="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLegacy/*.reference.tif" Link="Fixtures/TiffJpegLegacy/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegLosslessPrecision/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegLosslessPrecision/manifest.csv" Link="Fixtures/JpegLosslessPrecision/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegDct12/manifest.csv" Link="Fixtures/JpegDct12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/Tiff12/*.srgb" Link="Fixtures/Tiff12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless12/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLossless12/manifest.csv" Link="Fixtures/TiffJpegLossless12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmetic/manifest.csv" Link="Fixtures/JpegArithmetic/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticProgressive/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticProgressive/manifest.csv" Link="Fixtures/JpegArithmeticProgressive/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticLossless/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticLossless/manifest.csv" Link="Fixtures/JpegArithmeticLossless/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLossless/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLossless/manifest.csv" Link="Fixtures/TiffJpegArithmeticLossless/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/*.jpg;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/*.srgb;../OfficeIMO.Drawing.Tests/TestAssets/JpegArithmeticColor/manifest.csv" Link="Fixtures/JpegArithmeticColor/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlpha/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlpha/manifest.csv" Link="Fixtures/TiffJpegArithmeticAlpha/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLowAlpha/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLowAlpha/manifest.csv" Link="Fixtures/TiffJpegArithmeticLowAlpha/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic12/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic12/manifest.csv" Link="Fixtures/TiffJpegArithmetic12/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessColor/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessColor/manifest.csv" Link="Fixtures/TiffJpegArithmeticLosslessColor/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessChroma/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticLosslessChroma/manifest.csv" Link="Fixtures/TiffJpegArithmeticLosslessChroma/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticExtra/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticExtra/manifest.csv" Link="Fixtures/TiffJpegArithmeticExtra/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticMultiscan/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticMultiscan/manifest.csv" Link="Fixtures/TiffJpegArithmeticMultiscan/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessPrecision/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessPrecision/manifest.csv" Link="Fixtures/TiffJpegLosslessPrecision/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegYccPrecision/*.icc-rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegYccPrecision/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegYccPrecision/manifest.csv" Link="Fixtures/TiffJpegYccPrecision/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessAlphaPrecision/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessAlphaPrecision/*.rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessAlphaPrecision/*.icc-rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegLosslessAlphaPrecision/manifest.csv" Link="Fixtures/TiffJpegLosslessAlphaPrecision/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaAlpha/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaAlpha/*.rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaAlpha/*.icc-rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaAlpha/manifest.csv" Link="Fixtures/TiffJpegChromaAlpha/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlphaPrecision/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlphaPrecision/*.rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlphaPrecision/*.icc-rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmeticAlphaPrecision/manifest.csv" Link="Fixtures/TiffJpegArithmeticAlphaPrecision/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic4x4/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic4x4/*.rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic4x4/*.icc-rgba;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegArithmetic4x4/manifest.csv" Link="Fixtures/TiffJpegArithmetic4x4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Include="../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaPrecision/*.tif;../OfficeIMO.Drawing.Tests/TestAssets/TiffJpegChromaPrecision/manifest.csv" Link="Fixtures/TiffJpegChromaPrecision/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+</Project>

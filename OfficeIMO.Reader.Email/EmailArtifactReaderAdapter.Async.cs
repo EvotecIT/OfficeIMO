@@ -58,9 +58,9 @@ internal static partial class EmailArtifactReaderAdapter {
                 .ReadAsync(stream, cancellationToken).ConfigureAwait(false);
             result = pathSource
                 ? EmailReaderProjection.ProjectMailboxToPathResult(mailbox, logicalName, readerOptions, cancellationToken, computeSourceHash: false,
-                    includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages)
+                    includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy)
                 : EmailReaderProjection.ProjectMailboxToStreamResult(mailbox, logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false,
-                    includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages);
+                    includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
         } else {
             using EmailReadResult read = await new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions))
                 .ReadAsync(stream, logicalName, cancellationToken).ConfigureAwait(false);
@@ -68,11 +68,11 @@ internal static partial class EmailArtifactReaderAdapter {
                 ? EmailReaderProjection.ProjectEmailDocumentsToPathResult(new[] { read.Document },
                     new string?[] { logicalName }, read.Diagnostics, read.Document.Format, logicalName, logicalName,
                     readerOptions, cancellationToken, computeSourceHash: false,
-                    includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages)
+                    includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy)
                 : EmailReaderProjection.ProjectEmailDocumentsToStreamResult(new[] { read.Document },
                     new string?[] { logicalName }, read.Diagnostics, read.Document.Format, logicalName, stream,
                     readerOptions, cancellationToken, computeSourceHash: false,
-                    includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages);
+                    includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
         }
         return result;
     }

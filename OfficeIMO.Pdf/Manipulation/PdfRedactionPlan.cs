@@ -154,7 +154,8 @@ public sealed class PdfRedactionPlan {
             int pageNumber = pageIndex + 1;
             PdfRedactionArea[] pageAreas = reviewedAreas.Where(area => area.PageNumber == pageNumber).ToArray();
             PdfReadPage page = document.Pages[pageIndex];
-            IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
+            IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
+                ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true);
             result[pageIndex] = CreateTextObjectScopes(page, spans, pageAreas)
                 .Where(static scope => scope.HasReviewedIntersection)
                 .ToArray();
@@ -178,7 +179,8 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfRedactionArea> pageAreas,
         IReadOnlyList<PdfRedactionTextObjectScope> reviewedTextObjectScopes,
         IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
-        IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
+        IReadOnlyList<PdfTextSpan> spans = pageAreas.Any(static area => area.RequiresGlyphRewrite)
+            ? page.GetGlyphTextSpans(includeHiddenOptionalContent: true) : page.GetTextSpansIncludingHiddenOptionalContent(requireMappedText: true);
         var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
         PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(page, spans, pageAreas);
         int[] matchedScopeIndices = MatchReviewedTextObjectScopes(reviewedTextObjectScopes, currentTextObjectScopes);
@@ -527,6 +529,13 @@ public sealed class PdfRedactionPlan {
             AppendIdentityGradient(identity, primitive.StrokeGradient);
             AppendIdentityGradient(identity, primitive.FillRadialGradient);
             AppendIdentityGradient(identity, primitive.StrokeRadialGradient);
+            if (primitive.FunctionPaint is PdfPageFunctionPaint functionPaint) {
+                identity.Append(":function:");
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, functionPaint.Resource.SourceDictionary, document.Objects);
+                var transform = functionPaint.InverseTransform;
+                AppendIdentityNumbers(identity, new[] { transform.M11, transform.M12, transform.M21,
+                    transform.M22, transform.OffsetX, transform.OffsetY });
+            }
             PdfRedactionImageIdentity.AppendClip(identity, primitive.ClipPath);
             AppendIdentityTilingPattern(identity, primitive.FillTilingPattern);
             AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern);
@@ -658,6 +667,7 @@ public sealed class PdfRedactionPlan {
         }
         identity.Append(":L,").Append(FormatIdentityNumber(gradient.StartX)).Append(',').Append(FormatIdentityNumber(gradient.StartY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY));
+        identity.Append(',').Append((int)gradient.ColorInterpolation);
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 
@@ -670,6 +680,13 @@ public sealed class PdfRedactionPlan {
             .Append(',').Append(FormatIdentityNumber(gradient.StartRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.StartRadiusY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY))
             .Append(',').Append(FormatIdentityNumber(gradient.EndRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.EndRadiusY));
+        var transform = gradient.CoordinateTransform;
+        identity.Append(',').Append(FormatIdentityNumber(transform.M11)).Append(',').Append(FormatIdentityNumber(transform.M12))
+            .Append(',').Append(FormatIdentityNumber(transform.M21)).Append(',').Append(FormatIdentityNumber(transform.M22))
+            .Append(',').Append(FormatIdentityNumber(transform.OffsetX)).Append(',').Append(FormatIdentityNumber(transform.OffsetY));
+        identity.Append(',').Append((int)gradient.ColorInterpolation);
+        identity.Append(',').Append((int)gradient.SpreadMode);
+        AppendIdentityColor(identity, gradient.OutsideColor);
         AppendIdentityGradientStops(identity, gradient.Stops);
     }
 
