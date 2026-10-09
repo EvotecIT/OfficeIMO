@@ -31,6 +31,7 @@
 
 /* ---- Heading ---- */
 .imo-fmap__head { max-width: 760px; margin-bottom: 20px; }
+.imo-fmap__head .imo-section__eyebrow { margin-inline: 0; }
 .imo-fmap__head h2 { font-family: var(--imo-font-display); font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.4rem); line-height: 1.15; margin: 0 0 10px; color: var(--imo-text); }
 .imo-fmap__head h2 span { color: var(--imo-text-secondary); }
 .imo-fmap__head p { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
@@ -91,6 +92,36 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__try::after { content: " →"; }
 .imo-fmap__try:hover { text-decoration: underline; }
 
+/* "Go further": onward links under every panel state. */
+.imo-fmap__next { display: grid; gap: 8px; margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--imo-border); }
+.imo-fmap__tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.imo-fmap__tool {
+  font-size: var(--imo-font-size-xs); font-weight: 600; padding: 5px 10px; border-radius: 999px; text-decoration: none;
+  color: var(--imo-p-browser); background: color-mix(in srgb, var(--imo-p-browser) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--imo-p-browser) 35%, transparent);
+}
+.imo-fmap__tool::after { content: " →"; }
+.imo-fmap__tool:hover { background: color-mix(in srgb, var(--imo-p-browser) 20%, transparent); }
+.imo-fmap__links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+.imo-fmap__link {
+  --s: var(--imo-accent);
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 9px; align-items: start; height: 100%; box-sizing: border-box;
+  padding: 9px 11px; border-radius: var(--imo-radius); border: 1px solid var(--imo-border); background: var(--imo-surface);
+  color: var(--imo-text); text-decoration: none; transition: border-color var(--imo-duration) var(--imo-ease), transform var(--imo-duration) var(--imo-ease);
+}
+.imo-fmap__link:hover { border-color: var(--s); transform: translateY(-1px); }
+.imo-fmap__link i { width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--s); }
+.imo-fmap__link span { display: grid; gap: 2px; min-width: 0; }
+.imo-fmap__link b { font-size: var(--imo-font-size-sm); font-weight: 600; overflow-wrap: break-word; }
+.imo-fmap__link b::after { content: " →"; color: var(--imo-text-muted); }
+.imo-fmap__link small { font-size: var(--imo-font-size-xs); color: var(--imo-text-muted); }
+.imo-fmap__link--dotnet { --s: var(--imo-p-dotnet); }
+.imo-fmap__link--browser { --s: var(--imo-p-browser); }
+.imo-fmap__link--cli { --s: var(--imo-p-cli); }
+.imo-fmap__link--studio { --s: var(--imo-p-studio); }
+.imo-fmap__link--powershell { --s: var(--imo-p-powershell); }
+.imo-fmap__code { margin: 0; padding: 10px 12px; border-radius: var(--imo-radius); background: var(--imo-code-bg); border: 1px solid var(--imo-code-border); color: var(--imo-code-text); font: 12.5px/1.6 var(--imo-font-mono); overflow-x: auto; white-space: pre; }
+
 /* Format chips: the list view's formats, the radial view's phone layout, and the small ones in the panel. */
 .imo-fmap__formats { position: relative; z-index: 1; padding: 20px; min-width: 0; }
 .imo-fmap__family + .imo-fmap__family { margin-top: 12px; }
@@ -107,7 +138,7 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__chip.is-active { border-color: var(--fam); background: color-mix(in srgb, var(--fam) 18%, var(--imo-surface)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fam) 22%, transparent); }
 /* Opaque, so curves passing behind stay behind. */
 .imo-fmap__chip:disabled { cursor: default; color: color-mix(in srgb, var(--imo-text-muted) 70%, transparent); border-color: color-mix(in srgb, var(--imo-border) 60%, transparent); background: var(--imo-bg-elevated); }
-.imo-fmap :is(.imo-fmap__chip, .imo-fmap__mini, .imo-fmap__surface, .imo-fmap__legend button, select, .imo-fmap__try):focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+.imo-fmap :is(.imo-fmap__chip, .imo-fmap__mini, .imo-fmap__surface, .imo-fmap__legend button, select, .imo-fmap__try, .imo-fmap__tool, .imo-fmap__link):focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
 
 /* Lines, shared by both views. Highlighted ones run on the chosen surface (the browser when showing all). */
 .imo-fmap__edge { fill: none; stroke: var(--imo-border-strong); stroke-width: 1.1; opacity: .55; transition: opacity .15s, stroke-width .15s; }

@@ -421,15 +421,59 @@ pre code{background:none;padding:0;color:inherit}
 @media(max-width:900px){.imo-benchmark-evidence-model__grid,.imo-benchmark-coverage__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-library-comparison-coverage__heading,.imo-benchmark-family__header,.imo-benchmark-archive__header{grid-template-columns:1fr;gap:.8rem}.imo-benchmark-highlight-grid{grid-template-columns:1fr}.imo-benchmark-archive{width:calc(100vw - 2rem)}.imo-benchmark-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-benchmark-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-benchmark-reset{min-height:36px}.imo-benchmark-table-wrap{overflow-x:auto}.imo-benchmark-table--matrix{min-width:1190px;font-size:.84rem}}
 @media(max-width:600px){.imo-benchmark-hub{gap:3rem}.imo-benchmark-evidence-model__grid,.imo-benchmark-coverage__grid{grid-template-columns:1fr}.imo-benchmark-evidence-model__grid article,.imo-benchmark-coverage__grid article{min-height:0}.imo-library-comparison-coverage{padding:1rem}.imo-library-comparison-coverage__table{overflow:visible}.imo-library-comparison-coverage__row{grid-template-columns:repeat(3,minmax(0,1fr));min-width:0;gap:.4rem;padding:.75rem}.imo-library-comparison-coverage__row>strong,.imo-library-comparison-coverage__row--header>span:first-child{grid-column:1/-1}.imo-library-comparison-status{width:100%;min-width:0;padding:.24rem .2rem;font-size:.62rem}.imo-benchmark-highlight{padding:1rem}.imo-benchmark-highlight__heading{display:grid}.imo-benchmark-highlight__heading>span{max-width:none;text-align:left}.imo-benchmark-archive{width:calc(100vw - 1rem);padding:.75rem}.imo-benchmark-snapshots>summary{align-items:flex-start;padding:1rem}.imo-benchmark-snapshots>summary>span:last-child{display:none}.imo-benchmark-hero{border-left:0;border-right:0;border-radius:0}.imo-benchmark-kpis{grid-template-columns:1fr}.imo-benchmark-tools{grid-template-columns:1fr}.imo-benchmark-count{text-align:left}.imo-benchmark-method{padding:1.35rem}}
 /* Shared task discovery on the homepage and workflow hub. */
-.imo-document-tasks { padding-block: 2.5rem; }
-.imo-document-tasks > h2 { margin-bottom: 1.5rem; font-size: clamp(1.7rem, 3vw, 2.4rem); }
+/* Document jobs (shortcodes/document-tasks): an accent per job, ways to do it coloured by surface like the format map. */
+.imo-document-tasks { padding-block: 3rem 2.5rem; }
+.imo-document-tasks__head { max-width: 760px; margin-bottom: 1.5rem; }
+.imo-document-tasks__head .imo-section__eyebrow { margin-inline: 0; }
+.imo-document-tasks__head h2 { margin: 0 0 .6rem; font-size: clamp(1.7rem, 3vw, 2.4rem); }
+.imo-document-tasks__head p:not(.imo-section__eyebrow) { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
 .imo-document-tasks__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-.imo-document-tasks__grid article { min-width: 0; padding: 1.35rem; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
-.imo-document-tasks__grid h3 { margin: 0 0 .7rem; font-size: 1.15rem; line-height: 1.35; }
-.imo-document-tasks__grid p, .imo-document-tasks__grid li { font-size: .9rem; line-height: 1.6; }
-.imo-document-tasks__grid ul { padding-left: 1.1rem; margin-block: 1rem; }
-.imo-document-tasks__boundary { color: var(--imo-text-secondary); border-top: 1px solid var(--imo-border); padding-top: .8rem; }
+.imo-job {
+  --job: var(--imo-accent);
+  position: relative; display: flex; flex-direction: column; gap: .75rem; min-width: 0; padding: 1.35rem 1.35rem 1.15rem;
+  border: 1px solid var(--imo-border); border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--job) 7%, var(--imo-surface)), var(--imo-surface) 55%);
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.imo-job::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--job); opacity: .85; }
+.imo-job:hover { border-color: color-mix(in srgb, var(--job) 45%, var(--imo-border)); transform: translateY(-2px); box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--job) 70%, transparent); }
+.imo-job--dotnet { --job: var(--imo-p-dotnet); }
+.imo-job--browser { --job: var(--imo-p-browser); }
+.imo-job--cli { --job: var(--imo-p-cli); }
+.imo-job--studio { --job: var(--imo-p-studio); }
+.imo-job--powershell { --job: var(--imo-p-powershell); }
+.imo-job__icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 11px; color: var(--job); background: color-mix(in srgb, var(--job) 14%, transparent); border: 1px solid color-mix(in srgb, var(--job) 28%, transparent); }
+.imo-job h3 { margin: 0; font-size: 1.15rem; line-height: 1.35; }
+.imo-job h3 a { color: var(--imo-text); text-decoration: none; }
+.imo-job h3 a::after { content: " →"; color: var(--imo-text-muted); transition: color .2s ease; }
+.imo-job h3 a:hover::after { color: var(--job); }
+.imo-job__summary { margin: 0; font-size: .92rem; line-height: 1.6; color: var(--imo-text-secondary); }
+.imo-job__paths { list-style: none; margin: .1rem 0 0; padding: 0; display: grid; gap: 4px; }
+.imo-job__path {
+  --s: var(--imo-text-muted);
+  display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 9px; font-size: .9rem; font-weight: 500;
+  color: var(--imo-text); text-decoration: none; border: 1px solid transparent; transition: background .15s ease, border-color .15s ease;
+}
+.imo-job__path i { width: 8px; height: 8px; border-radius: 50%; background: var(--s); flex: none; }
+.imo-job__path::after { content: "→"; margin-left: auto; color: var(--imo-text-muted); opacity: 0; transform: translateX(-4px); transition: opacity .15s ease, transform .15s ease; }
+.imo-job__path:hover { background: color-mix(in srgb, var(--s) 10%, transparent); border-color: color-mix(in srgb, var(--s) 25%, transparent); }
+.imo-job__path:hover::after { opacity: 1; transform: none; }
+.imo-job__path--dotnet { --s: var(--imo-p-dotnet); }
+.imo-job__path--browser { --s: var(--imo-p-browser); }
+.imo-job__path--cli { --s: var(--imo-p-cli); }
+.imo-job__path--studio { --s: var(--imo-p-studio); }
+.imo-job__path--powershell { --s: var(--imo-p-powershell); }
+.imo-job__note { display: flex; gap: 8px; align-items: flex-start; margin: auto 0 0; padding-top: .8rem; border-top: 1px dashed var(--imo-border); font-size: .8rem; line-height: 1.5; color: var(--imo-text-muted); }
+.imo-job__note svg { flex: none; margin-top: 2px; }
 .imo-intent-content .imo-document-tasks__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Inside article prose (solution pages) the page already titles the section, and prose list/link styles must not leak in. */
+.imo-intent-content .imo-document-tasks__head { display: none; }
+.imo-intent-content .imo-document-tasks { padding-block: .5rem 1.5rem; }
+.imo-document-tasks .imo-job__paths, .imo-document-tasks .imo-job__paths li { list-style: none; margin: 0; padding: 0; }
+.imo-document-tasks .imo-job__paths li::before, .imo-document-tasks .imo-job__paths li::marker { content: none; }
+.imo-document-tasks a.imo-job__path, .imo-document-tasks .imo-job h3 a { color: var(--imo-text); text-decoration: none; }
+@media (max-width: 1000px) { .imo-document-tasks__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .imo-document-tasks__grid, .imo-intent-content .imo-document-tasks__grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .imo-job, .imo-job__path::after { transition: none; } .imo-job:hover { transform: none; } }
 .imo-pdf-corpus p code, .imo-pdf-corpus dd code { white-space: normal; overflow-wrap: anywhere; }
 .imo-pdf-corpus table { display: block; max-width: 100%; overflow-x: auto; }

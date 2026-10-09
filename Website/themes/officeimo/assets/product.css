@@ -861,6 +861,22 @@
   font-size: 1.04rem;
   line-height: 1.75;
 }
+/* A loose paragraph between the intro and the first family reads as a pointer, not body copy. */
+.imo-comparison-hub__content .markdown-body > p {
+  margin: 0 0 clamp(2.5rem, 5vw, 4rem);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 12px;
+  background: var(--imo-surface);
+  color: var(--imo-text-secondary);
+  line-height: 1.65;
+}
+.imo-comparison-family {
+  scroll-margin-top: 8.5rem;
+  padding-bottom: clamp(3rem, 5vw, 4.5rem);
+}
+.imo-comparison-family__heading { margin-bottom: 1.5rem; }
+.imo-comparison-family__heading h2 { margin: 0; font-size: clamp(2rem, 3.5vw, 3rem); letter-spacing: -.045em; }
 .imo-comparison-group {
   scroll-margin-top: 8.5rem;
   padding: clamp(3.5rem, 6vw, 5.5rem) 0;

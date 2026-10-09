@@ -737,7 +737,71 @@
     }).catch(function () { /* Code stays readable without highlighting. */ });
   }
 
+  // Landing pages (products, Studio, CLI) write features as "- **Term** — description" lists.
+  // Mark those lists so CSS can lay them out as cards, and drop the separator between term and text.
+  function initFeatureLists() {
+    var lists = document.querySelectorAll(".imo-product__content .markdown-body > ul, .imo-application-guide .markdown-body > ul");
+    Array.prototype.forEach.call(lists, function (list) {
+      var items = Array.prototype.filter.call(list.children, function (li) { return li.tagName === "LI"; });
+      if (items.length < 3) return;
+      var featureLike = items.every(function (li) {
+        var first = li.firstChild;
+        while (first && first.nodeType === 3 && !first.nodeValue.trim()) first = first.nextSibling;
+        return first && first.nodeType === 1 && first.tagName === "STRONG";
+      });
+      if (!featureLike) return;
+      list.classList.add("imo-features");
+      items.forEach(function (li) {
+        var title = li.querySelector("strong");
+        title.classList.add("imo-features__title");
+        title.textContent = title.textContent.replace(/[\s:]+$/, "");
+        var text = document.createElement("span");
+        text.className = "imo-features__text";
+        while (title.nextSibling) text.appendChild(title.nextSibling);
+        if (text.firstChild && text.firstChild.nodeType === 3) {
+          text.firstChild.nodeValue = text.firstChild.nodeValue.replace(/^[\s:\u2014\u2013-]+/, "");
+        }
+        li.appendChild(text);
+      });
+    });
+  }
+
+  // On landing pages, a short "Do this:" line followed by a code block becomes a command card;
+  // neighbouring cards share one grid.
+  function initCommandCards() {
+    var bodies = document.querySelectorAll(".imo-product__content .markdown-body, .imo-application-guide .markdown-body");
+    Array.prototype.forEach.call(bodies, function (body) {
+      var paragraphs = Array.prototype.slice.call(body.children).filter(function (node) {
+        var next = node.nextElementSibling;
+        return node.tagName === "P" && next && next.tagName === "PRE" &&
+          node.textContent.trim().length <= 90 && /:\s*$/.test(node.textContent);
+      });
+      paragraphs.forEach(function (p) {
+        var pre = p.nextElementSibling;
+        var card = document.createElement("div");
+        card.className = "imo-command";
+        p.parentNode.insertBefore(card, p);
+        p.textContent = p.textContent.replace(/:\s*$/, "");
+        card.appendChild(p);
+        card.appendChild(pre);
+      });
+      var cards = Array.prototype.slice.call(body.querySelectorAll(":scope > .imo-command"));
+      var group = null;
+      cards.forEach(function (card) {
+        var previous = card.previousElementSibling;
+        if (!group || previous !== group) {
+          group = document.createElement("div");
+          group.className = "imo-commands";
+          card.parentNode.insertBefore(group, card);
+        }
+        group.appendChild(card);
+      });
+    });
+  }
+
   function init() {
+    initFeatureLists();
+    initCommandCards();
     initTheme();
     initHeaderMenus();
     initMobileNav();

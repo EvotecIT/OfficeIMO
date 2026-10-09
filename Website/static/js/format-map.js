@@ -38,8 +38,11 @@
     var order = [];
     data.formats.forEach(function (f) { familyOf[f[0]] = f[1]; order.push(f[0]); });
     var routes = data.routes.map(function (r) {
-      return { source: r[0], target: r[1], pkg: r[2], surfaces: r[3].split(' '), fidelity: r[4], support: r[5], id: r[6], tool: data.tools[r[6]] || null };
+      var tool = data.tools[r[6]];
+      return { source: r[0], target: r[1], pkg: r[2], surfaces: r[3].split(' '), fidelity: r[4], support: r[5], id: r[6], api: r[7], tool: tool ? tool[0] : null, toolTitle: tool ? tool[1] : null };
     });
+    var packages = data.packages || {};
+    var surfaceLinks = data.surfaces || {};
     var surfaceNames = {};
     each(root.querySelectorAll('[data-surface][data-name]'), function (b) { surfaceNames[b.getAttribute('data-surface')] = b.getAttribute('data-name'); });
 
@@ -115,6 +118,99 @@
       return h;
     }
 
+    // ---------------------------------------------------------------- "Go further": where to take a format or route next
+    function link(href, text, sub, surface) {
+      var a = el('a', 'imo-fmap__link' + (surface ? ' imo-fmap__link--' + surface : ''));
+      a.href = href;
+      a.appendChild(el('i', null));
+      var body = el('span', null);
+      // Package names may wrap only after a dot (OfficeIMO.PowerPoint.<wbr>IWork), never mid-word.
+      var label = el('b', null);
+      text.split('.').forEach(function (part, i, parts) {
+        label.appendChild(document.createTextNode(part + (i < parts.length - 1 ? '.' : '')));
+        if (i < parts.length - 1) label.appendChild(document.createElement('wbr'));
+      });
+      body.appendChild(label);
+      if (sub) body.appendChild(el('small', null, sub));
+      a.appendChild(body);
+      return a;
+    }
+    function packageLink(pkg) {
+      var p = packages[pkg] || [], product = (data.products || {})[pkg];
+      if (product) return link(product, pkg, 'Product page', 'dotnet');
+      if (p[0]) return link(p[0], pkg, 'API reference', 'dotnet');
+      if (p[1]) return link(p[1], pkg, 'Documentation', 'dotnet');
+      return p[2] ? link(p[2], pkg, 'NuGet', 'dotnet') : null;
+    }
+    function surfaceLink(id, sub) {
+      var s = surfaceLinks[id];
+      return s ? link(s[1], s[2], sub || s[0], id) : null;
+    }
+    function toolLinks(list) {
+      var seen = {}, wrap = el('div', 'imo-fmap__tools');
+      list.forEach(function (r) {
+        if (!r.tool || seen[r.tool]) return;
+        seen[r.tool] = true;
+        var a = el('a', 'imo-fmap__tool', r.toolTitle || (r.source + ' to ' + r.target));
+        a.href = r.tool;
+        wrap.appendChild(a);
+      });
+      return wrap.childNodes.length ? wrap : null;
+    }
+    function next(title, items) {
+      items = items.filter(function (x) { return !!x; });
+      if (!items.length) return;
+      var box = el('div', 'imo-fmap__next');
+      box.appendChild(el('span', 'imo-fmap__label', title));
+      items.forEach(function (x) { box.appendChild(x); });
+      panel.appendChild(box);
+    }
+    function linkList(links) {
+      links = links.filter(function (x) { return !!x; });
+      if (!links.length) return null;
+      var ul = el('ul', 'imo-fmap__links');
+      links.forEach(function (a) { var li = el('li', null); li.appendChild(a); ul.appendChild(li); });
+      return ul;
+    }
+    function count(list, surface) { return list.filter(function (r) { return r.surfaces.indexOf(surface) >= 0; }).length; }
+
+    function goFurtherIdle() {
+      var live = routes.filter(function (r) { return r.tool && visible(r); });
+      next('Try in your browser', [toolLinks(live)]);
+      next('Go further', [linkList([
+        surfaceLink('browser'), surfaceLink('dotnet'), surfaceLink('cli'), surfaceLink('studio'), surfaceLink('powershell'),
+        link('/convert/guides/', 'Read the conversion guides', 'Fidelity, limits and examples per format')
+      ])]);
+    }
+    function goFurtherFormat(name, outs) {
+      var pkgs = [];
+      outs.forEach(function (r) { if (pkgs.indexOf(r.pkg) < 0) pkgs.push(r.pkg); });
+      var shown = pkgs.slice(0, 4).map(packageLink);
+      var cli = count(outs, 'cli'), studio = count(outs, 'studio');
+      next('Go further with ' + name, [
+        toolLinks(outs),
+        linkList(shown.concat([
+          pkgs.length > 4 ? link('/libraries/', 'And ' + plural(pkgs.length - 4, 'more package'), 'Every package on one page', 'dotnet') : null,
+          cli ? surfaceLink('cli', cli === outs.length ? 'Runs all of these' : 'Runs ' + cli + ' of these') : null,
+          studio ? surfaceLink('studio', studio === outs.length ? 'Runs all of these' : 'Runs ' + studio + ' of these') : null
+        ]))
+      ]);
+    }
+    function goFurtherPath(path) {
+      var code = el('pre', 'imo-fmap__code');
+      var lines = [];
+      path.forEach(function (r) { if (lines.indexOf('dotnet add package ' + r.pkg) < 0) lines.push('dotnet add package ' + r.pkg); });
+      path.forEach(function (r) { lines.push('// ' + r.source + ' → ' + r.target, r.api); });
+      code.appendChild(el('code', null, lines.join('\n')));
+      var everywhere = function (s) { return path.every(function (r) { return r.surfaces.indexOf(s) >= 0; }); };
+      var refs = [];
+      path.forEach(function (r) { var a = packageLink(r.pkg); if (a && refs.every(function (x) { return x.href !== a.href; })) refs.push(a); });
+      next('Use it in your code', [code, linkList(refs.concat([
+        everywhere('cli') ? surfaceLink('cli', 'Runs this from the command line') : null,
+        everywhere('studio') ? surfaceLink('studio', 'Runs this in the desktop app') : null
+      ]))]);
+    }
+
     function renderPanel() {
       panel.textContent = '';
       var focus = state.from || state.hover;
@@ -132,6 +228,7 @@
           top.forEach(function (p) { wrap.appendChild(chipButton(p[0])); });
           panel.appendChild(wrap);
         }
+        goFurtherIdle();
         return;
       }
       if (state.from && state.to) {
@@ -147,6 +244,7 @@
           panel.appendChild(list);
         });
         if (paths[0].length > 1) panel.appendChild(el('p', 'imo-fmap__hint', 'Each step is a separate conversion with its own report.'));
+        goFurtherPath(paths[0]);
         return;
       }
       var outs = outOf(focus).sort(function (a, b) { return a.target.localeCompare(b.target); });
@@ -163,6 +261,7 @@
         panel.appendChild(made);
       }
       if (view === 'radial' && state.from) panel.appendChild(el('p', 'imo-fmap__hint', 'Pick a second format to find the way from ' + focus + '.'));
+      if (outs.length) goFurtherFormat(focus, outs);
     }
 
     // ---------------------------------------------------------------- shared controls

@@ -25,6 +25,7 @@ internal static class FormatMapProjection {
                 route.PackageId,
                 route.SupportLevel.ToString(),
                 route.Fidelity.ToString(),
+                route.Api,
                 Surfaces(route, studio, cli)))
             .ToArray();
         FormatMapFormat[] formats = routes
@@ -35,6 +36,14 @@ internal static class FormatMapProjection {
             .ThenBy(static format => Rank(format.Name))
             .ThenBy(static format => format.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        // The website embeds these strings in a JSON script block without escaping; keep them plain.
+        foreach (FormatMapRoute route in routes) {
+            foreach (string value in new[] { route.Id, route.Source, route.Target, route.Package, route.Api }) {
+                if (value.Any(static ch => ch is '"' or '\\' or '<' or '>' or '&' || char.IsControl(ch))) {
+                    throw new InvalidOperationException($"Route '{route.Id}' has a value the format map can't embed as-is: {value}");
+                }
+            }
+        }
         var model = new FormatMapModel(1, Families, formats, routes);
         return JsonSerializer.Serialize(model, FormatMapJsonContext.Default.FormatMapModel).Replace("\r\n", "\n") + "\n";
     }
@@ -92,7 +101,7 @@ internal sealed record FormatMapModel(int SchemaVersion, IReadOnlyList<string> F
 
 internal sealed record FormatMapFormat(string Name, string Family);
 
-internal sealed record FormatMapRoute(string Id, string Source, string Target, string Package, string Support, string Fidelity, IReadOnlyList<string> Surfaces);
+internal sealed record FormatMapRoute(string Id, string Source, string Target, string Package, string Support, string Fidelity, string Api, IReadOnlyList<string> Surfaces);
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
 [JsonSerializable(typeof(FormatMapModel))]
