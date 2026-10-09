@@ -23,6 +23,13 @@ match the independently started cold worker, in addition to repeatability within
 warmed worker. Corpus documents enter OfficeIMO through their frozen source bytes so
 legacy-encoding work remains part of the measured path.
 
+Each iteration also records the case, profile, encoder, page, byte length and SHA-256
+of every output. Use these entries to locate an output-size failure and distinguish
+content or layout changes from encoding changes. PDF entries describe the whole
+document and include its page count; PNG and SVG entries identify the rendered page.
+Their byte lengths sum to the iteration's output total. The report retains metadata,
+without keeping another copy of the encoded output.
+
 Use `--measure-only` to collect a new calibration result without enforcing the
 checked-in platform ceiling. Evidence runs should use clean, commit-addressable source
 and a new output directory.

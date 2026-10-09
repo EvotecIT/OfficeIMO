@@ -80,18 +80,18 @@ internal static class HtmlStaticBudgetWorker {
         var stopwatch = Stopwatch.StartNew();
         long outputBytes = 0;
         int outputCount = 0;
-        var hashes = new List<string>();
+        var outputs = new List<HtmlStaticBudgetOutput>();
         foreach (HtmlRenderingAdvancedHeldOutCase scenario in corpus.Cases) {
             HtmlConversionDocument source = scenario.LoadDocument();
-            RenderPdf(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), scenario.Manifest.ExpectedPrintPageCount, hashes, ref outputBytes, ref outputCount);
-            RenderImages(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), hashes, ref outputBytes, ref outputCount);
-            RenderImages(source, scenario, HtmlRenderIntentProfile.ScreenFullPage, CreateScreenOptions(), hashes, ref outputBytes, ref outputCount);
-            RenderPdf(source, scenario, HtmlRenderIntentProfile.ScreenSnapshotPaged, CreateSnapshotOptions(), null, hashes, ref outputBytes, ref outputCount);
-            RenderImages(source, scenario, HtmlRenderIntentProfile.ScreenSnapshotPaged, CreateSnapshotOptions(), hashes, ref outputBytes, ref outputCount);
+            RenderPdf(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), scenario.Manifest.ExpectedPrintPageCount, outputs, ref outputBytes, ref outputCount);
+            RenderImages(source, scenario, HtmlRenderIntentProfile.PrintPaged, CreatePrintOptions(), outputs, ref outputBytes, ref outputCount);
+            RenderImages(source, scenario, HtmlRenderIntentProfile.ScreenFullPage, CreateScreenOptions(), outputs, ref outputBytes, ref outputCount);
+            RenderPdf(source, scenario, HtmlRenderIntentProfile.ScreenSnapshotPaged, CreateSnapshotOptions(), null, outputs, ref outputBytes, ref outputCount);
+            RenderImages(source, scenario, HtmlRenderIntentProfile.ScreenSnapshotPaged, CreateSnapshotOptions(), outputs, ref outputBytes, ref outputCount);
         }
         stopwatch.Stop();
         long allocated = Math.Max(0L, GC.GetTotalAllocatedBytes(precise: false) - allocatedBefore);
-        string fingerprint = Hash(Encoding.UTF8.GetBytes(string.Join("\n", hashes)));
+        string fingerprint = Hash(Encoding.UTF8.GetBytes(string.Join("\n", outputs.Select(output => output.Sha256))));
         return new HtmlStaticBudgetIteration(
             number,
             stopwatch.Elapsed.TotalMilliseconds,
@@ -99,7 +99,8 @@ internal static class HtmlStaticBudgetWorker {
             outputBytes,
             corpus.Cases.Count,
             outputCount,
-            fingerprint);
+            fingerprint,
+            outputs);
     }
 
     private static void RenderPdf(
@@ -108,12 +109,13 @@ internal static class HtmlStaticBudgetWorker {
         HtmlRenderIntentProfile profile,
         HtmlRenderOptions options,
         int? expectedPages,
-        ICollection<string> hashes,
+        ICollection<HtmlStaticBudgetOutput> outputs,
         ref long outputBytes,
         ref int outputCount) {
         HtmlPdfRenderRequestResult result = source.RenderToPdfResult(HtmlRenderRequest.Create(profile, HtmlRenderEncoder.Pdf, options));
         ValidateDocument(result.RenderResult.Document, scenario, expectedPages);
-        AddOutput(result.ToBytes(), hashes, ref outputBytes, ref outputCount);
+        AddOutput(result.ToBytes(), scenario.Id, profile, HtmlRenderEncoder.Pdf, null,
+            result.RenderResult.Document.Pages.Count, outputs, ref outputBytes, ref outputCount);
     }
 
     private static void RenderImages(
@@ -121,14 +123,19 @@ internal static class HtmlStaticBudgetWorker {
         HtmlRenderingAdvancedHeldOutCase scenario,
         HtmlRenderIntentProfile profile,
         HtmlRenderOptions options,
-        ICollection<string> hashes,
+        ICollection<HtmlStaticBudgetOutput> outputs,
         ref long outputBytes,
         ref int outputCount) {
         foreach (HtmlRenderEncoder encoder in new[] { HtmlRenderEncoder.Png, HtmlRenderEncoder.Svg }) {
             HtmlRenderResult result = HtmlRenderEngine.Execute(source, HtmlRenderRequest.Create(profile, encoder, options));
             ValidateDocument(result.Document, scenario, profile == HtmlRenderIntentProfile.PrintPaged ? scenario.Manifest.ExpectedPrintPageCount : null);
-            foreach (OfficeImageExportResult image in result.ExportImages()) {
-                AddOutput(image.Bytes, hashes, ref outputBytes, ref outputCount);
+            IReadOnlyList<OfficeImageExportResult> images = result.ExportImages();
+            if (images.Count != result.Document.Pages.Count) {
+                throw new InvalidDataException(scenario.Id + " did not export every rendered page.");
+            }
+            for (int index = 0; index < images.Count; index++) {
+                AddOutput(images[index].Bytes, scenario.Id, profile, encoder, result.Document.Pages[index].PageNumber,
+                    result.Document.Pages.Count, outputs, ref outputBytes, ref outputCount);
             }
         }
     }
@@ -149,11 +156,21 @@ internal static class HtmlStaticBudgetWorker {
         }
     }
 
-    private static void AddOutput(byte[] bytes, ICollection<string> hashes, ref long outputBytes, ref int outputCount) {
+    private static void AddOutput(
+        byte[] bytes,
+        string caseId,
+        HtmlRenderIntentProfile profile,
+        HtmlRenderEncoder encoder,
+        int? pageNumber,
+        int pageCount,
+        ICollection<HtmlStaticBudgetOutput> outputs,
+        ref long outputBytes,
+        ref int outputCount) {
         if (bytes.Length == 0) throw new InvalidDataException("A static rendering output was empty.");
         outputBytes += bytes.LongLength;
         outputCount++;
-        hashes.Add(Hash(bytes));
+        outputs.Add(new HtmlStaticBudgetOutput(
+            caseId, profile.ToString(), encoder.ToString(), pageNumber, pageCount, bytes.LongLength, Hash(bytes)));
     }
 
     private static HtmlRenderOptions CreateScreenOptions() => new() {
