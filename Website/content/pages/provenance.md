@@ -26,12 +26,26 @@ The browser tool accepts JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX files up to 
 ## What the browser tool does
 
 1. Choose a supported image or document. The check starts straight away.
-2. Review what was found: each kind of record, what it says, and where it is stored.
+2. Review what was found: each kind of record, what it says, and where it is stored. For Content Credentials this includes what the record itself claims, described below.
 3. Untick anything you want to keep. Each ticked kind removes every eligible record of that kind.
 4. Save a separate copy. OfficeIMO inspects the copy again and lists what was removed, what was kept, and anything it could not remove.
 5. Download the copy and, if you need it, the JSON report.
 
 Your original file is never overwritten. When a record is malformed, ambiguous, or unsafe to rewrite, OfficeIMO preserves or rejects it instead of silently damaging the file.
+
+## What Content Credentials say
+
+When a file carries Content Credentials (C2PA), the tool reads the active record and shows what it claims:
+
+- **Made with:** the app that wrote the record, such as an image service or editor, and the AI model named for each step when one is recorded.
+- **AI-generated:** whether a step declares a generative AI source (the IPTC "trained algorithmic media" type) or a mix of AI and other content.
+- **Steps:** what the record says happened, such as created, edited, converted, or cropped.
+- **Based on:** other files the record lists as ingredients.
+- **Signed by:** the organization named in the signing certificate, and who issued that certificate.
+
+These are the record's own statements. The tool reads the certificate names but does not verify the signature, so it cannot tell whether the record was changed after it was written. Some records also say a watermark was added to the content itself; removing the record does not remove that watermark, and the result says so.
+
+In .NET, the same summary is available as `OfficeProvenanceEvidence.Manifest` on each Content Credentials record returned by the provenance inspection API.
 
 ## Find hidden characters in text
 
@@ -51,6 +65,6 @@ Removing these records can break an existing signature or credential chain. The 
 
 ## What it does not do
 
-This tool does not remove visible watermarks, logos, text printed on a page, image pixels, or unrelated personal metadata. It does not fetch external credential data, validate signer trust, prove that a file is authentic, or decide whether a human or AI created it. A file with no detected Content Credentials is simply a file with no supported record found; that absence is not proof of origin.
+This tool does not remove visible or invisible watermarks, logos, text printed on a page, image pixels, or unrelated personal metadata. It does not fetch external credential data, validate signer trust, prove that a file is authentic, or decide whether a human or AI created it. A file with no detected Content Credentials is simply a file with no supported record found; that absence is not proof of origin.
 
 Use the [provenance support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.provenance-support-matrix.md) when you need exact format and carrier coverage.

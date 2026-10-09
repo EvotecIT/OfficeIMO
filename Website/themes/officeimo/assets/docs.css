@@ -122,3 +122,30 @@
   .imo-faq-nav { grid-auto-flow: column; justify-content: start; }
 }
 @media (prefers-reduced-motion: reduce) { .imo-faq-card, .imo-faq-card summary svg { transition: none; } }
+/* PDF guides index (shortcodes/pdf-workflows): compact cards grouped by job, each with its guide and tool. */
+.imo-pdf-guides { display: grid; gap: 1.75rem; margin: 1.25rem 0 2.25rem; }
+.imo-pdf-guides__group h2 { display: flex; align-items: center; gap: .55rem; margin: 0 0 .75rem; font-size: 1.05rem; letter-spacing: .02em; }
+.imo-pdf-guides__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--g, var(--imo-accent)); }
+.imo-pdf-guides__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: .5rem 0 1rem; }
+.imo-pdf-guide {
+  --g: var(--imo-accent);
+  position: relative; display: flex; flex-direction: column; gap: .45rem; padding: 14px 16px 12px; border-radius: 12px;
+  border: 1px solid var(--imo-border); background: linear-gradient(180deg, color-mix(in srgb, var(--g) 7%, var(--imo-surface)), var(--imo-surface) 60%);
+  transition: border-color .2s ease, transform .2s ease;
+}
+.imo-pdf-guide::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; border-radius: 12px 0 0 12px; background: var(--g); opacity: .8; }
+.imo-pdf-guide:hover { border-color: color-mix(in srgb, var(--g) 45%, var(--imo-border)); transform: translateY(-1px); }
+.imo-pdf-guide h3 { margin: 0; font-size: 1rem; line-height: 1.3; }
+.imo-pdf-guide h3 a { color: var(--imo-text); text-decoration: none; }
+.imo-pdf-guide p { margin: 0; font-size: .86rem; line-height: 1.55; color: var(--imo-text-secondary); }
+.imo-pdf-guide__links { display: flex; flex-wrap: wrap; gap: .4rem .9rem; margin-top: auto; padding-top: .35rem; font-size: .82rem; font-weight: 600; }
+.imo-pdf-guide__links a { color: var(--imo-text-secondary); text-decoration: none; }
+.imo-pdf-guide__links a::after { content: " →"; }
+.imo-pdf-guide__links a:hover { color: var(--imo-text); }
+.imo-pdf-guide__links .imo-pdf-guide__try { color: var(--imo-p-browser); }
+.imo-pdf-guides__dot--understand, .imo-pdf-guide--understand { --g: var(--imo-p-studio); }
+.imo-pdf-guides__dot--organize, .imo-pdf-guide--organize { --g: var(--imo-p-browser); }
+.imo-pdf-guides__dot--publish, .imo-pdf-guide--publish { --g: var(--imo-excel); }
+.imo-pdf-guides__dot--secure, .imo-pdf-guide--secure { --g: var(--imo-pdf); }
+.imo-pdf-guide--convert { --g: var(--imo-p-dotnet); }
+@media (prefers-reduced-motion: reduce) { .imo-pdf-guide { transition: none; } .imo-pdf-guide:hover { transform: none; } }
