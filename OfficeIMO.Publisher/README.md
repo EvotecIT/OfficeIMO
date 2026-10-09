@@ -37,7 +37,12 @@ publication file.
 
 `TextStories` retains complete decoded text, including content that cannot be
 placed or does not fit a frame. Paragraphs carry recovered font names, sizes,
-emphasis, alignment, spacing, and indentation. Dynamic field markers and cached
+emphasis, alignment, spacing, and indentation. Referenced native style values
+fill properties that have no direct override. Native bullet labels remain
+separate from story text, with their hanging indentation and text position;
+declared left tabs use the shared measured tab layout. Style-library metadata,
+numbering sequences and other tab variants have explicit recovery limits.
+Dynamic field markers and cached
 display text remain unevaluated. `Images` retains original embedded payloads;
 `GetBytes()` returns an independent copy.
 

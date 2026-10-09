@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-internal sealed class PublisherQuillStyleReader {
+internal sealed partial class PublisherQuillStyleReader {
     private readonly PublisherBinaryData _data;
     private readonly PublisherParseContext _context;
     private readonly PublisherBlockReader _blocks;
@@ -58,15 +58,20 @@ internal sealed class PublisherQuillStyleReader {
         _data.Range(chunk.Offset, 20, chunk.End);
         int count = _data.Offset(_data.U32(chunk.Offset + 4));
         _data.Range(chunk.Offset + 20, checked(count * 4), chunk.End);
-        if (count > 0) {
-            int position = checked(chunk.Offset + 22 + _data.Offset(_data.U32(chunk.Offset + 20)));
-            _styles.DefaultCharacter = ReadCharacter(position, chunk.End);
+        if ((count & 1) != 0 || count / 2 > _context.Options.Limits.MaxItems)
+            throw new InvalidDataException("Publisher default style pairs exceed the supported resource bounds.");
+        for (int i = 0; i < count; i++) {
+            _context.Record();
+            int position = checked(chunk.Offset + 22 + _data.Offset(_data.U32(chunk.Offset + 20 + i * 4)));
+            if ((i & 1) == 0) _styles.CharacterDefaults.Add(ReadCharacter(position, chunk.End));
+            else _styles.ParagraphDefaults.Add(ReadParagraph(position, chunk.End));
         }
-        if (count > 1) {
-            int position = checked(chunk.Offset + 22 + _data.Offset(_data.U32(chunk.Offset + 24)));
-            _styles.DefaultParagraph = ReadParagraph(position, chunk.End);
+        if (count != 0) {
+            _styles.DefaultCharacter = _styles.CharacterDefaults[0];
+            _styles.DefaultParagraph = _styles.ParagraphDefaults[0];
         }
-        if (count > 2) _context.Add("PUB_NAMED_STYLES_UNASSESSED", "Additional native named style inheritance has not been assessed.", OfficeConversionLossKind.Unassessed, "Quill/STSH");
+        if (count > 2) _context.Add("PUB_NAMED_STYLE_METADATA_UNASSESSED",
+            "Referenced native style values are projected. Style names and auxiliary inheritance metadata are not exposed as an editable style library.", OfficeConversionLossKind.Unassessed, "Quill/STSH");
     }
     private void ReadRanges(PublisherQuillChunk chunk) {
         _data.Range(chunk.Offset, 8, chunk.End);
@@ -108,35 +113,6 @@ internal sealed class PublisherQuillStyleReader {
                     result.Baseline = field.Value switch { 1 => OfficeTextBaseline.Superscript, 2 => OfficeTextBaseline.Subscript, _ => OfficeTextBaseline.Normal }; break;
             }
         }
-        return result;
-    }
-    private PublisherParagraphStyle ReadParagraph(int offset, int end) {
-        var result = new PublisherParagraphStyle();
-        double before = 0, after = 0, left = 0, right = 0, indent = 0;
-        foreach (PublisherBlock field in _blocks.Chunk(offset, end)) {
-            switch (field.Id) {
-                case 0x04:
-                    result.Alignment = (field.Value & 255) switch { 2 => OfficeTextAlignment.Center, 1 => OfficeTextAlignment.Right, 6 => OfficeTextAlignment.Justify, _ => OfficeTextAlignment.Left }; break;
-                case 0x34:
-                    if ((field.Value & 1) != 0) result.LineHeight = (field.Value - 1) / (8D * 12700);
-                    else if ((field.Value & 2) != 0) result.LineHeightFactor = (field.Value - 2) / (96D * 12700);
-                    break;
-                case 0x12: before = field.Value / 12700D; break;
-                case 0x13: after = field.Value / 12700D; break;
-                case 0x0D: left = unchecked((int)field.Value) / 12700D; break;
-                case 0x0E: right = unchecked((int)field.Value) / 12700D; break;
-                case 0x0C: indent = unchecked((int)field.Value) / 12700D; break;
-                case 0x57: case 0x32: case 0x08:
-                    _context.Add("PUB_PARAGRAPH_FEATURE_UNASSESSED", "Native lists, custom tab stops, and drop caps require additional paragraph projection.", OfficeConversionLossKind.Unassessed, "Quill/FDPP"); break;
-            }
-        }
-        if (result.LineHeight <= 0) result.LineHeight = null;
-        if (result.LineHeightFactor <= 0) result.LineHeightFactor = null;
-        double paragraphLeft = left + Math.Min(0, indent);
-        if (paragraphLeft < 0 || right < 0) _context.Add("PUB_NEGATIVE_PARAGRAPH_MARGIN_APPROXIMATED",
-            "A paragraph extending outside its text frame was clamped to that frame.", OfficeConversionLossKind.Approximation, "Quill/FDPP");
-        result.Margins = new OfficeTextPadding(Math.Max(0, paragraphLeft), before, Math.Max(0, right), after);
-        result.Indent = new OfficeTextParagraphIndent(Math.Max(0, indent), Math.Max(0, -indent));
         return result;
     }
 }

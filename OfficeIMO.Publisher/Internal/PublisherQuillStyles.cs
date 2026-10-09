@@ -11,6 +11,8 @@ internal sealed class PublisherQuillStyles {
     internal List<uint> Colors { get; } = new();
     internal List<PublisherCharacterRange> Characters { get; } = new();
     internal List<PublisherParagraphRange> Paragraphs { get; } = new();
+    internal List<PublisherCharacterStyle> CharacterDefaults { get; } = new();
+    internal List<PublisherParagraphStyle> ParagraphDefaults { get; } = new();
     internal PublisherCharacterStyle DefaultCharacter { get; set; } = new();
     internal PublisherParagraphStyle DefaultParagraph { get; set; } = new();
     internal PublisherCharacterRange? CharacterAt(int position) {
@@ -19,10 +21,19 @@ internal sealed class PublisherQuillStyles {
     }
     internal PublisherParagraphStyle ParagraphAt(int position) {
         int index = Find(Paragraphs.Count, i => Paragraphs[i].End, position);
-        return index < Paragraphs.Count ? Paragraphs[index].Style : DefaultParagraph;
+        PublisherParagraphStyle direct = index < Paragraphs.Count ? Paragraphs[index].Style : DefaultParagraph;
+        uint selected = direct.DefaultStyleIndex ?? 0;
+        if (selected >= ParagraphDefaults.Count) {
+            if (direct.DefaultStyleIndex.HasValue) _context.Add("PUB_TEXT_STYLE_REFERENCE_UNRESOLVED",
+                "A paragraph references an unavailable native style. Recovered global defaults fill its unspecified values.", OfficeConversionLossKind.Approximation, "Quill/STSH");
+            return direct.Inherit(DefaultParagraph);
+        }
+        return direct.Inherit(ParagraphDefaults[(int)selected]).Inherit(DefaultParagraph);
     }
-    internal OfficeRichTextRun Run(string text, PublisherCharacterStyle? style) {
-        style ??= DefaultCharacter;
+    internal OfficeRichTextRun Run(string text, PublisherCharacterStyle? style, PublisherParagraphStyle? paragraph = null) {
+        uint selected = paragraph?.DefaultStyleIndex ?? 0;
+        PublisherCharacterStyle fallback = selected < CharacterDefaults.Count ? CharacterDefaults[(int)selected] : DefaultCharacter;
+        style = (style ?? new PublisherCharacterStyle()).Inherit(fallback).Inherit(DefaultCharacter);
         double size = style.Size ?? DefaultCharacter.Size ?? 10;
         uint font = style.Font ?? DefaultCharacter.Font ?? 0;
         string family = font < Fonts.Count ? Fonts[(int)font] : "Times New Roman";
@@ -55,13 +66,11 @@ internal sealed class PublisherCharacterStyle {
     internal bool? Italic { get; set; }
     internal bool? Underline { get; set; }
     internal OfficeTextBaseline? Baseline { get; set; }
-}
-internal sealed class PublisherParagraphStyle {
-    internal OfficeTextAlignment Alignment { get; set; }
-    internal double? LineHeight { get; set; }
-    internal double? LineHeightFactor { get; set; }
-    internal OfficeTextPadding Margins { get; set; }
-    internal OfficeTextParagraphIndent Indent { get; set; }
+    internal PublisherCharacterStyle Inherit(PublisherCharacterStyle fallback) => new() {
+        Size = Size ?? fallback.Size, Font = Font ?? fallback.Font, Color = Color ?? fallback.Color,
+        Bold = Bold ?? fallback.Bold, Italic = Italic ?? fallback.Italic, Underline = Underline ?? fallback.Underline,
+        Baseline = Baseline ?? fallback.Baseline
+    };
 }
 internal sealed class PublisherCharacterRange {
     internal PublisherCharacterRange(int end, PublisherCharacterStyle style) { End = end; Style = style; }

@@ -69,31 +69,59 @@ internal sealed class PublisherQuillTextReader {
     }
     private IReadOnlyList<OfficeRichTextParagraph> ReadParagraphs(string text, int storyOffset, PublisherQuillStyles styles) {
         var paragraphs = new List<OfficeRichTextParagraph>();
-        int start = 0, runCount = 0;
+        int start = 0, runCount = 0, projectedCharacters = 0;
         // A trailing native paragraph terminator belongs to its paragraph, not an additional empty paragraph.
         while (start < text.Length) {
             _context.Record();
             int newline = text.IndexOf('\r', start);
             int end = newline < 0 ? text.Length : newline;
+            PublisherParagraphStyle paragraph = styles.ParagraphAt(storyOffset + start);
+            if ((paragraph.Left ?? 0) + Math.Min(0, paragraph.FirstLine ?? 0) < 0 || paragraph.Right < 0)
+                _context.Add("PUB_NEGATIVE_PARAGRAPH_MARGIN_APPROXIMATED", "A paragraph extending outside its text frame was clamped to that frame.",
+                    OfficeConversionLossKind.Approximation, "Quill/FDPP");
             int cursor = start;
             var runs = new List<OfficeRichTextRun>();
             while (cursor < end) {
                 PublisherCharacterRange? range = styles.CharacterAt(storyOffset + cursor);
                 int next = range == null ? end : Math.Min(end, range.End - storyOffset);
                 if (next <= cursor) throw new InvalidDataException("Publisher character formatting does not advance.");
-                runs.Add(styles.Run(Normalize(text.Substring(cursor, next - cursor)), range?.Style));
+                runs.Add(styles.Run(Normalize(text.Substring(cursor, next - cursor)), range?.Style, paragraph));
                 if (++runCount > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit.");
                 cursor = next;
             }
-            if (runs.Count == 0) { runs.Add(styles.Run(string.Empty, null)); runCount++; }
-            PublisherParagraphStyle paragraph = styles.ParagraphAt(storyOffset + start);
-            paragraphs.Add(new OfficeRichTextParagraph(runs, paragraph.Alignment, paragraph.LineHeight,
-                paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor));
+            if (runs.Count == 0) { runs.Add(styles.Run(string.Empty, null, paragraph)); runCount++; }
+            OfficeTextParagraphLabel? label = ListLabel(paragraph, runs[0], styles);
+            projectedCharacters = checked(projectedCharacters + runs.Sum(run => run.Text.Length)
+                + (label?.Run.Text.Length ?? 0) + (paragraphs.Count == 0 ? 0 : 1));
+            if (projectedCharacters > 100000) throw new InvalidDataException("Publisher story exceeds the shared drawing text limit, including list labels.");
+            OfficeRichTextParagraph projected = label == null
+                ? new OfficeRichTextParagraph(runs, paragraph.Alignment ?? OfficeTextAlignment.Left, paragraph.LineHeight,
+                    paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
+                : new OfficeRichTextParagraph(runs, label, paragraph.Alignment ?? OfficeTextAlignment.Left, paragraph.LineHeight,
+                    paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor);
+            if (label != null && ++runCount > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including list labels.");
+            paragraphs.Add(projected.WithTabStops(paragraph.TabStops));
             if (runCount + paragraphs.Count - 1 > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit, including paragraph separators.");
             if (paragraphs.Count > 4096) throw new InvalidDataException("Publisher paragraph limit exceeded.");
             start = newline < 0 ? text.Length : end + 1;
         }
         return paragraphs;
+    }
+
+    private OfficeTextParagraphLabel? ListLabel(PublisherParagraphStyle paragraph, OfficeRichTextRun text, PublisherQuillStyles styles) {
+        uint bullet = paragraph.List?.Bullet ?? 0;
+        if (bullet == 0) return null;
+        if (bullet > 0x10FFFF || bullet is >= 0xD800 and <= 0xDFFF || char.IsControl(char.ConvertFromUtf32((int)bullet), 0))
+            throw new InvalidDataException("Invalid Publisher list-label Unicode scalar.");
+        string native = char.ConvertFromUtf32((int)bullet);
+        OfficeRichTextRun label = styles.Run(native, new PublisherCharacterStyle {
+            Font = paragraph.LabelFont, Size = paragraph.LabelSize > 0 ? paragraph.LabelSize : text.FontSize, Color = null
+        }, paragraph);
+        (string marker, bool useTextFont) = OfficeTextListMarkerNormalizer.Normalize(native, label.FontFamily);
+        label = new OfficeRichTextRun(marker, label.FontSize, text.Color, fontFamily: useTextFont ? text.FontFamily : label.FontFamily);
+        double first = paragraph.Margins.Left + paragraph.Indent.FirstLineOffset;
+        return OfficeTextParagraphLabel.AtPosition(label, first, textPosition: paragraph.LabelTextPosition
+            ?? paragraph.Margins.Left + paragraph.Indent.ContinuationLineOffset);
     }
     internal static string Normalize(string text) => text.Replace('\r', '\n').Replace("\0", string.Empty);
 }

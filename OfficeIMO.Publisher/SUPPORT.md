@@ -24,7 +24,8 @@ they are not produced by an OfficeIMO writer.
 | --- | --- | --- |
 | Document pages | Native order, physical size and page clipping | Utility/reference definitions are excluded |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
-| Text | UTF-16 stories, styled paragraphs, reciprocal native frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; named styles, custom tabs, lists and drop caps are not fully reconstructed |
+| Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
+| Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and non-solid fills report approximation; compound strokes and arrowheads remain unassessed |
 | Groups | Native child coordinate spaces and nested placement | Group rotation/mirroring reports approximation when present |
@@ -62,6 +63,10 @@ cancellation and caller stream ownership. The native newsletter exercises ten
 linked stories, including chains whose object order differs from story order,
 and declared picture exclusions. Multi-column property and malformed-link
 mutations protect the native codec boundary; they are synthetic evidence.
+The brochure and newsletter also verify referenced style defaults, direct
+formatting precedence, native bullet labels and tab-array positions. Those
+checks compare decoded values with the native records, not Publisher-rendered
+line breaks. Bullet labels do not change source-story character ranges.
 
 The libmspub 0.1.5 reader independently confirms page dimensions, text-frame
 coordinates, text styling and table semantics for the simple/table sample
