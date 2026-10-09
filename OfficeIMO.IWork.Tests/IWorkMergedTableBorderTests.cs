@@ -129,9 +129,32 @@ public sealed partial class IWorkBoundaryTests {
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
     }
 
-    private static MemoryStream MergedBorderPackage(IWorkDocumentKind kind, int rows, int columns, bool varyingTop = false) {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Saved_Excel_merge_clears_interior_border_when_its_perimeter_is_undeclared(bool horizontalEdge) {
+        using var package = MergedBorderPackage(IWorkDocumentKind.Numbers, horizontalEdge ? 3 : 1, horizontalEdge ? 1 : 2,
+            missingOuterVertical: !horizontalEdge, missingOuterHorizontal: horizontalEdge);
+        using var result = IWorkSourceDocument.Open(package).ToExcelDocumentResult();
+        result.Report.RequireCompleteEditableReconstruction();
+        using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using var reopened = ExcelDocument.Load(saved);
+        var borders = reopened.Sheets[0].GetCellStyle(1, 1).Border!;
+        if (horizontalEdge) {
+            Assert.True(borders.Bottom?.Style is null or "none");
+            Assert.Equal("medium", borders.Left!.Style);
+        } else {
+            Assert.True(borders.Right?.Style is null or "none");
+            Assert.Equal("medium", borders.Top!.Style);
+        }
+    }
+
+    private static MemoryStream MergedBorderPackage(IWorkDocumentKind kind, int rows, int columns, bool varyingTop = false,
+        bool missingOuterVertical = false, bool missingOuterHorizontal = false) {
         var records = new List<byte[]> { ArchiveRecord(40, 6003, BytesField(11, Message(
-            BytesField(58, BorderStroke(2)), BytesField(59, BorderStroke(2)), BytesField(60, BorderStroke(1)), BytesField(61, BorderStroke(1))))) };
+            missingOuterHorizontal ? Array.Empty<byte>() : BytesField(58, BorderStroke(2)),
+            missingOuterVertical ? Array.Empty<byte>() : BytesField(59, BorderStroke(2)),
+            BytesField(60, BorderStroke(1)), BytesField(61, BorderStroke(1))))) };
         if (varyingTop) {
             records.Add(ArchiveRecord(60, 6305, Message(VarintField(1, 1), VarintField(2, 2), VarintField(3, 3), ReferenceField(6, 61))));
             records.Add(ArchiveRecord(61, 6306, Message(VarintField(1, 0), BytesField(2, Message(

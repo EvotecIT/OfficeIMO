@@ -238,8 +238,12 @@ public static partial class ExcelIWorkConverter {
                             if (cell.NumberFormat is { } numberFormat)
                                 sheet.FormatCell(cell.Row, cell.Column, numberFormat.ToSpreadsheetFormatCode());
                         }
-                        foreach (var merge in table.ResolveMergedBorders(cancellationToken))
-                            ApplyTableBorders(sheet.CellAt(merge.Range.FirstRow, merge.Range.FirstColumn), merge.Borders);
+                        foreach (var merge in table.ResolveMergedBorders(cancellationToken)) {
+                            var anchor = sheet.CellAt(merge.Range.FirstRow, merge.Range.FirstColumn);
+                            // An absent perimeter edge must clear any physical interior edge already applied to this anchor.
+                            anchor.SetBorder(ExcelCellBorders.All, ExcelBorderStyle.None);
+                            ApplyTableBorders(anchor, merge.Borders);
+                        }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             cancellationToken.ThrowIfCancellationRequested();
                             sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
