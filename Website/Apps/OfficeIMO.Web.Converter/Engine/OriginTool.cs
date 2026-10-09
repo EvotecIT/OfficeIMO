@@ -50,7 +50,7 @@ internal static class OriginTool {
             string? model = first.Actions.Select(static action => Clip(action.SoftwareAgent)).FirstOrDefault(static agent => agent != null);
             if ((model ?? Clip(first.ClaimGenerator)) is { } madeWith) facts.Add(new ToolFact("Made with", madeWith));
             if (first.DeclaresGenerativeAi) facts.Add(new ToolFact("AI-generated", "Yes, by its own record", ToolTone.Warn));
-            if (Clip(first.SignedBy) is { } signer) facts.Add(new ToolFact("Signed by", signer));
+            if (Clip(first.SignedBy) is { } signer) facts.Add(new ToolFact("Certificate subject", signer + " · unverified", ToolTone.Warn));
         }
         return new ToolResultDocument(true, verdict, facts.ToArray(), items.ToArray(), artifacts, null, 0);
     }
@@ -86,8 +86,8 @@ internal static class OriginTool {
             }
         }
         string signature = Clip(manifest.SignedBy) is { } signer
-            ? "Signed by " + signer
-            : "Signer not named";
+            ? "Certificate subject: " + signer + " (unverified)"
+            : "Certificate subject not named";
         string issuer = Clip(manifest.CertificateIssuer) is { } ca && !string.Equals(ca, manifest.SignedBy, StringComparison.Ordinal)
             ? $"The certificate was issued by {ca}. "
             : string.Empty;
@@ -220,7 +220,7 @@ internal static class OriginTool {
             string validity = evidence.All(static item => item.IsStructurallyValid) ? string.Empty : " Some look malformed and will be left in place.";
             (string id, string title, string what) = group.Key switch {
                 OfficeProvenanceCarrierKind.C2paManifest => (Manifests, "Content Credentials",
-                    "A signed record of how the file was made or edited (C2PA)."),
+                    "A record claiming how the file was made or edited (C2PA). Its signature is not verified here."),
                 OfficeProvenanceCarrierKind.C2paExternalManifest => (References, "Link to Content Credentials",
                     "Points to a record stored outside the file" + (evidence[0].Value is { Length: > 0 } uri ? $" ({uri})" : string.Empty) + "."),
                 _ => (Declarations, "AI source label", SourceTypeText(evidence))
@@ -259,7 +259,7 @@ internal static class OriginTool {
         }
         if (report.HasC2paManifest) {
             parts.Add(Clip(first?.SignedBy) is { } signer
-                ? $"It carries Content Credentials signed by {signer}."
+                ? $"Its Content Credentials name {signer} as the certificate subject; this is unverified."
                 : "It carries Content Credentials.");
         }
         if (report.HasExternalC2paManifest) parts.Add("It links to Content Credentials stored elsewhere.");

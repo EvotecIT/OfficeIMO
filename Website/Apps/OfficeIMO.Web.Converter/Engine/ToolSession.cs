@@ -10,7 +10,8 @@ internal sealed class ToolSession {
     internal const int MaxInputs = BrowserPdfToolService.MaxPdfFiles;
     private readonly SelectedDocument?[] _inputs = new SelectedDocument?[MaxInputs];
     private readonly List<BrowserConversionArtifact> _artifacts = [];
-    private readonly Dictionary<string, BrowserPdfPreview> _previews = new(StringComparer.Ordinal);
+    // Keep PDF-specific types out of generic cache operations: text-only workers do not load the PDF assembly.
+    private readonly Dictionary<string, object> _previews = new(StringComparer.Ordinal);
 
     internal BrowserConversionService Conversions { get; } = new();
     internal BrowserPdfToolService PdfTools { get; } = new();
@@ -32,6 +33,7 @@ internal sealed class ToolSession {
     internal void ClearInputs() {
         Array.Clear(_inputs);
         _previews.Clear();
+        _artifacts.Clear();
         LastConversion = null;
         LastReview = null;
     }
@@ -62,13 +64,13 @@ internal sealed class ToolSession {
 
     internal BrowserPdfPreview Preview(string source, int index) {
         string key = source + ":" + index.ToString(CultureInfo.InvariantCulture);
-        if (_previews.TryGetValue(key, out BrowserPdfPreview? preview)) return preview;
+        if (_previews.TryGetValue(key, out object? cached)) return (BrowserPdfPreview)cached;
         byte[] bytes = source switch {
             "input" => Input(index).Bytes,
             "artifact" => Artifact(index),
             _ => throw new ArgumentOutOfRangeException(nameof(source))
         };
-        preview = new BrowserPdfPreview(bytes);
+        var preview = new BrowserPdfPreview(bytes);
         _previews[key] = preview;
         return preview;
     }

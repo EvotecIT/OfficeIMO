@@ -36,6 +36,7 @@ internal sealed class OfficeCborReader {
         var reader = new OfficeCborReader(data, offset, length, maximumItems);
         try {
             value = reader.ReadItem(0);
+            if (reader._position != reader._end) throw new FormatException("Trailing CBOR data.");
             return true;
         } catch (FormatException) {
             value = null;
@@ -92,7 +93,10 @@ internal sealed class OfficeCborReader {
     private void AddEntry(Dictionary<object, object?> map, int depth) {
         object? key = ReadItem(depth + 1);
         object? value = ReadItem(depth + 1);
-        if (key is string or long) map[key] = value; // other key types are not used by C2PA or COSE headers
+        if (key is string or long) {
+            if (map.ContainsKey(key)) throw new FormatException("Duplicate CBOR map key.");
+            map.Add(key, value);
+        } // other key types are not used by C2PA or COSE headers
     }
 
     private object? ReadSimple(int info) {
@@ -130,9 +134,12 @@ internal sealed class OfficeCborReader {
     private byte[] ReadIndefiniteBytes(int major) {
         var chunks = new List<byte>();
         while (!TryReadBreak()) {
+            if (--_budget < 0) throw new FormatException("CBOR item budget exceeded.");
             byte initial = ReadByte();
             if (initial >> 5 != major || (initial & 0x1F) == 31) throw new FormatException("Invalid CBOR string chunk.");
-            chunks.AddRange(ReadBytes(Length(ReadArgument(initial & 0x1F))));
+            byte[] chunk = ReadBytes(Length(ReadArgument(initial & 0x1F)));
+            if (major == 3) Utf8(chunk); // Each text chunk must be valid UTF-8 on its own.
+            chunks.AddRange(chunk);
         }
         return chunks.ToArray();
     }

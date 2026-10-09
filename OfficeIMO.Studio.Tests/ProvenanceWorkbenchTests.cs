@@ -14,6 +14,65 @@ public sealed class ProvenanceWorkbenchTests {
     [Theory]
     [InlineData(840, 600)]
     [InlineData(1280, 800)]
+    public async Task CredentialPanelShowsRecordedActionsAndClearsForTheNextInput(int width, int height) {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            services.Preferences.Update(current => current with { Theme = width >= 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light });
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "credential.png");
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "fixtures", "unsigned-credential-12-actions.png"), source);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            model.ShowProvenanceCommand.Execute(null);
+            var workspace = model.ProvenanceWorkbench;
+            workspace.InputPath = source;
+            workspace.OutputFolder = services.Paths.Root;
+            await workspace.AssessCommand.ExecuteAsync(null);
+            var credential = Assert.Single(workspace.Credentials);
+            Assert.True(workspace.HasCredentials, workspace.Status);
+            Assert.Equal(12, credential.Actions.Count);
+            Assert.Equal("Generator", credential.Generator);
+            Assert.Equal("Unverified subject", credential.CertificateSubject);
+            Assert.Equal("Time not recorded", credential.Actions[1].Time);
+            Assert.True(credential.Actions[1].HasWatermark);
+            Assert.Contains("Verification: NotConfigured", workspace.Checks);
+            var view = new ProvenanceWorkbenchView { DataContext = model };
+            var window = new Window { Width = width, Height = height, Content = view };
+            try {
+                window.Show(); window.UpdateLayout();
+                TextBlock subject = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text?.StartsWith("Certificate subject (unverified):") == true);
+                subject.BringIntoView(); window.UpdateLayout();
+                Assert.True(subject.IsEffectivelyVisible);
+                Capture(window, "provenance-credentials-" + width);
+                TextBlock watermark = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.IsVisible && text.Text?.StartsWith("The record claims a watermark") == true);
+                watermark.BringIntoView(); window.UpdateLayout();
+                Capture(window, "provenance-timeline-" + width);
+                TextBlock finalAction = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == "Editor 11");
+                finalAction.BringIntoView(); window.UpdateLayout();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                var finalPosition = finalAction.TranslatePoint(new Point(0, 0), window);
+                Assert.NotNull(finalPosition);
+                Assert.InRange(finalPosition.Value.Y, 0, height - finalAction.Bounds.Height);
+                Capture(window, "provenance-timeline-last-" + width);
+                await workspace.ExportReportCommand.ExecuteAsync(null);
+                using var report = JsonDocument.Parse(await File.ReadAllTextAsync(workspace.ReportPath));
+                Assert.Equal(12, report.RootElement.GetProperty("assessment").GetProperty("structural").GetProperty("evidence")[0].GetProperty("manifest").GetProperty("actions").GetArrayLength());
+                workspace.RemoveManifests = true;
+                await workspace.CreateCopyCommand.ExecuteAsync(null);
+                Assert.True(File.Exists(workspace.OutputPath), workspace.Status);
+                Assert.False(workspace.HasCredentials);
+                workspace.InputPath = source + ".other";
+                Assert.Empty(workspace.Credentials);
+                Assert.False(workspace.CanExportReport);
+                Assert.False(workspace.CanCreateCopy);
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(840, 600)]
+    [InlineData(1280, 800)]
     public async Task ReviewCopyAndExportRemainAccessibleWithoutChangingTheSource(int width, int height) {
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {

@@ -3,6 +3,8 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using OfficeIMO.Core.Internal;
+using OfficeIMO.Provenance;
 
 namespace OfficeIMO.Web.Converter.Services;
 
@@ -86,7 +88,7 @@ internal static partial class BrowserFallbackFonts {
     private static partial Regex CharacterReference();
 
     /// <summary>Font names the pack maps to Noto Sans Symbols 2 (see the profile's symbol aliases and font-pack.json).</summary>
-    [GeneratedRegex(@"\b(?:Symbol|ZapfDingbats|Zapf\s+Dingbats)\b", RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"\b(?:Symbol|ZapfDingbats|Zapf\s+Dingbats)\b", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)]
     private static partial Regex SymbolFontName();
 
     /// <summary>Layout controls and invisible characters that need no glyph.</summary>
@@ -95,14 +97,21 @@ internal static partial class BrowserFallbackFonts {
             (>= 0x2060 and <= 0x206F) or 0xFEFF or (>= 0xFE00 and <= 0xFE0F) or (>= 0xFFF0 and <= 0xFFFF);
 
     private static bool PackageNeeds(byte[] bytes) {
+        OfficePackageSecurityOptions security = BrowserConversionService.CreateBrowserPackageSecurity();
+        OfficePackageSecurityInspector.Validate(bytes, security);
         using var archive = new ZipArchive(new MemoryStream(bytes, writable: false), ZipArchiveMode.Read);
+        var metadata = OfficeProvenanceZip.GetInputEntryMetadata(bytes, archive);
         long budget = MaximumScannedBytes;
         foreach (ZipArchiveEntry entry in archive.Entries) {
             if (!Scanned(entry.FullName)) continue;
             budget -= entry.Length;
             if (budget < 0) return true;
-            using Stream stream = entry.Open();
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            // ZipArchive can clamp output to a false declared length on some runtimes.
+            // The shared reader opens the validated compressed range and proves decoded EOF.
+            using Stream stream = OfficeArchiveSafety.OpenEntryPayload(bytes, entry, metadata[entry]);
+            byte[] content = OfficeArchiveSafety.ReadEntryBytes(stream, entry.Length, security.MaxPartUncompressedBytes);
+            OfficeArchiveSafety.ValidateEntryChecksum(content, metadata[entry].Checksum);
+            using var reader = new StreamReader(new MemoryStream(content, writable: false), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             if (Needed(reader.ReadToEnd())) return true;
         }
         return false;

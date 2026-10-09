@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Xml.Linq;
+using System.Runtime.CompilerServices;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Web.Converter.Services;
@@ -165,8 +166,8 @@ public sealed class BrowserToolCatalogTests {
     private static string[] Accept(JsonElement tool) =>
         tool.GetProperty("input").GetProperty("accept").GetString()!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private static string FindWebsiteRoot() {
-        string? directory = AppContext.BaseDirectory;
+    private static string FindWebsiteRoot([CallerFilePath] string sourcePath = "") {
+        string? directory = Path.GetDirectoryName(sourcePath);
         while (directory is not null) {
             if (File.Exists(Path.Combine(directory, "data", "browser_tools.json"))) return directory;
             string nested = Path.Combine(directory, "Website");

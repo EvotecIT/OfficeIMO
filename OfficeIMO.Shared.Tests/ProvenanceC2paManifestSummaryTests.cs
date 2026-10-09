@@ -84,6 +84,52 @@ public sealed class ProvenanceC2paManifestSummaryTests {
         Assert.Equal(1L, ((Dictionary<object, object?>)map!)["a"]);
     }
 
+    [Theory]
+    [InlineData("assertions", "self#jumbf=c2pa.assertions/c2pa.actions.v2", true)]
+    [InlineData("created_assertions", "self#jumbf=/c2pa/urn:uuid:active/c2pa.assertions/c2pa.actions.v2", true)]
+    [InlineData("gathered_assertions", "self#jumbf=c2pa.assertions/c2pa.actions.v2", true)]
+    [InlineData("created_assertions", "self#jumbf=/c2pa/urn:uuid:other/c2pa.assertions/c2pa.actions.v2", false)]
+    [InlineData("created_assertions", "self#jumbf=c2pa.assertions/c2pa.ingredient.v3", false)]
+    [InlineData("created_assertions", "https://example.test/assertion", false)]
+    public void OnlyAssertionsReferencedByTheActiveClaimDescribeItsOrigin(string field, string url, bool claimed) {
+        byte[] store = Store(Manifest("urn:uuid:active", "Generator", Actions(("c2pa.created", "Model", TrainedAlgorithmicMedia)), null,
+            assertionReferences: new[] { url }, referenceField: field));
+        OfficeC2paManifestSummary summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.NotNull(summary);
+        Assert.Equal(claimed, summary.DeclaresGenerativeAi);
+        Assert.Equal(claimed ? 1 : 0, summary.Actions.Count);
+    }
+
+    [Fact]
+    public void UnclaimedAssertionsAndUnreadableClaimsCannotDescribeActions() {
+        byte[] store = Store(Manifest("urn:uuid:active", "Generator", Actions(("c2pa.created", null, TrainedAlgorithmicMedia)), null,
+            assertionReferences: Array.Empty<string>()));
+        Assert.Empty(OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.Actions);
+        byte[] unreadable = Store(Manifest("urn:uuid:active", "Generator", Actions(("c2pa.created", null, TrainedAlgorithmicMedia)), null,
+            claimPayload: new byte[] { 0xFF }));
+        Assert.Null(OfficeC2paManifestStore.TryDescribe(unreadable, 0, unreadable.Length));
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0xA0, 0xFF })]
+    [InlineData(new byte[] { 0xA2, 0x61, 0x61, 0x01, 0x61, 0x61, 0x02 })]
+    [InlineData(new byte[] { 0x7F, 0x61, 0xC3, 0x61, 0xA9, 0xFF })]
+    public void CborRejectsTrailingDataDuplicateKeysAndInvalidTextChunks(byte[] bytes) {
+        Assert.False(OfficeCborReader.TryDecode(bytes, 0, bytes.Length, out _));
+    }
+
+    [Theory]
+    [InlineData(0x5F, 0x40)]
+    [InlineData(0x7F, 0x60)]
+    public void IndefiniteStringChunksConsumeTheItemBudget(int start, int chunk) {
+        byte[] bytes = new[] { (byte)start }.Concat(Enumerable.Repeat((byte)chunk, 100)).Concat(new byte[] { 0xFF }).ToArray();
+        Assert.False(OfficeCborReader.TryDecode(bytes, 0, bytes.Length, out _, maximumItems: 2));
+        Assert.True(OfficeCborReader.TryDecode(bytes, 0, bytes.Length, out _, maximumItems: 101));
+        byte[] validText = { 0x7F, 0x62, 0xC3, 0xA9, 0x61, 0x21, 0xFF };
+        Assert.True(OfficeCborReader.TryDecode(validText, 0, validText.Length, out object? value));
+        Assert.Equal("é!", value);
+    }
+
     // ---- fixture builders: JUMBF boxes, CBOR, and a minimal DER certificate ----
 
     private static byte[] Store(params byte[][] manifests) =>
@@ -95,19 +141,26 @@ public sealed class ProvenanceC2paManifestSummaryTests {
         byte[] actions,
         byte[]? signer,
         (string Name, string? Version)? claimGeneratorInfo = null,
-        string? ingredient = null) {
+        string? ingredient = null,
+        string[]? assertionReferences = null,
+        string referenceField = "created_assertions",
+        byte[]? claimPayload = null) {
         var claim = new List<(object, object?)> { ("dc:title", "image.png"), ("dc:format", "image/png") };
         if (claimGenerator != null) claim.Add(("claim_generator", claimGenerator));
         if (claimGeneratorInfo != null) claim.Add(("claim_generator_info", new object?[] { Map(("name", claimGeneratorInfo.Value.Name)) }));
         var assertions = new List<byte[]> { Assertion("c2pa.actions.v2", actions) };
         if (ingredient != null) assertions.Add(Assertion("c2pa.ingredient.v3", Cbor(Map(("dc:title", ingredient)))));
+        string[] references = assertionReferences ?? (ingredient == null
+            ? new[] { "self#jumbf=c2pa.assertions/c2pa.actions.v2" }
+            : new[] { "self#jumbf=c2pa.assertions/c2pa.actions.v2", "self#jumbf=c2pa.assertions/c2pa.ingredient.v3" });
+        claim.Add((referenceField, references.Select(url => (object?)Map(("url", url), ("hash", new byte[] { 1, 2, 3 }))).ToArray()));
         object? x5chain = signer == null ? null : new object?[] { signer };
         byte[] protectedHeader = Cbor(x5chain == null ? Map((1L, -7L)) : Map((1L, -7L), (33L, x5chain)));
         byte[] sign1 = Cbor(new Tagged(18, new object?[] { protectedHeader, Map(), null, new byte[] { 1, 2, 3 } }));
         return Box("jumb", Join(
             Description("c2ma", label),
             Box("jumb", Join(Description("c2as", "c2pa.assertions"), Join(assertions.ToArray()))),
-            Box("jumb", Join(Description("c2cl", "c2pa.claim.v2"), Box("cbor", Cbor(Map(claim.ToArray()))))),
+            Box("jumb", Join(Description("c2cl", "c2pa.claim.v2"), Box("cbor", claimPayload ?? Cbor(Map(claim.ToArray()))))),
             Box("jumb", Join(Description("c2cs", "c2pa.signature"), Box("cbor", sign1)))));
     }
 

@@ -1157,7 +1157,7 @@ internal static class OfficeProvenanceZip {
             evidence.IsStructurallyValid,
             evidence.PayloadLength,
             evidence.Value,
-            evidence.DigitalSourceKind);
+            evidence.DigitalSourceKind).WithManifest(evidence.Manifest);
 
     private static byte[] ReadEntry(ZipArchiveEntry entry, int length, CancellationToken cancellationToken = default) {
         byte[] data = new byte[length];

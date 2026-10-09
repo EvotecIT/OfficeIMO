@@ -2523,4 +2523,10 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Provenance.TrustAnchors" xml:space="preserve"><value>Trust anchors PEM path (optional)</value></data>
   <data name="Provenance.AllowedList" xml:space="preserve"><value>Allowed certificates PEM path (optional)</value></data>
   <data name="Provenance.CheckProvider" xml:space="preserve"><value>Check verifier</value></data>
+  <data name="Provenance.Credentials" xml:space="preserve"><value>Content Credentials</value></data>
+  <data name="Provenance.CredentialHint" xml:space="preserve"><value>These are statements recorded in the file. Reading a record does not verify its signature, certificate trust or link to the content. Verification results are shown separately.</value></data>
+  <data name="Provenance.Timeline" xml:space="preserve"><value>Recorded actions</value></data>
+  <data name="Provenance.TimelineHint" xml:space="preserve"><value>Actions from the active claim, in their recorded order. Earlier manifests are counted but are not expanded here; missing times stay unknown.</value></data>
+  <data name="Provenance.WatermarkHint" xml:space="preserve"><value>The record claims a watermark was added to the content. Removing the credential does not remove that watermark.</value></data>
+  <data name="Provenance.RecordDetails" xml:space="preserve"><value>Record details</value></data>
 </root>

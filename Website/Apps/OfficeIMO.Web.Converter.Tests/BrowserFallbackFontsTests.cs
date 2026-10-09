@@ -24,6 +24,8 @@ public sealed class BrowserFallbackFontsTests {
     [InlineData("&#12354;", true)]
     [InlineData("&rarr; next", true)]
     [InlineData("<span style=\"font-family: Symbol\">a</span>", true)]
+    [InlineData("<span style=\"font-family: symbol\">a</span>", true)]
+    [InlineData("<span style=\"font-family: zapfdingbats\">a</span>", true)]
     [InlineData("<w:rFonts w:ascii=\"Symbol\" w:hAnsi=\"Symbol\"/>", true)]
     [InlineData("a symbolic gesture", false)]
     public void TextNeedsFallbackOnlyWhenCarlitoCannotDrawIt(string text, bool expected) {
@@ -50,6 +52,24 @@ public sealed class BrowserFallbackFontsTests {
     public void SampleWordDocumentDoesNotDownloadFallbackFonts() {
         byte[] sample = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "samples", "business-summary.docx"));
         Assert.False(BrowserFallbackFonts.Needed(sample, ".docx"));
+    }
+
+    [Theory]
+    [InlineData(".docx", "word/document.xml")]
+    [InlineData(".xlsx", "xl/worksheets/sheet1.xml")]
+    [InlineData(".pptx", "ppt/slides/slide1.xml")]
+    public void FalseZipLengthsCannotTriggerAnUnboundedFontScan(string extension, string part) {
+        byte[] package = Package((part, "<text>" + new string('a', 1024 * 1024) + "</text>"));
+        // Keep compressed ranges intact, but understate the local and central expanded sizes.
+        for (int index = 0; index <= package.Length - 46; index++) {
+            if (package[index] != 0x50 || package[index + 1] != 0x4B) continue;
+            int sizeOffset = package[index + 2] == 3 && package[index + 3] == 4 ? index + 22
+                : package[index + 2] == 1 && package[index + 3] == 2 ? index + 24 : -1;
+            if (sizeOffset < 0) continue;
+            package[sizeOffset] = 1;
+            package[sizeOffset + 1] = package[sizeOffset + 2] = package[sizeOffset + 3] = 0;
+        }
+        Assert.True(BrowserFallbackFonts.Needed(package, extension));
     }
 
     private static byte[] Package(params (string Name, string Xml)[] parts) {

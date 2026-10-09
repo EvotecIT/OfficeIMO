@@ -366,6 +366,7 @@
           "/css/prism-theme.css"
         ],
         "Js": [
+          "/js/browser-handoff.js",
           "/js/site.js",
           "/js/source-viewer.js"
         ]
@@ -442,6 +443,7 @@
           "/css/browser-tool.css"
         ],
         "Js": [
+          "/js/browser-pages.js",
           "/js/browser-tool.js"
         ]
       }

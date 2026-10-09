@@ -12,8 +12,6 @@
 
   var MAX_FILE_BYTES = 25 * 1024 * 1024;
   var MAX_TOTAL_BYTES = 75 * 1024 * 1024;
-  var HANDOFF_DB = 'officeimo-browser-tools';
-  var HANDOFF_TTL_MS = 10 * 60 * 1000;
 
   var cfg = {
     id: root.getAttribute('data-browser-tool'),
@@ -76,7 +74,9 @@
     stale: false,
     probe: null,
     grid: null,
-    generation: 0
+    generation: 0,
+    inputGeneration: 0,
+    inputReady: false
   };
 
   // ---------------------------------------------------------------- helpers
@@ -133,9 +133,15 @@
     function fail(message) {
       broken = new Error(message);
       Object.keys(waiting).forEach(function (key) { waiting[key].reject(broken); delete waiting[key]; });
+      if (worker) worker.terminate();
+      worker = null;
+      ready = null;
+      engineReady = false;
+      state.inputReady = false;
     }
     function start() {
-      if (worker || broken) return worker;
+      if (worker) return worker;
+      broken = null;
       try {
         worker = new Worker(cfg.base + 'engine-worker.js', { type: 'module' });
       } catch (error) {
@@ -165,27 +171,36 @@
         var message = payload || {};
         message.id = id;
         message.type = type;
-        w.postMessage(message, transfer || []);
+        try { w.postMessage(message, transfer || []); }
+        catch (error) { delete waiting[id]; reject(error); fail(error.message); }
       });
     }
     return { call: call, onProgress: function (fn) { progress.push(fn); } };
   })();
 
-  var ready = engine.call('prepare', { kind: cfg.kind, assemblies: cfg.assemblies });
+  var ready = null;
   var engineReady = false;
   engine.onProgress(function (loaded) {
     if (engineReady || !ui.status) return;
     ui.status.textContent = 'Getting the tool ready · ' + bytes(loaded);
     if (ui.statusBox) ui.statusBox.setAttribute('data-state', 'loading');
   });
-  ready.then(function () {
+  function ensureReady() {
+    if (ready) return ready;
+    ready = engine.call('prepare', { kind: cfg.kind, assemblies: cfg.assemblies }).then(function () {
     engineReady = true;
     if (ui.status) ui.status.textContent = 'Ready · runs in this tab, nothing is uploaded';
     if (ui.statusBox) ui.statusBox.setAttribute('data-state', 'ready');
+    return true;
   }, function (error) {
+    ready = null;
     if (ui.status) ui.status.textContent = error.message;
     if (ui.statusBox) ui.statusBox.setAttribute('data-state', 'error');
+    throw error;
   });
+    return ready;
+  }
+  ensureReady().catch(function () {});
 
   // ---------------------------------------------------------------- input: files
   function acceptFile(name) {
@@ -215,6 +230,8 @@
     var room = cfg.max > 1 ? cfg.max - keep.length : 1;
     if (room <= 0) { setHint('This tool takes up to ' + cfg.max + ' files. Remove one first.', 'bad'); return Promise.resolve(); }
     incoming = incoming.slice(0, room);
+    var total = keep.concat(incoming).reduce(function (sum, file) { return sum + file.size; }, 0);
+    if (total > MAX_TOTAL_BYTES) { setHint('Together these files are ' + bytes(total) + '. The limit is 75 MB.', 'bad'); return Promise.resolve(); }
     return Promise.all(incoming.map(function (file) {
       return readFile(file).then(function (buffer) { return { name: file.name, size: file.size, ext: extOf(file.name), buffer: buffer }; });
     })).then(function (loaded) {
@@ -228,32 +245,43 @@
   function setFiles(files) {
     state.files = files;
     state.generation++;
+    state.inputGeneration++;
+    state.inputReady = false;
     state.probe = null;
+    setupPages();
     clearResult();
     renderFiles();
     // The visitor can press the button straight away; the run waits for staging, which waits for the engine.
     state.staging = stageFiles();
     setStep(inputComplete() ? 2 : 1);
     updateRunButton();
-    return state.staging.then(afterInputChanged);
+    var inputGeneration = state.inputGeneration;
+    return state.staging.then(function () { if (inputGeneration === state.inputGeneration) afterInputChanged(); });
   }
 
   function stageFiles() {
-    var generation = state.generation;
-    var chain = engine.call('clear');
+    var generation = state.inputGeneration;
+    var chain = ensureReady().then(function () { return engine.call('clear'); });
     state.files.forEach(function (file, index) {
       chain = chain.then(function () {
-        if (generation !== state.generation) return;
+        if (generation !== state.inputGeneration) return;
         var copy = file.buffer.slice(0);
         return engine.call('stage', { slot: index, bytes: copy, name: file.name }, [copy]);
       });
     });
     return chain.then(function () {
-      if (generation !== state.generation || cfg.kind !== 'pdf' || state.files.length !== 1) return;
+      if (generation !== state.inputGeneration) return;
+      if (cfg.kind !== 'pdf' || state.files.length !== 1) { state.inputReady = true; return; }
       return engine.call('probe', { slot: 0 }).then(function (probe) {
-        if (generation === state.generation) state.probe = probe;
+        if (generation === state.inputGeneration) { state.probe = probe; state.inputReady = probe.ok; }
       });
-    }).catch(function (error) { setHint(error.message, 'bad'); });
+    }).catch(function (error) {
+      if (generation !== state.inputGeneration) return;
+      state.inputReady = false;
+      state.probe = { ok: false, error: error.message };
+      setupPages();
+      setHint(error.message, 'bad');
+    });
   }
 
   function renderFiles() {
@@ -345,10 +373,12 @@
 
   // ---------------------------------------------------------------- input: text
   function setText(value, fromFile) {
+    markStale();
     state.text = value;
     state.textFromFile = !!fromFile;
     if (ui.text && ui.text.value !== value) ui.text.value = value;
     afterInputChanged();
+    if (cfg.live && inputComplete()) liveRun();
   }
 
   // ---------------------------------------------------------------- options
@@ -400,7 +430,7 @@
     // Once there is a fresh result, the download is the next step, so the run button steps back.
     var settled = state.result && state.result.ok && !state.stale && !state.busy;
     ui.run.className = 'bt-btn bt-btn--block' + (settled ? '' : ' bt-btn--primary');
-    ui.run.disabled = state.busy || !complete || !!options.problem || !!(state.probe && state.probe.needsPassword && cfg.target !== 'unlock');
+    ui.run.disabled = state.busy || !complete || (cfg.input !== 'text' && !state.inputReady) || !!options.problem || passwordBlocked();
     // Tools that run as soon as a file arrives have nothing to "check again" before the first file.
     var waitingForFirstFile = !!cfg.auto && cfg.input !== 'text' && !complete;
     ui.run.hidden = waitingForFirstFile;
@@ -411,15 +441,23 @@
       else if (cfg.input === 'files') setHint(state.files.length === 1 ? 'Add at least one more PDF.' : 'Add two or more PDFs.');
       else if (cfg.input === 'text') setHint('Type or paste some ' + cfg.label + ' first.');
       else setHint('Add a file to start.');
-    } else if (state.probe && state.probe.needsPassword && cfg.target !== 'unlock') {
+    } else if (state.probe && !state.probe.ok) {
+      setHint(state.probe.error || 'This file couldn’t be read. Choose another file.', 'bad');
+    } else if (cfg.input !== 'text' && !state.inputReady) {
+      setHint('Reading the file…');
+    } else if (passwordBlocked()) {
       setHint('This PDF needs a password before it can be changed. Unlock it first.', 'bad');
     } else if (options.problem) {
       setHint(options.problem, 'warn');
-    } else if (state.stale) {
+    } else if (state.stale && state.result) {
       setHint('Settings changed. Run it again to update the result.', 'warn');
     } else if (!state.result) {
       setHint('Ready.');
     }
+  }
+
+  function passwordBlocked() {
+    return !!(state.probe && state.probe.needsPassword && cfg.target !== 'unlock' && cfg.target !== 'inspect');
   }
 
   function afterInputChanged() {
@@ -428,225 +466,34 @@
     setStep(inputComplete() ? 2 : 1);
     updateRunButton();
     if (!inputComplete()) return;
-    if (cfg.auto && !(state.probe && state.probe.needsPassword)) run(cfg.action);
+    if (cfg.auto && (cfg.input === 'text' || state.inputReady) && !passwordBlocked()) run(cfg.action);
   }
 
   // ---------------------------------------------------------------- page picker
   function setupPages() {
     if (!ui.pages) return;
     var count = state.probe && state.probe.ok ? state.probe.pageCount : 0;
-    if (state.grid && state.grid.count === count) return;
+    if (state.grid && state.grid.count === count && state.grid.generation === state.inputGeneration) return;
+    if (state.grid) state.grid.dispose();
     state.grid = null;
     var empty = ui.pages.querySelector('[data-bt-pages-empty]');
     var old = ui.pages.querySelector('.bt-grid-picker');
     if (old) old.parentNode.removeChild(old);
     if (!count) { if (empty) empty.hidden = false; return; }
     if (empty) empty.hidden = true;
-    state.grid = pageGrid(ui.pages, ui.pages.getAttribute('data-bt-pages'), ui.pages.getAttribute('data-option'), count);
-  }
-
-  function pageGrid(host, mode, name, count) {
-    var selected = {};
-    var order = [];
-    for (var p = 1; p <= count; p++) order.push(p);
-    var wrap = el('div', 'bt-grid-picker');
-    var bar = el('div', 'bt-grid-picker__bar');
-    var grid = el('div', 'bt-thumbs');
-    grid.setAttribute('role', mode === 'order' ? 'list' : 'group');
-    grid.setAttribute('aria-label', 'Pages');
-    var typed = el('input', 'bt-grid-picker__text');
-    typed.type = 'text';
-    typed.setAttribute('aria-label', mode === 'order' ? 'Page order' : 'Pages, for example 1-3,5,last');
-    typed.placeholder = mode === 'order' ? '3,1,2' : 'e.g. 1-3, 5, last';
-    var thumbs = {};
-    var observer = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        observer.unobserve(entry.target);
-        drawThumb(parseInt(entry.target.getAttribute('data-page'), 10));
-      });
-    }, { rootMargin: '200px' }) : null;
-
-    function drawThumb(page) {
-      var thumb = thumbs[page];
-      if (!thumb || thumb.drawn) return;
-      thumb.drawn = true;
-      engine.call('render', { source: 'input', index: 0, page: page, size: 220 }).then(function (buffer) {
-        if (!buffer || !buffer.byteLength) return;
-        var img = el('img');
-        img.alt = '';
-        img.src = objectUrl(new Blob([buffer], { type: 'image/png' }));
-        thumb.sheet.innerHTML = '';
-        thumb.sheet.appendChild(img);
-      });
-    }
-
-    function button(text, handler) {
-      var b = el('button', 'bt-chip', text);
-      b.type = 'button';
-      b.addEventListener('click', handler);
-      bar.appendChild(b);
-      return b;
-    }
-    if (mode === 'order') {
-      button('Reverse order', function () { order.reverse(); render(); changed(); });
-      button('Reset', function () { order.sort(function (a, b) { return a - b; }); render(); changed(); });
-    } else {
-      button('All', function () { order.forEach(function (n) { selected[n] = true; }); render(); changed(); });
-      button('None', function () { selected = {}; render(); changed(); });
-      button('Odd', function () { selected = {}; order.forEach(function (n) { if (n % 2) selected[n] = true; }); render(); changed(); });
-      button('Even', function () { selected = {}; order.forEach(function (n) { if (!(n % 2)) selected[n] = true; }); render(); changed(); });
-    }
-
-    function rotation() {
-      var checked = ui.form && ui.form.querySelector('input[name="rotation"]:checked');
-      return checked ? parseInt(checked.value, 10) : 90;
-    }
-
-    function render() {
-      grid.innerHTML = '';
-      order.forEach(function (page, position) {
-        var item = el('button', 'bt-thumb');
-        item.type = 'button';
-        item.setAttribute('data-page', String(page));
-        var isOn = !!selected[page];
-        if (mode !== 'order') item.setAttribute('aria-pressed', isOn ? 'true' : 'false');
-        item.setAttribute('aria-label', 'Page ' + page + (mode === 'order' ? ', position ' + (position + 1) + '. Use Alt and the arrow keys to move it.' : ''));
-        if (isOn) item.classList.add(mode === 'remove' ? 'is-removed' : 'is-selected');
-        var sheet = thumbs[page] && thumbs[page].drawn ? thumbs[page].sheet : el('span', 'bt-thumb__sheet');
-        if (mode === 'rotate' && isOn) sheet.style.transform = 'rotate(' + rotation() + 'deg)';
-        else sheet.style.transform = '';
-        thumbs[page] = thumbs[page] || { sheet: sheet, drawn: false };
-        thumbs[page].sheet = sheet;
-        item.appendChild(sheet);
-        item.appendChild(el('span', 'bt-thumb__tick', mode === 'remove' ? '×' : '✓'));
-        item.appendChild(el('small', null, mode === 'order' ? (position + 1) + ' · p.' + page : String(page)));
-        if (mode === 'order') {
-          item.draggable = true;
-          item.addEventListener('dragstart', function (event) { event.dataTransfer.setData('text/plain', String(page)); item.classList.add('is-dragging'); });
-          item.addEventListener('dragend', function () { item.classList.remove('is-dragging'); });
-          item.addEventListener('dragover', function (event) { event.preventDefault(); item.classList.add('is-over'); });
-          item.addEventListener('dragleave', function () { item.classList.remove('is-over'); });
-          item.addEventListener('drop', function (event) {
-            event.preventDefault();
-            var from = parseInt(event.dataTransfer.getData('text/plain'), 10);
-            if (!from || from === page) return;
-            order.splice(order.indexOf(from), 1);
-            order.splice(order.indexOf(page), 0, from);
-            render(); changed();
-          });
-          item.addEventListener('keydown', function (event) {
-            if (!event.altKey || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
-            event.preventDefault();
-            var index = order.indexOf(page);
-            var target = index + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1);
-            if (target < 0 || target >= order.length) return;
-            order.splice(index, 1);
-            order.splice(target, 0, page);
-            render(); changed();
-            var moved = grid.querySelector('[data-page="' + page + '"]');
-            if (moved) moved.focus();
-          });
-        } else {
-          item.addEventListener('click', function () {
-            if (selected[page]) delete selected[page]; else selected[page] = true;
-            render(); changed();
-          });
-        }
-        grid.appendChild(item);
-        // The first rows draw straight away; long documents fill in as they scroll into view.
-        if (!thumbs[page].drawn) {
-          if (position < 12 || !observer) drawThumb(page); else observer.observe(item);
-        }
-      });
-      if (document.activeElement !== typed) typed.value = text();
-    }
-
-    function selectedList() { return order.filter(function (n) { return selected[n]; }); }
-    function ranges(list) {
-      var out = [];
-      for (var i = 0; i < list.length; i++) {
-        var j = i;
-        while (j + 1 < list.length && list[j + 1] === list[j] + 1) j++;
-        out.push(j > i ? list[i] + '-' + list[j] : String(list[i]));
-        i = j;
-      }
-      return out.join(',');
-    }
-    function text() { return mode === 'order' ? ranges(order) : ranges(selectedList()); }
-    function parse(value) {
-      var out = [];
-      var parts = value.toLowerCase().replace(/\s+/g, '').split(',');
-      for (var i = 0; i < parts.length; i++) {
-        if (!parts[i]) continue;
-        var match = parts[i].replace(/last/g, String(count)).match(/^(\d+)(?:-(\d+))?$/);
-        if (!match) return null;
-        var a = +match[1], b = match[2] ? +match[2] : a;
-        if (a < 1 || b < 1 || a > count || b > count) return null;
-        var step = a <= b ? 1 : -1;
-        for (var n = a; step > 0 ? n <= b : n >= b; n += step) out.push(n);
-      }
-      return out;
-    }
-    typed.addEventListener('input', function () {
-      var list = parse(typed.value);
-      typed.setAttribute('aria-invalid', list ? 'false' : 'true');
-      if (!list) return;
-      if (mode === 'order') {
-        var unique = {};
-        list.forEach(function (n) { unique[n] = true; });
-        if (list.length !== count || Object.keys(unique).length !== count) return;
-        order = list;
-      } else {
-        selected = {};
-        list.forEach(function (n) { selected[n] = true; });
-      }
-      render(); changed();
+    state.grid = window.OfficeIMOBrowserPages.create({
+      host: ui.pages, mode: ui.pages.getAttribute('data-bt-pages'), name: ui.pages.getAttribute('data-option'), count: count,
+      generation: state.inputGeneration, currentGeneration: function () { return state.inputGeneration; },
+      element: el, engine: engine, form: ui.form, objectUrl: objectUrl, plural: plural,
+      changed: function () { markStale(); updateRunButton(); }
     });
-    typed.addEventListener('blur', function () { typed.value = text(); typed.removeAttribute('aria-invalid'); });
-
-    function changed() { markStale(); updateRunButton(); }
-
-    if (ui.form) ui.form.addEventListener('change', function (event) { if (event.target.name === 'rotation') render(); });
-
-    var field = el('label', 'bt-grid-picker__field');
-    field.appendChild(el('span', null, mode === 'order' ? 'Or type the order' : 'Or type pages'));
-    field.appendChild(typed);
-    wrap.appendChild(bar);
-    wrap.appendChild(grid);
-    wrap.appendChild(field);
-    host.appendChild(wrap);
-    render();
-
-    return {
-      count: count,
-      name: name,
-      value: function () {
-        if (mode === 'order') {
-          var moved = order.some(function (n, i) { return n !== i + 1; });
-          return { value: order.join(','), problem: moved ? '' : 'Drag the pages into a new order first.' };
-        }
-        var list = selectedList();
-        if (!list.length) {
-          var verb = window.matchMedia && window.matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click';
-          return { value: '', problem: verb + (mode === 'remove' ? ' the pages you want to delete.' : mode === 'rotate' ? ' the pages you want to rotate.' : ' the pages you want to keep.') };
-        }
-        if (mode === 'remove' && list.length >= count) return { value: ranges(list), problem: 'You can’t delete every page.' };
-        return { value: ranges(list), problem: '' };
-      },
-      actionLabel: function (fallback) {
-        if (mode === 'order') return fallback;
-        var n = selectedList().length;
-        if (!n) return fallback;
-        if (mode === 'remove') return 'Delete ' + plural(n, 'page') + ' and save a copy';
-        if (mode === 'rotate') return 'Rotate ' + plural(n, 'page') + ' and save';
-        return 'Save ' + plural(n, 'page') + ' as a new PDF';
-      }
-    };
   }
 
   // ---------------------------------------------------------------- run
   var busyTimer = 0;
+  function requiresStagedInput() {
+    return cfg.input !== 'text' || (cfg.kind === 'text' && state.textFromFile);
+  }
   function run(action, extra) {
     if (state.busy) return;
     action = action || cfg.action;
@@ -665,22 +512,32 @@
     updateRunButton();
     renderBusy(action);
     var started = Date.now();
-    Promise.all([ready, state.staging || Promise.resolve()]).then(function () {
+    return ensureReady().then(function () {
+      if (requiresStagedInput() && !state.inputReady) state.staging = stageFiles();
+      return state.staging || Promise.resolve();
+    }).then(function () {
+      if (requiresStagedInput() && !state.inputReady) throw new Error((state.probe && state.probe.error) || 'The input couldn’t be prepared. Choose the file again.');
+      if (generation !== state.generation) return null;
       return engine.call('run', { kind: cfg.kind, target: cfg.target, action: action, options: options });
     }).then(function (result) {
       if (generation !== state.generation) return null;
-      return fetchArtifacts(result).then(function () { return result; });
+      return fetchArtifacts(result, generation).then(function () { return result; });
     }).then(function (result) {
       state.busy = false;
       window.clearInterval(busyTimer);
-      if (!result) { updateRunButton(); return; }
+      if (!result || generation !== state.generation) {
+        if (webMcpWaiter) { webMcpWaiter(null, new Error('The input or settings changed. Run the tool again.')); webMcpWaiter = null; }
+        updateRunButton();
+        if ((cfg.live || cfg.auto) && inputComplete()) liveRun();
+        return;
+      }
       result.clientMs = Date.now() - started;
       showResult(result, action);
       if (webMcpWaiter) { webMcpWaiter(result); webMcpWaiter = null; }
     }).catch(function (error) {
       state.busy = false;
       window.clearInterval(busyTimer);
-      showResult({ ok: false, verdict: { tone: 'bad', title: 'The tool couldn’t finish', detail: error.message }, facts: [], items: [], artifacts: [] }, action);
+      if (generation === state.generation) showResult({ ok: false, verdict: { tone: 'bad', title: 'The tool couldn’t finish', detail: error.message }, facts: [], items: [], artifacts: [] }, action);
       if (webMcpWaiter) { webMcpWaiter(null, error); webMcpWaiter = null; }
     });
   }
@@ -709,16 +566,20 @@
     }, 1000);
   }
 
-  function fetchArtifacts(result) {
+  function fetchArtifacts(result, generation) {
     revokeUrls();
     state.artifacts = [];
     var list = (result && result.artifacts) || [];
     return Promise.all(list.map(function (info) {
       return engine.call('artifact', { index: info.index }).then(function (buffer) {
+        if (generation !== state.generation) return null;
         var blob = new Blob([buffer], { type: info.contentType.split(';')[0] });
         return { info: info, blob: blob, url: objectUrl(blob), buffer: buffer };
       });
-    })).then(function (artifacts) { state.artifacts = artifacts; });
+    })).then(function (artifacts) {
+      if (generation === state.generation) state.artifacts = artifacts.filter(Boolean);
+      else artifacts.filter(Boolean).forEach(function (artifact) { URL.revokeObjectURL(artifact.url); });
+    });
   }
 
   // ---------------------------------------------------------------- results
@@ -740,9 +601,11 @@
   }
 
   function markStale() {
-    if (!state.result || state.busy) return;
+    state.generation++;
     state.stale = true;
+    if (!state.result) return;
     ui.output.classList.add('is-stale');
+    Array.prototype.forEach.call(ui.output.querySelectorAll('[data-bt-commit]'), function (button) { button.disabled = true; });
     if (cfg.live) { liveRun(); return; }
   }
 
@@ -786,7 +649,7 @@
     var primary = state.artifacts.filter(function (a) { return a.info.role === 'primary'; })[0];
     var preview = previewBox(result, primary);
     if (preview) ui.output.appendChild(preview);
-    if (!awaitingCommit) ui.output.appendChild(downloads(primary));
+    if (state.artifacts.length) ui.output.appendChild(downloads(primary));
     updateRunButton();
     if (cfg.auto && cfg.input !== 'text') setHint(awaitingCommit ? 'Choose what to remove, then save a copy.' : 'Done. Your original file is unchanged.');
     else if (!cfg.live) setHint(awaitingCommit ? 'Review the matches before you continue.' : 'Done. Your original file is unchanged.');
@@ -895,16 +758,18 @@
     go.type = 'button';
     function chosen() { return Array.prototype.map.call(list.querySelectorAll('input:checked'), function (box) { return box.value; }); }
     function sync() {
-      if (cfg.find && action === cfg.find) { go.textContent = cfg.confirmLabel || 'Continue'; go.disabled = false; return; }
+      if (cfg.find && action === cfg.find) { go.textContent = cfg.confirmLabel || 'Continue'; go.disabled = state.stale || state.busy; return; }
       var n = chosen().length;
-      go.disabled = n === 0;
+      go.disabled = n === 0 || state.stale || state.busy;
       go.textContent = n === 0 ? 'Select at least one to remove' : (cfg.confirmLabel || 'Continue').replace('selected', n === selectable.length ? (n === 1 ? 'it' : 'all ' + n) : n + ' of ' + selectable.length);
     }
     list.addEventListener('change', sync);
     go.addEventListener('click', function () {
+      if (state.stale || state.busy || state.result !== result) { setHint('The input or settings changed. Review it again before removing anything.', 'warn'); return; }
       if (cfg.find && action === cfg.find) run(cfg.action);
       else run(cfg.commit, { remove: chosen().join(',') });
     });
+    go.setAttribute('data-bt-commit', 'true');
     sync();
     panel.appendChild(go);
     panel.appendChild(el('p', 'bt-hint', 'Your original stays as it is. Changes only go into a new copy.'));
@@ -1002,6 +867,7 @@
   }
 
   function pdfPager(pageCount, artifactIndex) {
+    var generation = state.generation;
     var wrap = el('div', 'bt-pager');
     var stage = el('div', 'bt-pager__page');
     var nav = el('div', 'bt-pager__nav');
@@ -1026,6 +892,7 @@
       stage.appendChild(el('span', 'bt-spinner'));
       var requested = page;
       engine.call('render', { source: 'artifact', index: artifactIndex, page: page, size: 1100 }).then(function (buffer) {
+        if (generation !== state.generation) return;
         var node;
         if (buffer && buffer.byteLength) {
           node = el('img');
@@ -1036,11 +903,20 @@
         }
         cache[requested] = node;
         if (requested === page) { stage.innerHTML = ''; stage.appendChild(node); }
+      }).catch(function () {
+        if (generation === state.generation && requested === page) {
+          stage.innerHTML = '';
+          stage.appendChild(el('p', 'bt-hint', 'The preview couldn’t load. You can still download the result.'));
+        }
       });
     }
     prev.addEventListener('click', function () { if (page > 1) { page--; show(); } });
     next.addEventListener('click', function () { if (page < pageCount) { page++; show(); } });
-    if (!pageCount) engine.call('pages', { source: 'artifact', index: artifactIndex }).then(function (count) { pageCount = count; show(); });
+    if (!pageCount) engine.call('pages', { source: 'artifact', index: artifactIndex }).then(function (count) {
+      if (generation === state.generation) { pageCount = count; show(); }
+    }).catch(function () {
+      if (generation === state.generation) stage.appendChild(el('p', 'bt-hint', 'The preview couldn’t load. You can still download the result.'));
+    });
     else show();
     return wrap;
   }
@@ -1123,48 +999,17 @@
       return split(a.getAttribute('data-accept') || '', ',').indexOf(ext) >= 0;
     }).map(function (source) {
       var link = el('a', 'bt-chip bt-chip--next', source.textContent);
-      link.href = source.getAttribute('href') + '?from=previous';
+      link.href = source.getAttribute('href');
+      link.target = '_blank';
+      link.rel = 'noopener';
       link.addEventListener('click', function (event) {
         event.preventDefault();
-        handoff({ name: primary.info.fileName, type: primary.blob.type, buffer: primary.buffer }).then(function () {
-          window.location.href = link.href;
-        }, function () { window.location.href = source.getAttribute('href'); });
+        window.OfficeIMOBrowserHandoff.send(link.href, function () {
+          return { name: primary.info.fileName, type: primary.blob.type, buffer: primary.buffer };
+        }).catch(function (error) { setHint(error.message, 'bad'); });
       });
       return link;
     });
-  }
-
-  // Hand a result to the next tool page. One entry, deleted as soon as the next page reads it.
-  function openHandoff() {
-    return new Promise(function (resolve, reject) {
-      if (!window.indexedDB) { reject(new Error('unavailable')); return; }
-      var request = indexedDB.open(HANDOFF_DB, 1);
-      request.onupgradeneeded = function () { request.result.createObjectStore('handoff'); };
-      request.onsuccess = function () { resolve(request.result); };
-      request.onerror = function () { reject(request.error); };
-    });
-  }
-  function handoff(file) {
-    return openHandoff().then(function (db) {
-      return new Promise(function (resolve, reject) {
-        var tx = db.transaction('handoff', 'readwrite');
-        tx.objectStore('handoff').put({ name: file.name, type: file.type, buffer: file.buffer, created: Date.now() }, 'file');
-        tx.oncomplete = function () { db.close(); resolve(); };
-        tx.onerror = function () { db.close(); reject(tx.error); };
-      });
-    });
-  }
-  function takeHandoff() {
-    return openHandoff().then(function (db) {
-      return new Promise(function (resolve) {
-        var tx = db.transaction('handoff', 'readwrite');
-        var store = tx.objectStore('handoff');
-        var get = store.get('file');
-        get.onsuccess = function () { store.delete('file'); resolve(get.result || null); };
-        get.onerror = function () { resolve(null); };
-        tx.oncomplete = function () { db.close(); };
-      });
-    }).catch(function () { return null; });
   }
 
   // ---------------------------------------------------------------- live text tools
@@ -1215,6 +1060,10 @@
           if (callContext && callContext.signal && callContext.signal.aborted) return Promise.resolve({ success: false, message: 'Conversion was cancelled before it started.' });
           if (!inputComplete()) return Promise.resolve({ success: false, tool: cfg.id, message: 'No file is chosen yet. Choose a file or load the sample on the page, then try again.' });
           if (state.busy) return Promise.resolve({ success: false, tool: cfg.id, message: 'The tool is already running in this tab.' });
+          var validation = collectOptions();
+          if (validation.problem || passwordBlocked() || (requiresStagedInput() && !state.inputReady)) {
+            return Promise.resolve({ success: false, tool: cfg.id, message: validation.problem || 'The input is not ready. Review the visible file status first.' });
+          }
           return new Promise(function (resolve) {
             webMcpWaiter = function (result, error) { resolve(webMcpOutput(result, error)); };
             run(cfg.find || cfg.action);
@@ -1246,11 +1095,7 @@
       if (cfg.input === 'text') {
         var file = files && files[0];
         if (!file) return;
-        if (cfg.kind === 'text') {
-          addTextFile(file);
-        } else {
-          file.text().then(function (text) { setText(text, false); });
-        }
+        addTextFile(file);
         ui.fileInput.value = '';
         return;
       }
@@ -1259,15 +1104,15 @@
     });
   }
   function addTextFile(file) {
-    if (file.size > 1024 * 1024) { setHint('Text files up to 1 MB can be checked here.', 'bad'); return; }
-    readFile(file).then(function (buffer) {
-      state.files = [{ name: file.name, size: file.size, ext: extOf(file.name), buffer: buffer }];
-      var copy = buffer.slice(0);
-      return engine.call('clear').then(function () { return engine.call('stage', { slot: 0, bytes: copy, name: file.name }, [copy]); });
-    }).then(function () {
+    if (!acceptFile(file.name)) { setHint('Choose ' + describeAccept() + '.', 'bad'); return Promise.resolve(); }
+    if (file.size > 1024 * 1024) { setHint('Text files up to 1 MB can be checked here.', 'bad'); return Promise.resolve(); }
+    if (cfg.kind !== 'text') {
+      return file.text().then(function (text) { setText(text, false); }).catch(function () { setHint('That text file could not be read.', 'bad'); });
+    }
+    return readFile(file).then(function (buffer) {
       state.textFromFile = true;
-      run(cfg.action);
-    });
+      return setFiles([{ name: file.name, size: buffer.byteLength, ext: extOf(file.name), buffer: buffer }]);
+    }).catch(function () { setHint('That text file could not be read. Choose it again.', 'bad'); });
   }
 
   if (ui.drop) {
@@ -1288,18 +1133,14 @@
     if (!event.dataTransfer || !event.dataTransfer.files || !event.dataTransfer.files.length) return;
     if (ui.drop && ui.drop.contains(event.target)) return;
     event.preventDefault();
-    if (cfg.input === 'text') { var file = event.dataTransfer.files[0]; if (cfg.kind === 'text') addTextFile(file); else file.text().then(function (text) { setText(text, false); }); }
+    if (cfg.input === 'text') { var file = event.dataTransfer.files[0]; addTextFile(file); }
     else addFiles(event.dataTransfer.files);
   });
 
   if (ui.sample) ui.sample.addEventListener('click', loadSample);
   if (ui.text) {
     ui.text.addEventListener('input', function () {
-      state.text = ui.text.value;
-      state.textFromFile = false;
-      if (state.result) markStale();
-      updateRunButton();
-      if (cfg.live || cfg.auto) liveRun();
+      setText(ui.text.value, false);
     });
   }
   if (ui.resetText) ui.resetText.addEventListener('click', function () { setText(ui.text.getAttribute('data-sample') || '', false); });
@@ -1318,22 +1159,16 @@
   }
   if (ui.run) ui.run.addEventListener('click', function () { run(cfg.find || cfg.action); });
 
-  window.addEventListener('pagehide', revokeUrls);
+  window.addEventListener('pagehide', function (event) { if (!event.persisted) revokeUrls(); });
 
-  // A result handed over from another tool arrives through IndexedDB, once.
-  var params = new URLSearchParams(window.location.search);
-  if (params.get('from') === 'previous') {
-    if (window.history && window.history.replaceState) window.history.replaceState(null, '', window.location.pathname);
-    takeHandoff().then(function (file) {
-      if (!file || Date.now() - file.created > HANDOFF_TTL_MS) return;
-      if (cfg.input === 'text') { setText(new TextDecoder().decode(file.buffer), false); return; }
-      if (!acceptFile(file.name)) return;
-      setFiles([{ name: file.name, size: file.buffer.byteLength, ext: extOf(file.name), buffer: file.buffer }]).then(function () {
-        setHint('Carried over from the previous tool.');
-      });
-    });
-  } else {
-    takeHandoff(); // clear anything left behind by an abandoned hand-off
+  // The originating tab keeps the bytes in memory until this tab receives them.
+  if (window.OfficeIMOBrowserHandoff) {
+    window.OfficeIMOBrowserHandoff.receive().then(function (file) {
+      if (!file) return;
+      if (!acceptFile(file.name)) throw new Error('This tool cannot open the transferred file type.');
+      if (cfg.input === 'text') return addTextFile(new File([file.buffer], file.name, { type: file.type || '' }));
+      return setFiles([{ name: file.name, size: file.buffer.byteLength, ext: extOf(file.name), buffer: file.buffer }]);
+    }).catch(function (error) { setHint(error.message, 'bad'); });
   }
 
   registerWebMcp();

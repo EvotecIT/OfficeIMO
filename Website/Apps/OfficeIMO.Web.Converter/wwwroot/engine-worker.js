@@ -63,7 +63,14 @@ function boot() {
     const config = runtime.getConfig();
     engine = (await runtime.getAssemblyExports(config.mainAssemblyName)).OfficeIMO.Web.Converter.Engine.EngineExports;
     return { ms: Math.round(performance.now() - started), bytes: downloaded };
-  })();
+  })().catch(error => {
+    runtime = engine = booting = null;
+    loaded.clear();
+    prefetched.clear();
+    lazyAssets = [];
+    downloaded = 0;
+    throw error;
+  });
   return booting;
 }
 
@@ -99,7 +106,12 @@ const handlers = {
   artifact: async ({ index }) => { await boot(); return engine.Artifact(index); },
   probe: async ({ slot }) => { await boot(); return JSON.parse(engine.Probe(slot)); },
   pages: async ({ source, index }) => { await boot(); return engine.PageCount(source, index); },
-  render: async ({ source, index, page, size }) => { await boot(); return engine.RenderPage(source, index, page, size || 1280); },
+  render: async ({ source, index, page, size }) => {
+    // PDF previews may contain unembedded Japanese, Arabic or symbol fonts even when
+    // the operation itself only edits PDF structure and never requests conversion fonts.
+    await prepare(null, ["OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"]);
+    return engine.RenderPage(source, index, page, size || 1280);
+  },
   // WebAssembly memory only grows, so its size is the engine's peak footprint (used by the CI performance budget).
   memory: async () => { await boot(); return runtime.Module && runtime.Module.HEAPU8 ? runtime.Module.HEAPU8.byteLength : 0; }
 };

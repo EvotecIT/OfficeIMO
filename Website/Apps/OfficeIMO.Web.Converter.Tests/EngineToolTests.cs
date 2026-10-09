@@ -12,6 +12,23 @@ public sealed class EngineToolTests {
         new(values.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal));
 
     [Fact]
+    public void TextFileReviewAndCleanCopyPreserveNameEncodingAndPreamble() {
+        var session = new ToolSession();
+        byte[] input = System.Text.Encoding.Unicode.GetPreamble().Concat(System.Text.Encoding.Unicode.GetBytes("Visible\u200b text")).ToArray();
+        session.Stage(0, input, "UTF16-original.txt");
+        var review = TextTool.Run(session, "inspect", Options(("source", "file")));
+        Assert.Contains(review.Facts, fact => fact.Label == "Encoding" && fact.Value == "UTF-16");
+        Assert.Contains(review.Facts, fact => fact.Label == "File" && fact.Value == "UTF16-original.txt");
+        var removed = TextTool.Run(session, "remove", Options(("source", "file"), ("remove", review.Items[0].Id)));
+        var artifact = Assert.Single(removed.Artifacts, item => item.Role == "primary");
+        Assert.Equal("UTF16-original-cleaned.txt", artifact.FileName);
+        Assert.Equal("text/plain;charset=utf-16", artifact.ContentType);
+        byte[] actual = session.Artifact(artifact.Index);
+        Assert.Equal(System.Text.Encoding.Unicode.GetPreamble(), actual.Take(2));
+        Assert.Equal("Visible text", System.Text.Encoding.Unicode.GetString(actual, 2, actual.Length - 2));
+    }
+
+    [Fact]
     public void WordToPdf_ReturnsAPreviewableFileAndAPlainVerdict() {
         var session = new ToolSession();
         session.Stage(0, Sample("business-summary.docx"), "summary.docx");
@@ -43,6 +60,17 @@ public sealed class EngineToolTests {
         var session = new ToolSession();
         Assert.Throws<InvalidOperationException>(() => ConvertTool.Run(session, "docx-pdf", "convert", Options()));
         Assert.Throws<NotSupportedException>(() => ConvertTool.Run(session, "no-such-route", "convert", Options()));
+    }
+
+    [Fact]
+    public void FileOrigin_UnsignedCredentialDoesNotEstablishCertificateIdentity() {
+        var session = new ToolSession();
+        session.Stage(0, Sample("unsigned-credential-12-actions.png"), "unsigned.png");
+        ToolResultDocument result = OriginTool.Run(session, "inspect", Options());
+        Assert.Contains(result.Facts, fact => fact.Label == "Certificate subject" && fact.Value.Contains("unverified", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("unverified", result.Verdict.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("signed by", result.Verdict.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(result.Items, item => item.Id == OriginTool.Manifests && item.Detail.Contains("not verified", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -89,7 +117,8 @@ public sealed class EngineToolTests {
         Assert.Equal(7, first.Start);
         Assert.Equal("Can change meaning", first.Group);
 
-        ToolResultDocument removed = TextTool.Run(session, "remove", Options(("remove", first.Id)));
+        Assert.Throws<InvalidOperationException>(() => TextTool.Run(session, "remove", Options(("remove", first.Id), ("text", "Edited text"))));
+        ToolResultDocument removed = TextTool.Run(session, "remove", Options(("remove", first.Id), ("text", text)));
         Assert.True(removed.Ok);
         Assert.Equal(ToolState.Removed, removed.Items[0].State);
         Assert.Equal(ToolState.Kept, removed.Items[^1].State);
@@ -124,9 +153,25 @@ public sealed class EngineToolTests {
         ToolResultDocument none = PdfTool.Run(session, "redact", "find", Options(("text", "zzz-not-in-this-file")));
         Assert.StartsWith("No matches", none.Verdict.Title, StringComparison.Ordinal);
 
+        Assert.Throws<InvalidOperationException>(() => PdfTool.Run(session, "redact", "run", Options(("text", "Critical blockers"), ("confirm", "true"))));
+        PdfTool.Run(session, "redact", "find", Options(("text", "Critical blockers")));
+
         ToolResultDocument applied = PdfTool.Run(session, "redact", "run", Options(("text", "Critical blockers"), ("confirm", "true")));
         Assert.True(applied.Ok);
         Assert.Equal("Text removed and checked", applied.Verdict.Title);
+    }
+
+    [Fact]
+    public void ClearingInputsReleasesThePreviousResultsAndReviews() {
+        var session = new ToolSession();
+        TextTool.Run(session, "inspect", Options(("text", "a\u202Eb")));
+        Assert.NotNull(session.LastReview);
+        Assert.NotEmpty(session.Artifact(0));
+        session.ClearInputs();
+        Assert.Empty(session.Inputs);
+        Assert.Null(session.LastReview);
+        Assert.Null(session.LastConversion);
+        Assert.Throws<ArgumentOutOfRangeException>(() => session.Artifact(0));
     }
 
     [Fact]

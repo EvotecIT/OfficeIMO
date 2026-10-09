@@ -300,7 +300,7 @@ label.bt-item__body { cursor: pointer; }
   .bt-output:has([data-bt-empty]) { display: none; }
   .bt-local { white-space: normal; }
   .bt-panel { padding: 16px; }
-  .bt-preview--pair { grid-template-columns: 1fr 1fr; }
+  .bt-preview--pair { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bt-spinner, .bt-local[data-state="loading"] svg { animation: none; }

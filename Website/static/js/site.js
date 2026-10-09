@@ -501,25 +501,6 @@
     });
     filterTools();
 
-    // Same one-entry IndexedDB hand-off the tool pages use; the tool page deletes it as soon as it reads it.
-    function handOff(file) {
-      return new Promise(function (resolve, reject) {
-        if (!window.indexedDB) { reject(new Error('unavailable')); return; }
-        var request = indexedDB.open('officeimo-browser-tools', 1);
-        request.onupgradeneeded = function () { request.result.createObjectStore('handoff'); };
-        request.onerror = function () { reject(request.error); };
-        request.onsuccess = function () {
-          var db = request.result;
-          file.arrayBuffer().then(function (buffer) {
-            var tx = db.transaction('handoff', 'readwrite');
-            tx.objectStore('handoff').put({ name: file.name, type: file.type, buffer: buffer, created: Date.now() }, 'file');
-            tx.oncomplete = function () { db.close(); resolve(); };
-            tx.onerror = function () { db.close(); reject(tx.error); };
-          }, reject);
-        };
-      });
-    }
-
     function initFileDrop(drop) {
       var fileInput = drop.querySelector('#browser-drop-input');
       var target = drop.querySelector('[data-browser-drop-target]');
@@ -534,6 +515,10 @@
       }
 
       function choose(file) {
+        if (file && file.size > 25 * 1024 * 1024) {
+          status.textContent = 'The limit is 25 MB per file. Choose a smaller file.';
+          return;
+        }
         pendingFile = file || null;
         input.value = '';
         var matches = filterTools();
@@ -588,11 +573,10 @@
           if (!pendingFile || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
           var destination = card.href;
-          handOff(pendingFile).then(function () {
-            window.location.href = destination + (destination.indexOf('?') >= 0 ? '&' : '?') + 'from=previous';
-          }, function () {
-            window.location.href = destination;
-          });
+          var file = pendingFile;
+          window.OfficeIMOBrowserHandoff.send(destination, function () {
+            return file.arrayBuffer().then(function (buffer) { return { name: file.name, type: file.type, buffer: buffer }; });
+          }).catch(function (error) { status.textContent = error.message; });
         });
       });
     }
@@ -897,7 +881,13 @@
         var text = card.textContent.toLowerCase();
         var match = words.every(function (w) { return text.indexOf(w) >= 0; });
         card.hidden = !match;
-        if (words.length) card.open = match;
+        if (words.length) {
+          if (!card.hasAttribute('data-faq-was-open')) card.setAttribute('data-faq-was-open', card.open ? '1' : '0');
+          card.open = match;
+        } else if (card.hasAttribute('data-faq-was-open')) {
+          card.open = card.getAttribute('data-faq-was-open') === '1';
+          card.removeAttribute('data-faq-was-open');
+        }
         if (match) shown++;
       });
       groups.forEach(function (group) {
@@ -918,7 +908,8 @@
         var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
         var shown = 0;
         rows.forEach(function (row) {
-          var text = row.cells[0] ? row.cells[0].textContent.toLowerCase() : row.textContent.toLowerCase();
+          var titles = Array.prototype.map.call(row.querySelectorAll("[title]"), function (item) { return item.getAttribute("title"); }).join(" ");
+          var text = ((row.getAttribute("data-search") || row.textContent) + " " + titles).toLowerCase();
           var match = words.every(function (w) { return text.indexOf(w) >= 0; });
           row.hidden = !match;
           if (match) shown++;
@@ -993,6 +984,27 @@
   }
 
   function init() {
+    var apiBrowser = document.querySelector('[data-api-browser]');
+    if (apiBrowser && window.matchMedia) apiBrowser.open = window.matchMedia('(min-width: 1101px)').matches;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-showcase-tool]'), function (link) {
+      link.addEventListener('click', function (event) {
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        window.OfficeIMOBrowserHandoff.send(link.href, function () {
+          var url = link.getAttribute('data-showcase-tool');
+          return fetch(url).then(function (response) {
+            if (!response.ok) throw new Error('The example could not be downloaded. Try the download link.');
+            var length = Number(response.headers.get('Content-Length') || 0);
+            if (length > 25 * 1024 * 1024) throw new Error('This example exceeds the browser tool’s 25 MB limit.');
+            return response.arrayBuffer().then(function (buffer) { return { name: url.split('/').pop(), type: response.headers.get('Content-Type') || '', buffer: buffer }; });
+          });
+        }).catch(function (error) {
+          var status = link.parentNode.querySelector('[data-showcase-transfer-status]');
+          if (!status) { status = document.createElement('p'); status.setAttribute('data-showcase-transfer-status', 'true'); status.setAttribute('role', 'status'); link.parentNode.appendChild(status); }
+          status.textContent = error.message;
+        });
+      });
+    });
     initTableScroll();
     initFeatureLists();
     initSectionCards();

@@ -32,4 +32,7 @@
     <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\OfficeIMO.Security\OfficeIMO.Security.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../OfficeIMO.TestAssets/Documents/Provenance/unsigned-credential-12-actions.png" Link="fixtures/unsigned-credential-12-actions.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

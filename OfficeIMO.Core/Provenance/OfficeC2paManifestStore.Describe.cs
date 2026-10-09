@@ -63,6 +63,8 @@ internal static partial class OfficeC2paManifestStore {
             child += (int)childLength;
         }
 
+        if (claim == null) return null;
+        HashSet<string> claimedAssertions = ClaimedAssertions(claim, activeLabel!);
         string? generator = null;
         if (claim != null) {
             generator = Text(Get(claim, "claim_generator"));
@@ -73,7 +75,7 @@ internal static partial class OfficeC2paManifestStore {
         }
 
         foreach ((string label, string type, int boxOffset, int boxLength) in assertionBoxes) {
-            if (type != "cbor" || !OfficeCborReader.TryDecode(data, boxOffset, boxLength, out object? value) || value is not Dictionary<object, object?> assertion) continue;
+            if (!claimedAssertions.Contains(label) || type != "cbor" || !OfficeCborReader.TryDecode(data, boxOffset, boxLength, out object? value) || value is not Dictionary<object, object?> assertion) continue;
             if (BaseLabel(label) == "c2pa.actions") {
                 if (Get(assertion, "actions") is not List<object?> list) continue;
                 foreach (object? entry in list) {
@@ -100,6 +102,25 @@ internal static partial class OfficeC2paManifestStore {
             signedBy,
             issuer,
             manifestCount);
+    }
+
+    // A store may contain assertions which the active claim does not claim. Reading them as
+    // origin evidence would let unrelated boxes change the displayed source classification.
+    private static HashSet<string> ClaimedAssertions(Dictionary<object, object?> claim, string manifestLabel) {
+        var labels = new HashSet<string>(StringComparer.Ordinal);
+        string absolutePrefix = "self#jumbf=/c2pa/" + manifestLabel + "/c2pa.assertions/";
+        const string relativePrefix = "self#jumbf=c2pa.assertions/";
+        foreach (string field in new[] { "assertions", "created_assertions", "gathered_assertions" }) {
+            if (Get(claim, field) is not List<object?> references) continue;
+            foreach (object? reference in references) {
+                if (reference is not Dictionary<object, object?> map || Get(map, "url") is not string url ||
+                    Get(map, "hash") is not byte[] hash || hash.Length == 0) continue;
+                string? label = url.StartsWith(relativePrefix, StringComparison.Ordinal) ? url.Substring(relativePrefix.Length)
+                    : url.StartsWith(absolutePrefix, StringComparison.Ordinal) ? url.Substring(absolutePrefix.Length) : null;
+                if (!string.IsNullOrEmpty(label) && label!.IndexOf('/') < 0 && label != "." && label != "..") labels.Add(label);
+            }
+        }
+        return labels; // Hash membership is read here; integrity and signature verification are separate operations.
     }
 
     private static void CollectAssertions(byte[] data, int cursor, int end, List<(string, string, int, int)> boxes) {

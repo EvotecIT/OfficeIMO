@@ -44,13 +44,17 @@ internal static class TextTool {
                     ? ToolFormat.Count(risky, "of them can", "of them can") + " change how the text displays or how programs read it. They are highlighted below."
                     : "They are usually intentional, such as emoji joiners or non-breaking spaces. Remove only what you don't expect.");
         return new ToolResultDocument(true, verdict,
-            [new ToolFact("Characters", result.Text.Length.ToString("N0", CultureInfo.InvariantCulture)),
+            [new ToolFact("File", sourceName), new ToolFact("Encoding", result.EncodingName.ToUpperInvariant()),
+             new ToolFact("Characters", result.Text.Length.ToString("N0", CultureInfo.InvariantCulture)),
              new ToolFact("Findings", findings.Count.ToString(CultureInfo.InvariantCulture), findings.Count > 0 ? ToolTone.Warn : null)],
             Items(findings, null), artifacts, new ToolPreview("text", Text: result.Text), 0);
     }
 
     private static ToolResultDocument Remove(ToolSession session, ToolOptions options) {
         Review review = session.LastReview as Review ?? throw new InvalidOperationException("Inspect the text before removing characters.");
+        if (options.Text("source") != "file" && options.Text("text") != review.Text) {
+            throw new InvalidOperationException("The text changed. Inspect it again before removing characters.");
+        }
         int count = review.Result.Report.Findings.Count;
         int[] selected = options.List("remove")
             .Select(static id => int.TryParse(id.TrimStart('f'), NumberStyles.Integer, CultureInfo.InvariantCulture, out int index) ? index : -1)
@@ -61,7 +65,7 @@ internal static class TextTool {
         byte[] output = review.Result.ExportSelected(review.Text, selected);
         string outputName = Path.GetFileNameWithoutExtension(review.SourceName) + "-cleaned" + (Path.GetExtension(review.SourceName) is { Length: > 0 } extension ? extension : ".txt");
         ToolArtifact[] artifacts = session.ReplaceArtifacts(
-            (new BrowserConversionArtifact(output, outputName, "text/plain;charset=utf-8"), "primary"),
+            (new BrowserConversionArtifact(output, outputName, "text/plain;charset=" + review.Result.EncodingName), "primary"),
             (ReportArtifact(review, selected), "report"));
         return new ToolResultDocument(true,
             new ToolVerdict(ToolTone.Good, "Clean copy ready · " + ToolFormat.Count(selected.Length, "character") + " removed",

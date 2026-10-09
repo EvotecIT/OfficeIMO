@@ -1,5 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+ xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:workflows="using:OfficeIMO.Studio.Features.Workflows"
  x:Class="OfficeIMO.Studio.Features.Workflows.ProvenanceWorkbenchView" x:DataType="shell:MainWindowViewModel">
  <ScrollViewer VerticalScrollBarVisibility="Auto">
   <StackPanel Margin="20" Spacing="14" MaxWidth="1000" HorizontalAlignment="Stretch">
@@ -30,6 +30,44 @@
    <TextBlock Text="{Binding ProvenanceWorkbench.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
    <TextBlock Text="{Binding ProvenanceWorkbench.Checks}" TextWrapping="Wrap" />
    <TextBlock Classes="muted" Text="{Binding ProvenanceWorkbench.Coverage}" TextWrapping="Wrap" />
+   <StackPanel Spacing="10" IsVisible="{Binding ProvenanceWorkbench.HasCredentials}" AutomationProperties.Name="Content Credentials">
+    <TextBlock Text="{loc:Loc Provenance.Credentials}" FontWeight="SemiBold" />
+    <TextBlock Text="{loc:Loc Provenance.CredentialHint}" Classes="muted" TextWrapping="Wrap" />
+    <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Credentials}">
+     <ItemsControl.ItemTemplate><DataTemplate x:DataType="workflows:ProvenanceCredentialViewModel">
+      <Border Classes="card" Margin="0,0,0,10"><StackPanel Spacing="8">
+       <TextBlock Text="{Binding Generator}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+       <TextBlock Text="{Binding Asset}" TextWrapping="Wrap" />
+       <TextBlock Text="{Binding CertificateSubject, StringFormat='Certificate subject (unverified): {0}'}" TextWrapping="Wrap" />
+       <TextBlock Text="{Binding CertificateIssuer, StringFormat='Certificate issuer (unverified): {0}'}" Classes="muted" TextWrapping="Wrap" />
+       <TextBlock Text="{loc:Loc Provenance.Timeline}" FontWeight="SemiBold" Margin="0,6,0,0" />
+       <TextBlock Text="{loc:Loc Provenance.TimelineHint}" Classes="muted" TextWrapping="Wrap" />
+       <ItemsControl ItemsSource="{Binding Actions}"><ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="workflows:ProvenanceCredentialActionViewModel">
+         <Grid ColumnDefinitions="32,*" Margin="0,7">
+          <TextBlock Text="{Binding Position}" FontWeight="SemiBold" />
+          <StackPanel Grid.Column="1" Spacing="3">
+           <TextBlock Text="{Binding Action}" FontWeight="SemiBold" TextWrapping="Wrap" />
+           <TextBlock Text="{Binding Software}" TextWrapping="Wrap" />
+           <TextBlock Text="{Binding Time}" Classes="muted" TextWrapping="Wrap" />
+           <TextBlock Text="{Binding SourceType}" Classes="muted" TextWrapping="Wrap" />
+           <TextBlock IsVisible="{Binding HasWatermark}" Text="{loc:Loc Provenance.WatermarkHint}" TextWrapping="Wrap" />
+          </StackPanel>
+         </Grid>
+        </DataTemplate>
+       </ItemsControl.ItemTemplate></ItemsControl>
+       <ItemsControl ItemsSource="{Binding Ingredients}"><ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding, StringFormat='Source asset: {0}'}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate>
+       </ItemsControl.ItemTemplate></ItemsControl>
+       <Expander Header="{loc:Loc Provenance.RecordDetails}"><StackPanel Spacing="5" Margin="8">
+        <TextBlock Text="{Binding ManifestCount, StringFormat='Manifests in the store: {0}'}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Label}" Classes="muted" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Location}" Classes="muted" TextWrapping="Wrap" />
+       </StackPanel></Expander>
+      </StackPanel></Border>
+     </DataTemplate></ItemsControl.ItemTemplate>
+    </ItemsControl>
+   </StackPanel>
    <Border Classes="card"><StackPanel Spacing="8">
     <TextBlock Text="{loc:Loc Provenance.Findings}" FontWeight="SemiBold" />
     <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Findings}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>

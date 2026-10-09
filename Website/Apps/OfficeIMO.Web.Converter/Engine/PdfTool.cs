@@ -7,6 +7,7 @@ namespace OfficeIMO.Web.Converter.Engine;
 
 /// <summary>Runs the PDF workbench operations and the read-only checks the shell needs before them.</summary>
 internal static class PdfTool {
+    private sealed record RedactionReview(SelectedDocument File, string Text);
     internal static ToolResultDocument Run(ToolSession session, string toolId, string action, ToolOptions options) {
         PdfToolDefinition tool = PdfToolCatalog.All.FirstOrDefault(candidate => string.Equals(candidate.Id, toolId, StringComparison.Ordinal))
             ?? throw new NotSupportedException($"The PDF tool '{toolId}' is not available in the browser.");
@@ -31,6 +32,10 @@ internal static class PdfTool {
     }
 
     private static ToolResultDocument Execute(ToolSession session, PdfToolDefinition tool, ToolOptions options) {
+        if (tool.Kind == PdfToolKind.Redact && (session.LastReview is not RedactionReview review ||
+            !ReferenceEquals(review.File, session.Input()) || review.Text != options.Text("text").Trim())) {
+            throw new InvalidOperationException("The input or phrase changed. Find and review the matches again before removing text.");
+        }
         PdfToolResult result = session.PdfTools.Execute(new PdfToolRequest(
             tool,
             session.Inputs,
@@ -89,6 +94,7 @@ internal static class PdfTool {
         var search = new PdfRedactionSearchOptions { MatchCase = false };
         search.AddLiteral(text);
         PdfRedactionPlan plan = source.Redactions.Search(search);
+        session.LastReview = new RedactionReview(session.Input(), text);
         if (!plan.HasMatches) {
             return new ToolResultDocument(true,
                 new ToolVerdict(ToolTone.Info, $"No matches for “{text}”", "Nothing would be removed. Check the spelling, or try a shorter phrase."),
