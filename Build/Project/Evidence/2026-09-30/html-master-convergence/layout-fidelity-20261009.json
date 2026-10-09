@@ -463,6 +463,144 @@
         }
       ],
       "boundary": "Identical PDF bytes carry accepted independent extraction/native appearance proof forward; no second native rendering ran."
+    },
+    "waiPrintOverlapClassification": {
+      "recordedUtc": "2026-10-09T17:59:04.448273+00:00",
+      "sourceCommit": "044477ee600e1075f5df5ec2a8da7407baaa8962",
+      "inputArchiveSha256": "e412cfda033d9aa02b7abd455ae0fab917c2e44ba0ad0f4bc83f233877a4397d",
+      "findingReceiptSha256": "ac514e92ec9cfdee1075ad0a2699193deab9b51b8afb92f73d8a638172cd3838",
+      "classification": "Previous inherited WAI Print image-adjacent overlap claim withdrawn: not reproduced. No production overlap fix justified.",
+      "supersededClaimBoundary": "The earlier all-page native receipt remains immutable; its inherited WAI overlap sentence is superseded by this current classification. Broader WAI appearance and eleven-intent criteria remain open.",
+      "actualPdf": {
+        "profile": "PrintPaged",
+        "viewportCssPx": [
+          816,
+          900
+        ],
+        "paper": "A4",
+        "marginsCssPx": 48,
+        "sha256": "2cb8e0e3ef2df1e0054e264e103f5543a86e4e2b326ab526f8740bf849d95ace",
+        "byteIdenticalToAccepted4919": true,
+        "pagesInspected": [
+          1,
+          2
+        ],
+        "icons": 5,
+        "iconRightEdgePt": 138,
+        "titleStartsPt": [
+          153.750061,
+          153.750054,
+          153.750008,
+          153.75,
+          153.749926
+        ],
+        "minimumGlyphGapPt": 15.749925999999988,
+        "intersectingGlyphWordRectangles": 0,
+        "nativeAllFiveCardsInspected": true
+      },
+      "negativePublicApiReduction": {
+        "cards": 2,
+        "exactCapturedPngAndThreeWoff2Fonts": true,
+        "samePrintRequestAndMargins": true,
+        "imageToTitleGapsPt": [
+          15.750060999999988,
+          15.750054000000006
+        ],
+        "layoutDiagnostics": 0,
+        "nativeNoCollisionObserved": true,
+        "sourceBindingReceiptSha256": "9881157a9b3ea2000f80a09ce09755616989d20412ea4be5d016ef2470c533fa"
+      },
+      "browserComparison": {
+        "entrypoint": "HtmlTinkerX.HtmlBrowser.OpenSessionAsync; session disposed after brief headless Chromium Print-media capture",
+        "version": "153.0.8010.12",
+        "viewportCssPx": [
+          698,
+          900
+        ],
+        "media": "print",
+        "imageToTitleGapsCssPx": [
+          20,
+          20
+        ],
+        "exactCapturedResources": true,
+        "fontsLoaded": true,
+        "nativeNoOverlapInspected": true,
+        "receiptSha256": "3f3fa80c0fcb1a5ab48161dc7980517e16747dcbca8a0a2bfd11873bc9f7e8de",
+        "boundary": "698px browser canvas approximates A4 drawable width697.7008px; same data-URI captured fonts/images and selected Print rules. No full captured-page Chromium print, exact pixel parity or arbitrary-browser qualification."
+      },
+      "rejectedHarnessCorrection": {
+        "cause": "Wrong netstandard2.0 BCL IAsyncDisposable definition in manual DLL-only test harness; ordinary NuGet netstandard2.1 facade selects CoreLib identity. Actual HtmlTinkerX/Playwright binaries match both paths. Reflection and normal assets verify cause.",
+        "ordinaryPackageReference": "HtmlTinkerX3.0.3; normal NuGet transitive closure; isolated browser-only project",
+        "normalPackageClosure": [
+          "Acornima/1.7.0",
+          "AngleSharp/1.8.2",
+          "AngleSharp.Css/1.1.2",
+          "AngleSharp.Diffing/1.1.1",
+          "AngleSharp.Io/1.1.0",
+          "AngleSharp.Js/1.1.0",
+          "ChartForgeX/1.8.1",
+          "HtmlAgilityPack/1.13.0",
+          "HtmlTinkerX/3.0.3",
+          "Jint/4.16.3",
+          "Microsoft.Bcl.AsyncInterfaces/6.0.0",
+          "Microsoft.Playwright/1.63.0",
+          "NUglify/1.23.1",
+          "OfficeIMO.Core/3.4.3",
+          "OfficeIMO.Html/3.4.3",
+          "OfficeIMO.Markdown/3.4.3",
+          "OfficeIMO.Markdown.Html/3.4.3",
+          "PreMailer.Net/2.7.4",
+          "System.ComponentModel.Annotations/5.0.0"
+        ],
+        "toolBindings": [
+          {
+            "Name": "HtmlTinkerX",
+            "assemblyVersion": "3.0.3.0",
+            "informationalVersion": "3.0.3+032b5d293510ab702882528794babe6edbf8907c",
+            "sha256": "204b3ff4206d9197da173b29c702f384ed2773190de838f1f3adfb3e6d266aa6"
+          },
+          {
+            "Name": "Microsoft.Playwright",
+            "assemblyVersion": "1.63.0.0",
+            "informationalVersion": "1.0.0+6d5c263758e8b50cfc18d3abb384f251b7deb370",
+            "sha256": "7e55d0c8a1b76ecf1b94477acec749f89e84a1747b857624ea0e5e57b69b6947"
+          },
+          {
+            "Name": "Microsoft.Bcl.AsyncInterfaces",
+            "assemblyVersion": "6.0.0.0",
+            "informationalVersion": "6.0.0+4822e3c3aa77eb82b2fb33c9321f923cf11ddde6",
+            "sha256": "5705d245072d3eb78400547b32147dbb6e2c8b02ba8bda76729798f5efdeaecb"
+          }
+        ],
+        "selectedBclAsset": "lib/netstandard2.1/Microsoft.Bcl.AsyncInterfaces.dll",
+        "wrongManualBclAsset": "lib/netstandard2.0/Microsoft.Bcl.AsyncInterfaces.dll",
+        "reflectionProofSha256": "9140ae67f807384fe145b5ee21af7b81de607a98348114d6c7a1d5345bf44134",
+        "actualPlaywrightReturnTypeMatchesCoreLib": true,
+        "actualPlaywrightReturnTypeMatchesWrongBclDefinition": false,
+        "shippedPackageOrOfficeIMODefect": false,
+        "frozenOfficeIMOProofGraphChanged": false
+      },
+      "nativeEvidence": [
+        {
+          "path": "layout-fidelity-native-20261009/wai-print-page1-cards.png",
+          "sha256": "7bb9c1dd94f35dfc20be3a46944b0e0da3d7ae208ccc43608de440f4a764f9e1",
+          "bytes": 68782,
+          "scope": "Actual frozen Print PDF page1: first two cards; default A4, 48CSSpx margins. Glyph and image rectangles establish gaps, with native paint inspected."
+        },
+        {
+          "path": "layout-fidelity-native-20261009/wai-print-page2-cards.png",
+          "sha256": "bd661d95e816725b3264fa72b65a190026cc55aa9deeb3641d687a42ce39ae9d",
+          "bytes": 120132,
+          "scope": "Actual frozen Print PDF page2: remaining three cards; actual PDF bytes equal accepted4919."
+        },
+        {
+          "path": "layout-fidelity-native-20261009/wai-print-browser-minimum.png",
+          "sha256": "c385fe559a7869952529a91f8e636dfa3c5033725e057d0a087ae9fae8a50824",
+          "bytes": 50528,
+          "scope": "Chromium Print-media exact-resource two-card minimum at698CSSpx. Browser canvas approximates A4 drawable width; no whole-page or pixel-equivalence claim."
+        }
+      ],
+      "qualificationBoundary": "Only frozen WAI Print pages1\u20132 plus exact-resource two-card Print public-API reduction and canonical Chromium comparison. No whole-page browser print parity, arbitrary-web fidelity, screenshot-profile equivalence, cross-platform/package or accessibility qualification implied."
     }
   },
   "h4ResourceProof": {
