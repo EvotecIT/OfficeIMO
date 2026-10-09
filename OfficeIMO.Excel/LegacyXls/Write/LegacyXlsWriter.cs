@@ -886,6 +886,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             string text = sheet.GetCellText(cell);
             if (string.IsNullOrEmpty(text)) {
+                if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                    || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString
+                    || dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String) {
+                    return LegacyXlsCell.Text(row, column, styleIndex, string.Empty);
+                }
+
                 return HasExplicitCellStyle(cell)
                     ? LegacyXlsCell.Blank(row, column, styleIndex)
                     : null;
@@ -895,9 +901,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return LegacyXlsCell.Text(row, column, styleIndex, text);
         }
 
-        private static bool HasExplicitCellStyle(Cell cell) {
-            return cell.StyleIndex != null && cell.StyleIndex.HasValue;
-        }
+        private static bool HasExplicitCellStyle(Cell cell) =>
+            cell.StyleIndex != null && cell.StyleIndex.HasValue;
 
         private static LegacyXlsCell ConvertFormulaCell(
             ExcelSheet sheet,

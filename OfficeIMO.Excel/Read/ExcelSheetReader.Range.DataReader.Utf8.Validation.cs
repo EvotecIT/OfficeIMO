@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (sharedFormulaFollower
-                    && (!_options.UseCachedFormulaResult || !hasCachedValue)) {
+                    && (!UseCachedFormulaResultForIndex || !hasCachedValue)) {
                     string reference = A1.CellReference(rowIndex, columnIndex);
                     throw new NotSupportedException(
                         $"Data-reader projection cannot safely expand the shared-formula follower " +

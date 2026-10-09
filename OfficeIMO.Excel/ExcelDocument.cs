@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
             return changed;
         }
 
-        private static Stylesheet CreateDefaultStylesheet() {
+        internal static Stylesheet CreateDefaultStylesheet() {
             var stylesheet = new Stylesheet();
 
             stylesheet.Fonts = new Fonts(new Font(new FontSize { Val = 11D }, new FontName { Val = "Calibri" }));
