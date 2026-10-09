@@ -18,6 +18,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
     private readonly LaterSpreadsheetProfile _profile;
     private readonly LegacySpreadsheetModel _model = new() { Quality = OfficeLegacyImportQuality.Structured, PreserveSheetNames = true };
     private readonly Dictionary<int, string> _names = new();
+    private readonly Dictionary<int, string> _sourceNames = new();
     private readonly Dictionary<(int Sheet, int Row, int Column), LegacySpreadsheetCell> _cells = new();
     private readonly HashSet<(int Sheet, int Row, int Column)> _commentOnly = new();
     private readonly HashSet<(int Sheet, int Row, int Column)> _formulas = new();
@@ -76,6 +77,7 @@ internal sealed partial class LaterRecordSpreadsheetReader {
                 _model.InertContent |= OfficeLegacyInertContentKind.EmbeddedObjects;
             }
         }
+        FinalizeNames();
         foreach (var record in records) { _cancellation.ThrowIfCancellationRequested(); ReadCell(record.Type, record.Offset, record.Length); }
         if (_names.Count == 0) EnsureSheet(0);
         foreach (var entry in _names.OrderBy(item => item.Key)) {
@@ -179,10 +181,20 @@ internal sealed partial class LaterRecordSpreadsheetReader {
         if (trimmed != name) Loss("LATER_SHEET_NAME", "A source sheet name was trimmed for XLSX; formula references use its final projected name.");
         name = trimmed;
         if (name.Length == 0 || name.Length > 31 || name.IndexOfAny(new[] { '[', ']', ':', '*', '?', '/', '\\' }) >= 0 ||
-            name[0] == '\'' || name[name.Length - 1] == '\'' || _names.Any(item => item.Key != id && string.Equals(item.Value, name, StringComparison.OrdinalIgnoreCase))) {
+            name[0] == '\'' || name[name.Length - 1] == '\'') {
             Loss("LATER_SHEET_NAME", "A source sheet name cannot be used safely in XLSX; its stable generated name is used."); return;
         }
-        _names[id] = name;
+        _sourceNames[id] = name;
+    }
+    private void FinalizeNames() {
+        int[] ids = _names.Keys.OrderBy(id => id).ToArray();
+        _names.Clear();
+        foreach (var entry in _sourceNames.OrderBy(item => item.Key)) {
+            if (_names.Values.Contains(entry.Value, StringComparer.OrdinalIgnoreCase)) {
+                Loss("LATER_SHEET_NAME", "Duplicate source sheet names use stable unique generated names in XLSX.");
+            } else _names[entry.Key] = entry.Value;
+        }
+        foreach (int id in ids) EnsureSheet(id);
     }
     private string Text(int p, int length) {
         int zero = Array.IndexOf(_data, (byte)0, p, length); if (zero < 0) throw new InvalidDataException("Unterminated source text.");

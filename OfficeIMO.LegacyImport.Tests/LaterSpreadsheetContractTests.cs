@@ -53,6 +53,24 @@ public sealed class LaterSpreadsheetContractTests {
     }
 
     [Fact]
+    public void DeclaredSourceNamesAreResolvedBeforeTemporaryDefaultsRegardlessOfRecordOrder() {
+        byte[] header = LotusHeader(); header[10] = 1;
+        byte[] firstName = Record(0x23, Join(new byte[] { 0xb0, 0x36, 0, 0 }, Encoding.ASCII.GetBytes("Sheet2\0")));
+        byte[] secondName = Record(0x23, Join(new byte[] { 0xb0, 0x36, 1, 0 }, Encoding.ASCII.GetBytes("Other\0")));
+        foreach (bool reverse in new[] { false, true }) {
+            byte[] source = Join(Record(0, header), reverse ? secondName : firstName, reverse ? firstName : secondName,
+                LotusFormula(0, 1), Record(1));
+            using var result = Import(source);
+            Assert.Equal(new[] { "Sheet2", "Other" }, result.Value.Sheets.Select(sheet => sheet.Name));
+            Assert.Equal("'Other'!$A$1", Assert.Single(result.Cells).Formula);
+            Assert.DoesNotContain(result.Report.Findings, finding => finding.Code == "LATER_SHEET_NAME");
+            using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
+            using var loaded = ExcelDocument.Load(output);
+            Assert.Equal(new[] { "Sheet2", "Other" }, loaded.Sheets.Select(sheet => sheet.Name));
+        }
+    }
+
+    [Fact]
     public void LotusBofKeepsDeclaredEmptySheetsWithinTheItemLimit() {
         byte[] header = LotusHeader(); header[10] = 2; header[11] = 1;
         byte[] source = Join(Record(0, header), Record(0x16, Join(new byte[4], Encoding.ASCII.GetBytes("'First\0"))), Record(1));
