@@ -325,7 +325,7 @@ internal static partial class HtmlPdfRenderedConverter {
             });
         }
 
-        IReadOnlyList<PdfCore.PdfTextEncodingDiagnostic> encodingDiagnostics = pdf.AnalyzeTextEncoding();
+        IReadOnlyList<PdfCore.PdfTextEncodingDiagnostic> encodingDiagnostics = pdf.AnalyzeTextEncoding(cancellationToken);
         if (encodingDiagnostics.Count > 0) {
             throw new HtmlConversionException(diagnostics.Concat(encodingDiagnostics.Select(
                 diagnostic => new HtmlDiagnostic(
