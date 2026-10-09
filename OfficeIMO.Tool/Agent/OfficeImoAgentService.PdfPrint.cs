@@ -17,9 +17,10 @@ internal sealed partial class OfficeImoAgentService {
         PdfDocument document = await PdfDocument.LoadAsync(stream, new PdfLoadOptions {
             Password = PdfPassword(settings), Limits = new PdfReadLimits { MaxInputBytes = settings.MaximumInputBytes }
         }, cancellationToken).ConfigureAwait(false);
+        int pageCount = document.GetPrintablePageLayouts(options: null, cancellationToken).Count;
         var selector = settings.Selector();
-        if (selector is not null) _ = selector.Resolve(document.Inspect().PageCount, 10_000);
-        else if (document.Inspect().PageCount > 10_000) throw new AgentUsageException("Print-plan selection is limited to 10000 pages.");
+        if (selector is not null) _ = selector.Resolve(pageCount, 10_000);
+        else if (pageCount > 10_000) throw new AgentUsageException("Print-plan selection is limited to 10000 pages.");
         PdfPrintPlan plan = PdfPrintPlanner.Create(document, new PdfPrintPlanRequest {
             InputPath = input, Pages = pages, PagesPerSheet = pagesPerSheet, Margin = margin,
             MarginLeft = marginLeft, MarginTop = marginTop, MarginRight = marginRight, MarginBottom = marginBottom,

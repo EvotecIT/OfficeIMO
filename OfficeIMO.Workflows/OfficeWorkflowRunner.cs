@@ -92,10 +92,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Output;
             string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath!)!
                 : providerStagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-provider-output-");
-            if (stagingGuard != null)
+            if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(outputDirectory);
-            if (stagingGuard != null)
+            if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(
                 outputDirectory,
@@ -247,20 +247,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] actual = ReadInput(request.ComparisonPath!, request.Limits, cancellationToken);
         PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions, cancellationToken);
         PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions, cancellationToken);
-        // Diagnostic snapshots may represent read failures or valid zero-page catalogs.
-        // Let the comparison reader enforce admission before interpreting either selector.
-        int expectedPageCount = before.CanRead && before.PageCount > 0 ? before.PageCount
-            : PdfReadDocument.Open(expected, request.PdfLoadOptions, cancellationToken).Pages.Count;
-        int actualPageCount = after.CanRead && after.PageCount > 0 ? after.PageCount
-            : PdfReadDocument.Open(actual, request.ComparisonPdfLoadOptions, cancellationToken).Pages.Count;
-        int selectedExpectedCount = request.ComparisonExpectedPages?.Resolve(expectedPageCount, 100).Count ?? expectedPageCount;
-        int selectedActualCount = request.ComparisonActualPages?.Resolve(actualPageCount, 100).Count ?? actualPageCount;
+        // The comparer admits both documents before resolving selectors. Retained PNGs
+        // and the final UTF-8 gallery are bounded separately by their canonical owners.
         var comparisonOptions = new PdfVisualComparisonOptions {
             ExpectedPages = request.ComparisonExpectedPages,
             ActualPages = request.ComparisonActualPages,
-            MaxTotalOutputBytes = CalculateComparisonRetainedOutputBudget(
-                request.Limits.MaximumOutputBytes,
-                Math.Min(selectedExpectedCount, selectedActualCount))
+            MaxTotalOutputBytes = request.Limits.MaximumOutputBytes
         };
         PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(
             expected,
@@ -303,16 +295,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken),
                 request.Limits.MaximumOutputBytes);
         return new OperationArtifact(gallery, summary, report);
-    }
-
-    private static long CalculateComparisonRetainedOutputBudget(long maximumOutputBytes, int pageCount) {
-        const long fixedGalleryOverheadBytes = 4096L;
-        const long perPageGalleryOverheadBytes = 1024L;
-        long estimatedMarkupBytes = checked(
-            fixedGalleryOverheadBytes + perPageGalleryOverheadBytes * Math.Max(0, pageCount));
-        long markupReserve = Math.Min(maximumOutputBytes - 1L, estimatedMarkupBytes);
-        long availableBase64Bytes = maximumOutputBytes - markupReserve;
-        return Math.Max(1L, (availableBase64Bytes / 4L) * 3L);
     }
 
     private static OperationArtifact Optimize(

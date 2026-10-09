@@ -82,7 +82,9 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         }
         Guard.PositiveInteger(maximumPages, nameof(maximumPages));
 
-        var excluded = new HashSet<int>();
+        var excludedRanges = new List<PdfPageRange>();
+        bool excludeOdd = false;
+        bool excludeEven = false;
         bool hasIncludes = false;
         for (int i = 0; i < _terms.Length; i++) {
             SelectorTerm term = _terms[i];
@@ -91,19 +93,21 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
                 continue;
             }
 
-            foreach (int page in term.Resolve(pageCount)) {
-                excluded.Add(page);
+            if (term.Kind == SelectorTermKind.Odd) {
+                excludeOdd = true;
+            } else if (term.Kind == SelectorTermKind.Even) {
+                excludeEven = true;
+            } else {
+                ResolvedTerm range = term.Resolve(pageCount);
+                excludedRanges.Add(new PdfPageRange(Math.Min(range.First, range.Last), Math.Max(range.First, range.Last)));
             }
         }
 
+        MergeExcludedRanges(excludedRanges);
+        var excluded = new ResolvedExclusions(excludedRanges, excludeOdd, excludeEven);
         var pages = new List<int>();
         if (!hasIncludes) {
-            for (int page = 1; page <= pageCount; page++) {
-                if (!excluded.Contains(page)) {
-                    if (pages.Count >= maximumPages) throw new InvalidOperationException("Page selection exceeds the configured page limit.");
-                    pages.Add(page);
-                }
-            }
+            AppendResolvedPages(new ResolvedTerm(1, pageCount, 1), excluded, pages, maximumPages);
         } else {
             for (int i = 0; i < _terms.Length; i++) {
                 SelectorTerm term = _terms[i];
@@ -111,12 +115,7 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
                     continue;
                 }
 
-                foreach (int page in term.Resolve(pageCount)) {
-                    if (!excluded.Contains(page)) {
-                        if (pages.Count >= maximumPages) throw new InvalidOperationException("Page selection exceeds the configured page limit.");
-                        pages.Add(page);
-                    }
-                }
+                AppendResolvedPages(term.Resolve(pageCount), excluded, pages, maximumPages);
             }
         }
 
@@ -125,6 +124,49 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         }
 
         return pages.AsReadOnly();
+    }
+
+    // Exclusions are retained as intervals and parity predicates, independent of the document page count.
+    private static void MergeExcludedRanges(List<PdfPageRange> ranges) {
+        ranges.Sort(static (left, right) => left.FirstPage.CompareTo(right.FirstPage));
+        int retained = 0;
+        for (int i = 0; i < ranges.Count; i++) {
+            PdfPageRange next = ranges[i];
+            if (retained > 0 && next.FirstPage <= (long)ranges[retained - 1].LastPage + 1) {
+                PdfPageRange previous = ranges[retained - 1];
+                ranges[retained - 1] = new PdfPageRange(previous.FirstPage, Math.Max(previous.LastPage, next.LastPage));
+            } else {
+                ranges[retained++] = next;
+            }
+        }
+        ranges.RemoveRange(retained, ranges.Count - retained);
+    }
+
+    private static void AppendResolvedPages(ResolvedTerm term, ResolvedExclusions excluded, List<int> pages, int maximumPages) {
+        if (excluded.ExcludeOdd && excluded.ExcludeEven) return;
+
+        // A long cursor lets a terminal page or exclusion end at int.MaxValue without wrapping.
+        long page = term.First;
+        long step = term.Step;
+        if (step == 2) {
+            if (excluded.IsParityExcluded(page)) return;
+        } else if (excluded.ExcludeOdd || excluded.ExcludeEven) {
+            if (excluded.IsParityExcluded(page)) page += step;
+            step *= 2;
+        }
+        long parity = page & 1;
+        while (step > 0 ? page <= term.Last : page >= term.Last) {
+            if (excluded.TryGetRange(page, out PdfPageRange range)) {
+                // Jump over a whole covered run, then restore the inclusion's surviving parity.
+                page = step > 0 ? (long)range.LastPage + 1 : (long)range.FirstPage - 1;
+                if ((step == 2 || step == -2) && (page & 1) != parity) page += step > 0 ? 1 : -1;
+                continue;
+            }
+
+            if (pages.Count >= maximumPages) throw new InvalidOperationException("Page selection exceeds the configured page limit.");
+            pages.Add((int)page);
+            page += step;
+        }
     }
 
     /// <summary>Resolves the selector to an absolute page selection.</summary>
@@ -287,6 +329,53 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         Even
     }
 
+    private readonly struct ResolvedTerm {
+        public ResolvedTerm(int first, int last, int step) {
+            First = first;
+            Last = last;
+            Step = step;
+        }
+
+        public int First { get; }
+        public int Last { get; }
+        public int Step { get; }
+    }
+
+    private readonly struct ResolvedExclusions {
+        private readonly List<PdfPageRange> _ranges;
+
+        public ResolvedExclusions(List<PdfPageRange> ranges, bool excludeOdd, bool excludeEven) {
+            _ranges = ranges;
+            ExcludeOdd = excludeOdd;
+            ExcludeEven = excludeEven;
+        }
+
+        public bool ExcludeOdd { get; }
+        public bool ExcludeEven { get; }
+
+        public bool IsParityExcluded(long page) => (page & 1) == 1 ? ExcludeOdd : ExcludeEven;
+
+        public bool TryGetRange(long page, out PdfPageRange range) {
+            int first = 0;
+            int last = _ranges.Count - 1;
+            while (first <= last) {
+                int middle = first + (last - first) / 2;
+                PdfPageRange candidate = _ranges[middle];
+                if (page < candidate.FirstPage) {
+                    last = middle - 1;
+                } else if (page > candidate.LastPage) {
+                    first = middle + 1;
+                } else {
+                    range = candidate;
+                    return true;
+                }
+            }
+
+            range = default;
+            return false;
+        }
+    }
+
     private readonly struct SelectorTerm {
         private SelectorTerm(SelectorTermKind kind, PageEndpoint first, PageEndpoint last, bool exclude) {
             Kind = kind;
@@ -306,33 +395,20 @@ public sealed class PdfPageSelector : IEquatable<PdfPageSelector> {
         public static SelectorTerm Odd(bool exclude) => new SelectorTerm(SelectorTermKind.Odd, default, default, exclude);
         public static SelectorTerm Even(bool exclude) => new SelectorTerm(SelectorTermKind.Even, default, default, exclude);
 
-        public IEnumerable<int> Resolve(int pageCount) {
+        public ResolvedTerm Resolve(int pageCount) {
             if (Kind == SelectorTermKind.All) {
-                for (int page = 1; page <= pageCount; page++) {
-                    yield return page;
-                }
-
-                yield break;
+                return new ResolvedTerm(1, pageCount, 1);
             }
 
             if (Kind == SelectorTermKind.Odd || Kind == SelectorTermKind.Even) {
                 int first = Kind == SelectorTermKind.Odd ? 1 : 2;
-                for (int page = first; page <= pageCount; page += 2) {
-                    yield return page;
-                }
-
-                yield break;
+                return new ResolvedTerm(first, pageCount, 2);
             }
 
             int resolvedFirst = First.Resolve(pageCount);
             int resolvedLast = Last.Resolve(pageCount);
             int direction = resolvedFirst <= resolvedLast ? 1 : -1;
-            for (int page = resolvedFirst; ; page += direction) {
-                yield return page;
-                if (page == resolvedLast) {
-                    yield break;
-                }
-            }
+            return new ResolvedTerm(resolvedFirst, resolvedLast, direction);
         }
     }
 }
