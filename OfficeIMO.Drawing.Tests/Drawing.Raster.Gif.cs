@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
             Assert.True(OfficeRasterImageDecoder.TryDecode(
                 timed,
-                new OfficeRasterDecodeOptions { AnimationPolicy = OfficeRasterAnimationPolicy.UseSelectedFrame },
+                new OfficeRasterDecodeOptions { FrameLossPolicy = OfficeRasterFrameLossPolicy.UseSelectedFrame },
                 out _,
                 out OfficeRasterDecodeInfo info));
             Assert.True(info.AnimationDiscarded);
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(info.Diagnostic);
             Assert.False(OfficeRasterImageDecoder.TryDecode(
                 timed,
-                new OfficeRasterDecodeOptions { AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated },
+                new OfficeRasterDecodeOptions { FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames },
                 out _,
                 out _));
         }
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
         public void OfficeRasterImageDecoder_RejectsAnimatedGifWhenPolicyRequiresExactStaticInput() {
             byte[] gif = CreateTwoFrameGif();
             var options = new OfficeRasterDecodeOptions {
-                AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+                FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
             };
 
             Assert.False(OfficeRasterImageDecoder.TryDecode(gif, options, out OfficeRasterImage? image, out OfficeRasterDecodeInfo info));

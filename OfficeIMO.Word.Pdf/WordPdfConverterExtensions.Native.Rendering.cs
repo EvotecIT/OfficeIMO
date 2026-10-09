@@ -93,34 +93,22 @@ namespace OfficeIMO.Word.Pdf {
                 pdf.PageBreak();
             }
 
-            List<WordParagraph> runs = GetNativeRuns(paragraph);
+            List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
             WordParagraph? currentChartRun = runs.FirstOrDefault(run =>
                 ReferenceEquals(run._run, paragraph._run) && run.Chart != null);
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "body paragraph", mapsCheckBoxes: true, mapsFormFields: true, mapsPictureControls: true, mapsRepeatingSections: true);
-            IReadOnlyList<W.SdtRun> checkboxControls = GetNativeCheckBoxControls(paragraph);
-            IReadOnlyList<W.SdtRun> formFieldControls = GetNativeFormFieldControls(paragraph);
+            IReadOnlyList<W.SdtRun> checkboxControls = nativeDefaults.RunningContentContext == null ? GetNativeCheckBoxControls(paragraph) : Array.Empty<W.SdtRun>();
+            IReadOnlyList<W.SdtRun> formFieldControls = nativeDefaults.RunningContentContext == null ? GetNativeFormFieldControls(paragraph) : Array.Empty<W.SdtRun>();
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
 
-            if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) {
+            if (nativeDefaults.RunningContentContext == null && !string.IsNullOrEmpty(paragraph.Bookmark?.Name)) {
                 pdf.Bookmark(paragraph.Bookmark!.Name!);
             }
 
             List<WordTextBox> textBoxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
             if (textBoxes.Count > 0) {
-                if (marker is { Marker.Length: > 0 }) {
-                    PdfCore.PdfParagraphStyle markerStyle = CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
-                    ApplyNativeInlineListIndent(paragraph, markerStyle);
-                    ApplyNativeInlineListMarkerAlignment(paragraph, marker.Value.Marker, markerStyle, nativeDefaults, nativeFontMap);
-                    markerStyle.SpacingAfter = 0D;
-                    pdf.Paragraph(builder => AddNativeParagraphContent(builder, paragraph, marker,
-                        Array.Empty<WordParagraph>(), false, string.Empty, Array.Empty<int>(), footnoteNumbersById, options, nativeDefaults, nativeFontMap,
-                        inlineMarkerColumnWidth: ResolveNativeInlineListMarkerColumnWidth(paragraph, marker.Value.Marker, markerStyle, nativeDefaults, nativeFontMap)),
-                        ResolveNativeParagraphAlign(paragraph, allowJustify: false), style: markerStyle);
-                }
-                foreach (WordTextBox ownedTextBox in textBoxes) {
-                    RenderNativeTextBox(pdf, ownedTextBox, getMarker, footnoteNumbersById, options, nativeDefaults, nativeFontMap,
-                        GetNativeTextBoxPlainText(paragraph, ownedTextBox));
-                }
+                RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
+                    footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;
             }
 
@@ -136,6 +124,8 @@ namespace OfficeIMO.Word.Pdf {
             string content = hasEquationContent
                 ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                 : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+            if (nativeDefaults.RunningContentContext != null && !hasEquationContent)
+                content = AppendNativeHeaderFooterFormControlText(string.Concat(runs.Select(run => run.Text)), paragraph) ?? string.Empty;
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             string renderContent = hasRenderableRuns || shouldRenderDirectContent ? content : string.Empty;
@@ -417,7 +407,7 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<PdfCore.PdfTableCellImage> Images,
             IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun> InlineImages);
 
-        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordToPdfOptions? options) {
+        private static NativeTableCellEmbeddedContent CreateNativeTableCellEmbeddedContent(WordTableCell cell, WordToPdfOptions? options, bool interactiveControls = true) {
             List<PdfCore.PdfTableCellCheckBox>? checkBoxes = null;
             List<PdfCore.PdfTableCellFormField>? formFields = null;
             List<PdfCore.PdfTableCellImage>? images = null;
@@ -451,6 +441,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
+                if (!interactiveControls) continue;
                 foreach (W.SdtRun control in paragraph._paragraph.Descendants<W.SdtRun>()) {
                     if (IsNativeCheckBoxControl(control)) {
                         checkBoxes ??= new List<PdfCore.PdfTableCellCheckBox>();
@@ -597,7 +588,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap,
             bool needsAnchorLine = false,
-            double? inlineMarkerColumnWidth = null) {
+            double? inlineMarkerColumnWidth = null,
+            bool projectedContentOnly = false) {
             if (needsAnchorLine) {
                 // An image-only paragraph still participates in pagination and decoration.
                 builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
@@ -653,7 +645,12 @@ namespace OfficeIMO.Word.Pdf {
                 builder.Text(marker.Value.Marker);
                 if (markerInfo.HasValue) ResetNativeTextStyle(builder);
                 if (useAlignedMarkerColumn) {
-                    AddNativeInlineListMarkerSpacer(builder, trailingMarkerOffset);
+                    if (markerInfo?.LevelSuffix == WordListLevelSuffix.Space) {
+                        // Keep the real numbering space in extracted text as
+                        // well as using its measured Arial advance for layout.
+                        builder.Runs(new[] { CreateNativeListSpaceSuffixTextRun(paragraph, nativeDefaults,
+                            nativeFontMap, out _, out _) });
+                    } else AddNativeInlineListMarkerSpacer(builder, trailingMarkerOffset);
                 } else {
                     builder.Text(ResolveNativeInlineListMarkerSuffix(markerInfo?.LevelSuffix));
                 }
@@ -661,7 +658,7 @@ namespace OfficeIMO.Word.Pdf {
 
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
-            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             if (hasRenderableRuns && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (run.IsImage && run.Image != null) {
@@ -686,7 +683,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             } else if (hasEquationContent) {
                 AddNativeEquationContent(builder, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
-            } else if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
+            } else if (!projectedContentOnly && paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
                 ApplyNativeTextStyle(builder, style);
                 AddNativeHyperLinkRun(builder, paragraph.Hyperlink.Text, paragraph.Hyperlink, tabStops, ref tabIndex, style);
@@ -826,7 +823,9 @@ namespace OfficeIMO.Word.Pdf {
             return string.IsNullOrWhiteSpace(textBoxText) ? null : textBoxText;
         }
 
-        private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? fallbackText = null) {
+        private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap, string? fallbackText = null, int depth = 1) {
+            if (depth > MaximumNativeHeaderFooterTextBoxNestingDepth)
+                throw new InvalidDataException($"Text-box nesting exceeds the supported limit of {MaximumNativeHeaderFooterTextBoxNestingDepth} levels.");
             IReadOnlyList<WordParagraph> paragraphs = GetNativeTextBoxParagraphs(textBox);
             if (paragraphs.Count == 0 && !string.IsNullOrWhiteSpace(fallbackText)) {
                 PdfCore.PdfPanelStyle fallbackStyle = CreateNativeTextBoxPanelStyle(textBox);
@@ -842,11 +841,19 @@ namespace OfficeIMO.Word.Pdf {
             pdf.Panel(contentBuilder => {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     WordParagraph paragraph = paragraphs[index];
-                    List<WordParagraph> runs = GetNativeRuns(paragraph);
+                    List<WordParagraph> runs = GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext);
+                    if (runs.Any(run => run.GetTextBoxes().Any())) {
+                        RenderNativeMixedTextBoxes(new NativePdfColumnFlow(contentBuilder, pdf.PageSize),
+                            paragraph, runs, getMarker(paragraph), getMarker, footnoteNumbersById,
+                            options, nativeDefaults, nativeFontMap, depth);
+                        continue;
+                    }
                     bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
                     string content = hasEquationContent
                         ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
                         : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+                    if (nativeDefaults.RunningContentContext != null && !hasEquationContent)
+                        content = string.Concat(runs.Select(run => run.Text));
                     bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);

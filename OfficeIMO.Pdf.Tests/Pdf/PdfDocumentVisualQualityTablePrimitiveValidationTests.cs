@@ -57,6 +57,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Contains("Table left indent must be a finite value.", leftIndentException.Message, StringComparison.Ordinal);
 
+        Assert.Throws<ArgumentException>(() => invalidLeftIndent.HorizontalOffset = double.NaN);
+        Assert.Throws<ArgumentException>(() => invalidLeftIndent.HorizontalOffset = double.NegativeInfinity);
+
         var invalidHorizontalPadding = TableStyles.Minimal();
 
         var horizontalPaddingException = Assert.Throws<ArgumentException>(() =>

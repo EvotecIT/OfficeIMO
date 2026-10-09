@@ -207,7 +207,9 @@ internal readonly struct PdfRedactionPaintOrderContext : IEquatable<PdfRedaction
     public override int GetHashCode() => unchecked(((PathPaintsBefore * 397) ^ RetainedImagePaintsBefore) * 397 ^ RetainedTextPaintsBefore);
 }
 
-internal readonly struct PdfRedactionTextGlyphIdentity {
+// A glyph's immutable evidence is shared by the source and survivor sequences. Keeping
+// it as a reference avoids copying every state field into each temporary/list array.
+internal sealed class PdfRedactionTextGlyphIdentity {
     private const double Tolerance = 0.01D;
 
     private PdfRedactionTextGlyphIdentity(

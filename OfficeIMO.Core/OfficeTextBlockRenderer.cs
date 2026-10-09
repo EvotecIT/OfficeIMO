@@ -338,6 +338,8 @@ public static partial class OfficeTextBlockRenderer {
                 double renderedBaseline = ResolveRichTextRenderedBaseline(segment, baseline);
                 double segmentTop = renderedBaseline - (renderedFontSize * 0.84D);
                 DrawRasterRichTextSegmentBackground(canvas, segment, cursor, segmentTop, rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
+                if (segment.TabLinePaint != null) DrawRasterTabLineLeader(canvas, segment.TabLinePaint, cursor, renderedBaseline,
+                    rotationDegrees, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
                 canvas.DrawTextLine(
                     segment.Text,
                     cursor,
@@ -383,11 +385,16 @@ public static partial class OfficeTextBlockRenderer {
         double rotationDegrees = 0D,
         double rotationCenterX = 0D,
         double rotationCenterY = 0D) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
         if (segment == null) {
             throw new ArgumentNullException(nameof(segment));
         }
 
-        return builder.AppendSvgTextElement(
+        if (segment.TabLinePaint != null) return AppendSvgTabLineLeader(builder, segment.TabLinePaint, x,
+            ResolveRichTextRenderedBaseline(segment, baseline), rotationDegrees, rotationCenterX, rotationCenterY);
+
+        bool linked = AppendSvgRichTextLinkStart(builder, segment.LinkUri);
+        builder.AppendSvgTextElement(
             segment.Text,
             x,
             baseline,
@@ -406,6 +413,8 @@ public static partial class OfficeTextBlockRenderer {
             underlineStyle: segment.UnderlineStyle,
             strikethroughStyle: segment.StrikethroughStyle,
             baseline: segment.Baseline);
+        if (linked) builder.Append("</a>");
+        return builder;
     }
 
     private static void DrawRasterRichTextSegmentBackground(
@@ -422,7 +431,7 @@ public static partial class OfficeTextBlockRenderer {
             return;
         }
 
-        double height = Math.Max(1D, ResolveRichTextRenderedFontSize(segment) * 1.05D);
+        double height = ResolveRichTextSegmentBackgroundHeight(segment);
         if (Math.Abs(rotationDegrees) <= 0.000001D && !flipHorizontal && !flipVertical) {
             canvas.FillRectangle(x, top, segment.Width, height, segment.BackgroundColor.Value);
             return;
@@ -462,6 +471,9 @@ public static partial class OfficeTextBlockRenderer {
             .Append("/>");
         return builder;
     }
+
+    internal static double ResolveRichTextSegmentBackgroundHeight(OfficeRichTextSegment segment) =>
+        Math.Max(1D, ResolveRichTextRenderedFontSize(segment) * 1.05D);
 
     internal static double ResolveRichTextRenderedFontSize(OfficeRichTextSegment segment) =>
         segment.Baseline == OfficeTextBaseline.Normal ? segment.FontSize : segment.FontSize * 0.65D;

@@ -346,7 +346,7 @@ public sealed partial class MainWindowViewModel {
             _pendingRedactionRevision = revision;
             AddRedactionMark(new PdfRedactionMarkViewModel(plan.Areas[0],
                 new Rect(gesture.Left, gesture.Top, gesture.Right - gesture.Left, gesture.Bottom - gesture.Top),
-                _localizer.GetOrDefault("Redaction.DrawnArea", "Drawn area")));
+                _localizer.GetOrDefault("Redaction.DrawnArea", "Drawn area"), localizer: _localizer));
             return;
         }
 

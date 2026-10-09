@@ -7,13 +7,89 @@
 
 The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. That same single zero-dependency foundation is now named `OfficeIMO.Core`; it was not split into another runtime dependency. Actual drawing APIs remain in `OfficeIMO.Drawing`, neutral data and flattening contracts use `OfficeIMO.Data`, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle, compatibility, capability, and conversion-report contracts use the root `OfficeIMO` namespace.
 
-The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT license. It was ported from the same author's CodeGlyphX implementation; applications do not need CodeGlyphX to decode WebP images. The separate WebM reference license and patent notices remain in the package's `Licenses` directory.
+The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT license. It was ported from the same author's CodeGlyphX implementation. The lossy VP8 encoder is adapted from CodeGlyphX under Apache-2.0 and retains its source notices. Both implementations run inside Core without a CodeGlyphX runtime dependency. The [third-party notices](THIRD-PARTY-NOTICES.md) identify the incorporated code and its license files.
+
+For bounded image sequences, format discovery, resize planning, shared text options, metadata-aware encoding, comparison, and visual fingerprints, see [managed raster workflows](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.core-raster-workflows.md). The examples use owned image types and document buffer and stream ownership, orientation, cancellation, and metadata omissions.
 
 ## Install
 
 ```powershell
 dotnet add package OfficeIMO.Core
 ```
+
+## Native VBA projects
+
+`OfficeVbaProject` in the `OfficeIMO` namespace reads and writes the MS-OVBA
+compound project used by Office documents. It uses the existing managed compound
+storage and signature-binding infrastructure. Source editing requires no Python,
+Office installation, COM automation, or additional runtime package.
+
+```csharp
+using OfficeIMO;
+
+var project = OfficeVbaProject.Create("Automation");
+project.AddModule("Helpers",
+    "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
+project.AddModule("Counter", "Public Count As Long\r\n", OfficeVbaModuleKind.Class);
+project.AddRegisteredReference("Office",
+    new Guid("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52"), 2, 8);
+File.WriteAllBytes("vbaProject.bin", project.Write().GetBytes());
+
+var loaded = OfficeVbaProject.Load(File.ReadAllBytes("vbaProject.bin"));
+loaded.ExportSources("automation-source"); // Destination must be new.
+// Edit the numbered .bas/.cls files; vba-project.xml retains logical identities.
+loaded.ImportSources("automation-source");
+loaded.RenameModule("Helpers", "Tools");
+File.WriteAllBytes("edited-project.bin", loaded.Write().GetBytes());
+```
+
+`Modules` exposes logical names, persistence kinds, and source including persisted
+`Attribute` lines. `SetModuleSource`, `AddModule`, `RenameModule`, `DeleteModule`,
+`AddRegisteredReference`, and `RemoveReference` operate on a detached model.
+Module and reference lookup is case-insensitive. Renaming and reference removal
+do not rewrite statements that use the old names or types; callers update those
+statements explicitly. Adding a reference writes its identity without installing
+or resolving a type library.
+
+| Operation | Contract |
+| --- | --- |
+| Read | Bounded directory, reference, standard/class, document, and designer-source decoding. Unsupported directory records fail explicitly. |
+| Create | Template-free project, standard modules, ordinary classes, and explicit registered references. Document adapters own host identities. |
+| Edit | Replace source; rename/delete standard and ordinary class modules. Document/designer source retains its existing identity and opaque design. |
+| Preserve | An unchanged write returns the exact original bytes. Edits retain unrelated streams, storage metadata, reference records, and untouched token-compressed module stream bytes. Existing raw source chunks are normalized without changing the source or its stream prefix. |
+| Import/export | UTF-8 `.bas`/`.cls` source with an XML manifest. Import validates the entire batch before changing the model; omitted modules remain present. |
+| Protection | Protected projects are readable and support unchanged writes. Mutation is rejected; protection is never bypassed or removed. |
+| Signatures | The containing document adapter rejects a changed signed project unless `AllowSignatureRemoval` is explicit. Re-sign after editing, before signing the whole package. |
+
+Modules with source changes are rewritten without compiled prefixes. Writes clear
+project compilation state and `__SRP_` caches so Office rebuilds them. Source uses
+CRLF and the project's code page with strict character checks. Windows-1250 and
+Windows-1252 are built in; other code pages must be available in the application's runtime or its
+already registered encoding provider. The writer uses token-compressed chunks
+and adapts their length for incompressible source, preserving the source bytes
+without inserting padding. Reading existing raw chunks and unchanged-byte
+preservation remain supported.
+
+Input/output compound bytes and aggregate expanded directory/source each default
+to 64 MiB. Configure `OfficeVbaReadOptions` and `OfficeVbaWriteOptions` for a
+different bounded workload. New module identifiers are ASCII VBA identifiers up
+to 31 characters; existing Unicode module identities remain readable.
+
+Document adapters retain a bounded recovery snapshot of the existing VBA payload
+and child parts while applying an update. `OfficeVbaWriteOptions.MaximumRecoveryBytes`
+controls that separate limit, which defaults to 64 MiB; `MaximumProjectBytes`
+continues to bound the new output, so a smaller replacement can replace a larger
+existing project. Media data-part references in that VBA subgraph are rejected
+before mutation. Recoverable storage failures restore the prior payload and
+child parts, including Word's final named-module removal. If the backing storage
+also prevents restoration or cleanup, the adapter throws
+an `AggregateException` containing both failures; discard that document instance.
+
+Word, Excel, and PowerPoint expose `ReadVbaProject()` and
+`SetVbaProject(OfficeVbaProject, ...)` over this same model. See their package
+READMEs for document usage. This API edits source and preserves existing form
+designers; it does not compile or execute VBA, create form designers, or provide
+an Access database carrier.
 
 ## Mathematical drawing
 
@@ -110,6 +186,11 @@ drawing.AddText("Monthly report", 12, 12, 216, 56,
 Face matching follows CSS ordering within the requested family. Missing faces use the available
 matching face and existing fallback policy. Simulated bold paints its combined outline once,
 preserving the requested opacity.
+
+Raster font selection checks glyph coverage before using its default font. When no selected font
+can paint the text, the managed stroke fallback keeps basic text and common list markers visible:
+`•`, `◆`, `■`, `□`, `❖`, `➢` and `✔`. Other unsupported characters use a placeholder. Register a font
+with the required glyphs when the document needs broader script coverage or exact typography.
 
 ## Prepare scanned images
 
@@ -539,11 +620,39 @@ OfficeRasterImageEncoder.EncodeTo(image, OfficeImageExportFormat.Png, writer, op
 ReadOnlyMemory<byte> png = writer.WrittenMemory;
 ```
 
-The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. This preserves pixels, density metadata, cancellation and the encoded-byte ceiling. `Stored` writes uncompressed zlib blocks with eight-bit RGBA samples.
+The stream overload leaves the destination open. PNG's `Optimal` compression compares adaptive and unfiltered rows in the selected sample layout and writes the smaller compressed form. This preserves pixels, density metadata, cancellation and the encoded-byte ceiling. `Fastest` writes an unfiltered RGBA stream with the platform's fastest Deflate setting. `Stored` writes uncompressed zlib blocks with eight-bit RGBA samples.
 
 Size probes share bounded scanline scratch. An unfiltered candidate that fits in the existing 64 KiB IDAT buffer can be written directly when it wins. Ordinary byte-array exports of non-bilevel images with at least 1 MiB of RGBA pixels can also retain the adaptive candidate in their own output, avoiding recompression when it wins. Retention stops at 4 MiB of compressed payload; the output stream's capacity can exceed that payload limit. Other candidates use a final compression pass. Caller-owned streams, buffer writers and exports with an encoded-byte ceiling use the bounded scanline and IDAT-buffer path.
 
-The byte-array WebP encoder deterministically chooses bounded prediction, subtract-green, LZ77, and Huffman coding when that is smaller than the literal lossless VP8L form; direct streaming keeps the low-copy literal form. TIFF output is a classic RGBA image with uncompressed, LZW, PackBits, or Deflate strips; LZW and Deflate use horizontal prediction by default. Use `OfficeTiffCodec.EncodePages(...)` when the output needs more than one page. JPEG uses the managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
+TIFF output is a classic RGBA image with uncompressed, LZW, PackBits, or Deflate strips; LZW and Deflate use horizontal prediction by default. Use `OfficeTiffCodec.EncodePages(...)` when the output needs more than one page. JPEG uses the managed quality, subsampling, progressive, metadata, and transparency-flattening settings.
+
+TIFF `DpiX` and `DpiY` are physical DPI. To retain native centimeter density or a unitless aspect ratio, assign `OfficeTiffEncodeOptions.Resolution = new OfficeImageResolution(horizontal, vertical, unit)`. That immutable override applies to every encoded page and to streaming output. Meter values normalize to centimeters. The shared encoder retains the override until an explicitly assigned shared `DpiX` or `DpiY` selects physical DPI instead; `metadata.Resolution` supplies a snapshot directly from `OfficeImageMetadata`.
+
+The shared encoder also writes BMP, binary PBM, TGA, and ICO with `OfficeImageExportFormat.Bmp`, `Pbm`, `Tga`, and `Icon`. BMP uses explicit RGBA masks and TGA writes a straight-alpha 32-bit image. PBM composites transparency over white and thresholds luminance into a one-bit image. ICO contains a PNG entry; `OfficeIconEncoder.Encode(images, options, cancellationToken)` accepts several images for a multi-resolution icon, with each image limited to 256 pixels on either axis.
+
+Managed decoding accepts ASCII and binary PBM/PGM/PPM, including sixteen-bit PGM/PPM samples; indexed, grayscale, true-color, and RLE TGA; and PNG or conventional DIB icon entries. Select an ICO entry through `OfficeRasterDecodeOptions.FrameIndex`. Container inspection checks entry dimensions before allocating pixel buffers.
+
+### Choose lossless or lossy WebP
+
+WebP output defaults to lossless VP8L. The byte-array encoder chooses bounded prediction, subtract-green, LZ77, and Huffman coding when that is smaller than the literal form; direct streaming uses the literal form to reduce retained buffers. Set `Webp.Mode` to `Lossy` for VP8 output with an explicit quality:
+
+```csharp
+var webpOptions = new OfficeRasterEncodingOptions {
+    Webp = new OfficeWebpEncodeOptions {
+        Mode = OfficeWebpEncodingMode.Lossy,
+        Quality = 85,
+        WritePhysicalResolution = true
+    }
+};
+
+using Stream webpOutput = File.Create("photo.webp");
+OfficeRasterImageEncoder.EncodeTo(
+    image, OfficeImageExportFormat.Webp, webpOutput, webpOptions);
+```
+
+Lossy quality ranges from 1 through 100 and defaults to 85. VP8 uses 4:2:0 chroma sampling, so quality 100 still changes color samples; alpha remains exact at every quality. Transparent output stores filtered, uncompressed alpha. Lossy images accept dimensions up to 16,383 pixels on either axis; lossless VP8L accepts 16,384. Invalid quality or unsupported dimensions fail explicitly. Both modes support cancellation and the shared encoded-byte and managed working-memory limits. The encoder writes one static image; animated WebP encoding is outside its contract.
+
+`OfficeWebpCodec.Encode` and `EncodeTo` accept the same `OfficeWebpEncodeOptions` directly. Direct codec options omit physical resolution metadata by default. Set `WritePhysicalResolution` to `true` and supply `DpiX` and `DpiY` to include EXIF density; format-neutral encoding applies explicitly assigned shared DPI values ahead of the WebP-specific values.
 
 ### Inspect and select frames or pages
 
@@ -570,6 +679,103 @@ The managed JPEG decoder supports eight-bit baseline and eight/twelve-bit extend
 
 The managed JPEG XR decoder accepts single-image tagged `.jxr`, `.wdp`, and `.hdp` containers with unsigned eight-bit gray/RGB/BGR/BGRA, unsigned sixteen-bit gray/RGB/RGBA, and finite sixteen/thirty-two-bit fixed-point or floating-point gray/RGB/RGBA pixels. It handles 4:4:4, 4:2:2, and 4:2:0 chroma with defined sampling-grid centering, spatial and frequency packet order, lossless and lossy quantization, all three overlap modes, hard and soft tiles, omitted high-frequency bands, trimmed flexbits, and interleaved or separate alpha. Premultiplied alpha becomes straight RGBA at source precision before samples are rounded to the public eight-bit buffer. Fixed-point and floating-point samples default to linear scRGB and use the shared sRGB conversion; out-of-range colors are clipped to the SDR output gamut. The container orientation is applied. Encoded bytes, padded coefficient/sample buffers, output, retained caller data, and cancellation share the Core resource limits. Embedded ICC data is available to the color-management layer; ordinary unsigned raster decoding returns device channel values. The color-management layer also decodes unsigned eight/sixteen-bit CMYK and CMYKDirect with a supplied four-component ICC profile, preserving source precision and alpha. Unprofiled CMYK does not produce approximate RGB pixels. Three-to-eight-channel unsigned eight/sixteen-bit images also require a matching ICC profile. Interleaved alpha can contain the same or fewer frequency bands than the primary plane. Non-finite samples and multiple image directories are outside this decoder contract.
 
+
+### Read and edit portable image metadata
+
+`OfficeImageMetadata` owns typed Exif values and raw XMP, ICC, and IPTC IIM profile bytes. Its arrays and snapshots own their storage. Standard tags have descriptive names; application-defined tags use their numeric identifier, TIFF representation, and directory. Scalars and arrays use .NET numeric types or `OfficeRational` / `OfficeSignedRational`.
+
+```csharp
+byte[] original = File.ReadAllBytes("photo.jpg");
+OfficeImageMetadata metadata = OfficeImageMetadata.Read(original);
+metadata.SetExifValue(OfficeExifTag.Software, "Photo workflow");
+metadata.SetExifValue(OfficeExifTag.ExposureTime, new OfficeRational(1, 125));
+metadata.RemoveExifValue(OfficeExifTag.GPSLatitude);
+metadata.RemoveExifValue(OfficeExifTag.GPSLongitude);
+OfficeImageFileWriter.WriteAllBytes("annotated.jpg", OfficeImageMetadata.Apply(original, metadata));
+
+OfficeImageMetadataRemovalResult removal = OfficeImageMetadata.Remove(
+    original, OfficeImageMetadataProfileKinds.Exif | OfficeImageMetadataProfileKinds.Xmp);
+Console.WriteLine($"Found {removal.PresentProfiles}; removed {removal.RemovedProfiles}");
+File.WriteAllBytes("private.jpg", removal.EncodedBytes);
+```
+
+Metadata replacement preserves JPEG entropy data, PNG image chunks, WebP image payloads, and TIFF raster encoding fields. TIFF replacement edits the primary image and retains page links; profile removal visits every page. Clearing or removing TIFF Exif retains each page's rendering orientation because changing it would change displayed pixels. The remaining orientation is exposed by `GetExifValue` and can make `HasExifProfile` true; use an explicit `SetExifValue` or `RemoveExifValue` to change that rendering field. TIFF metadata operations limit the aggregate strip, tile, and JPEG-interchange pixel references across reachable directories to 65,535. The alias check includes child directories and rejects edits that would erase pixel data. GIF supports XMP and ICC application profiles, while BMP supports V5 ICC profiles and physical density. Removing profile families from PBM/PGM/PPM or TGA returns the validated image unchanged because those formats have no defined carriers for these profile families. Unsupported carriers fail explicitly. ICC metadata edits preserve profile bytes; they do not transform pixel colors.
+
+`OfficeImageMetadata` validates complete BMP storage before reading or editing it, including palettes, row data, RLE commands, embedded JPEG/PNG payloads, and V5 color-profile ranges. Metadata operations accept supported BMP storage layouts independently of the managed pixel decoder's narrower format support. TIFF IPTC writes use byte-typed fields to preserve exact profile lengths and trailing zero bytes.
+
+Resolution values retain native aspect-ratio, pixels-per-inch, pixels-per-centimeter, or pixels-per-meter units when the container can represent them. `PhysicalDpiX` and `PhysicalDpiY` convert physical units to DPI and return null for an aspect ratio. JPEG, WebP, and TIFF normalize meter-based density to centimeters. TIFF encoder overloads preserve native units and aspect ratios unless the caller explicitly sets shared DPI. TIFF metadata edits retain exact rational density fields when the effective native values are unchanged. Authored TIFF/Exif rational density remains positive and accurate within one part in a trillion, or is rejected before output; its encoded numerator and denominator may differ from earlier output. JPEG replacement updates JFIF density, creates that carrier when absent, and synchronizes density in an existing Exif profile. GIF has an aspect-ratio field and no physical-density field: lossless edits require `AspectRatio`, while `PrepareForEncoding` projects resolution to that unit for GIF. Its ratio is rounded to the GIF field's representable increments. TIFF-relative opaque maker notes require the original TIFF container for lossless preservation; `RequiresOriginalTiffContainer` reports that constraint. Exporting those notes to another container requires explicitly removing or replacing the note. Superseded Exif values are erased when their storage is exclusive; aliased ranges that would erase another field or image pixels are rejected.
+
+Use `ParseExifProfile` and `EncodeExifProfile` for metadata-only workflows. They accept and return classic TIFF Exif bytes without JPEG framing, and parsing also accepts the JPEG Exif prefix. Parsed TIFF fields preserve their original representations, including NUL-separated ASCII strings and zero-count arrays, through unrelated edits and profile export. `SetExifValue` validates new edits and requires ASCII text without embedded NULs and nonempty typed arrays. Both profile methods have cancellation-token overloads. `Clone` preserves independent edits and the original-container constraints. Metadata rewriting bounds retained inputs, profiles, stream backing growth, and the final encoded array against the Core managed working-set limit. Malformed ICC profiles are rejected before replacement. C2PA removal uses the canonical carrier inspector and retains malformed or conflicting carriers rather than treating unrelated bytes as a removable manifest.
+
+When re-encoding pixels into another format, call `PrepareForEncoding(destinationFormat, out omittedProfiles)` before `Apply`. The returned copy contains supported profile families and reports what the destination cannot carry. For example, JPEG IPTC IIM metadata is omitted when producing PNG, while Exif, XMP, and ICC are retained. This explicit projection leaves the source metadata intact; lossless replacement still rejects unsupported profiles.
+
+### Inspect and edit HEIF container metadata
+
+`OfficeHeifMetadataReader` reads HEIF/HEIC brands, primary image dimensions and transforms,
+item properties, locations, and references. Its EXIF and XMP methods read each metadata
+family independently without decoding image pixels:
+
+```csharp
+using OfficeIMO.Drawing;
+
+if (OfficeHeifMetadataReader.TryReadInfo("photo.heic", out OfficeHeifImageInfo? info)) {
+    Console.WriteLine($"{info!.Width}x{info.Height}; EXIF: {info.HasExif}");
+}
+
+if (OfficeHeifMetadataReader.TryReadExifProfile("photo.heic", out OfficeImageMetadata? exif) &&
+    exif != null) {
+    exif.SetExifValue(OfficeExifTag.Software, "Photo workflow");
+    bool saved = OfficeHeifMetadataReader.TryWriteExifProfile("photo.heic", "annotated.heic", exif);
+}
+```
+
+Metadata reads and writes select the unique `cdsc` item associated with the `pitm` primary
+image, regardless of item declaration order. A sole unassociated item remains supported for
+older containers. Multiple possible items, or an item associated only with another image,
+are not selected. `TryReadInfo` retains every declared item; `ExifItem` and `XmpItem` identify
+the selected items or are null when selection is ambiguous. Truncated item, reference,
+location, or property-association collections return `false` without partial information.
+
+Byte-array overloads return independently owned output. Stream readers start at the current
+position, restore seekable streams, and leave them open. `HasExifItem` and `HasXmpItem` report
+declared items even when no readable payload is located. The writer replaces or clears an
+existing single absolute extent within an `mdat` payload; null metadata clears the item.
+It does not create missing items or rewrite item-data-box, external, derived, or multi-extent
+storage. Shared extents are rejected so clearing old metadata cannot erase image pixels or
+another item. Replacement bytes occupy a framed `mdat` box; unchanged sibling payloads are
+preserved.
+
+Protected items and XMP items with a nonempty MIME content-encoding declaration remain
+visible through the info and presence APIs. Their payload reads and writes, including
+clearing, return `false`; independent edits to another family leave their bytes unchanged.
+Core does not provide a HEIF decryption or content-decoding fallback.
+
+XMP reads reject malformed UTF-8, and XMP writes reject strings containing unpaired UTF-16
+surrogates. Independent EXIF edits preserve an unreadable XMP sibling as bytes. A valid new
+XMP packet can replace a malformed existing packet through the direct writer API.
+
+Input and output are bounded to 128 MiB, individual metadata/property payloads to 16 MiB,
+declared item collections to 4,096 entries, and parser work to 65,536 records. Operations
+include known caller stream backing and supplied XMP strings in the managed working-set budget and observe
+cancellation during parsing and preparation. Rejection or cancellation during
+preparation leaves source bytes and an existing output file untouched. File writers stage
+the complete output beside the destination and atomically replace it, so a failed staging
+write preserves the existing file. This metadata API does not provide HEIF pixel decoding or encoding.
+
+### Save encoded image files atomically
+
+Use `OfficeImageFileWriter.WriteAllBytes(path, encodedImage, cancellationToken)` or
+`WriteAllBytesAsync` to save completed encoded bytes. Both stage output in the destination
+directory, then create or atomically replace the final file. They reuse Core's shared file
+commit owner and fail explicitly if atomic replacement is unsupported. Staging failures
+and cancellation observed before commit preserve an existing destination; failed staging
+files are removed when the filesystem permits cleanup.
+
+The byte array is borrowed without cloning or parsing. Keep it unchanged until the method
+or returned task completes. The writer observes cancellation during staging and immediately
+before commit. Once final replacement begins, it can finish even if cancellation is requested.
+These methods save already encoded bytes; they do not validate image formats or promise
+power-loss durability.
 
 ### Optimize encoded images for a placement
 
@@ -758,6 +964,88 @@ if (report.HasIssues) {
 }
 ```
 
+### Render paragraphs with independent formatting
+
+`AddRichTextParagraphs` keeps paragraph alignment, margins, indentation and line spacing in one text frame. SVG, raster and PDF measure the paragraphs at render time with the drawing's configured fonts.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var drawing = new OfficeDrawing(300, 160).AddRichTextParagraphs(new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Invoice ", 16, OfficeColor.Black),
+        new OfficeRichTextRun("approved", 16, OfficeColor.Parse("#167A36"), bold: true)
+    }, OfficeTextAlignment.Center, lineHeight: 24),
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Ready for payment", 12, OfficeColor.Black)
+    }, margins: new OfficeTextPadding(8, 6, 8, 0), lineHeightFactor: 1.4)
+}, 10, 10, 280, 140, padding: new OfficeTextPadding(6, 6, 6, 6));
+```
+
+Absolute `lineHeight` applies to every visual line; `lineHeightFactor` scales each line's text extent. Choose one or leave both unset for the shared default. Hard line breaks continue the paragraph's indentation; a new paragraph restarts it. Adjacent vertical margins are added. The method snapshots caller collections and rejects inputs beyond 100,000 UTF-16 characters or 4,096 runs, counting paragraph separators. Layout omits paragraphs whose horizontal margins consume the frame, then continues with later paragraphs. Lines beyond the frame height are omitted; condensed line spacing can let glyph ink extend outside the line box. It does not infer native document auto-sizing.
+
+The overload with `OfficeTextAreaAlignment` positions the whole paragraph block independently of paragraph alignment. `FullWidth` preserves the default frame width. `Left`, `Center` and `Right` use the widest measured line, including paragraph margins, and anchor that intrinsic area inside the padded frame. Shorter lines keep their paragraph alignment within it. Wrapping is measured once at the authored frame width; anchoring retains those line breaks. With `wrapText: false`, an oversized centered or right area can extend beyond either side of the frame.
+
+```csharp
+var anchored = new OfficeDrawing(300, 100).AddRichTextParagraphs(new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Longer heading\nShort", 12, OfficeColor.Black)
+    }, OfficeTextAlignment.Right)
+}, 10, 10, 280, 80, OfficeTextAreaAlignment.Center, wrapText: false,
+    padding: new OfficeTextPadding(12, 4, 9, 4));
+```
+
+Use `OfficeTextParagraphLabel` to style and position a list label independently of its body:
+
+```csharp
+var label = OfficeTextParagraphLabel.InBox(
+    new OfficeRichTextRun("1.", 12, OfficeColor.Black),
+    position: 0, minimumWidth: 24, alignment: OfficeTextAlignment.Right,
+    minimumDistance: 4);
+var item = new OfficeRichTextParagraph(
+    new[] { new OfficeRichTextRun("A body that can wrap", 12, OfficeColor.Black) },
+    label, margins: new OfficeTextPadding(24, 0, 0, 0));
+```
+
+`InBox` expands a minimum-width label box when necessary. `AtPosition` aligns at an anchor and follows the label with a declared text position, one measured space, or no separator. Labels appear once on the first line, including items with empty body text, and contribute to automatic line height and shared character/run limits. Wrapped body text uses the paragraph's continuation indentation. A label that exceeds the content rectangle's right edge or right margin is omitted as a whole and marks the layout as clipped; logical text and body insets remain intact. Positions are measured from the text frame's content rectangle before render scaling; native tab-stop selection is the caller's responsibility.
+
+Use `WithTabStops` to position tabbed fields with the same measurements in SVG, raster and PDF:
+
+```csharp
+var prices = new OfficeRichTextParagraph(new[] {
+    new OfficeRichTextRun("Item\t123.45", 12, OfficeColor.Black)
+}).WithTabStops(new OfficeTextTabStops(new[] {
+    new OfficeTextTabStop(180, OfficeTextTabAlignment.Character, ".").WithLeader(".")
+}, defaultInterval: 36));
+```
+
+Stops support left, center, right and character alignment. Field measurement extends to the next tab or hard break across styled runs; an absent delimiter aligns the field's end. An aligned field that would overlap preceding content consumes its stop with zero advance. Default stops repeat on the interval grid beyond the last explicit stop. Positions are relative to the paragraph's inner left margin; `origin` changes that reference point. Leading and consecutive tabs advance normally, and hard breaks reset the line position.
+
+Tabbed lines keep their fixed grid by default. Use `WithParagraphAlignment()` on the tab settings to move each tabbed line as a whole with the paragraph's center or right alignment; `AlignWithParagraph` reports this choice. Field alignment within the line is preserved, and tabbed lines are never justified. Pass `false` to restore the fixed grid. Plain lines retain paragraph alignment with either setting.
+
+Soft wraps use continuation indentation; a tab beyond the frame marks layout as clipped and retains the following text without an unbounded gap. Paragraphs without tab settings retain legacy space expansion. Settings snapshot at most 256 unique stops and survive scaling, scene cloning and tinting; logical text retains the tab characters.
+
+`WithLeader` returns an independent stop that repeats one non-control Unicode scalar in its measured gap. Pass `null` to remove it; whitespace leaves a blank gap. Leader paint uses the tab run's font and formatting, measures the complete repeated run, and retains the following field's anchor. Scaling and frame fitting retain the leader. A text-frame layout generates at most 100,000 UTF-16 characters of leader paint across all paragraphs; exhausting that budget marks clipping while retaining spacing and body text. Frame fitting does not shrink body text merely because leader paint reaches this limit. The logical model contains the original tabs; SVG, raster and PDF paint the generated glyphs.
+
+Use `WithLeaderStyle` for separate textual formatting:
+
+```csharp
+var styledStop = new OfficeTextTabStop(180).WithLeader(".").WithLeaderStyle(
+    new OfficeTextTabLeaderStyle(fontSizeFactor: 1.5, color: OfficeColor.Blue, italic: true));
+```
+
+Unspecified properties inherit each actual tab run, including font family, bold/italic state, decorations and baseline. `fontSizePoints` overrides the relative multiplier and follows drawing scale and frame fitting. Color includes alpha by default; `inheritOpacity: true` keeps the active run's alpha, and an explicit `opacity` overrides either source. A transparent background override clears inherited background paint. The style is immutable, survives cloning and tinting, and has no effect on line leaders or a blank SPACE leader. Editing the glyph preserves its style; passing null to `WithLeaderStyle` removes only the formatting overrides. Unrepresentable relative font sizes suppress leader paint, report clipping and retain the body and tab advance.
+
+Use `WithLineLeader` for vector paint that adds no characters to extracted text:
+
+```csharp
+var ruledStop = new OfficeTextTabStop(180).WithLineLeader(
+    new OfficeTextTabLineLeader(OfficeTextTabLineLeaderStyle.DotDash,
+        doubleLine: true, widthPoints: 0.75, color: OfficeColor.Blue));
+```
+
+Line leaders support solid, dotted, dash, long dash, dot dash, dot dot dash and wave patterns, with optional parallel double lines. `None` retains a blank gap. A null color uses the tab's active text color. An absolute `widthPoints` follows drawing scale; otherwise `widthFontFraction` follows the active rendered font size, including frame fitting. Patterns and their painted bounds share one layout plan across SVG, raster and PDF. A declared `LeaderText`, including SPACE, takes precedence; each editing method preserves the other declaration, and null clears only its own kind. Vector paint is bounded to 8,192 vertices per tab and 100,000 per text frame. Truncation reports clipping and retains field positions and body font sizes. Pattern spacing and wave outlines are an approximation profile, not a promise of identical typography across native producers.
+
 Affine effect groups contribute their transformed child bounds, not the dimensions
 of their temporary rendering buffers. Empty groups do not create overflow findings.
 
@@ -917,7 +1205,7 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 - `OfficeChartSnapshot` and chart rendering primitives shared by PDF and Office exporters.
 - `OfficeRasterImage`, `OfficeRasterCanvas`, `OfficeRasterRenderTarget`, and `OfficeDrawingRasterRenderer` for shared dependency-free raster rendering.
 - `OfficePngReader`, `OfficePngWriter`, and `OfficeJpegCodec` for PNG/JPEG paths that should not be reimplemented by document packages.
-- `OfficeTiffCodec`, `OfficeWebpCodec`, and `OfficeRasterImageEncoder` for shared bounded TIFF, WebP decoding and lossless WebP encoding, and format-neutral raster output.
+- `OfficeTiffCodec`, `OfficeWebpCodec`, and `OfficeRasterImageEncoder` for shared bounded TIFF, WebP decoding and lossless or lossy WebP encoding, and format-neutral raster output.
 - Shared SVG formatting, primitive writing, image projection, text-block rendering, hatch-pattern, data-bar, and sparkline helpers.
 - Drawing quality diagnostics for canvas bounds and text overlap checks.
 
@@ -937,7 +1225,7 @@ High-quality image minification shares the operation's `MaximumRasterPixels` bud
 ## Targets and license
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
-- License: MIT.
+- License: OfficeIMO code is MIT. The incorporated CodeGlyphX VP8 encoder remains Apache-2.0, and its forward transform retains the WebM BSD-3-Clause notice. See [third-party notices](THIRD-PARTY-NOTICES.md), the [CodeGlyphX license](Licenses/CodeGlyphX-LICENSE.txt), and the [WebM license](Licenses/libvpx-LICENSE.txt) and [patent grant](Licenses/libvpx-PATENTS.txt).
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
 ## Dependency footprint

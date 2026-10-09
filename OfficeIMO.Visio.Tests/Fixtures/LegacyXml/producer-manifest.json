@@ -1,0 +1,76 @@
+{
+  "fixtures": [
+    {
+      "file": "clickhouse-replication.vdx",
+      "source": "https://github.com/ClickHouse/clickhouse-presentations/blob/1d8c83faab557e0451a5d0f0f9db47143ea1b404/2017-rit/src/replication.vdx",
+      "license": "Apache-2.0",
+      "sha256": "b28dd6a694861c2db9c28a038ac68a86be3372e5f23df7d5184478beb0349fe6"
+    },
+    {
+      "file": "angularjs-simple-scope.vdx",
+      "source": "https://github.com/angular/angular.js/blob/d8f77817eb5c98dec5317bc3756d1ea1812bcfbe/images/docs/guide/simple_scope.vdx",
+      "license": "MIT",
+      "licenseFile": "angularjs-LICENSE.txt",
+      "sha256": "a9bb75397489c3eb7aea773a1a62a7689a5b2fef8eea2555e3758b5723e5f024"
+    },
+    {
+      "file": "nxbre-ie3.vsx",
+      "source": "https://raw.githubusercontent.com/ddossot/NxBRE/724f63a976ecdf6247a2d2c02471c81c7807b1cf/NxBRE3/Rulefiles/NxBRE-IE-3.vsx",
+      "sha256": "4bf55a7df76de3e165d6f382804efe7eb6e035cdc2f9ca9a5da89e109d469a54",
+      "license": "MIT",
+      "licenseFile": "nxbre-MIT-LICENSE.txt"
+    },
+    {
+      "file": "pronom-visio2002.vtx",
+      "source": "https://raw.githubusercontent.com/digital-preservation/pronom-research-week/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2002%20Visio/Visio2002-Sample1.vtx",
+      "sha256": "f3b7f83d0d6f5ba334fa27b86ab88ad9c7e60bbf3ede017abf96aac297f595e8",
+      "license": "CC0-1.0",
+      "licenseFile": "pronom-NOTICE.txt"
+    },
+    {
+      "file": "pronom-visio2002.vsx",
+      "source": "https://raw.githubusercontent.com/digital-preservation/pronom-research-week/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2002%20Visio/Visio2002-Sample1.vsx",
+      "sha256": "17a0667ac4b9acd2daae47d454ea98afdb81a122641f7d8f27343d9a7bf5639f",
+      "license": "CC0-1.0",
+      "licenseFile": "pronom-NOTICE.txt"
+    },
+    {
+      "file": "clickhouse-distributed-insert.vdx",
+      "source": "https://github.com/ClickHouse/clickhouse-presentations/blob/04076e869dd825ac44286e602e4007e08194b408/2017-rit/src/distributed_insert.vdx",
+      "sha256": "f55362c03b8aae35fc4cfa661ba32065f37d5fcb27cd5a3f3bf05624b6cf19b5",
+      "license": "Apache-2.0",
+      "licenseFile": "LICENSE.txt"
+    },
+    {
+      "file": "nxbre-chocolatebox.vdx",
+      "source": "https://github.com/ddossot/NxBRE/blob/724f63a976ecdf6247a2d2c02471c81c7807b1cf/NxBRE3/Rulefiles/chocolatebox.vdx",
+      "sha256": "20872a96bb1d8e47ccf26189a211fa8ce1ad1064548a7a139f50e0a081c22230",
+      "license": "MIT",
+      "licenseFile": "nxbre-MIT-LICENSE.txt"
+    },
+    {
+      "file": "angularjs-concepts.vdx",
+      "source": "https://github.com/angular/angular.js/blob/d8f77817eb5c98dec5317bc3756d1ea1812bcfbe/images/docs/guide/concepts.vdx",
+      "sha256": "9849d6a0240bd182726f3f730f8cc52b77042e279f0e33efb91eb86fe7b9e5de",
+      "license": "MIT",
+      "licenseFile": "angularjs-LICENSE.txt"
+    },
+    {
+      "file": "shorewall-netfilter.vdx",
+      "source": "https://github.com/Whissi/shorewall/blob/6b5889177b3ee998961022cd4ec2e585c8810aba/docs/images/Netfilter.vdx",
+      "sha256": "a0d1e32ffe67aef1f1787efb19e68b5ca534ab7694913c5e924ec9a670692dfa",
+      "license": "GFDL-1.2-or-later",
+      "licenseFile": "shorewall-GFDL-1.2.txt",
+      "noticeFile": "shorewall-NOTICE.txt",
+      "licenseDeclarationFile": "shorewall-NetfilterOverview.xml"
+    },
+    {
+      "file": "vdxtosvg-basicshapes.vdx",
+      "source": "https://github.com/GNOME/dia/blob/ad68cc378b7a187706bc2648c48b44d16fb80819/samples/Visio/vdxtosvg/BasicShapes.vdx",
+      "sha256": "1588223dc6a56a3bd4b732192e158785a1693cfbfaad6eb9caf16e8516099067",
+      "license": "MIT",
+      "licenseFile": "vdxtosvg-NOTICE.txt",
+      "producer": "Visio 2002; integrity PI version 10.0/build 525; fixture-specific upstream notice attributes samples to Jon Breen"
+    }
+  ]
+}

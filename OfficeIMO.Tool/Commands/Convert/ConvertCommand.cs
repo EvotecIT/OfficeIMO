@@ -8,9 +8,10 @@ internal static class ConvertCommand {
 OfficeIMO.Tool - document conversion
 
 Usage:
-  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx> [output.pdf] [--force]
+  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx|input.odg|input.fodg> [output.pdf] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
+                    [--diagram-layers screen|print] [--require-no-loss]
   officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx]
                     [--iwork-mode auto|editable|visual] [--allow-partial]
                     [--allow-incomplete-preview] [--normalize-worksheet-names]
@@ -23,7 +24,9 @@ Apple OOXML output uses the shared iWork workflow adapter and writes structured 
 Defaults reject partial editable reconstruction and previews without known complete coverage.
 Apple workflow conversion accepts ZIP files and directory bundles.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
-The default destination for DOC, DOCX, TXT, XLSX, and PPTX input is a sibling PDF file.
+Draw PDF output keeps source page dimensions and uses print-visible layers by default.
+Diagram --require-no-loss rejects source and PDF-stage fidelity losses before publishing.
+The default destination for supported PDF input is a sibling PDF file.
 """;
 
     internal static async Task<int> RunAsync(
@@ -151,10 +154,12 @@ internal sealed class ConvertRoute {
                 case "--max-characters-in-part":
                 case "--text-encoding":
                 case "--tab-size":
+                case "--diagram-layers":
                     _ = NextValue(args, ref index, token);
                     hasPdfOnlyOption = true;
                     break;
                 case "--allow-legacy-loss":
+                case "--require-no-loss":
                     hasPdfOnlyOption = true;
                     break;
                 case "--force":
@@ -199,7 +204,7 @@ internal sealed class ConvertRoute {
 
         if (hasPdfOnlyOption || hasOutputLimit) {
             throw new ConvertUsageException(
-                "--max-output-bytes requires PDF or Apple OOXML output; --max-characters-in-part requires PDF output.");
+                "PDF conversion options require PDF output; --max-output-bytes requires PDF or Apple OOXML output.");
         }
 
         var readerArguments = new List<string> {

@@ -18,6 +18,9 @@ are in `hyphenation-en-us-LICENSE.txt` and `hyphenation-de-1996-LICENSE.txt`.
 `OfficeIMO.Core-THIRD-PARTY-NOTICES.md` records their provenance and the adapted
 Bouncy Castle AES implementation. The embedded sRGB profile terms are in
 `sRGB-LICENSE.txt`.
+The embedded Adobe CJK character mappings use the BSD 3-Clause License. Their
+license texts and pinned source provenance are in `AdobeCMaps/`, and
+`OfficeIMO.Pdf-THIRD-PARTY-NOTICES.md` identifies their role in PDF text reading.
 Mac App Store packages also include `THIRD_PARTY_NOTICES.txt` and
 `runtime-package-inventory.json`, generated from the exact published dependency
 graph and reviewed license texts. Packaging fails when a runtime package version

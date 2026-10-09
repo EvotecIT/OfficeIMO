@@ -7,6 +7,27 @@
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
+## Header and footer content
+
+Headers and footers can contain the same bounded paragraph, table, image and drawing flow used by the document body. `Content`, `FirstPageContent` and `EvenPagesContent` select a story for each page and reserve body space from its measured height. Distances and the optional `bodyGap` are in points from the top or bottom page edge. Repeated image payloads are shared across pages and pagination passes. During layout, including pagination stabilization, running content retains at most 128 MiB of distinct encoded image bytes, prepared streams and image masks; exceeding this limit throws `InvalidDataException`. This bounds retained layout assets; transient callback/decoder allocations and opt-in image optimization or PDF/X conversion during serialization use their own policies.
+
+```csharp
+var document = PdfDocument.Create(document => document.Page(page => {
+    page.Header(header => header.Content(content => content
+        .Table(new[] { new[] { "Project", "Status" }, new[] { "Migration", "Active" } }),
+        distanceFromEdge: 18, bodyGap: 6));
+    page.Footer(footer => footer.Content(context => content => content
+        .Paragraph(paragraph => paragraph.Text($"Page {context.PageNumber} of {context.DocumentPages}")),
+        distanceFromEdge: 18));
+    page.Content(content => content.Paragraph(paragraph => paragraph.Text("Report content")));
+}));
+document.Save("report.pdf");
+```
+
+The page-context overload supplies visible and physical page numbers, section-relative page position, section and document page counts, and the current content width. `SectionPages` counts physical pages in the current page group independently of numbering restarts. `TotalPages` retains the existing `{pages}` meaning: the last visible number in the current numbering sequence. `FormatPageNumber` follows the configured number style or an explicit override. The factory must be deterministic because page totals can require pagination to stabilize. Running content cannot create pages: page breaks, page canvases, deferred content and other unbounded flow are rejected. The measured stories must leave positive space for the document body.
+
+Running stories are marked as pagination artifacts. Their fonts, images, drawing resources and links use the document's normal PDF resource owners. A later `Text` or `Zones` call replaces rich content for that variant.
+
 ## Literal text to PDF
 
 `PdfPlainTextConverter` renders TXT content without interpreting Markdown or HTML:
@@ -65,6 +86,23 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 `document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
 
 ## Paragraph font size and line spacing
+
+`PdfOptions.TextWhitespaceMode` controls ordinary spaces in flow text.
+`Collapse`, the default, keeps one separator between words and discards leading
+spaces. `Preserve` retains leading and repeated spaces within a line, counts each
+space during justification, and discards excess spacing at an automatic wrap.
+`Preformatted` retains literal spacing even when it creates additional blank
+lines. Tabs and explicit line breaks keep their separate behavior.
+
+```csharp
+var options = new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve };
+var document = PdfDocument.Create(options);
+document.Content.Paragraph(p => p.Text("  First   second"));
+document.Save("preserved-spacing.pdf");
+```
+
+The existing `PreserveTextWhitespace` property remains available. Setting it to
+`true` selects `Preformatted`; setting it to `false` selects `Collapse`.
 
 Paragraphs can use a fallback font size independently of the document default:
 
@@ -212,7 +250,11 @@ broader scripts or reproducible font selection.
 
 Drawing text preserves numeric font descriptors when the matching faces are registered in
 `PdfOptions.UseRenderingProfile(...)`. Measurement and embedded PDF text use the same selected
-font program. Drawing strokes support native linear and radial gradient shading through their
+font program. Foreground text and inherited underline/strikethrough paint use `OfficeColor.A`;
+an explicit decoration color uses its own alpha. Foreground transparency preserves logical text,
+placement and run backgrounds. Fully transparent glyphs remain searchable in the PDF.
+
+Drawing strokes support native linear and radial gradient shading through their
 shared outlines, including caps, joins, dashes, opacity, clipping, and affine transforms.
 Linear-light RGB gradients use calibrated PDF RGB shading, preserving the color
 field without adding sampled color stops. Explicit print-condition conversion
@@ -821,6 +863,8 @@ The viewport scales with the rendered cell dimensions and preserves cell links a
 
 ### Floating tables
 
+Set `PdfTableStyle.HorizontalOffset` to translate a table after alignment or floating placement. The value is measured in points: positive values move right and negative values move left. Translation preserves the available table width, column widths and vertical flow, including page continuations and tables inside rows or section columns.
+
 Set `PdfTableStyle.Position` to a `PdfTablePosition` to place a table relative to the current text flow, page margins, or page edges. Offsets and text clearances are measured in points; positive vertical offsets move down the page. Paragraphs wrap beside the table and regain their full width below it. Wide inline objects move below the table when the side interval is too narrow. Headings, lists, images, and other structured blocks use space below intersecting floating tables.
 
 Floating placement ignores the table's flow spacing (`SpacingBefore` and `SpacingAfter`). Deferred tables apply their top anchor once across all batches. Vertical `Inside` alignment uses the top edge on odd output pages and the bottom edge on even pages; `Outside` reverses those edges. Center, bottom, inside, and outside alignment require an eager table because a deferred table's total height is not known before its rows are streamed. Floating placement is supported in document flow; tables inside row columns reject `Position`, and Word multi-column sections retain an approximation diagnostic.
@@ -1124,6 +1168,34 @@ deduplicates shared resource contexts by their shallowest reachable depth and is
 bounded by `MaxFormResourceTraversals`.
 For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default
 was not declared and retains an explicit or inherited authored `Normal` value.
+
+The predefined horizontal composite encodings `UniJIS-UCS2-H`, `UniGB-UCS2-H`,
+`UniCNS-UCS2-H` and `UniKS-UCS2-H` use bundled Adobe character maps for text
+extraction and redaction search when the font has no `ToUnicode` map. The font's
+Adobe character collection must match the encoding. Widths are read by the mapped
+CID, so precise removal preserves neighboring text positions. Mapping data is
+loaded locally and lazily; no external executable or download is required. See
+[third-party notices](THIRD-PARTY-NOTICES.md) for source and license information.
+
+Managed previews of unembedded Adobe CJK faces use installed script-capable
+substitutes when available. No replacement fonts are bundled. Rendering retains
+the font-substitution diagnostic: readable text does not establish identical
+outlines, regional glyph forms or appearance. Supply matching fonts during
+`ToDrawing()` projection when a controlled rendering profile is required.
+
+An explicit `ToUnicode` map takes precedence and must cover every shown code;
+an incomplete advertised map is refused. Other named encodings, including vertical
+and half-width variants, require a usable `ToUnicode` map. If shown text lacks a supported mapping,
+extraction throws `NotSupportedException` and redaction planning reports an error
+instead of interpreting the character codes as WinAnsi text. Supply a PDF with
+a supported encoding or an explicit Unicode map before using those text operations. Logical extraction
+still uses explicit `ActualText` and excludes artifacts by default. Redaction
+review requires mappings for painted text even under `ActualText` or artifacts.
+Area-based redaction and image removal also reject a blocked inspection plan,
+including unsupported text on an unselected page. Redaction refuses before
+painting marks or replacing output files and streams.
+Unused font resources do not block extraction; the existing `Identity-H` and `Identity-V` paths retain
+their current behavior and editability limits.
 
 Text extraction excludes PDF artifact marked content by default, which is the
 logical-text behavior expected for decorative headers, footers, and chart
@@ -1718,6 +1790,15 @@ reader's positioned width model, rather than an exact glyph-outline guarantee.
 Complete logical blocks and `TextAndUnderlay` remain the search defaults.
 Evidence for `TextOnly` includes text and annotation removals; preserved image and
 vector underlays remain visible in the plan without being counted as removals.
+
+Precise selection retains inherited font state and uses the source text matrix for
+scaled or sheared glyph bounds. Rewriting preserves imported numeric font resources
+and fractional review geometry. Independently produced TrueType and CFF regression
+inputs cover neighboring text, bookmarks and ink preservation; the
+[viewer checks](../Build/PdfViewerVerification/README.md) describe independent
+readback and rendering. Outlined letters require a reviewed area because they are
+vector paths rather than searchable text. Tight spacing can still block a substring
+when its review envelope intersects an unselected glyph.
 
 `source.Redactions.ApplyForSharing(plan, sanitizationOptions, verificationOptions: verification)` applies the reviewed redaction, sanitizes with the explicit policy, and verifies the final bytes. It requires successful sanitization, policy-specific preservation, unchanged page content and geometry, and final redaction checks. It does not bypass active-content or protected-document mutation gates. A policy that changes page content, such as flattening optional content, may need to be applied before planning redaction.
 
@@ -2427,6 +2508,7 @@ The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-s
 
 - `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, rendering, password security, and signature structure. Optional CMS, DER, and X.509 services come from an explicitly supplied `OfficeIMO.Security` provider.
 - Source-format adapters map their document models onto the neutral `OfficeDocumentModel`; PDF projection remains owned by this package.
+- Neutral-model raster assets retain their aspect ratio and scale down to the configured page content area. Source diagnostics keep their severity and an explicit `lossKind` attribute (`None`, `Approximation`, `Omission` or `Failure`) in the PDF report; absent or invalid categories use the severity default, and errors remain failures.
 - See the [PDF current-state guide](../Docs/officeimo.pdf.current-state.md) for the detailed capability inventory and known limits.
 
 ## Repository validation

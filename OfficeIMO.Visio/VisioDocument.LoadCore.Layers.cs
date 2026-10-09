@@ -112,6 +112,7 @@ namespace OfficeIMO.Visio {
                     layer.PreservedCells.Add(preservedCell);
                 }
 
+                layer.ResetValueAssignments();
                 page.Layers.Add(layer);
             }
         }
@@ -124,6 +125,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            shape.NativeLayerMembership?.BindNames(shape.LayerNames);
             foreach (VisioShape child in shape.Children) {
                 ApplyLayerNamesFromIndexes(page, child);
             }
@@ -136,6 +138,7 @@ namespace OfficeIMO.Visio {
                     connector.LayerNames.Add(string.IsNullOrWhiteSpace(layer.NameU) ? layer.Name : layer.NameU);
                 }
             }
+            connector.NativeLayerMembership?.BindNames(connector.LayerNames);
         }
 
         private static VisioLayer? FindLayerBySourceIndex(VisioPage page, int layerIndex) {

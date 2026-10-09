@@ -1,0 +1,69 @@
+{
+  "upstreamRevisions": {
+    "cmap-resources": "f5cf3bca7fdfeaceb77aa82847e974f2306c20b4",
+    "mapping-resources-pdf": "2dd5e53fb74a01718b9dfd448a0d1cce6fff2aa5"
+  },
+  "role": "Offline predefined horizontal UCS-2 code-to-CID and CID-to-Unicode resources",
+  "files": [
+    {
+      "file": "UniJIS-UCS2-H",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/cmap-resources/f5cf3bca7fdfeaceb77aa82847e974f2306c20b4/Adobe-Japan1-7/CMap/UniJIS-UCS2-H",
+      "sha256": "05d064e6b373edf83890e26d7d2a2339482fad265eaf0a2b92ab528af33b5a54",
+      "size": 168597
+    },
+    {
+      "file": "UniGB-UCS2-H",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/cmap-resources/f5cf3bca7fdfeaceb77aa82847e974f2306c20b4/Adobe-GB1-6/CMap/UniGB-UCS2-H",
+      "sha256": "d2b100a68c016190347c6e0ecee3e7d6d1accd7395d7e803bf88b7ffef156725",
+      "size": 274383
+    },
+    {
+      "file": "UniCNS-UCS2-H",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/cmap-resources/f5cf3bca7fdfeaceb77aa82847e974f2306c20b4/Adobe-CNS1-7/CMap/UniCNS-UCS2-H",
+      "sha256": "fe9c7f1557d58875bc4a16edf377ee0d8c579eaee778135adefbbed1f868c017",
+      "size": 326349
+    },
+    {
+      "file": "UniKS-UCS2-H",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/cmap-resources/f5cf3bca7fdfeaceb77aa82847e974f2306c20b4/Adobe-Korea1-2/CMap/UniKS-UCS2-H",
+      "sha256": "bb28e3e84154f49c311128a5700cc0187ce4957b10f18dee88089002db7e5501",
+      "size": 166009
+    },
+    {
+      "file": "Adobe-Japan1-UCS2",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/mapping-resources-pdf/2dd5e53fb74a01718b9dfd448a0d1cce6fff2aa5/pdf2unicode/Adobe-Japan1-UCS2",
+      "sha256": "6a9693361647a37996312cc57071bb79f8c06411207be7c730a83fda1254cd82",
+      "size": 294111
+    },
+    {
+      "file": "Adobe-GB1-UCS2",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/mapping-resources-pdf/2dd5e53fb74a01718b9dfd448a0d1cce6fff2aa5/pdf2unicode/Adobe-GB1-UCS2",
+      "sha256": "368b40ec05568faf323cfbbddf23c60d566bbc88e366981eb6541b026381a3b8",
+      "size": 221211
+    },
+    {
+      "file": "Adobe-CNS1-UCS2",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/mapping-resources-pdf/2dd5e53fb74a01718b9dfd448a0d1cce6fff2aa5/pdf2unicode/Adobe-CNS1-UCS2",
+      "sha256": "8375afd535e153a7e3bcf448be93e5012b26229547a20d52520e46e3c386351f",
+      "size": 266531
+    },
+    {
+      "file": "Adobe-Korea1-UCS2",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/mapping-resources-pdf/2dd5e53fb74a01718b9dfd448a0d1cce6fff2aa5/pdf2unicode/Adobe-Korea1-UCS2",
+      "sha256": "45bcf869acdcec2507f75836919e589e7137b9f9dbaa8e4975747035024248ef",
+      "size": 146807
+    },
+    {
+      "file": "LICENSE.md",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/cmap-resources/f5cf3bca7fdfeaceb77aa82847e974f2306c20b4/LICENSE.md",
+      "sha256": "742665db9c8e1bc72603c6d319ca3e90b83bd6d95202f0cd4ef11068a07a9c29",
+      "size": 1453
+    },
+    {
+      "file": "LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/adobe-type-tools/mapping-resources-pdf/2dd5e53fb74a01718b9dfd448a0d1cce6fff2aa5/LICENSE.txt",
+      "sha256": "feb8b068a417681821823ef2e8995072aa111121fa11f8664038f78717f4497c",
+      "size": 1453
+    }
+  ]
+}

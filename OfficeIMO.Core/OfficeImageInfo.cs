@@ -75,6 +75,8 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Jpeg => "image/jpeg",
         OfficeImageFormat.Gif => "image/gif",
         OfficeImageFormat.Bmp => "image/bmp",
+        OfficeImageFormat.PortableMap => "image/x-portable-anymap",
+        OfficeImageFormat.Tga => "image/x-tga",
         OfficeImageFormat.Tiff => "image/tiff",
         OfficeImageFormat.Svg => "image/svg+xml",
         OfficeImageFormat.Emf => "image/x-emf",
@@ -110,6 +112,8 @@ public sealed class OfficeImageInfo {
         OfficeImageFormat.Jpeg2000Codestream => ".j2c",
         OfficeImageFormat.Avif => ".avif",
         OfficeImageFormat.JpegXr => ".jxr",
+        OfficeImageFormat.PortableMap => ".pnm",
+        OfficeImageFormat.Tga => ".tga",
         _ => ".bin"
     };
 
@@ -176,6 +180,8 @@ public sealed class OfficeImageInfo {
             "image/j2c" => OfficeImageFormat.Jpeg2000Codestream,
             "image/avif" => OfficeImageFormat.Avif,
             "image/jxr" or "image/vnd.ms-photo" => OfficeImageFormat.JpegXr,
+            "image/x-portable-bitmap" or "image/x-portable-graymap" or "image/x-portable-pixmap" or "image/x-portable-anymap" => OfficeImageFormat.PortableMap,
+            "image/x-tga" or "image/tga" => OfficeImageFormat.Tga,
             _ => OfficeImageFormat.Unknown
         };
     }

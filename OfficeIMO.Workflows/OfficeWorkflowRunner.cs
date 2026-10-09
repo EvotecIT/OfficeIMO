@@ -174,27 +174,32 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 "Cancelled",
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
-            ReportInputStagingCleanupFailure(ex, diagnostics);
+            Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
+            OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence;
+            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false })
+                AddConversionDiagnostics(failedConversionEvidence, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "WorkflowFailed",
                 ex.Message,
                 OfficeWorkflowDiagnosticSeverity.Error,
                 GetDiagnosticStage(failureStage),
                 new Dictionary<string, string>(StringComparer.Ordinal) {
-                    ["exceptionType"] = ex.GetType().Name
+                    ["exceptionType"] = failure.GetType().Name
                 }));
             return new OfficeWorkflowResult(
                 validated?.Id ?? prepared.Id,
                 validated?.Operation ?? prepared.Operation,
                 OfficeWorkflowStatus.Failed,
-                ClassifyFailure(ex, failureStage),
+                ClassifyFailure(failure, failureStage),
                 outputPath: null,
                 inputBytes,
                 outputBytes: 0,
                 stopwatch.Elapsed,
                 "Workflow failed: " + ex.Message,
-                diagnostics);
+                diagnostics,
+                conversionEvidence: failedConversionEvidence);
         } finally {
             if (stagingPath is not null) TryDelete(stagingPath);
             if (providerStagingDirectory is not null) TryDeleteDirectory(providerStagingDirectory);
@@ -649,17 +654,24 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static byte[] SerializePdfConversion(
         PdfDocumentConversionResult conversion,
         long maximumOutputBytes,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        IReadOnlyDictionary<string, string>? facts = null) {
         using var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
-        conversion.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult().RequireSuccess();
+        PdfSaveResult saved = conversion.SaveResultAsync(stream, cancellationToken).GetAwaiter().GetResult();
+        if (saved.Exception is OutOfMemoryException or StackOverflowException)
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(saved.Exception).Throw();
         cancellationToken.ThrowIfCancellationRequested();
+        if (!saved.Succeeded) {
+            throw new WorkflowConversionFailureException(saved.Exception!,
+                new OfficeWorkflowConversionEvidence(saved.ConversionReports, facts ?? new Dictionary<string, string>()));
+        }
         return stream.ToArray();
     }
 
     private static byte[] EncodeUtf8Bounded(string value, long maximumOutputBytes) {
         int byteCount = Encoding.UTF8.GetByteCount(value);
         if (byteCount > maximumOutputBytes) {
-            throw new InvalidOperationException(
+            throw OfficeWorkflowOutputLimitErrors.Create(
                 $"Generated artifact exceeded the configured {maximumOutputBytes:N0}-byte output limit while it was being encoded.");
         }
         return Encoding.UTF8.GetBytes(value);

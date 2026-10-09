@@ -10,7 +10,7 @@ namespace OfficeIMO.Pdf;
 /// Lightweight layout utilities to group text spans into lines and infer multi-column reading order.
 /// Zero-dependency and heuristic by design.
 /// </summary>
-internal static class TextLayoutEngine {
+internal static partial class TextLayoutEngine {
     public sealed class Options {
         /// <summary>Assume page margins (points) when inferring columns. Default: 36 pt (0.5").</summary>
         public double MarginLeft { get; set; } = 36;
@@ -43,10 +43,20 @@ internal static class TextLayoutEngine {
         public IReadOnlyList<PdfTextSpan> Spans { get; }
         public int LogicalLineBreaksBefore { get; }
         internal PdfReadingDirection ReadingDirection { get; }
+        internal double BaselineNormal { get; }
+        internal double BaselineStart { get; }
+        internal double BaselineEnd { get; }
         public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
             LogicalLineBreaksBefore = spans.Count == 0 ? 0 : spans.Max(span => span.LogicalLineBreaksBefore);
             ReadingDirection = readingDirection;
+            if (spans.Count > 0) {
+                // Compatible directions use one common basis for duplicate comparison.
+                var coordinates = new PdfTextBaselineCoordinates(RotationKey(spans[0]));
+                BaselineNormal = spans.Average(coordinates.Normal);
+                BaselineStart = spans.Min(coordinates.Along);
+                BaselineEnd = spans.Max(span => coordinates.Along(span) + Math.Max(0D, span.Advance));
+            }
         }
     }
 
@@ -96,7 +106,7 @@ internal static class TextLayoutEngine {
         return result;
     }
 
-    /// <summary>Builds text lines from spans using Y-clustering and X-sorting.</summary>
+    /// <summary>Builds text lines from compatible span directions using baseline-normal clustering and baseline-along ordering.</summary>
     public static List<TextLine> BuildLines(IReadOnlyList<PdfTextSpan> spans, Options? options = null) =>
         BuildLines(spans, options, consumeWork: null, cancellationCheck: null);
 
@@ -109,31 +119,7 @@ internal static class TextLayoutEngine {
         if (spans.Count == 0) return new List<TextLine>();
         cancellationCheck?.Invoke();
         consumeWork?.Invoke(spans.Count);
-        // Sort by Y desc, then X asc
-        var ordered = spans.OrderByDescending(s => s.Y).ThenBy(s => s.X).ToList();
-        cancellationCheck?.Invoke();
-        // Estimate avg font size (robust median)
-        double medianSize = Median(ordered.Select(s => s.FontSize));
-        var lines = new List<TextLine>();
-        var current = new List<PdfTextSpan>();
-        double currentY = ordered[0].Y;
-        double currentFont = ordered[0].FontSize;
-        foreach (var s in ordered) {
-            cancellationCheck?.Invoke();
-            if (current.Count == 0) { current.Add(s); currentY = s.Y; continue; }
-            double tolAbs = Math.Min(options.LineMergeMaxPoints, Math.Min(currentFont, s.FontSize) * options.LineMergeToleranceEm);
-            if (tolAbs < 0.5) tolAbs = 0.5;
-            if (Math.Abs(s.Y - currentY) <= tolAbs) {
-                current.Add(s);
-                currentFont = (currentFont * (current.Count - 1) + s.FontSize) / current.Count;
-            } else {
-                AddBuiltLines(lines, current, options);
-                current.Clear();
-                current.Add(s);
-                currentY = s.Y; currentFont = s.FontSize;
-            }
-        }
-        if (current.Count > 0) AddBuiltLines(lines, current, options);
+        var lines = BuildBaselineLines(spans, options, cancellationCheck);
         // Drop obvious duplicate lines drawn twice at the same Y (e.g., shadow/overprint)
         lines = DeduplicateLines(lines, consumeWork, cancellationCheck);
         PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
@@ -298,7 +284,8 @@ internal static class TextLayoutEngine {
     }
 
     private static List<List<PdfTextSpan>> SplitWideSameBaselineRuns(List<PdfTextSpan> spans, Options options) {
-        var ordered = spans.OrderBy(s => s.X).ToList();
+        var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees);
+        var ordered = spans.OrderBy(coordinates.Along).ToList();
         var runs = new List<List<PdfTextSpan>>();
         var current = new List<PdfTextSpan> { ordered[0] };
         double minimumRunGap = Math.Max(12, options.MinGutterWidth);
@@ -306,8 +293,8 @@ internal static class TextLayoutEngine {
         for (int i = 1; i < ordered.Count; i++) {
             var previous = ordered[i - 1];
             var span = ordered[i];
-            double previousEnd = previous.X + Math.Max(0, previous.Advance);
-            double gap = span.X - previousEnd;
+            double previousEnd = coordinates.Along(previous) + Math.Max(0, previous.Advance);
+            double gap = coordinates.Along(span) - previousEnd;
             if (gap >= minimumRunGap) {
                 runs.Add(current);
                 current = new List<PdfTextSpan>();
@@ -333,10 +320,12 @@ internal static class TextLayoutEngine {
             sourceOrder.Select(static span => span.Text));
         // Keep stored geometry left-to-right for table/cell detection while emitting line text
         // in the resolved writing direction.
+        var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees);
         spans.Sort(static (left, right) => left.X.CompareTo(right.X));
+        var visualOrder = spans.OrderBy(coordinates.Along).ToList();
         IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
-            ? spans
-            : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(spans, static span => span.Text, direction);
+            ? visualOrder
+            : PdfTextDirectionAnalysis.RestoreLogicalFragmentOrder(visualOrder, static span => span.Text, direction);
         bool hasExplicitWhitespace = spans.Any(span =>
             ContainsWhitespace(span.Text) ||
             span.LogicalLeadingSpace ||
@@ -358,10 +347,11 @@ internal static class TextLayoutEngine {
                     text.Append(' ');
                 }
 
-                // Add a space heuristically if large X gap between spans
+                // Add a space heuristically if the gap along the baseline is large.
                 var prev = previous;
-                double gap = Math.Max(prev.X - (s.X + Math.Max(0D, s.Advance)),
-                    s.X - (prev.X + Math.Max(0D, prev.Advance)));
+                double previousAlong = coordinates.Along(prev), along = coordinates.Along(s);
+                double gap = Math.Max(previousAlong - (along + Math.Max(0D, s.Advance)),
+                    along - (previousAlong + Math.Max(0D, prev.Advance)));
                 // dynamic threshold based on previous span's average glyph advance
                 double prevAvg = SafeAvgAdvance(prev);
                 double glyphFactor = options?.GapGlyphFactor ?? 0.6;
@@ -398,7 +388,7 @@ internal static class TextLayoutEngine {
             // drop duplicate shadows: if same text repeats with almost no gap
             if (text.Length > 0 && IsSameAsTail(text, logicalText) && i > 0) {
                 var prev = textSpans[i - 1];
-                if (IsSubstantiallyOverlapping(prev, s)) {
+                if (IsSubstantiallyOverlapping(prev, s, coordinates)) {
                     continue;
                 }
             }
@@ -427,14 +417,6 @@ internal static class TextLayoutEngine {
         return false;
     }
 
-    private static double Median(IEnumerable<double> seq) {
-        var list = seq.Where(v => v > 0).OrderBy(v => v).ToList();
-        if (list.Count == 0) return 12;
-        int mid = list.Count / 2;
-        if (list.Count % 2 == 1) return list[mid];
-        return (list[mid - 1] + list[mid]) / 2.0;
-    }
-
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
 
     private static List<TextLine> DeduplicateLines(
@@ -454,14 +436,15 @@ internal static class TextLayoutEngine {
                 consumeWork?.Invoke(1);
                 if (used[j]) continue;
                 var b = lines[j];
+                if (a.Spans.Count == 0 || b.Spans.Count == 0 || RotationKey(a.Spans[0]) != RotationKey(b.Spans[0])) continue;
                 // Near-identical baseline
-                if (Math.Abs(a.Y - b.Y) <= 0.75) {
-                    // Exact text match and significant X overlap => drop b
+                if (Math.Abs(a.BaselineNormal - b.BaselineNormal) <= 0.75) {
+                    // Exact text match and significant overlap along the baseline => drop b
                     if (string.Equals(a.Text, b.Text, StringComparison.Ordinal)) {
-                        double overlap = Math.Min(a.XEnd, b.XEnd) - Math.Max(a.XStart, b.XStart);
-                        double len = Math.Max(1.0, Math.Min(a.XEnd - a.XStart, b.XEnd - b.XStart));
+                        double overlap = Math.Min(a.BaselineEnd, b.BaselineEnd) - Math.Max(a.BaselineStart, b.BaselineStart);
+                        double len = Math.Max(1.0, Math.Min(a.BaselineEnd - a.BaselineStart, b.BaselineEnd - b.BaselineStart));
                         if (overlap / len > 0.6) { used[j] = true; continue; }
-                        if (Math.Abs(a.XStart - b.XStart) <= 1.0) { used[j] = true; continue; }
+                        if (Math.Abs(a.BaselineStart - b.BaselineStart) <= 1.0) { used[j] = true; continue; }
                     }
                 }
             }
@@ -487,16 +470,17 @@ internal static class TextLayoutEngine {
         if (string.IsNullOrEmpty(s)) return false; int len = s.Length; if (sb.Length < len) return false;
         for (int i = 0; i < len; i++) if (sb[sb.Length - len + i] != s[i]) return false; return true;
     }
-    private static bool IsSubstantiallyOverlapping(PdfTextSpan previous, PdfTextSpan current) {
+    private static bool IsSubstantiallyOverlapping(PdfTextSpan previous, PdfTextSpan current, PdfTextBaselineCoordinates coordinates) {
         double previousWidth = Math.Max(0, previous.Advance);
         double currentWidth = Math.Max(0, current.Advance);
+        double previousAlong = coordinates.Along(previous), currentAlong = coordinates.Along(current);
         if (previousWidth <= 0 || currentWidth <= 0) {
-            return Math.Abs(previous.X - current.X) <= 0.8;
+            return Math.Abs(previousAlong - currentAlong) <= 0.8;
         }
 
-        double previousEnd = previous.X + previousWidth;
-        double currentEnd = current.X + currentWidth;
-        double overlap = Math.Min(previousEnd, currentEnd) - Math.Max(previous.X, current.X);
+        double previousEnd = previousAlong + previousWidth;
+        double currentEnd = currentAlong + currentWidth;
+        double overlap = Math.Min(previousEnd, currentEnd) - Math.Max(previousAlong, currentAlong);
         double narrowerWidth = Math.Min(previousWidth, currentWidth);
         return overlap > 0 && overlap / narrowerWidth >= 0.6;
     }

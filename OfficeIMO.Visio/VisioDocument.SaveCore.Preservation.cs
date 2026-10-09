@@ -33,13 +33,13 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static void WriteShapeGeometry(XmlWriter writer, string ns, IEnumerable<XElement> preservedGeometrySections, string? nameU, double width, double height, bool writeGeneratedGeometryWhenEmpty = true) {
-            if (WritePreservedGeometrySections(writer, preservedGeometrySections)) {
+        private static void WriteShapeGeometry(XmlWriter writer, string ns, VisioShape shape, string? nameU, double width, double height, bool writeGeneratedGeometryWhenEmpty = true) {
+            if (WritePreservedGeometrySections(writer, shape.PreservedGeometrySections)) {
                 return;
             }
 
             if (writeGeneratedGeometryWhenEmpty) {
-                WriteMasterGeometry(writer, ns, nameU, width, height);
+                WriteMasterGeometry(writer, ns, VisioShapeGeometry.ResolvePrimitiveName(shape, nameU), width, height);
             }
         }
 

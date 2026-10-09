@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Describes visual and layout options for table rendering.
 /// Attach an instance to a table block or use the presets in <see cref="TableStyles"/>.
 /// </summary>
-public class PdfTableStyle {
+public partial class PdfTableStyle {
     private PdfAlign _captionAlign = PdfAlign.Left;
     private System.Collections.Generic.List<PdfColumnAlign>? _alignments;
     private System.Collections.Generic.List<PdfCellVerticalAlign>? _verticalAlignments;
@@ -49,7 +49,6 @@ public class PdfTableStyle {
     private double _rowBaselineOffset;
     private double? _preferredWidth;
     private double? _maxWidth;
-    private double _leftIndent;
     private double? _fontSize;
     private double? _lineHeight;
     private double? _headerFontSize;
@@ -584,14 +583,6 @@ public class PdfTableStyle {
             _minimumShrinkFontSize = value;
         }
     }
-    /// <summary>Left indentation before table placement, in points. Negative values extend the table into the leading margin.</summary>
-    public double LeftIndent {
-        get => _leftIndent;
-        set {
-            ValidateFiniteValue(value, nameof(LeftIndent), "Table left indent must be a finite value.");
-            _leftIndent = value;
-        }
-    }
     /// <summary>Optional per-column alignment; defaults to Left.</summary>
     public System.Collections.Generic.List<PdfColumnAlign>? Alignments {
         get => _alignments;
@@ -727,6 +718,7 @@ public class PdfTableStyle {
             ShrinkTextToFit = ShrinkTextToFit,
             MinimumShrinkFontSize = MinimumShrinkFontSize,
             LeftIndent = LeftIndent,
+            HorizontalOffset = HorizontalOffset,
             AutoFitColumns = AutoFitColumns,
             AutoFitWidthUsesContentMinimum = AutoFitWidthUsesContentMinimum,
             AutoFitUnspecifiedWidthToContent = AutoFitUnspecifiedWidthToContent,

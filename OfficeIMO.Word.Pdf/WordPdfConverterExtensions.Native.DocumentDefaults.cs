@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.Pdf {
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
+            public OfficeIMO.Pdf.PdfRunningContentContext? RunningContentContext { get; init; }
             // A missing docDefaults element follows Word's 12pt application fallback.
             public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null);
         }

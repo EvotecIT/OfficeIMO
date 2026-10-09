@@ -181,6 +181,14 @@ namespace OfficeIMO.Word {
             document.Settings.MirrorMargins = legacyDocument.MirrorMargins;
             document.Settings.GutterAtTop = legacyDocument.GutterAtTop;
             document.CompatibilitySettings.DoNotBalanceTextColumns = legacyDocument.NoColumnBalance;
+            document.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2003;
+            // Word's native DOC layout moves trailing paragraph marks even when
+            // later compatibility storage contains a disabled option. Project
+            // that effective layout into the editable DOCX model.
+            document.CompatibilitySettings.SplitPageBreakAndParagraphMark = true;
+            // Native DOC numbering advances to an authored/default tab rather
+            // than treating the hanging indent as an implicit numbering stop.
+            document.CompatibilitySettings.DoNotUseIndentAsNumberingTabStop = true;
             if (legacyDocument.DefaultTabStop != null) document.Settings.DefaultTabStop = legacyDocument.DefaultTabStop.Value;
             if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
                 document.Settings.TrackRevisions = true;
@@ -519,6 +527,11 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                if (legacyRun.IsSectionPages) {
+                    AddLegacyDocSectionPages(paragraph, legacyRun, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.IsStaticDisplayField) {
                     AddLegacyDocStaticDisplayField(paragraph, legacyRun, bookmarks);
                     continue;
@@ -590,6 +603,11 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.IsNumPages) {
                 AddLegacyDocNumberOfPages(paragraph, legacyRun, bookmarks);
+                return;
+            }
+
+            if (legacyRun.IsSectionPages) {
+                AddLegacyDocSectionPages(paragraph, legacyRun, bookmarks);
                 return;
             }
 
@@ -938,22 +956,6 @@ namespace OfficeIMO.Word {
                 eastAsiaLanguage: source.EastAsiaLanguage,
                 picture: source.Picture,
                 revision: source.Revision);
-        }
-
-        private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
-            var run = new Run(new DocumentFormat.OpenXml.Wordprocessing.PageNumber());
-            paragraph._paragraph.Append(run);
-            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
-        }
-
-        private static void AddLegacyDocNumberOfPages(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
-            var simpleField = new SimpleField { Instruction = " NUMPAGES  " };
-            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, string.IsNullOrEmpty(legacyRun.Text) ? "1" : legacyRun.Text);
-            paragraph._paragraph.Append(simpleField);
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
         private static void AddLegacyDocStaticDisplayField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
@@ -2225,6 +2227,9 @@ namespace OfficeIMO.Word {
                     return true;
                 case LegacyDocTabStopAlignment.Bar:
                     value = TabStopValues.Bar;
+                    return true;
+                case LegacyDocTabStopAlignment.Number:
+                    value = TabStopValues.Number;
                     return true;
                 case LegacyDocTabStopAlignment.Clear:
                     value = TabStopValues.Clear;

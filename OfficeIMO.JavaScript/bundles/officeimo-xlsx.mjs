@@ -1425,7 +1425,26 @@ const _exports = Object.freeze({ colorArgb: _m13.colorArgb, spreadsheetNamespace
 return _exports;
 })();
 
+const _m17 = (() => {
+/** @internal One target policy shared by document writers and portable cells. */
+function copyExportLink(link) {
+    if (!link || typeof link !== "object" || typeof link.target !== "string" ||
+        !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
+        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
+    const url = new URL(link.target);
+    if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
+        throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
+    if (link.tooltip !== undefined && typeof link.tooltip !== "string")
+        throw new TypeError("Hyperlink tooltip must be text.");
+    return Object.freeze({ target: url.href, ...(link.tooltip === undefined ? {} : { tooltip: link.tooltip }) });
+}
+const _exports = Object.freeze({ copyExportLink: copyExportLink });
+return _exports;
+})();
+
 const _m16 = (() => {
+const { copyExportLink } = _m17;
+
 const exportCellBrand = Symbol.for("@evotecit/officeimo/ExportCell");
 /** One resolved value/presentation decision that can be reused across exports. Strings remain literal data. */
 class ExportCell {
@@ -1433,6 +1452,7 @@ class ExportCell {
     static [Symbol.hasInstance](value) { return !!value && typeof value === "object" && value[exportCellBrand] === true; }
     text;
     presentation;
+    link;
     constructor(value, options = {}) {
         this.value = value;
         if (options.text !== undefined && typeof options.text !== "string")
@@ -1440,6 +1460,7 @@ class ExportCell {
         assertScalar(value);
         this.text = options.text;
         this.presentation = options.presentation === undefined ? undefined : Object.freeze({ ...options.presentation });
+        this.link = options.link === undefined ? undefined : copyExportLink(options.link);
         Object.defineProperty(this, exportCellBrand, { value: true });
         Object.freeze(this);
     }
@@ -1491,7 +1512,7 @@ function copyValue(value) {
     if (value instanceof Cell && value.value instanceof Date)
         return new Cell(new Date(value.value), value.style);
     if (value instanceof ExportCell && value.value instanceof Date)
-        return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}) });
+        return new ExportCell(new Date(value.value), { ...(value.text === undefined ? {} : { text: value.text }), ...(value.presentation ? { presentation: value.presentation } : {}), ...(value.link ? { link: value.link } : {}) });
     return value;
 }
 function cellText(value, policy = "strip") {
@@ -1554,7 +1575,7 @@ const _exports = Object.freeze({ Cell: Cell, assertXlsxValue: assertXlsxValue, c
 return _exports;
 })();
 
-const _m18 = (() => {
+const _m19 = (() => {
 const { assertExportValue } = _m16;
 
 const { checkAbort } = _m2;
@@ -1614,8 +1635,10 @@ const _exports = Object.freeze({ createRowProjector: createRowProjector, copyCol
 return _exports;
 })();
 
-const _m19 = (() => {
+const _m20 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m9;
+
+const { copyExportLink } = _m17;
 
 const { officeRelationshipsNamespace } = _m6;
 
@@ -1633,13 +1656,9 @@ function cellPosition(reference) {
 }
 function copyHyperlink(link, policy) {
     cellPosition(link.cell);
-    if (typeof link.target !== "string" || !/^(?:https?:\/\/|mailto:)/i.test(link.target) || /[\u0000-\u0020\u007f]/.test(link.target))
-        throw new TypeError("Hyperlinks require an absolute HTTP, HTTPS or mailto target without whitespace or controls.");
-    const url = new URL(link.target);
-    if ((url.protocol === "http:" || url.protocol === "https:") && (!url.hostname || url.username || url.password))
-        throw new TypeError("Hyperlink HTTP targets need a host and must not contain credentials.");
-    return Object.freeze({ cell: link.cell, target: url.href,
-        ...(link.tooltip === undefined ? {} : { tooltip: cleanXml(link.tooltip, policy) }) });
+    const copied = copyExportLink(link);
+    return Object.freeze({ cell: link.cell, target: copied.target,
+        ...(copied.tooltip === undefined ? {} : { tooltip: cleanXml(copied.tooltip, policy) }) });
 }
 function copyImage(image, policy) {
     if (!(image.data instanceof Uint8Array) || image.data.length < 33 ||
@@ -1677,10 +1696,10 @@ const _exports = Object.freeze({ cellPosition: cellPosition, copyHyperlink: copy
 return _exports;
 })();
 
-const _m21 = (() => {
+const _m22 = (() => {
 const { OfficeIMOError } = _m3;
 
-const { cellPosition } = _m19;
+const { cellPosition } = _m20;
 
 function indexRows(regions) {
     if (!regions.length)
@@ -1781,7 +1800,7 @@ const _exports = Object.freeze({ MergeRegions: MergeRegions });
 return _exports;
 })();
 
-const _m22 = (() => {
+const _m23 = (() => {
 class NumericAggregate {
     operation;
     count = 0;
@@ -1828,18 +1847,18 @@ const _exports = Object.freeze({ NumericAggregate: NumericAggregate, createTotal
 return _exports;
 })();
 
-const _m20 = (() => {
+const _m21 = (() => {
 const { ExportCell } = _m16;
 
 const { Cell, cellText, columnName } = _m15;
 
 const { escapeOoxmlAttribute } = _m9;
 
-const { MergeRegions } = _m21;
+const { MergeRegions } = _m22;
 
 const { OfficeIMOError } = _m3;
 
-const { createTotals } = _m22;
+const { createTotals } = _m23;
 
 /** @internal A computed formula with a numeric cache; no public arbitrary-formula input. */
 class ComputedTotal {
@@ -1997,10 +2016,10 @@ const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: Rep
 return _exports;
 })();
 
-const _m23 = (() => {
+const _m24 = (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m9;
 
-const { cellPosition } = _m19;
+const { cellPosition } = _m20;
 
 const { columnName } = _m15;
 
@@ -2162,14 +2181,14 @@ const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFo
 return _exports;
 })();
 
-const _m17 = (() => {
+const _m18 = (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m2;
 
 const { ChunkedTextSink, BlobByteSink } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m3;
 
-const { copyColumns, createRowProjector } = _m18;
+const { copyColumns, createRowProjector } = _m19;
 
 const { EntryWriter } = _m11;
 
@@ -2181,15 +2200,15 @@ const { Cell, cellText, columnName, inlineText, excelDate, copyValue } = _m15;
 
 const { spreadsheetNamespace, colorArgb, validateStylePatch, copyStylePatch } = _m12;
 
-const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m19;
+const { copyHyperlink, copyImage, hyperlinksXml, cellPosition } = _m20;
 
 const { ExportCell, assertScalar } = _m16;
 
-const { ReportLayout, ComputedTotal, printXml } = _m20;
+const { ReportLayout, ComputedTotal, printXml } = _m21;
 
 const { cleanXml } = _m9;
 
-const { ConditionalFormats, prepareConditionalFormats } = _m23;
+const { ConditionalFormats, prepareConditionalFormats } = _m24;
 
 /** Worksheet rows are written once in order; the model retains compressed output rather than source data. */
 class Worksheet {
@@ -2219,6 +2238,7 @@ class Worksheet {
     reservedLayout = false;
     internalLinks = [];
     links = [];
+    linkedCells = new Set();
     pictures = [];
     conditional;
     constructor(book, name, options, table, preserved = false, conditional = []) {
@@ -2238,8 +2258,11 @@ class Worksheet {
         this.titleStyle = options.title ? book.styles.compose(book.styles.compose(0, { font: { bold: true, size: 18 } }), this.options.title.style ?? {}) : 0;
         this.headerRows = this.layout.headerRows;
         this.project = createRowProjector(this.columns, { sheetName: this.name, firstDataRow: this.headerRows + 1 }, book.settings.signal, book.valueValidator);
-        for (const link of options.hyperlinks ?? [])
-            this.links.push(copyHyperlink(link, book.settings.invalidCharacterPolicy));
+        for (const link of options.hyperlinks ?? []) {
+            const copied = copyHyperlink(link, book.settings.invalidCharacterPolicy);
+            this.links.push(copied);
+            this.linkedCells.add(copied.cell);
+        }
         book.checkLinks(this.links.length);
         this.declared = this.columns.map((column, i) => ({ column, letter: columnName(i + 1),
             style: book.styles.forColumn(column), dateStyle: book.styles.forColumn(column, false, undefined, true),
@@ -2326,6 +2349,7 @@ class Worksheet {
         if (total)
             value = total.value;
         let presentation = value instanceof ExportCell ? value.presentation : undefined;
+        let link = value instanceof ExportCell ? value.link : undefined;
         if (value instanceof ExportCell)
             value = value.value;
         const suppliedStyle = value instanceof Cell ? value.style : undefined;
@@ -2338,6 +2362,7 @@ class Worksheet {
         }
         if (value instanceof ExportCell) {
             presentation = value.presentation;
+            link = value.link;
             value = value.value;
         }
         const explicitStyle = value instanceof Cell ? value.style ?? suppliedStyle : suppliedStyle;
@@ -2345,6 +2370,8 @@ class Worksheet {
             value = value.value;
         assertScalar(value);
         if (covered) {
+            if (link)
+                throw new TypeError("Hyperlinks cannot address a covered merged cell.");
             if (total || (value != null && value !== ""))
                 throw new TypeError("A merged range would hide the value at " + col.letter + row + "; covered cells must be empty.");
             value = undefined; // An empty string in a covered typed column is an empty cell, not a type mismatch.
@@ -2387,7 +2414,7 @@ class Worksheet {
         let reservedCharacters = this.preserved || header || footer ? originalCharacters : undefined;
         if (type === "string" && cleanXml(value, this.book.settings.invalidCharacterPolicy).length > 32767) {
             const cell = col.letter + row;
-            if (this.links.some(link => link.cell === cell))
+            if (link || this.linkedCells.has(cell))
                 throw new TypeError("A text-preservation cell cannot also have an external hyperlink.");
             // Replace a generated cell's original reservation with its preview and overflow records.
             if (reservedCharacters !== undefined) {
@@ -2397,8 +2424,11 @@ class Worksheet {
             const preserved = this.book.preserveText(this.name, cell, value);
             this.book.retainLink();
             this.internalLinks.push({ cell, location: preserved.location });
+            this.linkedCells.add(cell);
             value = preserved.preview;
         }
+        if (link)
+            this.appendHyperlink({ cell: col.letter + row, ...link });
         if (type === "date")
             value = excelDate(value, this.book.settings.dateMode);
         if (!header && !footer)
@@ -2617,14 +2647,18 @@ class Worksheet {
             throw new OfficeIMOError("INVALID_STATE", "Worksheet is closed.");
         if (this.failed)
             throw this.error;
+        this.appendHyperlink(link);
+    }
+    appendHyperlink(link) {
         const copied = copyHyperlink(link, this.book.settings.invalidCharacterPolicy);
         const position = cellPosition(copied.cell);
         if (this.layout.regions.covered(position.column, position.row))
             throw new TypeError("Hyperlinks cannot address a covered merged cell.");
-        if (this.links.some(existing => existing.cell === copied.cell) || this.internalLinks.some(existing => existing.cell === copied.cell))
+        if (this.linkedCells.has(copied.cell))
             throw new TypeError("Duplicate hyperlink cell: " + copied.cell);
         this.book.retainLink();
         this.links.push(copied);
+        this.linkedCells.add(copied.cell);
     }
     /** @internal */
     get hyperlinks() { return this.links; }
@@ -2721,7 +2755,7 @@ const _exports = Object.freeze({ Worksheet: Worksheet });
 return _exports;
 })();
 
-const _m24 = (() => {
+const _m25 = (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m9;
 
 const { cellText, columnName } = _m15;
@@ -2732,7 +2766,7 @@ const { ExportCell } = _m16;
 
 const { Cell } = _m15;
 
-const { totalFormula } = _m20;
+const { totalFormula } = _m21;
 
 function defineTable(id, options, columns, policy) {
     const name = options.name ?? "Table" + id;
@@ -2767,7 +2801,7 @@ const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml })
 return _exports;
 })();
 
-const _m25 = (() => {
+const _m26 = (() => {
 const { OfficeIMOError } = _m3;
 
 const { cleanXml } = _m9;
@@ -2853,13 +2887,13 @@ const { sheetName, assertXlsxValue } = _m15;
 
 const { assertExportValue } = _m16;
 
-const { Worksheet } = _m17;
+const { Worksheet } = _m18;
 
-const { defineTable, tableXml } = _m24;
+const { defineTable, tableXml } = _m25;
 
-const { drawingXml, drawingContentType } = _m19;
+const { drawingXml, drawingContentType } = _m20;
 
-const { TextOverflow } = _m25;
+const { TextOverflow } = _m26;
 
 const xlsxMime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const formatType = (name) => "application/vnd.openxmlformats-officedocument.spreadsheetml." + name + "+xml";
@@ -3146,7 +3180,7 @@ const _exports = Object.freeze({ Workbook: Workbook });
 return _exports;
 })();
 
-const _m27 = (() => {
+const _m28 = (() => {
 const { ExportCell, assertScalar } = _m16;
 
 function style(patch) {
@@ -3192,14 +3226,14 @@ const _exports = Object.freeze({ portableSheet: portableSheet, portableWorkbook:
 return _exports;
 })();
 
-const _m26 = (() => {
+const _m27 = (() => {
 const { withDestination } = _m4;
 
-const { copyColumns } = _m18;
+const { copyColumns } = _m19;
 
 const { Workbook } = _m1;
 
-const { portableSheet, portableWorkbook } = _m27;
+const { portableSheet, portableWorkbook } = _m28;
 
 function prepare(options) {
     const columns = copyColumns(options?.columns);
@@ -3245,7 +3279,7 @@ const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo 
 return _exports;
 })();
 
-const _m28 = (() => {
+const _m29 = (() => {
 
 
 
@@ -3293,7 +3327,7 @@ return _exports;
 
 const _m0 = (() => {
 
-const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m26.writeXlsx, writeXlsxTo: _m26.writeXlsxTo, Worksheet: _m17.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m28.saveBlob, ExportCell: _m16.ExportCell });
+const _exports = Object.freeze({ Workbook: _m1.Workbook, writeXlsx: _m27.writeXlsx, writeXlsxTo: _m27.writeXlsxTo, Worksheet: _m18.Worksheet, Cell: _m15.Cell, StyleRegistry: _m12.StyleRegistry, NumberFormats: _m12.NumberFormats, saveBlob: _m29.saveBlob, ExportCell: _m16.ExportCell });
 return _exports;
 })();
 const { Workbook, writeXlsx, writeXlsxTo, Worksheet, Cell, StyleRegistry, NumberFormats, saveBlob, ExportCell } = _m0;

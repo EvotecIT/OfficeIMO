@@ -189,7 +189,7 @@ internal static partial class PdfWriter {
                 colPixel[0],
                 colPixel[colPixel.Length - 1]);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
-            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth);
+            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth) + style.HorizontalOffset;
 
             double TableBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : currentOpts.MarginBottom;
             double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
@@ -215,10 +215,10 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
-            void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0) {
+            void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0, bool paddingChanged = false) {
                 maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
                 double newContentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
-                if (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D) return;
+                if (!paddingChanged && (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D)) return;
                 contentWidth = newContentWidth;
                 preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
                 tableWidth = preparedColumns.Width;
@@ -258,7 +258,7 @@ internal static partial class PdfWriter {
                 if (style.Position is { } position) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
-                    xOrigin = PositionTableX(position, tableWidth);
+                    xOrigin = PositionTableX(position, tableWidth) + style.HorizontalOffset;
                     y = PositionTableY(position, Math.Min(maxContentHeight, tableContentHeight));
                 }
             }
@@ -431,6 +431,7 @@ internal static partial class PdfWriter {
 
             void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false) {
                 FlushPairedBorders();
+                PrepareTableFrameContinuation(tb, rowIndex);
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     ColumnFlowScope scope = activeColumnFlow!;
                     QueueColumnBalanceRemainder(MeasurePreparedTableColumnBalanceUnits(tb, style, preparedRows, cols, colPixel, rowGapPx,
@@ -438,7 +439,10 @@ internal static partial class PdfWriter {
                         rowIndex, startLine), tb, blockList, blockIndex);
                 }
                 NewPage();
-                ReflowTableForCurrentFrame(rowIndex, startLine);
+                PdfTableStyle continuationStyle = PrepareTableBorderContinuation(tb, style, rowIndex);
+                bool paddingChanged = !ReferenceEquals(style, continuationStyle);
+                style = continuationStyle;
+                ReflowTableForCurrentFrame(rowIndex, startLine, paddingChanged);
                 repeatHeaderHeight = 0D;
                 for (int header = 0; header < repeatHeaderRowCount; header++)
                     repeatHeaderHeight += rowHeights[header] + GetTableRowGapAfter(header, tb.Rows.Count, rowGapPx);
@@ -446,7 +450,7 @@ internal static partial class PdfWriter {
                 if (style.Position is { } continuationPosition) {
                     flowYBeforeTable = y;
                     pageBeforeTable = currentPage;
-                    xOrigin = PositionTableX(continuationPosition, tableWidth);
+                    xOrigin = PositionTableX(continuationPosition, tableWidth) + style.HorizontalOffset;
                     double continuationHeight = remainingRowHeights[rowIndex];
                     if (startLine > 0)
                         continuationHeight += MeasureTableRowSegmentHeight(rowIndex, startLine, rowLineCounts[rowIndex] - startLine, suppressCellObjects: false) - rowHeights[rowIndex];

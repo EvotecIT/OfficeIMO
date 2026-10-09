@@ -83,15 +83,15 @@ public static class OfficeRasterExportPlanner {
             limit.Scale / options.Scale);
 
         double minimumDpi = OfficeRasterImageEncoder.GetMinimumDpi(format);
-        if (encodingOptions.DpiX < minimumDpi || encodingOptions.DpiY < minimumDpi) {
+        if (encodingOptions.ResolvedDpiX < minimumDpi || encodingOptions.ResolvedDpiY < minimumDpi) {
             throw new OfficeImageExportLimitException(
                 requestedScale,
                 CalculateRequestedPixels(width, height, requestedScale),
                 maximumPixels,
                 maximumDimension,
                 format,
-                encodingOptions.DpiX,
-                encodingOptions.DpiY,
+                encodingOptions.ResolvedDpiX,
+                encodingOptions.ResolvedDpiY,
                 minimumDpi);
         }
 

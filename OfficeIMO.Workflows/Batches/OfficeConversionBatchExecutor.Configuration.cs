@@ -18,6 +18,8 @@ internal static partial class OfficeConversionBatchExecutor {
     private static string CaptureRenderingConfiguration(OfficeConversionBatchRequest settings, string routeId) {
         OfficeWorkflowConversionOptions options = settings.ConversionOptions.ForRoute(routeId);
         if (options.Html?.ResourceResolver != null || options.Html?.TextShapingProvider != null || options.Rtf?.ImageConverter != null || options.Markdown?.RemoteImageResolver != null ||
+            options.Visio?.DrawingOptions?.TextShapingProvider != null ||
+            options.Visio?.DrawingOptions?.Fonts.FontProgramProvider != null || options.Visio?.DrawingOptions?.Fonts.FontVariationResolver != null ||
             options.Markdown?.ResourcePolicy.AllowRemoteResourceResolution == true ||
             options.Html?.ResourcePolicy.AllowRemoteResourceResolution == true)
             throw new NotSupportedException("Runtime resource callbacks and remote resources require an ordinary batch without checkpoints.");
@@ -26,7 +28,8 @@ internal static partial class OfficeConversionBatchExecutor {
         using var hash = SHA256.Create();
         using (var stream = new CryptoStream(Stream.Null, hash, CryptoStreamMode.Write)) {
             JsonSerializer.Serialize(stream, new OfficeConversionRenderingConfiguration(routeId, settings.OutputProfile, options,
-                Environment.MachineName), ConfigurationContext.OfficeConversionRenderingConfiguration);
+                Environment.MachineName, routeId is "odg-pdf" or "visio-pdf" or "docx-pdf" or "xlsx-pdf" or "pptx-pdf"
+                    ? settings.MaximumXmlCharactersInPart : 0), ConfigurationContext.OfficeConversionRenderingConfiguration);
             stream.FlushFinalBlock();
         }
         return Convert.ToHexString(hash.Hash!);

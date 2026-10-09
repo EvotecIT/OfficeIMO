@@ -35,7 +35,7 @@ internal static class OdfInlineStyleResolver {
         return false;
     }
 
-    private static IEnumerable<OdfStyle> InlineStyles(OdfStyleRepository styles, XElement element,
+    internal static IEnumerable<OdfStyle> InlineStyles(OdfStyleRepository styles, XElement element,
         string partPath) {
         for (XElement? current = element; current != null && IsInline(current); current = current.Parent) {
             string? name = (string?)current.Attribute(OdfNamespaces.Text + "style-name");

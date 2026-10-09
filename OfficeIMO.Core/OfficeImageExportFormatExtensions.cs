@@ -6,6 +6,20 @@ namespace OfficeIMO.Drawing;
 /// Shared metadata for dependency-free image export formats.
 /// </summary>
 public static class OfficeImageExportFormatExtensions {
+    /// <summary>Returns the encoded container format corresponding to this export route.</summary>
+    /// <remarks>PBM output belongs to the broader PortableMap container family. PNG output can also carry APNG frames.</remarks>
+    public static OfficeImageFormat GetContainerFormat(this OfficeImageExportFormat format) => format switch {
+        OfficeImageExportFormat.Png => OfficeImageFormat.Png,
+        OfficeImageExportFormat.Svg => OfficeImageFormat.Svg,
+        OfficeImageExportFormat.Jpeg => OfficeImageFormat.Jpeg,
+        OfficeImageExportFormat.Tiff => OfficeImageFormat.Tiff,
+        OfficeImageExportFormat.Webp => OfficeImageFormat.Webp,
+        OfficeImageExportFormat.Bmp => OfficeImageFormat.Bmp,
+        OfficeImageExportFormat.Pbm => OfficeImageFormat.PortableMap,
+        OfficeImageExportFormat.Tga => OfficeImageFormat.Tga,
+        OfficeImageExportFormat.Icon => OfficeImageFormat.Icon,
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
     /// <summary>Returns the conventional file extension, including the leading dot.</summary>
     public static string GetFileExtension(this OfficeImageExportFormat format) => format switch {
         OfficeImageExportFormat.Png => ".png",
@@ -13,6 +27,10 @@ public static class OfficeImageExportFormatExtensions {
         OfficeImageExportFormat.Jpeg => ".jpg",
         OfficeImageExportFormat.Tiff => ".tiff",
         OfficeImageExportFormat.Webp => ".webp",
+        OfficeImageExportFormat.Bmp => ".bmp",
+        OfficeImageExportFormat.Pbm => ".pbm",
+        OfficeImageExportFormat.Tga => ".tga",
+        OfficeImageExportFormat.Icon => ".ico",
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
 
@@ -23,6 +41,10 @@ public static class OfficeImageExportFormatExtensions {
         OfficeImageExportFormat.Jpeg => "image/jpeg",
         OfficeImageExportFormat.Tiff => "image/tiff",
         OfficeImageExportFormat.Webp => "image/webp",
+        OfficeImageExportFormat.Bmp => "image/bmp",
+        OfficeImageExportFormat.Pbm => "image/x-portable-bitmap",
+        OfficeImageExportFormat.Tga => "image/x-tga",
+        OfficeImageExportFormat.Icon => "image/vnd.microsoft.icon",
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };
 
@@ -38,6 +60,10 @@ public static class OfficeImageExportFormatExtensions {
             OfficeImageExportFormat.Tiff => normalized.Equals(".tif", StringComparison.OrdinalIgnoreCase) ||
                                             normalized.Equals(".tiff", StringComparison.OrdinalIgnoreCase),
             OfficeImageExportFormat.Webp => normalized.Equals(".webp", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Bmp => normalized.Equals(".bmp", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Pbm => normalized.Equals(".pbm", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Tga => normalized.Equals(".tga", StringComparison.OrdinalIgnoreCase),
+            OfficeImageExportFormat.Icon => normalized.Equals(".ico", StringComparison.OrdinalIgnoreCase),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
@@ -48,6 +74,7 @@ public static class OfficeImageExportFormatExtensions {
         OfficeImageExportFormat.Jpeg => true,
         OfficeImageExportFormat.Tiff => true,
         OfficeImageExportFormat.Webp => true,
+        OfficeImageExportFormat.Bmp or OfficeImageExportFormat.Pbm or OfficeImageExportFormat.Tga or OfficeImageExportFormat.Icon => true,
         OfficeImageExportFormat.Svg => false,
         _ => throw new ArgumentOutOfRangeException(nameof(format))
     };

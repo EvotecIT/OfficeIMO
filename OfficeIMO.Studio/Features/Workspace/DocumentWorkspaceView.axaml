@@ -1064,12 +1064,12 @@
               <editor:FormsInspectorView IsVisible="{Binding IsFormsDocumentMode}" />
 
               <StackPanel IsVisible="{Binding IsProtectDocumentMode}" Spacing="10">
-                <Expander Classes="section" IsExpanded="True">
+                <Expander Classes="section accessibleSection" IsExpanded="True" AutomationProperties.Name="{loc:Loc Shell.RedactionSection}">
                   <Expander.Header><StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconRedact}" Width="14" Height="14" /><TextBlock Text="{loc:Loc Shell.RedactionSection}" FontWeight="SemiBold" /></StackPanel></Expander.Header>
                   <editor:RedactionInspectorView />
                 </Expander>
 
-                <Expander Classes="section">
+                <Expander Classes="section accessibleSection" AutomationProperties.Name="{loc:Loc DocumentWorkspace.PasswordProtection}">
                   <Expander.Header><StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconProtect}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.PasswordProtection}" FontWeight="SemiBold" /></StackPanel></Expander.Header>
                   <StackPanel Spacing="8">
                     <TextBlock IsVisible="{Binding IsDocumentEncrypted}" Classes="muted"
@@ -1099,7 +1099,7 @@
                   </StackPanel>
                 </Expander>
 
-                <Expander Classes="section">
+                <Expander Classes="section accessibleSection" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CertificateSignature}">
                   <Expander.Header><StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconShieldCheck}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.CertificateSignature}" FontWeight="SemiBold" /></StackPanel></Expander.Header>
                   <StackPanel Spacing="8">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="5">
@@ -1139,7 +1139,7 @@
                   </StackPanel>
                 </Expander>
 
-                <Expander Classes="section">
+                <Expander Classes="section accessibleSection" AutomationProperties.Name="{loc:Loc DocumentWorkspace.BatesNumbering}">
                   <Expander.Header><StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconHash}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.BatesNumbering}" FontWeight="SemiBold" /></StackPanel></Expander.Header>
                   <StackPanel Spacing="8">
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">

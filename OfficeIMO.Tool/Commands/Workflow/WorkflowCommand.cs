@@ -30,6 +30,7 @@ Usage:
              [--allow-legacy-loss] [--source-password <password>] [--pdf-password <password>] [--pages <selection>]
              [--profile faithful|lightweight|printready|textonly] [--maximum-files <count>]
              [--maximum-input-bytes <bytes>] [--maximum-output-bytes <bytes>]
+             [--maximum-xml-characters-in-part <characters>] [--diagram-layers screen|print] [--require-no-loss]
   officeimo workflow printers [--paper-sources <queue>]
   officeimo workflow print <input.pdf> --printer <name> [print-plan options]
              [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600]

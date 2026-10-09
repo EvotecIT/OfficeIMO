@@ -49,7 +49,7 @@ public sealed partial class OfficeRasterCanvas {
         if (!CollectContourBounds(contours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
         if (unionContours != null && !CollectContourBounds(unionContours, boundaries, ref minX, ref maxX, ref contourEdges)) return;
         if (boundaries.Count == 0 || maxX <= 0D || minX >= Width) return;
-        boundaries.Sort();
+        SortDistinctContourBoundaries(boundaries);
         double minY = boundaries[0], maxY = boundaries[boundaries.Count - 1];
         if (maxY <= 0D || minY >= Height) return;
         int left = (int)Math.Max(0D, Math.Floor(minX));
@@ -80,18 +80,7 @@ public sealed partial class OfficeRasterCanvas {
                 for (int sample = 0; sample <= ContourSubScanlines; sample++) rowBoundaries.Add(y + sample / (double)ContourSubScanlines);
                 while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] <= y) boundaryIndex++;
                 while (boundaryIndex < boundaries.Count && boundaries[boundaryIndex] < y + 1D) rowBoundaries.Add(boundaries[boundaryIndex++]);
-                rowBoundaries.Sort();
-                // Shared glyph heights do not create additional scanlines. Remove
-                // exact duplicates before charging work, retaining every positive
-                // interval so even extremely thin contour details keep their coverage.
-                int distinctBoundaryCount = 1;
-                for (int index = 1; index < rowBoundaries.Count; index++) {
-                    double boundary = rowBoundaries[index];
-                    if (boundary > rowBoundaries[distinctBoundaryCount - 1]) {
-                        rowBoundaries[distinctBoundaryCount++] = boundary;
-                    }
-                }
-                rowBoundaries.RemoveRange(distinctBoundaryCount, rowBoundaries.Count - distinctBoundaryCount);
+                SortDistinctContourBoundaries(rowBoundaries);
                 long rowWork = contourEdges * (rowBoundaries.Count - 1L);
                 if (rowWork > MaximumContourRowCrossingWork ||
                     rowWork > MaximumContourCrossingWork - crossingWork) {
@@ -152,6 +141,16 @@ public sealed partial class OfficeRasterCanvas {
             ArrayPool<double>.Shared.Return(coverage);
 #endif
         }
+    }
+
+    private static void SortDistinctContourBoundaries(List<double> boundaries) {
+        boundaries.Sort();
+        int count = 0;
+        for (int index = 0; index < boundaries.Count; index++) {
+            double value = boundaries[index];
+            if (count == 0 || value != boundaries[count - 1]) boundaries[count++] = value;
+        }
+        if (count < boundaries.Count) boundaries.RemoveRange(count, boundaries.Count - count);
     }
 
     private bool CollectContourBounds(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, List<double> boundaries, ref double minX, ref double maxX, ref long contourEdges) {

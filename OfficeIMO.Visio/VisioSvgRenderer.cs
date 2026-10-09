@@ -12,15 +12,15 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioSvgRenderer {
         private const string SvgNamespace = "http://www.w3.org/2000/svg";
 
-        public static string Render(VisioPage page, VisioSvgSaveOptions options) {
+        public static string Render(VisioPage page, VisioSvgSaveOptions options, VisioRenderLayerVisibility layerVisibility) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (options.PixelsPerInch <= 0D || double.IsNaN(options.PixelsPerInch) || double.IsInfinity(options.PixelsPerInch)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "PixelsPerInch must be a finite positive number.");
             }
 
-            double scale = options.PixelsPerInch;
-            double logicalWidth = Math.Max(page.Width, 0.01D) * scale;
-            double logicalHeight = Math.Max(page.Height, 0.01D) * scale;
+            VisioRenderProjection projection = VisioRenderProjection.Create(page, options.PixelsPerInch);
+            double logicalWidth = projection.WidthInches * projection.PhysicalDensity;
+            double logicalHeight = projection.HeightInches * projection.PhysicalDensity;
             double surfaceWidth = Math.Ceiling(logicalWidth);
             double surfaceHeight = Math.Ceiling(logicalHeight);
 
@@ -53,17 +53,28 @@ namespace OfficeIMO.Visio {
                 writer.WriteStartElement("g", SvgNamespace);
                 writer.WriteAttributeString("data-officeimo-visio-page", page.Name);
 
-                foreach (VisioShape shape in page.Shapes) {
-                    options.CancellationToken.ThrowIfCancellationRequested();
-                    WriteShape(writer, page, shape, options, scale);
-                }
-
-                VisioRenderLabelLayout? labelLayout = options.ResolveConnectorLabelOverlaps
-                    ? VisioRenderLabelLayout.Create(page)
-                    : null;
-                foreach (VisioConnector connector in page.Connectors) {
-                    options.CancellationToken.ThrowIfCancellationRequested();
-                    WriteConnector(writer, page, connector, options, scale, labelLayout);
+                int foreignImageIndex = 0;
+                foreach (VisioPage contentPage in VisioBackgroundComposition.Resolve(page, options.CancellationToken, options.ImageDiagnostics, options.ImageDiagnosticSource)) {
+                    bool background = !ReferenceEquals(contentPage, page);
+                    if (background) {
+                        writer.WriteStartElement("g", SvgNamespace);
+                        writer.WriteAttributeString("data-officeimo-visio-background", contentPage.Name);
+                    }
+                    var contentProjection = VisioRenderProjection.CreateForContent(contentPage, page, options.PixelsPerInch);
+                    var contentVisibility = background ? new VisioRenderLayerVisibility(contentPage, options.LayerMode) : layerVisibility;
+                    var textStyles = new VisioNativeTextStyleResolver(contentPage.OwnerDocument, options.CancellationToken, options.ImageDiagnostics, options.ImageDiagnosticSource);
+                    foreach (VisioShape shape in contentPage.Shapes) {
+                        options.CancellationToken.ThrowIfCancellationRequested();
+                        WriteShape(writer, contentPage, shape, options, contentProjection, textStyles, contentVisibility, ref foreignImageIndex);
+                    }
+                    VisioRenderLabelLayout? labelLayout = options.ResolveConnectorLabelOverlaps
+                        ? VisioRenderLabelLayout.Create(contentPage, contentVisibility) : null;
+                    foreach (VisioConnector connector in contentPage.Connectors) {
+                        options.CancellationToken.ThrowIfCancellationRequested();
+                        if (!contentVisibility.IsVisible(connector)) continue;
+                        WriteConnector(writer, contentPage, connector, options, contentProjection, labelLayout, textStyles);
+                    }
+                    if (background) writer.WriteEndElement();
                 }
 
                 writer.WriteEndElement();
@@ -112,33 +123,65 @@ namespace OfficeIMO.Visio {
             public override Encoding Encoding => Encoding.UTF8;
         }
 
-        private static void WriteShape(XmlWriter writer, VisioPage page, VisioShape shape, VisioSvgSaveOptions options, double scale) {
+        private static void WriteShape(XmlWriter writer, VisioPage page, VisioShape shape, VisioSvgSaveOptions options, VisioRenderProjection projection, VisioNativeTextStyleResolver textStyles, VisioRenderLayerVisibility layerVisibility, ref int foreignImageIndex) {
             options.CancellationToken.ThrowIfCancellationRequested();
+            if (!layerVisibility.IsVisible(shape)) {
+                foreach (VisioShape child in shape.Children) {
+                    WriteShape(writer, page, child, options, projection, textStyles, layerVisibility, ref foreignImageIndex);
+                }
+                return;
+            }
+            VisioNativeShapeTransform transform;
+            try {
+                transform = VisioNativeShapeTransform.Create(shape, options.ImageDiagnostics, options.ImageDiagnosticSource);
+            } catch (Exception exception) when (exception is ArgumentException || exception is InvalidDataException) {
+                VisioNativeShapeTransform.ReportInvalid(shape, options.ImageDiagnostics, options.ImageDiagnosticSource, exception);
+                return;
+            }
             writer.WriteStartElement("g", SvgNamespace);
             writer.WriteAttributeString("data-visio-shape-id", shape.Id);
             if (!string.IsNullOrWhiteSpace(shape.NameU)) {
                 writer.WriteAttributeString("data-visio-nameu", shape.NameU);
             }
 
-            WriteShapeGeometry(writer, page, shape, scale);
-
-            if (options.RenderStencilArtwork) {
-                if (!WritePackagePreviewArtwork(writer, page, shape, options, scale)) {
-                    WriteStencilArtwork(writer, page, shape, scale);
+            bool foreign = VisioForeignImage.IsForeign(shape);
+            if (foreign) {
+                if (VisioForeignImage.TryGetProjection(shape, page, projection.GeometryDensity, options.ImageDiagnostics, options.ImageDiagnosticSource, out OfficeImageProjection imageProjection)) {
+                    OfficeRasterImage raster = VisioForeignImage.Decode(shape, options.ImageCodec, options.ImageDiagnostics, options.ImageDiagnosticSource, options.CancellationToken);
+                    OfficeSvgImageRenderer.WriteImage(writer, SvgNamespace,
+                        OfficeSvgImageRenderer.CreateDataUri("image/png", OfficePngWriter.Encode(raster, options.CancellationToken)),
+                        imageProjection.Translate(0, projection.ContentOffsetY), preserveAspectRatio: "none",
+                        writeAdditionalAttributes: imageWriter => imageWriter.WriteAttributeString("data-officeimo-foreign-image", "true"),
+                        clipPathId: "visio-foreign-clip-" + (++foreignImageIndex).ToString(CultureInfo.InvariantCulture));
                 }
+            } else {
+                WriteShapeGeometry(writer, page, shape, projection);
+                if (transform.HasReflection && VisioShapeGeometry.ResolveRenderKind(shape) == "database"
+                    && !VisioShapeGeometry.TryGetRenderClosedPaths(shape, out _))
+                    VisioNativeShapeTransform.ReportArtwork(shape, options.ImageDiagnostics, options.ImageDiagnosticSource);
+            }
+
+            if (!foreign && options.RenderStencilArtwork) {
+                bool preview = WritePackagePreviewArtwork(writer, page, shape, options, projection);
+                if (!preview) {
+                    WriteStencilArtwork(writer, page, shape, projection);
+                }
+                if (transform.HasReflection && (preview || !string.IsNullOrEmpty(VisioStencilArtwork.GetKey(shape))))
+                    VisioNativeShapeTransform.ReportArtwork(shape, options.ImageDiagnostics, options.ImageDiagnosticSource);
             }
 
             if (options.RenderText && !string.IsNullOrEmpty(shape.Text)) {
-                WriteShapeText(writer, page, shape, scale);
+                WriteShapeText(writer, page, shape, projection, options, textStyles, transform);
             }
 
             foreach (VisioShape child in shape.Children) {
                 options.CancellationToken.ThrowIfCancellationRequested();
-                WriteShape(writer, page, child, options, scale);
+                WriteShape(writer, page, child, options, projection, textStyles, layerVisibility, ref foreignImageIndex);
             }
 
             writer.WriteEndElement();
         }
+
 
     }
 }

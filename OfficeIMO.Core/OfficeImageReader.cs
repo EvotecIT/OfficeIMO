@@ -199,6 +199,10 @@ public static partial class OfficeImageReader {
                        TryReadWebp(data, out _, validateDecodedAlpha: true, decodedImage: webpImage, cancellationToken: cancellationToken);
             case OfficeImageFormat.Icon:
                 return HasCompleteIconPayload(data, cancellationToken);
+            case OfficeImageFormat.PortableMap:
+                return OfficePortableMapCodec.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
+            case OfficeImageFormat.Tga:
+                return OfficeTgaCodec.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.JpegXr:
                 return OfficeJpegXrDecoder.TryDecode(data, new OfficeRasterDecodeOptions { CancellationToken = cancellationToken }, out _);
             case OfficeImageFormat.Avif:
@@ -253,6 +257,7 @@ public static partial class OfficeImageReader {
             TryReadJpeg2000(data, cancellationToken, out info) ||
             TryReadEmf(data, out info) ||
             TryReadWmf(data, out info) ||
+            TryReadAdditionalRaster(data, cancellationToken, out info) ||
             TryReadSvg(data, fileName, validateCompleteDocument: !allowExtensionFallback, out info)) {
             return true;
         }
@@ -301,6 +306,8 @@ public static partial class OfficeImageReader {
             ".jxr" or ".wdp" or ".hdp" => OfficeImageFormat.JpegXr,
             ".jp2" => OfficeImageFormat.Jpeg2000,
             ".j2k" or ".j2c" => OfficeImageFormat.Jpeg2000Codestream,
+            ".pbm" or ".pgm" or ".ppm" or ".pnm" => OfficeImageFormat.PortableMap,
+            ".tga" => OfficeImageFormat.Tga,
             _ => OfficeImageFormat.Unknown
         };
     }

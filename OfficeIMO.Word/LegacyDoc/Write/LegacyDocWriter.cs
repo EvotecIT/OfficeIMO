@@ -251,6 +251,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 terminalCharacterPadding);
             bookmarks.AddRange(endnoteStories.Bookmarks, commentStoryStart + commentStories.Text.Length);
             Settings? settings = mainPart!.DocumentSettingsPart?.Settings;
+            SplitPageBreakAndParagraphMark? splitMark = settings?.GetFirstChild<Compatibility>()?
+                .GetFirstChild<SplitPageBreakAndParagraphMark>();
+            if (splitMark != null && !IsOnOffEnabled(splitMark)) {
+                throw new NotSupportedException("Native DOC layout always moves a trailing page-break paragraph mark onto the next page. Save as DOCX to retain SplitPageBreakAndParagraphMark=false.");
+            }
+            DoNotUseIndentAsNumberingTabStop? numberingTab = settings?.GetFirstChild<Compatibility>()?
+                .GetFirstChild<DoNotUseIndentAsNumberingTabStop>();
+            if (numberingTab != null && !IsOnOffEnabled(numberingTab)) {
+                throw new NotSupportedException("Native DOC numbering uses an authored or default tab stop rather than the hanging indent. Save as DOCX to retain DoNotUseIndentAsNumberingTabStop=false.");
+            }
             bool trackRevisions = settings?.Elements<TrackRevisions>().Any(IsOnOffEnabled) == true;
             bool lockRevisionTracking = IsLockedRevisionTracking(settings);
             var writableBody = new LegacyDocWritableBody(

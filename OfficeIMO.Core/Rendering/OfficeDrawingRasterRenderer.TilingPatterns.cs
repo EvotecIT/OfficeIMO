@@ -67,7 +67,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TransformedTextBudget = canvas.TransformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
-        }, scaleX, scaleY, tilePlan);
+        }, scaleX, scaleY, tilePlan, canvas.Fonts);
         foreach (OfficeTransform transform in transforms) {
             cancellationToken.ThrowIfCancellationRequested();
             canvas.DrawAffineImage(tile, CreateTilePixelTransform(transform, scale, scaleX, scaleY), pattern.Opacity, interpolate);

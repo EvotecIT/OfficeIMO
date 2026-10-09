@@ -217,7 +217,7 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.Create(text, contentWidth, contentHeight, textMetrics.MeasureText, measurePaint: textMetrics.MeasureTextPaintBounds);
+        OfficeRichTextBlockLayout layout = OfficeDrawingTextLayout.CreateWithRasterMetrics(text, contentWidth, contentHeight, textMetrics);
         sb.AppendSvgRichTextBlock(
             layout,
             contentX,

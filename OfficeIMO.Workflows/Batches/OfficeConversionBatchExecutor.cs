@@ -53,7 +53,8 @@ internal static partial class OfficeConversionBatchExecutor {
                                 ConversionRouteId = route.Id, ConversionOptions = settings.ConversionOptions.ForRoute(route),
                                 OutputProfile = settings.OutputProfile, ConflictPolicy = settings.ConflictPolicy,
                                 PublicationGuard = new DirectBatchPublicationGuard(outputPhysicalRoot, publicationGuard), PdfPassword = settings.PdfPassword,
-                                Limits = new OfficeWorkflowLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes }
+                                Limits = new OfficeWorkflowLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes,
+                                    MaximumXmlCharactersInPart = settings.MaximumXmlCharactersInPart }
                             }, cancellationToken: token).ConfigureAwait(false);
                             item = new(input, result.OutputPath, result.Status, false, result.Summary, result.Diagnostics);
                         } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException and not OperationCanceledException) {
@@ -135,7 +136,8 @@ internal static partial class OfficeConversionBatchExecutor {
                 }, inputHash),
                 ConversionRouteId = routeId,
                 ConversionOptions = settings.ConversionOptions.ForRoute(routeId), OutputProfile = settings.OutputProfile, ConflictPolicy = OfficeWorkflowConflictPolicy.Fail, PdfPassword = settings.PdfPassword,
-                Limits = new OfficeWorkflowLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes },
+                Limits = new OfficeWorkflowLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes,
+                    MaximumXmlCharactersInPart = settings.MaximumXmlCharactersInPart },
                 PublicationGuard = new BatchPublicationGuard(settings, input, inputHash, publicationGuard, output, stagingPath, resourceRoot, resourceIdentity)
             }, cancellationToken: token).ConfigureAwait(false);
             if (result.Status == OfficeWorkflowStatus.Cancelled) return new(input, output, result.Status, false, result.Summary, result.Diagnostics);
@@ -153,7 +155,8 @@ internal static partial class OfficeConversionBatchExecutor {
                     .Take(32).Select(diagnostic => new OfficeConversionBatchStoredDiagnostic(diagnostic.Code,
                         BoundMessage(diagnostic.Message), diagnostic.Severity, diagnostic.Stage,
                         diagnostic.Details.TryGetValue("source", out string? source) ? BoundMessage(source) : null,
-                        diagnostic.Details.TryGetValue("lossKind", out string? loss) ? loss : null)).ToArray(),
+                        diagnostic.Details.TryGetValue("lossKind", out string? loss) ? loss : null,
+                        diagnostic.Details.TryGetValue("location", out string? location) ? BoundMessage(location) : null)).ToArray(),
                 result.Diagnostics.Count(IsRecordedDiagnostic), result.Succeeded ? stageId : null);
             StoreReceipt(receiptPath, completedReceipt);
             pendingRecorded = result.Succeeded;
@@ -192,6 +195,7 @@ internal static partial class OfficeConversionBatchExecutor {
             var details = new Dictionary<string, string>();
             if (finding.Source != null) details["source"] = finding.Source;
             if (finding.LossKind != null) details["lossKind"] = finding.LossKind;
+            if (finding.Location != null) details["location"] = finding.Location;
             return new OfficeWorkflowDiagnostic(finding.Code, finding.Message, finding.Severity, finding.Stage, details);
         }).ToList();
         if (receipt.DiagnosticCount > receipt.Diagnostics.Length)

@@ -23,7 +23,8 @@ namespace OfficeIMO.Visio {
             writer.WriteEndElement();
         }
 
-        private static void WriteTextElement(XmlWriter writer, string ns, string? text, XElement? preservedTextElement = null, string? preservedTextValue = null) {
+        private static void WriteTextElement(XmlWriter writer, string ns, string? text, XElement? preservedTextElement = null, string? preservedTextValue = null, bool forceEmpty = false, bool inherited = false) {
+            if (inherited && string.Equals(text ?? string.Empty, preservedTextValue ?? string.Empty, StringComparison.Ordinal)) return;
             if (preservedTextElement != null &&
                 string.Equals(text ?? string.Empty, preservedTextValue ?? string.Empty, StringComparison.Ordinal)) {
                 XElement clone = new(preservedTextElement);
@@ -32,7 +33,7 @@ namespace OfficeIMO.Visio {
                 return;
             }
 
-            if (!string.IsNullOrEmpty(text)) {
+            if (forceEmpty || !string.IsNullOrEmpty(text) || preservedTextElement != null) {
                 writer.WriteElementString("Text", ns, text);
             }
         }
@@ -79,7 +80,7 @@ namespace OfficeIMO.Visio {
                 new XElement(ns + "ProtectMasters", 0),
                 new XElement(ns + "ProtectBkgnds", 0));
             foreach (XAttribute attribute in preservedDocumentSettingsAttributes ?? Enumerable.Empty<XAttribute>()) {
-                settings.Add(new XAttribute(attribute));
+                settings.SetAttributeValue(attribute.Name, attribute.Value);
             }
             if (requestRecalcOnOpen) settings.Add(new XElement(ns + "RelayoutAndRerouteUponOpen", 1));
             foreach (XElement element in preservedDocumentSettingsElements ?? Enumerable.Empty<XElement>()) {
@@ -128,7 +129,7 @@ namespace OfficeIMO.Visio {
             return new XDocument(root);
         }
 
-        private static XElement CreateGeneratedStyleSheet(XNamespace ns, string styleSheetId, IDictionary<string, PreservedStyleSheetData>? preservedGeneratedStyleSheets) {
+        internal static XElement CreateGeneratedStyleSheet(XNamespace ns, string styleSheetId, IDictionary<string, PreservedStyleSheetData>? preservedGeneratedStyleSheets) {
             XElement styleSheet = styleSheetId switch {
                 "0" => new XElement(ns + "StyleSheet",
                     new XAttribute("ID", 0),
@@ -168,11 +169,22 @@ namespace OfficeIMO.Visio {
 
             if (preservedGeneratedStyleSheets != null &&
                 preservedGeneratedStyleSheets.TryGetValue(styleSheetId, out PreservedStyleSheetData? preserved)) {
+                // A loaded header owns its references, including omissions that must
+                // not acquire the authored style chain during a native round trip.
+                styleSheet.Attribute("BasedOn")?.Remove();
+                styleSheet.Attribute("LineStyle")?.Remove();
+                styleSheet.Attribute("FillStyle")?.Remove();
+                styleSheet.Attribute("TextStyle")?.Remove();
                 foreach (XAttribute attribute in preserved.Attributes) {
-                    styleSheet.Add(new XAttribute(attribute));
+                    styleSheet.SetAttributeValue(attribute.Name, attribute.Value);
                 }
 
                 foreach (XElement element in preserved.ChildElements) {
+                    if (styleSheetId == "0" && element.Name == ns + "Cell" &&
+                        string.Equals((string?)element.Attribute("N"), "EnableTextProps", StringComparison.OrdinalIgnoreCase)) {
+                        styleSheet.Elements(ns + "Cell").FirstOrDefault(cell =>
+                            string.Equals((string?)cell.Attribute("N"), "EnableTextProps", StringComparison.OrdinalIgnoreCase))?.Remove();
+                    }
                     styleSheet.Add(new XElement(element));
                 }
             }

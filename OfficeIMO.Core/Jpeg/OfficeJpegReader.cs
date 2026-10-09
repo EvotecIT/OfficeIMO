@@ -380,7 +380,7 @@ internal static partial class OfficeJpegReader {
                 offset += 2;
                 if (segLen < 2 || offset + segLen - 2 > data.Length) throw new FormatException("Invalid JPEG APP1 segment.");
                 var app1 = data.Slice(offset, segLen - 2);
-                if (OfficeImageOrientationNormalizer.TryReadExifOrientation(app1, out var exifOrientation)) {
+                if (!options.IgnoreExifOrientation && OfficeImageOrientationNormalizer.TryReadExifOrientation(app1, out var exifOrientation)) {
                     if (exifOrientation > 1) {
                         baselineState?.ReserveOrientationCanvas(frame);
                         progressiveState?.ReserveOrientationCanvas(frame);

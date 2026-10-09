@@ -44,6 +44,10 @@ public sealed class OfficeTiffEncodeOptions {
     /// <summary>Vertical resolution in dots per inch.</summary>
     public double DpiY { get; set; } = 96D;
 
+    /// <summary>Optional native resolution values used instead of physical DPI when writing resolution tags.</summary>
+    /// <remarks>The same override applies to every encoded TIFF page. A null override retains the existing DPI behavior. Meter-based values are represented as centimeters; aspect ratios use TIFF ResolutionUnit 1. Native values must fit positive unsigned rational storage within one part in a trillion; unsupported values are rejected before output.</remarks>
+    public OfficeImageResolution? Resolution { get; set; }
+
     /// <summary>Writes TIFF XResolution, YResolution, and ResolutionUnit tags.</summary>
     public bool WriteResolution { get; set; } = true;
 }
@@ -121,7 +125,8 @@ public static partial class OfficeTiffCodec {
             WriteEntry(output, ref entry, 283, 5, 1, yResolutionOffset);
         }
         WriteShortEntry(output, ref entry, 284, 1);
-        if (effective.WriteResolution) WriteShortEntry(output, ref entry, 296, 2);
+        GetEncodingResolution(effective, out double resolutionX, out double resolutionY, out int resolutionUnit);
+        if (effective.WriteResolution) WriteShortEntry(output, ref entry, 296, resolutionUnit);
         if (writePredictor) WriteShortEntry(output, ref entry, 317, (int)effective.Predictor);
         WriteShortEntry(output, ref entry, 338, 2);
         WriteUInt32(output, entry, 0);
@@ -131,8 +136,8 @@ public static partial class OfficeTiffCodec {
         WriteUInt16(output, bitsPerSampleOffset + 4, 8);
         WriteUInt16(output, bitsPerSampleOffset + 6, 8);
         if (effective.WriteResolution) {
-            WriteRational(output, xResolutionOffset, effective.DpiX);
-            WriteRational(output, yResolutionOffset, effective.DpiY);
+            WriteRational(output, xResolutionOffset, resolutionX);
+            WriteRational(output, yResolutionOffset, resolutionY);
         }
         if (effective.Compression == OfficeTiffCompression.PackBits) {
             int written = EncodePackBitsRows(pixels, image.Width * 4, image.Height, output, stripOffset);
@@ -253,6 +258,20 @@ public static partial class OfficeTiffCodec {
 
         ValidateDpi(options.DpiX, nameof(options.DpiX));
         ValidateDpi(options.DpiY, nameof(options.DpiY));
+        GetEncodingResolution(options, out double x, out double y, out _);
+        if (options.WriteResolution) {
+            OfficeUnsignedRational.FromPositiveDouble(x, nameof(options.Resolution));
+            OfficeUnsignedRational.FromPositiveDouble(y, nameof(options.Resolution));
+        }
+    }
+
+    private static void GetEncodingResolution(OfficeTiffEncodeOptions options, out double x, out double y, out int unit) {
+        OfficeImageResolution? resolution = options.Resolution;
+        x = resolution?.Horizontal ?? options.DpiX;
+        y = resolution?.Vertical ?? options.DpiY;
+        OfficeImageResolutionUnit nativeUnit = resolution?.Unit ?? OfficeImageResolutionUnit.PixelsPerInch;
+        unit = nativeUnit == OfficeImageResolutionUnit.AspectRatio ? 1 : nativeUnit == OfficeImageResolutionUnit.PixelsPerCentimeter || nativeUnit == OfficeImageResolutionUnit.PixelsPerMeter ? 3 : 2;
+        if (nativeUnit == OfficeImageResolutionUnit.PixelsPerMeter) { x /= 100D; y /= 100D; }
     }
 
     private static bool UsesHorizontalPredictor(OfficeTiffEncodeOptions options) =>
@@ -736,10 +755,9 @@ public static partial class OfficeTiffCodec {
     }
 
     private static void WriteRational(byte[] output, int offset, double value) {
-        const int denominator = 1000;
-        int numerator = checked((int)Math.Round(value * denominator));
-        WriteUInt32(output, offset, numerator);
-        WriteUInt32(output, offset + 4, denominator);
+        OfficeRational rational = OfficeUnsignedRational.FromPositiveDouble(value);
+        WriteUInt32(output, offset, unchecked((int)rational.Numerator));
+        WriteUInt32(output, offset + 4, unchecked((int)rational.Denominator));
     }
 
     private static void WriteUInt16(byte[] output, int offset, int value) {

@@ -551,7 +551,27 @@ comment.AddReply(reviewer, "Verified against the source report.");
 presentation.AddCustomShow("Executive review", new[] { titleSlide, summarySlide });
 ```
 
-`GetVbaProjectBytes()`, `SetVbaProject(...)`, and `RemoveVbaProject()` treat a VBA project as validated, bounded compound-storage content. They do not interpret or generate VBA source. Save macro content only to matching macro-enabled package formats such as `.pptm`, `.potm`, or `.ppsm`.
+`GetVbaProjectBytes()`, `SetVbaProject(byte[], ...)`, and `RemoveVbaProject()` handle
+validated, bounded compound-storage content. `ReadVbaProject()` and the typed
+`SetVbaProject(OfficeVbaProject, ...)` overload use the
+[shared native VBA source model](../OfficeIMO.Core/README.md#native-vba-projects):
+
+```csharp
+using OfficeIMO;
+
+var project = OfficeVbaProject.Create("Automation");
+project.AddModule("Helpers",
+    "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
+presentation.SetVbaProject(project);
+```
+
+Existing projects can be read, edited, and applied through the same model.
+Document modules bound to Word or Excel are rejected before the project part changes.
+Changed signed projects require explicit
+`OfficeVbaWriteOptions.AllowSignatureRemoval`; unchanged bytes retain signatures.
+Save macro content only to matching macro-enabled Open XML package formats such
+as `.pptm`, `.potm`, or `.ppsm`. Source editing adds no runtime dependency and
+does not execute VBA or edit binary `.ppt` carriers.
 
 `InspectVbaSignatures(...)` reports legacy, agile, and V3 profile evidence for `.pptm`, `.potm`, `.ppsm`, and `.ppam`. `ValidateVbaSignatures(...)` adds managed content binding plus provider-backed CMS, certificate, revocation, and timestamp evidence. `SignVbaProject(...)` clears and recreates the three Microsoft profiles atomically on every supported platform. A registered Microsoft Office SIP is an optional Windows differential check. Apply VBA signatures before an OPC package signature.
 

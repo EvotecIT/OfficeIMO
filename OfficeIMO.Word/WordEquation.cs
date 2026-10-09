@@ -429,7 +429,9 @@ namespace OfficeIMO.Word {
             segments.Add(WordEquationContentSegment.FromText(text!, sourceElement));
         }
 
-        private bool IsBackingElement(OpenXmlElement element) =>
+        // Format adapters select the equation itself without excluding its
+        // enclosing hyperlink or content control and their unrelated siblings.
+        internal bool IsBackingElement(OpenXmlElement element) =>
             ReferenceEquals(element, _mathParagraph) ||
             ReferenceEquals(element, _officeMath) ||
             ReferenceEquals(element, _simpleField) ||

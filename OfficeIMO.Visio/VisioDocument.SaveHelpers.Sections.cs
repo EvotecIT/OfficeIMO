@@ -14,22 +14,22 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public partial class VisioDocument {
 
-        private static void WriteHyperlinkSection(XmlWriter writer, string ns, IList<VisioHyperlink> hyperlinks) {
+        private static void WriteHyperlinkSection(XmlWriter writer, string ns, IList<VisioHyperlink> hyperlinks, IList<VisioHyperlink>? inherited = null) {
             if (hyperlinks.Count == 0) {
                 return;
             }
 
+            string?[] rowNames = VisioHyperlinkRowNames.Create(hyperlinks, inherited);
             writer.WriteStartElement("Section", ns);
             writer.WriteAttributeString("N", "Hyperlink");
             for (int i = 0; i < hyperlinks.Count; i++) {
                 VisioHyperlink hyperlink = hyperlinks[i];
                 writer.WriteStartElement("Row", ns);
-                if (!string.IsNullOrWhiteSpace(hyperlink.RowName)) {
-                    writer.WriteAttributeString("N", hyperlink.RowName);
-                } else if (hyperlink.RowIndex.HasValue) {
+                if (rowNames[i] != null) {
+                    writer.WriteAttributeString("N", rowNames[i]);
+                }
+                if (hyperlink.RowIndex.HasValue) {
                     writer.WriteAttributeString("IX", hyperlink.RowIndex.Value.ToString(CultureInfo.InvariantCulture));
-                } else {
-                    writer.WriteAttributeString("N", "Row_" + (i + 1).ToString(CultureInfo.InvariantCulture));
                 }
 
                 foreach (XAttribute attribute in hyperlink.PreservedRowAttributes) {
@@ -62,10 +62,11 @@ namespace OfficeIMO.Visio {
                 writer.WriteStartElement("Row", ns);
                 if (!string.IsNullOrWhiteSpace(userCell.Name)) {
                     writer.WriteAttributeString("N", userCell.Name);
-                } else if (userCell.RowIndex.HasValue) {
-                    writer.WriteAttributeString("IX", userCell.RowIndex.Value.ToString(CultureInfo.InvariantCulture));
-                } else {
+                } else if (!userCell.RowIndex.HasValue) {
                     writer.WriteAttributeString("N", "Row_" + (i + 1).ToString(CultureInfo.InvariantCulture));
+                }
+                if (userCell.RowIndex.HasValue) {
+                    writer.WriteAttributeString("IX", userCell.RowIndex.Value.ToString(CultureInfo.InvariantCulture));
                 }
 
                 foreach (XAttribute attribute in userCell.PreservedRowAttributes) {
@@ -193,6 +194,8 @@ namespace OfficeIMO.Visio {
                     }
                     valueCell.SetAttributeValue("V", value);
                     valueCell.Attribute("F")?.Remove();
+                    valueCell.Attribute("E")?.Remove();
+                    valueCell.Attribute("Err")?.Remove();
 
                     using var reader = clone.CreateReader();
                     writer.WriteNode(reader, false);
@@ -283,7 +286,9 @@ namespace OfficeIMO.Visio {
                         string.Equals(attribute.Name.LocalName, "N", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(attribute.Name.LocalName, "V", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(attribute.Name.LocalName, "U", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(attribute.Name.LocalName, "F", StringComparison.OrdinalIgnoreCase)) {
+                        string.Equals(attribute.Name.LocalName, "F", StringComparison.OrdinalIgnoreCase) ||
+                        ((attribute.Name == "E" || attribute.Name == "Err") &&
+                         !string.Equals(formula, (string?)template.Attribute("F"), StringComparison.Ordinal))) {
                         continue;
                     }
 

@@ -29,6 +29,16 @@ public static partial class WordPdfConverterExtensions {
             }
             if (breakType == W.BreakValues.Column) pdf.ColumnBreak();
             else pdf.PageBreak(preserveEmptyPage: true);
+            if (after == null && breakType == W.BreakValues.Page &&
+                !UsesModernNativeWordLayout(paragraph._document) &&
+                paragraph._document.CompatibilitySettings.SplitPageBreakAndParagraphMark) {
+                var mark = new W.Paragraph();
+                if (paragraph._paragraph?.ParagraphProperties is W.ParagraphProperties markProperties) {
+                    mark.Append((W.ParagraphProperties)markProperties.CloneNode(true));
+                    mark.ParagraphProperties!.SectionProperties?.Remove();
+                }
+                after = new WordParagraph(paragraph._document, mark);
+            }
             if (after == null) return true;
             after.PageBreakBeforeOverride = false;
             after.LineSpacingBeforePoints = 0;

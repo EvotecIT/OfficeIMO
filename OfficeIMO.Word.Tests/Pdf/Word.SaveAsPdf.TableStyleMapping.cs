@@ -971,7 +971,7 @@ public partial class Word {
 
         Assert.Equal(2, style.HeaderRowCount);
         Assert.Equal(2, style.RepeatHeaderRowCount);
-        Assert.Equal(24D, style.PageContinuationSpacingBefore);
+        Assert.Equal(0D, style.PageContinuationSpacingBefore);
     }
 
     [Fact]

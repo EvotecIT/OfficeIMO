@@ -6,6 +6,26 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed class WorkflowCommandTests {
+    [Theory]
+    [InlineData(".odg")]
+    [InlineData(".fodg")]
+    public async Task DrawBatchUsesTheCanonicalPageConverter(string extension) {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "drawing" + extension), output = Path.Combine(scope.Path, "PDF");
+        var drawing = OfficeIMO.OpenDocument.OdgDocument.Create();
+        drawing.AddPage("Caption", OfficeIMO.OpenDocument.OdfLength.Points(360), OfficeIMO.OpenDocument.OdfLength.Points(220))
+            .Shapes.AddTextBox(OfficeIMO.OpenDocument.OdfRect.FromCentimeters(1, 1, 5, 2), "ToolCaption");
+        drawing.AddPage("Blank", OfficeIMO.OpenDocument.OdfLength.Points(180), OfficeIMO.OpenDocument.OdfLength.Points(120));
+        if (extension == ".fodg") drawing.SaveFlatXml(input); else drawing.Save(input);
+        ToolResult result = await RunAsync(["workflow", "batch", input, "--output", output, "--target", "pdf"]);
+        Assert.Equal((int)OfficeImoToolExitCode.Success, result.ExitCode);
+        string pdfPath = Assert.Single(Directory.GetFiles(output, "*.pdf"));
+        var pdf = PdfReadDocument.Open(File.ReadAllBytes(pdfPath));
+        Assert.Equal(2, pdf.Pages.Count);
+        Assert.Equal((180D, 120D), pdf.Pages[1].GetPageSize());
+        Assert.Contains("ToolCaption", pdf.ExtractText());
+    }
+
     [Fact]
     public async Task WordImagesCommandPublishesSeparateWordAndPdfCopiesAndReportsAnalysis() {
         using var scope = new TestDirectory();

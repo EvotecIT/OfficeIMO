@@ -3,6 +3,7 @@
   "RootPath": "..",
   "ExpectedVersion": "3.4.X",
   "ExpectedVersionMap": {
+    "OfficeIMO.Access": "3.4.X",
     "OfficeIMO.Adf": "3.4.X",
     "OfficeIMO.AI": "3.4.X",
     "OfficeIMO.AI.IntelligenceX": "3.4.X",
@@ -63,6 +64,7 @@
     "OfficeIMO.MarkdownRenderer.IntelligenceX": "3.4.X",
     "OfficeIMO.MarkdownRenderer.Wpf": "3.4.X",
     "OfficeIMO.OpenDocument": "3.4.X",
+    "OfficeIMO.OpenDocument.Odg.Pdf": "3.4.X",
     "OfficeIMO.OpenDocument.Odp.Pdf": "3.4.X",
     "OfficeIMO.OpenDocument.Ods.Pdf": "3.4.X",
     "OfficeIMO.OpenDocument.Odt.Pdf": "3.4.X",

@@ -10,14 +10,18 @@ public sealed partial class OfficeRasterCanvas {
         var points = new List<OfficePoint>();
         foreach (IReadOnlyList<OfficePoint> contour in contours) points.AddRange(contour);
         GetPolygonBounds(points, out double x, out double y, out double width, out double height);
-        return (px, py) => {
-            double nx = (px - x) / width, ny = (py - y) / height;
-            if (radial != null) return InterpolateGradient(radial, ComputeRadialRatio(radial, nx, ny));
-            double dx = linear!.EndX - linear.StartX, dy = linear.EndY - linear.StartY;
-            double length = dx * dx + dy * dy;
-            return length <= double.Epsilon ? linear.Stops[0].Color : InterpolateGradient(linear,
-                Clamp(((nx - linear.StartX) * dx + (ny - linear.StartY) * dy) / length, 0D, 1D));
-        };
+        return (px, py) => SampleGradientFill(linear, radial, (px - x) / width, (py - y) / height);
+    }
+
+    // Share the canvas fill policy with callers that supply their own normalized
+    // coordinates. Stroke paint deliberately uses separate color/alpha interpolation.
+    internal static OfficeColor SampleGradientFill(OfficeLinearGradient? linear, OfficeRadialGradient? radial, double nx, double ny) {
+        if (radial != null) return InterpolateGradient(radial, ComputeRadialRatio(radial, nx, ny));
+        if (linear == null) return OfficeColor.Transparent;
+        double dx = linear.EndX - linear.StartX, dy = linear.EndY - linear.StartY;
+        double length = dx * dx + dy * dy;
+        return length <= double.Epsilon ? linear.Stops[0].Color : InterpolateGradient(linear,
+            Clamp(((nx - linear.StartX) * dx + (ny - linear.StartY) * dy) / length, 0D, 1D));
     }
 
     private static IReadOnlyList<OfficePoint> RectanglePoints(double x, double y, double width, double height) =>
