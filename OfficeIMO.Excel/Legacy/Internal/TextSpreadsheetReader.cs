@@ -80,9 +80,9 @@ internal sealed class TextSpreadsheetReader : IDisposable {
         return number;
     }
 
-    internal static bool HasHeader(byte[] data, string header) {
+    internal static bool HasHeader(byte[] data, string header, Encoding? configured) {
         try {
-            Encoding encoding = ResolveEncoding(data, null, out int offset);
+            Encoding encoding = ResolveEncoding(data, configured, out int offset);
             int byteCount = encoding.GetByteCount(header);
             return data.Length - offset >= byteCount && encoding.GetString(data, offset, byteCount) == header;
         } catch (DecoderFallbackException) {
@@ -106,6 +106,11 @@ internal sealed class TextSpreadsheetReader : IDisposable {
 }
 
 internal abstract class TextSpreadsheetAdapterBase : LegacySpreadsheetAdapterBase {
+    public sealed override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason) =>
+        Probe(data, sourceName, new LegacySpreadsheetImportOptions { Limits = limits }, cancellationToken, out reason);
+
+    public abstract override int Probe(byte[] data, string? sourceName, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken, out string reason);
+
     public sealed override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) =>
         Parse(data, new LegacySpreadsheetImportOptions { Limits = limits }, cancellationToken);
 

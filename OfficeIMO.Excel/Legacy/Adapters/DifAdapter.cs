@@ -8,9 +8,9 @@ internal sealed class DifAdapter : TextSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.Dif;
     public override string ProfileId => "dif-row-values";
 
-    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
-        bool matches = TextSpreadsheetReader.HasHeader(data, "TABLE\r") || TextSpreadsheetReader.HasHeader(data, "TABLE\n");
+        bool matches = TextSpreadsheetReader.HasHeader(data, "TABLE\r", options.TextEncoding) || TextSpreadsheetReader.HasHeader(data, "TABLE\n", options.TextEncoding);
         reason = matches ? "DIF TABLE topic signature." : "No DIF TABLE topic.";
         return matches ? 95 : 0;
     }

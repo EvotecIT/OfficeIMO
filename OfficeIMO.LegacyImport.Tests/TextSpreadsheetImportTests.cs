@@ -8,7 +8,7 @@ namespace OfficeIMO.LegacyImport.Tests;
 public sealed class TextSpreadsheetImportTests {
     [Fact]
     public void SylkValuesUseStickyCoordinatesAndKeepFormulaTextLiteralThroughXlsx() {
-        const string source = "ID;PTEST\nC;X1;Y1;K\"  =SUM(A1)  \"\nC;X2;K42.25\nC;Y2;KTRUE\nC;X1;K\"Semi;;quoted \"\"text\"\"\"\nE\n";
+        const string source = "ID;PTEST\nC;X1;Y1;K\"  =SUM(A1)  \"\nC;X2;K42.25\nC;Y2;KTRUE\nC;X1;K\"Semi;;quoted \"text\"\"\nE\n";
         using LegacySpreadsheetImportResult imported = Import(source);
         Assert.Equal(LegacySpreadsheetFormat.Sylk, imported.Detection.Format);
         Assert.Equal(OfficeLegacyImportQuality.Structured, imported.Report.Quality);
@@ -33,9 +33,9 @@ public sealed class TextSpreadsheetImportTests {
         Assert.Equal(84d, Cell(imported, 1, 1).CachedValue);
         Assert.Null(Cell(imported, 1, 1).Formula);
         Assert.Null(Cell(imported, 1, 2).CachedValue);
-        Assert.Null(Cell(imported, 1, 3).CachedValue);
+        Assert.Equal(99d, Cell(imported, 1, 3).CachedValue);
         Assert.Equal("3", imported.Metadata["OmittedFormulaCount"]);
-        Assert.Equal("2", imported.Metadata["MissingFormulaValueCount"]);
+        Assert.Equal("1", imported.Metadata["MissingFormulaValueCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_FORMULA_STORED_VALUE");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_FORMATTING_OMITTED");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_RECORDS_OMITTED");
@@ -59,6 +59,67 @@ public sealed class TextSpreadsheetImportTests {
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_ERROR_AS_TEXT");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_FORMULA_STORED_VALUE");
         Assert.Throws<InvalidDataException>(() => Import("ID;PTEST\nC;X1;Y1;K1" + string.Concat(Enumerable.Repeat(";Zignored", 61)) + "\nE\n"));
+    }
+
+    [Fact]
+    public void SylkMatrixFollowersRetainStoredResultsWithoutEvaluatingTheArray() {
+        using LegacySpreadsheetImportResult imported = Import("ID;PCALCOOO32\nC;X1;Y1;K1;MROW(A1:A2);R2;C1\nC;X1;Y2;K2;I;R1;C1\nC;X2;K\"cached\";I;R1;C1\nE\n");
+        Assert.Equal(1d, Cell(imported, 1, 1).CachedValue);
+        Assert.Equal(2d, Cell(imported, 2, 1).CachedValue);
+        Assert.Equal("cached", Cell(imported, 2, 2).CachedValue);
+        Assert.Equal("3", imported.Metadata["OmittedFormulaCount"]);
+        Assert.DoesNotContain("MissingFormulaValueCount", imported.Metadata.Keys);
+        Assert.All(imported.Cells, cell => Assert.Null(cell.Formula));
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_FORMULA_STORED_VALUE");
+    }
+
+    [Fact]
+    public void OrdinarySylkQuoteRunsRemainLiteral() {
+        using LegacySpreadsheetImportResult imported = Import("ID;PExcel\nC;X1;Y1;K\"a\"\"b\"\nC;X2;K\"quoted \"text\"\"\nE\n");
+        Assert.Equal("a\"\"b", Cell(imported, 1, 1).CachedValue);
+        Assert.Equal("quoted \"text\"", Cell(imported, 1, 2).CachedValue);
+        Assert.False(imported.HasLoss);
+    }
+
+    [Fact]
+    public void HistoricalScalc3StringDialectIsExplicitlyUnsupported() =>
+        Assert.Throws<NotSupportedException>(() => Import("ID;PSCALC3\nC;X1;Y1;K\"unescaped;semicolon\"\nE\n"));
+
+    [Fact]
+    public void ImportsIndependentArrayAndQuoteResultsWithFormulaLoss() {
+        byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "TextSpreadsheets", "libreoffice-array-quotes.slk"));
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(source);
+        Assert.Equal(4, imported.Cells.Count);
+        Assert.Equal(1d, Cell(imported, 1, 1).CachedValue);
+        Assert.Equal(2d, Cell(imported, 2, 1).CachedValue);
+        Assert.Equal("a\"\"b", Cell(imported, 1, 2).CachedValue);
+        Assert.Equal("quoted \"text\"", Cell(imported, 2, 2).CachedValue);
+        Assert.Equal("2", imported.Metadata["OmittedFormulaCount"]);
+        Assert.DoesNotContain("MissingFormulaValueCount", imported.Metadata.Keys);
+        Assert.All(imported.Cells, cell => Assert.Null(cell.Formula));
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "SYLK_FORMULA_STORED_VALUE");
+    }
+
+    [Theory]
+    [InlineData("slk", 1200)]
+    [InlineData("slk", 1201)]
+    [InlineData("slk", 12000)]
+    [InlineData("slk", 12001)]
+    [InlineData("dif", 1200)]
+    [InlineData("dif", 1201)]
+    [InlineData("dif", 12000)]
+    [InlineData("dif", 12001)]
+    public void ExplicitUnicodeEncodingWithoutBomWorksThroughDetectionImportAndReader(string extension, int codePage) {
+        Encoding encoding = Encoding.GetEncoding(codePage);
+        string text = extension == "slk" ? "ID;PTEST\nC;X1;Y1;K\"Zażółć\"\nE\n" : Dif("1,0\n\"Zażółć\"\n", 1, 1);
+        byte[] source = encoding.GetBytes(text);
+        var options = new LegacySpreadsheetImportOptions { TextEncoding = encoding };
+        Assert.Equal(extension == "slk" ? LegacySpreadsheetFormat.Sylk : LegacySpreadsheetFormat.Dif, LegacySpreadsheetImporter.Detect(source, options).Format);
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(source, options);
+        Assert.Equal("Zażółć", Assert.Single(imported.Cells).CachedValue);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddLegacySpreadsheetHandler(options).Build();
+        OfficeDocumentReadResult result = reader.ReadDocument(source, "book." + extension);
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("Zażółć", StringComparison.Ordinal));
     }
 
     [Fact]

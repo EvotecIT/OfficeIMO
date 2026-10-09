@@ -22,4 +22,12 @@ soffice --headless -env:UserInstallation=file:///absolute/scratch/lo-profile --c
 | `libreoffice-cells.slk` | `1c52a72fd1dc30d923ec17651336f0ce166f66b349c5cf227fbb9b66a97aeb51` |
 | `libreoffice-cells.dif` | `4122e40939cc626e40d4aa608364a0097cee09b337f99be536c30aa18b1104d2` |
 
-LibreOffice is an opt-in evidence producer. It is not required by the importer or its ordinary test suite. This pair qualifies the documented stored-value profile for one producer; it does not qualify every historical SYLK/DIF dialect, formula preservation or source-format writing.
+`libreoffice-array-quotes.slk` is an additional export from the same producer revision. Its checked-in source, `libreoffice-array-quotes.fods`, defines a two-row `ROW(A1:A2)` array and text containing consecutive and interior quotes. The exported anchor has `M` and its follower has `I;R1;C1` alongside the stored result `K2`. Tests preserve both array results and the exact text while reporting omitted array behavior. These fields describe matrix membership; they do not invalidate the stored result.
+
+```sh
+soffice --headless -env:UserInstallation=file:///absolute/scratch/lo-profile --convert-to 'slk:SYLK' --outdir /absolute/scratch/slk libreoffice-array-quotes.fods
+```
+
+The export's SHA-256 is `772a7d157355679fcfd2bbd78ef8f59bbe6af5d116c475c8060b2cb6aeb014ad`. The regular SYLK string profile preserves interior quotes verbatim and decodes doubled semicolons; the historical SCALC3 dialect is explicitly unsupported.
+
+LibreOffice is an opt-in evidence producer. It is not required by the importer or its ordinary test suite. These fixtures qualify the documented stored-value profile for one producer; they do not qualify every historical SYLK/DIF dialect, formula preservation or source-format writing.

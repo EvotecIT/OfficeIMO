@@ -59,6 +59,6 @@ internal interface ILegacySpreadsheetAdapter {
     LegacySpreadsheetFormat Format { get; }
     string ProfileId { get; }
     string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
-    int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason);
+    int Probe(byte[] data, string? sourceName, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken, out string reason);
     LegacySpreadsheetModel Parse(byte[] data, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken);
 }

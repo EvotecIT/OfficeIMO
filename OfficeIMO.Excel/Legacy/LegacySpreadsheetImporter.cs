@@ -151,7 +151,7 @@ public static class LegacySpreadsheetImporter {
         cancellationToken.ThrowIfCancellationRequested();
         if (options.FormatHint.HasValue) {
             ILegacySpreadsheetAdapter hinted = Adapters.Single(adapter => adapter.Format == options.FormatHint.Value);
-            int confidence = hinted.Probe(data, options.SourceName, options.Limits, cancellationToken, out string evidence);
+            int confidence = hinted.Probe(data, options.SourceName, options, cancellationToken, out string evidence);
             return (hinted, new LegacySpreadsheetDetection(hinted.Format, hinted.GetProfileId(data, options.Limits, cancellationToken), Math.Max(1, confidence),
                 confidence == 0 ? "Explicit caller format hint." : evidence + " Explicit caller format hint confirmed the family."));
         }
@@ -160,7 +160,7 @@ public static class LegacySpreadsheetImporter {
         int selectedConfidence = 0;
         foreach (ILegacySpreadsheetAdapter adapter in Adapters) {
             cancellationToken.ThrowIfCancellationRequested();
-            int confidence = adapter.Probe(data, options.SourceName, options.Limits, cancellationToken, out string reason);
+            int confidence = adapter.Probe(data, options.SourceName, options, cancellationToken, out string reason);
             if (confidence > selectedConfidence) {
                 selected = adapter;
                 selectedReason = reason;

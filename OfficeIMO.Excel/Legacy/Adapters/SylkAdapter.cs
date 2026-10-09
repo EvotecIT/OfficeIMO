@@ -8,9 +8,9 @@ internal sealed class SylkAdapter : TextSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.Sylk;
     public override string ProfileId => "sylk-stored-values";
 
-    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
-        bool matches = TextSpreadsheetReader.HasHeader(data, "ID;");
+        bool matches = TextSpreadsheetReader.HasHeader(data, "ID;", options.TextEncoding);
         reason = matches ? "SYLK ID record signature." : "No SYLK ID record.";
         return matches ? 95 : 0;
     }
@@ -18,13 +18,15 @@ internal sealed class SylkAdapter : TextSpreadsheetAdapterBase {
     protected override LegacySpreadsheetModel Parse(TextSpreadsheetReader reader) {
         string header = reader.RequiredLine();
         if (!header.StartsWith("ID;", StringComparison.Ordinal)) throw new InvalidDataException("SYLK must start with an ID record.");
-        bool modernCalc = header.StartsWith("ID;PCALCOOO32", StringComparison.Ordinal);
+        SplitFields(header);
+        if (header == "ID;PSCALC3" || header.StartsWith("ID;PSCALC3;", StringComparison.Ordinal))
+            throw new NotSupportedException("The historical SCALC3 SYLK string/semicolon dialect is outside the stored-value import profile.");
         var model = new LegacySpreadsheetModel { Quality = OfficeLegacyImportQuality.Structured };
         var sheet = new LegacySpreadsheetSheet("Sheet1");
         model.Sheets.Add(sheet);
         var addresses = new HashSet<long>();
         var omittedRecords = new HashSet<string>(StringComparer.Ordinal);
-        int row = 1, column = 1, formulaCount = 0, missingCacheCount = 0, invalidCacheCount = 0, errorCount = 0;
+        int row = 1, column = 1, formulaCount = 0, missingCacheCount = 0, errorCount = 0;
         bool formatting = false;
         string? line;
         while ((line = reader.ReadLine()) != null) {
@@ -33,13 +35,12 @@ internal sealed class SylkAdapter : TextSpreadsheetAdapterBase {
                 reader.RequireEnd();
                 if (formulaCount > 0) {
                     model.Metadata["OmittedFormulaCount"] = formulaCount.ToString(CultureInfo.InvariantCulture);
-                    model.Findings.Add(Loss("SYLK_FORMULA_STORED_VALUE", "Formula", "SYLK formulas were omitted without evaluation or link resolution; only valid stored values were imported."));
+                    model.Findings.Add(Loss("SYLK_FORMULA_STORED_VALUE", "Formula", "SYLK formulas, shared expressions and matrix/table behavior were omitted without evaluation or link resolution; only valid stored values were imported."));
                 }
                 if (missingCacheCount > 0) {
                     model.Metadata["MissingFormulaValueCount"] = missingCacheCount.ToString(CultureInfo.InvariantCulture);
                     model.Findings.Add(Loss("SYLK_FORMULA_VALUE_MISSING", "Formula", "One or more source formulas had no valid stored value and were imported as blank cells."));
                 }
-                if (invalidCacheCount > 0) model.Findings.Add(Loss("SYLK_STORED_VALUE_INVALID", "Cell", "Source values marked invalid by SYLK were imported as blank cells."));
                 if (errorCount > 0) model.Findings.Add(Loss("SYLK_ERROR_AS_TEXT", "Cell", "SYLK error values were retained as literal text rather than live Excel error cells."));
                 if (formatting) model.Findings.Add(Loss("SYLK_FORMATTING_OMITTED", "Formatting", "SYLK format definitions, number formats, widths and style records were omitted; numeric dates remain stored numbers."));
                 if (omittedRecords.Count > 0) model.Findings.Add(Loss("SYLK_RECORDS_OMITTED", "Structure", "Unsupported SYLK records or cell attributes were omitted: " + string.Join(", ", omittedRecords.OrderBy(static item => item, StringComparer.Ordinal)) + "."));
@@ -60,7 +61,7 @@ internal sealed class SylkAdapter : TextSpreadsheetAdapterBase {
             if (record == "B") continue; // Source dimensions do not cause allocation or synthesize cells.
             if (record != "C") { AddOmitted(omittedRecords, record); continue; }
             object? value = null;
-            bool hasValue = false, hasFormula = false, invalidValue = false;
+            bool hasValue = false, hasFormula = false;
             foreach (string field in fields.Skip(1)) {
                 if (field.Length == 0) throw new InvalidDataException("Empty SYLK cell field.");
                 string content = field.Substring(1);
@@ -70,30 +71,26 @@ internal sealed class SylkAdapter : TextSpreadsheetAdapterBase {
                     case 'K':
                         if (hasValue) throw new InvalidDataException("Duplicate SYLK stored-value field.");
                         hasValue = true;
-                        value = ParseValue(content, modernCalc);
+                        value = ParseValue(content);
                         if (value is string && !content.StartsWith("\"", StringComparison.Ordinal)) errorCount++;
                         break;
-                    case 'E': case 'M': case 'S': hasFormula = true; break;
-                    case 'I': invalidValue = true; break;
+                    case 'E': case 'M': case 'S': case 'I': hasFormula = true; break;
                     case 'R': case 'C': hasFormula = true; break; // Formula reference coordinates, never resolved.
                     default: AddOmitted(omittedRecords, "C;" + field[0]); break;
                 }
             }
             if (hasFormula) formulaCount++;
-            if (invalidValue) { value = null; hasValue = false; }
             if (hasFormula && !hasValue) missingCacheCount++;
             if (!addresses.Add(((long)row << 16) | (uint)column)) throw new InvalidDataException("SYLK defines the same cell more than once.");
-            if (invalidValue && !hasFormula) invalidCacheCount++;
             reader.AddCell(model, sheet, row, column, value);
         }
         throw new InvalidDataException("SYLK is missing its E terminator.");
     }
 
-    private static object ParseValue(string value, bool modernCalc) {
+    private static object ParseValue(string value) {
         if (value.StartsWith("\"", StringComparison.Ordinal)) {
             if (value.Length < 2 || !value.EndsWith("\"", StringComparison.Ordinal)) throw new InvalidDataException("Unterminated SYLK text value.");
             string text = value.Substring(1, value.Length - 2);
-            if (!modernCalc) text = text.Replace("\"\"", "\"");
             text = text.Replace("\u001b :", "\n");
             if (text.IndexOf('\u001b') >= 0) throw new NotSupportedException("SYLK character escape sequences other than the line-break escape are not supported; choose an explicit text encoding for unescaped input.");
             return text;
