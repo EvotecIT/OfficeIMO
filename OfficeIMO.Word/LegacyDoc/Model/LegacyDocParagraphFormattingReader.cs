@@ -87,7 +87,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             if (fib.FcPlcfBtePapx < 0
                 || fib.LcbPlcfBtePapx < 4
-                || fib.FcPlcfBtePapx + fib.LcbPlcfBtePapx > tableStream.Length
+                || fib.LcbPlcfBtePapx > tableStream.Length
+                || fib.FcPlcfBtePapx > tableStream.Length - fib.LcbPlcfBtePapx
                 || (fib.LcbPlcfBtePapx - 4) % 8 != 0) {
                 warning = "The FIB points outside the selected table stream for the paragraph-format bin table.";
                 return Array.Empty<LegacyDocParagraphFormatRange>();
@@ -100,6 +101,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var dataContext = new LegacyDocDataPropertyContext(dataStream ?? Array.Empty<byte>(), options ?? new LegacyDocImportOptions());
 
             for (int binIndex = 0; binIndex < binCount; binIndex++) {
+                if (!TryConsumeParagraphWork(dataContext, 12, ref warning)) break;
                 int fcStart = LegacyDocFib.ReadInt32(tableStream, cpArrayOffset + (binIndex * 4));
                 int fcEnd = LegacyDocFib.ReadInt32(tableStream, cpArrayOffset + ((binIndex + 1) * 4));
                 int pageNumber = LegacyDocFib.ReadInt32(tableStream, bteArrayOffset + (binIndex * 4));
@@ -107,12 +109,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                int pageOffset = checked(pageNumber * OleSectorSize);
-                if (pageOffset < 0 || pageOffset + OleSectorSize > wordDocumentStream.Length) {
+                long pageOffsetLong = (long)pageNumber * OleSectorSize;
+                if (pageOffsetLong < 0 || pageOffsetLong > wordDocumentStream.Length - (long)OleSectorSize) {
                     warning = "A paragraph-format bin table entry points outside the WordDocument stream.";
                     return ranges;
                 }
 
+                int pageOffset = (int)pageOffsetLong;
                 ReadPapxFkp(wordDocumentStream, pageOffset, ranges, dataContext, ref warning);
                 if (dataContext.WorkLimitExceeded) break;
             }
@@ -137,6 +140,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             for (int paragraphIndex = 0; paragraphIndex < cpara; paragraphIndex++) {
+                // A sector-sized admission unit bounds retained formatting ranges,
+                // including style-only, empty and invalid PAPX entries.
+                if (!TryConsumeParagraphWork(dataContext, OleSectorSize, ref warning)) return;
                 int fcStart = LegacyDocFib.ReadInt32(wordDocumentStream, rgfcOffset + (paragraphIndex * 4));
                 int fcEnd = LegacyDocFib.ReadInt32(wordDocumentStream, rgfcOffset + ((paragraphIndex + 1) * 4));
                 if (fcEnd <= fcStart) {
@@ -168,6 +174,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     ranges.Add(new LegacyDocParagraphFormatRange(fcStart, fcEnd, format));
                 }
             }
+        }
+
+        private static bool TryConsumeParagraphWork(LegacyDocDataPropertyContext context, int bytes, ref string? warning) {
+            try { context.ConsumeWork(bytes); return true; }
+            catch (InvalidDataException exception) { warning = exception.Message; return false; }
         }
 
         private static LegacyDocParagraphFormat ReadPapx(byte[] bytes, int offset, int pageEnd, LegacyDocDataPropertyContext dataContext) {

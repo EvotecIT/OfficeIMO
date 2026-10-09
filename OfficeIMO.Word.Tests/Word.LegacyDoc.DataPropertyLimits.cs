@@ -16,7 +16,7 @@ public partial class Word {
         Assert.All(complete.ParagraphFormats, format => Assert.True(format.KeepLinesTogether));
         Assert.DoesNotContain(complete.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID");
 
-        var options = new LegacyDocImportOptions { MaxParagraphPropertyWorkBytes = 50, ReportUnsupportedContent = false };
+        var options = new LegacyDocImportOptions { MaxParagraphPropertyWorkBytes = 1100, ReportUnsupportedContent = false };
         LegacyDocDocument limited = LegacyDocDocument.Load(new MemoryStream(bytes), options);
         Assert.Equal(complete.Text, limited.Text);
         Assert.True(limited.ParagraphFormats[0].KeepLinesTogether);
@@ -24,6 +24,28 @@ public partial class Word {
         Assert.Null(limited.ParagraphFormats[2].KeepLinesTogether);
         Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID"
             && diagnostic.Message.IndexOf("work limit", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
+    public void LegacyDoc_DataPropertyLimits_StyleOnlyPapxConsumesWork() {
+        byte[] bytes = LegacyDocTestBuilder.CreateDocWithSharedDataProperties(false, styleOnly: true);
+        var complete = LegacyDocDocument.Load(bytes);
+        Assert.All(complete.ParagraphFormats, format => Assert.Equal((ushort)1, format.StyleIndex));
+        var limited = LegacyDocDocument.Load(bytes, new LegacyDocImportOptions { MaxParagraphPropertyWorkBytes = 1 });
+        Assert.Equal(complete.Text, limited.Text);
+        Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID"
+            && diagnostic.Message.IndexOf("work limit", StringComparison.Ordinal) >= 0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LegacyDoc_DataPropertyLimits_OverflowingReferencesPreserveTextAndReportDiagnostic(bool tableSpan) {
+        byte[] bytes = LegacyDocTestBuilder.CreateDocWithSharedDataProperties(false,
+            pageNumber: tableSpan ? null : int.MaxValue, overflowingTableSpan: tableSpan);
+        var model = LegacyDocDocument.Load(bytes);
+        Assert.Equal(new[] { "first", "second", "third" }, model.Paragraphs);
+        Assert.Contains(model.Diagnostics, diagnostic => diagnostic.Code == "DOC-PAPX-INVALID");
     }
 
     [Theory]
@@ -92,7 +114,8 @@ public partial class Word {
     }
 
     private static partial class LegacyDocTestBuilder {
-        internal static byte[] CreateDocWithSharedDataProperties(bool huge) {
+        internal static byte[] CreateDocWithSharedDataProperties(bool huge, bool styleOnly = false,
+            int? pageNumber = null, bool overflowingTableSpan = false) {
             const string text = "first\rsecond\rthird\r";
             const int textOffset = 0x800;
             byte[] word = CreateWordDocumentStream(text, textOffset: textOffset);
@@ -104,11 +127,12 @@ public partial class Word {
             WriteInt32(table, plcOffset, textOffset);
             WriteInt32(table, plcOffset + 4, middle);
             WriteInt32(table, plcOffset + 8, end);
-            WriteInt32(table, plcOffset + 12, 2);
+            WriteInt32(table, plcOffset + 12, pageNumber ?? 2);
             WriteInt32(table, plcOffset + 16, 3);
-            WriteInt32(word, 0x102, plcOffset);
-            WriteInt32(word, 0x106, 20);
-            byte[] papx = CreateParagraphPropertiesPapx(DataPropertyPointer(0, huge));
+            WriteInt32(word, 0x102, overflowingTableSpan ? int.MaxValue - 7 : plcOffset);
+            WriteInt32(word, 0x106, overflowingTableSpan ? 12 : 20);
+            byte[] papx = styleOnly ? new byte[] { 0, 1, 1, 0 }
+                : CreateParagraphPropertiesPapx(DataPropertyPointer(0, huge));
             WritePapxFkp(word, 0x400, new[] { textOffset, textOffset + "first\r".Length, middle },
                 new Dictionary<int, byte[]> { [0] = papx, [1] = papx });
             WritePapxFkp(word, 0x600, new[] { middle, end }, new Dictionary<int, byte[]> { [0] = papx });

@@ -17,6 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// <summary>Maximum aggregate paragraph-property traversal and expansion work, in bytes, per import.</summary>
         /// <remarks>
         /// Data pointers consume work even when they emit no properties. Cached expansions also consume work.
+        /// Each paragraph-format entry also consumes a conservative 512-byte admission unit, including style-only entries.
         /// Exhaustion stops the affected property expansion and reports a DOC-PAPX-INVALID diagnostic.
         /// </remarks>
         public int MaxParagraphPropertyWorkBytes { get; set; } = 64 * 1024 * 1024;
