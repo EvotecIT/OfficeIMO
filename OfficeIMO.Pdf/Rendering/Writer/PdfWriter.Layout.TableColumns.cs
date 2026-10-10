@@ -369,6 +369,18 @@ internal static partial class PdfWriter {
                 }
             }
 
+            // Bounds may push the common weighted allocation in opposite
+            // directions. Only fix bounds that remain binding in the direction
+            // needed to fill the frame; the opposite bounds may cease to bind.
+            double boundedTotal = 0D;
+            for (int i = 0; i < widths.Length; i++) {
+                if (!active[i]) continue;
+                double proposed = weightSum > 0D ? remaining * (weights[i] / weightSum) : remaining / activeCount;
+                double bounded = minWidths[i].HasValue ? Math.Max(proposed, minWidths[i]!.Value) : proposed;
+                boundedTotal += maxWidths[i].HasValue ? Math.Min(bounded, maxWidths[i]!.Value) : bounded;
+            }
+            bool needsGrowth = boundedTotal < remaining - 0.0000001D;
+            bool needsReduction = boundedTotal > remaining + 0.0000001D;
             bool constrained = false;
             for (int i = 0; i < widths.Length; i++) {
                 if (!active[i]) {
@@ -376,7 +388,7 @@ internal static partial class PdfWriter {
                 }
 
                 double proposed = weightSum > 0 ? remaining * (weights[i] / weightSum) : remaining / activeCount;
-                if (minWidths[i].HasValue && proposed < minWidths[i]!.Value) {
+                if (!needsGrowth && minWidths[i].HasValue && proposed < minWidths[i]!.Value) {
                     widths[i] = minWidths[i]!.Value;
                     remaining -= widths[i];
                     active[i] = false;
@@ -385,7 +397,7 @@ internal static partial class PdfWriter {
                     // Recompute the active weight sum before constraining a
                     // neighbor against the reduced remaining width.
                     break;
-                } else if (maxWidths[i].HasValue && proposed > maxWidths[i]!.Value) {
+                } else if (!needsReduction && maxWidths[i].HasValue && proposed > maxWidths[i]!.Value) {
                     widths[i] = maxWidths[i]!.Value;
                     remaining -= widths[i];
                     active[i] = false;

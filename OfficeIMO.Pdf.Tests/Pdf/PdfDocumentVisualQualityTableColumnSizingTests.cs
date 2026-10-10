@@ -89,9 +89,11 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Theory]
-    [InlineData(false, 150D, 75D)]
-    [InlineData(true, 50D, 125D)]
-    public void Table_RecomputesRemainingWeightsBeforeApplyingNeighborBounds(bool maximumFirst, double firstWidth, double secondWidth) {
+    [InlineData(0, 150D, 75D)]
+    [InlineData(1, 50D, 125D)]
+    [InlineData(2, 200D, 50D)]
+    [InlineData(3, 30D, 240D)]
+    public void Table_RecomputesRemainingWeightsBeforeApplyingNeighborBounds(int boundsCase, double firstWidth, double secondWidth) {
         var options = new PdfOptions {
             PageWidth = 360, PageHeight = 240,
             MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
@@ -99,19 +101,23 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = TableStyles.Minimal();
         style.AutoFitColumns = false;
-        style.ColumnWidthWeights = maximumFirst ? new List<double> { 1, 1, 1 } : new List<double> { 4, 3, 3 };
-        style.ColumnMinWidthPoints = maximumFirst
-            ? new List<double?> { null, 90, null }
-            : new List<double?> { 150, 60, null };
-        if (maximumFirst) style.ColumnMaxWidthPoints = new List<double?> { 50, null, null };
+        style.ColumnWidthWeights = boundsCase == 0 ? new List<double> { 4, 3, 3 } : new List<double> { 1, 1, 1 };
+        style.ColumnMinWidthPoints = boundsCase switch {
+            0 => new List<double?> { 150, 60, null },
+            1 => new List<double?> { null, 90, null },
+            2 => new List<double?> { 110, null, null },
+            _ => new List<double?> { null, 240, null }
+        };
+        if (boundsCase > 0) style.ColumnMaxWidthPoints = boundsCase == 2
+            ? new List<double?> { null, 50, 50 } : new List<double?> { 50, null, null };
         byte[] bytes = PdfDocument.Create(options)
-            .Table(new[] { new[] { "ID", "Description", "Score" } }, style: style)
+            .Table(new[] { new[] { "A", "B", "C" } }, style: style)
             .ToBytes();
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
-        double idX = FindWordStartX(page, "ID");
-        double descriptionX = FindWordStartX(page, "Description");
-        double scoreX = FindWordStartX(page, "Score");
+        double idX = FindWordStartX(page, "A");
+        double descriptionX = FindWordStartX(page, "B");
+        double scoreX = FindWordStartX(page, "C");
         Assert.Equal(firstWidth, descriptionX - idX, 3);
         Assert.Equal(secondWidth, scoreX - descriptionX, 3);
     }
