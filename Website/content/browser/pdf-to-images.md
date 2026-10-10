@@ -1,6 +1,6 @@
 ---
 title: "PDF to images"
-description: "Save every PDF page as a PNG image. Several pages come as one ZIP file."
+description: "Convert each PDF page to a PNG image in your browser. Review the page previews and download a single image or a ZIP containing all generated pages."
 layout: browser-tool
 meta.tool: "pdf-to-images"
 meta.seo_title: "PDF to PNG images in your browser | OfficeIMO"

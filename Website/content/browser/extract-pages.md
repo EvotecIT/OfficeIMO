@@ -1,6 +1,6 @@
 ---
 title: "Extract pages"
-description: "Pick the pages you want and save them as a new PDF."
+description: "Extract selected pages from a PDF in your browser. Choose page numbers or ranges, review the new document and download a copy containing those pages."
 layout: browser-tool
 meta.tool: "extract-pages"
 meta.seo_title: "Extract PDF pages online | OfficeIMO"

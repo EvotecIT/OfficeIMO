@@ -1,6 +1,6 @@
 ---
 title: "Reorder pages"
-description: "Drag pages into a new order and save the result."
+description: "Reorder PDF pages in your browser by entering the page sequence you want. Review the new order and download a copy while keeping the original file."
 layout: browser-tool
 meta.tool: "reorder-pages"
 meta.seo_title: "Reorder PDF pages online | OfficeIMO"

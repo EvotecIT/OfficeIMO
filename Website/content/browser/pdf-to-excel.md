@@ -1,6 +1,6 @@
 ---
 title: "PDF tables to Excel"
-description: "Find the tables in a PDF and put their rows and columns into an Excel workbook."
+description: "Extract tables from a PDF into an Excel workbook in your browser. Review the detected rows and columns, then download the workbook without uploads."
 layout: browser-tool
 meta.tool: "pdf-to-excel"
 meta.seo_title: "PDF tables to Excel in your browser | OfficeIMO"

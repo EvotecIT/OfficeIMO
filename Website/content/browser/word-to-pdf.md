@@ -1,6 +1,6 @@
 ---
 title: "Word to PDF"
-description: "Turn a Word document into a PDF. You'll see each page and anything that didn't convert exactly before you download."
+description: "Convert a Word document to PDF in your browser. Review the page preview and conversion warnings, then download a copy without uploading your file."
 layout: browser-tool
 meta.tool: "word-to-pdf"
 meta.seo_title: "Word to PDF in your browser | OfficeIMO"

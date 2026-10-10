@@ -1,6 +1,6 @@
 ---
 title: "HTML to Markdown"
-description: "Turn a web page or an HTML snippet into clean Markdown. Anything that can't be kept is listed."
+description: "Convert an HTML file or snippet to Markdown in your browser. Review any content that could not be preserved, then copy or download the Markdown."
 layout: browser-tool
 meta.tool: "html-to-markdown"
 meta.seo_title: "HTML to Markdown in your browser | OfficeIMO"

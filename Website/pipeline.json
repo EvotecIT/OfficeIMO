@@ -4026,6 +4026,7 @@
       "siteRoot": "./_site",
       "config": "./site.json",
       "criticalCss": "./themes/officeimo/critical.css",
+      "cssStrategy": "preload",
       "minifyHtml": true,
       "htmlExclude": [
         "downloads/showcase/**"

@@ -1,6 +1,6 @@
 ---
 title: "Inspect PDF"
-description: "See what's inside a PDF: pages, version, password, forms, signatures and scripts. Nothing is changed."
+description: "Inspect PDF pages, passwords, forms, signatures and scripts in your browser. Read the document report without changing or uploading the original file."
 layout: browser-tool
 meta.tool: "inspect-pdf"
 meta.seo_title: "Inspect a PDF online in your browser | OfficeIMO"

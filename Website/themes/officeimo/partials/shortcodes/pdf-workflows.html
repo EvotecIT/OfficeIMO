@@ -12,8 +12,8 @@
         <h3><a href="/pdf/{{ workflow.slug }}/">{{ workflow.title }}</a></h3>
         <p>{{ workflow.summary }}</p>
         <div class="imo-pdf-guide__links">
-          <a href="/pdf/{{ workflow.slug }}/">Read the guide</a>
-          {{~ if tool ~}}<a class="imo-pdf-guide__try" href="/browser/{{ tool.id }}/">Open the tool</a>{{~ end ~}}
+          <a href="/pdf/{{ workflow.slug }}/" aria-label="Read the {{ workflow.title }} guide">Read the guide</a>
+          {{~ if tool ~}}<a class="imo-pdf-guide__try" href="/browser/{{ tool.id }}/" aria-label="Open the {{ tool.title }} browser tool">Open the tool</a>{{~ end ~}}
         </div>
       </article>
       {{~ end ~}}{{~ end ~}}
@@ -30,8 +30,8 @@
     <h3><a href="/convert/{{ item.slug }}/">{{ item.title }}</a></h3>
     <p>{{ item.summary }}</p>
     <div class="imo-pdf-guide__links">
-      <a href="/convert/{{ item.slug }}/">Read the guide</a>
-      {{~ if tool ~}}<a class="imo-pdf-guide__try" href="/browser/{{ tool.id }}/">Open the tool</a>{{~ end ~}}
+      <a href="/convert/{{ item.slug }}/" aria-label="Read the {{ item.title }} guide">Read the guide</a>
+      {{~ if tool ~}}<a class="imo-pdf-guide__try" href="/browser/{{ tool.id }}/" aria-label="Open the {{ tool.title }} browser tool">Open the tool</a>{{~ end ~}}
     </div>
   </article>
 {{~ end ~}}

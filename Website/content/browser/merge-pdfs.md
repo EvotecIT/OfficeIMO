@@ -1,6 +1,6 @@
 ---
 title: "Merge PDFs"
-description: "Combine 2 to 10 PDFs into one, in the order you choose."
+description: "Merge two to ten PDFs in your browser, in the order you choose. Review the combined document and download a new PDF while keeping the original files."
 layout: browser-tool
 meta.tool: "merge-pdfs"
 meta.seo_title: "Merge PDFs online in your browser | OfficeIMO"

@@ -5,7 +5,7 @@
 {{~ start_surface = fmap_surface ~}}{{~ if !start_surface ~}}{{~ start_surface = "all" ~}}{{~ end ~}}
 {{~ family_names = { documents: "Documents", spreadsheets: "Spreadsheets", presentations: "Presentations", fixed: "Fixed layout", images: "Images", books: "Notes and books", email: "Email", bibliography: "Bibliography", markup: "Markup and text", web: "Web and wiki", other: "Other" } ~}}
 <section class="imo-fmap imo-fmap--{{ view }} imo-container" id="format-map" aria-labelledby="fmap-title" data-format-map data-view="{{ view }}" data-surface="{{ start_surface }}">
-  <header class="imo-fmap__head">
+  <div class="imo-fmap__head">
     <p class="imo-section__eyebrow">Format map</p>
     {{~ if view == "list" ~}}
     <h2 id="fmap-title">Where else can your file go?</h2>
@@ -14,7 +14,7 @@
     <h2 id="fmap-title">{{ map.formats.size }} formats, {{ map.routes.size }} conversions. <span>Run them where you work.</span></h2>
     <p>Every dot is a format and every line a conversion. Hover or pick a format to light up its routes, then pick a second one to find the way between them.</p>
     {{~ end ~}}
-  </header>
+  </div>
 
   <div class="imo-fmap__surfaces" role="group" aria-label="Show conversions that run in">
     <button type="button" class="imo-fmap__surface" data-surface="all" aria-pressed="false">All<span class="imo-fmap__count" data-count="all"></span></button>

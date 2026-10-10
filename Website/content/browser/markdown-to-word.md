@@ -1,6 +1,6 @@
 ---
 title: "Markdown to Word"
-description: "Create an editable Word document from Markdown, with real headings, lists and tables."
+description: "Convert Markdown into an editable Word document with headings, lists and tables. Review the result and download the DOCX directly in your browser."
 layout: browser-tool
 meta.tool: "markdown-to-word"
 meta.seo_title: "Markdown to Word in your browser | OfficeIMO"

@@ -29,10 +29,11 @@ function ConvertTo-YamlString([string]$Value) {
 $expected = [ordered]@{}
 foreach ($tool in $catalog.tools) {
     if ($tool.id -notmatch '^[a-z0-9]+(-[a-z0-9]+)*$') { throw "Tool id '$($tool.id)' must be lowercase words separated by hyphens." }
+    $description = if ($tool.seoDescription) { $tool.seoDescription } else { $tool.summary }
     $lines = @(
         '---'
         "title: $(ConvertTo-YamlString $tool.title)"
-        "description: $(ConvertTo-YamlString $tool.summary)"
+        "description: $(ConvertTo-YamlString $description)"
         'layout: browser-tool'
         "meta.tool: $(ConvertTo-YamlString $tool.id)"
         "meta.seo_title: $(ConvertTo-YamlString $tool.seoTitle)"

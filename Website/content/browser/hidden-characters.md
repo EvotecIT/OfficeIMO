@@ -1,6 +1,6 @@
 ---
 title: "Find hidden characters in text"
-description: "Spot invisible and direction-changing characters in pasted text or a text file, and remove the ones you don't want."
+description: "Inspect pasted text or a text file for invisible and direction-changing characters in your browser. Review matches and remove only the selected kinds."
 layout: browser-tool
 meta.tool: "hidden-characters"
 meta.seo_title: "Find invisible Unicode characters in text | OfficeIMO"

@@ -1,6 +1,6 @@
 ---
 title: "HTML to PDF"
-description: "Paste HTML and CSS, or open an .html file, and get an accessible PDF."
+description: "Convert an HTML file or pasted HTML and CSS to PDF in your browser. Review the page preview and download the result without uploading your content."
 layout: browser-tool
 meta.tool: "html-to-pdf"
 meta.seo_title: "HTML to PDF in your browser | OfficeIMO"

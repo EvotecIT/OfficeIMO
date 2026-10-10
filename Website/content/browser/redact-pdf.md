@@ -1,6 +1,6 @@
 ---
 title: "Redact PDF text"
-description: "Find text such as a name or number, check every match, then remove it from a copy for good."
+description: "Find PDF text, review every match and remove it from a new copy in your browser. Verify the result before downloading without uploading your document."
 layout: browser-tool
 meta.tool: "redact-pdf"
 meta.seo_title: "Redact PDF text online | OfficeIMO"

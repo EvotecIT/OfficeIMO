@@ -1,6 +1,6 @@
 ---
 title: "Split PDF"
-description: "Cut a PDF into smaller PDFs with the same number of pages each."
+description: "Split a PDF into separate files in your browser. Review the result and download the extracted pages together in a ZIP without uploading your document."
 layout: browser-tool
 meta.tool: "split-pdf"
 meta.seo_title: "Split a PDF online in your browser | OfficeIMO"

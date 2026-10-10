@@ -1,6 +1,6 @@
 ---
 title: "PowerPoint to PDF"
-description: "Turn slides into a PDF and check any slide that couldn't be reproduced exactly."
+description: "Convert PowerPoint slides to PDF in your browser. Review the page preview and any conversion warnings before downloading a copy of your presentation."
 layout: browser-tool
 meta.tool: "powerpoint-to-pdf"
 meta.seo_title: "PowerPoint to PDF in your browser | OfficeIMO"

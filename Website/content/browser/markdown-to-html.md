@@ -1,6 +1,6 @@
 ---
 title: "Markdown to HTML"
-description: "Type or paste Markdown and see the web page as you go. Copy the HTML or download it."
+description: "Convert Markdown to HTML as you type in your browser. Preview headings, lists and tables, then copy the HTML or download the generated web page."
 layout: browser-tool
 meta.tool: "markdown-to-html"
 meta.seo_title: "Markdown to HTML in your browser | OfficeIMO"

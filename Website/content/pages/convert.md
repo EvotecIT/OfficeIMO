@@ -1,6 +1,6 @@
 ---
 title: "Browser document tools"
-description: "Convert documents, organize and secure PDFs, and check files for hidden origin data. Every tool opens instantly and runs in your browser; your files are never uploaded."
+description: "Convert documents, organize and secure PDFs, and inspect hidden origin data in your browser. Choose a tool, review the result and download without uploads."
 layout: playground
 meta.seo_title: "Browser document tools | OfficeIMO"
 ---

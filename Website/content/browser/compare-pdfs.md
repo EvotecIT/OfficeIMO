@@ -1,6 +1,6 @@
 ---
 title: "Compare PDFs"
-description: "Put two versions of a PDF side by side and see exactly what changed on each page."
+description: "Compare two PDFs side by side in your browser. Review page images, visual differences and structural findings without uploading either document."
 layout: browser-tool
 meta.tool: "compare-pdfs"
 meta.seo_title: "Compare two PDFs online in your browser | OfficeIMO"

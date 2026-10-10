@@ -1,6 +1,6 @@
 ---
 title: "Protect PDF"
-description: "Add a password to a PDF. It uses AES-256 encryption."
+description: "Protect a PDF with a password in your browser using AES-256 encryption. Download the protected copy without uploading your document or password."
 layout: browser-tool
 meta.tool: "protect-pdf"
 meta.seo_title: "Password protect a PDF in your browser | OfficeIMO"

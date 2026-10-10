@@ -1,6 +1,6 @@
 ---
 title: "Rotate pages"
-description: "Turn sideways or upside-down pages the right way round."
+description: "Rotate selected PDF pages in your browser. Choose the pages and rotation, review the result and download a copy without changing the original file."
 layout: browser-tool
 meta.tool: "rotate-pages"
 meta.seo_title: "Rotate PDF pages online | OfficeIMO"

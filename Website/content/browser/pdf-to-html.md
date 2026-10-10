@@ -1,6 +1,6 @@
 ---
 title: "PDF to HTML"
-description: "Turn a PDF into a web page that keeps each page's layout, for reviewing and sharing."
+description: "Convert a PDF to HTML that preserves its page layout for review and sharing. Preview the result and download the web page directly in your browser."
 layout: browser-tool
 meta.tool: "pdf-to-html"
 meta.seo_title: "PDF to HTML in your browser | OfficeIMO"

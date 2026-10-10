@@ -1,6 +1,6 @@
 ---
 title: "PDF to Word"
-description: "Get an editable Word document from a PDF's text, tables, links and images."
+description: "Convert a PDF to an editable Word document in your browser. Review the conversion report and download the DOCX without uploading the original file."
 layout: browser-tool
 meta.tool: "pdf-to-word"
 meta.seo_title: "PDF to Word in your browser | OfficeIMO"

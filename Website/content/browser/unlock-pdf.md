@@ -1,6 +1,6 @@
 ---
 title: "Unlock PDF"
-description: "Remove the password from a PDF you have the password for."
+description: "Unlock a PDF in your browser using its current password. Review the result and download a copy without password protection while keeping the original."
 layout: browser-tool
 meta.tool: "unlock-pdf"
 meta.seo_title: "Remove a PDF password in your browser | OfficeIMO"

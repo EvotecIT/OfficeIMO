@@ -1,6 +1,6 @@
 ---
 title: "Delete pages"
-description: "Pick the pages to remove and save a copy without them."
+description: "Delete selected pages from a PDF in your browser. Review the remaining pages and download a new copy while keeping your original document unchanged."
 layout: browser-tool
 meta.tool: "delete-pages"
 meta.seo_title: "Delete PDF pages online | OfficeIMO"

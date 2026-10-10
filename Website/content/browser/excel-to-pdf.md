@@ -1,6 +1,6 @@
 ---
 title: "Excel to PDF"
-description: "Turn an Excel workbook into a PDF, with each sheet laid out on pages and any changes listed."
+description: "Convert Excel workbooks to PDF in your browser. Review sheet layouts and conversion warnings, then download the PDF without uploading your workbook."
 layout: browser-tool
 meta.tool: "excel-to-pdf"
 meta.seo_title: "Excel to PDF in your browser | OfficeIMO"

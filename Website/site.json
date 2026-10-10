@@ -357,7 +357,7 @@
     "PathBase": "Website"
   },
   "AssetRegistry": {
-    "CssStrategy": "standard",
+    "CssStrategy": "preload",
     "Bundles": [
       {
         "Name": "global",
@@ -534,13 +534,18 @@
         ]
       },
       {
+        "Match": "/convert/",
+        "Bundles": [
+          "format-map"
+        ]
+      },
+      {
         "Match": "/convert/**",
         "Bundles": [
           "global",
           "product",
           "docs",
-          "experience",
-          "format-map"
+          "experience"
         ]
       },
       {

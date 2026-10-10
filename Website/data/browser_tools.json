@@ -12,6 +12,7 @@
       "title": "Word to PDF",
       "summary": "Turn a Word document into a PDF. You'll see each page and anything that didn't convert exactly before you download.",
       "seoTitle": "Word to PDF in your browser | OfficeIMO",
+      "seoDescription": "Convert a Word document to PDF in your browser. Review the page preview and conversion warnings, then download a copy without uploading your file.",
       "input": { "kind": "file", "accept": ".docx,.docm,.dotx,.dotm", "label": "Word document", "sample": "samples/business-summary.docx", "sampleName": "OfficeIMO-Monthly-Operations.docx" },
       "options": [
         { "id": "profile", "type": "choice", "label": "PDF type", "default": "faithful", "choices": [
@@ -34,6 +35,7 @@
       "title": "Excel to PDF",
       "summary": "Turn an Excel workbook into a PDF, with each sheet laid out on pages and any changes listed.",
       "seoTitle": "Excel to PDF in your browser | OfficeIMO",
+      "seoDescription": "Convert Excel workbooks to PDF in your browser. Review sheet layouts and conversion warnings, then download the PDF without uploading your workbook.",
       "input": { "kind": "file", "accept": ".xlsx,.xlsm,.xltx,.xltm,.xlam", "label": "Excel workbook", "sample": "samples/basic.xlsx", "sampleName": "OfficeIMO-Table.xlsx" },
       "options": [
         { "id": "rows", "type": "choice", "label": "How much to convert", "default": "full", "choices": [
@@ -59,6 +61,7 @@
       "title": "PowerPoint to PDF",
       "summary": "Turn slides into a PDF and check any slide that couldn't be reproduced exactly.",
       "seoTitle": "PowerPoint to PDF in your browser | OfficeIMO",
+      "seoDescription": "Convert PowerPoint slides to PDF in your browser. Review the page preview and any conversion warnings before downloading a copy of your presentation.",
       "input": { "kind": "file", "accept": ".pptx,.pptm,.potx,.potm,.ppsx,.ppsm,.ppam", "label": "PowerPoint file", "sample": "samples/conversion-proof.pptx", "sampleName": "OfficeIMO-Conversion-Proof.pptx" },
       "options": [
         { "id": "profile", "type": "choice", "label": "PDF type", "default": "faithful", "choices": [
@@ -80,6 +83,7 @@
       "title": "HTML to PDF",
       "summary": "Paste HTML and CSS, or open an .html file, and get an accessible PDF.",
       "seoTitle": "HTML to PDF in your browser | OfficeIMO",
+      "seoDescription": "Convert an HTML file or pasted HTML and CSS to PDF in your browser. Review the page preview and download the result without uploading your content.",
       "input": { "kind": "text", "accept": ".html,.htm,.txt", "label": "HTML", "language": "html",
         "sampleText": "<article>\n  <h1>Quarterly update</h1>\n  <p>A short report with <strong>headings, a list and a table</strong>.</p>\n  <ul><li>Revenue up 12%</li><li>Two new regions</li></ul>\n  <table><tr><th>Region</th><th>Sales</th></tr><tr><td>North</td><td>1,200</td></tr><tr><td>South</td><td>980</td></tr></table>\n</article>" },
       "options": [
@@ -101,6 +105,7 @@
       "title": "Markdown to HTML",
       "summary": "Type or paste Markdown and see the web page as you go. Copy the HTML or download it.",
       "seoTitle": "Markdown to HTML in your browser | OfficeIMO",
+      "seoDescription": "Convert Markdown to HTML as you type in your browser. Preview headings, lists and tables, then copy the HTML or download the generated web page.",
       "input": { "kind": "text", "accept": ".md,.markdown,.txt", "label": "Markdown", "language": "markdown", "live": true,
         "sampleText": "# Release notes\n\nThis **Markdown** turns into a web page as you type.\n\n| Feature | Status |\n| --- | --- |\n| Tables | Supported |\n| Task lists | Supported |\n\n- [x] Runs in your browser\n- [ ] Uploads anything" },
       "options": [],
@@ -116,6 +121,7 @@
       "title": "HTML to Markdown",
       "summary": "Turn a web page or an HTML snippet into clean Markdown. Anything that can't be kept is listed.",
       "seoTitle": "HTML to Markdown in your browser | OfficeIMO",
+      "seoDescription": "Convert an HTML file or snippet to Markdown in your browser. Review any content that could not be preserved, then copy or download the Markdown.",
       "input": { "kind": "text", "accept": ".html,.htm,.txt", "label": "HTML", "language": "html", "live": true,
         "sampleText": "<article>\n  <h1>Getting started</h1>\n  <p>Install the package, then call <code>Convert</code>.</p>\n  <ol><li>Install</li><li>Convert</li><li>Review warnings</li></ol>\n  <p>See the <a href=\"https://officeimo.com/docs/\">documentation</a>.</p>\n</article>" },
       "options": [],
@@ -131,6 +137,7 @@
       "title": "Markdown to Word",
       "summary": "Create an editable Word document from Markdown, with real headings, lists and tables.",
       "seoTitle": "Markdown to Word in your browser | OfficeIMO",
+      "seoDescription": "Convert Markdown into an editable Word document with headings, lists and tables. Review the result and download the DOCX directly in your browser.",
       "input": { "kind": "text", "accept": ".md,.markdown,.txt", "label": "Markdown", "language": "markdown",
         "sampleText": "# Project brief\n\n## Goals\n\n- Ship the browser tools\n- Keep files on the device\n\n## Timeline\n\n| Phase | Weeks |\n| --- | --- |\n| Build | 3 |\n| Review | 1 |" },
       "options": [],
@@ -146,6 +153,7 @@
       "title": "PDF to Word",
       "summary": "Get an editable Word document from a PDF's text, tables, links and images.",
       "seoTitle": "PDF to Word in your browser | OfficeIMO",
+      "seoDescription": "Convert a PDF to an editable Word document in your browser. Review the conversion report and download the DOCX without uploading the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
       "engine": { "kind": "convert", "target": "pdf-docx", "action": "convert", "assemblies": ["OfficeIMO.Word.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Word.Pdf.wasm"] },
@@ -160,6 +168,7 @@
       "title": "PDF tables to Excel",
       "summary": "Find the tables in a PDF and put their rows and columns into an Excel workbook.",
       "seoTitle": "PDF tables to Excel in your browser | OfficeIMO",
+      "seoDescription": "Extract tables from a PDF into an Excel workbook in your browser. Review the detected rows and columns, then download the workbook without uploads.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
       "engine": { "kind": "convert", "target": "pdf-xlsx", "action": "convert", "assemblies": ["OfficeIMO.Excel.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Excel.Pdf.wasm"] },
@@ -174,6 +183,7 @@
       "title": "PDF to PowerPoint",
       "summary": "Turn each PDF page into a slide. Choose editable content or an exact picture of each page.",
       "seoTitle": "PDF to PowerPoint in your browser | OfficeIMO",
+      "seoDescription": "Convert PDF pages into PowerPoint slides in your browser. Choose editable content or page images, review the report and download the presentation.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [
         { "id": "slides", "type": "choice", "label": "Slide content", "default": "editable", "choices": [
@@ -195,6 +205,7 @@
       "title": "PDF to HTML",
       "summary": "Turn a PDF into a web page that keeps each page's layout, for reviewing and sharing.",
       "seoTitle": "PDF to HTML in your browser | OfficeIMO",
+      "seoDescription": "Convert a PDF to HTML that preserves its page layout for review and sharing. Preview the result and download the web page directly in your browser.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
       "engine": { "kind": "convert", "target": "pdf-html", "action": "convert", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Html.wasm", "AngleSharp.wasm", "AngleSharp.Css.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Html.Core.wasm", "OfficeIMO.Html.AngleSharp.wasm"] },
@@ -209,6 +220,7 @@
       "title": "PDF to images",
       "summary": "Save every PDF page as a PNG image. Several pages come as one ZIP file.",
       "seoTitle": "PDF to PNG images in your browser | OfficeIMO",
+      "seoDescription": "Convert each PDF page to a PNG image in your browser. Review the page previews and download a single image or a ZIP containing all generated pages.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
       "engine": { "kind": "convert", "target": "pdf-png", "action": "convert", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"] },
@@ -223,6 +235,7 @@
       "title": "Inspect PDF",
       "summary": "See what's inside a PDF: pages, version, password, forms, signatures and scripts. Nothing is changed.",
       "seoTitle": "Inspect a PDF online in your browser | OfficeIMO",
+      "seoDescription": "Inspect PDF pages, passwords, forms, signatures and scripts in your browser. Read the document report without changing or uploading the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf", "auto": true },
       "options": [],
       "engine": { "kind": "pdf", "target": "inspect", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
@@ -237,6 +250,7 @@
       "title": "Compare PDFs",
       "summary": "Put two versions of a PDF side by side and see exactly what changed on each page.",
       "seoTitle": "Compare two PDFs online in your browser | OfficeIMO",
+      "seoDescription": "Compare two PDFs side by side in your browser. Review page images, visual differences and structural findings without uploading either document.",
       "input": { "kind": "pair", "accept": ".pdf", "label": "PDF", "slots": ["Original", "Changed version"], "sample": "samples/page-tools-sample.pdf", "sampleName": "Report-original.pdf", "sampleSecond": "samples/page-tools-sample-changed.pdf", "sampleSecondName": "Report-changed.pdf", "auto": true },
       "options": [],
       "engine": { "kind": "pdf", "target": "compare", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
@@ -251,6 +265,7 @@
       "title": "Merge PDFs",
       "summary": "Combine 2 to 10 PDFs into one, in the order you choose.",
       "seoTitle": "Merge PDFs online in your browser | OfficeIMO",
+      "seoDescription": "Merge two to ten PDFs in your browser, in the order you choose. Review the combined document and download a new PDF while keeping the original files.",
       "input": { "kind": "files", "accept": ".pdf", "label": "PDFs", "min": 2, "max": 10, "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf", "sampleSecond": "samples/showcase-dashboard.pdf", "sampleSecondName": "OfficeIMO-Showcase.pdf" },
       "options": [],
       "engine": { "kind": "pdf", "target": "merge", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
@@ -265,6 +280,7 @@
       "title": "Split PDF",
       "summary": "Cut a PDF into smaller PDFs with the same number of pages each.",
       "seoTitle": "Split a PDF online in your browser | OfficeIMO",
+      "seoDescription": "Split a PDF into separate files in your browser. Review the result and download the extracted pages together in a ZIP without uploading your document.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [
         { "id": "perFile", "type": "number", "label": "Pages in each new PDF", "default": "1", "min": 1, "max": 500 }
@@ -281,6 +297,7 @@
       "title": "Extract pages",
       "summary": "Pick the pages you want and save them as a new PDF.",
       "seoTitle": "Extract PDF pages online | OfficeIMO",
+      "seoDescription": "Extract selected pages from a PDF in your browser. Choose page numbers or ranges, review the new document and download a copy containing those pages.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [ { "id": "pages", "type": "pages", "mode": "keep", "label": "Pages to keep" } ],
       "engine": { "kind": "pdf", "target": "extract", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
@@ -295,6 +312,7 @@
       "title": "Delete pages",
       "summary": "Pick the pages to remove and save a copy without them.",
       "seoTitle": "Delete PDF pages online | OfficeIMO",
+      "seoDescription": "Delete selected pages from a PDF in your browser. Review the remaining pages and download a new copy while keeping your original document unchanged.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [ { "id": "pages", "type": "pages", "mode": "remove", "label": "Pages to delete" } ],
       "engine": { "kind": "pdf", "target": "delete", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"], "confirm": true },
@@ -309,6 +327,7 @@
       "title": "Reorder pages",
       "summary": "Drag pages into a new order and save the result.",
       "seoTitle": "Reorder PDF pages online | OfficeIMO",
+      "seoDescription": "Reorder PDF pages in your browser by entering the page sequence you want. Review the new order and download a copy while keeping the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [ { "id": "pages", "type": "pages", "mode": "order", "label": "Page order" } ],
       "engine": { "kind": "pdf", "target": "reorder", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
@@ -323,6 +342,7 @@
       "title": "Rotate pages",
       "summary": "Turn sideways or upside-down pages the right way round.",
       "seoTitle": "Rotate PDF pages online | OfficeIMO",
+      "seoDescription": "Rotate selected PDF pages in your browser. Choose the pages and rotation, review the result and download a copy without changing the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [
         { "id": "pages", "type": "pages", "mode": "rotate", "label": "Pages to rotate" },
@@ -344,6 +364,7 @@
       "title": "Compress PDF",
       "summary": "Make a PDF smaller without lowering its quality. You'll see the size before and after.",
       "seoTitle": "Compress a PDF without losing quality | OfficeIMO",
+      "seoDescription": "Compress a PDF in your browser without lowering its quality. Compare the original and result sizes, review the report and download the smaller copy.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [
         { "id": "profile", "type": "choice", "label": "Goal", "default": "Balanced", "choices": [
@@ -365,6 +386,7 @@
       "title": "Protect PDF",
       "summary": "Add a password to a PDF. It uses AES-256 encryption.",
       "seoTitle": "Password protect a PDF in your browser | OfficeIMO",
+      "seoDescription": "Protect a PDF with a password in your browser using AES-256 encryption. Download the protected copy without uploading your document or password.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [
         { "id": "userPassword", "type": "password", "label": "Password to open the PDF", "confirm": true, "required": true },
@@ -382,6 +404,7 @@
       "title": "Unlock PDF",
       "summary": "Remove the password from a PDF you have the password for.",
       "seoTitle": "Remove a PDF password in your browser | OfficeIMO",
+      "seoDescription": "Unlock a PDF in your browser using its current password. Review the result and download a copy without password protection while keeping the original.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/protected-sample.pdf", "sampleName": "OfficeIMO-Protected.pdf", "sampleNote": "The sample's password is officeimo-sample. It's filled in for you.", "sampleOptions": { "ownerPassword": "officeimo-sample" } },
       "options": [
         { "id": "ownerPassword", "type": "password", "label": "PDF password", "hint": "If the PDF has separate open and permissions passwords, use the permissions password.", "required": true }
@@ -398,6 +421,7 @@
       "title": "Redact PDF text",
       "summary": "Find text such as a name or number, check every match, then remove it from a copy for good.",
       "seoTitle": "Redact PDF text online | OfficeIMO",
+      "seoDescription": "Find PDF text, review every match and remove it from a new copy in your browser. Verify the result before downloading without uploading your document.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf", "sampleOptions": { "text": "Critical blockers" } },
       "options": [
         { "id": "text", "type": "text", "label": "Text to remove", "placeholder": "For example a name or account number", "required": true }
@@ -413,7 +437,8 @@
       "id": "file-origin", "group": "inspect", "category": "File origin",
       "title": "Check and remove file origin data",
       "summary": "Find Content Credentials and AI source labels hidden in an image, PDF or Office file, and save a copy without them.",
-      "seoTitle": "Check file provenance and Content Credentials | OfficeIMO",
+      "seoTitle": "Inspect file provenance in your browser | OfficeIMO",
+      "seoDescription": "Inspect Content Credentials and AI source labels in images, PDFs and Office files. Review the records and save a cleaned copy directly in your browser.",
       "input": { "kind": "file", "accept": ".docx,.jpeg,.jpg,.pdf,.png,.pptx,.webp,.xlsx", "label": "image, PDF or Office file", "sample": "samples/provenance-demo.png", "sampleName": "provenance-demo.png", "sampleNote": "The sample's AI source label is test data added for this demo.", "auto": true },
       "options": [],
       "engine": { "kind": "origin", "action": "inspect", "commit": "remove", "assemblies": ["OfficeIMO.Word.wasm", "OfficeIMO.Excel.wasm", "OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm"] },
@@ -428,6 +453,7 @@
       "title": "Find hidden characters in text",
       "summary": "Spot invisible and direction-changing characters in pasted text or a text file, and remove the ones you don't want.",
       "seoTitle": "Find invisible Unicode characters in text | OfficeIMO",
+      "seoDescription": "Inspect pasted text or a text file for invisible and direction-changing characters in your browser. Review matches and remove only the selected kinds.",
         "input": { "kind": "text", "accept": ".txt,.md,.html,.htm,.svg,.json,.xml,.csv,.yaml,.yml,.log", "label": "text", "language": "text", "auto": true, "maxCharacters": 1048576,
         "sampleText": "Invoice\u202E123\u202C\nLanguage joiner: a\u200Db\nEmoji: \u2764\uFE0F\nNon-breaking space: hello\u00A0world" },
       "options": [],

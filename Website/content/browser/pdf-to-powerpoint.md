@@ -1,6 +1,6 @@
 ---
 title: "PDF to PowerPoint"
-description: "Turn each PDF page into a slide. Choose editable content or an exact picture of each page."
+description: "Convert PDF pages into PowerPoint slides in your browser. Choose editable content or page images, review the report and download the presentation."
 layout: browser-tool
 meta.tool: "pdf-to-powerpoint"
 meta.seo_title: "PDF to PowerPoint in your browser | OfficeIMO"

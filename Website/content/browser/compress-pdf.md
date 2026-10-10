@@ -1,6 +1,6 @@
 ---
 title: "Compress PDF"
-description: "Make a PDF smaller without lowering its quality. You'll see the size before and after."
+description: "Compress a PDF in your browser without lowering its quality. Compare the original and result sizes, review the report and download the smaller copy."
 layout: browser-tool
 meta.tool: "compress-pdf"
 meta.seo_title: "Compress a PDF without losing quality | OfficeIMO"
