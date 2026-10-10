@@ -94,6 +94,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\NonSeekableReadStream.cs" Link="TestStreams\NonSeekableReadStream.cs" />
     <Compile Include="..\OfficeIMO.Shared.Tests\EpubReadingIntegrityFixtures.cs" Link="Shared\EpubReadingIntegrityFixtures.cs" />
     <Compile Include="..\TestSupport\OpenDocument\OdfTestPackageRewriter.cs" Link="TestSupport\OdfTestPackageRewriter.cs" />
+    <Compile Include="../TestSupport/Publisher/PublisherTableFixture.cs" Link="TestSupport/PublisherTableFixture.cs" />
   </ItemGroup>
 
   <ItemGroup>

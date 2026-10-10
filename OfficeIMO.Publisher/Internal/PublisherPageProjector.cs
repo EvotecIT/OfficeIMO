@@ -11,6 +11,7 @@ internal sealed partial class PublisherPageProjector {
     private readonly HashSet<uint> _projected = new();
     private readonly Dictionary<uint, uint?> _owners = new();
     private readonly HashSet<uint> _usedStories = new();
+    private readonly Dictionary<uint, PublisherTable> _tables = new();
     private readonly Dictionary<uint, PublisherSourcePage> _pages;
     internal PublisherPageProjector(PublisherContents source, PublisherQuillText text, PublisherEscherData escher, PublisherParseContext context) {
         _source = source; _text = text; _escher = escher; _context = context;
@@ -39,9 +40,10 @@ internal sealed partial class PublisherPageProjector {
             _context.Token.ThrowIfCancellationRequested();
             var drawing = new OfficeDrawing(_source.Width, _source.Height);
             if (pageShapes.TryGetValue(page.Id, out List<PublisherEscherShape>? shapes))
-                foreach (PublisherEscherShape shape in shapes) ProjectShape(shape, drawing);
+                foreach (PublisherEscherShape shape in shapes) ProjectShape(shape, drawing, page.Id);
             scenes.Add(page.Id, drawing);
         }
+        var pageTables = _tables.Values.GroupBy(table => table.PageId).ToDictionary(group => group.Key, group => group.ToArray());
         var masters = new List<PublisherPage>();
         var pages = new List<PublisherPage>();
         foreach (PublisherSourcePage page in _source.Pages) {
@@ -66,7 +68,8 @@ internal sealed partial class PublisherPageProjector {
             var clipped = new OfficeDrawing(drawing.Width, drawing.Height);
             clipped.AddClippedDrawing(drawing, 0, 0, OfficeClipPath.Rectangle(drawing.Width, drawing.Height));
             var projectedPage = new PublisherPage(page.Id, page.Name, page.Master, clipped,
-                pageFrames.TryGetValue(page.Id, out List<PublisherTextFrame>? frames) ? frames : Array.Empty<PublisherTextFrame>());
+                pageFrames.TryGetValue(page.Id, out List<PublisherTextFrame>? frames) ? frames : Array.Empty<PublisherTextFrame>(),
+                pageTables.TryGetValue(page.Id, out PublisherTable[]? tables) ? tables : Array.Empty<PublisherTable>());
             if (page.IsMaster) masters.Add(projectedPage); else pages.Add(projectedPage);
         }
         if (pages.Count == 0) throw new InvalidDataException("Publisher publication has no printable document pages.");
@@ -93,7 +96,7 @@ internal sealed partial class PublisherPageProjector {
         _owners[id] = owner;
         return owner;
     }
-    private void ProjectShape(PublisherEscherShape shape, OfficeDrawing page) {
+    private void ProjectShape(PublisherEscherShape shape, OfficeDrawing page, uint pageId) {
         _context.Token.ThrowIfCancellationRequested();
         if (!_source.Shapes.TryGetValue(shape.Id, out PublisherSourceShape? native)) {
             _context.Add("PUB_DRAWING_REFERENCE_UNRESOLVED", "An OfficeArt object has no publication descriptor.", OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(shape.Id));
@@ -119,12 +122,10 @@ internal sealed partial class PublisherPageProjector {
         var local = new OfficeDrawing(width, height);
         ProjectGraphic(shape, local, geometryWidth, geometryHeight);
         uint? storyId = native.Value(0x27);
-        if (storyId.HasValue) {
+        if (native.Chunk.Kind == 0x10) ProjectTable(native, storyId, shape, bounds, pageId, local);
+        else if (storyId.HasValue) {
             if (_text.Stories.TryGetValue(storyId.Value, out PublisherTextStory? story)) {
-                if (native.Chunk.Kind == 0x10) {
-                    _usedStories.Add(storyId.Value);
-                    ProjectTable(native, storyId.Value, shape, local);
-                } else if (_textFrames.TryGetValue(shape.Id, out PreparedTextFrame? frame)) {
+                if (_textFrames.TryGetValue(shape.Id, out PreparedTextFrame? frame)) {
                     uint vertical = native.Value(0x35) ?? 0;
                     foreach (PreparedTextRegion region in frame.Regions) local.AddRichTextParagraphs(region.Paragraphs,
                         region.X, region.Y, region.Width, region.Height,
@@ -153,7 +154,7 @@ internal sealed partial class PublisherPageProjector {
                 throw new InvalidDataException("Publisher group projection produced invalid viewport geometry.");
             page.AddEffectDrawing(retained, OfficeTransform.Translate(left, top).Then(groupTransform));
         }
-        if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id)) _projected.Add(shape.Id);
+        if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id) || _tables.ContainsKey(shape.Id)) _projected.Add(shape.Id);
     }
     private static void TagSourceElements(OfficeDrawing drawing, IReadOnlyList<string> ids) {
         foreach (OfficeDrawingElement element in drawing.Elements) {

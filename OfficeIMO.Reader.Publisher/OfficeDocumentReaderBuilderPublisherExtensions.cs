@@ -5,7 +5,7 @@ public static class OfficeDocumentReaderBuilderPublisherExtensions {
     /// <summary>Stable identifier for the native Publisher handler.</summary>
     public const string HandlerId = "officeimo.reader.publisher";
 
-    /// <summary>Registers bounded PUB story, page-inventory and embedded-image recovery.</summary>
+    /// <summary>Registers bounded PUB story, table-grid, page-inventory and embedded-image recovery.</summary>
     public static OfficeDocumentReaderBuilder AddPublisherHandler(this OfficeDocumentReaderBuilder builder,
         ReaderPublisherOptions? options = null, bool replaceExisting = false) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
@@ -14,13 +14,13 @@ public static class OfficeDocumentReaderBuilderPublisherExtensions {
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId, DisplayName = "Microsoft Publisher Reader Adapter",
-            Description = "Native complete-story recovery, physical page inventory and embedded images with source losses.",
+            Description = "Native complete-story recovery, mapped table grids, physical page inventory and embedded images with source losses.",
             Kind = ReaderInputKind.Publisher, Extensions = new[] { ".pub" },
             FormatQualifications = new[] { new ReaderFormatQualification(".pub", "Publisher.Native", ReaderFormatSupport.ReadConvert,
                 "Selected Publisher 2002-and-later Contents/Quill generation",
-                preservation: new[] { "Complete source stories", "Native bullet markers", "Physical page inventory", "Embedded image descriptors", "Source recovery diagnostics" },
-                limitations: new[] { "Earlier native generations are rejected", "Page placement, tables and typography are omitted from semantic Reader output", "Native Publisher pixel fidelity is unqualified" },
-                evidence: new[] { "OfficeIMO.Publisher/SUPPORT.md", "OfficeIMO.Reader.Tests/Reader.Publisher.cs" }) },
+                preservation: new[] { "Complete source stories", "Native bullet markers", "Mapped native table grids and cell text", "Physical page inventory", "Embedded image descriptors", "Source recovery diagnostics" },
+                limitations: new[] { "Earlier native generations are rejected", "Page artwork, frame flow and typography are omitted from semantic Reader output", "Merged table spans are flattened and MaxTableRows can truncate structured rows with explicit losses", "Unresolved cell text mappings retain source stories without a structured table", "Native Publisher pixel fidelity is unqualified" },
+                evidence: new[] { "OfficeIMO.Publisher/SUPPORT.md", "OfficeIMO.Reader.Tests/Reader.Publisher.cs", "OfficeIMO.Reader.Tests/Reader.Publisher.Tables.cs" }) },
             DefaultMaxInputBytes = maximumBytes, MaxInputBytesCeiling = maximumBytes,
             SourceHashBehavior = ReaderSourceHashBehavior.HandlerManaged,
             ReadPath = (path, settings, token) => PublisherReaderAdapter.Read(path, settings, registered, token).Chunks,

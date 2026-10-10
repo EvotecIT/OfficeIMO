@@ -1,0 +1,214 @@
+using OfficeIMO.Pdf;
+using OfficeIMO.Publisher;
+using OfficeIMO.Reader.Publisher;
+using OfficeIMO.TestSupport;
+using System.Text.RegularExpressions;
+using Xunit;
+
+namespace OfficeIMO.Reader.Tests;
+
+public sealed class ReaderPublisherTableTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeCellsHaveGenericColumnsAndOneCanonicalTableAcrossRichAndChunkViews(bool transport) {
+        OfficeDocumentReadResult result = Read(Fixture());
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        ReaderTable table = Assert.Single(result.EnumerateTables());
+        Assert.Equal(new[] { "Column 1", "Column 2" }, table.Columns);
+        Assert.Equal(new[] { "Table on page 2", "Top right", "P2 table left", "P2 table right", "Bottom Left", "Bottom Right" }, table.Rows.SelectMany(row => row));
+        Assert.Equal(3, table.TotalRowCount); Assert.False(table.Truncated);
+        Assert.Equal(2, table.Location!.Page); Assert.Equal(0, table.Location.TableIndex);
+        Assert.Single(result.Tables); Assert.Single(result.Pages[1].Tables);
+        Assert.Single(result.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()));
+        OfficeDocumentBlock block = Assert.Single(result.Blocks, item => item.Kind == "table");
+        Assert.Equal(table.Location.BlockAnchor, block.Location.BlockAnchor);
+        Assert.Equal(2, block.Location.Page);
+        Assert.Equal(block.Text, string.Concat(result.Chunks.Where(chunk => chunk.Location.LogicalOrder == block.Location.LogicalOrder).Select(chunk => chunk.Text)));
+        string csv = table.ToCsv();
+        Assert.StartsWith("Column 1,Column 2", csv);
+        Assert.Contains("Table on page 2,Top right", csv);
+    }
+
+    [Theory]
+    [InlineData(false, PdfProjectionPagePolicy.ContinuousFlow)]
+    [InlineData(true, PdfProjectionPagePolicy.ContinuousFlow)]
+    [InlineData(false, PdfProjectionPagePolicy.PreserveSourcePages)]
+    [InlineData(true, PdfProjectionPagePolicy.PreserveSourcePages)]
+    public void SemanticPdfDoesNotRepeatNativeTableTextAlongsideItsStoryBlock(bool transport, PdfProjectionPagePolicy policy) {
+        OfficeDocumentReadResult result = Read(Fixture());
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        string text = PdfReadDocument.Open(result.ToPdfDocumentResult(new PdfProjectionOptions {
+            PagePolicy = policy, IncludeMetadata = false
+        }).ToBytes()).ExtractText();
+        foreach (string cell in new[] { "Table on page 2", "Top right", "P2 table left", "P2 table right", "Bottom Left", "Bottom Right" })
+            Assert.Single(Regex.Matches(text, Regex.Escape(cell)));
+    }
+
+    [Theory]
+    [InlineData(false, 3)]
+    [InlineData(true, 3)]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    public void PageMarkdownRendersStructuredRowsOnceAndRetainsTheReportedRowLimit(bool transport, int maximumRows) {
+        OfficeDocumentReadResult result = Read(Fixture(), new ReaderOptions { MaxTableRows = maximumRows });
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        foreach (string markdown in new[] { result.GetPageMarkdown()[1].Markdown, result.ToPageMarkedMarkdown() }) {
+            Assert.Single(Regex.Matches(markdown, "Table on page 2"));
+            Assert.Single(Regex.Matches(markdown, "Top right"));
+            if (maximumRows == 3) {
+                Assert.Single(Regex.Matches(markdown, "Bottom Left"));
+                Assert.Single(Regex.Matches(markdown, "Bottom Right"));
+            } else {
+                Assert.DoesNotContain("Bottom Left", markdown);
+                Assert.DoesNotContain("Bottom Right", markdown);
+            }
+        }
+        Assert.Contains("Bottom Right", result.Markdown);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(-1, 1)]
+    [InlineData(1, 1)]
+    [InlineData(3, 3)]
+    public void RowLimitAffectsStructuredRowsWithReportedLossAndRetainsCompleteStoryText(int maximum, int rows) {
+        OfficeDocumentReadResult result = Read(Fixture(), new ReaderOptions { MaxTableRows = maximum });
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Equal(rows, table.Rows.Count); Assert.Equal(3, table.TotalRowCount);
+        Assert.Equal(rows < 3, table.Truncated);
+        Assert.Contains("Bottom Right", result.Markdown);
+        Assert.Contains(result.Blocks, block => block.Kind == "table" && block.Text!.Contains("Bottom Right"));
+        if (!table.Truncated) return;
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "PUB_READER_TABLE_ROWS_TRUNCATED"
+            && diagnostic.Attributes["lossKind"] == OfficeConversionLossKind.Omission.ToString());
+        PdfDocumentConversionResult pdf = result.ToPdfDocumentResult(new PdfProjectionOptions { PagePolicy = PdfProjectionPagePolicy.ContinuousFlow });
+        Assert.DoesNotContain("Bottom Right", PdfReadDocument.Open(pdf.ToBytes()).ExtractText());
+        Assert.Contains(pdf.Warnings, warning => warning.Code == "PUB_READER_TABLE_ROWS_TRUNCATED" && warning.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
+    }
+
+    [Fact]
+    public void MergedCellsHaveOneAnchorValueAndAnExplicitFlatteningReport() {
+        OfficeDocumentReadResult result = Read(PublisherTableFixture.MergeFirstRow(Fixture()));
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Equal("Table on page 2\nTop right", table.Rows[0][0]); Assert.Empty(table.Rows[0][1]);
+        Assert.Single(table.Rows.SelectMany(row => row), value => value.Contains("Top right"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "PUB_READER_TABLE_SPANS_FLATTENED"
+            && diagnostic.Attributes["lossKind"] == OfficeConversionLossKind.Approximation.ToString());
+        OfficeDocumentReadResult transported = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        Assert.Equal(table.Rows[0][0], Assert.Single(transported.EnumerateTables()).Rows[0][0]);
+    }
+
+    [Fact]
+    public void UnknownCellTextIsNotProjectedAsAnEmptyDataset() {
+        OfficeDocumentReadResult result = Read(PublisherTableFixture.WithoutTextMapping(Fixture()));
+        Assert.Empty(result.Tables); Assert.All(result.Pages, page => Assert.Empty(page.Tables));
+        Assert.Contains("Table on page 2", result.Markdown); Assert.Contains("Bottom Right", result.Markdown);
+        Assert.DoesNotContain(result.Blocks, block => block.Kind == "table");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_TEXT_MAPPING_UNRESOLVED");
+    }
+
+    [Fact]
+    public void MasterTablesAreExtractedOnceWithoutInventingAPhysicalPageCitation() {
+        byte[] original = Fixture(); PublisherDocument baseline = PublisherDocument.Load(original);
+        PublisherPage master = Assert.Single(baseline.MasterPages);
+        byte[] input = PublisherTableFixture.MoveToMaster(original, baseline.Pages[1].Id, master.Id);
+        OfficeDocumentReadResult result = Read(input);
+        ReaderTable table = Assert.Single(result.EnumerateTables());
+        Assert.Null(table.Location!.Page); Assert.Equal("publisher-master-table", table.Location.SourceBlockKind);
+        Assert.All(result.Pages, page => Assert.Empty(page.Tables));
+        string text = PdfReadDocument.Open(result.ToPdfDocumentResult(new PdfProjectionOptions {
+            PagePolicy = PdfProjectionPagePolicy.ContinuousFlow, IncludeMetadata = false
+        }).ToBytes()).ExtractText();
+        Assert.Single(Regex.Matches(text, "Table on page 2"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TablesOnDifferentMastersHaveDistinctExportNames(bool transport) {
+        byte[] original = Fixture(); PublisherDocument baseline = PublisherDocument.Load(original);
+        PublisherPage firstPage = baseline.Pages[0], master = Assert.Single(baseline.MasterPages);
+        byte[] input = PublisherTableFixture.CopyToObject(original, firstPage.TextFrames[0].Id);
+        input = PublisherTableFixture.NamePage(input, firstPage.Id, "Second master");
+        input = PublisherTableFixture.MoveToMaster(input, baseline.Pages[1].Id, master.Id);
+        PublisherDocument native = PublisherDocument.Load(input);
+        Assert.Equal(2, native.MasterPages.Count);
+        Assert.All(native.MasterPages, page => Assert.Single(page.Tables));
+        OfficeDocumentReadResult result = Read(input);
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        ReaderTable[] tables = result.EnumerateTables().ToArray();
+        Assert.Equal(2, tables.Length); Assert.All(tables, table => Assert.Null(table.Location!.Page));
+        var exports = DocumentReaderEngine.ExportTables(tables);
+        Assert.Equal(2, exports.Select(bundle => bundle.Id).Distinct().Count());
+        Assert.Equal(2, exports.Select(bundle => bundle.FileNamePrefix).Distinct().Count());
+        Assert.All(exports, bundle => Assert.Contains("Table on page 2", bundle.Csv));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void RepeatedTableStoryHasDistinctOccurrencesWithoutExtraFallbackText(bool transport, bool differentPages) {
+        byte[] original = Fixture(); PublisherDocument baseline = PublisherDocument.Load(original);
+        PublisherPage target = baseline.Pages[differentPages ? 0 : 1];
+        byte[] input = PublisherTableFixture.CopyToObject(original, target.TextFrames[0].Id);
+        PublisherDocument native = PublisherDocument.Load(input);
+        PublisherTable[] nativeTables = native.Pages.SelectMany(page => page.Tables).ToArray();
+        Assert.Equal(2, nativeTables.Length);
+        Assert.Single(nativeTables.Select(table => table.StoryId).Distinct());
+        OfficeDocumentReadResult result = Read(input);
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        string markdown = result.ToPageMarkedMarkdown();
+        Assert.Equal(2, Regex.Matches(markdown, "Table on page 2").Count);
+        Assert.Equal(2, Regex.Matches(markdown, "Top right").Count);
+        ReaderTable[] tables = result.EnumerateTables().ToArray();
+        Assert.Equal(2, tables.Length);
+        Assert.Equal(2, tables.Select(table => table.Location!.BlockAnchor).Distinct().Count());
+        OfficeDocumentBlock block = Assert.Single(result.Blocks, item => item.Kind == "table");
+        Assert.Single(tables, table => table.Location!.BlockAnchor == block.Location.BlockAnchor);
+        Assert.Single(Regex.Matches(result.Markdown, "Table on page 2"));
+        foreach (PdfProjectionPagePolicy policy in new[] { PdfProjectionPagePolicy.ContinuousFlow, PdfProjectionPagePolicy.PreserveSourcePages }) {
+            string text = PdfReadDocument.Open(result.ToPdfDocumentResult(new PdfProjectionOptions {
+                PagePolicy = policy, IncludeMetadata = false
+            }).ToBytes()).ExtractText();
+            Assert.Equal(2, Regex.Matches(text, "Table on page 2").Count);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MixedMasterAndPageTablesKeepTheirNativeCitationsAndDistinctExports(bool transport) {
+        byte[] original = Fixture(); PublisherDocument baseline = PublisherDocument.Load(original);
+        byte[] input = PublisherTableFixture.CopyToObject(original, baseline.Pages[0].TextFrames[0].Id);
+        input = PublisherTableFixture.MoveToMaster(input, baseline.Pages[1].Id, Assert.Single(baseline.MasterPages).Id);
+        PublisherDocument native = PublisherDocument.Load(input);
+        Assert.Single(native.Pages[0].Tables); Assert.Single(Assert.Single(native.MasterPages).Tables);
+        OfficeDocumentReadResult result = Read(input, new ReaderOptions { MaxTableRows = 1 });
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        foreach (ReaderTable[] tables in new[] { result.EnumerateTables().ToArray(), DocumentReaderEngine.ExtractTables(result.Chunks).ToArray() }) {
+            Assert.Equal(2, tables.Length);
+            ReaderTable master = Assert.Single(tables, table => table.Location!.SourceBlockKind == "publisher-master-table");
+            Assert.Null(master.Location!.Page);
+            Assert.All(tables, table => {
+                Assert.Single(table.Rows); Assert.Equal(3, table.TotalRowCount); Assert.True(table.Truncated);
+            });
+            Assert.Equal(1, Assert.Single(tables, table => table != master).Location!.Page);
+            var exports = DocumentReaderEngine.ExportTables(tables);
+            Assert.Equal(2, exports.Select(bundle => bundle.Id).Distinct().Count());
+            Assert.Equal(2, exports.Select(bundle => bundle.FileNamePrefix).Distinct().Count());
+        }
+        var publicExports = new OfficeDocumentReaderBuilder().AddPublisherHandler().Build().ReadTableExports(input, "native.pub");
+        Assert.Equal(2, publicExports.Select(bundle => bundle.FileNamePrefix).Distinct().Count());
+        Assert.All(result.Chunks.Where(chunk => chunk.Tables?.Count > 0), chunk => Assert.Null(chunk.Location.Page));
+        Assert.Single(Regex.Matches(result.ToPageMarkedMarkdown(), "Table on page 2"));
+        Assert.Single(Regex.Matches(result.Markdown, "Table on page 2"));
+    }
+
+    private static OfficeDocumentReadResult Read(byte[] bytes, ReaderOptions? options = null) =>
+        new OfficeDocumentReaderBuilder().AddPublisherHandler().Build().ReadDocument(bytes, "native.pub", options);
+    private static byte[] Fixture() => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "PublisherFixtures", "Sample.pub"));
+}

@@ -1,7 +1,7 @@
 # Publisher support contract
 
 OfficeIMO.Publisher is a native read-and-convert library. Its public model owns
-publication pages, master definitions, styled source stories, embedded assets
+publication pages, master definitions, styled source stories, native table grids, embedded assets
 and a recovery report. Shared `OfficeDrawing` owns the reconstructed visual scene;
 the optional PDF package consumes that scene without another native decoder.
 
@@ -25,7 +25,7 @@ they are not produced by an OfficeIMO writer.
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
-| Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
+| Tables | `PublisherPage.Tables` exposes native tracks, spans, styled paragraphs, text and placement; master tables remain on their owner | Unresolved text mappings retain the grid with `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Guide references, advanced commands and separate paint groups retain an explicit fallback; shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
@@ -42,11 +42,22 @@ file batches and document previews. Source recovery diagnostics survive output
 publication and checkpoint reuse. Strict acceptance and resource-limit failures
 preserve existing destinations.
 
-`OfficeIMO.Reader.Publisher` projects complete stories once, native bullet
-markers, physical page inventory and optional original image bytes. It carries
-native losses into Reader diagnostics. Its semantic output omits table structure,
-typography and page placement explicitly; paragraph locations do not claim
-physical pages. The same adapter is included in `OfficeIMO.Reader.All`.
+`OfficeIMO.Reader.Publisher` projects complete stories once, mapped native table
+rows, bullet markers, physical page inventory and optional original image bytes.
+Ordinary stories use paragraph blocks; mapped table stories use one complete
+table block alongside their structured rows and native page citation. Generic
+column names preserve the first row as data. Merged spans flatten to one anchor
+value with approximation evidence; row limits retain total counts and omission
+reports. Master tables are extracted once without a physical-page citation and
+use document-wide export ordinals. Repeated objects sharing a story retain
+distinct table anchors; the complete story correlates with its first mapped table.
+Shared-story chunks carry a page citation only when all occurrences agree,
+preserving each table's native citation during extraction and JSON transport.
+Unresolved cell text remains in complete stories rather than an empty dataset.
+Native losses survive Reader transport and semantic PDF projection, which
+correlates table blocks and rows to avoid repeated text. Typography, page artwork
+and frame flow remain explicitly omitted from the semantic projection. The same
+adapter is included in `OfficeIMO.Reader.All`.
 
 Source object counts measure recovered descriptors and distinct projected
 objects. They do not measure pixel fidelity or prove that all content of an
@@ -82,6 +93,12 @@ cancellation and caller stream ownership. The native newsletter exercises ten
 linked stories, including chains whose object order differs from story order,
 and declared picture exclusions. Multi-column property and malformed-link
 mutations protect the native codec boundary; they are synthetic evidence.
+The table sample exposes six distinct cells through the native public model and
+Reader rows. Cell-span, missing-text-map and master-ownership mutations protect
+merged geometry, explicit unresolved text, and single-owner extraction. Reader
+checks cover generic headers, row limits, canonical table views, CSV output, JSON
+transport and semantic PDF text deduplication. These mutations do not qualify
+individual cell styling or Publisher-rendered table appearance.
 Group rotation/reflection mutations verify text-frame corners, picture placement,
 hidden-child wrapping and scene copying. A reflected picture starting above the
 page retains its pixels through the group transform and final page clip.
@@ -155,7 +172,8 @@ caller-configurable, reject oversized input and also account for repeated
 projection work. The input byte ceiling also bounds cumulative encoded image
 processing, and unavailable image-store entries consume the item ceiling.
 The item ceiling also bounds cumulative projected gradient-stop work, including
-focus expansion and repeated master-page projection. A native color-stop table
+focus expansion and repeated master-page projection, and recovered table tracks
+and cells. Copied table text consumes a cumulative text ceiling. A native color-stop table
 supports at most 256 entries; malformed or larger tables retain primary paint
 with an invalid-gradient diagnostic.
 Delayed decoding is cached and cancellation is checked between image entries.

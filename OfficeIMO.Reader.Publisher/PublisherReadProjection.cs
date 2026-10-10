@@ -3,7 +3,7 @@ using OfficeIMO.Publisher;
 
 namespace OfficeIMO.Reader.Publisher;
 
-internal sealed class PublisherReadProjection {
+internal sealed partial class PublisherReadProjection {
     private readonly PublisherDocument _source;
     private readonly string _path;
     private readonly ReaderOptions _settings;
@@ -33,10 +33,11 @@ internal sealed class PublisherReadProjection {
         }
         _diagnostics.Add(new OfficeDocumentDiagnostic {
             Code = "PUB_READER_LAYOUT_OMITTED", Source = "OfficeIMO.Reader.Publisher",
-            Message = "Reader retains complete stories once in native story order. Page placement, frame flow, table structure and typography remain in the Publisher model and are not reconstructed in this semantic projection.",
+            Message = "Reader retains complete stories once in native story order and exposes mapped native table grids. Page artwork, frame flow and typography remain in the Publisher model and are not reconstructed in this semantic projection.",
             Category = OfficeDocumentDiagnosticCategory.Content, Location = Location(),
             Attributes = new Dictionary<string, string> { ["lossKind"] = OfficeConversionLossKind.Omission.ToString() }
         });
+        AddTables();
         foreach (PublisherTextStory story in _source.TextStories) AddStory(story);
         foreach (PublisherImage image in _source.Images) {
             Item();
@@ -59,10 +60,12 @@ internal sealed class PublisherReadProjection {
         return new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Publisher, Source = new OfficeDocumentSource { Path = _path },
             CapabilitiesUsed = new[] { "officeimo.reader.publisher", "officeimo.publisher.native-recovery" },
-            Blocks = _blocks.ToArray(), Chunks = _chunks.ToArray(), Assets = _assets.ToArray(), Diagnostics = _diagnostics.ToArray(),
+            Blocks = _blocks.ToArray(), Chunks = _chunks.ToArray(), Tables = _tables.ToArray(), Assets = _assets.ToArray(), Diagnostics = _diagnostics.ToArray(),
             Markdown = string.Concat(_chunks.Select(chunk => chunk.Markdown)),
             Pages = _source.Pages.Select((page, index) => new OfficeDocumentPage {
                 Number = index + 1, Name = page.Name, Width = page.Width, Height = page.Height,
+                Tables = _pageTables.TryGetValue(page.Id, out var tables) ? tables.ToArray() : Array.Empty<ReaderTable>(),
+                Blocks = _pageTableBlocks.TryGetValue(page.Id, out var blocks) ? blocks.ToArray() : Array.Empty<OfficeDocumentBlock>(),
                 Location = new ReaderLocation { Path = _path, Page = index + 1, SourceBlockKind = "publisher-page" }
             }).ToArray()
         };
@@ -71,6 +74,31 @@ internal sealed class PublisherReadProjection {
     private void AddStory(PublisherTextStory story) {
         int offset = 0;
         string anchor = "publisher-story-" + story.Id.ToString(CultureInfo.InvariantCulture);
+        _storyTables.TryGetValue(story.Id, out List<ReaderTable>? tables);
+        OfficeDocumentBlock? tableBlock = null;
+        int? chunkPage = null;
+        if (tables != null) {
+            Item();
+            // Correlate the complete story with one native occurrence. Other
+            // placements retain their own object anchors and structured grids.
+            ReaderLocation location = Location("publisher-story-table", anchor, 0);
+            location.LogicalOrder = _blocks.Count;
+            location.Page = tables[0].Location!.Page;
+            tableBlock = new OfficeDocumentBlock { Id = anchor + "-table", Kind = "table", Text = story.Text, Location = location };
+            _blocks.Add(tableBlock);
+            tables[0].Location!.BlockAnchor = location.BlockAnchor;
+            foreach (ReaderTable table in tables) {
+                table.Location!.LogicalOrder = location.LogicalOrder;
+            }
+            // Shared-story chunks must not supply another occurrence's page
+            // when table traversal fills an unset native citation.
+            chunkPage = tables.All(table => table.Location!.Page == location.Page) ? location.Page : null;
+            if (location.Page.HasValue) {
+                uint pageId = _source.Pages[location.Page.Value - 1].Id;
+                if (!_pageTableBlocks.TryGetValue(pageId, out var blocks)) _pageTableBlocks.Add(pageId, blocks = new());
+                blocks.Add(tableBlock);
+            }
+        }
         for (int index = 0; index < story.Paragraphs.Count; index++) {
             _token.ThrowIfCancellationRequested();
             OfficeRichTextParagraph paragraph = story.Paragraphs[index];
@@ -82,13 +110,16 @@ internal sealed class PublisherReadProjection {
             string text = story.Text.Substring(offset, length);
             string id = anchor + "-p" + index.ToString("D4", CultureInfo.InvariantCulture);
             string? marker = paragraph.Label?.Run.Text;
-            Item();
             ReaderLocation blockLocation = Location("publisher-story-paragraph", anchor, index);
-            blockLocation.LogicalOrder = _blocks.Count;
-            _blocks.Add(new OfficeDocumentBlock {
-                Id = id, Kind = marker == null ? "paragraph" : "list-item", Text = text, Marker = marker,
-                Location = blockLocation
-            });
+            blockLocation.LogicalOrder = tableBlock?.Location.LogicalOrder ?? _blocks.Count;
+            blockLocation.Page = tableBlock?.Location.Page;
+            if (tableBlock == null) {
+                Item();
+                _blocks.Add(new OfficeDocumentBlock {
+                    Id = id, Kind = marker == null ? "paragraph" : "list-item", Text = text, Marker = marker,
+                    Location = blockLocation
+                });
+            }
             // Leave room for a list marker and paragraph separator after literal escaping,
             // including character references that preserve source indentation.
             int maximum = Math.Max(1, (_settings.MaxChars - 3) / ReaderMarkdownEscaping.MaximumExpansion);
@@ -99,9 +130,7 @@ internal sealed class PublisherReadProjection {
                 string markdown = (marker != null && part == 0 ? "- " : string.Empty)
                     + ReaderMarkdownEscaping.EscapeLiteral(parts[part], _token);
                 if (part == parts.Count - 1) markdown += "\n";
-                _characters = checked(_characters + parts[part].Length + markdown.Length);
-                if (_characters > _options.ReadOptions!.Limits.MaxTextCharacters)
-                    throw new InvalidDataException("Publisher Reader projection text limit exceeded.");
+                Characters((long)parts[part].Length + markdown.Length);
                 var chunk = new ReaderChunk {
                     Id = id + "-" + part.ToString("D4", CultureInfo.InvariantCulture), Kind = ReaderInputKind.Publisher,
                     Text = parts[part], Markdown = markdown, ContinuesPreviousChunk = part > 0,
@@ -109,6 +138,8 @@ internal sealed class PublisherReadProjection {
                 };
                 chunk.Location.BlockIndex = _chunks.Count;
                 chunk.Location.LogicalOrder = blockLocation.LogicalOrder;
+                chunk.Location.Page = chunkPage;
+                if (tables != null && index == 0 && part == 0) chunk.Tables = tables.ToArray();
                 ReaderReadScope.Current?.Budget?.AddChunk(chunk);
                 _chunks.Add(chunk);
             }
