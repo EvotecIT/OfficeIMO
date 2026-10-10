@@ -313,6 +313,8 @@ The [Numbers 14.5 reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/nativ
 
 Synthetic native-format cases cover inherited defaults, selected styled empty cells, edit-order overlap, rejected declarations and saved DOCX/XLSX/PPTX properties. Native Pages borders, merged Apple tables and other producer versions remain unqualified.
 
+The controlled Numbers output also passes [Excel 16.113.3 open/save/reopen acceptance](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-table-borders-officeimo-excel-v16.113.3.json): independent readback retains all 16 values, 64 border edges, ten bold-cell declarations and the styled blank D3. This acceptance does not remove the native padding loss.
+
 ### Table-fill defaults and banding
 
 `IWorkTable.FillStyles` exposes applicable body, header-row, header-column and footer-row fills through bounded style inheritance and the shared solid/no-fill decoder. `BandedBody` retains an active supported band fill. `GetFill(row, column)` resolves a one-based position without allocating unstored cells. A selected supported fill overrides its region and band, including explicit no-fill; an unresolved selected fill suppresses defaults. A selected style with no fill declaration inherits its effective default. Header and footer rows precede header columns. Banding replaces body fill on every second body row, counting after the headers, and excludes header columns and footers.

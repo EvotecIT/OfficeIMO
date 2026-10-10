@@ -76,8 +76,8 @@
     },
     {
       "path": "numbers-table-borders-officeimo.xlsx",
-      "bytes": 5120,
-      "sha256": "0a2f3858aba5e6ecfae70bca547204ac77c04ba4a379553d71c0ac4f5e4c63c6"
+      "bytes": 5113,
+      "sha256": "c25ce669ba01e3a8e0c9b9545cceabd5afa3fad83f2c86058b23771b2146ce8e"
     },
     {
       "path": "numbers-table-borders-officeimo-from-xlsx.pdf",
@@ -86,8 +86,8 @@
     },
     {
       "path": "numbers-table-borders-officeimo-from-xlsx-page1.png",
-      "bytes": 24715,
-      "sha256": "777576f8c071735bc976a7c2e898dc34ce067de988b7ae08e14720ed5bb9926e"
+      "bytes": 19531,
+      "sha256": "ccd8e149c9e7d1b0ebb6ef502fdf34f511ef7c934d684420f278ced6bed56595"
     },
     {
       "path": "numbers-table-borders-native-xlsx-officeimo.pdf",
@@ -96,12 +96,37 @@
     },
     {
       "path": "numbers-table-borders-native-xlsx-officeimo-page1.png",
-      "bytes": 25466,
-      "sha256": "c74a894d24c7eb420da3aec61350beaf44c7cfdec669c21cc4e1478bd9ee8cb9"
+      "bytes": 19369,
+      "sha256": "bc8b096164a715cfd8e66d50a6806936bdf4380092a03b3fa054e96af0839b06"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3.xlsx",
+      "bytes": 9131,
+      "sha256": "d3f2b7da8f3d0ea91719cfbcee753c2af08d5c3415035c14a5221171d27f53dd"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3-open.png",
+      "bytes": 335294,
+      "sha256": "3b62a3a5eaa8c97ec705b2bec82ab171a09b974a1469ed5780cd14ad8fcea53c"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3-reopened.png",
+      "bytes": 333689,
+      "sha256": "0430e719a5f184f71cf71a69406583c6e7f50197a3fc614d754e33915b247d9c"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-readback.json",
+      "bytes": 1436,
+      "sha256": "1da2556849d3361ae017b366352d5170b924406b57c53a03a4a970de4233a957"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-excel-v16.113.3.json",
+      "bytes": 1579,
+      "sha256": "c57adfd1d151e724262780eb7f1fe18835b87e8f42a44daec1d3f81a4e3ac684"
     }
   ],
   "officeimoQualification": {
-    "sourceProjectionAndSavedXlsx": "All 16 cells and 64 independently decoded edges agree; saved XLSX validates and reopens. The source remains unchanged.",
+    "sourceProjectionAndSavedXlsx": "All 16 source cell values, including the genuinely blank styled D3, and 64 independently decoded edges agree; saved XLSX validates and reopens. Explicit empty text and formula text results are tested separately. The source remains unchanged.",
     "policy": "Explicit partial editable reconstruction with IWORK_NUMBERS_CELL_PADDING_OMITTED. Complete editable acceptance and both complete/partial PDF requests reject the source.",
     "workflowSourceUnits": 3,
     "workflowReconstructedUnits": 3,
@@ -120,6 +145,9 @@
       "IWorkWorkflowNumbersBorderPdfTests",
       "ExcelCustomIndexedColorTests",
       "NativeNumbersBorderSmoke"
-    ]
+    ],
+    "sourceRevision": "58dcd0f87560cc3b7fa100b35cb2e025a34541a7",
+    "independentXlsxReadback": "openpyxl 3.1.5 and ZIP/XML readback confirm 16 values, 64 borders, ten bold-cell declarations and a styled D3 with no value/string/formula.",
+    "nativeExcelAcceptance": "numbers-table-borders-officeimo-excel-v16.113.3.json"
   }
 }
