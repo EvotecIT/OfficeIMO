@@ -7,6 +7,7 @@ internal sealed partial class PublisherReadProjection {
     private readonly Dictionary<uint, List<ReaderTable>> _storyTables = new();
     private readonly Dictionary<uint, List<ReaderTable>> _pageTables = new();
     private readonly Dictionary<uint, List<OfficeDocumentBlock>> _pageTableBlocks = new();
+    private int _masterTableIndex;
 
     private void AddTables() {
         for (int pageIndex = 0; pageIndex < _source.Pages.Count; pageIndex++) AddPageTables(_source.Pages[pageIndex], pageIndex + 1);
@@ -23,7 +24,9 @@ internal sealed partial class PublisherReadProjection {
             Item();
             ReaderLocation location = Location(pageNumber.HasValue ? "publisher-table" : "publisher-master-table",
                 "publisher-object-" + native.Id.ToString(CultureInfo.InvariantCulture), index);
-            location.Page = pageNumber; location.TableIndex = index;
+            // Masters have no physical page citation. A document-wide ordinal
+            // distinguishes their export names while the object anchor keeps ownership.
+            location.Page = pageNumber; location.TableIndex = pageNumber.HasValue ? index : _masterTableIndex++;
             int rowCount = Math.Min(native.RowCount, _settings.MaxTableRows);
             var columns = new string[native.ColumnCount];
             for (int column = 0; column < columns.Length; column++) {

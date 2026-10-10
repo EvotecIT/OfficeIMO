@@ -65,7 +65,11 @@ row/column and covered positions are empty, with
 `PUB_READER_TABLE_SPANS_FLATTENED` approximation evidence. The native spans and
 styled paragraphs remain in `PublisherPage.Tables`.
 
-Master-owned tables are extracted once without a physical-page citation.
+Master-owned tables are extracted once without a physical-page citation. Their
+`TableIndex` values are document-wide ordinals, so table export filenames stay
+distinct across master owners. Repeated table objects keep distinct occurrence
+anchors; the complete source-story block correlates with the first mapped table.
+Page Markdown and semantic PDF render each structured grid once.
 Unresolved native text mappings retain complete stories and an omission report;
 Reader does not present unknown cell text as an empty dataset. Semantic PDF
 projection correlates the table story block with its rows to avoid repeated text.
