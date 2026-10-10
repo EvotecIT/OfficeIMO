@@ -55,7 +55,9 @@ internal static partial class PdfWriter {
 
         // Imported automatic tables grow from their measured content. Generic
         // PDF tables retain their page-width default.
-        double preferredWidth = style.PreferredWidth.HasValue ? Math.Min(availableWidth, style.PreferredWidth.Value) : 0D;
+        double preferredWidth = style.PreferredWidth.HasValue
+            ? style.AllowWidthBeyondFrame ? style.PreferredWidth.Value : Math.Min(availableWidth, style.PreferredWidth.Value)
+            : 0D;
         double measuredContentWidth = 0D;
         // A content-sized imported table without an authored frame uses its
         // unwrapped content preferences. Cached grid columns do not constrain it.
@@ -76,7 +78,11 @@ internal static partial class PdfWriter {
         }
 
         measuredContentWidth += Math.Max(0, columnCount - 1) * columnGap;
-        return Math.Min(availableWidth, Math.Max(preferredWidth, measuredContentWidth));
+        double desiredWidth = Math.Max(preferredWidth, measuredContentWidth);
+        if (style.AllowWidthBeyondFrame) {
+            return style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value, desiredWidth) : desiredWidth;
+        }
+        return Math.Min(availableWidth, desiredWidth);
     }
 
     private static double FitFixedTableColumnsToAvailableWidth(double[] columnWidths, bool[] fixedColumns, double?[] minWidths, double fixedWidthTotal, double availableWidth) {
@@ -289,7 +295,9 @@ internal static partial class PdfWriter {
             remainingWidth = 0D;
         }
 
-        DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
+        if (!TryDistributeImportedPreferredColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
+            autoFitWeights, remainingWidth))
+            DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
         if (!style.PreserveWidth) {
             tableWidth = Math.Min(tableWidth, columnWidths.Sum() + (columns - 1) * columnGap);
         }

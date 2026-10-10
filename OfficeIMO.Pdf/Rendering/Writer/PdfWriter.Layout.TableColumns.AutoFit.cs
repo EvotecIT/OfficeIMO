@@ -305,6 +305,12 @@ internal static partial class PdfWriter {
         }
 
         for (int columnIndex = 0; columnIndex < cols; columnIndex++) {
+            double? authoredPreference = GetOptionalColumnWidth(style.AutoFitColumnPreferredWidthPoints, columnIndex,
+                "Table preferred column widths must be positive finite values.");
+            if (authoredPreference.HasValue)
+                // An absolute cell preference can wrap its content. Only the
+                // unbreakable minimum can force it above the authored value.
+                preferredWidths[columnIndex] = Math.Max(minimumWidths[columnIndex], authoredPreference.Value);
             if (preferredWidths[columnIndex] <= 0D) {
                 preferredWidths[columnIndex] = 1D;
             }
@@ -328,6 +334,9 @@ internal static partial class PdfWriter {
                     ? deficit * minimumWidths[column] / available
                     : deficit / (endColumn - span.Column);
         }
+        if (style.AutoFitColumnPreferredWidthPoints != null)
+            for (int column = 0; column < cols; column++)
+                preferredWidths[column] = Math.Max(preferredWidths[column], minimumWidths[column]);
         return new AutoFitTableMeasurements(profiles, preferredWidths, minimumWidths);
     }
 

@@ -83,6 +83,8 @@ public partial class PdfTableStyle {
     internal bool AutoFitWidthUsesContentMinimum { get; set; }
     /// <summary>Document adapters can size an explicit automatic grid that has no positive authored width from its content minimum.</summary>
     internal bool AutoFitUnspecifiedWidthToContent { get; set; }
+    /// <summary>Authored automatic-column preferences remain distinct from their measured content minimums.</summary>
+    internal System.Collections.Generic.List<double?>? AutoFitColumnPreferredWidthPoints { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
@@ -764,6 +766,7 @@ public partial class PdfTableStyle {
         if (VerticalAlignments != null) clone.VerticalAlignments = new System.Collections.Generic.List<PdfCellVerticalAlign>(VerticalAlignments);
         if (ColumnWidthPoints != null) clone.ColumnWidthPoints = new System.Collections.Generic.List<double?>(ColumnWidthPoints);
         if (ColumnMinWidthPoints != null) clone.ColumnMinWidthPoints = new System.Collections.Generic.List<double?>(ColumnMinWidthPoints);
+        if (AutoFitColumnPreferredWidthPoints != null) clone.AutoFitColumnPreferredWidthPoints = new System.Collections.Generic.List<double?>(AutoFitColumnPreferredWidthPoints);
         if (ColumnMaxWidthPoints != null) clone.ColumnMaxWidthPoints = new System.Collections.Generic.List<double?>(ColumnMaxWidthPoints);
         if (ColumnWidthWeights != null) clone.ColumnWidthWeights = new System.Collections.Generic.List<double>(ColumnWidthWeights);
         return clone;

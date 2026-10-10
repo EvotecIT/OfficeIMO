@@ -49,6 +49,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (style.AutoFitColumns) {
+                if (style.AutoFitColumnPreferredWidthPoints != null) return;
                 if (layout.ColumnWidths.Length > 0 && layout.ColumnWidths.All(width => width > 0)) {
                     ApplyNativeAutoFitGridMinimums(layout, style, contentWidth);
                 }
@@ -199,6 +200,13 @@ namespace OfficeIMO.Word.Pdf {
                     // An automatic table's preferred width can grow to fit an
                     // unbreakable cell; it is not a clipping boundary.
                     style.PreferredWidth = preferredWidth.Value;
+                    W.TableWidth? authoredWidth = properties?.TableWidth;
+                    if (!GetNativeTablePreferredWidth(authoredWidth, contentWidth).HasValue)
+                        authoredWidth = tableStyleDefaults.PreferredWidth;
+                    if (style.AutoFitColumns && authoredWidth?.Type?.Value == W.TableWidthUnitValues.Dxa) {
+                        style.AllowWidthBeyondFrame = true;
+                        style.AutoFitColumnPreferredWidthPoints = CreateNativeAutoFitColumnPreferences(layout);
+                    }
                     // Positive spacing receives its independent perimeter and
                     // final cell-grid minimums after cell formatting is applied.
                     style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns && style.CellSpacing <= 0D;
@@ -224,6 +232,16 @@ namespace OfficeIMO.Word.Pdf {
                 style.LeftIndent = leftIndent.Value;
             }
 
+        }
+
+        private static List<double?> CreateNativeAutoFitColumnPreferences(TableLayout layout) {
+            var result = Enumerable.Repeat<double?>(null, layout.ColumnWidths.Length).ToList();
+            foreach (var cell in EnumerateNativeTableCells(layout)) {
+                if (cell.Cell.WidthType != WordTableWidthUnit.Dxa || cell.Cell.Width.GetValueOrDefault() <= 0) continue;
+                for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < result.Count; column++)
+                    if (layout.ColumnWidths[column] > 0F) result[column] = layout.ColumnWidths[column];
+            }
+            return result;
         }
 
         private static double? GetNativeAutoFitGridPreferredWidth(W.TableProperties? properties, TableLayout layout, double? contentWidth, double cellSpacing) {

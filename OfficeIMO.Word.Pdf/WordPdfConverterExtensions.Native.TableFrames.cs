@@ -28,7 +28,9 @@ namespace OfficeIMO.Word.Pdf {
             double sourceSpacing = style.CellSpacing;
             style.CellSpacing = 2D * sourceSpacing;
             if (style.PreferredWidth.HasValue)
-                style.PreferredWidth += Math.Max(0, layout.ColumnWidths.Length - 1) * sourceSpacing;
+                style.PreferredWidth = style.AutoFitColumnPreferredWidthPoints != null
+                    ? Math.Max(.001D, style.PreferredWidth.Value - 2D * style.CellSpacing)
+                    : style.PreferredWidth.Value + Math.Max(0, layout.ColumnWidths.Length - 1) * sourceSpacing;
             style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns;
             style.CellVerticalPaddingFromBorderInterior = true;
             style.PreservePartialCellLines = true;
