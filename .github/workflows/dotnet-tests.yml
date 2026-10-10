@@ -35,6 +35,31 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  chm-contracts:
+    name: 'CHM archive and conversion contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        framework: [net8.0, net10.0]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test compiled archives, conversions, and rich Reader projection
+        run: dotnet test OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=chm.trx' --results-directory TestResults/Chm
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: chm-tests-${{ matrix.os }}-${{ matrix.framework }}
+          path: TestResults/Chm
+          if-no-files-found: ignore
+          retention-days: 7
+
   legacy-imports:
     name: 'Legacy imports / ${{ matrix.os }} / ${{ matrix.framework }}'
     runs-on: ${{ matrix.os }}
@@ -812,6 +837,8 @@ jobs:
             project: OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
           - name: ChartForgeX-Markdown
             project: OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj
+          - name: Chm
+            project: OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj
           - name: Confluence
             project: OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj
           - name: Drawing

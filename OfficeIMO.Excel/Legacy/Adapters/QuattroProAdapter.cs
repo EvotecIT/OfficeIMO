@@ -7,7 +7,7 @@ internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
         cancellationToken.ThrowIfCancellationRequested();
         return OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51)
             ? "quattro-pro-wq1-records" : OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x21, 0x51)
-                ? "quattro-pro-wq2-records" : "quattro-pro-wb-qpw-salvage";
+                ? "quattro-pro-wq2-records" : LaterRecordSpreadsheetReader.IsQuattro(data) ? "quattro-pro-wb1-records" : "quattro-pro-wb-qpw-salvage";
     }
 
     public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken, out string reason) {
@@ -34,6 +34,7 @@ internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
     }
 
     public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
+        if (LaterRecordSpreadsheetReader.IsQuattro(data)) return LaterRecordSpreadsheetReader.Read(data, limits, cancellationToken, LaterSpreadsheetProfile.QuattroWb1);
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51)) {
             return ParseWkRecords(data, limits, "Quattro Pro WQ1", 0x20, 0x51, cancellationToken, WkRecordLayout.QuattroWq1, translateFormulas: false);
         }

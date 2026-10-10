@@ -83,7 +83,7 @@ public static class LegacySpreadsheetImporter {
         try {
             foreach (LegacySpreadsheetSheet sourceSheet in model.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
-                ExcelSheet target = document.AddWorksheet(sourceSheet.Name);
+                ExcelSheet target = document.AddWorksheet(sourceSheet.Name, model.PreserveSheetNames ? ExcelSheetNameValidationMode.Strict : ExcelSheetNameValidationMode.Sanitize);
                 foreach (LegacySpreadsheetCell cell in sourceSheet.Cells) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!string.IsNullOrWhiteSpace(cell.Formula)) {

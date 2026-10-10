@@ -19,6 +19,7 @@ public sealed partial class OfficeWorkflowRunner {
             [".xlsx"] = "xlsx-pdf",
             [".pptx"] = "pptx-pdf",
             [".xps"] = "xps-pdf",
+            [".chm"] = "chm-pdf",
             [".oxps"] = "xps-pdf",
             [".html"] = "html-pdf",
             [".htm"] = "html-pdf"
@@ -791,7 +792,7 @@ public sealed partial class OfficeWorkflowRunner {
                     input,
                     diagnostics,
                     cancellationToken,
-                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf",
+                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf" && source.Route?.Id != "chm-pdf",
                     htmlResourceSnapshots: source.HtmlDependencySnapshots);
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);

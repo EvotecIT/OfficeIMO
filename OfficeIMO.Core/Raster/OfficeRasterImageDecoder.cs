@@ -183,7 +183,8 @@ public static partial class OfficeRasterImageDecoder {
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image, pngValidation),
                 OfficeImageFormat.Jpeg => OfficeJpegCodec.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image,
-                    new OfficeJpegDecodeOptions(false, false, ignoreExifOrientation: !effective.ApplyExifOrientation)),
+                    new OfficeJpegDecodeOptions(highQualityChroma: effective.JpegHighQualityChroma,
+                        allowTruncated: false, ignoreExifOrientation: !effective.ApplyExifOrientation)),
                 OfficeImageFormat.Bmp => OfficeBmpReader.TryDecode(
                     bytes, effective.CancellationToken, effective.RetainedManagedBytes, out image),
                 OfficeImageFormat.Webp => OfficeWebpCodec.TryDecode(

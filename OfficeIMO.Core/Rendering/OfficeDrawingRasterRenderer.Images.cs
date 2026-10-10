@@ -15,7 +15,8 @@ public static partial class OfficeDrawingRasterRenderer {
         ICollection<OfficeImageExportDiagnostic>? diagnosticSink = null) {
         if (drawingImage.Opacity <= 0D) return;
         OfficeImageProjection projection = drawingImage.Projection.Scale(scale);
-        if (!canvas.IntersectsVisibleSurface(projection.CreateUnitSquareTransform(), 1D, 1D)) return;
+        if (!canvas.IntersectsVisibleSurface(projection.CreateUnitSquareTransform(), 1D, 1D,
+            includePartialCoverage: drawingImage.Interpolate)) return;
         (double targetWidth, double targetHeight) = GetImageTargetSize(canvas, drawingImage.Projection, scale);
         if (TryDecodeImage(
                 drawingImage.EncodedBytes,

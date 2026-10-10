@@ -75,6 +75,11 @@ foreach (var heading in document.GetHeadingInfos()) {
 must travel with it. Async file and stream loading follows the same direct/result
 naming and accepts a final cancellation token.
 
+Markdown writing also accepts cancellation: `document.ToMarkdown(writeOptions, cancellationToken)`
+and `document.ToBytes(writeOptions, encoding, cancellationToken)` check it during serialization.
+`SaveAsync` passes its token through serialization before writing the destination.
+Custom renderers can use `context.CancellationToken` for their own work.
+
 ### Native AST snapshot
 
 ```csharp
