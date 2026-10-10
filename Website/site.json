@@ -540,6 +540,13 @@
         ]
       },
       {
+        "Match": "/format-map/",
+        "Bundles": [
+          "global",
+          "format-map"
+        ]
+      },
+      {
         "Match": "/convert/**",
         "Bundles": [
           "global",

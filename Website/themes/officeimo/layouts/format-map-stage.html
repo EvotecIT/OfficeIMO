@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ page.title }} | {{ site.name }}</title>
+  {{ description_meta_html }}
+  {{ canonical_html }}
+  {{ head_html }}
+  {{ include "theme-init" }}
+  <script>(function(){var m=/[?&]theme=(dark|light)/.exec(location.search),t=m?m[1]:'dark',d=document.documentElement;d.setAttribute('data-theme-pinned',t);d.setAttribute('data-theme',t);d.style.colorScheme=t;})();</script>
+  {{ include "theme-tokens" }}
+  {{ assets.critical_css_html }}
+  {{ assets.preloads_html }}
+  {{ extra_css_html }}
+  {{ assets.css_html }}
+</head>
+<body class="imo-body imo-body--stage">
+  {{~ # Full-window format map that plays its tour on its own, for screen recordings. No header, footer or navigation. ~}}
+  <main id="content" class="imo-main imo-main--stage">
+    {{ fmap_view = "radial"; fmap_surface = "all"; fmap_stage = true; include "sections/format-map" }}
+  </main>
+
+  {{ assets.js_html }}
+  {{ extra_scripts_html }}
+</body>
+</html>

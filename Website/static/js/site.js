@@ -43,6 +43,9 @@
 
   function applyTheme(mode) {
     var resolved = mode === "light" || mode === "dark" ? mode : getDefaultTheme();
+    // The recording stage pins its theme (data-theme-pinned) so a capture never depends on the machine's appearance setting.
+    var pinned = document.documentElement.getAttribute("data-theme-pinned");
+    if (pinned === "light" || pinned === "dark") resolved = pinned;
     document.documentElement.setAttribute("data-theme", resolved);
     document.documentElement.style.colorScheme = resolved;
     document.querySelectorAll(".imo-theme-toggle").forEach(function (btn) {

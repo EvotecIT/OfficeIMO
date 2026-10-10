@@ -28,6 +28,7 @@
 .imo-fmap[data-active-surface="dotnet"] { --fmap-hl: var(--imo-p-dotnet); }
 .imo-fmap[data-active-surface="cli"] { --fmap-hl: var(--imo-p-cli); }
 .imo-fmap[data-active-surface="studio"] { --fmap-hl: var(--imo-p-studio); }
+.imo-fmap[data-active-surface="powershell"] { --fmap-hl: var(--imo-p-powershell); }
 
 /* ---- Heading ---- */
 .imo-fmap__head { max-width: 760px; margin-bottom: 20px; }
@@ -87,6 +88,7 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__badge--browser { --s: var(--imo-p-browser); }
 .imo-fmap__badge--cli { --s: var(--imo-p-cli); }
 .imo-fmap__badge--studio { --s: var(--imo-p-studio); }
+.imo-fmap__badge--powershell { --s: var(--imo-p-powershell); }
 .imo-fmap__try { font-size: var(--imo-font-size-xs); font-weight: 600; color: var(--imo-p-browser); text-decoration: none; white-space: nowrap; }
 .imo-fmap__try::after { content: " →"; }
 .imo-fmap__try:hover { text-decoration: underline; }
@@ -140,7 +142,7 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap :is(.imo-fmap__chip, .imo-fmap__mini, .imo-fmap__surface, .imo-fmap__legend button, select, .imo-fmap__try, .imo-fmap__tool, .imo-fmap__link):focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
 
 /* Lines, shared by both views. Highlighted ones run on the chosen surface (the browser when showing all). */
-.imo-fmap__edge { fill: none; stroke: var(--imo-border-strong); stroke-width: 1.1; opacity: .55; transition: opacity .15s, stroke-width .15s; }
+.imo-fmap__edge { fill: none; stroke: var(--imo-border-strong); stroke-width: 1.1; opacity: .55; transition: opacity .32s var(--imo-ease), stroke-width .32s var(--imo-ease), stroke .32s var(--imo-ease); }
 .imo-fmap__edge.is-hl { stroke: var(--fmap-hl); opacity: .8; stroke-width: 1.6; }
 .imo-fmap__edge.is-drawing { animation: imo-fmap-draw .6s var(--imo-ease) forwards; }
 @keyframes imo-fmap-draw { to { stroke-dashoffset: 0; } }
@@ -158,6 +160,9 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__svg.is-focus .imo-fmap__edge.is-on { opacity: 1; stroke-width: 3.6; stroke: var(--imo-accent); stroke-dasharray: none; }
 .imo-fmap__node circle { fill: var(--fam); stroke: var(--imo-bg-elevated); stroke-width: 2; cursor: pointer; }
 .imo-fmap__node text { font: 600 17px var(--imo-font-body); fill: var(--imo-text); cursor: pointer; }
+.imo-fmap__node { transition: opacity .32s var(--imo-ease); }
+.imo-fmap__node circle { transition: stroke .2s var(--imo-ease), stroke-width .2s var(--imo-ease); }
+.imo-fmap__edges { animation: imo-fmap-in .45s var(--imo-ease); }
 .imo-fmap__node.is-idle { opacity: .3; }
 .imo-fmap__node.is-idle circle, .imo-fmap__node.is-idle text { cursor: default; }
 .imo-fmap__svg.is-focus .imo-fmap__node { opacity: .28; }
@@ -173,10 +178,97 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__pick label { display: grid; gap: 5px; font-size: var(--imo-font-size-xs); font-weight: 600; color: var(--imo-text-muted); }
 .imo-fmap__pick select { font: inherit; font-size: var(--imo-font-size-sm); font-weight: 400; padding: 8px 10px; border-radius: var(--imo-radius); border: 1px solid var(--imo-border); background: var(--imo-surface); color: var(--imo-text); min-width: 0; }
 .imo-fmap__legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 4px 8px 8px; }
-/* Long answers scroll inside the panel, so the board stays the height of the circle. */
-.imo-fmap--radial .imo-fmap__outs { max-height: 25rem; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; }
+/* The board is as tall as the circle and never taller: a long answer (XLSX, with its list, sources and links) scrolls inside the
+   side panel. contain: size makes the panel ignore its own content when the row height is worked out. */
+@media (min-width: 861px) {
+  .imo-fmap--radial .imo-fmap__side { contain: size; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+}
 .imo-fmap__legend button { display: inline-flex; gap: 6px; align-items: center; font: inherit; font-size: var(--imo-font-size-xs); padding: 5px 9px; border-radius: 999px; border: 1px solid var(--imo-border); background: transparent; color: var(--imo-text); cursor: pointer; }
 .imo-fmap__legend button[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+
+/* ---- Tour: button, scene caption, and the soft entrance shared with the panel ---- */
+@keyframes imo-fmap-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes imo-fmap-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.imo-fmap__panel.is-swap { animation: imo-fmap-in .28s var(--imo-ease); }
+.imo-fmap__tourbtn {
+  position: absolute; top: 14px; left: 14px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--imo-accent) 55%, var(--imo-border)); background: color-mix(in srgb, var(--imo-accent) 10%, var(--imo-surface));
+  color: var(--imo-text); font: inherit; font-size: var(--imo-font-size-sm); font-weight: 600; cursor: pointer;
+  transition: background var(--imo-duration) var(--imo-ease), border-color var(--imo-duration) var(--imo-ease);
+}
+.imo-fmap__tourbtn:hover { background: color-mix(in srgb, var(--imo-accent) 20%, var(--imo-surface)); }
+.imo-fmap__tourbtn i { width: 0; height: 0; border-left: 9px solid var(--imo-accent); border-block: 5.5px solid transparent; }
+.imo-fmap__tourbtn[aria-pressed="true"] i { width: 9px; height: 9px; border: 0; border-radius: 2px; background: var(--imo-accent); }
+.imo-fmap :is(.imo-fmap__tourbtn):focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+.imo-fmap--list .imo-fmap__tourbtn { display: none; }
+.imo-fmap__canvas { position: relative; }
+.imo-fmap__caption {
+  --cap: var(--imo-accent);
+  position: absolute; left: 20px; right: 20px; bottom: 14px; display: none; gap: 2px; padding: 10px 16px 12px; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--cap) 40%, var(--imo-border)); border-radius: var(--imo-radius-lg);
+  background: color-mix(in srgb, var(--imo-bg-elevated) 86%, transparent); backdrop-filter: blur(6px); pointer-events: none;
+}
+.imo-fmap__caption[class*="imo-fam--"] { --cap: var(--fam); }
+.imo-fmap__caption--dotnet { --cap: var(--imo-p-dotnet); }
+.imo-fmap__caption--browser { --cap: var(--imo-p-browser); }
+.imo-fmap__caption--cli { --cap: var(--imo-p-cli); }
+.imo-fmap__caption--studio { --cap: var(--imo-p-studio); }
+.imo-fmap__caption--powershell { --cap: var(--imo-p-powershell); }
+.imo-fmap__caption.is-swap { animation: imo-fmap-in .3s var(--imo-ease); }
+.imo-fmap__capkind { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--cap); }
+.imo-fmap__captitle { font: 700 1.35rem/1.2 var(--imo-font-display); color: var(--imo-text); }
+.imo-fmap__capnote { font-size: var(--imo-font-size-sm); color: var(--imo-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imo-fmap__caption i { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--cap); transform-origin: left; transform: scaleX(0); }
+.imo-fmap.is-touring .imo-fmap__caption { display: grid; }
+.imo-fmap.is-touring .imo-fmap__legend { visibility: hidden; }
+.imo-fmap.is-paused .imo-fmap__caption i { animation-play-state: paused !important; }
+
+/* ---- Stage: the full-window layout used to record the map (layouts/format-map-stage.html) ---- */
+/* The stage is a frame with the proportions of the chosen platform format (?ratio=, set as data-ratio): as large as fits the window
+   and centred, so it previews in any browser window and fills the window exactly when the recorder sizes it to the format. */
+.imo-body--stage { margin: 0; min-height: 100vh; display: grid; place-items: center; overflow: hidden; background: var(--imo-bg); }
+.imo-body--stage .imo-main--stage { display: grid; place-items: center; padding: 0; margin: 0; }
+.imo-fmap--stage { --rw: 16; --rh: 9; --ring-reserve: 300px; max-width: none; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; container-type: size;
+  width: min(100vw, calc(100vh * var(--rw) / var(--rh))); height: min(100vh, calc(100vw * var(--rh) / var(--rw))); padding: 20px 40px 12px; }
+.imo-fmap--stage[data-ratio="1x1"] { --rw: 1; --rh: 1; --ring-reserve: 250px; }
+.imo-fmap--stage[data-ratio="4x5"] { --rw: 4; --rh: 5; --ring-reserve: 250px; }
+.imo-fmap--stage[data-ratio="9x16"] { --rw: 9; --rh: 16; }
+.imo-fmap--stage .imo-fmap__head { flex: none; max-width: none; margin-bottom: 12px; }
+.imo-fmap--stage .imo-fmap__head p, .imo-fmap--stage .imo-fmap__tourbtn { display: none; }
+.imo-fmap--stage .imo-fmap__head h2 { font-size: clamp(1.6rem, 1rem + 1.8vw, 2.6rem); margin: 0; }
+.imo-fmap--stage .imo-fmap__surfaces { flex: none; margin-bottom: 12px; }
+.imo-fmap--stage .imo-fmap__board { flex: 1; min-height: 0; align-items: stretch; grid-template-columns: minmax(0, 1.25fr) minmax(380px, 1fr); grid-template-rows: minmax(0, 1fr); }
+.imo-fmap--stage .imo-fmap__canvas { display: grid; justify-items: center; align-content: start; padding-bottom: 118px; }
+.imo-fmap--stage .imo-fmap__svg { width: auto; max-width: 100%; max-height: calc(100cqh - var(--ring-reserve)); overflow: visible; }
+.imo-fmap--stage .imo-fmap__node text { font-size: 19px; }
+.imo-fmap--stage .imo-fmap__fam { font-size: 15px; }
+.imo-fmap--stage .imo-fmap__legend { display: none; }
+.imo-fmap--stage .imo-fmap__caption { left: 24px; right: 24px; bottom: 18px; padding: 14px 22px 16px; }
+.imo-fmap--stage .imo-fmap__captitle { font-size: clamp(1.5rem, 1rem + 1.2vw, 2.2rem); }
+.imo-fmap--stage .imo-fmap__capnote { font-size: var(--imo-font-size-base); white-space: normal; }
+.imo-fmap--stage .imo-fmap__side { padding: 24px; font-size: 1.05rem; }
+.imo-fmap--stage .imo-fmap__pick, .imo-fmap--stage .imo-fmap__next, .imo-fmap--stage .imo-fmap__hint { display: none; }
+.imo-fmap--stage ::-webkit-scrollbar { display: none; }
+.imo-fmap--stage .imo-fmap__side { scrollbar-width: none; }
+/* Square and 4:5 have no room for the route list, so the caption carries the message. Portrait puts the list under the circle. */
+.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
+.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__canvas { padding-bottom: 156px; }
+.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__captitle { font-size: 2.3rem; }
+.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__head h2 { font-size: 2rem; }
+.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"]) .imo-fmap__side { display: none; }
+.imo-fmap--stage[data-ratio="9x16"] .imo-fmap__board { grid-template-rows: auto minmax(0, 1fr); }
+.imo-fmap--stage[data-ratio="9x16"] .imo-fmap__svg { max-height: none; }
+.imo-fmap--stage[data-ratio="9x16"] .imo-fmap__side { contain: none; min-height: 0; overflow-y: auto; border-left: 0; border-top: 1px solid var(--imo-border); }
+/* Brand lockup: logo, name and address lead the title row of every frame, so a clip shared on its own says whose it is. */
+.imo-fmap__brand { display: none; }
+.imo-fmap--stage .imo-fmap__head { display: flex; align-items: center; gap: 28px; }
+.imo-fmap--stage .imo-fmap__brand { display: flex; flex: none; align-items: center; gap: 12px; color: var(--imo-primary); }
+.imo-fmap__brand span { display: grid; line-height: 1.15; }
+.imo-fmap__brand b { font: 800 1.7rem var(--imo-font-display); letter-spacing: -.02em; color: var(--imo-text); }
+.imo-fmap__brand small { font-size: .9rem; font-weight: 600; letter-spacing: .02em; color: var(--imo-text-secondary); }
+.imo-fmap--stage .imo-fmap__head h2 { padding-left: 28px; border-left: 1px solid var(--imo-border-strong); }
+.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__head h2 span { display: none; }
 
 /* ---- List view ---- */
 .imo-fmap--list .imo-fmap__board { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); column-gap: clamp(32px, 6vw, 96px); }
@@ -184,10 +276,18 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__wires .imo-fmap__edge { opacity: .7; stroke: color-mix(in srgb, var(--imo-text-secondary) 60%, transparent); stroke-width: 1.4; }
 .imo-fmap__wires .imo-fmap__edge.is-hl { stroke: var(--fmap-hl); stroke-width: 2; opacity: 1; }
 
+/* ---- Medium screens: side by side the circle would shrink until its labels are unreadable (8px at 900px wide),
+   so the panel moves below it and the circle keeps the full width. ---- */
+@media (min-width: 861px) and (max-width: 1100px) {
+  .imo-fmap--radial:not(.imo-fmap--stage) .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
+  .imo-fmap--radial:not(.imo-fmap--stage) .imo-fmap__side { contain: none; overflow: visible; border-left: 0; border-top: 1px solid var(--imo-border); }
+  .imo-fmap--radial:not(.imo-fmap--stage) .imo-fmap__svg { max-width: 800px; margin-inline: auto; }
+}
+
 /* ---- Narrow screens: both views become the chip list with the panel below ---- */
 @media (max-width: 860px) {
   .imo-fmap--radial .imo-fmap__board, .imo-fmap--list .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
-  .imo-fmap--radial .imo-fmap__canvas, .imo-fmap--radial .imo-fmap__legend, .imo-fmap__wires { display: none; }
+  .imo-fmap--radial .imo-fmap__canvas, .imo-fmap--radial .imo-fmap__legend, .imo-fmap__wires, .imo-fmap__tourbtn { display: none; }
   .imo-fmap--radial .imo-fmap__formats { display: block; }
   .imo-fmap--radial .imo-fmap__side { border-left: 0; border-top: 1px solid var(--imo-border); }
   .imo-fmap--list .imo-fmap__side { border-top: 1px solid var(--imo-border); }
@@ -201,5 +301,6 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
   .imo-fmap__badges { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .imo-fmap__edge.is-drawing { animation: none; }
+  .imo-fmap__edge.is-drawing, .imo-fmap__edges, .imo-fmap__panel.is-swap, .imo-fmap__caption.is-swap { animation: none; }
+  .imo-fmap__edge, .imo-fmap__node { transition: none; }
 }
