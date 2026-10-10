@@ -13,6 +13,7 @@ public static partial class WordIWorkConverter {
         private WordList? _current;
         private string? _markerFontName;
         private int? _markerFontSize;
+        private int? _previousQualifiedLevel;
 
         internal IWorkNativeListCatalog(WordDocument document) {
             _document = document;
@@ -28,7 +29,11 @@ public static partial class WordIWorkConverter {
             bool markerProfileChanged = qualifiedMarkerFontSize.HasValue
                 && (_markerFontSize != qualifiedMarkerFontSize
                     || !string.Equals(_markerFontName, fontName, StringComparison.Ordinal));
-            if (startsNewList || _current == null || markerProfileChanged) {
+            // Isolate a recovered parent counter from child instance starts.
+            // Receiving applications can otherwise reuse those starts on reset.
+            bool parentTransition = qualifiedNumber.HasValue && _previousQualifiedLevel.HasValue
+                && level < _previousQualifiedLevel.Value;
+            if (startsNewList || _current == null || markerProfileChanged || parentTransition) {
                 _current = WordList.AddCustomList(_document);
                 _observedLevels.Clear();
                 _markerFontName = fontName;
@@ -46,7 +51,12 @@ public static partial class WordIWorkConverter {
                 ReplacePlaceholderLevel(list, level, levelKind);
             }
             if (firstObservation && levelKind != WordListLevelKind.Bullet) {
-                if (qualifiedNumber.HasValue) list.Numbering.Levels[level].SetStartNumberingValue(qualifiedNumber.Value);
+                if (qualifiedNumber.HasValue) {
+                    // A recovered item seeds this instance once. Keep a child's
+                    // abstract start at one for the next parent-triggered reset.
+                    list.SetStartNumberingValue(qualifiedNumber.Value, level);
+                    if (level > 0) list.Numbering.Levels[level].SetStartNumberingValue(1);
+                }
                 else if (TryParseStart(label, levelKind, out int start) && start != 1)
                     list.Numbering.Levels[level].SetStartNumberingValue(start);
             }
@@ -72,6 +82,7 @@ public static partial class WordIWorkConverter {
             properties.NumberingProperties = new OpenXmlNumberingProperties(
                 new OpenXmlNumberingLevelReference { Val = level },
                 new OpenXmlNumberingId { Val = list.NumberId });
+            _previousQualifiedLevel = qualifiedNumber.HasValue ? level : null;
         }
 
         private static void ReplacePlaceholderLevel(WordList list, int level,

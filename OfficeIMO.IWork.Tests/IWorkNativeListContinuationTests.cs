@@ -1,12 +1,41 @@
 using OfficeIMO.IWork;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.IWork;
+using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Packaging;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkEverydayNativeExportTests {
+    [Fact]
+    public void Native_table_counter_destination_PDFs_retain_all_markers_and_text() {
+        using var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(
+            Corpus("native-exports/list-counter-mapping-v15.4.json")));
+        VerifyArtifactHashes(manifest.RootElement);
+        foreach (var scenario in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
+            string name = scenario.GetProperty("case").GetString()!;
+            foreach (string producer in new[] { "pages", "keynote", "composed" }) {
+                string text = OfficeIMO.Pdf.PdfReadDocument.Open(File.ReadAllBytes(
+                    Corpus("native-exports/list-counter-" + name + "-v15.4-" + producer + ".pdf"))).ExtractText();
+                // Native PDF glyph positioning can add extraction whitespace
+                // inside words. Check the complete ordered character sequence.
+                text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", string.Empty);
+                int previous = -1;
+                foreach (var paragraph in scenario.GetProperty("expectedParagraphs").EnumerateArray()) {
+                    var number = paragraph.GetProperty("ListNumber");
+                    string marker = number.ValueKind == System.Text.Json.JsonValueKind.Number
+                        ? number.GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture) + ". " : string.Empty;
+                    string wanted = System.Text.RegularExpressions.Regex.Replace(
+                        marker + paragraph.GetProperty("Text").GetString(), @"\s+", string.Empty);
+                    int position = text.IndexOf(wanted, previous + 1, StringComparison.Ordinal);
+                    Assert.True(position > previous, name + "/" + producer + ": missing or out-of-order " + wanted + "\n" + text);
+                    previous = position;
+                }
+            }
+        }
+    }
+
     [Fact]
     public void Native_decimal_levels_and_continuation_preserve_source_counters_and_DOCX_measurements() {
         VerifyManifest("pages-list-continuation-v15.4.json");
@@ -24,6 +53,12 @@ public sealed partial class IWorkEverydayNativeExportTests {
         Assert.Equal(new[] { -1, 0, 0, -1, 0, 1, 1, 0, 1, 1, 1, -1, 1, 0, 0, 0 },
             source.Select(paragraph => paragraph.ListLevel));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using (var counterStream = new MemoryStream(saved.ToArray()))
+        using (var reopened = WordDocument.Load(counterStream)) {
+            Assert.Equal(source.Where(paragraph => paragraph.ListNumber.HasValue)
+                    .Select(paragraph => paragraph.ListNumber!.Value),
+                WordDocumentTraversal.BuildListIndices(reopened).Values.Select(value => value.Index));
+        }
         using var actual = WordprocessingDocument.Open(saved, false);
         using var native = WordprocessingDocument.Open(Corpus("native-exports/pages-list-continuation-v15.4.docx"), false);
         var paragraphs = actual.MainDocumentPart!.Document!.Body!.Elements<W.Paragraph>().ToArray();

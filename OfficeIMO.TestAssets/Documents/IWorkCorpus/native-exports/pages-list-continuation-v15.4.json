@@ -52,13 +52,13 @@
     },
     {
       "path": "native-exports/pages-list-continuation-officeimo-v15.4.docx",
-      "bytes": 20517,
-      "sha256": "fd35372f12997fcaf351c25a1399c89f0de849d68776117092fbc5c6767864db"
+      "bytes": 20605,
+      "sha256": "40dd679e15c26546532ae65640f3b840cfef01409492ebdc5fb0c2f8ffbac6d9"
     },
     {
       "path": "native-exports/pages-list-continuation-officeimo-native-v15.4.pdf",
       "bytes": 34619,
-      "sha256": "91b080df2ae557639b75d1987e784263a67072eb005256bb33e3aaefeb0eb7a4"
+      "sha256": "700274bee77dd40351c597b10efb17b599d497034239ecfb7c35cacae14d7723"
     },
     {
       "path": "native-exports/pages-list-continuation-native-v15.4.png",
@@ -67,8 +67,8 @@
     },
     {
       "path": "native-exports/pages-list-continuation-officeimo-native-v15.4.png",
-      "bytes": 51968,
-      "sha256": "206590501d1d916fde6a1cce09bf87680caad4c7431429ff71eec7a0a3fca711"
+      "bytes": 51238,
+      "sha256": "1792c0ec661074b8b9e81922466ef8201119992f44cdf4a023631772b680fe63"
     },
     {
       "path": "native-exports/pages-list-continuation-native-decode-v15.4.json",
@@ -78,7 +78,7 @@
     {
       "path": "native-exports/pages-list-continuation-native-geometry-v15.4.json",
       "bytes": 42967,
-      "sha256": "83f5c9a0667ddbaaa1259eeb10b7d51475ade920b73bc6082b4074fa4e072ad8"
+      "sha256": "7f5e45adf96794b2a37ff76deef1be9fe9cd8e451a25ffe58cd2964653513bab"
     },
     {
       "path": "native-exports/pages-list-continuation-composed-v15.4.pdf",
@@ -92,8 +92,8 @@
     },
     {
       "path": "native-exports/pages-list-continuation-composed-v15.4.png",
-      "bytes": 51288,
-      "sha256": "ca39d346170f9384d3daf1372fa0fc04dff4cb727d68fdc884f8ffac05e8c2b5"
+      "bytes": 49760,
+      "sha256": "c1e7a00911260569e7c431605f3215c4460d47ea7466fd0ef60e9af4dd682636"
     }
   ],
   "license": "OfficeIMO-owned synthetic content and Apple-generated native exports. No third-party document or standalone font files are included.",
@@ -360,8 +360,9 @@
       "allTextAndMarkerStartsMatch": true,
       "sourceMarkerPoints": 11,
       "reimportMarkerPoints": 12,
-      "maximumWordBoundDifferencePoints": 1.2656,
-      "geometryReceipt": "native-exports/pages-list-continuation-native-geometry-v15.4.json"
+      "maximumWordBoundDifferencePoints": 1.265599999999992,
+      "geometryReceipt": "native-exports/pages-list-continuation-native-geometry-v15.4.json",
+      "parentTransitionScopeQualified": true
     }
   },
   "limits": "Levels zero and one, non-tiered decimal counters and one Pages producer version. Deeper/tiered/script counters and continuation through other numbered or bullet styles remain unassessed. Native Pages reimport of reconstructed DOCX retains all counters and text/marker starts but scales the declared 11-point marker to 12 points; exact native marker-size roundtrip remains open.",
@@ -378,5 +379,6 @@
     "bodyPoints": 12,
     "fontSubstitutionsReported": true,
     "receipt": "native-exports/pages-list-continuation-composed-v15.4.json"
-  }
+  },
+  "derivedOutputRefreshedUtc": "2026-10-10T05:30:23.417764+00:00"
 }

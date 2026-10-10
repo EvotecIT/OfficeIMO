@@ -121,6 +121,8 @@ result.Report.RequireNoErrorWarnings();
 - Profile presets through `PowerPointToPdfOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
 - Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
+Numbered paragraph counters reset deeper levels after a parent item in shared visual output and PDF text boxes. PDF table cells retain numbered and character markers as separate text runs, including explicit marker fonts and sizes. Percentage marker sizes use the effective body, header or footer text size. Tables report `table-list-layout-approximation` because paragraph indentation, marker placement and spacing use the PDF table's inline layout.
+
 ### Links between slides
 
 Full-slide output preserves supported internal slide links as PDF named destinations. Text-run links follow wrapping, clipping and frame/group transforms; picture and supported shape links use their transformed frame bounds. Line links include the visible stroke so horizontal and vertical lines retain a usable region. Rich table-cell links also retain their targets. Native PowerPoint next-slide actions, including inherited layout/master text, resolve against the active slide in the authored slide order.

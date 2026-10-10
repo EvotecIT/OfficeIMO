@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using OfficeIMO.IWork;
 using OfficeIMO.Word.IWork;
+using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Packaging;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
@@ -18,6 +19,13 @@ internal static class NativePagesListCounterSmoke {
                 null, 7, 8, null, 9, 1, 2, 10, 1, 5, 6, null, 7, 11, 3, 4 }),
             "Native decimal levels, parent resets or resumed counters differ.");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using (var traversalStream = new MemoryStream(saved.ToArray()))
+        using (var reopened = WordDocument.Load(traversalStream)) {
+            Require(WordDocumentTraversal.BuildListIndices(reopened).Values.Select(value => value.Index)
+                .SequenceEqual(source.Where(paragraph => paragraph.ListNumber.HasValue)
+                    .Select(paragraph => paragraph.ListNumber!.Value)),
+                "Saved DOCX changed evaluated list counters.");
+        }
         using var document = WordprocessingDocument.Open(saved, false);
         var paragraphs = document.MainDocumentPart!.Document!.Body!.Elements<W.Paragraph>().ToArray();
         Require(paragraphs.Select(paragraph => paragraph.InnerText).SequenceEqual(source.Select(paragraph => paragraph.Text)),
@@ -41,7 +49,7 @@ internal static class NativePagesListCounterSmoke {
         }
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == Hash, "List conversion changed source bytes.");
         Console.WriteLine("PASS | native Pages decimal levels and continuation | " + Hash
-            + " | parent resets, explicit restarts, plain-text gaps, strict DOCX save/reopen, marker declarations and geometry");
+            + " | parent resets, explicit restarts, plain-text gaps, strict DOCX save/reopen, evaluated counters, marker declarations and geometry");
     }
 
     private static void Require(bool condition, string message) {

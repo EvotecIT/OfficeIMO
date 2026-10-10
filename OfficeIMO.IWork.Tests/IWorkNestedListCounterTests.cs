@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointPresentation.Load(saved);
             var paragraphs = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs;
-            Assert.Equal(new int?[] { 7, 1, null, null, null, null, 2, 5, 3, null },
+            Assert.Equal(new int?[] { 7, 1, null, 8, null, null, 2, 5, 3, null },
                 paragraphs.Select(paragraph => paragraph.NumberingStartAt));
             Assert.Equal(new int?[] { 0, 1, 1, 0, 1, null, 1, 1, 0, 0 }, paragraphs.Select(paragraph => paragraph.Level));
             Assert.Empty(reopened.ValidateDocument());
