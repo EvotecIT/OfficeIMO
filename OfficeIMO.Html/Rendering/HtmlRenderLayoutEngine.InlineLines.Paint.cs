@@ -199,6 +199,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline, lineY,
                         textLineHeight, baseline, out double textY, out double paintHeight,
                         out double paintTopOverflow);
+                    // A legal zero CSS line height still paints glyphs. Retain that
+                    // metric while giving their fragmentation carrier the same
+                    // positive minimum used by the containing line box.
+                    double textLayoutHeight = textLineHeight == 0D ? 0.01D : textLineHeight;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
                         textY - paintTopOverflow, Math.Max(0.01D, segment.Width),
                         paintHeight + paintTopOverflow, inlineBounds);
@@ -256,7 +260,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             decorationColor: segment.Run.Style.DecorationColor,
                             featureSettings: segment.Run.Style.TextFeatureSettings,
                             fontPalette: segment.Run.Style.FontPalette,
-                            layoutHeight: textLineHeight,
+                            layoutHeight: textLayoutHeight,
                             fontDescriptor: segment.Run.Style.FontDescriptor,
                             paintTopOverflow: paintTopOverflow,
                             linkBounds: segment.Run.LinkUri == null ? null : new HtmlRenderRectangle(
@@ -277,7 +281,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             visuals.Count,
                             segment.Run.Source,
                             layoutY: lineY,
-                            layoutHeight: textLineHeight)
+                            layoutHeight: textLayoutHeight)
                         : textVisuals[0];
                     AddInlineTextDecorations(visuals, ownedVisuals, segment.Run, formattingContainer, textVisuals, aboveText: false);
                     AddTextShadowVisuals(

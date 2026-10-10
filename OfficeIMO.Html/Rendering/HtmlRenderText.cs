@@ -152,6 +152,10 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
     /// <summary>Resolved line height in CSS pixels.</summary>
     public double LineHeight { get; }
 
+    // Positioned paint adapters require a positive carrier even when CSS keeps
+    // a legal zero line metric. The adapter never uses this to advance HTML flow.
+    internal double PaintLineHeight => LineHeight == 0D ? 0.01D : LineHeight;
+
     /// <summary>Optional semantic role such as heading, paragraph, or list item.</summary>
     public string? SemanticRole { get; }
 
