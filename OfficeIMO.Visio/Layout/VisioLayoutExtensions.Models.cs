@@ -4,9 +4,7 @@ using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Layout and geometry helpers for Visio pages, shapes, and selections.
-    /// </summary>
+    // Layout and geometry helpers for Visio pages, shapes, and selections.
     public static partial class VisioLayoutExtensions {
         private readonly struct Point {
             public Point(double x, double y) {

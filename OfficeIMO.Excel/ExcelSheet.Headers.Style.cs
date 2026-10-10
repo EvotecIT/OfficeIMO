@@ -1,7 +1,5 @@
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Header-based style helpers.
-    /// </summary>
+    // Header-based style helpers.
     public partial class ExcelSheet {
 
 

@@ -89,6 +89,15 @@
       "Include": ["*.md", "**/*.md"]
     },
     {
+      "Name": "browser-tools",
+      "Input": "content/browser",
+      "Output": "/browser",
+      "DefaultLayout": "browser-tool",
+      "UseToc": false,
+      "SitemapLastModified": "sourceDate",
+      "Include": ["*.md", "**/*.md"]
+    },
+    {
       "Name": "pdf-workflows",
       "Input": "content/pdf-workflows",
       "Output": "/pdf",
@@ -322,8 +331,8 @@
       },
       {
         "Name": "convert_selected_document",
-        "Route": "/apps/officeimo-converter/",
-        "Description": "Convert the document already selected in the visible OfficeIMO workspace using the current browser-local route and settings.",
+        "Route": "/browser/word-to-pdf/",
+        "Description": "Run the open OfficeIMO browser tool on the file already chosen on the page, with the settings shown. Processing stays in the browser.",
         "Kind": "page-tool",
         "ReadOnly": false
       }
@@ -335,7 +344,12 @@
       "EdgeTtlSeconds": 604800
     },
     "PurgeMode": "hostname",
-    "SmartTieredCache": true
+    "SmartTieredCache": true,
+    "ImmutablePaths": [
+      "/apps/officeimo-converter/_framework/*.*.wasm",
+      "/apps/officeimo-converter/_framework/*.*.js",
+      "/apps/officeimo-converter/_framework/*.*.dat"
+    ]
   },
   "EditLinks": {
     "Enabled": true,
@@ -343,7 +357,7 @@
     "PathBase": "Website"
   },
   "AssetRegistry": {
-    "CssStrategy": "standard",
+    "CssStrategy": "preload",
     "Bundles": [
       {
         "Name": "global",
@@ -352,6 +366,7 @@
           "/css/prism-theme.css"
         ],
         "Js": [
+          "/js/browser-handoff.js",
           "/js/site.js",
           "/js/source-viewer.js"
         ]
@@ -360,6 +375,15 @@
         "Name": "home",
         "Css": [
           "/css/home.css"
+        ]
+      },
+      {
+        "Name": "format-map",
+        "Css": [
+          "/css/format-map.css"
+        ],
+        "Js": [
+          "/js/format-map.js"
         ]
       },
       {
@@ -412,6 +436,15 @@
         "Js": [
           "/js/benchmarks.js"
         ]
+      },
+      {
+        "Name": "browser-tool",
+        "Css": [
+          "/css/browser-tool.css"
+        ],
+        "Js": [
+          "/js/browser-pages.js"
+        ]
       }
     ],
     "RouteBundles": [
@@ -421,7 +454,8 @@
           "global",
           "home",
           "experience",
-          "applications"
+          "applications",
+          "format-map"
         ]
       },
       {
@@ -489,6 +523,20 @@
           "product",
           "docs",
           "experience"
+        ]
+      },
+      {
+        "Match": "/browser/**",
+        "Bundles": [
+          "global",
+          "experience",
+          "browser-tool"
+        ]
+      },
+      {
+        "Match": "/convert/",
+        "Bundles": [
+          "format-map"
         ]
       },
       {

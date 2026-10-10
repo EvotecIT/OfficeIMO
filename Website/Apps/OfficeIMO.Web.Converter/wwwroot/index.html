@@ -1,55 +1,17 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OfficeIMO Browser Document Workspace</title>
-    <meta name="description" content="Convert documents and run practical PDF workflows locally in your browser with OfficeIMO WebAssembly. No document uploads, account, credits, or server queue." />
-    <meta property="og:description" content="Convert documents and run practical PDF workflows locally in your browser with OfficeIMO WebAssembly. No document uploads, account, credits, or server queue." />
-    <meta name="twitter:description" content="Convert documents and run practical PDF workflows locally in your browser with OfficeIMO WebAssembly. No document uploads, account, credits, or server queue." />
-    <base href="/apps/officeimo-converter/" />
-    <script>if(window.top===window.self&&location.pathname.startsWith('/apps/officeimo-converter/')&&new URLSearchParams(location.search).get('embedded')!=='1'){location.replace('/convert/'+location.search+location.hash);}</script>
-    <link rel="canonical" href="https://officeimo.com/apps/officeimo-converter/" />
-    <link rel="alternate" hreflang="en" href="https://officeimo.com/apps/officeimo-converter/" />
-    <link rel="alternate" hreflang="x-default" href="https://officeimo.com/apps/officeimo-converter/" />
-    <link rel="preload" id="webassembly" />
-    <script>(function(){function a(){var t=null;try{t=localStorage.getItem('imo-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}window.officeimoConverterShell={toggleTheme:function(){var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';try{localStorage.setItem('imo-theme',t);}catch(e){}a();}};a();if(new URLSearchParams(location.search).get('embedded')==='1'){document.documentElement.classList.add('ocx-embedded');}addEventListener('storage',function(e){if(e.key==='imo-theme'){a();}});})();</script>
-    <link rel="stylesheet" href="converter.css" />
-    <link rel="stylesheet" href="OfficeIMO.Web.Converter.styles.css" />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <script type="importmap"></script>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>OfficeIMO browser tools</title>
+<link rel="canonical" href="/convert/">
+<script>
+  // This folder now only hosts the engine that the /browser/ tool pages load.
+  // Older links (?route=docx-pdf, ?workspace=pdf&tool=merge) are resolved by the /convert/ directory.
+  location.replace('/convert/' + location.search);
+</script>
 </head>
-
-<body class="imo-body officeimo-converter-standalone"
-      data-webmcp-page-tool
-      data-webmcp-tool-name="convert_selected_document"
-      data-webmcp-tool-description="Convert the document already selected in the visible OfficeIMO workspace using the current browser-local route and settings."
-      data-webmcp-read-only="false">
-    <div id="app">
-        <main class="ocx-shell">
-            <section class="ocx-startup" aria-labelledby="startup-title">
-                <p class="ocx-startup__eyebrow">OfficeIMO · Browser tools</p>
-                <h1 id="startup-title">Preparing your workspace</h1>
-                <p>Document tools run on your device. The first visit downloads the runtime; individual tools load when you need them.</p>
-                <progress id="startup-progress" max="100" aria-label="Workspace download"></progress>
-                <p id="startup-status" role="status">Starting the download…</p>
-                <p id="startup-slow" hidden>A slow connection can make the first visit take longer. If progress stops, try reloading. You can also browse the <a href="/docs/" target="_top">documentation</a>.</p>
-                <button id="startup-retry" type="button" hidden>Reload workspace</button>
-                <small>Files stay in this browser. No account or upload required.</small>
-                <noscript>Enable JavaScript to use these browser tools.</noscript>
-            </section>
-        </main>
-    </div>
-
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">x</span>
-    </div>
-    <script type="module" src="Components/ConverterWorkspace.razor.js" data-powerforge-webmcp data-webmcp-tool-name="convert_selected_document"></script>
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js" autostart="false"></script>
-    <script src="startup.js"></script>
+<body>
+<p><a href="/convert/">Open the OfficeIMO browser tools</a></p>
 </body>
-
 </html>

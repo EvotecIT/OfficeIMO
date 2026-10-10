@@ -8,7 +8,7 @@ meta.package: "OfficeIMO.Word.Pdf"
 meta.package_url: "https://www.nuget.org/packages/OfficeIMO.Word.Pdf"
 meta.runtime: ".NET on Windows, Linux, and macOS"
 meta.primary_label: "Convert DOCX to PDF in the browser"
-meta.primary_url: "/convert/?workspace=convert&route=docx-pdf"
+meta.primary_url: "/browser/word-to-pdf/"
 meta.secondary_label: "Read the Word guide"
 meta.secondary_url: "/docs/word/"
 meta.summary_title: "Word to PDF summary"
@@ -42,7 +42,7 @@ The converter handles common document structures such as paragraphs, styled text
 
 ## Fonts and external resources
 
-Try the [monthly operations sample in your browser](/convert/?route=docx-pdf), download its [DOCX source](/downloads/samples/business-summary.docx), or inspect the [C# generator](/downloads/samples/BrowserBusinessSample.cs.txt). It uses Carlito from the browser's bundled font pack. Choose **Try a sample**, then convert and inspect the PDF and diagnostic report.
+Try the [monthly operations sample in your browser](/browser/word-to-pdf/), download its [DOCX source](/downloads/samples/business-summary.docx), or inspect the [C# generator](/downloads/samples/BrowserBusinessSample.cs.txt). It uses Carlito from the browser's bundled font pack. Choose **Try a sample**, then convert and inspect the PDF and diagnostic report.
 
 For a deliberate font-substitution exercise, download the [basic diagnostic DOCX](/apps/officeimo-converter/samples/basic.docx) and upload it separately. Its requested fonts may be replaced by bundled alternatives; those warnings remain part of the result.
 

@@ -1,7 +1,5 @@
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Implements equality comparison for paragraphs.
-    /// </summary>
+    // Implements equality comparison for paragraphs.
     public partial class WordParagraph : System.IEquatable<WordParagraph> {
         /// <summary>
         /// Determines whether the specified <see cref="WordParagraph"/> is equal to the current instance.

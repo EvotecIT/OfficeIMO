@@ -84,3 +84,68 @@
 .imo-docs-reference{display:flex;align-items:center;justify-content:space-between;gap:3rem;margin:4.5rem 0 2rem;padding:2.25rem;border:1px solid rgba(56,189,248,.2);border-radius:16px;background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(45,212,191,.05))}.imo-docs-reference h2{margin:0 0 .6rem;font-size:1.8rem}.imo-docs-reference p:not(.imo-docs-reference__eyebrow){max-width:680px;margin:0;color:var(--imo-text-secondary);line-height:1.65}.imo-docs-reference .imo-btn{flex-shrink:0}.imo-docs-home-reference{border:1px solid var(--imo-glass-border);border-radius:12px;background:var(--imo-glass)}.imo-docs-home-reference summary{cursor:pointer;padding:1rem 1.2rem;color:var(--imo-text-secondary);font-size:.85rem;font-weight:700}.imo-docs-home-reference .imo-docs__content{padding:0 1.5rem 1.5rem}
 @media(max-width:1023px){.imo-body--docs-home .imo-docs{grid-template-columns:1fr}.imo-docs__main--home .imo-docs__article{padding-inline:1.5rem}}
 @media(max-width:760px){.imo-docs-home-hero h1{font-size:3.2rem}.imo-docs-paths__grid,.imo-docs-start__grid{grid-template-columns:1fr}.imo-docs-section-heading,.imo-docs-reference{align-items:flex-start;flex-direction:column}.imo-docs-reference .imo-btn{width:100%;justify-content:center}}
+/* FAQ page (layouts/faq.html): section rail with filter and help links, questions as cards. */
+.imo-faq-hero .imo-section__eyebrow { margin-bottom: .8rem; }
+.imo-faq-layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+.imo-faq-rail { position: sticky; top: calc(var(--imo-header-height, 64px) + 1.25rem); display: grid; gap: 1rem; }
+.imo-faq-filter { display: flex; align-items: center; gap: .55rem; padding: .55rem .8rem; border: 1px solid var(--imo-border); border-radius: 10px; background: var(--imo-surface); color: var(--imo-text-muted); }
+.imo-faq-filter:focus-within { border-color: var(--imo-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--imo-accent) 22%, transparent); }
+.imo-faq-filter input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--imo-text); font: inherit; font-size: .92rem; }
+.imo-faq-nav { display: grid; gap: 2px; }
+.imo-faq-nav a { display: flex; justify-content: space-between; align-items: center; padding: .5rem .7rem; border-radius: 8px; color: var(--imo-text-secondary); text-decoration: none; font-weight: 600; font-size: .92rem; }
+.imo-faq-nav a:hover { background: var(--imo-surface); color: var(--imo-text); }
+.imo-faq-nav span { min-width: 1.6rem; padding: .1rem .45rem; border-radius: 999px; text-align: center; font-size: .75rem; color: var(--imo-text-muted); background: var(--imo-bg-alt); }
+.imo-faq-help { display: grid; gap: .45rem; padding: 1rem; border: 1px solid var(--imo-border); border-radius: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--imo-accent) 8%, var(--imo-surface)), var(--imo-surface)); }
+.imo-faq-help b { color: var(--imo-text); }
+.imo-faq-help p { margin: 0 0 .25rem; font-size: .85rem; color: var(--imo-text-secondary); line-height: 1.5; }
+.imo-faq-help a { font-size: .88rem; font-weight: 600; color: var(--imo-accent); text-decoration: none; }
+.imo-faq-help a:hover { text-decoration: underline; }
+.imo-faq-main { display: grid; gap: 2.25rem; min-width: 0; }
+.imo-faq-group { display: grid; gap: .6rem; scroll-margin-top: calc(var(--imo-header-height, 64px) + 1.5rem); }
+.imo-faq-group h2 { margin: 0 0 .35rem; font-size: 1.3rem; }
+.imo-faq-card { border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); transition: border-color .2s ease, box-shadow .2s ease; }
+.imo-faq-card:hover { border-color: color-mix(in srgb, var(--imo-accent) 35%, var(--imo-border)); }
+.imo-faq-card[open] { border-color: color-mix(in srgb, var(--imo-accent) 50%, var(--imo-border)); box-shadow: 0 16px 36px -28px color-mix(in srgb, var(--imo-accent) 80%, transparent); }
+.imo-faq-card summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 1.15rem; cursor: pointer; list-style: none; font-weight: 600; color: var(--imo-text); }
+.imo-faq-card summary::-webkit-details-marker { display: none; }
+.imo-faq-card summary svg { flex: none; color: var(--imo-text-muted); transition: transform .25s ease, color .25s ease; }
+.imo-faq-card[open] summary svg { transform: rotate(180deg); color: var(--imo-accent); }
+.imo-faq-card summary:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; border-radius: 12px; }
+.imo-faq-card__answer { padding: 0 1.15rem 1.1rem; color: var(--imo-text-secondary); font-size: .95rem; line-height: 1.7; }
+.imo-faq-card__answer p { margin: 0 0 .55rem; }
+.imo-faq-card__answer p:last-child { margin-bottom: 0; }
+.imo-faq-card[hidden], .imo-faq-group[hidden], .imo-faq-empty[hidden] { display: none; }
+.imo-faq-empty { padding: 1.25rem; border: 1px dashed var(--imo-border); border-radius: 12px; color: var(--imo-text-secondary); }
+@media (max-width: 860px) {
+  .imo-faq-layout { grid-template-columns: minmax(0, 1fr); }
+  .imo-faq-rail { position: static; }
+  .imo-faq-nav { grid-auto-flow: column; justify-content: start; }
+}
+@media (prefers-reduced-motion: reduce) { .imo-faq-card, .imo-faq-card summary svg { transition: none; } }
+/* PDF guides index (shortcodes/pdf-workflows): compact cards grouped by job, each with its guide and tool. */
+.imo-pdf-guides { display: grid; gap: 1.75rem; margin: 1.25rem 0 2.25rem; }
+.imo-pdf-guides__group h2 { display: flex; align-items: center; gap: .55rem; margin: 0 0 .75rem; font-size: 1.05rem; letter-spacing: .02em; }
+.imo-pdf-guides__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--g, var(--imo-accent)); }
+.imo-pdf-guides__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: .5rem 0 1rem; }
+.imo-pdf-guide {
+  --g: var(--imo-accent);
+  position: relative; display: flex; flex-direction: column; gap: .45rem; padding: 14px 16px 12px; border-radius: 12px;
+  border: 1px solid var(--imo-border); background: linear-gradient(180deg, color-mix(in srgb, var(--g) 7%, var(--imo-surface)), var(--imo-surface) 60%);
+  transition: border-color .2s ease, transform .2s ease;
+}
+.imo-pdf-guide::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; border-radius: 12px 0 0 12px; background: var(--g); opacity: .8; }
+.imo-pdf-guide:hover { border-color: color-mix(in srgb, var(--g) 45%, var(--imo-border)); transform: translateY(-1px); }
+.imo-pdf-guide h3 { margin: 0; font-size: 1rem; line-height: 1.3; }
+.imo-pdf-guide h3 a { color: var(--imo-text); text-decoration: none; }
+.imo-pdf-guide p { margin: 0; font-size: .86rem; line-height: 1.55; color: var(--imo-text-secondary); }
+.imo-pdf-guide__links { display: flex; flex-wrap: wrap; gap: .4rem .9rem; margin-top: auto; padding-top: .35rem; font-size: .82rem; font-weight: 600; }
+.imo-pdf-guide__links a { color: var(--imo-text-secondary); text-decoration: none; }
+.imo-pdf-guide__links a::after { content: " →"; }
+.imo-pdf-guide__links a:hover { color: var(--imo-text); }
+.imo-pdf-guide__links .imo-pdf-guide__try { color: var(--imo-p-browser); }
+.imo-pdf-guides__dot--understand, .imo-pdf-guide--understand { --g: var(--imo-p-studio); }
+.imo-pdf-guides__dot--organize, .imo-pdf-guide--organize { --g: var(--imo-p-browser); }
+.imo-pdf-guides__dot--publish, .imo-pdf-guide--publish { --g: var(--imo-excel); }
+.imo-pdf-guides__dot--secure, .imo-pdf-guide--secure { --g: var(--imo-pdf); }
+.imo-pdf-guide--convert { --g: var(--imo-p-dotnet); }
+@media (prefers-reduced-motion: reduce) { .imo-pdf-guide { transition: none; } .imo-pdf-guide:hover { transform: none; } }

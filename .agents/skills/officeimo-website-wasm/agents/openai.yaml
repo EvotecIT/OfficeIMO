@@ -1,7 +1,7 @@
 interface:
-  display_name: OfficeIMO Website WASM
-  short_description: Build OfficeIMO.com static browser conversion features.
+  display_name: OfficeIMO Website browser tools
+  short_description: Build OfficeIMO.com browser tools (static pages + engine worker).
   default_prompt: >-
-    Keep OfficeIMO.com browser conversion static and GitHub Pages-safe. Publish
-    Blazor WebAssembly under Website/static/apps/officeimo-converter and call
-    OfficeIMO byte and stream APIs directly.
+    Keep OfficeIMO.com browser tools static and GitHub Pages-safe. Tool pages
+    render from Website/data/browser_tools.json; the OfficeIMO engine runs in a
+    Web Worker from Website/Apps/OfficeIMO.Web.Converter through JSExport.

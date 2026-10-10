@@ -5,10 +5,8 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
-    /// <summary>
-    /// High-level builder for UML-style sequence diagrams with deterministic participant,
-    /// lifeline, and message placement.
-    /// </summary>
+    // High-level builder for UML-style sequence diagrams with deterministic participant,
+    // lifeline, and message placement.
     public sealed partial class VisioSequenceDiagramBuilder {
         private void AddMessages(VisioPage page, double firstMessageY) {
             for (int i = 0; i < _messages.Count; i++) {

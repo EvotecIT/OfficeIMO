@@ -8,9 +8,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Load core and parse helpers for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Load core and parse helpers for VisioDocument.
     public partial class VisioDocument {
         private const int MaximumLoadedFontFamilyCharacters = 256;
 

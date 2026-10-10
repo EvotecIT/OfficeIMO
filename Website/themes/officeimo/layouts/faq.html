@@ -22,29 +22,53 @@
   <a class="imo-skip-link" href="#content">Skip to main content</a>
   {{ include "header" }}
   <main id="content">
-    <section class="imo-page-hero">
+    <section class="imo-page-hero imo-faq-hero">
       <div class="imo-container">
+        <p class="imo-section__eyebrow">Help</p>
         <h1>{{ page.title }}</h1>
         {{ if page.description }}<p class="imo-page-hero-desc">{{ page.description }}</p>{{ end }}
       </div>
     </section>
-    <section class="imo-section">
-      <div class="imo-container">
-        {{ if data.faq && data.faq.sections }}
-        {{ for section in data.faq.sections }}
-        <div class="imo-faq-section">
-          <h2>{{ section.title }}</h2>
-          <div class="imo-faq-list">
-            {{ for item in section.items }}
-            <details class="imo-faq-item">
-              <summary class="imo-faq-question">{{ item.question }}</summary>
-              <div class="imo-faq-answer">{{ for block in item.answer }}{{ block }}{{ end }}</div>
-            </details>
-            {{ end }}
+    <section class="imo-section imo-faq-page">
+      <div class="imo-container imo-faq-layout">
+        {{~ if data.faq && data.faq.sections ~}}
+        <aside class="imo-faq-rail">
+          <label class="imo-faq-filter">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span class="imo-visually-hidden">Filter questions</span>
+            <input type="search" placeholder="Filter questions" autocomplete="off" data-faq-filter />
+          </label>
+          <nav class="imo-faq-nav" aria-label="FAQ sections">
+            {{~ for section in data.faq.sections ~}}
+            <a href="#faq-{{ section.title | string.handleize }}">{{ section.title }}<span>{{ section.items.size }}</span></a>
+            {{~ end ~}}
+          </nav>
+          {{~ if data.community && data.community.ways ~}}
+          <div class="imo-faq-help">
+            <b>Still stuck?</b>
+            <p>Ask the community, or tell us what you ran into.</p>
+            {{~ for way in data.community.ways ~}}{{~ if way.id == "discord" || way.id == "issue" ~}}
+            <a href="{{ way.url }}" target="_blank" rel="noopener">{{ way.title }} <span aria-hidden="true">→</span></a>
+            {{~ end ~}}{{~ end ~}}
+            <a href="/pricing/">Commercial help <span aria-hidden="true">→</span></a>
           </div>
+          {{~ end ~}}
+        </aside>
+        <div class="imo-faq-main">
+          {{~ for section in data.faq.sections ~}}
+          <section class="imo-faq-group" id="faq-{{ section.title | string.handleize }}" aria-labelledby="faq-{{ section.title | string.handleize }}-title">
+            <h2 id="faq-{{ section.title | string.handleize }}-title">{{ section.title }}</h2>
+            {{~ for item in section.items ~}}
+            <details class="imo-faq-card">
+              <summary><span>{{ item.question }}</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+              <div class="imo-faq-card__answer">{{ for block in item.answer }}{{ block }}{{ end }}</div>
+            </details>
+            {{~ end ~}}
+          </section>
+          {{~ end ~}}
+          <p class="imo-faq-empty" hidden>No question matches that. Try the <a href="/docs/">documentation</a>, or ask on Discord.</p>
         </div>
-        {{ end }}
-        {{ end }}
+        {{~ end ~}}
       </div>
     </section>
   </main>

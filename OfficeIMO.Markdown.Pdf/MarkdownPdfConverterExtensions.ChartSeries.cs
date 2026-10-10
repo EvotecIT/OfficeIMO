@@ -2,9 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Markdown.Pdf;
 
-/// <summary>
-/// First-party Markdown to PDF conversion helpers.
-/// </summary>
+// First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
     private static List<OfficeChartSeries> ReadSeries(MarkdownPdfJsonValue dataElement, List<string> labels, OfficeChartKind chartKind, bool defaultConnectLine, bool defaultShowMarkers, bool horizontalBarChart = false) {
         var drafts = new List<MarkdownChartSeriesDraft>();

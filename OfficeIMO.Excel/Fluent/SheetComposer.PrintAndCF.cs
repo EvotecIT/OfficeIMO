@@ -1,7 +1,5 @@
 namespace OfficeIMO.Excel.Fluent {
-    /// <summary>
-    /// Print and conditional formatting conveniences for SheetComposer.
-    /// </summary>
+    // Print and conditional formatting conveniences for SheetComposer.
     public sealed partial class SheetComposer {
         /// <summary>
         /// Applies sensible print defaults: gridlines off, fit to width, and optional print area.

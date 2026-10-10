@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Page setup helpers for orientation and margins.
-    /// </summary>
+    // Page setup helpers for orientation and margins.
     public partial class ExcelSheet {
         /// <summary>
         /// Sets page orientation (Portrait or Landscape) on the sheet's PageSetup.

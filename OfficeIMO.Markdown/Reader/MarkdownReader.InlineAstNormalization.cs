@@ -3,9 +3,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-/// <summary>
-/// AST-level inline normalization helpers for model/chat oriented markdown quirks.
-/// </summary>
+// AST-level inline normalization helpers for model/chat oriented markdown quirks.
 public static partial class MarkdownReader {
     internal static bool NormalizeInlineSequenceInPlace(InlineSequence? sequence, MarkdownInputNormalizationOptions? options) {
         if (sequence == null || options == null) return false;

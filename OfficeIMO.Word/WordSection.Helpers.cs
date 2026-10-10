@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Convenience helpers for working with section-scoped headers/footers.
-    /// </summary>
+    // Convenience helpers for working with section-scoped headers/footers.
     public partial class WordSection {
         /// <summary>
         /// Returns the section header of the requested type (Default/Even/First).

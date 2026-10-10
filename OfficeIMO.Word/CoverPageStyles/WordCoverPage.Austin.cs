@@ -4,9 +4,7 @@ using V = DocumentFormat.OpenXml.Vml;
 using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Represents a cover page within a Word document.
-    /// </summary>
+    // Represents a cover page within a Word document.
     public partial class WordCoverPage {
 
         private SdtBlock CoverPageAustin {

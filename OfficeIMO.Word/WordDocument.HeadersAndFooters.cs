@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Manages document headers and footers.
-    /// </summary>
+    // Manages document headers and footers.
     public partial class WordDocument {
         // internal header properties for easy usage
         internal Header? _headerFirst;

@@ -16,6 +16,9 @@ string repositoryRoot = GetOption(args, "--repository")
 string websiteDataPath = GetOption(args, "--website-data")
     ?? Path.Combine(Directory.GetCurrentDirectory(), "Website", "data", "office_conversion_routes.json");
 bool verify = args.Contains("--verify", StringComparer.OrdinalIgnoreCase);
+// The front-page format map sits beside the route data and is generated from the same catalog.
+string formatMapPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(websiteDataPath))!, "format_map.json");
+string formatMap = FormatMapProjection.Create();
 string converterSamplePath = GetOption(args, "--converter-sample")
     ?? Path.Combine(
         Directory.GetCurrentDirectory(),
@@ -64,6 +67,11 @@ if (verify) {
         Environment.ExitCode = 1;
         return;
     }
+    if (!File.Exists(formatMapPath) || Normalize(File.ReadAllText(formatMapPath)) != Normalize(formatMap)) {
+        Console.Error.WriteLine("Website format map is missing or stale: " + formatMapPath);
+        Environment.ExitCode = 1;
+        return;
+    }
     if (!VerifyConverterPowerPointSample(converterSamplePath, out string sampleError)) {
         Console.Error.WriteLine("Converter proof sample is missing or stale: " + sampleError);
         Environment.ExitCode = 1;
@@ -89,6 +97,7 @@ foreach ((string fileName, string content) in outputs) {
 string? websiteDataDirectory = Path.GetDirectoryName(websiteDataPath);
 if (!string.IsNullOrEmpty(websiteDataDirectory)) Directory.CreateDirectory(websiteDataDirectory);
 File.WriteAllText(websiteDataPath, Normalize(outputs["conversion-routes.json"]), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+File.WriteAllText(formatMapPath, formatMap, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 foreach ((string path, string content) in packageReadmes) {
     PackageReadmeOperationProjection.Write(repositoryRoot, path, content);
 }

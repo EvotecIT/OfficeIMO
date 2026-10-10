@@ -2523,6 +2523,12 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Provenance.TrustAnchors" xml:space="preserve"><value>Trust anchors PEM path (optional)</value></data>
   <data name="Provenance.AllowedList" xml:space="preserve"><value>Allowed certificates PEM path (optional)</value></data>
   <data name="Provenance.CheckProvider" xml:space="preserve"><value>Check verifier</value></data>
+  <data name="Provenance.Credentials" xml:space="preserve"><value>Content Credentials</value></data>
+  <data name="Provenance.CredentialHint" xml:space="preserve"><value>These are statements recorded in the file. Reading a record does not verify its signature, certificate trust or link to the content. Verification results are shown separately.</value></data>
+  <data name="Provenance.Timeline" xml:space="preserve"><value>Recorded actions</value></data>
+  <data name="Provenance.TimelineHint" xml:space="preserve"><value>Actions from the active claim, in their recorded order. Earlier manifests are counted but are not expanded here; missing times stay unknown.</value></data>
+  <data name="Provenance.WatermarkHint" xml:space="preserve"><value>The record claims a watermark was added to the content. Removing the credential does not remove that watermark.</value></data>
+  <data name="Provenance.RecordDetails" xml:space="preserve"><value>Record details</value></data>
   <data name="OcrSetup.Title" xml:space="preserve"><value>Text recognition setup</value></data>
   <data name="OcrSetup.Description" xml:space="preserve"><value>Studio uses an installed Tesseract engine. Check automatic discovery or choose your installation once for searchable PDFs, scan text and multi-file OCR.</value></data>
   <data name="OcrSetup.CheckToStart" xml:space="preserve"><value>Check the engine before starting text recognition.</value></data>
@@ -2872,4 +2878,28 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>The display label matches several choices. Enter the exact export value.</value></data>
   <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Unmatched current selection</value></data>
   <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Unmatched comparison selection</value></data>
+  <data name="Provenance.NotRecorded" xml:space="preserve"><value>Not recorded</value></data>
+  <data name="Provenance.SoftwareNotRecorded" xml:space="preserve"><value>Software not recorded</value></data>
+  <data name="Provenance.TimeNotRecorded" xml:space="preserve"><value>Time not recorded</value></data>
+  <data name="Provenance.RecordedTime" xml:space="preserve"><value>Recorded time: {0}</value></data>
+  <data name="Provenance.CertificateSubjectFormat" xml:space="preserve"><value>Certificate subject (unverified): {0}</value></data>
+  <data name="Provenance.CertificateIssuerFormat" xml:space="preserve"><value>Certificate issuer (unverified): {0}</value></data>
+  <data name="Provenance.SourceAssetFormat" xml:space="preserve"><value>Source asset: {0}</value></data>
+  <data name="Provenance.ManifestCountFormat" xml:space="preserve"><value>Manifests in the store: {0}</value></data>
+  <data name="Provenance.ActionCreated" xml:space="preserve"><value>Created</value></data>
+  <data name="Provenance.ActionOpened" xml:space="preserve"><value>Opened</value></data>
+  <data name="Provenance.ActionEdited" xml:space="preserve"><value>Edited</value></data>
+  <data name="Provenance.ActionConverted" xml:space="preserve"><value>Converted</value></data>
+  <data name="Provenance.ActionCropped" xml:space="preserve"><value>Cropped</value></data>
+  <data name="Provenance.ActionResized" xml:space="preserve"><value>Resized</value></data>
+  <data name="Provenance.ActionPlaced" xml:space="preserve"><value>Placed other content</value></data>
+  <data name="Provenance.ActionPublished" xml:space="preserve"><value>Published</value></data>
+  <data name="Provenance.ActionWatermarked" xml:space="preserve"><value>Added a watermark to the content</value></data>
+  <data name="Provenance.SourceGenerativeAi" xml:space="preserve"><value>Generative AI declared</value></data>
+  <data name="Provenance.SourceCompositeAi" xml:space="preserve"><value>Mix of AI-generated and other content declared</value></data>
+  <data name="Provenance.SourceAlgorithmic" xml:space="preserve"><value>Software-generated content declared</value></data>
+  <data name="Provenance.SourceDigitalCapture" xml:space="preserve"><value>Camera or scanner capture declared</value></data>
+  <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Composite of captured media declared</value></data>
+  <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Recorded source type: {0}</value></data>
+  <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Source type not recorded</value></data>
 </root>

@@ -1,0 +1,20 @@
+{{~ # The other ways to use OfficeIMO, from data/surfaces.json. Set current_surface (studio, browser, cli, dotnet, powershell) before including. ~}}
+{{~ if data.surfaces && data.surfaces.items ~}}
+<section class="imo-container imo-switcher" aria-labelledby="switcher-title">
+  <div class="imo-switcher__head">
+    <p class="imo-section__eyebrow">Same engine, other surfaces</p>
+    <h2 id="switcher-title">Use OfficeIMO another way</h2>
+  </div>
+  <div class="imo-switcher__grid">
+    {{~ for surface in data.surfaces.items ~}}
+    {{~ if surface.enabled && surface.id != current_surface ~}}
+    <a class="imo-switcher__card imo-switcher__card--{{ surface.id }}" href="{{ surface.url }}">
+      <b>{{ surface.name }}</b>
+      <span>{{ if surface.id == "powershell" && data.pswriteoffice_command_catalog }}PSWriteOffice brings {{ data.pswriteoffice_command_catalog.module.commandCount }} commands to PowerShell 5.1 and 7.{{ else }}{{ surface.description }}{{ end }}</span>
+      <em>{{ surface.action }} <span aria-hidden="true">→</span></em>
+    </a>
+    {{~ end ~}}
+    {{~ end ~}}
+  </div>
+</section>
+{{~ end ~}}

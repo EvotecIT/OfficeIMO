@@ -5,6 +5,30 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfVisualComparerTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Gallery_DistinguishesMatchingVisualPagesFromStructuralDifferences(bool extraExpectedPage) {
+        byte[] single = BuildPdf("Common page");
+        byte[] multiple = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) })
+            .Paragraph(paragraph => paragraph.Text("Common page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Extra page"))
+            .ToBytes();
+        PdfVisualComparisonReport report = PdfVisualComparer.Compare(
+            extraExpectedPage ? multiple : single, extraExpectedPage ? single : multiple);
+
+        Assert.False(report.IsMatch);
+        Assert.True(Assert.Single(report.Pages).IsMatch);
+        Assert.Equal(2, report.StructuralDifferences.Count);
+        Assert.Equal(0, report.DifferentPageCount);
+        Assert.Equal(0, report.IncompletePageCount);
+        string gallery = report.ToHtmlGallery();
+        Assert.Contains("1 visual match", gallery, StringComparison.Ordinal);
+        Assert.Contains("0 visual differences", gallery, StringComparison.Ordinal);
+        Assert.Contains("2 structural differences", gallery, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Compare_ReportsPixelDifferencesThresholdsIgnoredRegionsAndGallery() {
         byte[] expected = BuildPdf("Expected visual text");
@@ -22,6 +46,8 @@ public class PdfVisualComparerTests {
 
         Assert.False(exact.IsMatch);
         Assert.False(page.IsMatch);
+        Assert.Equal(1, exact.DifferentPageCount);
+        Assert.Equal(0, exact.IncompletePageCount);
         Assert.True(page.DifferentPixels > 0);
         Assert.True(page.DifferenceRatio > 0D);
         Assert.True(page.MaximumChannelDifference > 0);
@@ -33,6 +59,8 @@ public class PdfVisualComparerTests {
         Assert.Null(Assert.Single(ignored.Pages).ChangedBounds);
         Assert.True(ignored.IsMatch);
         Assert.True(threshold.IsMatch);
+        Assert.Equal(0, ignored.DifferentPageCount);
+        Assert.Equal(0, threshold.DifferentPageCount);
         Assert.Contains("Review proof", gallery, StringComparison.Ordinal);
         Assert.Equal(3, Count(gallery, "data:image/png;base64,"));
     }
@@ -74,9 +102,14 @@ public class PdfVisualComparerTests {
 
         Assert.False(report.IsMatch);
         Assert.False(page.IsMatch);
+        Assert.Equal(0, report.DifferentPageCount);
+        Assert.Equal(1, report.IncompletePageCount);
         Assert.Equal(0, page.DifferentPixels);
         Assert.Contains(page.ExpectedCapabilityDiagnostics,
             diagnostic => diagnostic.Code == PdfRenderCapabilities.UnknownOperatorId);
+        Assert.Contains("0 visual differences", report.ToHtmlGallery(), StringComparison.Ordinal);
+        Assert.Contains("1 incomplete page", report.ToHtmlGallery(), StringComparison.Ordinal);
+        Assert.Contains("warn\">Incomplete", report.ToHtmlGallery(), StringComparison.Ordinal);
         Assert.Contains(page.ActualCapabilityDiagnostics,
             diagnostic => diagnostic.Code == PdfRenderCapabilities.UnknownOperatorId);
     }
@@ -93,12 +126,18 @@ public class PdfVisualComparerTests {
             "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
         }));
 
-        PdfVisualPageComparison page = Assert.Single(PdfVisualComparer.Compare(pdf, pdf).Pages);
+        PdfVisualComparisonReport report = PdfVisualComparer.Compare(pdf, pdf);
+        PdfVisualPageComparison page = Assert.Single(report.Pages);
 
         Assert.False(page.IsMatch);
         Assert.Equal(0, page.DifferentPixels);
+        Assert.Equal(0, report.DifferentPageCount);
+        Assert.Equal(1, report.IncompletePageCount);
         Assert.Contains(page.ExpectedCapabilityDiagnostics,
             diagnostic => diagnostic.Code == PdfRenderCapabilities.FontSubstitutionId);
+        Assert.Contains("0 visual differences", report.ToHtmlGallery(), StringComparison.Ordinal);
+        Assert.Contains("1 incomplete page", report.ToHtmlGallery(), StringComparison.Ordinal);
+        Assert.Contains("warn\">Incomplete", report.ToHtmlGallery(), StringComparison.Ordinal);
         Assert.Equal(PdfPageChangeKind.ModifiedCandidate,
             Assert.Single(PdfPageChangeAnalyzer.Analyze(pdf, pdf).Changes).Kind);
     }

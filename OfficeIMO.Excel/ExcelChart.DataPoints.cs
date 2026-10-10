@@ -4,9 +4,7 @@ using DocumentFormat.OpenXml;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Represents a chart on a worksheet.
-    /// </summary>
+    // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
         /// <summary>
         /// Sets the fill color for a single chart data point by series index and zero-based point index.

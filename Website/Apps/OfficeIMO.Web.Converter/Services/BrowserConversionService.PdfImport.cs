@@ -20,12 +20,12 @@ public sealed partial class BrowserConversionService {
     private static ConversionResult ConvertPdfFile(
         ConversionRoute route,
         SelectedDocument file,
-        PdfPowerPointImportMode pdfPowerPointMode) {
+        string? powerPointImportProfileId) {
         var stopwatch = Stopwatch.StartNew();
         PdfImportPayload payload = route.Id switch {
             "pdf-docx" => ConvertPdfToWord(file),
             "pdf-xlsx" => ConvertPdfToExcel(file),
-            "pdf-pptx" => ConvertPdfToPowerPoint(file, pdfPowerPointMode),
+            "pdf-pptx" => ConvertPdfToPowerPoint(file, powerPointImportProfileId),
             "pdf-html" => ConvertPdfToHtml(file),
             "pdf-png" => ConvertPdfToPng(file),
             _ => throw new NotSupportedException($"The route '{route.Id}' is not available in the browser workspace.")
@@ -114,9 +114,10 @@ public sealed partial class BrowserConversionService {
 
     private static PdfImportPayload ConvertPdfToPowerPoint(
         SelectedDocument file,
-        PdfPowerPointImportMode mode) {
+        string? profileId) {
         PdfDocument pdf = BrowserPdfPolicy.Open(file);
-        BrowserPowerPointImportProfile profile = BrowserPowerPointImportProfileCatalog.Find(mode);
+        BrowserPowerPointImportProfile profile = BrowserPowerPointImportProfileCatalog.Find(profileId);
+        PdfPowerPointImportMode mode = profile.Mode;
         var options = new PdfToPowerPointOptions {
             Mode = profile.Mode,
             RenderFonts = BrowserPortablePdfProfile.CreateDrawingFonts(),
@@ -125,6 +126,14 @@ public sealed partial class BrowserConversionService {
         PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(options);
         using var presentation = conversion.Value;
         byte[] bytes = presentation.ToBytes();
+        // A loop, not lambdas: cached lambdas share one compiler-generated class with every other route, and a
+        // field typed with an OfficeIMO.PowerPoint.Pdf type there would make every conversion load that assembly.
+        int textBoxes = 0, shapes = 0, images = 0;
+        foreach (var page in conversion.Report.EditablePages) {
+            textBoxes += page.TextBoxCount;
+            shapes += page.ShapeCount;
+            images += page.ImageCount;
+        }
         string summary = profile.Mode switch {
             PdfPowerPointImportMode.VisualPages =>
                 $"Visual PPTX generated: {FormatBytes(bytes.Length)}. Each slide contains one page image; its text, shapes, charts, and tables are not editable.",
@@ -133,7 +142,7 @@ public sealed partial class BrowserConversionService {
             PdfPowerPointImportMode.EditableTables =>
                 $"Tables-only PPTX generated with {conversion.Report.TableEntries.Count} editable table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}.",
             _ =>
-                $"Editable-content PPTX generated with {conversion.Report.EditablePages.Sum(static page => page.TextBoxCount)} text box{(conversion.Report.EditablePages.Sum(static page => page.TextBoxCount) == 1 ? string.Empty : "es")}, {conversion.Report.TableEntries.Count} table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}, {conversion.Report.EditablePages.Sum(static page => page.ShapeCount)} shape{(conversion.Report.EditablePages.Sum(static page => page.ShapeCount) == 1 ? string.Empty : "s")}, and {conversion.Report.EditablePages.Sum(static page => page.ImageCount)} separate image{(conversion.Report.EditablePages.Sum(static page => page.ImageCount) == 1 ? string.Empty : "s")}.",
+                $"Editable-content PPTX generated with {textBoxes} text box{(textBoxes == 1 ? string.Empty : "es")}, {conversion.Report.TableEntries.Count} table segment{(conversion.Report.TableEntries.Count == 1 ? string.Empty : "s")}, {shapes} shape{(shapes == 1 ? string.Empty : "s")}, and {images} separate image{(images == 1 ? string.Empty : "s")}.",
         };
         return new PdfImportPayload(
             bytes,

@@ -1,7 +1,5 @@
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Save-time helper methods for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Save-time helper methods for VisioDocument.
     public partial class VisioDocument {
     }
 }

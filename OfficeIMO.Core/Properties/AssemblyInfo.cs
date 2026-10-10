@@ -33,6 +33,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Reader.Latex")]
 [assembly: InternalsVisibleTo("OfficeIMO.Shared.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Workflows")]
+[assembly: InternalsVisibleTo("OfficeIMO.Web.Converter")]
 [assembly: InternalsVisibleTo("OfficeIMO.Visio")]
 [assembly: InternalsVisibleTo("OfficeIMO.Visio.Pdf")]
 [assembly: InternalsVisibleTo("OfficeIMO.Word")]

@@ -83,14 +83,14 @@ internal static class OfficeProvenanceJpeg {
                 }
 
                 if (marker == 0xEB && TryGetC2paSequence(data, segmentStart, payloadOffset, payloadLength, options, ref markerCount,
-                    out int sequenceEnd, out int manifestLength, out bool structurallyValid)) {
+                    out int sequenceEnd, out int manifestLength, out bool structurallyValid, out OfficeC2paManifestSummary? manifest)) {
                     structurallyValid &= !hasDuplicateC2paSequences && hasCompleteImagePayload;
                     string location = $"JPEG[{imageIndex}]/APP11@{segmentStart}";
                     context?.Add(new OfficeProvenanceEvidence(
                         OfficeProvenanceCarrierKind.C2paManifest,
                         location,
                         structurallyValid,
-                        payloadLength: manifestLength));
+                        payloadLength: manifestLength).WithManifest(structurallyValid ? manifest : null));
                     if (output != null && removalOptions != null && changes != null && removalOptions.RemoveC2paManifests &&
                         (structurallyValid || !removalOptions.RequireStructurallyValidCarrier)) {
                         changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, location, sequenceEnd - segmentStart));
@@ -144,7 +144,7 @@ internal static class OfficeProvenanceJpeg {
             if (marker == 0xEB && IsC2paSequenceStart(data, payloadOffset, payloadLength)) {
                 count++;
                 if (TryGetC2paSequence(data, offset, payloadOffset, payloadLength, options, ref markers,
-                    out int sequenceEnd, out _, out _)) {
+                    out int sequenceEnd, out _, out _, out _)) {
                     offset = sequenceEnd;
                 } else {
                     offset = segmentEnd;
@@ -230,7 +230,9 @@ internal static class OfficeProvenanceJpeg {
         ref int markerCount,
         out int sequenceEnd,
         out int manifestLength,
-        out bool structurallyValid) {
+        out bool structurallyValid,
+        out OfficeC2paManifestSummary? manifest) {
+        manifest = null;
         sequenceEnd = segmentStart;
         manifestLength = 0;
         structurallyValid = false;
@@ -271,6 +273,7 @@ internal static class OfficeProvenanceJpeg {
         sequenceEnd = current;
         manifestLength = hasDeclaredLength ? declaredManifestLength : checked((int)Math.Min(collected, int.MaxValue));
         structurallyValid = completeFirstFragment;
+        if (completeFirstFragment) manifest = OfficeC2paManifestStore.TryDescribe(data, payloadOffset + 8, declaredManifestLength);
         if (!structurallyValid && hasDeclaredLength && collected == declaredManifestLength) {
             byte[] reassembled = new byte[declaredManifestLength];
             Buffer.BlockCopy(data, payloadOffset + 8, reassembled, 0, firstFragmentLength);
@@ -288,6 +291,7 @@ internal static class OfficeProvenanceJpeg {
             }
             structurallyValid = OfficeC2paManifestStore.IsValid(
                 reassembled, 0, reassembled.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
+            if (structurallyValid) manifest = OfficeC2paManifestStore.TryDescribe(reassembled, 0, reassembled.Length);
         }
         return true;
     }

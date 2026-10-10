@@ -80,7 +80,7 @@ internal static partial class PdfSyntax {
                     cancellationToken: cancellationToken);
                 if (parsed is not null) {
                     if (parsed.HasIncompleteSyntax) reportUnreadable(objNum);
-                    map[objNum] = new PdfIndirectObject(objNum, 0, parsed);
+                    map[objNum] = new PdfIndirectObject(objNum, 0, parsed) { SourceOffset = objectStreamOffset };
                     effectiveOffsets[objNum] = objectStreamOffset;
                 } else reportUnreadable(objNum);
             }

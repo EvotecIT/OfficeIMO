@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Offers mail merge field operations.
-    /// </summary>
+    // Offers mail merge field operations.
     public partial class WordField {
         /// <summary>
         /// Replaces the current field with plain text.

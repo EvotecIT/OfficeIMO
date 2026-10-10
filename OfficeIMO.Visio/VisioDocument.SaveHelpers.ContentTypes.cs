@@ -11,9 +11,7 @@ using System.Xml.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Save-time helper methods for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Save-time helper methods for VisioDocument.
     public partial class VisioDocument {
 
         private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, bool includeComments, IEnumerable<string> pagePartNames,

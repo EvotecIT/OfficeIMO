@@ -7,9 +7,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Simple workbook template helpers for replacing {{Marker}} placeholders in text cells.
-    /// </summary>
+    // Simple workbook template helpers for replacing {{Marker}} placeholders in text cells.
     public partial class ExcelDocument {
         /// <summary>
         /// Replaces {{Marker}} placeholders across all worksheets using the supplied values.
