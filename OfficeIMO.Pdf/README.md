@@ -617,6 +617,11 @@ The unified API intentionally narrows the public surface around the fluent
 - Keep one opened `PdfDocument` and reuse it for `Read`, `Inspect`, `Preflight`,
   `Analyze`, compliance, and manipulation work. The source snapshot and canonical
   parse are cached for that document.
+- Typed reading rejects input with no readable indirect objects. Lenient parsing
+  reports `PdfParseException.Code == "NoIndirectObjects"` for empty, plain-text,
+  or unrecoverable header-only input. `Load` retains its lazy snapshot behavior;
+  `Preflight` and artifact snapshots still retain diagnostic and source-identity
+  evidence. Zero-page catalogs and recoverable object fragments remain readable.
 - Use `PdfDocument.Analyze(...)` when a workflow needs the combined health,
   rewrite-safety, diagnostics, optimization, signature, repair, and compliance
   view.
@@ -1299,6 +1304,12 @@ selectedRanges[0].Save("packet-front.pdf");
 selectedRanges[1].Save("packet-evidence.pdf");
 ```
 
+For document-relative expressions such as `last,1,last`, resolve the immutable
+`PdfPageSelector` against the inspected source page count. The overload
+`selector.Resolve(pageCount, maximumPages: 100)` rejects a selection before
+retaining more than 100 output pages, including repeats. Host workflows use this
+bound before extraction or OCR and keep the source separate from the output.
+
 To place source pages on printable sheets, use the same page import engine for
 N-up or duplex booklet output:
 
@@ -1358,6 +1369,38 @@ contains that element; a mask over part of a line leaves its text change for
 review. When setting a custom render scale or background, use the same values
 for `PageAlignment` and `Visual` so exact-page alignment remains valid review
 evidence.
+
+### Compare selected rendered page sequences
+
+Use independent page selectors to review short ranges from long PDFs without
+extracting temporary documents:
+
+```csharp
+PdfVisualComparisonReport report = source.Proof.CompareVisual(revised,
+    cancellationToken, options: new PdfVisualComparisonOptions {
+        ExpectedPages = PdfPageSelector.Parse("120-124,last"),
+        ActualPages = PdfPageSelector.Parse("121-125,last"),
+        MaxPages = 100
+    });
+string html = report.ToHtmlGallery("Section review", 96L * 1024 * 1024,
+    cancellationToken);
+```
+
+Selectors retain caller order and repeated pages. Their first entries form the
+first pair, their second entries form the second pair, and any remaining entries
+are unmatched. Null selects every page on that side. `ExpectedPageCount` and
+`ActualPageCount` are document totals; `ExpectedPageNumbers` and
+`ActualPageNumbers` contain the selected source pages. Each paired result retains
+both original page numbers. `UnmatchedExpectedPageNumbers` and
+`UnmatchedActualPageNumbers` describe selected entries without a partner.
+
+The standalone HTML gallery includes selected scope, totals, pair links, render
+limitations and SHA-256 identities of the compared snapshots. This comparison
+checks rendered appearances in the supplied order. It does not infer semantic
+changes or moved-page alignment; use the separate review APIs above when that
+analysis is needed. Selected-page, pixel, retained-image and HTML byte limits
+remain enforced. The legacy shared `selection` argument cannot be combined with
+independent selectors.
 
 ### Merge, reorder, delete, duplicate, move, and rotate
 
@@ -1537,6 +1580,43 @@ certification permissions, and usage rights are not silently removed by the
 repair workflow.
 
 ### Annotation review threads
+
+Batch annotation edits use `document.Annotations.MoveMany`, `CopyMany`, `RemoveMany`,
+and `Arrange`. Pass the indirect object numbers from the current
+`document.Annotations.GetForEditing()` metadata or an authorized inspection snapshot.
+Each operation expands standard group members and returns one mutation result, with
+the same encryption, signature, and object-number mapping rules as individual edits.
+Selections can span pages. `MoveMany` and `CopyMany` use PDF default user-space offsets;
+`MoveManyVisual` and `CopyManyVisual` use top-left visual offsets and map each page's
+crop origin, rotation, and user-unit scale independently in the same mutation.
+`Arrange` accepts `Raise`, `Lower`, `BringToFront`, or `SendToBack` from
+`PdfAnnotationOrderChange` and preserves the selected annotations' relative order.
+
+`Annotations.GetForEditing()` returns annotation metadata, excluding form widgets,
+when annotation mutation is permitted by encryption and certification policy.
+`GetEditingInteractions(pageNumber)` supplies annotation-only visual hit regions
+without extracted text, link targets, images, or form fields. Both support annotation
+editing when copying page content is restricted; `Inspect()` and `Read()` retain
+their content-extraction permission checks.
+
+`document.Annotations.Group(objectNumbers)` groups at least two editable markup
+annotations on one page using standard `/IRT` and `/RT /Group` relationships.
+Grouping requires PDF 1.6; older ordinary documents receive a catalog version
+upgrade. Certified and usage-rights documents that would require that upgrade are
+rejected because it changes the catalog beyond an annotation edit.
+`Ungroup(objectNumbers)` removes those relationships from the complete selected
+groups. `PdfAnnotationGrouping.GetMembers(info.Annotations, objectNumber)` resolves
+a saved group without including conversational replies. Links, redaction marks,
+and reply annotations cannot become group members. Locked and read-only annotations
+are rejected by batch edits. Multi-selection geometry edits move annotations;
+resize each annotation separately. Free-text callout transforms remain unsupported.
+
+Copies stay on the source pages, retain supported appearances and styles, and receive
+unique `/NM` names. They preserve the copied groups and linked popups, without copying
+conversational replies or prior review decisions. Removal retains replies to a removed
+parent as standalone comments. Append-only removal needs explicit
+`allowResidualDataInAppendOnly: true` because older revisions retain removed data;
+it is not a sanitization operation.
 
 Read reply relationships as threads, add a reply, and record a standard review
 state through the same annotation mutation policy used by lower-level edits:
@@ -2046,7 +2126,12 @@ PdfDocument.Load("application-form.pdf")
 For an interactive editor, `PdfFormFieldValueAssessment.Assess(field, value)` checks
 the proposed value against declared field metadata before applying it. It reports
 read-only fields, scalar/multiple-value conflicts, text length, radio clearing,
-and non-editable choices. Empty required fields produce warnings so an unfinished
+and non-editable choices, including ambiguous display labels. It also assesses a
+bounded inert numeric helper profile from field/widget actions: separator notation,
+review precision and literal range. Unsupported or extra script code produces an error.
+This policy requires a corrected value rather than simulating Acrobat formatting.
+`PdfFormField.Actions` exposes actions on separate field dictionaries; widget actions
+remain on `PdfFormWidget.Actions`. Empty required fields produce warnings so an unfinished
 form can still be saved. Text limits count Unicode scalar values. Assessment does
 not run JavaScript or replace document permissions, appearance generation, or
 validation of the saved result; Unicode appearances still need suitable fonts.

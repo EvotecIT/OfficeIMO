@@ -42,6 +42,10 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnIsWorkspaceBusyChanged(bool value) {
+        OnPropertyChanged(nameof(CanExportComparisonReport));
+        OnPropertyChanged(nameof(CanEditSelectedAnnotations));
+        OnPropertyChanged(nameof(CanGroupAnnotations));
+        OnPropertyChanged(nameof(CanUngroupAnnotations));
         NotifyFormNavigation();
         NotifyDocumentStructureActions();
         ExportCommentSummaryCommand.NotifyCanExecuteChanged();

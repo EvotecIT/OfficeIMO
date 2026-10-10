@@ -6,6 +6,44 @@ using OfficeIMO.Workflows;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class PrintDeliveryTests {
+    [Theory]
+    [InlineData("scale")]
+    [InlineData("alignment")]
+    [InlineData("subset")]
+    [InlineData("color")]
+    [InlineData("left")]
+    [InlineData("top")]
+    [InlineData("right")]
+    [InlineData("bottom")]
+    public async Task NewLayoutSettingsPreventSendingAStaleReviewedSnapshot(string change) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var printer = new RecordingPrinter();
+            using var model = Create(printer, new StudioJobHistory(StudioLocalization.Current));
+            await model.RefreshPrintersCommand.ExecuteAsync(null);
+            model.Pages = "1";
+            model.SelectedPaper = new("Small fixture", new PageSize(100, 120));
+            model.PrintDpi = 72;
+            await model.BuildPreviewCommand.ExecuteAsync(null);
+            Assert.True(model.CanPrint, model.Status);
+            switch (change) {
+                case "scale": model.CustomScalePercent = 95; break;
+                case "alignment": model.SelectedAlignment = model.AlignmentChoices.First(); break;
+                case "subset": model.SelectedPageSubset = model.PageSubsetChoices.Last(); break;
+                case "color": model.SelectedColor = model.ColorChoices.Last(); break;
+                case "left": model.MarginLeft = 20; break;
+                case "top": model.MarginTop = 20; break;
+                case "right": model.MarginRight = 20; break;
+                case "bottom": model.MarginBottom = 20; break;
+            }
+            Assert.False(model.HasPreview);
+            Assert.False(model.CanPrint);
+            Assert.False(model.PrintCommand.CanExecute(null));
+            Assert.Null(printer.Document);
+            return true;
+        }, default);
+    }
+
     [Fact]
     public async Task TrayDiscoveryRecoveryClearsOnlyItsOwnError() {
         using var session = TestAppBuilder.StartSession();

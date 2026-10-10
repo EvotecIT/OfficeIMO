@@ -28,7 +28,8 @@ public static partial class OfficeScanProcessor {
                     g = Math.Min(255, (g * 255 + paper / 2) / paper);
                     b = Math.Min(255, (b * 255 + paper / 2) / paper);
                 }
-                if (options.ColorMode != OfficeScanColorMode.PreserveColor) r = g = b = (r * 77 + g * 150 + b * 29 + 128) >> 8;
+                if (options.ColorMode != OfficeScanColorMode.PreserveColor)
+                    r = g = b = OfficeColorTransforms.Grayscale(OfficeColor.FromRgb((byte)r, (byte)g, (byte)b)).R;
                 if (applyLevels) { r = levels[r]; g = levels[g]; b = levels[b]; }
                 pixels[offset] = (byte)r; pixels[offset + 1] = (byte)g; pixels[offset + 2] = (byte)b; pixels[offset + 3] = 255;
             }
