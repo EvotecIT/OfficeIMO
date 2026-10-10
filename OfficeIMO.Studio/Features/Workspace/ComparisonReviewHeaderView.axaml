@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             x:Class="OfficeIMO.Studio.Features.Workspace.ComparisonReviewHeaderView"
+             x:DataType="shell:MainWindowViewModel">
+  <StackPanel Spacing="6">
+    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBlock Text="{Binding ComparisonDocumentName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+      <TextBlock Grid.Column="1" Text="{Binding ComparisonPagePosition}" Classes="muted" />
+    </Grid>
+    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+      <StackPanel Spacing="3">
+        <TextBlock Text="{Binding ComparisonExpectedRangeLabel}" Classes="caption" />
+        <TextBox Text="{Binding ComparisonExpectedRange}" PlaceholderText="{Binding ComparisonRangeHint}" AutomationProperties.Name="{Binding ComparisonExpectedRangeLabel}" IsEnabled="{Binding !IsComparingPages}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" Spacing="3">
+        <TextBlock Text="{Binding ComparisonActualRangeLabel}" Classes="caption" />
+        <TextBox Text="{Binding ComparisonActualRange}" PlaceholderText="{Binding ComparisonRangeHint}" AutomationProperties.Name="{Binding ComparisonActualRangeLabel}" IsEnabled="{Binding !IsComparingPages}" />
+      </StackPanel>
+    </Grid>
+    <WrapPanel Orientation="Horizontal">
+      <Button Classes="tool" Content="{loc:Loc Comparison.Compare}" Command="{Binding ComparePagesCommand}" IsVisible="{Binding !IsComparingPages}" Margin="0,0,4,4" />
+      <Button Classes="tool" Content="{loc:Loc Comparison.Cancel}" Command="{Binding CancelPageComparisonCommand}" IsVisible="{Binding IsComparingPages}" Margin="0,0,4,4" />
+      <Button Classes="tool" Content="{Binding ComparisonExportReportLabel}" Command="{Binding ExportComparisonReportCommand}" IsEnabled="{Binding CanExportComparisonReport}" Margin="0,0,4,4" />
+      <StackPanel Orientation="Horizontal" Spacing="2" IsVisible="{Binding HasComparisonDifferences}">
+        <Button Classes="icon" Command="{Binding PreviousComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Previous}" ToolTip.Tip="{loc:Loc Comparison.Previous}"><PathIcon Data="{StaticResource IconChevronLeft}" /></Button>
+        <ComboBox ItemsSource="{Binding ComparisonDifferences}" SelectedItem="{Binding SelectedComparisonDifference}" Width="165" AutomationProperties.Name="{loc:Loc Comparison.Differences}" />
+        <Button Classes="icon" Command="{Binding NextComparisonDifferenceCommand}" AutomationProperties.Name="{loc:Loc Comparison.Next}" ToolTip.Tip="{loc:Loc Comparison.Next}"><PathIcon Data="{StaticResource IconChevronRight}" /></Button>
+      </StackPanel>
+      <ToggleButton Classes="icon" IsChecked="{Binding ShowComparisonDifferenceImage}" IsVisible="{Binding HasComparisonDifferenceImage}"
+                    AutomationProperties.Name="{loc:Loc Comparison.Highlight}" ToolTip.Tip="{loc:Loc Comparison.Highlight}"><PathIcon Data="{StaticResource IconHighlight}" /></ToggleButton>
+    </WrapPanel>
+    <TextBlock Text="{Binding ComparisonSummary}" Classes="caption" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2" ToolTip.Tip="{Binding ComparisonSummary}" />
+    <TextBlock Text="{Binding ComparisonRangeDescription}" Classes="caption" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="2" ToolTip.Tip="{Binding ComparisonRangeDescription}" />
+  </StackPanel>
+</UserControl>

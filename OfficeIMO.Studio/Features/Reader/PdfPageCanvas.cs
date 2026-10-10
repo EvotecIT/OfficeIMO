@@ -54,6 +54,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             FallbackImageProperty,
             EditorToolProperty,
             SelectedObjectProperty,
+            SelectedAnnotationsProperty,
             CommentAnchorObjectNumberProperty,
             FormAnchorFieldNameProperty,
             SelectionModeProperty,
@@ -183,6 +184,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         DrawSelection(context, scene);
         DrawInteractionOverlay(context);
         DrawSelectedObject(context);
+        DrawAnnotationSelections(context);
         DrawObjectTransform(context);
         DrawCommentAnchor(context);
         DrawFormAnchor(context);
@@ -201,7 +203,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) {
         base.OnPropertyChanged(change);
-        if (change.Property == SelectedObjectProperty || change.Property == SceneProperty || change.Property == SelectionModeProperty) ResetObjectTransform();
+        if (_annotationMarqueePointer is not null && (change.Property == SceneProperty || change.Property == SelectionModeProperty)) CancelAnnotationMarquee();
+        if (change.Property == SelectedObjectProperty || change.Property == SelectedAnnotationsProperty || change.Property == SceneProperty || change.Property == SelectionModeProperty) ResetObjectTransform();
         if (change.Property == ActiveSearchHighlightProperty || change.Property == SceneProperty) QueueSearchReveal();
         if (change.Property == CommentAnchorObjectNumberProperty || change.Property == SceneProperty) QueueCommentAnchorReveal();
         if (change.Property == FormAnchorFieldNameProperty || change.Property == FormAnchorObjectNumberProperty || change.Property == SceneProperty) QueueFormAnchorReveal();
@@ -246,6 +249,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         if (e.Pointer.Type == PointerType.Touch && EditorTool == PdfEditorTool.Select) return;
         if (Scene is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         Focus();
+        _additiveAnnotationSelection = IsAdditive(e.KeyModifiers);
         if (EditorTool == PdfEditorTool.Select && BeginObjectTransform(e)) return;
         if (EditorTool != PdfEditorTool.Select) {
             _editorPath.Clear();
@@ -259,6 +263,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         _selectionStart = e.GetPosition(this);
         _selectionEnd = _selectionStart;
         _selecting = true;
+        if (SelectionMode == PdfEditorSelectionMode.Annotations) _annotationMarqueePointer = e.Pointer;
         e.Pointer.Capture(this);
         e.Handled = true;
         InvalidateVisual();
@@ -276,6 +281,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         }
         if (_selecting) {
             _selectionEnd = e.GetPosition(this);
+            if (SelectionMode == PdfEditorSelectionMode.Annotations) RaiseAnnotationMarquee();
             e.Handled = true;
             InvalidateVisual();
             return;
@@ -312,7 +318,10 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         double horizontalDistance = _selectionEnd.Value.X - _selectionStart.Value.X;
         double verticalDistance = _selectionEnd.Value.Y - _selectionStart.Value.Y;
         if (Math.Sqrt((horizontalDistance * horizontalDistance) + (verticalDistance * verticalDistance)) < 4D) {
-            if (!SelectObjectAt(_selectionEnd.Value)) ActivateLink(_selectionEnd.Value);
+            if (!SelectObjectAt(_selectionEnd.Value, _additiveAnnotationSelection)) ActivateLink(_selectionEnd.Value);
+            _selectionStart = null; _selectionEnd = null;
+        } else if (SelectionMode == PdfEditorSelectionMode.Annotations) {
+            SelectAnnotationsInRectangle();
         } else if (SelectionMode == PdfEditorSelectionMode.PageContent) {
             SelectTextObject();
         } else if (HasTextSelection) {
@@ -331,12 +340,15 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
+        if (HandleAnnotationKey(e)) { e.Handled = true; return; }
         if (e.Key == Key.C &&
             (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) &&
             !string.IsNullOrEmpty(SelectedText)) {
             _ = CopySelectionAsync();
             e.Handled = true;
         } else if (e.Key == Key.Escape) {
+            if (SelectionMode == PdfEditorSelectionMode.Annotations) CancelAnnotationMarquee();
+            _selecting = false;
             _editing = false;
             _editorPath.Clear();
             _selectionStart = null;
@@ -371,7 +383,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     private IReadOnlyList<PdfPageInteractionRegion> GetKeyboardInteractions() =>
         Scene?.Interactions?.Regions.Where(region => SelectionMode == PdfEditorSelectionMode.Forms
-            ? region.Kind == PdfInteractionKind.FormWidget : region.Kind != PdfInteractionKind.Text).ToArray()
+            ? region.Kind == PdfInteractionKind.FormWidget : SelectionMode == PdfEditorSelectionMode.Annotations
+                ? region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue : region.Kind != PdfInteractionKind.Text).ToArray()
         ?? Array.Empty<PdfPageInteractionRegion>();
 
     private void MoveKeyboardInteraction(int offset) {
@@ -388,7 +401,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         if (index < 0 || index >= interactions.Count) return;
         _keyboardInteractionIndex = index;
         _hoverRegion = interactions[index];
-        SelectRegion(interactions[index], activateLink: false);
+        if (SelectionMode != PdfEditorSelectionMode.Annotations) SelectRegion(interactions[index], activateLink: false);
         InvalidateVisual();
     }
 
@@ -401,6 +414,10 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     internal void SelectRegion(PdfPageInteractionRegion region, bool activateLink) {
         if (region.Kind == PdfInteractionKind.Link) {
             if (activateLink && !string.IsNullOrWhiteSpace(region.Target)) LinkActivated?.Invoke(region.Target!);
+            return;
+        }
+        if (region.Kind == PdfInteractionKind.Annotation && Scene is not null) {
+            SelectAnnotationRegion(region, false);
             return;
         }
         if (Scene is not null) ObjectSelected?.Invoke(CreateSelection(Scene.PageNumber, region));
@@ -446,7 +463,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             .FirstOrDefault(static region => region.Kind != PdfInteractionKind.Text);
     }
 
-    private bool SelectObjectAt(Point controlPoint) {
+    private bool SelectObjectAt(Point controlPoint, bool additive = false) {
         PdfPageScene? scene = Scene;
         if (scene?.Interactions is null) return false;
         Point point = ToPagePoint(controlPoint);
@@ -463,12 +480,17 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             _ => null
         };
         if (selected is null) {
-            ObjectSelected?.Invoke(null);
+            if (SelectionMode == PdfEditorSelectionMode.Annotations) AnnotationSelectionRequested?.Invoke(new([], additive));
+            else ObjectSelected?.Invoke(null);
             return false;
         }
 
         if (selected.WatermarkId is not null) {
             ObjectSelected?.Invoke(CreateSelection(scene.PageNumber, selected));
+            return true;
+        }
+        if (selected.Kind == PdfInteractionKind.Annotation) {
+            SelectAnnotationRegion(selected, additive);
             return true;
         }
         if (selected.Kind == PdfInteractionKind.Text) {
@@ -535,9 +557,19 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     }
 
     private void DrawSelection(DrawingContext context, PdfPageScene scene) {
+        if (SelectionMode == PdfEditorSelectionMode.Annotations && AnnotationMarqueePreview is { } preview) {
+            context.DrawRectangle(new SolidColorBrush(Color.FromArgb(28, PageAccent.R, PageAccent.G, PageAccent.B)),
+                new Pen(new SolidColorBrush(PageAccent), 1D), preview);
+            return;
+        }
         if (scene.Interactions is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return;
         Point start = ToPagePoint(_selectionStart.Value);
         Point end = ToPagePoint(_selectionEnd.Value);
+        if (SelectionMode == PdfEditorSelectionMode.Annotations) {
+            context.DrawRectangle(new SolidColorBrush(Color.FromArgb(28, PageAccent.R, PageAccent.G, PageAccent.B)),
+                new Pen(new SolidColorBrush(PageAccent), 1D), new Rect(start, end).Normalize());
+            return;
+        }
         var brush = new SolidColorBrush(Color.FromArgb(72, 53, 106, 230));
         foreach (PdfPageInteractionRegion region in scene.Interactions.SelectText(start.X, start.Y, end.X, end.Y)) {
             context.DrawRectangle(
@@ -571,7 +603,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         var stroke = new Pen(new SolidColorBrush(accent), 2D);
         var area = new Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height);
         context.DrawRectangle(fill, stroke, area);
-        DrawSelectionHandles(context, area, accent);
+        if (SelectedAnnotations.Count <= 1) DrawSelectionHandles(context, area, accent);
     }
 
     private static void DrawSelectionHandles(DrawingContext context, Rect area, Color accent) {
