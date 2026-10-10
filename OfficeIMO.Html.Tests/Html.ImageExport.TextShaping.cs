@@ -86,11 +86,15 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(rendered.Diagnostics);
     }
 
-    [Fact]
-    public void HtmlRenderer_ReportsWhenConfiguredProviderDeclinesShapingRequiredScript() {
-        const string text = "\u0915";
+    [Theory]
+    [InlineData("<p>\u0915</p>", "\u0915", true)]
+    [InlineData("<style>p::first-letter{font-size:16px}</style><p style='font-size:0'>\u0915hidden</p>", "\u0915", true)]
+    [InlineData("<style>p::before{content:'\u0915hidden';font-size:0}p::first-letter{font-size:16px}</style><p>A</p>", "\u0915A", true)]
+    [InlineData("<style>p::first-letter{font-size:16px}</style><p style='font-size:0'>A\u0915</p>", "A", false)]
+    [InlineData("<style>p::before{content:'A\u0915';font-size:0}p::first-letter{font-size:16px}</style><p>A</p>", "AA", false)]
+    public void HtmlRenderer_ReportsWhenConfiguredProviderDeclinesShapingRequiredScript(string content, string paintedText, bool expectedLoss) {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            "<p style=\"font-family:'OfficeIMO Shaping Test'\">" + text + "</p>");
+            "<style>p{font-family:'OfficeIMO Shaping Test'}</style>" + content);
         var options = new HtmlRenderOptions {
             ViewportWidth = 180D,
             TextShapingProvider = OfficeManagedTextShapingProvider.Instance,
@@ -98,9 +102,18 @@ public sealed partial class HtmlRenderingTests {
         };
         options.Fonts.Add(
             ManagedTextShapingTestAssets.FamilyName,
-            ManagedTextShapingTestAssets.CreateFont(text.Select(character => (int)character).ToArray()));
+            ManagedTextShapingTestAssets.CreateFont('A', '\u0915'));
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+
+        Assert.Equal(paintedText, string.Concat(FirstLetterText(rendered).Select(text => text.Text)));
+        if (!expectedLoss) {
+            Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+            rendered.RequireNoLoss();
+            options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+            HtmlRenderTestDriver.Render(document, options).RequireNoLoss();
+            return;
+        }
 
         HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);

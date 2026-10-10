@@ -759,7 +759,7 @@ internal sealed class HtmlInlineRun {
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
     internal bool TextTransformPending { get; private set; }
-    // Suppressed text still participates in casing, then leaves the rendering pipeline.
+    // Suppressed text participates in casing and first-letter selection before paint.
     internal bool IsTextTransformContextOnly { get; set; }
     internal string? LeaderPattern { get; }
     internal bool IsFirstLetter { get; private set; }
@@ -810,6 +810,7 @@ internal sealed class HtmlInlineRun {
             InlineSemanticGroupRole = InlineSemanticGroupRole,
             InlineSemanticGroupKey = InlineSemanticGroupKey,
             BookmarkAnchorText = BookmarkAnchorText,
+            IsTextTransformContextOnly = style.Font.Size <= 0D,
             IsFirstLetter = isFirstLetter,
             PreparedHyphenation = PreparedHyphenation,
             EndsFirstLine = EndsFirstLine,

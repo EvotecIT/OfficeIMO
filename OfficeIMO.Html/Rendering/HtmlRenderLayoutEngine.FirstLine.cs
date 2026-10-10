@@ -4,74 +4,6 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private void ApplyFirstLetterStyle(
-        IElement? formattingContainer,
-        double width,
-        HtmlRenderBoxStyle parentStyle,
-        List<HtmlInlineRun> runs) {
-        if (formattingContainer == null
-            || !_styleResolver.TryResolvePseudo(
-                formattingContainer,
-                HtmlPseudoElementKind.FirstLetter,
-                width,
-                parentStyle,
-                out HtmlRenderBoxStyle firstLetterStyle)) return;
-
-        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
-            HtmlInlineRun run = runs[runIndex];
-            if (run.AtomicBlock != null || run.Text.Length == 0) continue;
-            if (!TryFindFirstLetterBounds(run.Text, out int start, out int end)) continue;
-            string prefix = run.Text.Substring(0, start);
-            string firstLetter = run.Text.Substring(start, end - start);
-            string suffix = run.Text.Substring(end);
-            var replacement = new List<HtmlInlineRun>(3);
-            if (prefix.Length > 0) replacement.Add(run.CloneText(prefix, prefix, run.Style));
-            HtmlRenderBoxStyle letterStyle = firstLetterStyle.Clone();
-            letterStyle.Language = run.Style.Language;
-            replacement.Add(run.CloneText(firstLetter, firstLetter, letterStyle, isFirstLetter: true));
-            if (suffix.Length > 0) replacement.Add(run.CloneText(suffix, suffix, run.Style));
-            runs.RemoveAt(runIndex);
-            runs.InsertRange(runIndex, replacement);
-            return;
-        }
-    }
-
-    private bool TryFindFirstLetterBounds(string text, out int start, out int end) {
-        start = end = 0;
-        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
-        int examined = 0;
-        bool MoveNext() {
-            if (!enumerator.MoveNext()) return false;
-            ChargeLayoutOperation("first-letter scanning");
-            if ((++examined & 0xFF) == 0) CheckCancellation();
-            return true;
-        }
-
-        if (!MoveNext()) return false;
-        while (string.IsNullOrWhiteSpace(enumerator.GetTextElement())) {
-            if (!MoveNext()) return false;
-        }
-        start = enumerator.ElementIndex;
-        while (IsFirstLetterPunctuation(enumerator.GetTextElement())) {
-            if (!MoveNext()) {
-                end = text.Length;
-                return true;
-            }
-        }
-        if (!MoveNext()) {
-            end = text.Length;
-            return true;
-        }
-        while (IsFirstLetterPunctuation(enumerator.GetTextElement())) {
-            if (!MoveNext()) {
-                end = text.Length;
-                return true;
-            }
-        }
-        end = enumerator.ElementIndex;
-        return end > start;
-    }
-
     private void ApplyFirstLineStyle(
         IElement? formattingContainer,
         double width,
@@ -290,13 +222,5 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return best;
     }
 
-    private static bool IsFirstLetterPunctuation(string textElement) {
-        if (string.IsNullOrEmpty(textElement)) return false;
-        UnicodeCategory category = char.GetUnicodeCategory(textElement, 0);
-        return category == UnicodeCategory.OpenPunctuation
-            || category == UnicodeCategory.ClosePunctuation
-            || category == UnicodeCategory.InitialQuotePunctuation
-            || category == UnicodeCategory.FinalQuotePunctuation
-            || category == UnicodeCategory.OtherPunctuation;
-    }
+
 }
