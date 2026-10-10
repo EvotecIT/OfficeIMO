@@ -6,6 +6,27 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(4)]
+    [InlineData(0xFFF0)]
+    public void OfficeArtCustomPath_CompactCoordinatesPreserveTheirUnsignedRange(int elementSize) {
+        var properties = CustomPath(new[] { (32767, 32768), (40000, 65535) }, elementSize: elementSize);
+        properties.Add(new OfficeArtProperty(1, 0x0142, 65535));
+        properties.Add(new OfficeArtProperty(2, 0x0143, 65535));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 65535, 65535, _ => { },
+            default, out var result, out _));
+        Assert.Equal(new OfficePoint(32767, 32768), result!.Shape.PathCommands[0].Point);
+        Assert.Equal(new OfficePoint(40000, 65535), result.Shape.PathCommands[1].Point);
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_FullCoordinatesRetainNegativeSignedValues() {
+        var properties = CustomPath(new[] { (-40000, -32768), (40000, 65535) });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 21600, 21600, _ => { },
+            default, out var result, out _));
+        Assert.Equal(new OfficePoint(-40000, -32768), result!.Shape.PathCommands[0].Point);
+    }
+
     [Fact]
     public void OfficeArtCustomPath_CommandRunsConsumeAllVerticesAndPreserveSubpaths() {
         var properties = CustomPath(new[] { (0, 0), (21600, 0), (21600, 21600), (0, 21600),
@@ -77,15 +98,18 @@ public partial class DrawingTests {
             _ => source.Cancel(), source.Token, out _, out _));
     }
 
-    private static List<OfficeArtProperty> CustomPath((int X, int Y)[] points, ushort[]? segments = null) {
+    private static List<OfficeArtProperty> CustomPath((int X, int Y)[] points, ushort[]? segments = null, int elementSize = 8) {
         byte[] ArrayData(int count, ushort stride, Action<BinaryWriter> write) {
             using var data = new MemoryStream(); using var writer = new BinaryWriter(data);
             writer.Write(checked((ushort)count)); writer.Write(checked((ushort)count)); writer.Write(stride);
             write(writer); return data.ToArray();
         }
         var properties = new List<OfficeArtProperty>();
-        byte[] vertices = ArrayData(points.Length, 8, writer => {
-            foreach (var point in points) { writer.Write(point.X); writer.Write(point.Y); }
+        byte[] vertices = ArrayData(points.Length, checked((ushort)elementSize), writer => {
+            foreach (var point in points) {
+                if (elementSize == 8) { writer.Write(point.X); writer.Write(point.Y); }
+                else { writer.Write(checked((ushort)point.X)); writer.Write(checked((ushort)point.Y)); }
+            }
         });
         properties.Add(new OfficeArtProperty(0, 0x8145, (uint)vertices.Length, vertices.Length, complexData: vertices));
         if (segments != null) {

@@ -7,6 +7,21 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherCustomPathTests {
     [Theory]
+    [InlineData(4)]
+    [InlineData(0xFFF0)]
+    public void Native_compact_vertices_keep_positive_coordinates_above_the_signed_word_boundary(int elementSize) {
+        PublisherDocument publication = PublisherDocument.Load(Input(1,
+            new[] { (32767, 32768), (40000, 65535), (65535, 40000) }, elementSize: elementSize,
+            extra: new() { [0x140] = 0, [0x141] = 0, [0x142] = 65535, [0x143] = 65535 }));
+        OfficeShape shape = Artwork(publication);
+        Assert.Equal(shape.Width * 32767 / 65535, shape.PathCommands[0].Point.X, 6);
+        Assert.Equal(shape.Height * 32768 / 65535, shape.PathCommands[0].Point.Y, 6);
+        Assert.Equal(shape.Width * 40000 / 65535, shape.PathCommands[1].Point.X, 6);
+        Assert.Equal(shape.Height, shape.PathCommands[1].Point.Y, 6);
+        Assert.Equal(shape.Width, shape.PathCommands[2].Point.X, 6);
+    }
+
+    [Theory]
     [InlineData(0U, 8)]
     [InlineData(1U, 8)]
     [InlineData(2U, 8)]
@@ -167,7 +182,7 @@ public sealed class PublisherCustomPathTests {
         writer.Write(checked((ushort)elementSize));
         foreach ((int x, int y) in points) {
             if (elementSize == 8) { writer.Write(x); writer.Write(y); }
-            else { writer.Write(checked((short)x)); writer.Write(checked((short)y)); }
+            else { writer.Write(checked((ushort)x)); writer.Write(checked((ushort)y)); }
         }
         return stream.ToArray();
     }
