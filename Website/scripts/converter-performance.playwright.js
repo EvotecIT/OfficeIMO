@@ -191,6 +191,9 @@ async (page) => {
       input.dispatchEvent(new Event('change', { bubbles: true }));
     }, { name, bytes: bytesOrSample });
     await page.locator('[data-bt-files] li').filter({ hasText: name.slice(0, 20) }).waitFor({ state: 'visible', timeout: 60000 });
+    // The filename appears before asynchronous staging completes. Exercise conversion
+    // only after the same readiness gate as the visible Run button has settled.
+    await page.waitForFunction(() => !document.querySelector('[data-bt-run]')?.disabled, null, { timeout: 60000 });
   };
 
   await page.goto(`${origin}/browser/word-to-pdf/`, { waitUntil: 'domcontentloaded' });
