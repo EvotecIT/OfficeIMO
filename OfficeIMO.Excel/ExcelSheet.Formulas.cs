@@ -935,6 +935,7 @@ namespace OfficeIMO.Excel {
                     if (!TryResolveFormulaArguments(args, out var values) || values.Any(value => value.IsUnresolvedFormula)) {
                         return false;
                     }
+                    if (_formulaReferenceError.IsError) { error = _formulaReferenceError; return false; }
 
                     if (function == "COUNTA") {
                         result = values.Count(v => v.HasValue || !string.IsNullOrEmpty(v.Text));

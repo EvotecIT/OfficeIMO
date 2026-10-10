@@ -36,9 +36,18 @@ internal static class NativeNumbersIntegerFunctionSmoke {
         Require(native.Calculate() == 68 && native.Sheets[0].CellAt(10, 6).GetValue<double>() == 360
             && native.Sheets[0].TryGetCachedFormulaValue(15, 8, out string? overflow) && overflow == "#NUM!",
             "Shared integer evaluation disagrees with the fresh Excel reference.");
+        using var bounds = ExcelDocument.Create();
+        ExcelSheet guard = bounds.AddWorksheet("Qualified inputs");
+        guard.CellValue(1, 4, 42d); guard.CellFormula(1, 4, "IFERROR(LCM(1E20,OFFSET(A1,-1,0)),99)");
+        guard.CellValue(2, 4, 42d); guard.CellFormula(2, 4, "GCD(A1:A100000,B1)");
+        guard.CellFormula(3, 4, "IFERROR(SUM(OFFSET(A1,-1,0)),99)");
+        Require(bounds.Calculate() == 1 && guard.TryGetCachedFormulaValue(1, 4, out string? unsupported) && unsupported == "42"
+            && guard.TryGetCachedFormulaValue(2, 4, out string? overBudget) && overBudget == "42"
+            && guard.TryGetCachedFormulaValue(3, 4, out string? referenceError) && referenceError == "99",
+            "Shared reference qualification or aggregate cell budget failed.");
         Require(Hash(source) == sourceHash && Hash(nativeXlsx) == xlsxHash, "Integer conversion changed native input.");
         Console.WriteLine("PASS | native Numbers integer functions | " + sourceHash
-            + " | 19 bounded literal calls, incompatible cache retention, saved/reopened operand edits, native Excel coercion and typed overflow");
+            + " | 19 bounded literal calls, incompatible cache retention, saved/reopened operand edits, native Excel coercion, typed overflow, shared reference qualification and cell budget");
     }
 
     private static string Hash(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));

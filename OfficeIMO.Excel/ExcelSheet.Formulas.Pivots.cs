@@ -7,10 +7,6 @@ namespace OfficeIMO.Excel {
                 || !TryResolveFormulaArgument(tokens[0], out var dataField)) return false;
             if (dataField.IsError) { result = dataField; return true; }
             if (dataField.Number.HasValue || dataField.Text == null) return false;
-            if (!TryResolveFormulaRangeReference(tokens[1], out var sheet, out int top, out int left, out int bottom, out int right)) {
-                result = FormulaArgumentValue.Error("#REF!");
-                return true;
-            }
             var criteria = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             for (int index = 2; index < tokens.Count; index += 2) {
                 if (!TryResolveFormulaArgument(tokens[index], out var field) || !TryResolveFormulaArgument(tokens[index + 1], out var item)) return false;
@@ -22,6 +18,10 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
                 criteria[field.Text] = key;
+            }
+            if (!TryResolveFormulaRangeReference(tokens[1], out var sheet, out int top, out int left, out int bottom, out int right)) {
+                result = FormulaArgumentValue.Error("#REF!");
+                return true;
             }
             DocumentFormat.OpenXml.Packaging.PivotTablePart? selected = null;
             foreach (var part in sheet._worksheetPart.PivotTableParts) {
