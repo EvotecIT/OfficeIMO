@@ -72,22 +72,17 @@ function Assert-ContainsPattern {
     }
 }
 
-foreach ($route in @('', 'downloads', 'studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
+$presentationRoutes = @('', 'downloads', 'studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')
+# Parse actual head elements, excluding comments, script text and inert fallbacks.
+# Python's standard HTML parser also accepts the production optimizer's markup.
+$pythonCommand = Get-Command python3, python -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $pythonCommand) { throw 'Python is required to verify first-paint styles.' }
+$presentationFiles = @($presentationRoutes | ForEach-Object { Join-Path $siteRootPath "$_/index.html" })
+& $pythonCommand.Source (Join-Path $PSScriptRoot 'Test-FirstPaintStyles.py') @presentationFiles
+if ($LASTEXITCODE -ne 0) { throw 'First-paint stylesheet verification failed.' }
+
+foreach ($route in $presentationRoutes) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
-    # The inline critical CSS supplies only a partial shell. Layout styles must
-    # apply before first paint, including after the production optimizer runs.
-    $headHtml = [regex]::Match($routeHtml, '(?is)<head\b[^>]*>(.*?)</head>').Groups[1].Value
-    $layoutLinks = @([regex]::Matches($headHtml, '<link\b[^>]*\shref\s*=\s*(?:"/css/[^" ]+\.css(?:\?[^" ]*)?"|''/css/[^'' ]+\.css(?:\?[^'' ]*)?''|/css/[^\s>]+\.css(?:\?[^\s>]*)?(?=\s|/?>))[^>]*>'))
-    if ($layoutLinks.Count -eq 0) {
-        throw "Route '/$route/' must load its layout styles in the document head."
-    }
-    foreach ($link in $layoutLinks) {
-        Assert-ContainsAttribute -Text $link.Value -Name 'rel' -Value 'stylesheet' -Contract "first-paint styles on /$route/"
-        if ($link.Value -match '\sonload\s*=' -or
-            $link.Value -match '\smedia\s*=\s*(?:"print"|''print''|print(?=\s|/?>))') {
-            throw "Route '/$route/' must apply layout styles before first paint: $($link.Value)"
-        }
-    }
     # The logo supplies Home; the main-menu-only verifier warning is baselined.
     if ($routeHtml -notmatch '<a\b(?=[^>]*\sclass=(?:"(?:[^"]*\s)?imo-header__logo(?:\s[^"]*)?"|''(?:[^'']*\s)?imo-header__logo(?:\s[^'']*)?''|imo-header__logo(?=\s|>)))(?=[^>]*\shref=["'']?/["'']?(?=\s|>))[^>]*>') {
         throw "Route '/$route/' must expose Home through the linked site logo."
