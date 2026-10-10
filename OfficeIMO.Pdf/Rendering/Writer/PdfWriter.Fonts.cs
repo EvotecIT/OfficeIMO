@@ -185,7 +185,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         if (options != null &&
@@ -209,7 +209,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);
@@ -258,7 +258,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         if (namedFont.HasValue &&
@@ -283,7 +283,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         return EstimateSimpleTextWidthForOptions(text, fallbackFont, fontSize, options, featureSettings);

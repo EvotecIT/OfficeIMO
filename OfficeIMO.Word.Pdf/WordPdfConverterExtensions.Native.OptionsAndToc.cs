@@ -18,6 +18,7 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+            pdfOptions.UseFontUnitTextLayout = true;
             if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
                 pdfOptions.TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preserve;
             }

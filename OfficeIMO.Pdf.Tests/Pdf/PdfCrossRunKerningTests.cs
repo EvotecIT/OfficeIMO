@@ -8,6 +8,52 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfCrossRunKerningTests {
+    [Theory]
+    [InlineData(-200, 29D)]
+    [InlineData(200, 42D)]
+    public void OversizedContinuationFitsItsBoundaryKerningInTheRemainingFrame(short adjustment, double width) {
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D,
+            fontFamily: ManagedTextShapingTestAssets.FamilyName)
+            .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithFontUnitKerning(1000, 'A', 'B', adjustment);
+        using var joined = PdfPigDocument.Open(Create(width, PdfAlign.Left, new[] { Run("AABB") }, font));
+        using var split = PdfPigDocument.Open(Create(width, PdfAlign.Left, new[] { Run("AA"), Run("BB") }, font));
+        Assert.Equal(joined.GetPage(1).Letters.Select(letter => letter.StartBaseLine),
+            split.GetPage(1).Letters.Select(letter => letter.StartBaseLine));
+    }
+
+    [Theory]
+    [InlineData(false, 2)]
+    [InlineData(true, 2)]
+    [InlineData(false, 4)]
+    [InlineData(true, 4)]
+    public void OversizedContinuationRetainsExplicitBreakPolicies(bool hyphenate, int prefixLength) {
+        int callbackCalls = 0;
+        int[] Points(string token) {
+            if (token != "BBBBBBBB") return Array.Empty<int>();
+            callbackCalls++;
+            return new[] { 2, 4, 6 };
+        }
+        var options = new PdfOptions {
+            DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 20D,
+            PageWidth = 100D, PageHeight = 250D,
+            MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+        };
+        if (hyphenate) options.SetTextHyphenation(Points); else options.SetTextLineBreaks(Points);
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
+            new PdfTextRun(new string('A', prefixLength), color: PdfColor.FromRgb(255, 0, 0)),
+            new PdfTextRun("BBBBBBBB", color: PdfColor.FromRgb(0, 0, 255))
+        })).ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        var lines = pdf.GetPage(1).Letters.Where(letter => letter.Value != " ")
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 2))
+            .Select(group => string.Concat(group.Select(letter => letter.Value))).ToArray();
+        Assert.True(callbackCalls > 0);
+        Assert.Equal(prefixLength == 2
+            ? hyphenate ? new[] { "AABB-", "BBBB-", "BB" } : new[] { "AABB", "BBBB", "BB" }
+            : hyphenate ? new[] { "AAAA", "BBBB-", "BBBB" } : new[] { "AAAA", "BBBB", "BBBB" }, lines);
+    }
+
     [Fact]
     public void SubstitutionContinuationGlyphsRetainTheirSourceScriptForKerning() {
         PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName)

@@ -103,6 +103,7 @@ internal static partial class PdfWriter {
                 PdfTextShowCommand command = commands[index - start];
                 PdfGlyphInfo[] glyphs = command.VisualGlyphs!.ToArray();
                 int advanceDelta = 0;
+                double fontUnitAdvance = 0D;
                 bool changed = false;
                 for (int local = 0; local < glyphs.Length; local++, glyphIndex++) {
                     PdfGlyphInfo glyph = glyphs[local];
@@ -111,13 +112,20 @@ internal static partial class PdfWriter {
                     // independently, including substitution continuation glyphs.
                     int advance = checked(glyph.NominalWidth1000 + font.Scale(position.XAdvance));
                     int x = font.Scale(position.XPlacement);
+                    if (_options?.UseFontUnitTextLayout == true)
+                        fontUnitAdvance += PdfFontUnitLayoutMetrics.ScaleAdvance(
+                            checked(font.Reader.AdvanceWidth(glyph.GlyphId) + position.XAdvance), first.HorizontalTextScaling);
                     advanceDelta = checked(advanceDelta + advance - glyph.AdvanceWidth1000);
                     changed |= advance != glyph.AdvanceWidth1000 || x != glyph.OffsetX1000;
                     if (apply) glyphs[local] = new PdfGlyphInfo(glyph.GlyphId, glyph.UnicodeText, glyph.TextIndex, glyph.NominalWidth1000,
                         advance, glyph.AdvanceHeight1000, x, glyph.OffsetY1000, glyph.LogicalClusterStart);
                 }
-                double points = advanceDelta * EffectiveRichFontSize(first.FontSize, first.Baseline) / 1000D * first.HorizontalTextScaling / 100D;
+                double layoutDelta = command.FontUnitLayoutAdvanceWidth1000 is double originalAdvance
+                    ? fontUnitAdvance * 1000D / font.Reader.UnitsPerEm - originalAdvance
+                    : advanceDelta * first.HorizontalTextScaling / 100D;
+                double points = layoutDelta * EffectiveRichFontSize(first.FontSize, first.Baseline) / 1000D;
                 adjustment += points;
+                if (apply) segments[index].KerningAdvance = points;
                 if (apply && changed) {
                     // Positioned operators use glyph IDs even when the ordinary ASCII
                     // fast path uses distinct character codes. Preserve logical clusters.
@@ -127,7 +135,6 @@ internal static partial class PdfWriter {
                         visualGlyphs: glyphs, tracking: command.Tracking, unitsPerEm: command.UnitsPerEm,
                         trackingBoundaries: command.TrackingBoundaries, negativeTracking: command.NegativeTracking,
                         fontMetricScale: command.FontMetricScale, glyphCount: command.GlyphCount);
-                    segments[index].KerningAdvance = points;
                 }
             }
             return adjustment;
@@ -136,7 +143,7 @@ internal static partial class PdfWriter {
         private PdfTextShowCommand GetCommand(RichSeg segment) {
             if (!_commands.TryGetValue(segment, out PdfTextShowCommand? command)) {
                 command = EncodeTextShowCommand(segment.Text, segment.Font, segment.NamedFont, _options,
-                    segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale);
+                    segment.FeatureSettings, segment.TextDirection, segment.FontMetricScale, segment.HorizontalTextScaling);
                 _commands.Add(segment, command);
             }
             return command;

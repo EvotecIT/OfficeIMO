@@ -57,11 +57,13 @@ internal static partial class PdfWriter {
             return maximum;
         }
 
-        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection, fontMetricScale);
-        double naturalWidth = command.AdvanceWidth1000.GetValueOrDefault() * effectiveFontSize / 1000D;
-        naturalWidth += GetIntrinsicGlyphTrackingAdvance(command, effectiveFontSize)
-            * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0);
-        double advance = naturalWidth * horizontalTextScaling / 100D + command.GlyphCount * characterSpacing;
+        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings, textDirection, fontMetricScale, horizontalTextScaling);
+        double scaledWidth = command.FontUnitLayoutAdvanceWidth1000.HasValue
+            ? command.FontUnitLayoutAdvanceWidth1000.Value * effectiveFontSize / 1000D
+            : command.AdvanceWidth1000.GetValueOrDefault() * effectiveFontSize / 1000D * horizontalTextScaling / 100D;
+        scaledWidth += GetIntrinsicGlyphTrackingAdvance(command, effectiveFontSize)
+            * (command.TrackingBoundaries?.Count(boundary => boundary) ?? 0) * horizontalTextScaling / 100D;
+        double advance = scaledWidth + command.GlyphCount * characterSpacing;
         if (double.IsNaN(advance) || double.IsInfinity(advance)) {
             throw new InvalidOperationException("The requested glyph width and character spacing produce an invalid text advance.");
         }

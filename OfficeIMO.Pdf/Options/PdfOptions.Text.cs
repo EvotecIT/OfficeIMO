@@ -17,6 +17,9 @@ public enum PdfTextShapingMode {
 }
 
 public sealed partial class PdfOptions {
+    /// <summary>Uses original font advances for imported document layout; PDF painting retains encoded widths.</summary>
+    internal bool UseFontUnitTextLayout { get; set; }
+
     private PdfTextWhitespaceMode _textWhitespaceMode;
     private bool _hasExplicitTextWhitespaceConfiguration;
 
