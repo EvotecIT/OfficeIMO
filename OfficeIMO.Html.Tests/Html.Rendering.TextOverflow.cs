@@ -361,6 +361,40 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(spaced.Select(text => text.Y).Distinct());
     }
 
+    [Theory]
+    [InlineData("\u2003", 0D)]
+    [InlineData("\u3000", 0D)]
+    [InlineData(" ", 19.99D)]
+    [InlineData("\u00a0", 19.99D)]
+    public void HtmlRender_WordSpacingExcludesFixedWidthSpacesFromAdvanceAndFollowingContent(
+        string separator, double expectedExtraAdvance) {
+        foreach (int letterSpacing in new[] { 0, 2 }) {
+            HtmlRenderText[] Paint(double wordSpacing) {
+                string html = "<p style='margin:0;white-space:nowrap;font:16px/24px Arial;letter-spacing:"
+                    + letterSpacing + "px;word-spacing:"
+                    + wordSpacing.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    + "px'><span id='sample' style='color:red'>A" + separator
+                    + "B</span><span id='following' style='letter-spacing:0;word-spacing:0'>TAIL</span></p>";
+                return EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+                    .OfType<HtmlRenderText>().ToArray();
+            }
+
+            HtmlRenderText[] baseline = Paint(.01D);
+            HtmlRenderText[] spaced = Paint(20D);
+            HtmlRenderText[] baselineSample = baseline.Where(text => text.Color == OfficeIMO.Drawing.OfficeColor.Red).ToArray();
+            HtmlRenderText[] spacedSample = spaced.Where(text => text.Color == OfficeIMO.Drawing.OfficeColor.Red).ToArray();
+            HtmlRenderText baselineFollowing = Assert.Single(baseline, text => text.Text == "TAIL");
+            HtmlRenderText spacedFollowing = Assert.Single(spaced, text => text.Text == "TAIL");
+
+            Assert.Equal("A" + separator + "B", string.Concat(spacedSample.Select(text => text.Text)));
+            Assert.Equal(expectedExtraAdvance,
+                spacedSample.Sum(text => text.TextAdvanceWidth ?? text.Width)
+                    - baselineSample.Sum(text => text.TextAdvanceWidth ?? text.Width), 3);
+            Assert.Equal(expectedExtraAdvance, spacedFollowing.X - baselineFollowing.X, 3);
+            Assert.Equal(baselineFollowing.Y, spacedFollowing.Y, 3);
+        }
+    }
+
     [Fact]
     public void HtmlRender_LetterSpacingPositionsEveryGraphemeWithoutScalingWholeWords() {
         const string html = "<p style='margin:0;font-family:Consolas;font-size:14px;letter-spacing:3px'>AB</p>";

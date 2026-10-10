@@ -98,7 +98,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
         if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "font-size")) {
-            callStyle.Font = callStyle.Font.WithSize(Math.Max(1D, parentStyle.Font.Size * 0.7D));
+            callStyle.Font = callStyle.Font.WithSize(parentStyle.Font.Size * 0.7D);
         }
         if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "vertical-align")) {
             callStyle.Baseline = OfficeTextBaseline.Superscript;
@@ -111,6 +111,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedInlineFragments(authoredCall, element, callStyle, link, source, containingWidth, 0D, 0D, runs);
             return;
         }
+        if (callStyle.Font.Size <= 0D) return;
         runs.Add(new HtmlInlineRun(
             number.ToString(System.Globalization.CultureInfo.InvariantCulture),
             callStyle,

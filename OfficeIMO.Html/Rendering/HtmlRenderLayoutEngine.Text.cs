@@ -1607,8 +1607,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(IsCollapsibleCssWhitespace);
 
     // Word spacing applies to separators independently of CSS collapsing and
-    // line-breaking rules, including nonbreaking spaces retained in text tokens.
-    private static bool IsWordSpacingSeparator(string textElement) => textElement.Length > 0 && textElement.All(char.IsWhiteSpace);
+    // line-breaking rules, including nonbreaking spaces but excluding fixed-width spaces.
+    private static bool IsWordSpacingSeparator(string textElement) => textElement.Length > 0
+        && textElement.All(static value => char.IsWhiteSpace(value)
+            && (value < '\u2000' || value > '\u200a')
+            && value != '\u3000');
 
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
