@@ -62,9 +62,10 @@ namespace OfficeIMO.Excel {
                         : _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                     if (TryPrepareWorksheetStream(stream)) {
                         using var reader = OpenWorksheetXmlReader(stream);
+                        var worksheetRows = new WorksheetXmlRowSelector();
                         while (reader.Read()) {
                             ct.ThrowIfCancellationRequested();
-                            if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "c") {
+                            if (worksheetRows.IsCellElement(reader)) {
                                 hasCells = true;
                                 return true;
                             }
@@ -80,7 +81,7 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            hasCells = WorksheetRoot.Descendants<Cell>().Any();
+            hasCells = EnumerateOwnedSdkWorksheetCells(WorksheetRoot).Any();
             return true;
         }
 
@@ -96,17 +97,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 while (reader.Read()) {
                     ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType != XmlNodeType.Element) {
-                        continue;
-                    }
-
-                    if (reader.LocalName == "dimension") {
+                    if (worksheetRows.IsWorksheetChildElement(reader, "dimension")) {
                         return TryNormalizeWorksheetDimensionReference(reader.GetAttribute("ref"), out reference);
                     }
 
-                    if (reader.LocalName == "sheetData") {
+                    if (worksheetRows.IsWorksheetChildElement(reader, "sheetData")) {
                         return false;
                     }
                 }
@@ -135,6 +133,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
 
                 var bounds = new WorksheetRangeAccumulator();
                 var coordinates = Volatile.Read(ref _implicitXmlRowIndexes) == null
@@ -142,7 +141,7 @@ namespace OfficeIMO.Excel {
 
                 while (reader.Read()) {
                     ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 
@@ -164,7 +163,7 @@ namespace OfficeIMO.Excel {
                             break;
                         }
 
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                        if (!SpreadsheetXmlContent.IsDirectChildElement(reader, rowDepth, "c")) {
                             continue;
                         }
 
@@ -218,10 +217,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 int nextRowIndex = 1;
                 while (reader.Read()) {
                     ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 
@@ -248,7 +248,7 @@ namespace OfficeIMO.Excel {
                             break;
                         }
 
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                        if (!SpreadsheetXmlContent.IsDirectChildElement(reader, rowDepth, "c")) {
                             continue;
                         }
 

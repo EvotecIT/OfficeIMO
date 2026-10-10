@@ -1,0 +1,2602 @@
+{
+  "schemaVersion": 1,
+  "families": [
+    "documents",
+    "spreadsheets",
+    "presentations",
+    "fixed",
+    "images",
+    "books",
+    "email",
+    "bibliography",
+    "markup",
+    "web",
+    "other"
+  ],
+  "formats": [
+    {
+      "name": "DOCX",
+      "family": "documents"
+    },
+    {
+      "name": "DOC",
+      "family": "documents"
+    },
+    {
+      "name": "ODT",
+      "family": "documents"
+    },
+    {
+      "name": "RTF",
+      "family": "documents"
+    },
+    {
+      "name": "Pages",
+      "family": "documents"
+    },
+    {
+      "name": "Google Docs",
+      "family": "documents"
+    },
+    {
+      "name": "XLSX",
+      "family": "spreadsheets"
+    },
+    {
+      "name": "ODS",
+      "family": "spreadsheets"
+    },
+    {
+      "name": "CSV",
+      "family": "spreadsheets"
+    },
+    {
+      "name": "Numbers",
+      "family": "spreadsheets"
+    },
+    {
+      "name": "Google Sheets",
+      "family": "spreadsheets"
+    },
+    {
+      "name": "PPTX",
+      "family": "presentations"
+    },
+    {
+      "name": "ODP",
+      "family": "presentations"
+    },
+    {
+      "name": "Keynote",
+      "family": "presentations"
+    },
+    {
+      "name": "Google Slides",
+      "family": "presentations"
+    },
+    {
+      "name": "PDF",
+      "family": "fixed"
+    },
+    {
+      "name": "XPS/OpenXPS",
+      "family": "fixed"
+    },
+    {
+      "name": "MHTML",
+      "family": "fixed"
+    },
+    {
+      "name": "Visio",
+      "family": "fixed"
+    },
+    {
+      "name": "ODG/FODG",
+      "family": "fixed"
+    },
+    {
+      "name": "PNG",
+      "family": "images"
+    },
+    {
+      "name": "SVG",
+      "family": "images"
+    },
+    {
+      "name": "JPEG",
+      "family": "images"
+    },
+    {
+      "name": "TIFF",
+      "family": "images"
+    },
+    {
+      "name": "WebP",
+      "family": "images"
+    },
+    {
+      "name": "OneNote",
+      "family": "books"
+    },
+    {
+      "name": "EPUB",
+      "family": "books"
+    },
+    {
+      "name": "Book project",
+      "family": "books"
+    },
+    {
+      "name": "Email",
+      "family": "email"
+    },
+    {
+      "name": "EML",
+      "family": "email"
+    },
+    {
+      "name": "MSG",
+      "family": "email"
+    },
+    {
+      "name": "OFT",
+      "family": "email"
+    },
+    {
+      "name": "TNEF",
+      "family": "email"
+    },
+    {
+      "name": "BibTeX",
+      "family": "bibliography"
+    },
+    {
+      "name": "BibLaTeX",
+      "family": "bibliography"
+    },
+    {
+      "name": "CSL JSON",
+      "family": "bibliography"
+    },
+    {
+      "name": "RIS",
+      "family": "bibliography"
+    },
+    {
+      "name": "NBIB/MEDLINE",
+      "family": "bibliography"
+    },
+    {
+      "name": "EndNote XML",
+      "family": "bibliography"
+    },
+    {
+      "name": "Markdown",
+      "family": "markup"
+    },
+    {
+      "name": "AsciiDoc",
+      "family": "markup"
+    },
+    {
+      "name": "LaTeX",
+      "family": "markup"
+    },
+    {
+      "name": "Plain text",
+      "family": "markup"
+    },
+    {
+      "name": "OfficeIMO Markup",
+      "family": "markup"
+    },
+    {
+      "name": "HTML",
+      "family": "web"
+    },
+    {
+      "name": "Confluence",
+      "family": "web"
+    },
+    {
+      "name": "ADF",
+      "family": "web"
+    },
+    {
+      "name": "Binary Visio",
+      "family": "other"
+    },
+    {
+      "name": "Binary Visio stencil",
+      "family": "other"
+    },
+    {
+      "name": "Binary Visio template",
+      "family": "other"
+    },
+    {
+      "name": "Compiled HTML Help",
+      "family": "other"
+    },
+    {
+      "name": "DjVu",
+      "family": "other"
+    },
+    {
+      "name": "VSDX",
+      "family": "other"
+    },
+    {
+      "name": "VSSX",
+      "family": "other"
+    },
+    {
+      "name": "VSTX",
+      "family": "other"
+    }
+  ],
+  "routes": [
+    {
+      "id": "adf-html",
+      "source": "ADF",
+      "target": "HTML",
+      "package": "OfficeIMO.Adf",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "AdfConverter.ToHtml(AdfDocument.Parse(json), htmlOptions, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "adf-markdown",
+      "source": "ADF",
+      "target": "Markdown",
+      "package": "OfficeIMO.Adf",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "AdfConverter.ToMarkdown(AdfDocument.Parse(json), options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "asciidoc-markdown",
+      "source": "AsciiDoc",
+      "target": "Markdown",
+      "package": "OfficeIMO.AsciiDoc.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "asciidoc-pdf",
+      "source": "AsciiDoc",
+      "target": "PDF",
+      "package": "OfficeIMO.AsciiDoc.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "AsciiDocDocument.ParseResult(source).Document.ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-biblatex-bibtex",
+      "source": "BibLaTeX",
+      "target": "BibTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-biblatex-csl-json",
+      "source": "BibLaTeX",
+      "target": "CSL JSON",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-biblatex-endnote-xml",
+      "source": "BibLaTeX",
+      "target": "EndNote XML",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-biblatex-nbib",
+      "source": "BibLaTeX",
+      "target": "NBIB/MEDLINE",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-biblatex-ris",
+      "source": "BibLaTeX",
+      "target": "RIS",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibLatex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-bibtex-biblatex",
+      "source": "BibTeX",
+      "target": "BibLaTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibTex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-bibtex-csl-json",
+      "source": "BibTeX",
+      "target": "CSL JSON",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibTex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-bibtex-endnote-xml",
+      "source": "BibTeX",
+      "target": "EndNote XML",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibTex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-bibtex-nbib",
+      "source": "BibTeX",
+      "target": "NBIB/MEDLINE",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibTex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-bibtex-ris",
+      "source": "BibTeX",
+      "target": "RIS",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.BibTex).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-csl-json-biblatex",
+      "source": "CSL JSON",
+      "target": "BibLaTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.CslJson).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-csl-json-bibtex",
+      "source": "CSL JSON",
+      "target": "BibTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.CslJson).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-csl-json-endnote-xml",
+      "source": "CSL JSON",
+      "target": "EndNote XML",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.CslJson).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-csl-json-nbib",
+      "source": "CSL JSON",
+      "target": "NBIB/MEDLINE",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.CslJson).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-csl-json-ris",
+      "source": "CSL JSON",
+      "target": "RIS",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.CslJson).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-endnote-xml-biblatex",
+      "source": "EndNote XML",
+      "target": "BibLaTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-endnote-xml-bibtex",
+      "source": "EndNote XML",
+      "target": "BibTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-endnote-xml-csl-json",
+      "source": "EndNote XML",
+      "target": "CSL JSON",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-endnote-xml-nbib",
+      "source": "EndNote XML",
+      "target": "NBIB/MEDLINE",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-endnote-xml-ris",
+      "source": "EndNote XML",
+      "target": "RIS",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.EndNoteXml).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-nbib-biblatex",
+      "source": "NBIB/MEDLINE",
+      "target": "BibLaTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Nbib).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-nbib-bibtex",
+      "source": "NBIB/MEDLINE",
+      "target": "BibTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Nbib).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-nbib-csl-json",
+      "source": "NBIB/MEDLINE",
+      "target": "CSL JSON",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Nbib).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-nbib-endnote-xml",
+      "source": "NBIB/MEDLINE",
+      "target": "EndNote XML",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Nbib).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-nbib-ris",
+      "source": "NBIB/MEDLINE",
+      "target": "RIS",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Nbib).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Ris })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-ris-biblatex",
+      "source": "RIS",
+      "target": "BibLaTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Ris).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-ris-bibtex",
+      "source": "RIS",
+      "target": "BibTeX",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Ris).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.BibTex })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-ris-csl-json",
+      "source": "RIS",
+      "target": "CSL JSON",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Ris).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.CslJson })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-ris-endnote-xml",
+      "source": "RIS",
+      "target": "EndNote XML",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Ris).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "bibliography-ris-nbib",
+      "source": "RIS",
+      "target": "NBIB/MEDLINE",
+      "package": "OfficeIMO.Bibliography",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "BibliographyDocument.Load(path, BibliographyFormat.Ris).Document.Save(outputPath, new BibliographyWriteOptions { Format = BibliographyFormat.Nbib })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "book-project-epub",
+      "source": "Book project",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "BookProject.LoadProject(bytes).Export(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "chm-epub",
+      "source": "Compiled HTML Help",
+      "target": "EPUB",
+      "package": "OfficeIMO.Chm.Epub",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ChmDocument.Load(stream).ToEpubBytesResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "chm-markdown",
+      "source": "Compiled HTML Help",
+      "target": "Markdown",
+      "package": "OfficeIMO.Chm.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ChmDocument.Load(stream).ToMarkdownResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "chm-pdf",
+      "source": "Compiled HTML Help",
+      "target": "PDF",
+      "package": "OfficeIMO.Chm.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "ChmDocument.Load(stream).ToPdfBytesResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "confluence-html",
+      "source": "Confluence",
+      "target": "HTML",
+      "package": "OfficeIMO.Confluence",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ConfluenceContentConverter.ToHtml(page)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "confluence-markdown",
+      "source": "Confluence",
+      "target": "Markdown",
+      "package": "OfficeIMO.Confluence",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ConfluenceContentConverter.ToMarkdown(page)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "csv-xlsx",
+      "source": "CSV",
+      "target": "XLSX",
+      "package": "OfficeIMO.Excel.Csv",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "CsvDocument.Load(stream).ToExcelDocument(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "djvu-pdf",
+      "source": "DjVu",
+      "target": "PDF",
+      "package": "OfficeIMO.DjVu.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "DjVuDocument.Load(stream).SaveAsPdf(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "doc-pdf",
+      "source": "DOC",
+      "target": "PDF",
+      "package": "OfficeIMO.Word.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "LegacyDocPdfConverter.ToPdfDocumentResult(stream, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "docx-epub",
+      "source": "DOCX",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "BookManuscriptImporter.ImportWordAsync(document, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-google-docs",
+      "source": "DOCX",
+      "target": "Google Docs",
+      "package": "OfficeIMO.Word.GoogleDocs",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "WordDocument.Load(stream).ExportToGoogleDocsAsync(session, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-html",
+      "source": "DOCX",
+      "target": "HTML",
+      "package": "OfficeIMO.Word.Html",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "WordDocument.Load(stream).ToHtmlResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-jpeg",
+      "source": "DOCX",
+      "target": "JPEG",
+      "package": "OfficeIMO.Word",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-markdown",
+      "source": "DOCX",
+      "target": "Markdown",
+      "package": "OfficeIMO.Word.Markdown",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "WordDocument.Load(stream).ToMarkdownDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-odt",
+      "source": "DOCX",
+      "target": "ODT",
+      "package": "OfficeIMO.Word.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "WordDocument.Load(stream).ToOpenDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-pdf",
+      "source": "DOCX",
+      "target": "PDF",
+      "package": "OfficeIMO.Word.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "WordDocument.Load(stream).ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "docx-png",
+      "source": "DOCX",
+      "target": "PNG",
+      "package": "OfficeIMO.Word",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-rtf",
+      "source": "DOCX",
+      "target": "RTF",
+      "package": "OfficeIMO.Word.Rtf",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "WordDocument.Load(stream).ToRtfDocumentResult()",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-svg",
+      "source": "DOCX",
+      "target": "SVG",
+      "package": "OfficeIMO.Word",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-tiff",
+      "source": "DOCX",
+      "target": "TIFF",
+      "package": "OfficeIMO.Word",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "docx-webp",
+      "source": "DOCX",
+      "target": "WebP",
+      "package": "OfficeIMO.Word",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "WordDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-eml-msg",
+      "source": "EML",
+      "target": "MSG",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookMsg)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-eml-oft",
+      "source": "EML",
+      "target": "OFT",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookTemplate)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-eml-tnef",
+      "source": "EML",
+      "target": "TNEF",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Tnef)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-jpeg",
+      "source": "Email",
+      "target": "JPEG",
+      "package": "OfficeIMO.Email.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-msg-eml",
+      "source": "MSG",
+      "target": "EML",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Eml)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-msg-oft",
+      "source": "MSG",
+      "target": "OFT",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookTemplate)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-msg-tnef",
+      "source": "MSG",
+      "target": "TNEF",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Tnef)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-oft-eml",
+      "source": "OFT",
+      "target": "EML",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Eml)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-oft-msg",
+      "source": "OFT",
+      "target": "MSG",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookMsg)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-oft-tnef",
+      "source": "OFT",
+      "target": "TNEF",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Tnef)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-png",
+      "source": "Email",
+      "target": "PNG",
+      "package": "OfficeIMO.Email.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-svg",
+      "source": "Email",
+      "target": "SVG",
+      "package": "OfficeIMO.Email.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-tiff",
+      "source": "Email",
+      "target": "TIFF",
+      "package": "OfficeIMO.Email.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-tnef-eml",
+      "source": "TNEF",
+      "target": "EML",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.Eml)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-tnef-msg",
+      "source": "TNEF",
+      "target": "MSG",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookMsg)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-tnef-oft",
+      "source": "TNEF",
+      "target": "OFT",
+      "package": "OfficeIMO.Email",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "EmailDocument.Load(path).Save(outputPath, EmailFileFormat.OutlookTemplate)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "email-webp",
+      "source": "Email",
+      "target": "WebP",
+      "package": "OfficeIMO.Email.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EmailDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "epub-jpeg",
+      "source": "EPUB",
+      "target": "JPEG",
+      "package": "OfficeIMO.Epub.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "epub-png",
+      "source": "EPUB",
+      "target": "PNG",
+      "package": "OfficeIMO.Epub.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "epub-svg",
+      "source": "EPUB",
+      "target": "SVG",
+      "package": "OfficeIMO.Epub.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "epub-tiff",
+      "source": "EPUB",
+      "target": "TIFF",
+      "package": "OfficeIMO.Epub.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "epub-webp",
+      "source": "EPUB",
+      "target": "WebP",
+      "package": "OfficeIMO.Epub.Image",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "EpubDocument.Load(stream, readOptions).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "google-docs-docx",
+      "source": "Google Docs",
+      "target": "DOCX",
+      "package": "OfficeIMO.Word.GoogleDocs",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "session.ImportGoogleDocAsync(documentId, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "google-sheets-xlsx",
+      "source": "Google Sheets",
+      "target": "XLSX",
+      "package": "OfficeIMO.Excel.GoogleSheets",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "session.ImportGoogleSheetAsync(spreadsheetId, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "google-slides-pptx",
+      "source": "Google Slides",
+      "target": "PPTX",
+      "package": "OfficeIMO.PowerPoint.GoogleSlides",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "session.ImportGoogleSlidesAsync(presentationId, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-adf",
+      "source": "HTML",
+      "target": "ADF",
+      "package": "OfficeIMO.Adf",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "AdfConverter.FromHtml(html, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-confluence",
+      "source": "HTML",
+      "target": "Confluence",
+      "package": "OfficeIMO.Confluence",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ConfluenceContentConverter.FromHtml(html, format)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-docx",
+      "source": "HTML",
+      "target": "DOCX",
+      "package": "OfficeIMO.Word.Html",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "HtmlConversionDocument.Parse(html).ToWordDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-epub",
+      "source": "HTML",
+      "target": "EPUB",
+      "package": "OfficeIMO.Epub",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "EpubManuscript.ImportHtmlAsync(HtmlConversionDocument.Parse(html), options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-jpeg",
+      "source": "HTML",
+      "target": "JPEG",
+      "package": "OfficeIMO.Html",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-markdown",
+      "source": "HTML",
+      "target": "Markdown",
+      "package": "OfficeIMO.Markdown.Html",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "HtmlConversionDocument.Parse(html).ToMarkdownDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser"
+      ]
+    },
+    {
+      "id": "html-onenote",
+      "source": "HTML",
+      "target": "OneNote",
+      "package": "OfficeIMO.OneNote.Html",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-pdf",
+      "source": "HTML",
+      "target": "PDF",
+      "package": "OfficeIMO.Html.Pdf",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "html-png",
+      "source": "HTML",
+      "target": "PNG",
+      "package": "OfficeIMO.Html",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-pptx",
+      "source": "HTML",
+      "target": "PPTX",
+      "package": "OfficeIMO.PowerPoint.Html",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-rtf",
+      "source": "HTML",
+      "target": "RTF",
+      "package": "OfficeIMO.Html.Rtf",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-svg",
+      "source": "HTML",
+      "target": "SVG",
+      "package": "OfficeIMO.Html",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-tiff",
+      "source": "HTML",
+      "target": "TIFF",
+      "package": "OfficeIMO.Html",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-webp",
+      "source": "HTML",
+      "target": "WebP",
+      "package": "OfficeIMO.Html",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "html-xlsx",
+      "source": "HTML",
+      "target": "XLSX",
+      "package": "OfficeIMO.Excel.Html",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "HtmlConversionDocument.Parse(html).ToExcelDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "keynote-pptx",
+      "source": "Keynote",
+      "target": "PPTX",
+      "package": "OfficeIMO.PowerPoint.IWork",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, readOptions, conversionOptions)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "latex-markdown",
+      "source": "LaTeX",
+      "target": "Markdown",
+      "package": "OfficeIMO.Latex.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "latex-pdf",
+      "source": "LaTeX",
+      "target": "PDF",
+      "package": "OfficeIMO.Latex.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "LatexDocument.ParseResult(source).Document.ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "markdown-adf",
+      "source": "Markdown",
+      "target": "ADF",
+      "package": "OfficeIMO.Adf",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "AdfConverter.FromMarkdown(markdown)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "markdown-asciidoc",
+      "source": "Markdown",
+      "target": "AsciiDoc",
+      "package": "OfficeIMO.AsciiDoc.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "MarkdownDoc.Parse(markdown).ToAsciiDocDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "markdown-confluence",
+      "source": "Markdown",
+      "target": "Confluence",
+      "package": "OfficeIMO.Confluence",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ConfluenceContentConverter.FromMarkdown(markdown, format)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "markdown-docx",
+      "source": "Markdown",
+      "target": "DOCX",
+      "package": "OfficeIMO.Word.Markdown",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "MarkdownReader.Parse(markdown).ToWordDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser"
+      ]
+    },
+    {
+      "id": "markdown-epub",
+      "source": "Markdown",
+      "target": "EPUB",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "BookManuscriptImporter.ImportMarkdownAsync(document, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "markdown-html",
+      "source": "Markdown",
+      "target": "HTML",
+      "package": "OfficeIMO.MarkdownRenderer",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "MarkdownRenderer.RenderBodyHtml(markdown, options)",
+      "surfaces": [
+        "dotnet",
+        "browser"
+      ]
+    },
+    {
+      "id": "markdown-latex",
+      "source": "Markdown",
+      "target": "LaTeX",
+      "package": "OfficeIMO.Latex.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "MarkdownDoc.Parse(markdown).ToLatexDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "markdown-pdf",
+      "source": "Markdown",
+      "target": "PDF",
+      "package": "OfficeIMO.Markdown.Pdf",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "MarkdownDoc.Parse(markdown).ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "markdown-rtf",
+      "source": "Markdown",
+      "target": "RTF",
+      "package": "OfficeIMO.Rtf.Markdown",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "MarkdownDoc.Parse(markdown).ToRtfDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "mhtml-pdf",
+      "source": "MHTML",
+      "target": "PDF",
+      "package": "OfficeIMO.Mhtml.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "MhtmlDocument.Load(stream, options).ToPdfDocumentResult(pdfOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "numbers-xlsx",
+      "source": "Numbers",
+      "target": "XLSX",
+      "package": "OfficeIMO.Excel.IWork",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "ExcelIWorkConverter.ConvertNumbersToExcelResult(path, readOptions, conversionOptions)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "odg-pdf",
+      "source": "ODG/FODG",
+      "target": "PDF",
+      "package": "OfficeIMO.OpenDocument.Odg.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdgDocument.Load(stream) or LoadFlatXml(stream), then ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "odp-jpeg",
+      "source": "ODP",
+      "target": "JPEG",
+      "package": "OfficeIMO.PowerPoint.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odp-pdf",
+      "source": "ODP",
+      "target": "PDF",
+      "package": "OfficeIMO.OpenDocument.Odp.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdpPresentation.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odp-png",
+      "source": "ODP",
+      "target": "PNG",
+      "package": "OfficeIMO.PowerPoint.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odp-pptx",
+      "source": "ODP",
+      "target": "PPTX",
+      "package": "OfficeIMO.PowerPoint.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OdpPresentation.Load(stream).ToPowerPointPresentationResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odp-svg",
+      "source": "ODP",
+      "target": "SVG",
+      "package": "OfficeIMO.PowerPoint.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odp-tiff",
+      "source": "ODP",
+      "target": "TIFF",
+      "package": "OfficeIMO.PowerPoint.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odp-webp",
+      "source": "ODP",
+      "target": "WebP",
+      "package": "OfficeIMO.PowerPoint.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdpPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "ods-jpeg",
+      "source": "ODS",
+      "target": "JPEG",
+      "package": "OfficeIMO.Excel.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "ods-pdf",
+      "source": "ODS",
+      "target": "PDF",
+      "package": "OfficeIMO.OpenDocument.Ods.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdsDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "ods-png",
+      "source": "ODS",
+      "target": "PNG",
+      "package": "OfficeIMO.Excel.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "ods-svg",
+      "source": "ODS",
+      "target": "SVG",
+      "package": "OfficeIMO.Excel.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "ods-tiff",
+      "source": "ODS",
+      "target": "TIFF",
+      "package": "OfficeIMO.Excel.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "ods-webp",
+      "source": "ODS",
+      "target": "WebP",
+      "package": "OfficeIMO.Excel.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdsDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "ods-xlsx",
+      "source": "ODS",
+      "target": "XLSX",
+      "package": "OfficeIMO.Excel.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OdsDocument.Load(stream).ToExcelDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odt-docx",
+      "source": "ODT",
+      "target": "DOCX",
+      "package": "OfficeIMO.Word.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "OdtDocument.Load(stream).ToWordDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odt-jpeg",
+      "source": "ODT",
+      "target": "JPEG",
+      "package": "OfficeIMO.Word.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odt-pdf",
+      "source": "ODT",
+      "target": "PDF",
+      "package": "OfficeIMO.OpenDocument.Odt.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdtDocument.Load(stream).ToPdfDocumentResult(conversionOptions, pdfOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odt-png",
+      "source": "ODT",
+      "target": "PNG",
+      "package": "OfficeIMO.Word.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odt-svg",
+      "source": "ODT",
+      "target": "SVG",
+      "package": "OfficeIMO.Word.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odt-tiff",
+      "source": "ODT",
+      "target": "TIFF",
+      "package": "OfficeIMO.Word.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "odt-webp",
+      "source": "ODT",
+      "target": "WebP",
+      "package": "OfficeIMO.Word.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OdtDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "officemarkup-docx",
+      "source": "OfficeIMO Markup",
+      "target": "DOCX",
+      "package": "OfficeIMO.Markup.Word",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToWordDocumentResult(exportOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "officemarkup-pptx",
+      "source": "OfficeIMO Markup",
+      "target": "PPTX",
+      "package": "OfficeIMO.Markup.PowerPoint",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPointPresentationResult(exportOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "officemarkup-xlsx",
+      "source": "OfficeIMO Markup",
+      "target": "XLSX",
+      "package": "OfficeIMO.Markup.Excel",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToExcelDocumentResult(exportOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-html",
+      "source": "OneNote",
+      "target": "HTML",
+      "package": "OfficeIMO.OneNote.Html",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "section.ToHtmlDocumentResult(projectionOptions, htmlOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-jpeg",
+      "source": "OneNote",
+      "target": "JPEG",
+      "package": "OfficeIMO.OneNote",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-markdown",
+      "source": "OneNote",
+      "target": "Markdown",
+      "package": "OfficeIMO.OneNote.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "section.ToMarkdownDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-pdf",
+      "source": "OneNote",
+      "target": "PDF",
+      "package": "OfficeIMO.OneNote.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "section.ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-png",
+      "source": "OneNote",
+      "target": "PNG",
+      "package": "OfficeIMO.OneNote",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-svg",
+      "source": "OneNote",
+      "target": "SVG",
+      "package": "OfficeIMO.OneNote",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-tiff",
+      "source": "OneNote",
+      "target": "TIFF",
+      "package": "OfficeIMO.OneNote",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "onenote-webp",
+      "source": "OneNote",
+      "target": "WebP",
+      "package": "OfficeIMO.OneNote",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pages-docx",
+      "source": "Pages",
+      "target": "DOCX",
+      "package": "OfficeIMO.Word.IWork",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "WordIWorkConverter.ConvertPagesToWordResult(path, readOptions, conversionOptions)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "pdf-docx",
+      "source": "PDF",
+      "target": "DOCX",
+      "package": "OfficeIMO.Word.Pdf",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PdfDocument.Load(stream).ToWordDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "pdf-html",
+      "source": "PDF",
+      "target": "HTML",
+      "package": "OfficeIMO.Html.Pdf",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "PdfDocument.Load(stream).ToHtmlResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "pdf-jpeg",
+      "source": "PDF",
+      "target": "JPEG",
+      "package": "OfficeIMO.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-odp",
+      "source": "PDF",
+      "target": "ODP",
+      "package": "OfficeIMO.OpenDocument.Odp.Pdf",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PdfDocument.Load(stream).ToOdpPresentationResult(pdfOptions, openDocumentOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-ods",
+      "source": "PDF",
+      "target": "ODS",
+      "package": "OfficeIMO.OpenDocument.Ods.Pdf",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PdfDocument.Load(stream).ToOdsDocumentResult(pdfOptions, openDocumentOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-odt",
+      "source": "PDF",
+      "target": "ODT",
+      "package": "OfficeIMO.OpenDocument.Odt.Pdf",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PdfDocument.Load(stream).ToOdtDocumentResult(pdfOptions, openDocumentOptions)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-png",
+      "source": "PDF",
+      "target": "PNG",
+      "package": "OfficeIMO.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "PdfDocument.Load(stream).Render.ExportImages(OfficeImageExportFormat.Png, options)",
+      "surfaces": [
+        "dotnet",
+        "browser"
+      ]
+    },
+    {
+      "id": "pdf-pptx",
+      "source": "PDF",
+      "target": "PPTX",
+      "package": "OfficeIMO.PowerPoint.Pdf",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "PdfDocument.Load(stream).ToPowerPointPresentationResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "pdf-rtf",
+      "source": "PDF",
+      "target": "RTF",
+      "package": "OfficeIMO.Rtf.Pdf",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PdfDocument.Load(stream).ToRtfDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-svg",
+      "source": "PDF",
+      "target": "SVG",
+      "package": "OfficeIMO.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-tiff",
+      "source": "PDF",
+      "target": "TIFF",
+      "package": "OfficeIMO.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-webp",
+      "source": "PDF",
+      "target": "WebP",
+      "package": "OfficeIMO.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pdf-xlsx",
+      "source": "PDF",
+      "target": "XLSX",
+      "package": "OfficeIMO.Excel.Pdf",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PdfDocument.Load(stream).ImportTablesToExcelDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "pptx-google-slides",
+      "source": "PPTX",
+      "target": "Google Slides",
+      "package": "OfficeIMO.PowerPoint.GoogleSlides",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "PowerPointPresentation.Load(stream).ExportToGoogleSlidesAsync(session, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pptx-html",
+      "source": "PPTX",
+      "target": "HTML",
+      "package": "OfficeIMO.PowerPoint.Html",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "PowerPointPresentation.Load(stream).ToHtmlResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pptx-jpeg",
+      "source": "PPTX",
+      "target": "JPEG",
+      "package": "OfficeIMO.PowerPoint",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pptx-odp",
+      "source": "PPTX",
+      "target": "ODP",
+      "package": "OfficeIMO.PowerPoint.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "PowerPointPresentation.Load(stream).ToOpenDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pptx-pdf",
+      "source": "PPTX",
+      "target": "PDF",
+      "package": "OfficeIMO.PowerPoint.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "PowerPointPresentation.Load(stream).ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "pptx-png",
+      "source": "PPTX",
+      "target": "PNG",
+      "package": "OfficeIMO.PowerPoint",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pptx-svg",
+      "source": "PPTX",
+      "target": "SVG",
+      "package": "OfficeIMO.PowerPoint",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pptx-tiff",
+      "source": "PPTX",
+      "target": "TIFF",
+      "package": "OfficeIMO.PowerPoint",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "pptx-webp",
+      "source": "PPTX",
+      "target": "WebP",
+      "package": "OfficeIMO.PowerPoint",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "PowerPointPresentation.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "rtf-docx",
+      "source": "RTF",
+      "target": "DOCX",
+      "package": "OfficeIMO.Word.Rtf",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "RtfDocument.LoadResult(stream, readOptions).ToWordDocumentResult(sourcePath)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "rtf-html",
+      "source": "RTF",
+      "target": "HTML",
+      "package": "OfficeIMO.Html.Rtf",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "RtfDocument.LoadResult(stream, readOptions).Document.ToHtmlResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "rtf-markdown",
+      "source": "RTF",
+      "target": "Markdown",
+      "package": "OfficeIMO.Rtf.Markdown",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "RtfDocument.LoadResult(stream, readOptions).Document.ToMarkdownResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "rtf-pdf",
+      "source": "RTF",
+      "target": "PDF",
+      "package": "OfficeIMO.Rtf.Pdf",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "RtfDocument.LoadResult(stream, readOptions).Document.ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "txt-pdf",
+      "source": "Plain text",
+      "target": "PDF",
+      "package": "OfficeIMO.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PdfPlainTextConverter.ToPdfDocumentResult(bytes, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "visio-binary-pdf",
+      "source": "Binary Visio",
+      "target": "PDF",
+      "package": "OfficeIMO.Visio.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-svg",
+      "source": "Binary Visio",
+      "target": "SVG",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var svg = imported.Value.Pages[0].ToSvg()",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-vsdx",
+      "source": "Binary Visio",
+      "target": "VSDX",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(stream); var importReport = imported.Report; imported.Value.Save(output)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-vssx",
+      "source": "Binary Visio stencil",
+      "target": "VSSX",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil); var importReport = imported.Report; imported.Value.Save(output)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-vstx",
+      "source": "Binary Visio template",
+      "target": "VSTX",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template); var importReport = imported.Report; imported.Value.Save(output)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-jpeg",
+      "source": "Visio",
+      "target": "JPEG",
+      "package": "OfficeIMO.Visio",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-pdf",
+      "source": "Visio",
+      "target": "PDF",
+      "package": "OfficeIMO.Visio.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "VisioDocument.Load(stream).ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "visio-png",
+      "source": "Visio",
+      "target": "PNG",
+      "package": "OfficeIMO.Visio",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-svg",
+      "source": "Visio",
+      "target": "SVG",
+      "package": "OfficeIMO.Visio",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-tiff",
+      "source": "Visio",
+      "target": "TIFF",
+      "package": "OfficeIMO.Visio",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-webp",
+      "source": "Visio",
+      "target": "WebP",
+      "package": "OfficeIMO.Visio",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "VisioDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-csv",
+      "source": "XLSX",
+      "target": "CSV",
+      "package": "OfficeIMO.Excel.Csv",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "ExcelDocument.Load(stream).Sheets[0].ToCsv(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-google-sheets",
+      "source": "XLSX",
+      "target": "Google Sheets",
+      "package": "OfficeIMO.Excel.GoogleSheets",
+      "support": "Established",
+      "fidelity": "Editable",
+      "api": "ExcelDocument.Load(stream).ExportToGoogleSheetsAsync(session, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-html",
+      "source": "XLSX",
+      "target": "HTML",
+      "package": "OfficeIMO.Excel.Html",
+      "support": "Established",
+      "fidelity": "Semantic",
+      "api": "ExcelDocument.Load(stream).ToHtmlResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-jpeg",
+      "source": "XLSX",
+      "target": "JPEG",
+      "package": "OfficeIMO.Excel",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-ods",
+      "source": "XLSX",
+      "target": "ODS",
+      "package": "OfficeIMO.Excel.OpenDocument",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "ExcelDocument.Load(stream).ToOpenDocumentResult(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-pdf",
+      "source": "XLSX",
+      "target": "PDF",
+      "package": "OfficeIMO.Excel.Pdf",
+      "support": "Advanced",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(stream).ToPdfDocumentResult(options)",
+      "surfaces": [
+        "dotnet",
+        "browser",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "xlsx-png",
+      "source": "XLSX",
+      "target": "PNG",
+      "package": "OfficeIMO.Excel",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-svg",
+      "source": "XLSX",
+      "target": "SVG",
+      "package": "OfficeIMO.Excel",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-tiff",
+      "source": "XLSX",
+      "target": "TIFF",
+      "package": "OfficeIMO.Excel",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xlsx-webp",
+      "source": "XLSX",
+      "target": "WebP",
+      "package": "OfficeIMO.Excel",
+      "support": "Established",
+      "fidelity": "FixedLayout",
+      "api": "ExcelDocument.Load(stream).ExportImages(format, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "xps-pdf",
+      "source": "XPS/OpenXPS",
+      "target": "PDF",
+      "package": "OfficeIMO.Xps.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "XpsDocument.Load(stream).SavePdf(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    }
+  ]
+}

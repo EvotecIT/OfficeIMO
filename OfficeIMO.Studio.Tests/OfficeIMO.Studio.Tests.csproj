@@ -44,4 +44,7 @@
           Link="Fixtures\SourceSansPro-Regular.otf"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../OfficeIMO.TestAssets/Documents/Provenance/unsigned-credential-12-actions.png" Link="Fixtures/unsigned-credential-12-actions.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

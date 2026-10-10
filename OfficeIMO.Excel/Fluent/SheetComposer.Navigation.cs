@@ -1,7 +1,5 @@
 namespace OfficeIMO.Excel.Fluent {
-    /// <summary>
-    /// Navigation helpers for SheetComposer (sections with anchors, header/footer).
-    /// </summary>
+    // Navigation helpers for SheetComposer (sections with anchors, header/footer).
     public sealed partial class SheetComposer {
         /// <summary>
         /// Inserts a section header and a back-to-top link (explicit A1 link).

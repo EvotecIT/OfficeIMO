@@ -2,9 +2,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// A wrapper for Word document comments.
-    /// </summary>
+    // A wrapper for Word document comments.
     public partial class WordComment {
 
         /// <summary>

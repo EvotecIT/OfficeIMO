@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace OfficeIMO.Provenance;
 
-internal static class OfficeC2paManifestStore {
+internal static partial class OfficeC2paManifestStore {
     private static readonly byte[] ManifestStoreUuid = {
         0x63, 0x32, 0x70, 0x61, 0x00, 0x11, 0x00, 0x10,
         0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71

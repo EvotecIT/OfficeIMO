@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Layout and geometry helpers for Visio pages, shapes, and selections.
-    /// </summary>
+    // Layout and geometry helpers for Visio pages, shapes, and selections.
     public static partial class VisioLayoutExtensions {
         /// <summary>
         /// Resizes a shape to fit its plain text using deterministic OfficeIMO.Drawing measurement.

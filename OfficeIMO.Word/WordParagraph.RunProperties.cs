@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Manages run property settings.
-    /// </summary>
+    // Manages run property settings.
     public partial class WordParagraph {
         internal RunProperties? ScopedRunProperties => _stdRun != null
             ? _stdRun.SdtContentRun?.Descendants<Run>().FirstOrDefault()?.GetFirstChild<RunProperties>()

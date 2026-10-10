@@ -7,9 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Load orchestrator for VisioDocument.
-    /// </summary>
+    // Load orchestrator for VisioDocument.
     public partial class VisioDocument {
         /// <summary>
         /// Loads an existing .vsdx file into a VisioDocument.

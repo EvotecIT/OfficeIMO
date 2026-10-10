@@ -101,7 +101,7 @@ public static partial class HtmlProvenance {
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"{documentLocation}/script[type=application/c2pa][{carrierIndex++}]",
                 valid,
-                manifest.Length));
+                manifest.Length).WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
         }
 
         foreach (IElement link in head.QuerySelectorAll("link[rel][href]")) {
@@ -1503,7 +1503,7 @@ public static partial class HtmlProvenance {
     }
 
     private static OfficeProvenanceEvidence Prefix(string prefix, OfficeProvenanceEvidence item) =>
-        new OfficeProvenanceEvidence(item.Carrier, prefix + "/" + item.Location, item.IsStructurallyValid, item.PayloadLength, item.Value, item.DigitalSourceKind);
+        new OfficeProvenanceEvidence(item.Carrier, prefix + "/" + item.Location, item.IsStructurallyValid, item.PayloadLength, item.Value, item.DigitalSourceKind).WithManifest(item.Manifest);
 
     private static OfficeProvenanceOptions CreateInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.Limits.MaxAssetBytes,

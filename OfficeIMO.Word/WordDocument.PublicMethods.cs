@@ -5,9 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides public methods for manipulating a Word document.
-    /// </summary>
+    // Provides public methods for manipulating a Word document.
     public partial class WordDocument {
         /// <summary>
         /// Appends a paragraph to the document body.

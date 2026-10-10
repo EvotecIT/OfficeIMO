@@ -861,6 +861,22 @@
   font-size: 1.04rem;
   line-height: 1.75;
 }
+/* A loose paragraph between the intro and the first family reads as a pointer, not body copy. */
+.imo-comparison-hub__content .markdown-body > p {
+  margin: 0 0 clamp(2.5rem, 5vw, 4rem);
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 12px;
+  background: var(--imo-surface);
+  color: var(--imo-text-secondary);
+  line-height: 1.65;
+}
+.imo-comparison-family {
+  scroll-margin-top: 8.5rem;
+  padding-bottom: clamp(3rem, 5vw, 4.5rem);
+}
+.imo-comparison-family__heading { margin-bottom: 1.5rem; }
+.imo-comparison-family__heading h2 { margin: 0; font-size: clamp(2rem, 3.5vw, 3rem); letter-spacing: -.045em; }
 .imo-comparison-group {
   scroll-margin-top: 8.5rem;
   padding: clamp(3.5rem, 6vw, 5.5rem) 0;
@@ -1205,3 +1221,39 @@
 .imo-product-proof__code pre { min-width: 0; max-width: 100%; overflow-x: auto; }
 .imo-benchmark-evidence-notes { margin: 2rem 0; border-block: 1px solid var(--imo-border); }
 .imo-benchmark-evidence-notes > summary { padding: 1.2rem 0; cursor: pointer; font-weight: 650; }
+/* Compatibility: package × operation matrix (layouts/compatibility.html). */
+.imo-cap-pill { --cap: var(--imo-text-muted); display: inline-flex; align-items: center; justify-content: center; min-width: 1.6rem; padding: 2px 7px; border-radius: 999px; font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--cap); background: color-mix(in srgb, var(--cap) 15%, transparent); border: 1px solid color-mix(in srgb, var(--cap) 25%, transparent); cursor: default; }
+.imo-cap-pill[data-state="Supported"] { --cap: #059669; }
+.imo-cap-pill[data-state="Partial"] { --cap: #b45309; }
+.imo-cap-pill[data-state="Preserved"] { --cap: #0369a1; }
+.imo-cap-pill[data-state="Rejected"] { --cap: #be123c; }
+.imo-cap-pill[data-state="Unsupported"] { --cap: #64748b; }
+.imo-cap-pill[data-state="Not applicable"] { --cap: #94a3b8; opacity: .8; }
+[data-theme="dark"] .imo-cap-pill[data-state="Supported"] { --cap: #34d399; }
+[data-theme="dark"] .imo-cap-pill[data-state="Partial"] { --cap: #fbbf24; }
+[data-theme="dark"] .imo-cap-pill[data-state="Preserved"] { --cap: #38bdf8; }
+[data-theme="dark"] .imo-cap-pill[data-state="Rejected"] { --cap: #fb7185; }
+[data-theme="dark"] .imo-cap-pill[data-state="Unsupported"] { --cap: #94a3b8; }
+.imo-cap-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; margin: 1.25rem 0 .9rem; }
+.imo-cap-filter { display: flex; align-items: center; gap: .55rem; min-width: min(320px, 100%); padding: .55rem .8rem; border: 1px solid var(--imo-border); border-radius: 10px; background: var(--imo-surface); color: var(--imo-text-muted); }
+.imo-cap-filter:focus-within { border-color: var(--imo-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--imo-accent) 22%, transparent); }
+.imo-cap-filter input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--imo-text); font: inherit; font-size: .92rem; }
+.imo-cap-key { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.imo-cap-key .imo-cap-pill { font-weight: 600; }
+.imo-cap-matrix { max-height: min(78vh, 900px); overflow: auto; border: 1px solid var(--imo-border); border-radius: 14px; background: var(--imo-surface); }
+.imo-cap-matrix:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+.imo-cap-matrix table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .86rem; }
+.imo-cap-matrix thead th { position: sticky; top: 0; z-index: 2; padding: .7rem .6rem; text-align: center; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--imo-text-muted); background: var(--imo-bg-elevated); border-bottom: 1px solid var(--imo-border); }
+.imo-cap-matrix thead th:first-child { left: 0; z-index: 3; text-align: left; }
+.imo-cap-matrix tbody th { position: sticky; left: 0; z-index: 1; min-width: 210px; padding: .55rem .8rem; text-align: left; font-weight: 400; background: var(--imo-surface); border-right: 1px solid var(--imo-border); }
+.imo-cap-matrix tbody th b { display: block; font-size: .86rem; color: var(--imo-text); }
+.imo-cap-matrix tbody th small { display: block; margin-top: 1px; font-size: .72rem; color: var(--imo-text-muted); }
+.imo-cap-matrix td { min-width: 64px; padding: .45rem .4rem; text-align: center; }
+.imo-cap-matrix td .imo-cap-pill { margin: 1px; }
+.imo-cap-matrix tbody tr + tr > * { border-top: 1px solid color-mix(in srgb, var(--imo-border) 60%, transparent); }
+.imo-cap-matrix tbody tr:hover > * { background: color-mix(in srgb, var(--imo-accent) 5%, var(--imo-surface)); }
+.imo-cap-matrix tbody tr:target > * { background: color-mix(in srgb, var(--imo-accent) 12%, var(--imo-surface)); }
+.imo-cap-none { color: var(--imo-text-muted); opacity: .45; }
+.imo-cap-matrix tr[hidden], .imo-cap-empty[hidden] { display: none; }
+.imo-cap-empty { margin: 0; padding: 1rem; text-align: center; color: var(--imo-text-secondary); }
+@media (max-width: 600px) { .imo-cap-matrix tbody th { min-width: 132px; padding-inline: .6rem; } .imo-cap-matrix tbody th small { display: none; } .imo-cap-matrix td { min-width: 52px; } }

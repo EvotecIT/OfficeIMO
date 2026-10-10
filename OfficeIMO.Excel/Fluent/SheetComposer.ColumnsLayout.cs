@@ -1,9 +1,7 @@
 using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel.Fluent {
-    /// <summary>
-    /// Simple multi-column layout for placing lightweight blocks side by side.
-    /// </summary>
+    // Simple multi-column layout for placing lightweight blocks side by side.
     public sealed partial class SheetComposer {
         /// <summary>
         /// Column-scoped composer used by <see cref="Columns"/> to

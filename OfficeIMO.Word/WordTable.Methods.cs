@@ -3,10 +3,8 @@ using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Represents a table in a Word document and provides methods for
-    /// manipulating its content and formatting.
-    /// </summary>
+    // Represents a table in a Word document and provides methods for
+    // manipulating its content and formatting.
     public partial class WordTable {
         /// <summary>
         /// Add comment to a Table

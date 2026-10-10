@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>KSeF v2 token authentication, encrypted online invoice submission, status and UPO retrieval.</Description>
-    <VersionPrefix>3.4.4</VersionPrefix><TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <VersionPrefix>3.4.5</VersionPrefix><TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <Company>Evotec</Company><Authors>Przemyslaw Klys</Authors><PackageId>OfficeIMO.Invoicing.KSeF</PackageId>
     <PackageTags>invoice;ksef;fa3;poland</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl><RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

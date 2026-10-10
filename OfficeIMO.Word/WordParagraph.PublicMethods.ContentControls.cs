@@ -11,9 +11,7 @@ using V = DocumentFormat.OpenXml.Vml;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Contains public methods for editing paragraphs.
-    /// </summary>
+    // Contains public methods for editing paragraphs.
     public partial class WordParagraph {
         /// <summary>
         /// Adds a simple content control (structured document tag) to the paragraph.

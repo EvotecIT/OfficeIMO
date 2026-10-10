@@ -171,7 +171,8 @@ namespace OfficeIMO.Excel {
                 if (!IsCurrentStreamingRow) {
                     return _currentRow[ordinal] == null || _currentRow[ordinal] == DBNull.Value;
                 }
-                if (_currentValueLoaded[ordinal]) {
+                if (_currentValueLoaded[ordinal]
+                    && (_utf8Source != null || !_currentRowActive || _currentRowFinished)) {
                     return _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.None
                         && (_currentRow[ordinal] == null || _currentRow[ordinal] == DBNull.Value);
                 }

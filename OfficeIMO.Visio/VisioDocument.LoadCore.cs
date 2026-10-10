@@ -9,9 +9,7 @@ using System.Xml.Linq;
 using System.Threading;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Load core and parse helpers for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Load core and parse helpers for VisioDocument.
     public partial class VisioDocument {
         private static VisioDocument LoadCore(Package package, string? filePath, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();

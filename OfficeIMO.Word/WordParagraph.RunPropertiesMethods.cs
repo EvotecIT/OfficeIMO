@@ -4,9 +4,7 @@ using System.Globalization;
 using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Offers methods to modify run properties.
-    /// </summary>
+    // Offers methods to modify run properties.
     public partial class WordParagraph {
         /// <summary>
         /// Sets the <see cref="WordParagraph.Bold"/> property.

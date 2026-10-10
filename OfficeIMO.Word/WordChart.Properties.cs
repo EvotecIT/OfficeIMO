@@ -6,10 +6,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Partial class containing property definitions and helper fields for
-    /// <see cref="WordChart"/>.
-    /// </summary>
+    // Partial class containing property definitions and helper fields for
+    // WordChart.
     public partial class WordChart {
         /// <summary>
         /// Built‑in color palettes for charts.

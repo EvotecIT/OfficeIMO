@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Html.Pdf;
 
-/// <summary>Explicit render-request HTML-to-PDF entry points.</summary>
+//Explicit render-request HTML-to-PDF entry points.
 public static partial class HtmlPdfConverterExtensions {
     /// <summary>Executes an explicit PDF render request and serializes the resulting document.</summary>
     public static byte[] RenderToPdfBytes(

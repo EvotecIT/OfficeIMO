@@ -1,0 +1,430 @@
+using System.Text;
+using OfficeIMO.Provenance;
+using Xunit;
+
+namespace OfficeIMO.Shared.Tests;
+
+/// <summary>Reads what a C2PA manifest says: generator, actions, ingredients, and signer.</summary>
+public sealed class ProvenanceC2paManifestSummaryTests {
+    private const string TrainedAlgorithmicMedia = "http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia";
+
+    [Fact]
+    public void GenerativeImageManifestNamesTheGeneratorModelAndSigner() {
+        byte[] store = Store(
+            Manifest("urn:uuid:first", claimGenerator: "Photoshop", actions: Actions(("c2pa.opened", null, null)), signer: null),
+            Manifest("urn:uuid:active",
+                claimGenerator: null,
+                claimGeneratorInfo: ("ChatGPT", null),
+                actions: Actions(("c2pa.created", "GPT-4o", TrainedAlgorithmicMedia), ("c2pa.converted", null, null)),
+                ingredient: "prompt-image.png",
+                signer: Certificate(subjectOrganization: "OpenAI", issuerOrganization: "Truepic")));
+
+        OfficeC2paManifestSummary? summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length);
+
+        Assert.NotNull(summary);
+        Assert.Equal("urn:uuid:active", summary!.Label);
+        Assert.Equal(2, summary.ManifestCount);
+        Assert.Equal("ChatGPT", summary.ClaimGenerator);
+        Assert.Equal("image.png", summary.Title);
+        Assert.Equal("image/png", summary.Format);
+        Assert.Equal("OpenAI", summary.SignedBy);
+        Assert.Equal("Truepic", summary.CertificateIssuer);
+        Assert.True(summary.DeclaresGenerativeAi);
+        Assert.Equal(new[] { "c2pa.created", "c2pa.converted" }, summary.Actions.Select(static action => action.Action));
+        Assert.Equal("GPT-4o", summary.Actions[0].SoftwareAgent);
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia, summary.Actions[0].DigitalSourceKind);
+        Assert.Equal("prompt-image.png", Assert.Single(summary.Ingredients));
+    }
+
+    [Fact]
+    public void LegacyClaimGeneratorStringAndUnsignedManifestAreRead() {
+        byte[] store = Store(Manifest("urn:uuid:only", claimGenerator: "make_test_images/0.16.1", actions: Actions(("c2pa.drawing", null, null)), signer: null));
+
+        OfficeC2paManifestSummary? summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length);
+
+        Assert.NotNull(summary);
+        Assert.Equal("make_test_images/0.16.1", summary!.ClaimGenerator);
+        Assert.Null(summary.SignedBy);
+        Assert.False(summary.DeclaresGenerativeAi);
+        Assert.Equal("c2pa.drawing", Assert.Single(summary.Actions).Action);
+    }
+
+    [Fact]
+    public void SummaryIsAttachedToEvidenceForAValidStore() {
+        byte[] store = Store(Manifest("urn:uuid:only", claimGenerator: "ChatGPT", actions: Actions(("c2pa.created", "GPT-4o", TrainedAlgorithmicMedia)), signer: null));
+        Assert.True(OfficeC2paManifestStore.IsValid(store, 0, store.Length, store.Length, 1024, out int length));
+        Assert.Equal(store.Length, length);
+        var evidence = new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, "fixture", true, store.Length)
+            .WithManifest(OfficeC2paManifestStore.TryDescribe(store, 0, store.Length));
+        Assert.True(evidence.Manifest!.DeclaresGenerativeAi);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(17)]
+    [InlineData(64)]
+    public void TruncatedOrCorruptStoresNeverThrow(int keep) {
+        byte[] store = Store(Manifest("urn:uuid:only", claimGenerator: "ChatGPT", actions: Actions(("c2pa.created", "GPT-4o", TrainedAlgorithmicMedia)),
+            signer: Certificate("OpenAI", "Truepic")));
+        byte[] truncated = store.Take(keep).ToArray();
+        Assert.Null(OfficeC2paManifestStore.TryDescribe(truncated, 0, truncated.Length));
+
+        byte[] corrupt = (byte[])store.Clone();
+        for (int index = 40; index < corrupt.Length; index += 7) corrupt[index] ^= 0x5A;
+        _ = OfficeC2paManifestStore.TryDescribe(corrupt, 0, corrupt.Length); // must not throw
+    }
+
+    [Fact]
+    public void CborReaderRejectsOversizedLengthsAndDeepNesting() {
+        // A text string claiming 4 GB, and 64 nested arrays.
+        Assert.False(OfficeCborReader.TryDecode(new byte[] { 0x7A, 0xFF, 0xFF, 0xFF, 0xFF, 0x41 }, 0, 6, out _));
+        byte[] nested = Enumerable.Repeat((byte)0x81, 64).Concat(new byte[] { 0x01 }).ToArray();
+        Assert.False(OfficeCborReader.TryDecode(nested, 0, nested.Length, out _));
+        Assert.True(OfficeCborReader.TryDecode(new byte[] { 0xA1, 0x61, 0x61, 0x01 }, 0, 4, out object? map));
+        Assert.Equal(1L, ((Dictionary<object, object?>)map!)["a"]);
+    }
+
+    [Theory]
+    [InlineData("assertions", "self#jumbf=c2pa.assertions/c2pa.actions.v2", true)]
+    [InlineData("created_assertions", "self#jumbf=/c2pa/urn:uuid:active/c2pa.assertions/c2pa.actions.v2", true)]
+    [InlineData("gathered_assertions", "self#jumbf=c2pa.assertions/c2pa.actions.v2", true)]
+    [InlineData("created_assertions", "self#jumbf=/c2pa/urn:uuid:other/c2pa.assertions/c2pa.actions.v2", false)]
+    [InlineData("created_assertions", "self#jumbf=c2pa.assertions/c2pa.ingredient.v3", false)]
+    [InlineData("created_assertions", "https://example.test/assertion", false)]
+    public void OnlyAssertionsReferencedByTheActiveClaimDescribeItsOrigin(string field, string url, bool claimed) {
+        byte[] store = Store(Manifest("urn:uuid:active", "Generator", Actions(("c2pa.created", "Model", TrainedAlgorithmicMedia)), null,
+            assertionReferences: new[] { url }, referenceField: field));
+        OfficeC2paManifestSummary summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.NotNull(summary);
+        Assert.Equal(claimed, summary.DeclaresGenerativeAi);
+        Assert.Equal(claimed ? 1 : 0, summary.Actions.Count);
+    }
+
+    [Fact]
+    public void UnclaimedAssertionsAndUnreadableClaimsCannotDescribeActions() {
+        byte[] store = Store(Manifest("urn:uuid:active", "Generator", Actions(("c2pa.created", null, TrainedAlgorithmicMedia)), null,
+            assertionReferences: Array.Empty<string>()));
+        Assert.Empty(OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.Actions);
+        byte[] unreadable = Store(Manifest("urn:uuid:active", "Generator", Actions(("c2pa.created", null, TrainedAlgorithmicMedia)), null,
+            claimPayload: new byte[] { 0xFF }));
+        Assert.Null(OfficeC2paManifestStore.TryDescribe(unreadable, 0, unreadable.Length));
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0xA0, 0xFF })]
+    [InlineData(new byte[] { 0xA2, 0x61, 0x61, 0x01, 0x61, 0x61, 0x02 })]
+    [InlineData(new byte[] { 0x7F, 0x61, 0xC3, 0x61, 0xA9, 0xFF })]
+    public void CborRejectsTrailingDataDuplicateKeysAndInvalidTextChunks(byte[] bytes) {
+        Assert.False(OfficeCborReader.TryDecode(bytes, 0, bytes.Length, out _));
+    }
+
+    [Theory]
+    [InlineData(0x5F, 0x40)]
+    [InlineData(0x7F, 0x60)]
+    public void IndefiniteStringChunksConsumeTheItemBudget(int start, int chunk) {
+        byte[] bytes = new[] { (byte)start }.Concat(Enumerable.Repeat((byte)chunk, 100)).Concat(new byte[] { 0xFF }).ToArray();
+        Assert.False(OfficeCborReader.TryDecode(bytes, 0, bytes.Length, out _, maximumItems: 2));
+        Assert.True(OfficeCborReader.TryDecode(bytes, 0, bytes.Length, out _, maximumItems: 101));
+        byte[] validText = { 0x7F, 0x62, 0xC3, 0xA9, 0x61, 0x21, 0xFF };
+        Assert.True(OfficeCborReader.TryDecode(validText, 0, validText.Length, out object? value));
+        Assert.Equal("é!", value);
+    }
+
+    [Fact]
+    public void ActionTemplatesApplyWildcardThenMatchingTemplatesThenExplicitValues() {
+        byte[] assertion = Cbor(Map(
+            ("actions", new object?[] {
+                Map(("action", "c2pa.created")),
+                Map(("action", "c2pa.created"), ("softwareAgent", Map(("name", "Explicit agent"))), ("digitalSourceType", "explicit-source")),
+                Map(("action", "c2pa.cropped")) }),
+            ("templates", new object?[] {
+                Map(("action", "c2pa.created"), ("softwareAgent", Map(("name", "First matching agent")))),
+                Map(("action", "*"), ("softwareAgent", Map(("name", "Wildcard agent"))), ("digitalSourceType", "wildcard-source")),
+                Map(("action", "c2pa.created"), ("softwareAgent", Map(("name", "Last matching agent"))), ("digitalSourceType", TrainedAlgorithmicMedia)),
+                Map(("action", "c2pa.edited"), ("softwareAgent", Map(("name", "Unrelated agent")))) })));
+        byte[] store = Store(Manifest("active", "Claim generator", assertion, null));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.Equal(3, summary.Actions.Count);
+        Assert.Equal("Last matching agent", summary.Actions[0].SoftwareAgent);
+        Assert.Equal(TrainedAlgorithmicMedia, summary.Actions[0].DigitalSourceType);
+        Assert.Equal("Explicit agent", summary.Actions[1].SoftwareAgent);
+        Assert.Equal("explicit-source", summary.Actions[1].DigitalSourceType);
+        Assert.Equal("Wildcard agent", summary.Actions[2].SoftwareAgent);
+        Assert.True(summary.DeclaresGenerativeAi);
+    }
+
+    [Fact]
+    public void ActionAgentIndexesReferToTheAssertionAgentsAndNeverTheClaimGenerator() {
+        byte[] assertion = Cbor(Map(
+            ("actions", new object?[] {
+                Map(("action", "c2pa.created")),
+                Map(("action", "c2pa.created"), ("softwareAgentIndex", 0L)),
+                Map(("action", "c2pa.edited"), ("softwareAgentIndex", 1L)),
+                Map(("action", "c2pa.cropped"), ("softwareAgentIndex", 9L)) }),
+            ("templates", new object?[] { Map(("action", "c2pa.created"), ("softwareAgentIndex", 0L)) }),
+            ("softwareAgents", new object?[] { Map(("name", "AI model")), Map(("name", "Editor"), ("version", "2")) })));
+        byte[] store = Store(Manifest("active", null, assertion, null, claimGeneratorInfo: ("Claim generator", null)));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.Equal("Claim generator", summary.ClaimGenerator);
+        Assert.Equal(new string?[] { "AI model", "AI model", "Editor 2", null }, summary.Actions.Select(action => action.SoftwareAgent));
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    [InlineData(99, false)]
+    public void ActionTimestampsReadOnlyTheDateTimeCborTag(int tag, bool readable) {
+        const string timestamp = "2026-10-09T09:30:00+02:00";
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", "c2pa.created"), ("when", new Tagged((ulong)tag, timestamp))) })));
+        byte[] store = Store(Manifest("active", "Generator", assertion, null));
+        var action = Assert.Single(OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.Actions);
+        Assert.Equal(readable ? timestamp : null, action.When);
+    }
+
+    [Fact]
+    public void RelatedActionsInheritThePrimaryFieldsAndRemainBounded() {
+        const string timestamp = "2026-10-09T07:30:00Z";
+        object?[] related = Enumerable.Range(0, 80).Select(index => (object?)Map(("action", "c2pa.edited"),
+            ("softwareAgent", Map(("name", "Editor " + index))))).ToArray();
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", "c2pa.created"), ("when", new Tagged(0, timestamp)), ("related", related)) }),
+            ("templates", new object?[] { Map(("action", "*"), ("digitalSourceType", TrainedAlgorithmicMedia)) })));
+        byte[] store = Store(Manifest("active", "Generator", assertion, null));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.Equal(64, summary.Actions.Count);
+        Assert.Equal(timestamp, summary.Actions[1].When);
+        Assert.Equal(TrainedAlgorithmicMedia, summary.Actions[1].DigitalSourceType);
+        Assert.Equal("Editor 62", summary.Actions[63].SoftwareAgent);
+    }
+
+    [Theory]
+    [InlineData("c2pa.actions", false)]
+    [InlineData("c2pa.actions.v2__1", true)]
+    public void TemplatesApplyOnlyToVersionTwoIncludingInstanceLabels(string actionLabel, bool versionTwo) {
+        byte[] assertion = Cbor(Map(("actions", new object?[] { Map(("action", "c2pa.created")) }),
+            ("templates", new object?[] { Map(("action", "*"), ("digitalSourceType", TrainedAlgorithmicMedia)) })));
+        byte[] store = Store(Manifest("active", "Generator", assertion, null, actionLabel: actionLabel));
+        Assert.Equal(versionTwo, OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.DeclaresGenerativeAi);
+    }
+
+    [Fact]
+    public void AgentSelectorsReplaceEachOtherAcrossTemplatesActionsAndRelatedActions() {
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", "c2pa.created"), ("softwareAgentIndex", 0L), ("related", new object?[] {
+                Map(("action", "c2pa.edited"), ("softwareAgent", Map(("name", "Related editor"))), ("related", new object?[] {
+                    Map(("action", "c2pa.cropped"), ("softwareAgentIndex", 0L)) })) })),
+            Map(("action", "c2pa.edited")),
+            Map(("action", "c2pa.created"), ("softwareAgentIndex", 9L)) }),
+            ("templates", new object?[] {
+                Map(("action", "*"), ("softwareAgent", Map(("name", "Default editor")))),
+                Map(("action", "c2pa.edited"), ("softwareAgentIndex", 0L)) }),
+            ("softwareAgents", new object?[] { Map(("name", "Model")) })));
+        byte[] store = Store(Manifest("active", "Generator", assertion, null));
+        Assert.Equal(new string?[] { "Model", "Related editor", "Model", "Model", null },
+            OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.Actions.Select(action => action.SoftwareAgent));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GenerativeDeclarationsBeyondTheDisplayedActionsStillDescribeTheManifest(bool related) {
+        object?[] edits = Enumerable.Range(0, 64).Select(_ => (object?)Map(("action", "c2pa.edited"))).ToArray();
+        var actions = related
+            ? new List<object?> { Map(("action", "c2pa.created"), ("related", edits)) }
+            : edits.ToList();
+        actions.Add(Map(("action", "c2pa.edited"), ("digitalSourceType", TrainedAlgorithmicMedia)));
+        byte[] store = Store(Manifest("active", "Generator", Cbor(Map(("actions", actions.ToArray()))), null));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.Equal(64, summary.Actions.Count);
+        Assert.True(summary.DeclaresGenerativeAi);
+    }
+
+    [Fact]
+    public void UnclaimedAssertionBoxesCannotHideALaterClaimedAction() {
+        byte[][] unrelated = Enumerable.Range(0, 260).Select(index => Assertion("example.unclaimed__" + index, Cbor(Map()))).ToArray();
+        byte[] store = Store(Manifest("active", "Generator", Actions(("c2pa.created", "Model", TrainedAlgorithmicMedia)), null,
+            precedingAssertions: unrelated));
+        Assert.True(OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.DeclaresGenerativeAi);
+    }
+
+    // ---- fixture builders: JUMBF boxes, CBOR, and a minimal DER certificate ----
+
+    [Fact]
+    public void ScalarAgentsAreBoundedBeforeRepeatingTemplateAndRelatedActions() {
+        string agent = new string('x', 1024 * 1024);
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", "c2pa.created"), ("related", new object?[] { Map(("action", "c2pa.edited")) })) }),
+            ("templates", new object?[] { Map(("action", "*"), ("softwareAgent", agent)) })));
+        byte[] store = Store(Manifest("active", null, assertion, null));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.Equal(2, summary.Actions.Count);
+        Assert.All(summary.Actions, action => Assert.Equal(new string('x', 300), action.SoftwareAgent));
+    }
+
+    [Fact]
+    public void TemplateMatchingUsesTheCompleteActionIdentifier() {
+        string prefix = "com." + new string('a', 296);
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", prefix + "A")), Map(("action", prefix + "B")) }),
+            ("templates", new object?[] {
+                Map(("action", prefix + "A"), ("softwareAgent", "Editor")),
+                Map(("action", prefix + "B"), ("softwareAgent", "Model"), ("digitalSourceType", TrainedAlgorithmicMedia)) })));
+        byte[] store = Store(Manifest("active", null, assertion, null));
+        var actions = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.Actions;
+        Assert.Equal("Editor", actions[0].SoftwareAgent);
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.Unknown, actions[0].DigitalSourceKind);
+        Assert.Equal("Model", actions[1].SoftwareAgent);
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia, actions[1].DigitalSourceKind);
+        Assert.All(actions, action => Assert.Equal(prefix, action.Action));
+    }
+
+    [Fact]
+    public void ReportAggregatesTheActiveManifestDeclarationBeyondDisplayedActions() {
+        object?[] actions = Enumerable.Range(0, 64).Select(_ => (object?)Map(("action", "c2pa.edited")))
+            .Concat(new object?[] { Map(("action", "c2pa.created"), ("digitalSourceType", TrainedAlgorithmicMedia)) }).ToArray();
+        byte[] store = Store(Manifest("active", null, Cbor(Map(("actions", actions))), null));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        var carrier = new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, "fixture", true, store.Length);
+        carrier.WithManifest(summary);
+        var report = new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Pdf, new[] { carrier });
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.Unknown, carrier.DigitalSourceKind);
+        Assert.True(report.HasGenerativeAiDeclaration);
+    }
+
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void LargeActionTemplateAssertionRetainsItsFinalDeclaration() {
+        object?[] actions = Enumerable.Range(0, 2000).Select(index => (object?)Map(("action", "c2pa.created"))).ToArray();
+        object?[] templates = Enumerable.Range(0, 3000).Select(index => (object?)Map(("action", "c2pa.created"),
+            ("digitalSourceType", index == 2999 ? TrainedAlgorithmicMedia : "http://cv.iptc.org/newscodes/digitalsourcetype/digitalCapture"))).ToArray();
+        byte[] store = Store(Manifest("active", "Generator", Cbor(Map(("actions", actions), ("templates", templates))), null));
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        OfficeC2paManifestSummary? summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length);
+        timer.Stop();
+        Assert.NotNull(summary);
+        Assert.Equal(64, summary!.Actions.Count);
+        Assert.True(summary.DeclaresGenerativeAi);
+        Console.WriteLine($"C2PA template projection: 2000 actions/3000 templates, {store.Length} bytes, {timer.Elapsed.TotalMilliseconds:F2} ms.");
+    }
+
+    private static byte[] Store(params byte[][] manifests) =>
+        Box("jumb", Join(Description("c2pa", "c2pa"), Join(manifests)));
+
+    private static byte[] Manifest(
+        string label,
+        string? claimGenerator,
+        byte[] actions,
+        byte[]? signer,
+        (string Name, string? Version)? claimGeneratorInfo = null,
+        string? ingredient = null,
+        string[]? assertionReferences = null,
+        string referenceField = "created_assertions",
+        byte[]? claimPayload = null,
+        string actionLabel = "c2pa.actions.v2",
+        byte[][]? precedingAssertions = null) {
+        var claim = new List<(object, object?)> { ("dc:title", "image.png"), ("dc:format", "image/png") };
+        if (claimGenerator != null) claim.Add(("claim_generator", claimGenerator));
+        if (claimGeneratorInfo != null) claim.Add(("claim_generator_info", Map(("name", claimGeneratorInfo.Value.Name))));
+        var assertions = new List<byte[]>(precedingAssertions ?? Array.Empty<byte[]>());
+        assertions.Add(Assertion(actionLabel, actions));
+        if (ingredient != null) assertions.Add(Assertion("c2pa.ingredient.v3", Cbor(Map(("dc:title", ingredient)))));
+        string[] references = assertionReferences ?? (ingredient == null
+            ? new[] { "self#jumbf=c2pa.assertions/" + actionLabel }
+            : new[] { "self#jumbf=c2pa.assertions/" + actionLabel, "self#jumbf=c2pa.assertions/c2pa.ingredient.v3" });
+        claim.Add((referenceField, references.Select(url => (object?)Map(("url", url), ("hash", new byte[] { 1, 2, 3 }))).ToArray()));
+        object? x5chain = signer == null ? null : new object?[] { signer };
+        byte[] protectedHeader = Cbor(x5chain == null ? Map((1L, -7L)) : Map((1L, -7L), (33L, x5chain)));
+        byte[] sign1 = Cbor(new Tagged(18, new object?[] { protectedHeader, Map(), null, new byte[] { 1, 2, 3 } }));
+        return Box("jumb", Join(
+            Description("c2ma", label),
+            Box("jumb", Join(Description("c2as", "c2pa.assertions"), Join(assertions.ToArray()))),
+            Box("jumb", Join(Description("c2cl", "c2pa.claim.v2"), Box("cbor", claimPayload ?? Cbor(Map(claim.ToArray()))))),
+            Box("jumb", Join(Description("c2cs", "c2pa.signature"), Box("cbor", sign1)))));
+    }
+
+    private static byte[] Actions(params (string Action, string? Agent, string? Source)[] actions) =>
+        Cbor(Map(("actions", actions.Select(static action => {
+            var entries = new List<(object, object?)> { ("action", action.Action) };
+            if (action.Agent != null) entries.Add(("softwareAgent", Map(("name", action.Agent))));
+            if (action.Source != null) entries.Add(("digitalSourceType", action.Source));
+            return (object?)Map(entries.ToArray());
+        }).ToArray())));
+
+    private static byte[] Assertion(string label, byte[] cbor) => Box("jumb", Join(Description("cbor", label), Box("cbor", cbor)));
+
+    private static byte[] Description(string code, string label) => Box("jumd", Join(
+        Encoding.ASCII.GetBytes(code), new byte[] { 0x00, 0x11, 0x00, 0x10, 0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71 },
+        new byte[] { 0x03 }, Encoding.UTF8.GetBytes(label + "\0")));
+
+    private static byte[] Box(string type, byte[] payload) {
+        int length = payload.Length + 8;
+        return Join(new[] { (byte)(length >> 24), (byte)(length >> 16), (byte)(length >> 8), (byte)length }, Encoding.ASCII.GetBytes(type), payload);
+    }
+
+    private static byte[] Join(params byte[][] parts) => parts.SelectMany(static part => part).ToArray();
+
+    private static Dictionary<object, object?> Map(params (object Key, object? Value)[] entries) {
+        var map = new Dictionary<object, object?>();
+        foreach ((object key, object? value) in entries) map[key] = value;
+        return map;
+    }
+
+    private sealed record Tagged(ulong Tag, object? Value);
+
+    private static byte[] Cbor(object? value) {
+        var output = new List<byte>();
+        Write(output, value);
+        return output.ToArray();
+    }
+
+    private static void Write(List<byte> output, object? value) {
+        switch (value) {
+            case null: output.Add(0xF6); break;
+            case long number when number >= 0: Head(output, 0, (ulong)number); break;
+            case long number: Head(output, 1, (ulong)(-1 - number)); break;
+            case string text: { byte[] bytes = Encoding.UTF8.GetBytes(text); Head(output, 3, (ulong)bytes.Length); output.AddRange(bytes); break; }
+            case byte[] bytes: Head(output, 2, (ulong)bytes.Length); output.AddRange(bytes); break;
+            case Tagged tagged: Head(output, 6, tagged.Tag); Write(output, tagged.Value); break;
+            case Dictionary<object, object?> map:
+                Head(output, 5, (ulong)map.Count);
+                foreach (KeyValuePair<object, object?> entry in map) { Write(output, entry.Key); Write(output, entry.Value); }
+                break;
+            case object?[] items: Head(output, 4, (ulong)items.Length); foreach (object? item in items) Write(output, item); break;
+            default: throw new ArgumentException("Unsupported test CBOR value.");
+        }
+    }
+
+    private static void Head(List<byte> output, int major, ulong argument) {
+        if (argument < 24) { output.Add((byte)(major << 5 | (int)argument)); return; }
+        if (argument <= byte.MaxValue) { output.Add((byte)(major << 5 | 24)); output.Add((byte)argument); return; }
+        if (argument > ushort.MaxValue) {
+            output.Add((byte)(major << 5 | 26));
+            for (int shift = 24; shift >= 0; shift -= 8) output.Add((byte)(argument >> shift));
+            return;
+        }
+        output.Add((byte)(major << 5 | 25));
+        output.Add((byte)(argument >> 8));
+        output.Add((byte)argument);
+    }
+
+    /// <summary>A structurally shaped (unsigned) X.509 certificate carrying only the fields the reader walks.</summary>
+    private static byte[] Certificate(string subjectOrganization, string issuerOrganization) {
+        byte[] tbs = Der(0x30, Join(
+            Der(0xA0, Der(0x02, new byte[] { 2 })),                       // version v3
+            Der(0x02, new byte[] { 0x01 }),                               // serialNumber
+            Der(0x30, Der(0x06, new byte[] { 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x04, 0x03, 0x02 })), // ecdsa-with-SHA256
+            Name(issuerOrganization),
+            Der(0x30, Join(Der(0x17, Encoding.ASCII.GetBytes("260101000000Z")), Der(0x17, Encoding.ASCII.GetBytes("270101000000Z")))),
+            Name(subjectOrganization)));
+        return Der(0x30, Join(tbs, Der(0x30, new byte[0]), Der(0x03, new byte[] { 0 })));
+    }
+
+    private static byte[] Name(string organization) => Der(0x30, Der(0x31, Der(0x30, Join(
+        Der(0x06, new byte[] { 0x55, 0x04, 0x0A }), Der(0x0C, Encoding.UTF8.GetBytes(organization))))));
+
+    private static byte[] Der(byte tag, byte[] content) {
+        if (content.Length < 0x80) return Join(new[] { tag, (byte)content.Length }, content);
+        return Join(new[] { tag, (byte)0x82, (byte)(content.Length >> 8), (byte)content.Length }, content);
+    }
+}

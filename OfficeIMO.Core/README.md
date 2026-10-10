@@ -571,7 +571,17 @@ foreach (OfficeProvenanceChange change in removal.Changes) {
 
 Removal is selective. It removes structurally valid C2PA carriers and AI-specific `trainedAlgorithmicMedia` or `compositeWithTrainedAlgorithmicMedia` declarations while preserving unrelated metadata and non-AI source declarations. The generic Core API blocks signed ZIP packages because rewriting the package invalidates its signatures; callers that own the complete document save must handle signature invalidation separately.
 
-Structural inspection does not claim that a manifest is authentic or trusted. Install `OfficeIMO.Security` and use its optional C2PA verifier when content binding, signature mathematics, and certificate trust must be checked.
+Each valid Content Credentials record also carries a summary of what its active manifest claims: the generator, the recorded actions with their software agent and digital source type, ingredients, and the signer and issuer names from the signing certificate.
+
+```csharp
+foreach (OfficeProvenanceEvidence evidence in report.Evidence) {
+    if (evidence.Manifest is { } manifest) {
+        Console.WriteLine($"{manifest.ClaimGenerator} · AI: {manifest.DeclaresGenerativeAi} · signed by {manifest.SignedBy}");
+    }
+}
+```
+
+The summary repeats the record's statements; it does not check them. Structural inspection does not claim that a manifest is authentic or trusted. Install `OfficeIMO.Provenance.C2pa` and use `C2paToolProvenanceVerifier` when content binding, signature mathematics, and certificate trust must be checked.
 
 For an evidence-oriented result, combine structural carriers, optional cryptographic verification, exact Unicode findings, and vendor-specific detectors without collapsing them into an unreliable universal AI verdict:
 

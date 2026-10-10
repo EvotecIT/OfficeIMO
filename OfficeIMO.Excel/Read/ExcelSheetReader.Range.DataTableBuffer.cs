@@ -132,6 +132,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 bool advanceReader = true;
@@ -141,7 +142,7 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 
@@ -289,7 +290,7 @@ namespace OfficeIMO.Excel {
                     return canTrackColumns && seenColumns == allColumnsSeen && !hasNullValue;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -386,7 +387,7 @@ namespace OfficeIMO.Excel {
                     return seenColumns == 0xFFUL && !hasNullValue;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
