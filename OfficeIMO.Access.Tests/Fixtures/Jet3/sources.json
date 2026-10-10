@@ -1,0 +1,37 @@
+{
+  "sourceCommit": "be0a2139b087a227d14cafd4ea231306a5a3a862",
+  "license": "Apache-2.0",
+  "evidence": "Independent pre-existing Jet3 fixtures from Jackcess; original producing application execution is not claimed. Expected schema, values, indexes and queries were observed with test-only Jackcess 3.0.1, explicitly using Windows-1252 and UTC. Binary values use length and SHA-256.",
+  "fixtures": [
+    {
+      "file": "testV1997.mdb",
+      "sha256": "27788b47e17412427830e80c2cb69366885aa11b12c61422de73029194bef135",
+      "source": "https://github.com/jahlborn/jackcess/blob/be0a2139b087a227d14cafd4ea231306a5a3a862/src/test/data/V1997/testV1997.mdb"
+    },
+    {
+      "file": "test2V1997.mdb",
+      "sha256": "ac96a660d650cd61a23f93bee804523cce7db70daabe932a5bbfc99c5c92b668",
+      "source": "https://github.com/jahlborn/jackcess/blob/be0a2139b087a227d14cafd4ea231306a5a3a862/src/test/data/V1997/test2V1997.mdb"
+    },
+    {
+      "file": "overflowTestV1997.mdb",
+      "sha256": "6d86c9ae5577c2425b60fe60683122653f68a7b88fff06ab0b9c9fe8af3624fe",
+      "source": "https://github.com/jahlborn/jackcess/blob/be0a2139b087a227d14cafd4ea231306a5a3a862/src/test/data/V1997/overflowTestV1997.mdb"
+    },
+    {
+      "file": "compIndexTestV1997.mdb",
+      "sha256": "4fc5df33437e4f8c55075ef6e4d17e9654fe7ff4ba83b3ceb0f3b7f4202d530e",
+      "source": "https://github.com/jahlborn/jackcess/blob/be0a2139b087a227d14cafd4ea231306a5a3a862/src/test/data/V1997/compIndexTestV1997.mdb"
+    },
+    {
+      "file": "queryTestV1997.mdb",
+      "sha256": "fd71099b6e810cf917e54e515a79d6aff062ea462964461d2afb50663fe7c0f8",
+      "source": "https://github.com/jahlborn/jackcess/blob/be0a2139b087a227d14cafd4ea231306a5a3a862/src/test/data/V1997/queryTestV1997.mdb"
+    },
+    {
+      "file": "delColTestV1997.mdb",
+      "sha256": "1d0a655ad5cfdfd5f1497a43262c60ea58a1958ee3a45cbe437f10d252058229",
+      "source": "https://github.com/jahlborn/jackcess/blob/be0a2139b087a227d14cafd4ea231306a5a3a862/src/test/data/V1997/delColTestV1997.mdb"
+    }
+  ]
+}

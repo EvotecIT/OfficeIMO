@@ -4,6 +4,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
@@ -575,6 +576,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     stagingPath,
                     encoding: Encoding.UTF8,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
+                break;
+            case ".md":
+                await using (FileStream stream = OpenStagedArtifact(stagingPath)) {
+                    using var reader = new StreamReader(stream, new UTF8Encoding(false, true));
+                    _ = MarkdownDoc.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
+                }
                 break;
             default:
                 throw new NotSupportedException("No output validator is registered for '" + extension + "'.");

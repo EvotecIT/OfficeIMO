@@ -36,6 +36,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         foreach (var node in nodes) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (node is IComment) {
                 continue;
             }
@@ -212,6 +213,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertElementToBlocks(IElement element, ConversionContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         if (IsPassThroughTag(element, context)) {
             return new IMarkdownBlock[] { new HtmlRawBlock(NormalizeRawElement(element, context)) };
         }
@@ -386,12 +388,14 @@ internal sealed partial class HtmlToMarkdownConverter {
             NormalizeBlockText);
 
         for (int i = 0; i < context.Options.ElementBlockConverters.Count; i++) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             var converter = context.Options.ElementBlockConverters[i];
             if (converter == null) {
                 continue;
             }
 
             var converted = converter.TryConvert(conversionContext);
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (converted != null) {
                 blocks = converted;
                 return true;

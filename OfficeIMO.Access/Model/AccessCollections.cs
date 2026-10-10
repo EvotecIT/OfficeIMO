@@ -91,7 +91,7 @@ namespace OfficeIMO.Access {
         public IReadOnlyList<AccessQueryRecord> NativeRecords { get; }
         /// <summary>Persisted query object flags.</summary>
         public int NativeFlags { get; internal set; }
-        /// <summary>Declared native parameters, without execution or supplied values.</summary>
+        /// <summary>Declared native parameters, without execution or supplied values. Unqualified name encodings leave this inventory unavailable with query diagnostics; exact records remain available.</summary>
         public IReadOnlyList<AccessQueryParameter> Parameters { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessQueryParameter>());
     }
 }

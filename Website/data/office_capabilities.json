@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 69,
-    "operationCount": 1387
+    "packageCount": 73,
+    "operationCount": 1395
   },
   "fidelityStates": [
     {
@@ -1954,6 +1954,149 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm",
+      "slug": "chm",
+      "capabilityCount": 5,
+      "formats": [
+        "Chm.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm.Epub",
+      "slug": "chm-epub",
+      "capabilityCount": 1,
+      "formats": [
+        "Compiled HTML Help",
+        "EPUB"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm.Markdown",
+      "slug": "chm-markdown",
+      "capabilityCount": 1,
+      "formats": [
+        "Compiled HTML Help",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm.Pdf",
+      "slug": "chm-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "Compiled HTML Help",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
               "count": 1
             }
           ]

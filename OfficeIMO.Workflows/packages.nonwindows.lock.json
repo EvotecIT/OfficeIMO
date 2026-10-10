@@ -42,6 +42,34 @@
         "resolved": "10.0.8",
         "contentHash": "6Dzmgfpi7BdqgQ3g/6jZuJzgGspIFSEfSchY4ejTVkZTMOKRZRJiYp5/q0gIZ8H1+Eq8/sxJNnyWtzAHp6iTcQ=="
       },
+      "officeimo.chm": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )"
+        }
+      },
+      "officeimo.chm.epub": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Chm": "[3.4.4, )",
+          "OfficeIMO.Epub": "[3.4.4, )"
+        }
+      },
+      "officeimo.chm.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Chm": "[3.4.4, )",
+          "OfficeIMO.Markdown.Html": "[3.4.4, )"
+        }
+      },
+      "officeimo.chm.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Chm": "[3.4.4, )",
+          "OfficeIMO.Html.Pdf": "[3.4.4, )"
+        }
+      },
       "officeimo.core": {
         "type": "Project"
       },
@@ -153,6 +181,13 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.markdown.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Markdown": "[3.4.4, )"
         }
       },
       "officeimo.markdown.pdf": {
@@ -352,6 +387,34 @@
         "resolved": "10.0.9",
         "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
       },
+      "officeimo.chm": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.4.4, )",
+          "OfficeIMO.Html": "[3.4.4, )"
+        }
+      },
+      "officeimo.chm.epub": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Chm": "[3.4.4, )",
+          "OfficeIMO.Epub": "[3.4.4, )"
+        }
+      },
+      "officeimo.chm.markdown": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Chm": "[3.4.4, )",
+          "OfficeIMO.Markdown.Html": "[3.4.4, )"
+        }
+      },
+      "officeimo.chm.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Chm": "[3.4.4, )",
+          "OfficeIMO.Html.Pdf": "[3.4.4, )"
+        }
+      },
       "officeimo.core": {
         "type": "Project"
       },
@@ -464,6 +527,13 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Core": "[3.4.4, )"
+        }
+      },
+      "officeimo.markdown.html": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Html": "[3.4.4, )",
+          "OfficeIMO.Markdown": "[3.4.4, )"
         }
       },
       "officeimo.markdown.pdf": {

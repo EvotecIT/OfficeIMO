@@ -64,10 +64,10 @@ internal static partial class PdfMerger {
             cancellationToken);
     }
 
-    internal static PdfMergeResult MergeResult(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions) {
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions, CancellationToken cancellationToken = default) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(readOptions, nameof(readOptions));
-        return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions);
+        return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>

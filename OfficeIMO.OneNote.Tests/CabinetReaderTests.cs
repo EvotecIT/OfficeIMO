@@ -43,6 +43,38 @@ public sealed class CabinetReaderTests {
         Assert.Equal(blocks.SelectMany(block => block).ToArray(), decoded);
     }
 
+    [Fact]
+    public void LzxAlignedUncompressedHeaderConsumesTheRequiredPaddingWord() {
+        // A literal block puts the next uncompressed header exactly on a word
+        // boundary. MS-PATCH requires 1-16 padding bits here, including a full
+        // word when the header is already aligned.
+        const int literalCount = 16;
+        byte[] tail = { 0x11, 0x22, 0x33, 0x44 };
+        var bits = new List<int>();
+        AppendBits(bits, 0, 1);
+        AppendBits(bits, 1, 3);
+        AppendBits(bits, 0, 16);
+        AppendBits(bits, literalCount, 8);
+        AppendLiteralPathLengths(bits, 256, true);
+        AppendLiteralPathLengths(bits, 256, false);
+        AppendLiteralPathLengths(bits, 249, false);
+        AppendBits(bits, 0, literalCount); // 'A' has canonical code 0; 'B' has code 1.
+        AppendBits(bits, 3, 3);
+        AppendBits(bits, 0, 16);
+        AppendBits(bits, tail.Length, 8);
+        Assert.Equal(0, bits.Count % 16);
+        AppendBits(bits, 0, 16);
+        using var stream = new MemoryStream();
+        byte[] headers = PackWords(bits);
+        stream.Write(headers, 0, headers.Length);
+        for (int index = 0; index < 3; index++) WriteUInt32(stream, 1);
+        stream.Write(tail, 0, tail.Length);
+
+        byte[] decoded = OneNoteLzxDecoder.Decompress(new[] { stream.ToArray() }, new[] { literalCount + tail.Length }, 16, 1024);
+
+        Assert.Equal(Enumerable.Repeat((byte)'A', literalCount).Concat(tail), decoded);
+    }
+
     [Theory]
     [InlineData("makecab-lzx-testOneNote2016.cab", "testOneNote2016.one")]
     [InlineData("makecab-lzx-testOneNoteFromOffice365-2.cab", "testOneNoteFromOffice365-2.one")]
@@ -263,6 +295,13 @@ public sealed class CabinetReaderTests {
 
     private static void AppendBits(ICollection<int> bits, int value, int count) {
         for (int index = count - 1; index >= 0; index--) bits.Add((value >> index) & 1);
+    }
+
+    private static void AppendLiteralPathLengths(List<int> bits, int count, bool literals) {
+        // Pretree symbols 0 and 16 have one-bit codes. Delta 16 turns a
+        // previously zero path length into 1; delta 0 leaves it zero.
+        for (int symbol = 0; symbol < 20; symbol++) AppendBits(bits, symbol == 0 || symbol == 16 ? 1 : 0, 4);
+        for (int symbol = 0; symbol < count; symbol++) AppendBits(bits, literals && (symbol == 'A' || symbol == 'B') ? 1 : 0, 1);
     }
 
     private static byte[] PackWords(List<int> bits) {

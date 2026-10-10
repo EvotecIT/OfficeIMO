@@ -1,16 +1,22 @@
-namespace OfficeIMO.OneNote;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
+namespace OfficeIMO;
 
 /// <summary>
 /// Reads LZX fields from little-endian 16-bit words while exposing the byte-aligned
 /// mode used by uncompressed blocks.
 /// </summary>
-internal sealed class OneNoteLzxBitReader {
+internal sealed class OfficeLzxBitReader {
     private readonly byte[] _data;
     private int _nextWordOffset;
     private ushort _word;
     private int _bitsRemaining;
 
-    internal OneNoteLzxBitReader(byte[] data) {
+    internal OfficeLzxBitReader(byte[] data) {
         _data = data ?? throw new ArgumentNullException(nameof(data));
     }
 
@@ -38,6 +44,13 @@ internal sealed class OneNoteLzxBitReader {
     }
 
     internal void AlignToWord() {
+        _bitsRemaining = 0;
+    }
+
+    internal void AlignUncompressedHeader() {
+        // Uncompressed headers require 1-16 padding bits, whereas frame
+        // alignment permits 0-15. An already aligned header consumes a word.
+        if (_bitsRemaining == 0) LoadWord();
         _bitsRemaining = 0;
     }
 
@@ -71,7 +84,7 @@ internal sealed class OneNoteLzxBitReader {
 
     private void LoadWord() {
         if (_nextWordOffset > _data.Length - 2) {
-            throw new OneNoteFormatException("ONENOTE_CAB_LZX_TRUNCATED", "The CAB LZX bitstream ended inside a 16-bit word.");
+            throw new OfficeLzxException("LZX_TRUNCATED", "The LZX bitstream ended inside a 16-bit word.");
         }
         _word = (ushort)(_data[_nextWordOffset] | (_data[_nextWordOffset + 1] << 8));
         _nextWordOffset += 2;
@@ -80,13 +93,13 @@ internal sealed class OneNoteLzxBitReader {
 
     private void EnsureByteAligned() {
         if (_bitsRemaining != 0) {
-            throw new OneNoteFormatException("ONENOTE_CAB_LZX_CORRUPT", "The CAB LZX stream entered byte mode without word alignment.");
+            throw new OfficeLzxException("LZX_CORRUPT", "The LZX stream entered byte mode without word alignment.");
         }
     }
 
     private void EnsureRawBytes(int count) {
         if (count < 0 || _nextWordOffset > _data.Length - count) {
-            throw new OneNoteFormatException("ONENOTE_CAB_LZX_TRUNCATED", "The CAB LZX byte stream ended unexpectedly.");
+            throw new OfficeLzxException("LZX_TRUNCATED", "The LZX byte stream ended unexpectedly.");
         }
     }
 }

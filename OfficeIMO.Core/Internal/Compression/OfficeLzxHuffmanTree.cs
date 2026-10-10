@@ -1,29 +1,35 @@
-namespace OfficeIMO.OneNote;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
+namespace OfficeIMO;
 
 /// <summary>
 /// Immutable canonical Huffman decoder reconstructed from LZX path lengths.
 /// </summary>
-internal sealed class OneNoteLzxHuffmanTree {
+internal sealed class OfficeLzxHuffmanTree {
     private const int MaximumPathLength = 16;
     private readonly int[] _counts;
     private readonly int[] _firstCodes;
     private readonly int[] _firstSymbolIndexes;
     private readonly int[] _symbols;
 
-    private OneNoteLzxHuffmanTree(int[] counts, int[] firstCodes, int[] firstSymbolIndexes, int[] symbols) {
+    private OfficeLzxHuffmanTree(int[] counts, int[] firstCodes, int[] firstSymbolIndexes, int[] symbols) {
         _counts = counts;
         _firstCodes = firstCodes;
         _firstSymbolIndexes = firstSymbolIndexes;
         _symbols = symbols;
     }
 
-    internal static OneNoteLzxHuffmanTree Empty { get; } = new OneNoteLzxHuffmanTree(
+    internal static OfficeLzxHuffmanTree Empty { get; } = new OfficeLzxHuffmanTree(
         new int[MaximumPathLength + 1],
         new int[MaximumPathLength + 1],
         new int[MaximumPathLength + 1],
         Array.Empty<int>());
 
-    internal static OneNoteLzxHuffmanTree Create(byte[] pathLengths, bool allowEmpty, string treeName) {
+    internal static OfficeLzxHuffmanTree Create(byte[] pathLengths, bool allowEmpty, string treeName) {
         if (pathLengths == null) throw new ArgumentNullException(nameof(pathLengths));
         if (treeName == null) throw new ArgumentNullException(nameof(treeName));
 
@@ -65,10 +71,10 @@ internal sealed class OneNoteLzxHuffmanTree {
             int length = pathLengths[symbol];
             if (length != 0) symbols[nextIndexes[length]++] = symbol;
         }
-        return new OneNoteLzxHuffmanTree(counts, firstCodes, firstSymbolIndexes, symbols);
+        return new OfficeLzxHuffmanTree(counts, firstCodes, firstSymbolIndexes, symbols);
     }
 
-    internal int Decode(OneNoteLzxBitReader reader) {
+    internal int Decode(OfficeLzxBitReader reader) {
         if (reader == null) throw new ArgumentNullException(nameof(reader));
         if (_symbols.Length == 0) throw Corrupt("The LZX stream uses an empty Huffman tree.");
 
@@ -83,6 +89,6 @@ internal sealed class OneNoteLzxHuffmanTree {
         throw Corrupt("The LZX stream contains a Huffman code that is absent from its tree.");
     }
 
-    private static OneNoteFormatException Corrupt(string message) =>
-        new OneNoteFormatException("ONENOTE_CAB_LZX_CORRUPT", message);
+    private static OfficeLzxException Corrupt(string message) =>
+        new OfficeLzxException("LZX_CORRUPT", message);
 }

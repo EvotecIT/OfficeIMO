@@ -79,12 +79,14 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
     }
 
     internal string RenderMarkdown() {
+        MarkdownRenderContext.ThrowIfCancellationRequested();
         StringBuilder sb = new StringBuilder();
         var options = MarkdownRenderContext.Options;
         MarkdownInlineMarkdownRenderContext? context = options == null
             ? null
             : new MarkdownInlineMarkdownRenderContext(options, MarkdownRenderContext.WriteContext);
         for (int i = 0; i < _inlines.Count; i++) {
+            MarkdownRenderContext.ThrowIfCancellationRequested();
             if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
@@ -92,11 +94,13 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
                     prev is not SoftBreakInline && cur is not SoftBreakInline) sb.Append(' ');
             }
             sb.Append(RenderMarkdown(_inlines[i], context));
+            MarkdownRenderContext.ThrowIfCancellationRequested();
         }
         return sb.ToString();
     }
 
     internal string RenderMarkdownWithTextEscaper(Func<string?, string> textEscaper) {
+        MarkdownRenderContext.ThrowIfCancellationRequested();
         if (textEscaper == null) {
             return RenderMarkdown();
         }
@@ -107,6 +111,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             ? null
             : new MarkdownInlineMarkdownRenderContext(options, MarkdownRenderContext.WriteContext);
         for (int i = 0; i < _inlines.Count; i++) {
+            MarkdownRenderContext.ThrowIfCancellationRequested();
             if (AutoSpacing && i > 0) {
                 var prev = _inlines[i - 1];
                 var cur = _inlines[i];
@@ -115,6 +120,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             }
 
             sb.Append(RenderMarkdown(_inlines[i], context, textEscaper));
+            MarkdownRenderContext.ThrowIfCancellationRequested();
         }
 
         return sb.ToString();
@@ -230,12 +236,14 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         }
 
         for (int i = extensions.Count - 1; i >= 0; i--) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             var extension = extensions[i];
             if (extension == null || !extension.Matches(syntaxNode)) {
                 continue;
             }
 
             var rendered = extension.RenderMarkdown(node, syntaxNode, context);
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (rendered != null) {
                 return rendered;
             }
@@ -255,12 +263,14 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         }
 
         for (int i = extensions.Count - 1; i >= 0; i--) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             var extension = extensions[i];
             if (extension == null || !extension.Matches(node)) {
                 continue;
             }
 
             var rendered = extension.RenderMarkdownWithContext(node, context);
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (rendered != null) {
                 return rendered;
             }
