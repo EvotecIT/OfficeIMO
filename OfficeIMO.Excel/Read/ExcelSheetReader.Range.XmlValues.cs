@@ -68,8 +68,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_opt.CellValueConverter == null && cellType == "s") {
-                var sharedStringItems = _sharedStringItems ??= _sst.GetItems();
-                return ReadXmlSharedStringCellValue(cellReader, _opt.UseCachedFormulaResult, sharedStringItems);
+                return ReadXmlSharedStringCellValue(cellReader, _opt.UseCachedFormulaResult);
             }
 
             if (_opt.CellValueConverter == null
@@ -85,8 +84,7 @@ namespace OfficeIMO.Excel {
 
             bool useCachedFormulaResult = _opt.UseCachedFormulaResult;
             if (cellKind == XmlCellKind.SharedString) {
-                var sharedStringItems = _sharedStringItems ??= _sst.GetItems();
-                return ReadXmlSharedStringCellValue(cellReader, useCachedFormulaResult, sharedStringItems);
+                return ReadXmlSharedStringCellValue(cellReader, useCachedFormulaResult);
             }
 
             bool numericAsDecimal = _opt.NumericAsDecimal;
@@ -386,7 +384,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private object? ReadXmlSharedStringCellValue(XmlReader cellReader, bool useCachedFormulaResult, List<string> sharedStringItems) {
+        private object? ReadXmlSharedStringCellValue(XmlReader cellReader, bool useCachedFormulaResult) {
             int depth = cellReader.Depth;
             string? rawText = null;
             string? formulaText = null;
@@ -399,7 +397,7 @@ namespace OfficeIMO.Excel {
                 if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
-                            return ReadXmlSharedStringTextAndSkipCell(cellReader, depth, sharedStringItems);
+                            return ReadXmlSharedStringTextAndSkipCell(cellReader, depth);
                         }
 
                         bool parsedSharedStringIndex = TryReadXmlSharedStringIndexValue(cellReader, out int sstIndex, out rawText);
@@ -436,27 +434,27 @@ namespace OfficeIMO.Excel {
                 return formulaText;
             }
 
-            return TryParseSharedStringIndex(rawText, out int index) ? GetSharedString(index, sharedStringItems) : rawText;
+            return TryParseSharedStringIndex(rawText, out int index) ? GetSharedString(index) : rawText;
         }
 
-        private string? ReadXmlSharedStringTextAndSkipCell(XmlReader valueReader, int cellDepth, List<string> sharedStringItems) {
+        private string? ReadXmlSharedStringTextAndSkipCell(XmlReader valueReader, int cellDepth) {
             if (!TryReadXmlBufferedValueTextAndSkipCell(valueReader, cellDepth, out char[] buffer, out int length, out string? rawText)) {
                 return rawText;
             }
 
             if (rawText == null) {
                 if (TryParseSharedStringIndex(buffer.AsSpan(0, length), out int parsed)) {
-                    return GetSharedString(parsed, sharedStringItems);
+                    return GetSharedString(parsed);
                 }
 
                 rawText = new string(buffer, 0, length);
                 return TryParseSharedStringIndex(rawText, out parsed)
-                    ? GetSharedString(parsed, sharedStringItems)
+                    ? GetSharedString(parsed)
                     : rawText;
             }
 
             return TryParseSharedStringIndex(rawText, out int index)
-                ? GetSharedString(index, sharedStringItems)
+                ? GetSharedString(index)
                 : rawText;
         }
 

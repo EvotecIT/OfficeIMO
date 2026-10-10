@@ -568,40 +568,6 @@ public partial class MarkdownDoc : MarkdownObject {
         return Add(builder.Build());
     }
 
-    /// <summary>Renders the document to Markdown string.</summary>
-    public string ToMarkdown() => ToMarkdown(options: null);
-
-    /// <summary>
-    /// Renders the document to Markdown string using optional writer extensions or portability fallbacks.
-    /// </summary>
-    public string ToMarkdown(MarkdownWriteOptions? options) {
-        options ??= MarkdownWriteOptions.CreateOfficeIMOProfile();
-        // Build a transient block list where TOC placeholders are realized
-        var (blocks, headingCatalog) = GetBlocksAndHeadingSlugs();
-        var context = new MarkdownWriteContext(this, blocks, options, headingCatalog);
-        using var _ctx = MarkdownRenderContext.Push(context);
-        StringBuilder sb = new StringBuilder();
-        var renderedFrontMatter = RenderFrontMatter(_frontMatter, options);
-        if (!string.IsNullOrEmpty(renderedFrontMatter)) {
-            sb.AppendLine(renderedFrontMatter);
-            sb.AppendLine();
-        }
-
-        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult, options) && blocks.Count > 0) {
-            sb.AppendLine();
-        }
-
-        for (int i = 0; i < blocks.Count; i++) {
-            string rendered = RenderMarkdownBlock(blocks[i], context);
-            if (!string.IsNullOrEmpty(rendered)) sb.AppendLine(rendered);
-            if (i < blocks.Count - 1) sb.AppendLine();
-        }
-        string markdown = sb.ToString();
-        return options.OutputLineEnding == null
-            ? markdown
-            : NormalizeLineEndings(markdown, options.OutputLineEnding);
-    }
-
     /// <summary>Renders an embeddable HTML fragment. Wraps in &lt;article class="markdown-body"&gt; by default.</summary>
     public string ToHtmlFragment(HtmlOptions? options = null) {
         HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Fragment);
@@ -635,9 +601,11 @@ public partial class MarkdownDoc : MarkdownObject {
     }
 
     internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
-        MarkdownHeadingIdentifierStyle headingIdentifierStyle = MarkdownHeadingIdentifierStyle.OfficeIMO) {
+        MarkdownHeadingIdentifierStyle headingIdentifierStyle = MarkdownHeadingIdentifierStyle.OfficeIMO,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var registry = MarkdownSlug.CreateRegistry();
-        var (realized, headingCatalog) = RealizeTocPlaceholders(registry, headingIdentifierStyle);
+        var (realized, headingCatalog) = RealizeTocPlaceholders(registry, headingIdentifierStyle, cancellationToken);
         return (realized, headingCatalog);
     }
 
@@ -752,21 +720,19 @@ public partial class MarkdownDoc : MarkdownObject {
 
     private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
         System.Collections.Generic.Dictionary<string, int> slugRegistry,
-        MarkdownHeadingIdentifierStyle headingIdentifierStyle) {
+        MarkdownHeadingIdentifierStyle headingIdentifierStyle, System.Threading.CancellationToken cancellationToken) {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
-        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry, headingIdentifierStyle);
+        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry, headingIdentifierStyle, cancellationToken);
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (realized[i] is ITocPlaceholderMarkdownBlock tocPlaceholder) {
                 realized[i] = tocPlaceholder.RealizeToc(realized, i, headingCatalog);
             }
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return (realized, headingCatalog);
-    }
-
-    private static string RenderMarkdownBlock(IMarkdownBlock block, MarkdownWriteContext context) {
-        return MarkdownBlockRenderDispatcher.RenderMarkdown(block, context);
     }
 
     private static string? RenderFrontMatter(IFrontMatterMarkdownBlock? frontMatter, MarkdownWriteOptions options) {

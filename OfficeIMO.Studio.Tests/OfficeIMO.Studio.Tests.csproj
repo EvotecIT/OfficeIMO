@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="../OfficeIMO.TestAssets/PdfFormOcr/*.pdf" Link="Fixtures/PdfFormOcr/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\numbers-parser\test-10-formulas.numbers" Link="Fixtures\IWork\formulas.numbers" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.*" Link="Fixtures\IWork\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\keynotekit\tabledeck-v15.2.1.key" Link="Fixtures\IWork\tabledeck.key" CopyToOutputDirectory="PreserveNewest" />

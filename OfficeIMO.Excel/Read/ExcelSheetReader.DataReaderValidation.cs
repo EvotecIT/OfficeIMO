@@ -258,9 +258,9 @@ namespace OfficeIMO.Excel {
         }
 
         private void ValidateSharedStringReference(string? rawIndex, XmlCoordinateReference reference) {
-            var items = _sharedStringItems ??= _sst.GetItems();
+            int count = _sst.Count;
             if (TryParseSharedStringIndex(rawIndex, out int index)
-                && (uint)index < (uint)items.Count) {
+                && (uint)index < (uint)count) {
                 return;
             }
 

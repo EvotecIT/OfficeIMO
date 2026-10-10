@@ -557,7 +557,9 @@ internal static class HtmlRenderResourceLoader {
         return LoadCoreAsync(manifest, options, session, limits, cancellationToken, cssBudget: new HtmlCssByteBudget(limits),
             markAttemptedBeforeResolve: true, archiveResources: true, resolver: async (request, token) => {
                 token.ThrowIfCancellationRequested();
-                if (HtmlDataUri.TryParse(request.Uri.OriginalString, out HtmlDataUri data)) {
+                // Fragments select a view of the fetched resource, not bytes in its payload.
+                // Keep the original URI on the reference for subsequent rewriting.
+                if (HtmlDataUri.TryParse(request.Uri.GetLeftPart(UriPartial.Query), out HtmlDataUri data)) {
                     if (data.EstimateDecodedByteCount() > session.MaxResourceBytes)
                         throw new HtmlRenderResourceByteLimitException(data.EstimateDecodedByteCount());
                     if (data.EstimateDecodedByteCount() > session.MaxTotalResourceBytes - session.AcceptedResourceBytes)

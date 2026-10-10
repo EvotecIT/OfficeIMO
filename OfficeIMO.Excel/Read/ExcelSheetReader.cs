@@ -28,7 +28,6 @@ namespace OfficeIMO.Excel {
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
         private readonly Lazy<RichValueErrorLookup> _richValueErrors;
         private StylesCache? _stylesCache;
-        private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
         private char[]? _xmlValueTextBuffer;
@@ -112,17 +111,10 @@ namespace OfficeIMO.Excel {
 
         private static object BoxBoolean(bool value) => value ? BoxedTrue : BoxedFalse;
 
-        private string? GetSharedString(int index) {
-            var items = _sharedStringItems ??= _sst.GetItems();
-            return GetSharedString(index, items);
-        }
+        private string? GetSharedString(int index) => _sst.Get(index);
 
         private bool TryGetSharedStringUtf8(int index, out ArraySegment<byte> value) =>
             _sst.TryGetUtf8(index, out value);
-
-        private static string? GetSharedString(int index, List<string> items) {
-            return (uint)index < (uint)items.Count ? items[index] : null;
-        }
 
         /// <summary>
         /// Worksheet name.

@@ -28,6 +28,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v11.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v11.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v11.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v11.schema.json</LogicalName>
+    </EmbeddedResource>
     <None Include="Schemas\officeimo.document.read-result.v10.schema.json">
       <Pack>True</Pack>
       <PackagePath>schemas\officeimo.document.read-result.v10.schema.json</PackagePath>
@@ -104,6 +111,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Notebook" />

@@ -17,10 +17,11 @@ internal static partial class HtmlConversionInputGuard {
             limits.MaxInputCharacters.Value);
     }
 
-    internal static void ValidateDocument(IDocument document, HtmlConversionLimits limits, CancellationToken cancellationToken = default) {
+    internal static int ValidateDocument(IDocument document, HtmlConversionLimits limits, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         HtmlDomLimitTracker? tracker = HtmlDomLimitTracker.Create(limits.MaxHtmlNodes, limits.MaxHtmlDepth);
         var cssBudget = new HtmlCssByteBudget(limits);
+        int nodes = 0;
 
         // Retain one enumerator per ancestor, rather than buffering every sibling before checking its budget.
         var pending = new Stack<(IEnumerator<INode> Nodes, int ParentDepth, int SrcDocDepth)>();
@@ -31,6 +32,7 @@ internal static partial class HtmlConversionInputGuard {
                 var level = pending.Peek();
                 if (!level.Nodes.MoveNext()) { level.Nodes.Dispose(); pending.Pop(); continue; }
                 INode node = level.Nodes.Current;
+                nodes = checked(nodes + 1);
                 int depth = level.ParentDepth + (node is IElement ? 1 : 0);
                 if (node is IElement element) {
                     tracker?.RecordElementStart(depth);
@@ -60,6 +62,7 @@ internal static partial class HtmlConversionInputGuard {
             while (pending.Count != 0) pending.Pop().Nodes.Dispose();
         }
         cancellationToken.ThrowIfCancellationRequested();
+        return nodes;
     }
 
     private static void ValidateSemanticAttributes(IElement element, int? maximumCharacters, CancellationToken cancellationToken) {

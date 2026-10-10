@@ -166,11 +166,16 @@ The importer never saves back to these source formats, executes macros, activate
 
 | Family/profile | Quality | Recovered today | Explicit boundary |
 | --- | --- | --- | --- |
-| Lotus 1-2-3 WK1 `0x0406` record streams | Structured | empty workbooks, cells, labels, numbers, finite formula caches, bounded RPN formula translation, names, selected number formats, alignment, and chart metadata | WK1 is projected as one source sheet; other Lotus profiles remain salvage; unsupported formula tokens retain the cache with a diagnostic |
-| Quattro Pro DOS WQ1/WQ2 record streams | Structured | sheet identifiers, cells, finite cached values, names, alignment, and chart metadata | Quattro formulas retain cached values with a diagnostic; WB/QPW structures, comments, advanced formatting, and live charts are not claimed |
-| Microsoft Works DOS WKS `0x0404` record streams | Structured | cells, cached values, safe formulas, names, selected number formats, alignment, and chart metadata | later Works binary/compound structures and comments are not claimed |
+| Lotus 1-2-3 WK1 `0x0406` record streams | Structured | empty workbooks, cells, labels, numbers, finite formula caches, bounded RPN formula translation, names, selected number formats, alignment, and chart metadata | WK1 is projected as one source sheet; unsupported formula tokens retain the cache with a diagnostic |
+| Lotus later record streams with BOF `0x1000`, `0x1002`, or `0x1005` | Structured | multiple sheets, sheet names, cell addresses, extended and compact numbers, comments, alignment, and bounded RPN formulas with sheet references | other BOF generations remain salvage; styles, names, charts, and application data after EOF are not reconstructed; unsupported formulas retain available caches |
+| Quattro Pro DOS WQ1/WQ2 record streams | Structured | sheet identifiers, cells, finite cached values, names, alignment, and chart metadata | WQ formulas retain cached values with a diagnostic |
+| Quattro Pro WB1 `0x1001` | Structured | sheets and names, cell addresses, labels, numbers, caches, and bounded formulas with local or internal-sheet cell/range references | WB2/WB3 and QPW remain salvage; named/external/collection formula references, advanced formatting, and charts are not reconstructed |
+| Microsoft Works DOS WKS `0x0404` record streams | Structured | cells, cached values, safe formulas, names, selected number formats, alignment, and chart metadata | DOS profile only |
+| Microsoft Works Windows WKS (`0x00FF` BOF, `0x0404` payload) | Structured | cell addresses, labels and text continuations, single/double-precision numbers, caches, and bounded formulas | compound/XLR profiles remain salvage; Windows styles, print/database metadata, and charts are not reconstructed |
 | Later Lotus 123, Quattro QPW, and Works XLR/binary profiles | Salvage | bounded text/tabular runs and compound-content safety inventory where applicable | workbook structure, formulas, names, comments, advanced formatting, and charts are reported as unavailable |
 | Microsoft Multiplan DOS 1-3 | Salvage | bounded text and tabular runs | cell zones, formulas, names, formats, comments, and charts are not yet semantically decoded |
+
+The later Lotus, WB1, and Windows WKS readers use separate record and formula layouts. `RequireStructured = true` accepts these selected profiles and rejects salvage-only generations. Independent upstream Lotus 98, Quattro WB1, and Works Windows fixtures exercise import and XLSX save/reopen; the older later-Lotus BOF variants also have specification-built numeric/formula checks. Text outside the qualified ASCII profile is replaced with a diagnostic. Review `Report.Findings` before using a converted workbook for calculations.
 
 Structured WK-derived profiles accept a valid BOF/EOF workbook with no cells and currently require ASCII text. Formula translation is allow-listed, bounded, charged against the import-wide text budget, and never evaluates the source expression. Unsupported tokens retain only a finite cached value with a loss diagnostic. `Structured` means the record stream passed the profile grammar, not that conversion is lossless; inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow.
 
@@ -337,6 +342,10 @@ SDK worksheet-chunk caches retain their existing limits. This character allowanc
 not a total memory budget: the framework XML parser can buffer an individual
 CDATA or attribute node before it is charged. It also does not bound objects
 created by a custom converter.
+
+For eligible plain ASCII shared-string tables, string-cache pages are allocated as values are requested.
+After disposal, one cleared offset/length index can remain available for later readers, capped at 2 MiB of entry payload plus fixed object overhead.
+The retained index contains no workbook text or references to package bytes; it trades idle managed memory for lower allocation on repeated opens.
 
 On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
 worksheet text, normalized shared-string text, and XLSB string cells:

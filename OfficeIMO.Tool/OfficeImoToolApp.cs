@@ -29,7 +29,7 @@ Usage:
   officeimo tabular <command> [options]
   officeimo workflow <command> [options]
   officeimo invoice <command> [options]
-  officeimo pdf redact <plan|apply|verify> [options]
+  officeimo pdf <command> [options]
   officeimo provenance <command> [options]
   officeimo agent <command> [options]
   officeimo mcp serve --stdio

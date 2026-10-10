@@ -442,6 +442,7 @@ public sealed partial class OfficeRasterCanvas {
     }
 
     /// <summary>Draws a transformed image with explicit scaling interpolation behavior.</summary>
+    /// <remarks>Interpolated drawing antialiases the image boundary using pixel area coverage. Nearest sampling selects pixels by their centres.</remarks>
     public void DrawImage(
         OfficeRasterImage image,
         double x,
@@ -488,7 +489,7 @@ public sealed partial class OfficeRasterCanvas {
         }
 
         (double minX, double minY, double maxX, double maxY) = imageTransform.TransformRectangleBounds(0D, 0D, 1D, 1D);
-        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
+        if (!IntersectsVisibleImageBounds((minX, minY, maxX, maxY), interpolate)) return;
         image = PrepareImageSource(image);
         if (interpolate) image = PrefilterImage(image,
             SamplingAxisLength(inverseTransform.M11, inverseTransform.M21) * image.Width * sourceWidth,
@@ -498,35 +499,40 @@ public sealed partial class OfficeRasterCanvas {
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
         int bottom = Clamp((int)Math.Ceiling(maxY), 0, Height - 1);
+        ImageBoundaryCoverage? boundary = interpolate ? new ImageBoundaryCoverage(inverseTransform, 1D, 1D) : null;
         _cancellationToken.ThrowIfCancellationRequested();
         for (int py = top; py <= bottom; py++) {
             _cancellationToken.ThrowIfCancellationRequested();
             for (int px = left; px <= right; px++) {
                 OfficePoint unit = inverseTransform.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
+                double coverage = boundary?.GetCoverage(unit, out unit) ?? 1D;
+                if (coverage <= 0D) continue;
                 double u = unit.X;
                 double v = unit.Y;
-                if (u < 0D || u >= 1D || v < 0D || v >= 1D) {
+                if (!interpolate && (u < 0D || u >= 1D || v < 0D || v >= 1D)) {
                     continue;
                 }
 
                 double sourceX = ((sourceLeft + (u * sourceWidth)) * image.Width) - 0.5D;
                 double sourceY = ((sourceTop + (v * sourceHeight)) * image.Height) - 0.5D;
 
-                BlendPixel(px, py, interpolate
+                OfficeColor color = interpolate
                     ? SampleBilinear(image, sourceX, sourceY)
                     : image.GetPixel(
                         Clamp((int)Math.Floor(sourceX + 0.5D), 0, image.Width - 1),
-                        Clamp((int)Math.Floor(sourceY + 0.5D), 0, image.Height - 1)));
+                        Clamp((int)Math.Floor(sourceY + 0.5D), 0, image.Height - 1));
+                BlendPixel(px, py, ApplyCoverage(color, coverage));
             }
         }
         _cancellationToken.ThrowIfCancellationRequested();
     }
 
     /// <summary>Draws an image through an arbitrary destination-space affine transform, snapshotting a canvas-image source.</summary>
+    /// <remarks>Image boundaries use pixel area coverage; interior colors are sampled with premultiplied alpha.</remarks>
     public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity = 1D) =>
         DrawAffineImage(image, transform, opacity, interpolate: true);
 
-    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate) {
+    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate, bool antialiasBoundary = true) {
         transform = ScaleCoordinates(transform);
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
@@ -535,9 +541,11 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
-        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
+        bool useAreaCoverage = interpolate && antialiasBoundary;
+        if (!IntersectsVisibleImageBounds((minX, minY, maxX, maxY), useAreaCoverage)) return;
         image = PrepareImageSource(image);
         if (interpolate) image = PrefilterAffineImage(image, ref inverse);
+        ImageBoundaryCoverage? boundary = useAreaCoverage ? new ImageBoundaryCoverage(inverse, image.Width, image.Height) : null;
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -546,13 +554,15 @@ public sealed partial class OfficeRasterCanvas {
             _cancellationToken.ThrowIfCancellationRequested();
             for (int px = left; px <= right; px++) {
                 OfficePoint source = inverse.TransformPoint(new OfficePoint(px + 0.5D, py + 0.5D));
-                if (source.X < 0D || source.X >= image.Width || source.Y < 0D || source.Y >= image.Height) continue;
+                double coverage = boundary?.GetCoverage(source, out source) ?? 1D;
+                if (coverage <= 0D || (boundary == null &&
+                    (source.X < 0D || source.X >= image.Width || source.Y < 0D || source.Y >= image.Height))) continue;
                 OfficeColor color = interpolate
                     ? SampleBilinear(image, source.X - 0.5D, source.Y - 0.5D)
                     : image.GetPixel(
                         Clamp((int)Math.Floor(source.X), 0, image.Width - 1),
                         Clamp((int)Math.Floor(source.Y), 0, image.Height - 1));
-                if (opacity < 1D) color = OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * opacity));
+                color = ApplyCoverage(color, coverage * opacity);
                 BlendPixel(px, py, color);
             }
         }

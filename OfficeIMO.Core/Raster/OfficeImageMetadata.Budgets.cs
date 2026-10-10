@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeImageMetadata {
-    private long RetainedProfileBytes {
+    internal long RetainedProfileBytes {
         get {
             long bytes = _exif?.RetainedManagedBytes ?? 0L;
             bytes = checked(bytes + (_xmp?.LongLength ?? 0L) + (_icc?.LongLength ?? 0L) + (_iptc?.LongLength ?? 0L));

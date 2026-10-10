@@ -1,0 +1,6 @@
+Many of the financial functions in the expression engine have been originally
+copied from the Apache POI project (Apache Software Foundation) and the
+UCanAccess Project.  They have been then modified and adapted so that they are
+integrated with Jackcess, in a consistent manner.  The Apache POI and
+UCanAccess projects are both licensed under Apache License, Version 2.0
+http://www.apache.org/licenses/LICENSE-2.0.

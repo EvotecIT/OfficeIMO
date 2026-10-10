@@ -2,6 +2,7 @@ using OfficeIMO.Adf;
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.Confluence;
 using OfficeIMO.CSV;
+using OfficeIMO.Chm;
 using OfficeIMO.Drawing;
 using OfficeIMO.Email;
 using OfficeIMO.Excel;
@@ -41,6 +42,7 @@ internal static class ConversionApiCompileContract {
         AsciiDocDocument asciiDoc,
         ConfluencePage confluencePage,
         CsvDocument csv,
+        ChmDocument chm,
         EmailDocument email,
         global::OfficeIMO.Epub.EpubDocument epub,
         ExcelDocument excel,
@@ -129,6 +131,10 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(html);
         _ = browserPdf.ToPdfDocumentResult();
         _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
+        _ = ChmDocument.Load(stream).ToPdfBytesResult();
+        _ = chm.ToMarkdownResult();
+        _ = chm.ToMarkdownDocumentResult();
+        _ = chm.ToEpubBytesResult();
         PdfHtmlConversionResult pdfHtmlResult = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
         PdfConversionReport pdfHtmlReport = pdfHtmlResult.Report;
         OfficeIMO.OfficeOutputResult<PdfConversionReport> pdfHtmlOutput = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(pdf, stream, pdfOptions);

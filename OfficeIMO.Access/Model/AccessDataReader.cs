@@ -12,7 +12,7 @@ namespace OfficeIMO.Access {
         private bool _closed;
         internal AccessDataReader(AccessTable table, CancellationToken cancellation, IAccessRowCursor? cursor = null) {
             _table = table; _cancellation = cancellation; table.Document.AcquireReader();
-            try { _cursor = cursor ?? (table.NativeTable == null ? new AccessModeledRowCursor(table) : new AccessNativeRowCursor(table.NativeTable, cancellation)); }
+            try { AccessNativeTable? source = table.Document.ResolveNativeReadTable(table.NativeTable, cancellation); _cursor = cursor ?? (source == null ? new AccessModeledRowCursor(table) : new AccessNativeRowCursor(source, cancellation)); }
             catch { table.Document.ReleaseReader(); throw; }
         }
         private void Check() {
@@ -61,7 +61,7 @@ namespace OfficeIMO.Access {
         /// <inheritdoc />
         public override bool IsDBNull(int ordinal) { Column(ordinal); return _cursor.IsNull(ordinal); }
         /// <inheritdoc />
-        public override Type GetFieldType(int ordinal) => Column(ordinal).DataType switch {
+        public override Type GetFieldType(int ordinal) => Column(ordinal).HasOpaqueTextValues ? typeof(AccessOpaqueValue) : Column(ordinal).DataType switch {
             AccessDataType.AutoNumber or AccessDataType.Int32 => typeof(int),
             AccessDataType.ShortText or AccessDataType.LongText => typeof(string), AccessDataType.Currency => typeof(decimal),
             AccessDataType.Double => typeof(double), AccessDataType.Boolean => typeof(bool), AccessDataType.DateTime => typeof(DateTime),
