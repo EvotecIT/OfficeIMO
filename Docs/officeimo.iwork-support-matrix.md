@@ -177,6 +177,13 @@ declarations to the preceding creation and preservation profiles. Native Pages
 and Keynote counter acceptance, composed PDF rendering and exact appearance
 retain their separate evidence boundaries.
 
+The [macOS second-duration NativeAOT evidence](Compatibility/iwork-duration-seconds-native-aot-macos-arm64-2026-10-10.json)
+records 20 passing smoke checks under each runtime. It adds native Numbers fixed
+hour/second, minute/second and second-only formats, 42 typed caches and 21
+formulas, saved/reopened recalculation and positive/negative integral-second
+display boundaries. Fractional display, composed PDF and additional native
+application versions retain their separate qualification limits.
+
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
 the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
