@@ -3,17 +3,10 @@
 {{~ if map && map.routes && map.routes.size > 0 ~}}
 {{~ view = fmap_view ~}}{{~ if view != "list" ~}}{{~ view = "radial" ~}}{{~ end ~}}
 {{~ start_surface = fmap_surface ~}}{{~ if !start_surface ~}}{{~ start_surface = "all" ~}}{{~ end ~}}
-{{~ stage = fmap_stage ~}}
 {{~ has_powershell = false ~}}{{~ for route in map.routes ~}}{{~ if array.contains route.surfaces "powershell" ~}}{{~ has_powershell = true ~}}{{~ end ~}}{{~ end ~}}
 {{~ family_names = { documents: "Documents", spreadsheets: "Spreadsheets", presentations: "Presentations", fixed: "Fixed layout", images: "Images", books: "Notes and books", email: "Email", bibliography: "Bibliography", markup: "Markup and text", web: "Web and wiki", other: "Other" } ~}}
-<section class="imo-fmap imo-fmap--{{ view }}{{ if stage }} imo-fmap--stage{{ else }} imo-container{{ end }}" id="format-map" aria-labelledby="fmap-title" data-format-map data-view="{{ view }}" data-surface="{{ start_surface }}"{{ if stage }} data-stage="true"{{ end }}>
+<section class="imo-fmap imo-fmap--{{ view }} imo-container" id="format-map" aria-labelledby="fmap-title" data-format-map data-view="{{ view }}" data-surface="{{ start_surface }}">
   <div class="imo-fmap__head">
-    {{~ if stage ~}}
-    <div class="imo-fmap__brand">
-      <svg width="44" height="44" viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="3" y="2" width="20" height="24" rx="5" fill="currentColor"/><path d="M9 8h8M9 12h8M9 16h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5.5h2.5A2.5 2.5 0 0 1 25 8v13a2.5 2.5 0 0 1-2.5 2.5H20" stroke="#22B8CF" stroke-width="2"/></svg>
-      <span><b>OfficeIMO</b><small>officeimo.com</small></span>
-    </div>
-    {{~ end ~}}
     <p class="imo-section__eyebrow">Format map</p>
     {{~ if view == "list" ~}}
     <h2 id="fmap-title">Where else can your file go?</h2>

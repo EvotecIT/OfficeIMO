@@ -3,7 +3,7 @@
  *   radial - home page: formats around a circle, conversions as lines, paths between two formats.
  *   list   - browser tools: formats as chips grouped by family, curves to what the chosen one becomes.
  * Phones get the chip list in both views. ES5 for the site minifier.
- * The radial view also runs a tour (Play tour button, or on its own in the stage layout): it spotlights formats around the
+ * The radial view also runs a tour (starts when the circle is in view; Play tour button): it spotlights formats around the
  * circle, finds paths between formats and steps through the surfaces, with a caption for each scene.
  */
 (function () {
@@ -576,7 +576,8 @@
     function setHover(n) {
       window.clearTimeout(hoverLeave);
       if (n) {
-        if (!stage) { tour.touched = true; stopTour(); }
+        tour.touched = true;
+        stopTour();
         if (state.hover === n) return;
         state.hover = n;
         refreshPreview();
@@ -608,28 +609,19 @@
 
     // ---------------------------------------------------------------- tour
     // Scenes: an intro, a spotlight on some formats around the circle, routes between formats, then each surface in turn.
-    // The home page offers it as a button and stops at the first touch; the stage layout (data-stage) plays it hands-free.
-    //   ?tour=0       no autoplay                 ?speed=1.5   faster or slower (0.4 to 3)
-    //   ?loop=0       play once and hold          ?scenes=...  choose scenes (see below; outro = closing card)
-    //   ?ratio=1x1    frame the stage (stage only: 16x9, 1x1, 4x5, 9x16)
-    //   Space pauses and the arrow keys move between scenes on the stage.
-    var stage = root.getAttribute('data-stage') === 'true';
+    // It starts once the circle is in view and stops at the first touch; the Play tour button starts it again.
+    //   ?tour=0   no autoplay        ?speed=1.5   faster or slower (0.4 to 3)
     var query = {};
     (window.location.search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
       var p = kv.split('=');
       if (p[0]) query[decodeURIComponent(p[0])] = decodeURIComponent((p[1] || '').replace(/\+/g, ' '));
     });
     var speed = Math.max(0.4, Math.min(3, parseFloat(query.speed) || 1));
-    var loop = query.loop !== '0';
-    // ?ratio=16x9|1x1|4x5|9x16 frames the stage for a platform; the layout follows (see the stage rules in format-map.css).
-    if (stage) root.setAttribute('data-ratio', /^(16x9|1x1|4x5|9x16)$/.test(query.ratio || '') ? query.ratio : '16x9');
-    var tour = { on: false, touched: false, paused: false, timer: 0, scrollTimer: 0, drift: 0, index: -1, scenes: [], before: 'all', button: null, caption: null };
+    var tour = { on: false, touched: false, timer: 0, scrollTimer: 0, drift: 0, index: -1, scenes: [], before: 'all', button: null, caption: null };
     var surfaceNotes = {};
     each(root.querySelectorAll('[data-surface][data-note]'), function (b) { surfaceNotes[b.getAttribute('data-surface')] = b.getAttribute('data-note'); });
 
     // ---- Scenes. Each builder returns null when the map has nothing to show for it (an unknown format, no route on that surface).
-    //   ?scenes=intro,spot:XLSX,path:DOCX>Markdown,surface:powershell   picks and orders scenes; spots, paths and surfaces add the
-    //   default set of each kind; a trailing @powershell (or @browser, @cli ...) shows a spotlight or path under that filter.
     var SPOTS = ['DOCX', 'XLSX', 'PPTX', 'PDF', 'OneNote', 'MSG', 'BibTeX', 'Markdown', 'HTML'];
     var PATHS = [['DOCX', 'Markdown'], ['XLSX', 'PDF'], ['Markdown', 'DOCX'], ['PPTX', 'PDF'], ['OneNote', 'PDF'], ['HTML', 'DOCX'], ['Pages', 'Markdown'], ['EPUB', 'DOCX']];
     function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
@@ -640,11 +632,6 @@
     }
     function introScene() {
       return { kind: 'OfficeIMO', title: order.length + ' formats, ' + routes.length + ' conversions', note: 'Every dot is a format. Every line is a conversion.', surface: 'all', dwell: 3600 };
-    }
-    // Closing card for recordings: whose map this was, and where to go.
-    function outroScene() {
-      var ways = ['studio', 'browser', 'cli', 'dotnet', 'powershell'].filter(function (id) { return surfaceNames[id]; }).map(function (id) { return surfaceNames[id]; });
-      return { kind: 'officeimo.com', title: 'OfficeIMO', note: ways.join(' · '), surface: 'all', dwell: 4200 };
     }
     function spotScene(n, surface) {
       surface = surface || 'all';
@@ -675,42 +662,8 @@
     function defaultPaths(surface) { return compact(PATHS.map(function (p) { var a = findFormat(p[0]), b = findFormat(p[1]); return a && b && pathScene(a, b, surface); })); }
     function defaultSurfaces() { return compact(['dotnet', 'browser', 'cli', 'studio', 'powershell'].map(surfaceScene)); }
 
-    // Tokens of ?scenes= that produced nothing (a renamed format, no route on that surface). The tour still plays what it has;
-    // the recorder reads data-tour-skipped and refuses to render a cut that is not what its author asked for.
-    var skipped = [];
-    function parseScenes(spec) {
-      var out = [];
-      skipped = [];
-      spec.split(',').forEach(function (raw) {
-        var token = raw.replace(/^\s+|\s+$/g, ''), surface = 'all', at = token.lastIndexOf('@'), before = out.length;
-        if (!token) return;
-        if (at > 0) {
-          var id = token.slice(at + 1).replace(/\s+/g, '').toLowerCase();
-          if (counts[id]) surface = id;
-          token = token.slice(0, at);
-        }
-        var colon = token.indexOf(':');
-        var kind = (colon < 0 ? token : token.slice(0, colon)).replace(/\s+/g, '').toLowerCase();
-        var arg = colon < 0 ? '' : token.slice(colon + 1).replace(/^\s+|\s+$/g, '');
-        var add = function (s) { if (s) out.push(s); };
-        if (kind === 'intro') add(introScene());
-        else if (kind === 'outro') add(outroScene());
-        else if (kind === 'spots') defaultSpots(surface).forEach(add);
-        else if (kind === 'paths') defaultPaths(surface).forEach(add);
-        else if (kind === 'surfaces') defaultSurfaces().forEach(add);
-        else if (kind === 'spot') { var f = findFormat(arg); if (f) add(spotScene(f, surface)); }
-        else if (kind === 'path') {
-          var ends = arg.split(/>|~|→/), a = findFormat(ends[0] || ''), b = findFormat(ends[1] || '');
-          if (a && b) add(pathScene(a, b, surface));
-        } else if (kind === 'surface') { var s = arg.toLowerCase(); if (SURFACES.indexOf(s) >= 0) add(surfaceScene(s)); }
-        if (out.length === before) skipped.push(raw.replace(/^\s+|\s+$/g, ''));
-      });
-      return out;
-    }
-
     function buildScenes() {
-      var chosen = query.scenes ? parseScenes(query.scenes) : [];
-      return chosen.length ? chosen : [introScene()].concat(defaultSpots('all'), defaultPaths('all'), defaultSurfaces(), stage ? [outroScene()] : []);
+      return [introScene()].concat(defaultSpots('all'), defaultPaths('all'), defaultSurfaces());
     }
 
     function showCaption(s, ms) {
@@ -740,8 +693,7 @@
       update(changed, true);
       var ms = s.dwell / speed;
       showCaption(s, ms);
-      // A long answer drifts upward so the whole list shows during the scene. Driven by the frame clock, not native smooth
-      // scrolling, so a recording that steps time by hand sees the same motion.
+      // A long answer drifts upward so the whole list shows during the scene.
       if (side && !still) {
         var token = ++tour.drift;
         tour.scrollTimer = window.setTimeout(function () {
@@ -759,16 +711,15 @@
       }
     }
 
-    // Moves to the next scene (step 1) or the previous one (step -1). Waits while paused or out of view unless forced.
-    function advance(step, force) {
+    // Moves to the next scene. Waits while the tab is hidden or the circle is out of view.
+    function advance() {
       window.clearTimeout(tour.timer);
       if (!tour.on) return;
-      if (!force && (document.hidden || !onScreen || tour.paused)) { tour.timer = window.setTimeout(function () { advance(step); }, 400); return; }
-      if (step > 0 && !loop && tour.index === tour.scenes.length - 1) { finishTour(); return; }
-      tour.index = (tour.index + step + tour.scenes.length) % tour.scenes.length;
+      if (document.hidden || !onScreen) { tour.timer = window.setTimeout(advance, 400); return; }
+      tour.index = (tour.index + 1) % tour.scenes.length;
       var scene = tour.scenes[tour.index];
       runScene(scene);
-      tour.timer = window.setTimeout(function () { advance(1); }, scene.dwell / speed);
+      tour.timer = window.setTimeout(advance, scene.dwell / speed);
     }
 
     function syncTourButton() {
@@ -780,30 +731,14 @@
       if (tour.on || !svg) return;
       tour.scenes = buildScenes();
       tour.on = true;
-      tour.paused = false;
       tour.index = -1;
       tour.before = state.surface;
       root.classList.add('is-touring');
-      // Read by the recorder: when the tour began, how long one pass takes, and when it is over.
-      root.setAttribute('data-tour-state', 'playing');
-      root.setAttribute('data-tour-skipped', skipped.join('|'));
-      if (skipped.length && window.console) window.console.warn('format map: no scene for ' + skipped.join(', '));
-      root.setAttribute('data-tour-start', String(Date.now()));
-      root.setAttribute('data-tour-ms', String(Math.round(tour.scenes.reduce(function (sum, s) { return sum + s.dwell / speed; }, 0))));
       syncTourButton();
-      advance(1);
-    }
-    // ?loop=0 plays the scenes once and holds the last one.
-    function finishTour() {
-      tour.on = false;
-      window.clearTimeout(tour.timer);
-      window.clearTimeout(tour.scrollTimer);
-      root.setAttribute('data-tour-state', 'done');
-      syncTourButton();
+      advance();
     }
     function stopTour() {
       if (!tour.on) return;
-      root.setAttribute('data-tour-state', 'stopped');
       tour.on = false;
       window.clearTimeout(tour.timer);
       window.clearTimeout(tour.scrollTimer);
@@ -832,17 +767,9 @@
       tour.button.appendChild(document.createTextNode('Play tour'));
       tour.button.addEventListener('click', function () { tour.touched = true; if (tour.on) stopTour(); else startTour(); });
       canvas.appendChild(tour.button);
-      // Touching the map ends a tour on the page; the stage layout keeps playing and answers the keyboard instead.
-      if (!stage) {
-        root.querySelector('.imo-fmap__board').addEventListener('pointerdown', function (e) { if (e.target !== tour.button && !tour.button.contains(e.target)) { tour.touched = true; stopTour(); } }, true);
-        root.addEventListener('keydown', function (e) { if (e.target !== tour.button && e.key !== 'Tab') { tour.touched = true; stopTour(); } }, true);
-      } else {
-        document.addEventListener('keydown', function (e) {
-          if (e.key === ' ' || e.key === 'k') { e.preventDefault(); tour.paused = !tour.paused; root.classList.toggle('is-paused', tour.paused); }
-          else if (e.key === 'ArrowRight') advance(1, true);
-          else if (e.key === 'ArrowLeft') advance(-1, true);
-        });
-      }
+      // Touching the map ends the tour.
+      root.querySelector('.imo-fmap__board').addEventListener('pointerdown', function (e) { if (e.target !== tour.button && !tour.button.contains(e.target)) { tour.touched = true; stopTour(); } }, true);
+      root.addEventListener('keydown', function (e) { if (e.target !== tour.button && e.key !== 'Tab') { tour.touched = true; stopTour(); } }, true);
     }
 
     var pending = 0;
@@ -857,10 +784,10 @@
 
     if (view === 'list') state.from = 'DOCX';
     update(true);
-    // The tour starts by itself: at once on the stage, and on the page as soon as the circle is in view, unless the visitor
-    // got there first (hovered or picked something) or asked for no tour (?tour=0). Reduced motion keeps the button only.
+    // The tour starts by itself as soon as the circle is in view, unless the visitor got there first (hovered or picked
+    // something) or asked for no tour (?tour=0). Reduced motion keeps the button only.
     if (svg && view === 'radial' && !still && query.tour !== '0') {
-      if (stage || !window.IntersectionObserver) startTour();
+      if (!window.IntersectionObserver) startTour();
       else {
         new window.IntersectionObserver(function (entries, observer) {
           if (!entries[0].isIntersecting) return;

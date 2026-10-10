@@ -222,53 +222,6 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__caption i { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--cap); transform-origin: left; transform: scaleX(0); }
 .imo-fmap.is-touring .imo-fmap__caption { display: grid; }
 .imo-fmap.is-touring .imo-fmap__legend { visibility: hidden; }
-.imo-fmap.is-paused .imo-fmap__caption i { animation-play-state: paused !important; }
-
-/* ---- Stage: the full-window layout used to record the map (layouts/format-map-stage.html) ---- */
-/* The stage is a frame with the proportions of the chosen platform format (?ratio=, set as data-ratio): as large as fits the window
-   and centred, so it previews in any browser window and fills the window exactly when the recorder sizes it to the format. */
-.imo-body--stage { margin: 0; min-height: 100vh; display: grid; place-items: center; overflow: hidden; background: var(--imo-bg); }
-.imo-body--stage .imo-main--stage { display: grid; place-items: center; padding: 0; margin: 0; }
-.imo-fmap--stage { --rw: 16; --rh: 9; --ring-reserve: 300px; max-width: none; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; container-type: size;
-  width: min(100vw, calc(100vh * var(--rw) / var(--rh))); height: min(100vh, calc(100vw * var(--rh) / var(--rw))); padding: 20px 40px 12px; }
-.imo-fmap--stage[data-ratio="1x1"] { --rw: 1; --rh: 1; --ring-reserve: 250px; }
-.imo-fmap--stage[data-ratio="4x5"] { --rw: 4; --rh: 5; --ring-reserve: 250px; }
-.imo-fmap--stage[data-ratio="9x16"] { --rw: 9; --rh: 16; }
-.imo-fmap--stage .imo-fmap__head { flex: none; max-width: none; margin-bottom: 12px; }
-.imo-fmap--stage .imo-fmap__head p, .imo-fmap--stage .imo-fmap__tourbtn { display: none; }
-.imo-fmap--stage .imo-fmap__head h2 { font-size: clamp(1.6rem, 1rem + 1.8vw, 2.6rem); margin: 0; }
-.imo-fmap--stage .imo-fmap__surfaces { flex: none; margin-bottom: 12px; }
-.imo-fmap--stage .imo-fmap__board { flex: 1; min-height: 0; align-items: stretch; grid-template-columns: minmax(0, 1.25fr) minmax(380px, 1fr); grid-template-rows: minmax(0, 1fr); }
-.imo-fmap--stage .imo-fmap__canvas { display: grid; justify-items: center; align-content: start; padding-bottom: 118px; }
-.imo-fmap--stage .imo-fmap__svg { width: auto; max-width: 100%; max-height: calc(100cqh - var(--ring-reserve)); overflow: visible; }
-.imo-fmap--stage .imo-fmap__node text { font-size: 19px; }
-.imo-fmap--stage .imo-fmap__fam { font-size: 15px; }
-.imo-fmap--stage .imo-fmap__legend { display: none; }
-.imo-fmap--stage .imo-fmap__caption { left: 24px; right: 24px; bottom: 18px; padding: 14px 22px 16px; }
-.imo-fmap--stage .imo-fmap__captitle { font-size: clamp(1.5rem, 1rem + 1.2vw, 2.2rem); }
-.imo-fmap--stage .imo-fmap__capnote { font-size: var(--imo-font-size-base); white-space: normal; }
-.imo-fmap--stage .imo-fmap__side { padding: 24px; font-size: 1.05rem; }
-.imo-fmap--stage .imo-fmap__pick, .imo-fmap--stage .imo-fmap__next, .imo-fmap--stage .imo-fmap__hint { display: none; }
-.imo-fmap--stage ::-webkit-scrollbar { display: none; }
-.imo-fmap--stage .imo-fmap__side { scrollbar-width: none; }
-/* Square and 4:5 have no room for the route list, so the caption carries the message. Portrait puts the list under the circle. */
-.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
-.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__canvas { padding-bottom: 156px; }
-.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__captitle { font-size: 2.3rem; }
-.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__head h2 { font-size: 2rem; }
-.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"]) .imo-fmap__side { display: none; }
-.imo-fmap--stage[data-ratio="9x16"] .imo-fmap__board { grid-template-rows: auto minmax(0, 1fr); }
-.imo-fmap--stage[data-ratio="9x16"] .imo-fmap__svg { max-height: none; }
-.imo-fmap--stage[data-ratio="9x16"] .imo-fmap__side { contain: none; min-height: 0; overflow-y: auto; border-left: 0; border-top: 1px solid var(--imo-border); }
-/* Brand lockup: logo, name and address lead the title row of every frame, so a clip shared on its own says whose it is. */
-.imo-fmap__brand { display: none; }
-.imo-fmap--stage .imo-fmap__head { display: flex; align-items: center; gap: 28px; }
-.imo-fmap--stage .imo-fmap__brand { display: flex; flex: none; align-items: center; gap: 12px; color: var(--imo-primary); }
-.imo-fmap__brand span { display: grid; line-height: 1.15; }
-.imo-fmap__brand b { font: 800 1.7rem var(--imo-font-display); letter-spacing: -.02em; color: var(--imo-text); }
-.imo-fmap__brand small { font-size: .9rem; font-weight: 600; letter-spacing: .02em; color: var(--imo-text-secondary); }
-.imo-fmap--stage .imo-fmap__head h2 { padding-left: 28px; border-left: 1px solid var(--imo-border-strong); }
-.imo-fmap--stage:is([data-ratio="1x1"], [data-ratio="4x5"], [data-ratio="9x16"]) .imo-fmap__head h2 span { display: none; }
 
 /* ---- List view ---- */
 .imo-fmap--list .imo-fmap__board { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); column-gap: clamp(32px, 6vw, 96px); }
@@ -279,9 +232,9 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 /* ---- Medium screens: side by side the circle would shrink until its labels are unreadable (8px at 900px wide),
    so the panel moves below it and the circle keeps the full width. ---- */
 @media (min-width: 861px) and (max-width: 1100px) {
-  .imo-fmap--radial:not(.imo-fmap--stage) .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
-  .imo-fmap--radial:not(.imo-fmap--stage) .imo-fmap__side { contain: none; overflow: visible; border-left: 0; border-top: 1px solid var(--imo-border); }
-  .imo-fmap--radial:not(.imo-fmap--stage) .imo-fmap__svg { max-width: 800px; margin-inline: auto; }
+  .imo-fmap--radial .imo-fmap__board { grid-template-columns: minmax(0, 1fr); }
+  .imo-fmap--radial .imo-fmap__side { contain: none; overflow: visible; border-left: 0; border-top: 1px solid var(--imo-border); }
+  .imo-fmap--radial .imo-fmap__svg { max-width: 800px; margin-inline: auto; }
 }
 
 /* ---- Narrow screens: both views become the chip list with the panel below ---- */

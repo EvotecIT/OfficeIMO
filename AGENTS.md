@@ -67,16 +67,6 @@
 - Keep upstream integration deliberate and regular. Inspect all worktrees before branch operations, use one coordinator for integration history, preserve unrelated work and avoid history rewrites on shared branches. Do not leave a giant unvalidated merge until the end of the program.
 - Keep test references and optional provider comparisons outside default runtime dependencies. Store bulky corpus outputs in a named task-owned location, retain compact manifests and decisive evidence, and remove superseded output before repeated runs.
 
-## Format map recordings
-
-The website's format map (`Website/themes/officeimo/partials/sections/format-map.html`, `Website/static/js/format-map.js`) doubles as marketing material: `/format-map/` is a full-window, hands-free stage, and `Build/FormatMapRecorder` renders it into clips for each platform format. Nothing in a clip is hand-made, so re-record from the data whenever the catalog, the PowerShell mapping or the map's look changes.
-
-- Re-record with `./Build/Record-FormatMap.ps1`. It regenerates `Website/data/format_map.json`, builds the stage page and renders every cut in `Build/FormatMapRecorder/cuts.json` into `Artefacts/FormatMapVideos` (ignored). Useful switches: `-Cut <name>`, `-Scale 2` (true 3840x2160), `-Formats mp4,mov,gif,...`, `-SkipCatalog`, `-SkipSite`, `-List`. It needs ffmpeg and the shared Playwright browsers (HtmlTinkerX); it restores generated files that differ only in line endings.
-- The render is frame by frame with the page clock frozen, so output does not depend on machine speed. Keep page animation on the page clock (timers, `requestAnimationFrame`, CSS transitions and animations); native smooth scrolling and other browser-owned motion cannot be stepped and would diverge in a render.
-- Cuts name formats and surfaces (`spot:DOCX`, `path:Markdown>DOCX`, `surface:powershell`, `@powershell`, `outro`). The recorder fails with the unmatched scenes when a format is renamed or loses its routes; update `cuts.json`, do not weaken the check.
-- PowerShell routes come from `Build/CompatibilityCatalog/powershell-routes.json`, a reviewed route-to-cmdlet list with source evidence. Add an entry only after reading the PSWriteOffice cmdlet that performs exactly that conversion. The generator rejects unknown routes and cmdlets missing from `Website/data/apidocs/powershell/command-metadata.json`.
-- Do not commit rendered clips or frames. Render frames go under `EVOTEC_SCRATCH_ROOT` and are removed after a successful encode; remove superseded clips before repeating a large run. Keep recorder output under `Artefacts/`, and keep the recorder outside the normal solution.
-
 ## Agent plugin and MCP Registry maintenance
 
 
