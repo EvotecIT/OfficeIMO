@@ -1,0 +1,41 @@
+{
+  "cuts": [
+    {
+      "name": "media-16x9",
+      "ratio": "16x9",
+      "width": 1920,
+      "height": 1080,
+      "scenes": "intro,spot:DOCX,spot:XLSX,path:DOCX>Markdown,path:XLSX>PDF,surface:browser,surface:powershell,outro",
+      "formats": ["mp4"],
+      "posterMs": 6800
+    },
+    {
+      "name": "media-9x16",
+      "ratio": "9x16",
+      "width": 1080,
+      "height": 1920,
+      "scenes": "intro,spot:XLSX,path:XLSX>PDF,surface:powershell,outro",
+      "formats": ["mp4"],
+      "posterMs": 7000
+    },
+    {
+      "name": "media-1x1",
+      "ratio": "1x1",
+      "width": 1080,
+      "height": 1080,
+      "scenes": "intro,spot:DOCX,path:DOCX>Markdown,outro",
+      "formats": ["mp4", "gif"],
+      "gifWidth": 720,
+      "posterMs": 6800
+    },
+    {
+      "name": "media-4x5",
+      "ratio": "4x5",
+      "width": 1080,
+      "height": 1350,
+      "scenes": "intro,spot:XLSX,path:XLSX>PDF,surface:browser,outro",
+      "formats": ["mp4"],
+      "posterMs": 7000
+    }
+  ]
+}

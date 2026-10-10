@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OfficeIMO format map: media</title>
+<style>
+  @font-face { font-family: "Hanken Grotesk"; src: url("/fonts/hanken-grotesk-latin.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #060a14; }
+  body { font-family: "Hanken Grotesk", system-ui, sans-serif; color: #f3f6fc; }
+  #stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .label { font-weight: 650; fill: #dbe5f7; }
+  .family { font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+  #brand { position: absolute; display: flex; align-items: center; gap: 14px; color: #6c9bff; }
+  #brand span { display: grid; line-height: 1.12; }
+  #brand b { font-weight: 800; letter-spacing: -.02em; color: #f3f6fc; }
+  #brand small { font-weight: 650; letter-spacing: .02em; color: #8ea2c6; }
+  #caption { position: absolute; display: grid; align-content: start; gap: 0; will-change: opacity, transform; }
+  #kicker { font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  #title { margin: 0; font-weight: 800; letter-spacing: -.035em; line-height: 1.02; }
+  #title .num { display: block; font-variant-numeric: tabular-nums; line-height: .95; }
+  #title .unit { display: block; font-weight: 700; color: #c4d1ea; letter-spacing: -.02em; }
+  body[data-layout="1x1"] #title .num, body[data-layout="4x5"] #title .num { display: inline-block; margin-right: .15em; }
+  body[data-layout="1x1"] #title .unit, body[data-layout="4x5"] #title .unit { display: inline; }
+  #note { font-weight: 550; color: #93a5c7; line-height: 1.35; }
+  #pills { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pill { display: inline-flex; align-items: center; gap: 9px; padding: .42em .95em; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); font-weight: 700; color: #7f90b0; white-space: nowrap; }
+  .pill i { width: .62em; height: .62em; border-radius: 50%; background: currentColor; }
+</style>
+</head>
+<body>
+<svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="brand">
+  <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect x="3" y="2" width="20" height="24" rx="5" fill="currentColor"/><path d="M9 8h8M9 12h8M9 16h5" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M20 5.5h2.5A2.5 2.5 0 0 1 25 8v13a2.5 2.5 0 0 1-2.5 2.5H20" stroke="#22B8CF" stroke-width="2"/></svg>
+  <span><b>OfficeIMO</b><small>officeimo.com</small></span>
+</div>
+<div id="caption"><div id="kicker"></div><h1 id="title"></h1><div id="note"></div><div id="pills"></div></div>
+<script>
+/*
+ * Format map for media. One diagram, drawn as a pure function of time: render(t) puts the frame at t milliseconds on screen and
+ * touches nothing else, so a recorder can step through time at any frame rate and resolution. No timers, transitions or hover.
+ *
+ *   ?ratio=16x9|1x1|4x5|9x16   composition (default: from the window's proportions)
+ *   ?scenes=intro,spot:XLSX,path:DOCX>Markdown,surface:powershell,outro   what to show (the site tour's grammar; @powershell filters)
+ *   ?speed=1.25                faster or slower (0.4 to 3)
+ *
+ * Reads /data/format_map.json and /data/surfaces.json, the same generated data the website uses.
+ * window.imoMedia = { ready, duration, skipped, render(t) }.
+ */
+(() => {
+  'use strict';
+  const NS = 'http://www.w3.org/2000/svg';
+  const query = new URLSearchParams(location.search);
+  const W = innerWidth, H = innerHeight;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const easeOut = x => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+  const easeInOut = x => { x = clamp(x, 0, 1); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+  const speed = clamp(parseFloat(query.get('speed')) || 1, .4, 3);
+
+  const FAMILY_COLOR = { documents: '#7aa2ff', spreadsheets: '#4ade80', presentations: '#fb923c', fixed: '#f87171', images: '#5ed3e6', books: '#a3e635', email: '#f472b6', bibliography: '#a5b1c6', markup: '#c4a5ff', web: '#fbbf24', other: '#94a3b8' };
+  const FAMILY_NAME = { documents: 'Documents', spreadsheets: 'Spreadsheets', presentations: 'Presentations', fixed: 'Fixed layout', images: 'Images', books: 'Notes and books', email: 'Email', bibliography: 'Bibliography', markup: 'Markup and text', web: 'Web and wiki', other: 'Other' };
+  const SURFACE_COLOR = { studio: '#6c9bff', browser: '#3cc7c1', cli: '#e7edf6', dotnet: '#a68bff', powershell: '#e0a948' };
+  const SURFACE_ORDER = ['studio', 'browser', 'cli', 'dotnet', 'powershell'];
+  // Presentation-only short names for the longest labels, so rim text keeps a safe margin from the frame edge.
+  const ALIAS = { 'Compiled HTML Help': 'CHM', 'NBIB/MEDLINE': 'MEDLINE', 'XPS/OpenXPS': 'XPS' };
+  const SPOTS = ['DOCX', 'XLSX', 'PPTX', 'PDF', 'OneNote', 'MSG', 'BibTeX', 'Markdown', 'HTML'];
+  const PATHS = [['DOCX', 'Markdown'], ['XLSX', 'PDF'], ['Markdown', 'DOCX'], ['PPTX', 'PDF'], ['OneNote', 'PDF'], ['HTML', 'DOCX'], ['Pages', 'Markdown'], ['EPUB', 'DOCX']];
+
+  const el = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const hash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; };
+  const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+
+  // ---------------------------------------------------------------- composition
+  function pickLayout() {
+    const r = query.get('ratio');
+    if (r === '16x9' || r === '1x1' || r === '4x5' || r === '9x16') return r;
+    const a = W / H;
+    return a > 1.3 ? '16x9' : a < .7 ? '9x16' : a < .9 ? '4x5' : '1x1';
+  }
+  const layout = pickLayout();
+  document.body.dataset.layout = layout;
+  const COMP = {
+    '16x9': { cx: W * .65, cy: H * .5, R: H * .292, brand: [W * .05, H * .065], cap: [W * .05, H * .3, W * .335], title: 84, note: 28, kick: 22, pill: 19, brandSize: 44 },
+    '9x16': { cx: W * .5, cy: H * .385, R: W * .30, brand: [W * .08, H * .04], cap: [W * .08, H * .685, W * .84], title: 96, note: 34, kick: 26, pill: 23, brandSize: 46 },
+    '1x1': { cx: W * .5, cy: H * .40, R: W * .235, brand: [W * .06, H * .04], cap: [W * .07, H * .735, W * .86], title: 62, note: 26, kick: 20, pill: 19, brandSize: 38 },
+    '4x5': { cx: W * .5, cy: H * .415, R: W * .295, brand: [W * .06, H * .035], cap: [W * .07, H * .76, W * .86], title: 74, note: 30, kick: 22, pill: 22, brandSize: 42 }
+  }[layout];
+  const { cx, cy, R } = COMP;
+
+  // ---------------------------------------------------------------- data
+  let formats = [], routes = [], surfaces = {}, order = [], familyOf = {}, pos = {}, counts = {}, degree = {};
+  function surfaceName(id) { return surfaces[id] ? surfaces[id].name : id; }
+
+  function build(data, surfaceData) {
+    formats = data.formats;
+    routes = data.routes.map((r, i) => ({ ...r, index: i }));
+    (surfaceData.items || []).forEach(s => { surfaces[s.id] = s; });
+    order = formats.map(f => f.name);
+    formats.forEach(f => { familyOf[f.name] = f.family; });
+    counts.all = routes.length;
+    SURFACE_ORDER.forEach(s => { counts[s] = routes.filter(r => r.surfaces.includes(s)).length; });
+    order.forEach(n => { degree[n] = routes.filter(r => r.source === n || r.target === n).length; });
+  }
+  const onSurface = (r, s) => s === 'all' || r.surfaces.includes(s);
+  const outs = (n, s) => routes.filter(r => r.source === n && onSurface(r, s));
+  const ins = (n, s) => routes.filter(r => r.target === n && onSurface(r, s));
+  function shortest(a, b, s) {
+    const depth = { [a]: 0 }, prev = { [a]: [] }, queue = [a];
+    let found = -1;
+    while (queue.length) {
+      const n = queue.shift();
+      if (found >= 0 && depth[n] >= found) break;
+      outs(n, s).forEach(r => {
+        const m = r.target;
+        if (depth[m] == null) { depth[m] = depth[n] + 1; prev[m] = [r]; queue.push(m); }
+        else if (depth[m] === depth[n] + 1) prev[m].push(r);
+        if (m === b) found = depth[m];
+      });
+    }
+    if (depth[b] == null || a === b) return null;
+    const path = [];
+    let n = b;
+    while (n !== a) { const r = prev[n][0]; path.unshift(r); n = r.source; }
+    return path;
+  }
+  const findFormat = name => order.find(n => norm(n) === norm(name)) || null;
+
+  // ---------------------------------------------------------------- ring geometry
+  function layoutRing() {
+    const families = [...new Set(formats.map(f => f.family))];
+    const gap = .9;
+    const slots = order.length + families.length * gap;
+    let k = 0;
+    const labels = [];
+    families.forEach(f => {
+      const start = k;
+      order.forEach(n => {
+        if (familyOf[n] !== f) return;
+        const a = -Math.PI / 2 + (k / slots) * Math.PI * 2;
+        pos[n] = { a, x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) };
+        k++;
+      });
+      labels.push({ family: f, mid: (start + k - 1) / 2, size: k - start });
+      k += gap;
+    });
+    return { slots, labels };
+  }
+  const edgePath = (a, b) => {
+    const A = pos[a], B = pos[b], mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+    return `M${A.x.toFixed(1)},${A.y.toFixed(1)} Q${(cx + (mx - cx) * .18).toFixed(1)},${(cy + (my - cy) * .18).toFixed(1)} ${B.x.toFixed(1)},${B.y.toFixed(1)}`;
+  };
+
+  // ---------------------------------------------------------------- scenes
+  const introScene = () => ({ type: 'intro', surface: 'all', kicker: 'OfficeIMO', num: routes.length, unit: 'conversions', note: `across ${order.length} formats. Every dot is a format, every line a route.`, dwell: 4600 });
+  const outroScene = () => ({ type: 'outro', surface: 'all', kicker: 'officeimo.com', title: 'OfficeIMO', note: SURFACE_ORDER.filter(s => counts[s]).map(surfaceName).join(' · '), dwell: 4400 });
+  function spotScene(n, surface = 'all') {
+    const o = outs(n, surface);
+    if (!o.length) return null;
+    const browser = o.filter(r => r.surfaces.includes('browser')).length;
+    const where = surface === 'all' ? (browser ? ` · ${browser} in your browser` : '') : ` in ${surfaceName(surface)}`;
+    return { type: 'spot', surface, focus: n, kicker: FAMILY_NAME[familyOf[n]], title: n, note: `Converts to ${plural(o.length, 'format')}${where}`, dwell: 4800, family: familyOf[n] };
+  }
+  function pathScene(a, b, surface = 'all') {
+    const path = shortest(a, b, surface);
+    if (!path) return null;
+    const first = path[0];
+    return { type: 'path', surface, from: a, to: b, path, kicker: 'Find the way', title: `${a} → ${b}`,
+      note: path.length === 1 ? `One step · ${surface === 'powershell' && first.cmdlet ? first.cmdlet : first.package}` : `${path.length} steps · each one is its own conversion`, dwell: 3800 + path.length * 900 };
+  }
+  function surfaceScene(id) {
+    if (!counts[id]) return null;
+    return { type: 'surface', surface: id, kicker: 'Where it runs · ' + surfaceName(id), num: counts[id], unit: `conversions`, note: (surfaces[id] && surfaces[id].description) || '', dwell: 4600 };
+  }
+  const compact = list => list.filter(Boolean);
+  const defaultSpots = s => compact(SPOTS.map(n => findFormat(n) && spotScene(findFormat(n), s)));
+  const defaultPaths = s => compact(PATHS.map(([a, b]) => findFormat(a) && findFormat(b) && pathScene(findFormat(a), findFormat(b), s)));
+  const defaultSurfaces = () => compact(SURFACE_ORDER.map(surfaceScene));
+
+  const skipped = [];
+  function parseScenes(spec) {
+    const out = [];
+    spec.split(',').forEach(raw => {
+      let token = raw.trim(), surface = 'all', before = out.length;
+      if (!token) return;
+      const at = token.lastIndexOf('@');
+      if (at > 0) {
+        const id = token.slice(at + 1).trim().toLowerCase();
+        if (!SURFACE_ORDER.includes(id) || !counts[id]) { skipped.push(raw.trim()); return; }
+        surface = id;
+        token = token.slice(0, at);
+      }
+      const colon = token.indexOf(':');
+      const kind = (colon < 0 ? token : token.slice(0, colon)).replace(/\s+/g, '').toLowerCase();
+      const arg = colon < 0 ? '' : token.slice(colon + 1).trim();
+      const add = s => { if (s) out.push(s); };
+      if (kind === 'intro') add(introScene());
+      else if (kind === 'outro') add(outroScene());
+      else if (kind === 'spots') defaultSpots(surface).forEach(add);
+      else if (kind === 'paths') defaultPaths(surface).forEach(add);
+      else if (kind === 'surfaces') defaultSurfaces().forEach(add);
+      else if (kind === 'spot') { const f = findFormat(arg); if (f) add(spotScene(f, surface)); }
+      else if (kind === 'path') { const [x, y] = arg.split(/>|~|→/); const a = findFormat(x || ''), b = findFormat(y || ''); if (a && b) add(pathScene(a, b, surface)); }
+      else if (kind === 'surface') { const id = arg.toLowerCase(); if (SURFACE_ORDER.includes(id)) add(surfaceScene(id)); }
+      if (out.length === before) skipped.push(raw.trim());
+    });
+    return out;
+  }
+
+  // What a scene puts on screen, computed once: which dots are lit, which routes are drawn and how, where the camera looks.
+  const stateCache = new Map();
+  function sceneState(scene) {
+    if (stateCache.has(scene)) return stateCache.get(scene);
+    const emph = {}, edges = [], pills = new Set();
+    let baseDim = .55, focus = null, camera = null;
+    const mark = (n, v) => { emph[n] = Math.max(emph[n] || 0, v); };
+    const stops = r => [FAMILY_COLOR[familyOf[r.source]], FAMILY_COLOR[familyOf[r.target]]];
+    order.forEach(n => { emph[n] = .16; });
+    if (scene.type === 'intro') {
+      baseDim = 1;
+      const sorted = routes.slice().sort((x, y) => pos[x.source].a - pos[y.source].a || x.index - y.index);
+      sorted.forEach((r, i) => edges.push({ r, delay: 500 + (i / sorted.length) * 2200, dur: 800, width: 1.9, alpha: .6, stops: stops(r), pulse: i % 9 === 0 }));
+      order.forEach(n => mark(n, degree[n] ? 1 : .2));
+      SURFACE_ORDER.forEach(s => counts[s] && pills.add(s));
+    } else if (scene.type === 'spot') {
+      focus = scene.focus; camera = focus;
+      const o = outs(focus, scene.surface), i = ins(focus, scene.surface);
+      mark(focus, 1);
+      o.sort((x, y) => order.indexOf(x.target) - order.indexOf(y.target)).forEach((r, k) => {
+        edges.push({ r, delay: 350 + k * 60, dur: 800, width: 3.4, alpha: .95, stops: stops(r), pulse: true });
+        mark(r.target, 1);
+        r.surfaces.forEach(s => pills.add(s));
+      });
+      i.forEach(r => { edges.push({ r, delay: 200, dur: 700, width: 1.6, alpha: .38, stops: stops(r), dashed: true }); mark(r.source, .55); });
+      if (scene.surface !== 'all') { pills.clear(); pills.add(scene.surface); }
+    } else if (scene.type === 'path') {
+      baseDim = .3;
+      const nodes = [scene.from, ...scene.path.map(r => r.target)];
+      nodes.forEach(n => mark(n, 1));
+      scene.path.forEach((r, k) => edges.push({ r, delay: 500 + k * 950, dur: 850, width: 5, alpha: 1, stops: stops(r), pulse: true }));
+      camera = scene.from;
+      const common = SURFACE_ORDER.filter(s => scene.path.every(r => r.surfaces.includes(s)));
+      common.forEach(s => pills.add(s));
+      focus = scene.from;
+    } else if (scene.type === 'surface') {
+      const col = SURFACE_COLOR[scene.surface];
+      const list = routes.filter(r => r.surfaces.includes(scene.surface));
+      list.forEach(r => edges.push({ r, delay: 300 + hash(r.id) * 2200, dur: 700, width: 2.3, alpha: .62, stops: [col, col], pulse: false }));
+      order.forEach(n => mark(n, list.some(r => r.source === n || r.target === n) ? 1 : .14));
+      pills.add(scene.surface);
+      baseDim = .35;
+    } else if (scene.type === 'outro') {
+      // The whole network once more, softly, with a few routes carrying a pulse.
+      baseDim = .8;
+      routes.forEach((r, i) => edges.push({ r, delay: 0, dur: 1, width: 1.8, alpha: .34, stops: stops(r), pulse: i % 13 === 0 }));
+      order.forEach(n => mark(n, degree[n] ? .85 : .2));
+      SURFACE_ORDER.forEach(s => counts[s] && pills.add(s));
+    }
+    const state = { emph, edges, pills, baseDim, focus, camera };
+    stateCache.set(scene, state);
+    return state;
+  }
+
+  // ---------------------------------------------------------------- drawing
+  let scenes = [], starts = [], total = 0, tail = 700;
+  const ring = el('g', {}, document.getElementById('stage'));
+  let baseGroup, dynGroup, nodeGroup, defs;
+  const nodeEls = {};
+  const baseEls = [];
+
+  function buildStatic(ringInfo) {
+    const svg = document.getElementById('stage');
+    defs = el('defs', {}, svg);
+    svg.insertBefore(defs, ring);
+    const bg = document.body;
+    bg.style.background = `radial-gradient(ellipse ${W * .7}px ${H * .65}px at ${cx}px ${cy}px, #14203d 0%, #0b1226 42%, #060a14 100%)`;
+    const fam = el('g', {}, ring);
+    baseGroup = el('g', { fill: 'none', stroke: '#9db2dc', 'stroke-width': Math.max(1, R * .0036) }, ring);
+    routes.forEach(r => { const p = el('path', { d: edgePath(r.source, r.target) }, baseGroup); baseEls.push(p); });
+    dynGroup = el('g', { fill: 'none', 'stroke-linecap': 'round' }, ring);
+    nodeGroup = el('g', {}, ring);
+    const fs = Math.round(R * .068), gapLabel = R * .06, dot = R * .017;
+    const ffs = Math.round(R * .043);
+    ringInfo.labels.forEach(l => {
+      if (l.size < 2) return;
+      const a = -Math.PI / 2 + (l.mid / ringInfo.slots) * Math.PI * 2, rr = R - R * .1;
+      const x = cx + rr * Math.cos(a), y = cy + rr * Math.sin(a);
+      const deg = (Math.sin(a) > .05 ? a - Math.PI / 2 : a + Math.PI / 2) * 180 / Math.PI;
+      const t = el('text', { class: 'family', x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-size': ffs, fill: FAMILY_COLOR[l.family], 'fill-opacity': .88, transform: `rotate(${deg.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})` }, fam);
+      t.textContent = FAMILY_NAME[l.family];
+    });
+    order.forEach(n => {
+      const p = pos[n], c = Math.cos(p.a), s = Math.sin(p.a);
+      const g = el('g', {}, nodeGroup);
+      const deg = degree[n] ? 1 : 0;
+      const r = dot * (1 + Math.min(1.1, deg * .035));
+      const circle = el('circle', { cx: p.x, cy: p.y, r, fill: FAMILY_COLOR[familyOf[n]] }, g);
+      const lx = cx + (R + gapLabel) * c, ly = cy + (R + gapLabel) * s;
+      const text = el('text', { class: 'label', x: lx, y: ly, 'text-anchor': c >= 0 ? 'start' : 'end', 'dominant-baseline': 'middle', 'font-size': fs,
+        transform: `rotate(${(((c >= 0 ? p.a : p.a + Math.PI) * 180) / Math.PI).toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})` }, g);
+      text.textContent = ALIAS[n] || n;
+      nodeEls[n] = { g, circle, text, r };
+    });
+  }
+
+  // Positions the caption block, brand and pills for the chosen composition.
+  const captionEl = document.getElementById('caption'), kickerEl = document.getElementById('kicker'), titleEl = document.getElementById('title'), noteEl = document.getElementById('note'), pillsEl = document.getElementById('pills');
+  function buildHtml() {
+    const brand = document.getElementById('brand');
+    brand.style.left = COMP.brand[0] + 'px'; brand.style.top = COMP.brand[1] + 'px';
+    brand.querySelector('svg').style.cssText = `width:${COMP.brandSize}px;height:${COMP.brandSize}px`;
+    brand.querySelector('b').style.fontSize = Math.round(COMP.brandSize * .62) + 'px';
+    brand.querySelector('small').style.fontSize = Math.round(COMP.brandSize * .34) + 'px';
+    captionEl.style.left = COMP.cap[0] + 'px'; captionEl.style.top = COMP.cap[1] + 'px'; captionEl.style.width = COMP.cap[2] + 'px';
+    kickerEl.style.fontSize = COMP.kick + 'px'; kickerEl.style.marginBottom = Math.round(COMP.kick * .7) + 'px';
+    noteEl.style.fontSize = COMP.note + 'px'; noteEl.style.marginTop = Math.round(COMP.note * .5) + 'px';
+    pillsEl.style.marginTop = Math.round(COMP.note * .9) + 'px'; pillsEl.style.fontSize = COMP.pill + 'px';
+    SURFACE_ORDER.filter(s => counts[s]).forEach(s => {
+      const p = document.createElement('span');
+      p.className = 'pill'; p.dataset.surface = s;
+      p.innerHTML = '<i></i>' + surfaceName(s);
+      pillsEl.appendChild(p);
+    });
+  }
+
+  // ---------------------------------------------------------------- frame
+  function sceneAt(t) {
+    let i = 0;
+    for (let k = 0; k < scenes.length; k++) if (t >= starts[k]) i = k;
+    return i;
+  }
+  function gradientFor(id, a, b, c1, c2) {
+    const g = el('linearGradient', { id, gradientUnits: 'userSpaceOnUse', x1: pos[a].x, y1: pos[a].y, x2: pos[b].x, y2: pos[b].y }, defs);
+    el('stop', { offset: 0, 'stop-color': c1 }, g);
+    el('stop', { offset: 1, 'stop-color': c2 }, g);
+  }
+  let gradientSeq = 0;
+  function drawEdges(state, local, fade, pulseOn, t) {
+    state.edges.forEach(e => {
+      const progress = easeOut((local - e.delay) / e.dur);
+      if (progress <= 0) return;
+      const id = 'g' + (gradientSeq++);
+      gradientFor(id, e.r.source, e.r.target, e.stops[0], e.stops[1]);
+      const d = edgePath(e.r.source, e.r.target);
+      const base = { d, stroke: `url(#${id})`, 'stroke-width': e.width * (R / 330) * 1.0, opacity: e.alpha * fade };
+      const glow = el('path', { ...base, 'stroke-width': base['stroke-width'] * 3.4, opacity: e.alpha * fade * .11 }, dynGroup);
+      const line = el('path', base, dynGroup);
+      [glow, line].forEach(p => {
+        const len = p.getTotalLength();
+        if (e.dashed) { p.setAttribute('stroke-dasharray', `${6} ${7}`); p.style.clipPath = ''; if (progress < 1) { p.setAttribute('stroke-dasharray', `${len * progress} ${len}`); } }
+        else { p.setAttribute('stroke-dasharray', `${len} ${len}`); p.setAttribute('stroke-dashoffset', String(len * (1 - progress))); }
+      });
+      if (e.pulse && pulseOn && progress >= 1) {
+        const u = ((t / 2100) + hash(e.r.id)) % 1;
+        const pt = line.getPointAtLength(line.getTotalLength() * u);
+        el('circle', { cx: pt.x, cy: pt.y, r: R * .0125, fill: '#fff', opacity: Math.sin(u * Math.PI) * .95 * fade }, dynGroup);
+      }
+    });
+  }
+
+  function render(tIn) {
+    const t = Math.max(0, tIn * speed);
+    const i = sceneAt(t), scene = scenes[i], local = t - starts[i];
+    const state = sceneState(scene), prevScene = i > 0 ? scenes[i - 1] : null, prev = prevScene ? sceneState(prevScene) : null;
+    const b = prev ? easeInOut(local / 650) : 1;
+    // dots and labels
+    order.forEach(n => {
+      const e = lerp(prev ? prev.emph[n] : state.emph[n], state.emph[n], b);
+      const n_ = nodeEls[n], focusMix = state.focus === n ? b : prev && prev.focus === n ? 1 - b : 0;
+      n_.circle.setAttribute('r', (n_.r * (1 + .45 * focusMix)).toFixed(2));
+      n_.circle.setAttribute('opacity', (.3 + .7 * e).toFixed(3));
+      n_.text.setAttribute('fill-opacity', (.2 + .8 * e).toFixed(3));
+      n_.text.setAttribute('font-weight', focusMix > .5 ? 800 : 650);
+    });
+    baseGroup.setAttribute('opacity', (.075 * lerp(prev ? prev.baseDim : state.baseDim, state.baseDim, b)).toFixed(4));
+    // routes
+    while (dynGroup.firstChild) dynGroup.removeChild(dynGroup.firstChild);
+    while (defs.firstChild) defs.removeChild(defs.firstChild);
+    gradientSeq = 0;
+    if (prev && b < 1) drawEdges(prev, 1e9, 1 - b, false, t);
+    drawEdges(state, local, 1, true, t);
+    if (state.focus) {
+      const p = pos[state.focus];
+      const ringR = nodeEls[state.focus].r * (1.9 + .25 * Math.sin(local / 380));
+      el('circle', { cx: p.x, cy: p.y, r: ringR, fill: 'none', stroke: FAMILY_COLOR[familyOf[state.focus]], 'stroke-width': 2.2, opacity: .75 * b }, dynGroup);
+    }
+    // camera: a slow push in, leaning toward what is lit
+    const zoomMax = layout === '16x9' ? .06 : .035;
+    const k = easeInOut(local / scene.dwell);
+    const zoom = 1 + zoomMax * (scene.type === 'outro' ? 0 : k);
+    const target = state.camera ? pos[state.camera] : null;
+    const lean = target ? .12 * k : 0;
+    const tx = target ? (cx - target.x) * lean : 0, ty = target ? (cy - target.y) * lean : 0;
+    ring.setAttribute('transform', `translate(${(cx + tx).toFixed(2)} ${(cy + ty).toFixed(2)}) scale(${zoom.toFixed(4)}) translate(${-cx} ${-cy})`);
+    // caption
+    const fadeIn = easeOut(local / 520), fadeOut = scene.dwell - local < 260 && i < scenes.length - 1 ? clamp((scene.dwell - local) / 260, 0, 1) : 1;
+    captionEl.style.opacity = (fadeIn * fadeOut).toFixed(3);
+    captionEl.style.transform = `translateY(${((1 - fadeIn) * COMP.title * .22).toFixed(1)}px)`;
+    const color = scene.type === 'surface' ? SURFACE_COLOR[scene.surface] : scene.family ? FAMILY_COLOR[scene.family] : scene.type === 'path' ? '#8fb4ff' : '#6c9bff';
+    kickerEl.style.color = color;
+    kickerEl.textContent = scene.kicker;
+    if (scene.num != null) {
+      const n = Math.round(scene.num * easeOut(local / 1800));
+      titleEl.innerHTML = `<span class="num" style="font-size:${COMP.title * 1.75}px">${n}</span><span class="unit" style="font-size:${COMP.title * .62}px">${scene.unit}</span>`;
+    } else {
+      titleEl.textContent = scene.title;
+      titleEl.style.fontSize = (COMP.title * Math.min(1, 11 / Math.max(11, scene.title.length))).toFixed(1) + 'px';
+    }
+    noteEl.textContent = scene.note;
+    pillsEl.querySelectorAll('.pill').forEach(p => {
+      const id = p.dataset.surface;
+      // Match the routes still visible from the outgoing scene as well as the incoming scene.
+      const lit = state.pills.has(id) || (prev && b < 1 && prev.pills.has(id));
+      p.style.color = lit ? SURFACE_COLOR[id] : '';
+      p.style.borderColor = lit ? SURFACE_COLOR[id] + '88' : '';
+      p.style.opacity = lit ? 1 : .5;
+    });
+  }
+
+  // ---------------------------------------------------------------- start
+  const ready = (async () => {
+    const load = async url => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Could not load ${url}: HTTP ${response.status}`);
+      return response.json();
+    };
+    const [data, surfaceData] = await Promise.all([load('/data/format_map.json'), load('/data/surfaces.json')]);
+    if (!Array.isArray(surfaceData.items) || SURFACE_ORDER.some(id => !surfaceData.items.some(s => s.id === id && s.name && s.description))) {
+      throw new Error('Surface metadata must describe every supported surface.');
+    }
+    build(data, surfaceData);
+    const info = layoutRing();
+    buildStatic(info);
+    buildHtml();
+    const spec = query.get('scenes');
+    const chosen = spec ? parseScenes(spec) : [];
+    scenes = chosen.length ? chosen : [introScene(), ...defaultSpots('all'), ...defaultPaths('all'), ...defaultSurfaces(), outroScene()];
+    let at = 0;
+    starts = scenes.map(s => { const s0 = at; at += s.dwell; return s0; });
+    total = at;
+    await document.fonts.load('800 80px "Hanken Grotesk"');
+    await document.fonts.load('650 20px "Hanken Grotesk"');
+    await document.fonts.ready;
+    render(0);
+    window.imoMedia.duration = Math.round((total + tail) / speed);
+    return true;
+  })();
+  window.imoMedia = { ready, duration: 0, skipped, render, layout };
+})();
+</script>
+</body>
+</html>
