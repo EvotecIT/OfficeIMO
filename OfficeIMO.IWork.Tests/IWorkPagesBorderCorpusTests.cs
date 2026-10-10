@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
         using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED");
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());

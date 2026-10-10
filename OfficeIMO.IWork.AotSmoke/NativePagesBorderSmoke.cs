@@ -14,10 +14,10 @@ internal static class NativePagesBorderSmoke {
         using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(result.Report.IsPartialEditableReconstruction
-            && result.Report.Diagnostics.Any(d => d.Code == "IWORK_PAGES_DOCX_PRECISION")
+            && !result.Report.Diagnostics.Any(d => d.Code == "IWORK_PAGES_DOCX_PRECISION")
             && result.Report.Diagnostics.Any(d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED")
             && !result.Report.Diagnostics.Any(d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED"),
-            "Pages border support or explicit precision/placement boundary changed.");
+            "Pages border support, effective sizing or explicit placement boundary changed.");
         Require(!result.IsVisualFallback, "Bordered Pages table used a preview.");
         var table = result.Projection.Tables.Single();
         Require(table.RowCount == 4 && table.ColumnCount == 4 && table.HeaderRowCount == 1
@@ -56,7 +56,7 @@ internal static class NativePagesBorderSmoke {
         }
         Require(edges == 64 && !reopened.ValidateDocument().Any(), "Bordered DOCX validation failed.");
         Require(Hash(source) == expected.RootElement.GetProperty("sourceSha256").GetString(), "Pages conversion changed source bytes.");
-        Console.WriteLine("PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, saved/native DOCX and explicit native precision/placement limits");
+        Console.WriteLine("PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, effective sizing, saved/native DOCX and explicit native placement limit");
     }
 
     private static (WordBorderStyle? Style, uint? Size, string? Color) Side(WordTableCellBorder border, string side) => side switch {

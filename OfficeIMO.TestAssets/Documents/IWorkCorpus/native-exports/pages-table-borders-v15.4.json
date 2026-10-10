@@ -32,7 +32,7 @@
     "Every rectangular grid segment has an explicit edit; this fixture does not independently qualify inherited border rendering.",
     "One- and two-point solid strokes and one hidden shared edge; merged borders and other stroke kinds remain separate.",
     "Inactive inherited rounded defaults are outside the visible-edge qualification; this source explicitly replaces all 40 physical grid segments with supported solid or invisible strokes.",
-    "The explicit partial DOCX policy retains all source values and qualified edges but rounds fractional dimensions and maps positioned geometry to a flowing table. It reports IWORK_PAGES_DOCX_PRECISION and IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED. Complete iWork PDF conversion rejects this source, including when partial editable acceptance is requested.",
+    "The explicit partial DOCX policy retains all source values and qualified edges and maps positioned geometry to a flowing table. It reports IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED. Every row and column has an explicit size that fits DOCX precision, so the unused fractional default height is not a loss. Complete iWork PDF conversion rejects this source, including when partial editable acceptance is requested.",
     "The separate Word PDF appearance probe substitutes source fonts under the portable resource policy. It retains bold font selection but its table is taller and starts lower than the native source. These outputs qualify visible edge recovery, not complete layout or typography equivalence."
   ],
   "artifacts": [
@@ -140,6 +140,16 @@
       "path": "pages-table-borders-pdf-text-readback.json",
       "bytes": 1533,
       "sha256": "f86bd90eafdf0564071cf3cf756fb99ba7909cd22b9f1cb53de32623de9ab2d1"
+    },
+    {
+      "path": "pages-table-borders-effective-dimensions.docx",
+      "bytes": 19728,
+      "sha256": "de8b28554d29b4091b48651afa4980f21a359cb187674a89d7fee5c9d124cceb"
+    },
+    {
+      "path": "pages-table-borders-effective-dimensions.json",
+      "bytes": 3646,
+      "sha256": "0f582d4605c5fc966f0d4714ee2da3e4da7686add0a676bb54046ba465171e14"
     }
   ],
   "fontProvenance": {
@@ -148,7 +158,7 @@
     "appearanceBoundary": "Destination rendering requires separately recorded caller font inputs and actual rendered checks."
   },
   "destinationAcceptance": {
-    "sourceBaseRevision": "f6a18b359a54c93726bada30f0b7167ef3bc6abb",
+    "sourceBaseRevision": "25d9ae27b7cad2f63afbbdb709bc0d4b6e8f8083",
     "productionSourceFiles": [
       {
         "path": "OfficeIMO.IWork/Internal/IWorkTableBorderReader.cs",
@@ -157,6 +167,10 @@
       {
         "path": "OfficeIMO.IWork/Internal/IWorkTableBorderOverrides.cs",
         "sha256": "80919df1854c2197f47a759e3bdb104407cc918969b0e7ca7c65a62149d4c717"
+      },
+      {
+        "path": "OfficeIMO.Word.IWork/WordIWorkConverter.Validation.cs",
+        "sha256": "5958d4476a16438cd90fd4d0348a2280bc0c573af1695a7ecbf61eb5ffd92c8b"
       }
     ],
     "loadedAssemblies": [
@@ -169,14 +183,17 @@
         "sha256": "ff849f52a4ef88f5e783d7ef5c54a24dc1dc611c4ef127f7ed1c30e26b1df06d"
       },
       {
+        "name": "OfficeIMO.Word.IWork.dll",
+        "sha256": "eb9f15ffff951cf01986d54cb21d472c1cb56f7096c118a09caab1178e2ff663"
+      },
+      {
         "name": "OfficeIMO.Workflows.IWork.dll",
-        "sha256": "d9ac231261a1ad2e88203061438827007c668f155f387e58fc09b5154f28f62f"
+        "sha256": "024ef651d4b32106d8312d1ac7e1829e8e2c0c9a860350026cdc8c4c754d5c48"
       }
     ],
     "explicitPartialEditable": true,
     "visualFallback": false,
     "partialDiagnostics": [
-      "IWORK_PAGES_DOCX_PRECISION",
       "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED"
     ],
     "completePdfRejectedUnderBothPartialSettings": true,
@@ -258,6 +275,28 @@
         ]
       },
       "textAndBoldReadback": "pages-table-borders-pdf-text-readback.json"
+    },
+    "effectiveSizingQualification": {
+      "currentDocx": "pages-table-borders-effective-dimensions.docx",
+      "receipt": "pages-table-borders-effective-dimensions.json",
+      "unusedDefaultRowHeightPoints": 21.1025390625,
+      "rowHeightsPoints": [
+        32,
+        31,
+        32,
+        32
+      ],
+      "columnWidthsPoints": [
+        108,
+        108,
+        108,
+        108
+      ],
+      "precisionDiagnostic": false,
+      "normalizedPackagePartsMatchNativeAcceptedArtifact": true,
+      "renderedPdfsByteIdenticalToInspectedArtifacts": true,
+      "nativeApplicationReopenedCurrentDocx": false,
+      "boundary": "The change affects validation and reporting. Prior native acceptance remains tied to the retained managed DOCX; all current package parts agree after relationship-ID and section-revision normalization."
     }
   }
 }

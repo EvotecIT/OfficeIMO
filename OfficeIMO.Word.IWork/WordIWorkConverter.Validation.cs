@@ -108,10 +108,7 @@ public static partial class WordIWorkConverter {
                 && cell.RichText is { IsComplete: false })) {
                 return $"Pages table '{table.Name}' contains formula cached text with incomplete formatting that the DOCX owner cannot preserve.";
             }
-            if (!FitsSignedTwips(table.DefaultRowHeight, allowPartialEditableReconstruction)
-                || !FitsSignedTwips(table.DefaultColumnWidth, allowPartialEditableReconstruction)
-                || table.RowHeights.Values.Any(height => !FitsSignedTwips(height, allowPartialEditableReconstruction))
-                || table.ColumnWidths.Values.Any(width => !FitsSignedTwips(width, allowPartialEditableReconstruction))) {
+            if (WordTableDimensions(table).Any(size => !FitsSignedTwips(size, allowPartialEditableReconstruction))) {
                 return $"Pages table '{table.Name}' has sizing outside the DOCX measurement range.";
             }
             if (table.Cells.Any(cell => cell.Padding != null
@@ -217,10 +214,7 @@ public static partial class WordIWorkConverter {
             yield return layout.FooterMarginPoints;
         }
         foreach (IWorkTable table in projection.Tables) {
-            yield return table.DefaultRowHeight;
-            yield return table.DefaultColumnWidth;
-            foreach (double height in table.RowHeights.Values) yield return height;
-            foreach (double width in table.ColumnWidths.Values) yield return width;
+            foreach (double? size in WordTableDimensions(table)) yield return size;
             foreach (IWorkTableCell cell in table.Cells)
                 if (cell.Padding != null)
                     foreach (double points in PaddingPoints(cell.Padding)) yield return points;
@@ -233,6 +227,15 @@ public static partial class WordIWorkConverter {
             yield return style.SpaceAfterPoints;
             if (style.TabStops != null) foreach (var tab in style.TabStops) yield return tab.PositionPoints;
         }
+    }
+
+    private static IEnumerable<double?> WordTableDimensions(IWorkTable table) {
+        // DOCX writes effective sizes, so a fully overridden axis never uses its default.
+        // The projection contains unique, in-range indices; counting keeps this sparse.
+        if (table.RowHeights.Count < table.RowCount) yield return table.DefaultRowHeight;
+        foreach (double height in table.RowHeights.Values) yield return height;
+        if (table.ColumnWidths.Count < table.ColumnCount) yield return table.DefaultColumnWidth;
+        foreach (double width in table.ColumnWidths.Values) yield return width;
     }
 
     private static IEnumerable<IWorkParagraphStyle> TableParagraphStyles(IWorkTable table) =>
