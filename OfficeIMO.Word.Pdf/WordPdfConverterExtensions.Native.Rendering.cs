@@ -637,6 +637,7 @@ namespace OfficeIMO.Word.Pdf {
                     NativeTextSpacing resolvedMarkerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
                     builder.HorizontalTextScaling(resolvedMarkerSpacing.WidthPercentage ?? 100D);
                     builder.CharacterSpacing(resolvedMarkerSpacing.CharacterSpacing ?? 0D);
+                    builder.FeatureSettings(measuredMarker.FeatureSettings);
                     builder.Bold(markerInfo.Value.MarkerBold ?? textStyle.Bold);
                     builder.Italic(markerInfo.Value.MarkerItalic ?? textStyle.Italic);
                     if (markerInfo.Value.MarkerFontSize.HasValue) builder.FontSize(markerInfo.Value.MarkerFontSize.Value);
@@ -1397,7 +1398,7 @@ namespace OfficeIMO.Word.Pdf {
             string? bookmarkName,
             string? contents,
             NativeResolvedTextStyle style) =>
-            style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
+            style.ApplyTo(new PdfCore.PdfTextRun(
                 text,
                 bold: style.Bold,
                 underline: style.Underline || linkUri != null || bookmarkName != null,

@@ -324,7 +324,7 @@ namespace OfficeIMO.Word.Pdf {
             bool includeSuffix = true) {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null) {
-                return textStyle.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
+                return textStyle.ApplyTo(new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
                     italic: textStyle.Italic, fontSize: textStyle.FontSize, font: textStyle.Font,
                     fontFamily: textStyle.FontFamily));
             }
@@ -338,7 +338,7 @@ namespace OfficeIMO.Word.Pdf {
                 font: ResolveNativeListMarkerFont(info.Value, marker, textStyle),
                 fontFamily: nativeFontMap != null
                     ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
-                    : textStyle.FontFamily));
+                    : textStyle.FontFamily), textStyle.EffectiveFontSize);
         }
 
         private static double EstimateNativeListMarkerWidth(string marker, double fontSize, NativeTextSpacing textSpacing = default) {

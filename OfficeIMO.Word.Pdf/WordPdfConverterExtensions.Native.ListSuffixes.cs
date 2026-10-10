@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Pdf {
             string? family = nativeFontMap?.TryGetNamedFontFamily("Arial", out string? namedFamily) == true
                 ? namedFamily : null;
             return spacing.ApplyTo(new PdfCore.PdfTextRun(" ",
-                fontSize: fontSize, font: font, fontFamily: family));
+                fontSize: fontSize, font: font, fontFamily: family), fontSize);
         }
     }
 }

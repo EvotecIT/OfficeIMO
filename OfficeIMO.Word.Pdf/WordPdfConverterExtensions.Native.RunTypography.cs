@@ -19,6 +19,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfColor? BackgroundColor) {
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeTextSpacing ListMarkerTextSpacing { get; init; }
+            public double EffectiveFontSize { get; init; }
+            public PdfCore.PdfTextRun ApplyTo(PdfCore.PdfTextRun run) => TextSpacing.ApplyTo(run, EffectiveFontSize);
             internal bool Underline => UnderlineStyle != OfficeTextDecorationStyle.None;
             internal bool Strike => StrikeStyle != OfficeTextDecorationStyle.None;
         }
@@ -47,6 +49,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, NativeResolvedTextStyle style) {
             builder.HorizontalTextScaling(style.TextSpacing.WidthPercentage ?? 100D);
             builder.CharacterSpacing(style.TextSpacing.CharacterSpacing ?? 0D);
+            builder.FeatureSettings(style.TextSpacing.ResolveFeatureSettings(style.EffectiveFontSize));
             builder.Bold(style.Bold);
             builder.Italic(style.Italic);
             builder.Underline(style.UnderlineStyle);
@@ -120,6 +123,7 @@ namespace OfficeIMO.Word.Pdf {
                 : MapNativeHighlight(characterStyleDefaults.Highlight) ?? MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
 
             return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background) {
+                EffectiveFontSize = fontSize ?? nativeFontMap?.DefaultFontSize ?? resolvedNativeDefaults.FontSize,
                 TextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
                     .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(),
                 // Numbering uses the paragraph mark, independently of the first body run.
@@ -131,6 +135,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void ResetNativeTextStyle(PdfCore.PdfParagraphBuilder builder) {
             builder.HorizontalTextScaling(100D)
                 .CharacterSpacing(0D)
+                .ResetFeatureSettings()
                 .Bold(false)
                 .Italic(false)
                 .Underline(false)

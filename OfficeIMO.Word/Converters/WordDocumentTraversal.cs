@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
                 : this(level, ordered, markerVisible: true, start, format, text, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize: null, levelJustification, levelSuffix, pictureBulletId: null) {
             }
 
-            internal ListInfo(int level, bool ordered, bool markerVisible, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix, int? pictureBulletId, long? markerCharacterScale = null, int? markerCharacterSpacingTwips = null, Tabs? levelTabStops = null) {
+            internal ListInfo(int level, bool ordered, bool markerVisible, int start, WordNumberFormat? format, string? text, int? leftIndentTwips, int? hangingIndentTwips, string? markerFontFamily, bool? markerBold, bool? markerItalic, string? markerColorHex, double? markerFontSize, WordListLevelAlignment? levelJustification, WordListLevelSuffix? levelSuffix, int? pictureBulletId, long? markerCharacterScale = null, int? markerCharacterSpacingTwips = null, Tabs? levelTabStops = null, double? markerKerningMinimumFontSize = null) {
                 Level = level;
                 Ordered = ordered;
                 MarkerVisible = markerVisible;
@@ -83,6 +83,7 @@ namespace OfficeIMO.Word {
                 MarkerFontSize = markerFontSize;
                 MarkerCharacterScale = markerCharacterScale;
                 MarkerCharacterSpacingTwips = markerCharacterSpacingTwips;
+                MarkerKerningMinimumFontSize = markerKerningMinimumFontSize;
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
                 PictureBulletId = pictureBulletId;
@@ -90,6 +91,7 @@ namespace OfficeIMO.Word {
             }
 
             internal Tabs? LevelTabStops { get; }
+            internal double? MarkerKerningMinimumFontSize { get; }
 
             /// <summary>Zero-based nesting level.</summary>
             public int Level { get; }
@@ -208,6 +210,7 @@ namespace OfficeIMO.Word {
             double? markerFontSize = null;
             long? markerCharacterScale = null;
             int? markerCharacterSpacingTwips = null;
+            double? markerKerningMinimumFontSize = null;
             WordListLevelAlignment? levelJustification = null;
             WordListLevelSuffix? levelSuffix = null;
             int? pictureBulletId = null;
@@ -236,6 +239,7 @@ namespace OfficeIMO.Word {
                 markerFontSize = levelDefinition.MarkerFontSize;
                 markerCharacterScale = levelDefinition.MarkerCharacterScale;
                 markerCharacterSpacingTwips = levelDefinition.MarkerCharacterSpacingTwips;
+                markerKerningMinimumFontSize = levelDefinition.MarkerKerningMinimumFontSize;
                 levelJustification = levelDefinition.LevelJustification.ToOfficeEnum();
                 levelSuffix = levelDefinition.LevelSuffix.ToOfficeEnum();
                 pictureBulletId = levelDefinition.PictureBulletId;
@@ -250,7 +254,7 @@ namespace OfficeIMO.Word {
                     WordListStyle.BulletedChars => false,
                     _ => true,
                 };
-            return new ListInfo(level, ordered, markerVisible, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix, pictureBulletId, markerCharacterScale, markerCharacterSpacingTwips, levelTabStops);
+            return new ListInfo(level, ordered, markerVisible, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips, markerFontFamily, markerBold, markerItalic, markerColorHex, markerFontSize, levelJustification, levelSuffix, pictureBulletId, markerCharacterScale, markerCharacterSpacingTwips, levelTabStops, markerKerningMinimumFontSize);
         }
 
         private static int? ParseOptionalInt32(string? value) {
@@ -423,6 +427,7 @@ namespace OfficeIMO.Word {
                 markerFontSize: ResolveListMarkerFontSize(markerProperties),
                 markerCharacterScale: markerProperties?.GetFirstChild<CharacterScale>()?.Val?.Value,
                 markerCharacterSpacingTwips: markerProperties?.GetFirstChild<Spacing>()?.Val?.Value,
+                markerKerningMinimumFontSize: markerProperties?.GetFirstChild<Kern>()?.Val?.Value / 2D,
                 levelJustification: effectiveLevel.LevelJustification?.Val?.Value,
                 levelSuffix: effectiveLevel.LevelSuffix?.Val?.Value,
                 pictureBulletId: effectiveLevel.GetFirstChild<LevelPictureBulletId>()?.Val?.Value,
@@ -545,6 +550,7 @@ namespace OfficeIMO.Word {
                 double? markerFontSize,
                 long? markerCharacterScale,
                 int? markerCharacterSpacingTwips,
+                double? markerKerningMinimumFontSize,
                 LevelJustificationValues? levelJustification,
                 LevelSuffixValues? levelSuffix,
                 int? pictureBulletId,
@@ -563,6 +569,7 @@ namespace OfficeIMO.Word {
                 MarkerFontSize = markerFontSize;
                 MarkerCharacterScale = markerCharacterScale;
                 MarkerCharacterSpacingTwips = markerCharacterSpacingTwips;
+                MarkerKerningMinimumFontSize = markerKerningMinimumFontSize;
                 LevelJustification = levelJustification;
                 LevelSuffix = levelSuffix;
                 PictureBulletId = pictureBulletId;
@@ -583,6 +590,7 @@ namespace OfficeIMO.Word {
             internal double? MarkerFontSize { get; }
             internal long? MarkerCharacterScale { get; }
             internal int? MarkerCharacterSpacingTwips { get; }
+            internal double? MarkerKerningMinimumFontSize { get; }
             internal LevelJustificationValues? LevelJustification { get; }
             internal LevelSuffixValues? LevelSuffix { get; }
             internal int? PictureBulletId { get; }

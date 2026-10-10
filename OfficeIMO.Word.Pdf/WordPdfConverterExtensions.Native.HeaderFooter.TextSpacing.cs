@@ -4,7 +4,8 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static bool HasNativeTextSpacing(NativeTextSpacing spacing) =>
-            (spacing.WidthPercentage ?? 100D) != 100D || (spacing.CharacterSpacing ?? 0D) != 0D;
+            (spacing.WidthPercentage ?? 100D) != 100D || (spacing.CharacterSpacing ?? 0D) != 0D ||
+            spacing.KerningMinimumFontSize.HasValue;
 
         private static IReadOnlyList<NativeHeaderFooterStyledReplacement>? CreateNativeHeaderFooterSpacingReplacements(
             WordParagraph paragraph, NativeFontMap? fontMap) {
@@ -17,6 +18,7 @@ namespace OfficeIMO.Word.Pdf {
                     paragraph, item.Run, item.Text, item.IsField, fontMap);
                 if (replacement == null) continue;
                 hasSpacing |= replacement.StyledRun.HorizontalTextScaling != 100D || replacement.StyledRun.CharacterSpacing != 0D;
+                hasSpacing |= replacement.StyledRun.FeatureSettings.TryGetValue("kern", out int kerning) && kerning != 0;
                 string text = replacement.SerializedText;
                 hasLiteralPageTokens |= !item.IsField &&
                     (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||

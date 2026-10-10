@@ -706,12 +706,13 @@ namespace OfficeIMO.Word.Pdf {
             left.Baseline == right.Baseline &&
             left.HorizontalTextScaling == right.HorizontalTextScaling &&
             left.CharacterSpacing == right.CharacterSpacing &&
+            left.FeatureSettings.Equals(right.FeatureSettings) &&
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
 
         private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            return style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
+            return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
                 underline: style.Underline,
@@ -738,7 +739,7 @@ namespace OfficeIMO.Word.Pdf {
 
             string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            return style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
+            return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
                 underline: style.Underline || linkUri != null || destinationName != null,

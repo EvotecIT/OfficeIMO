@@ -598,6 +598,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
                 !conditionalStyle.TextSpacing.WidthPercentage.HasValue &&
                 !conditionalStyle.TextSpacing.CharacterSpacing.HasValue &&
+                !conditionalStyle.TextSpacing.KerningMinimumFontSize.HasValue &&
                 string.IsNullOrWhiteSpace(conditionalStyle.FontFamily) &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
