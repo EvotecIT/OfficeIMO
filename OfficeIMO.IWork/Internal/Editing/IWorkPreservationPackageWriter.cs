@@ -29,12 +29,19 @@ internal static class IWorkPreservationPackageWriter {
             entries[path] = IWorkSnappy.EncodeIwa(raw, limits.MaximumPackageBytes, token);
         }
         byte[] bytes = IWorkNativePackageWriter.WriteEntries(entries, limits.MaximumPackageBytes, token);
-        // ZIP carrier bytes can grow when formerly compressed entries become stored; structural budgets stay captured.
+        // Carrier/encoded entry sizes can grow; retain captured decompression and structural budgets.
         IWorkReadOptions verification = source.Options.Snapshot();
-        verification.MaximumPackageBytes = Math.Max(verification.MaximumPackageBytes, limits.MaximumPackageBytes);
-        verification.MaximumEntryBytes = Math.Max(verification.MaximumEntryBytes, limits.MaximumPackageBytes);
-        verification.MaximumIwaBytes = Math.Max(verification.MaximumIwaBytes, limits.MaximumPackageBytes);
-        verification.MaximumSnappyChunkBytes = Math.Max(verification.MaximumSnappyChunkBytes, 65_536);
+        verification.MaximumPackageBytes = Math.Max(verification.MaximumPackageBytes, bytes.Length);
+        long outputEntryBytes = 0;
+        foreach (var entry in entries) {
+            token.ThrowIfCancellationRequested(); outputEntryBytes += entry.Value.Length;
+            verification.MaximumEntryBytes = Math.Max(verification.MaximumEntryBytes, entry.Value.Length);
+            if (entry.Key.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase))
+                verification.MaximumIwaBytes = Math.Max(verification.MaximumIwaBytes, entry.Value.Length);
+        }
+        verification.MaximumTotalEntryBytes = Math.Max(verification.MaximumTotalEntryBytes, outputEntryBytes);
+        verification.MaximumSnappyChunkBytes = Math.Max(verification.MaximumSnappyChunkBytes,
+            Math.Min(65_536, verification.MaximumDecompressedIwaBytes));
         IWorkSourceDocument reopened = IWorkSourceDocument.Open(bytes, source.Kind, verification, token);
         if (reopened.Records.Count != source.Records.Count || reopened.Entries.Count != source.Entries.Count)
             throw new InvalidDataException("The saved package changed source entry or record membership.");

@@ -46,6 +46,18 @@ internal static class NativePreservationSmoke {
         try { edit.Save(saved, cancellationToken: cancellation.Token); throw new InvalidOperationException("Native save ignored cancellation."); }
         catch (OperationCanceledException) { Require(before.SequenceEqual(saved.ToArray()), "Cancelled save changed the destination."); }
         Console.WriteLine("PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation");
+        byte[] tightInput = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "preservation.key"));
+        var tight = IWorkSourceDocument.Open(tightInput, options: new() {
+            MaximumPackageBytes = tightInput.Length, MaximumEntryBytes = 92_000, MaximumTotalEntryBytes = 92_000,
+            MaximumIwaBytes = 32_768, MaximumDecompressedIwaBytes = 32_768, MaximumSnappyChunkBytes = 32_768,
+            MaximumTotalDecompressedIwaBytes = 50_000, MaximumRecordCount = 205
+        });
+        Require(tight.BeginEdit().SaveBytesResult().Report.OutputPackageContentHash == tight.ComputePackageContentHash(),
+            "Valid tight read bounds prevented unchanged preservation.");
+        var tightEdit = tight.BeginEdit(); tightEdit.MoveKeynoteImage(Jpeg(tight).SourceIdentity!, 100, 130);
+        Require(tightEdit.SaveBytes(new() { AllowUnassessedVisualCaches = true }).SequenceEqual(translated.GetPackageBytes()),
+            "Valid tight read bounds prevented a bounded image translation or changed its bytes.");
+        Console.WriteLine("PASS | native preservation tight source bounds | unchanged/translated saves, expanded carrier and aggregate entries, retained 32KiB decompression and 205-record limits");
     }
 
     private static IWorkImageAsset Jpeg(IWorkSourceDocument source) => source.ReadKeynote().Slides.SelectMany(slide => slide.Images)

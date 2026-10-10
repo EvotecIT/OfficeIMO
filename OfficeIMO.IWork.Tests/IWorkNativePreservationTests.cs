@@ -216,6 +216,33 @@ public sealed class IWorkNativePreservationTests {
         } finally { Directory.Delete(directory, true); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Saving_adapts_carrier_verification_to_valid_tight_read_bounds_without_relaxing_decompression(bool translate) {
+        string path = Fixture("native-exports/keynote-created-images-edited-v15.4.key");
+        var source = IWorkSourceDocument.Open(path, options: new() {
+            MaximumPackageBytes = new FileInfo(path).Length,
+            MaximumEntryBytes = 92_000, MaximumTotalEntryBytes = 92_000,
+            MaximumIwaBytes = 32_768, MaximumDecompressedIwaBytes = 32_768,
+            MaximumSnappyChunkBytes = 32_768, MaximumTotalDecompressedIwaBytes = 50_000,
+            MaximumRecordCount = 205
+        });
+        Assert.Equal(91_998, source.Entries.Sum(entry => entry.Length));
+        var session = source.BeginEdit();
+        if (translate) session.MoveKeynoteImage(Jpeg(source).SourceIdentity!, 100, 130);
+        var result = session.SaveBytesResult(translate ? AcceptCaches() : null);
+        var reopened = IWorkSourceDocument.Open(result.GetPackageBytes(), IWorkDocumentKind.Keynote);
+        Assert.Equal(205, reopened.Records.Count);
+        if (translate) {
+            Assert.Equal(93_320, reopened.Entries.Sum(entry => entry.Length));
+            Assert.Equal(100, Jpeg(reopened).Geometry!.LeftPoints);
+            Assert.Equal(130, Jpeg(reopened).Geometry!.TopPoints);
+            Assert.Single(result.Report.UpdatedRecords);
+        } else Assert.Equal(source.ComputePackageContentHash(), result.Report.OutputPackageContentHash);
+        Assert.Equal(80, Jpeg(source).Geometry!.LeftPoints);
+    }
+
     private static IWorkNativeSaveOptions AcceptCaches() => new() { AllowUnassessedVisualCaches = true };
     private static IWorkImageAsset Jpeg(IWorkSourceDocument source) => source.ReadKeynote().Slides.SelectMany(slide => slide.Images).Single(image => image.MediaType == "image/jpeg");
     private static string Fixture(string path) => Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", path);
