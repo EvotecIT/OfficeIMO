@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.Pdf {
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
+            public NativeParagraphSpacing ParagraphSpacing { get; init; }
             public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeParagraphBorders.Empty);
         }
 
@@ -113,6 +114,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? keepWithNext = null;
             bool? widowControl = null;
             bool? contextualSpacing = null;
+            NativeParagraphSpacing paragraphSpacing = default;
             string? shadingFillColorHex = null;
             NativeParagraphBorders borders = NativeParagraphBorders.Empty;
 
@@ -134,6 +136,7 @@ namespace OfficeIMO.Word.Pdf {
                 highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
 
                 W.StyleParagraphProperties? paragraphProperties = style.GetFirstChild<W.StyleParagraphProperties>();
+                paragraphSpacing = paragraphSpacing.Merge(paragraphProperties);
                 if (paragraphProperties != null) {
                     W.SpacingBetweenLines? spacing = paragraphProperties.GetFirstChild<W.SpacingBetweenLines>();
                     if (spacing != null) {
@@ -209,7 +212,7 @@ namespace OfficeIMO.Word.Pdf {
                 widowControl,
                 contextualSpacing,
                 shadingFillColorHex,
-                borders) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing };
+                borders) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing };
             if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 cache.ParagraphDefaults[resolvedStyleId!] = result;
             }

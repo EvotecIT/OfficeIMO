@@ -158,6 +158,9 @@ internal static partial class PdfWriter {
             if (lineSpacing?.FontLineBoxMultiplier is not double natural)
                 return hasInline ? Math.Max(contentHeight, combined) : contentHeight;
 
+            if (lineSpacing.LineGridPitch.HasValue)
+                return System.Math.Max(contentHeight, lineSpacing.GetGridAdvance(combined));
+
             // Imported spacing scales the visible fonts' natural advance.
             // Horizontal list spacers must not suppress that multiplier.
             double textAdvance = textAscent + textDescent;

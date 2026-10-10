@@ -612,6 +612,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ParagraphLineSpacingPoints.HasValue &&
                 !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
                 !conditionalStyle.LineSpacing.Value.HasValue && !conditionalStyle.LineSpacing.Rule.HasValue &&
+                conditionalStyle.ParagraphSpacing == default &&
                 !conditionalStyle.ParagraphSpacingBefore.HasValue &&
                 !conditionalStyle.ParagraphSpacingAfter.HasValue &&
                 !conditionalStyle.ParagraphAlignment.HasValue &&
@@ -623,6 +624,7 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
             return tableStyleDefaults with {
+                ParagraphSpacing = conditionalStyle.ParagraphSpacing.Inherit(tableStyleDefaults.ParagraphSpacing),
                 CellFill = conditionalStyle.CellFill ?? tableStyleDefaults.CellFill,
                 CellVerticalAlignment = conditionalStyle.CellVerticalAlignment ?? tableStyleDefaults.CellVerticalAlignment,
                 ParagraphLineHeight = conditionalStyle.ParagraphLineHeight ?? tableStyleDefaults.ParagraphLineHeight,

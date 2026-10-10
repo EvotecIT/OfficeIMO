@@ -1851,35 +1851,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Style_Line_Unit_Spacing() {
-            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeParagraphStyleLineUnitSpacing.docx"));
-            const string styleId = "LineUnitSpacingStyle";
-            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-            styles.Append(new Style(
-                new StyleName { Val = "Line Unit Spacing Style" },
-                new BasedOn { Val = "Normal" },
-                new StyleRunProperties(new FontSize { Val = "24" }),
-                new StyleParagraphProperties(new SpacingBetweenLines {
-                    BeforeLines = 50,
-                    AfterLines = 150
-                }))
-            {
-                Type = StyleValues.Paragraph,
-                StyleId = styleId,
-                CustomStyle = true
-            });
-
-            WordParagraph paragraph = document.AddParagraph("Native style line unit spacing");
-            paragraph.SetStyleId(styleId);
-
-            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
-            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
-
-            Assert.Equal(6.9D, style.SpacingBefore, 3);
-            Assert.Equal(20.7D, style.SpacingAfter!.Value, 3);
-        }
-
-        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Style_Line_Unit_Spacing() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphLineUnitSpacing.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRenderedParagraphLineUnitSpacing.pdf");

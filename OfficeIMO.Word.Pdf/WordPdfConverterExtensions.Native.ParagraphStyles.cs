@@ -31,7 +31,10 @@ namespace OfficeIMO.Word.Pdf {
             style.FontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
             style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            if (paragraph.LineSpacingBeforePoints.HasValue) {
+            var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
+            if (spacingInLines.Before.HasValue) {
+                style.SpacingBefore = spacingInLines.Before.Value;
+            } else if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
             } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
                 style.SpacingBefore = directSpacingBefore;
@@ -41,7 +44,9 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
             }
 
-            if (paragraph.LineSpacingAfterPoints.HasValue) {
+            if (spacingInLines.After.HasValue) {
+                style.SpacingAfter = spacingInLines.After.Value;
+            } else if (paragraph.LineSpacingAfterPoints.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
                 style.SpacingAfter = directSpacingAfter;
@@ -77,7 +82,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.DefaultTabStopWidth = nativeDefaults.DefaultTabStopWidth.Value;
             }
 
-            if (!paragraph.LineSpacingAfterPoints.HasValue &&
+            if (!spacingInLines.After.HasValue && !paragraph.LineSpacingAfterPoints.HasValue &&
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&
                 !styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;

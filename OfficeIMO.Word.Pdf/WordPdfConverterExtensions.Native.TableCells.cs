@@ -323,7 +323,7 @@ namespace OfficeIMO.Word.Pdf {
                 NativeParagraphStyleDefaults paragraphStyleDefaults = GetNativeParagraphStyleDefaults(paragraph);
                 NativeParagraphPaginationDefaults pagination = ResolveNativeCellParagraphPagination(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults);
                 double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle, nativeFontMap);
-                NativeLineSpacing nativeLineSpacing = ResolveNativeParagraphLineSpacing(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults.LineSpacing);
+                NativeLineSpacing nativeLineSpacing = ResolveNativeParagraphLineSpacing(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults);
                 double? lineHeight = nativeLineSpacing.Resolve(
                     ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults), naturalLineHeight)
                     ?? tableStyleDefaults.ParagraphLineHeight;
@@ -495,7 +495,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double spacingBefore = paragraph.LineSpacingBeforePoints ??
+            double spacingBefore = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).Before ?? paragraph.LineSpacingBeforePoints ??
                 GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingBefore ??
                 tableStyleDefaults.ParagraphSpacingBefore ??
@@ -521,7 +521,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double spacingAfter = paragraph.LineSpacingAfterPoints ??
+            double spacingAfter = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).After ?? paragraph.LineSpacingAfterPoints ??
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingAfter ??
                 tableStyleDefaults.ParagraphSpacingAfter ??

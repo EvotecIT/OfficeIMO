@@ -30,7 +30,9 @@ internal static partial class PdfWriter {
                 descent = Math.Max(descent, runDescent);
             }
         }
-        if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.AtLeast)
+        if (spacing?.LineGridPitch != null)
+            ascent += spacing.GetGridBaselineExpansion(ascent + descent);
+        else if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.AtLeast)
             ascent = Math.Max(ascent, spacing.Value - descent);
         return ascent == 0D ? fallbackAscent : ascent;
     }

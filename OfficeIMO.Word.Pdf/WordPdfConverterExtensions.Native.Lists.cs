@@ -211,7 +211,10 @@ namespace OfficeIMO.Word.Pdf {
             style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
             style.FontSize = ResolveNativeParagraphLayoutFontSize(paragraph, nativeDefaults, styleDefaults);
 
-            if (paragraph.LineSpacingBeforePoints.HasValue) {
+            var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
+            if (spacingInLines.Before.HasValue) {
+                style.SpacingBefore = spacingInLines.Before.Value;
+            } else if (paragraph.LineSpacingBeforePoints.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
             } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
                 style.SpacingBefore = directSpacingBefore;
@@ -221,7 +224,10 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingBefore = nativeDefaults.ParagraphSpacingBefore;
             }
 
-            if (paragraph.LineSpacingAfterPoints.HasValue) {
+            if (spacingInLines.After.HasValue) {
+                style.SpacingAfter = spacingInLines.After.Value;
+                itemSpacingDeclared = true;
+            } else if (paragraph.LineSpacingAfterPoints.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
                 itemSpacingDeclared = true;
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
