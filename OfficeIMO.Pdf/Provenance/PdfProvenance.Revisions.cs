@@ -50,8 +50,10 @@ public static partial class PdfProvenance {
                 evidence.Add(carrier);
             }
             historical?.Add(new HistoricalCarrier(carrier, attachment.FileSpecObjectNumber, specOffset, attachment.EmbeddedFileObjectNumber, streamOffset));
-            if (valid) stores.Add((carrier, ManifestRevision(document, attachment.EmbeddedFileObjectNumber), streamOffset,
-                OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length)));
+            // Retain candidate ordering even when its carrier or payload is unreadable.
+            // Otherwise an older readable credential could be mistaken for the current claim.
+            stores.Add((carrier, ManifestRevision(document, attachment.EmbeddedFileObjectNumber), streamOffset,
+                valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
         }
     }
 

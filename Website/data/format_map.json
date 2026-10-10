@@ -201,6 +201,10 @@
     {
       "name": "ADF",
       "family": "web"
+    },
+    {
+      "name": "Compiled HTML Help",
+      "family": "other"
     }
   ],
   "routes": [
@@ -620,6 +624,48 @@
       "support": "Targeted",
       "fidelity": "Semantic",
       "api": "BookProject.LoadProject(bytes).Export(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "chm-epub",
+      "source": "Compiled HTML Help",
+      "target": "EPUB",
+      "package": "OfficeIMO.Chm.Epub",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ChmDocument.Load(stream).ToEpubBytesResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "chm-markdown",
+      "source": "Compiled HTML Help",
+      "target": "Markdown",
+      "package": "OfficeIMO.Chm.Markdown",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "ChmDocument.Load(stream).ToMarkdownResult(options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
+    },
+    {
+      "id": "chm-pdf",
+      "source": "Compiled HTML Help",
+      "target": "PDF",
+      "package": "OfficeIMO.Chm.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "ChmDocument.Load(stream).ToPdfBytesResult(options)",
       "surfaces": [
         "dotnet",
         "cli",

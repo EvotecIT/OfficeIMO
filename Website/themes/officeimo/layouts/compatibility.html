@@ -64,7 +64,7 @@
               <tr><th scope="col">Package</th>{{ for column in matrix_columns }}<th scope="col">{{ column }}</th>{{ end }}</tr>
             </thead>
             <tbody>
-              {{~ # Scriban caps the iterations nested under one loop at 1000, so the 69 rows render in two halves. ~}}
+              {{~ # Bound nested matrix work per loop; the final batch always includes the remaining packages. ~}}
               {{~ func cap_row(package) ~}}
               {{~ package_ops = {} ~}}{{~ for operation in package.operations ~}}{{~ package_ops[operation.id] = operation ~}}{{~ end ~}}
               <tr id="package-{{ package.slug }}">
@@ -75,8 +75,10 @@
                 {{~ end ~}}
               </tr>
               {{~ end ~}}
-              {{~ for package in data.office_capabilities.packages limit:35 ~}}{{ cap_row package }}{{~ end ~}}
-              {{~ for package in data.office_capabilities.packages offset:35 ~}}{{ cap_row package }}{{~ end ~}}
+              {{~ for package in data.office_capabilities.packages limit:20 ~}}{{ cap_row package }}{{~ end ~}}
+              {{~ for package in data.office_capabilities.packages offset:20 limit:20 ~}}{{ cap_row package }}{{~ end ~}}
+              {{~ for package in data.office_capabilities.packages offset:40 limit:20 ~}}{{ cap_row package }}{{~ end ~}}
+              {{~ for package in data.office_capabilities.packages offset:60 ~}}{{ cap_row package }}{{~ end ~}}
             </tbody>
           </table>
           <p class="imo-cap-empty" hidden>No package matches that filter.</p>

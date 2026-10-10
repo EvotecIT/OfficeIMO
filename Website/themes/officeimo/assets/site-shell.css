@@ -706,7 +706,7 @@ body.imo-body::after {
 .imo-file-drop__file { display: grid; gap: 2px; min-width: 0; }
 .imo-file-drop__file strong { color: var(--imo-text); font-size: 1.05rem; overflow-wrap: anywhere; }
 .imo-file-drop__file span { color: var(--imo-text-muted); font-size: .85rem; }
-.imo-file-drop__hint { grid-column: 1 / -1; color: var(--imo-text-secondary); font-size: .95rem; }
+.imo-file-drop__hint { display: block; position: relative; z-index: 1; margin: 0 24px 24px; color: var(--imo-text-secondary); font-size: .95rem; }
 .imo-file-drop__clear {
   grid-column: 1 / -1;
   justify-self: start;

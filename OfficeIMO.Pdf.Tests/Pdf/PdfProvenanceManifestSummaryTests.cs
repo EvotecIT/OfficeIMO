@@ -35,13 +35,35 @@ public sealed class PdfProvenanceManifestSummaryTests {
     }
 
     [Fact]
-    public void CompetingLaterStoresFallBackToTheEarlierAssociatedStore() {
+    public void CompetingLaterStoresDoNotExposeAnEarlierClaimAsActive() {
         var report = PdfProvenance.Inspect(RevisionFixture(replaceAssociations: true, competing: true));
         Assert.Equal(3, report.Evidence.Count);
-        var active = Assert.Single(report.Evidence, item => item.Manifest != null).Manifest!;
-        Assert.Equal("Previous editor", active.ClaimGenerator);
-        Assert.Equal(1, active.ManifestCount);
+        Assert.All(report.Evidence, item => Assert.Null(item.Manifest));
         Assert.Contains(report.Diagnostics, message => message.Contains("multiple C2PA stores"));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void MalformedLatestStoreDoesNotExposeAnEarlierClaimAsActive(bool streamXref, bool hybrid) {
+        byte[] pdf = RevisionFixture(replaceAssociations: true, streamXref: streamXref, hybrid: hybrid);
+        int current = Encoding.ASCII.GetString(pdf).IndexOf("4 0 obj", StringComparison.Ordinal);
+        int payload = Encoding.ASCII.GetString(pdf).IndexOf("stream\n", current, StringComparison.Ordinal) + 7;
+        pdf[payload + 4] = (byte)'x'; // Corrupt the current JUMBF type, preserving PDF offsets and associations.
+        var report = PdfProvenance.Inspect(pdf);
+        Assert.Equal(2, report.Evidence.Count);
+        Assert.Contains(report.Evidence, item => !item.IsStructurallyValid);
+        Assert.All(report.Evidence, item => Assert.Null(item.Manifest));
+        Assert.Contains(report.Diagnostics, message => message.IndexOf("unreadable", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    [Fact]
+    public void UniqueLatestStoreCountsReadableStoresInAnAmbiguousOlderRevision() {
+        var report = PdfProvenance.Inspect(RevisionFixture(replaceAssociations: true, olderCompeting: true));
+        var active = Assert.Single(report.Evidence, item => item.Manifest != null).Manifest!;
+        Assert.Equal("Current editor", active.ClaimGenerator);
+        Assert.Equal(3, active.ManifestCount);
     }
 
     [Theory]
@@ -113,7 +135,7 @@ public sealed class PdfProvenanceManifestSummaryTests {
     // a lower object number; the old store remains first in both the name tree and AF list.
     private static byte[] RevisionFixture(bool sameRevision = false, bool payloadMarkers = false, bool alias = false,
         bool replaceAssociations = false, bool streamXref = false, bool hybrid = false, bool competing = false, bool historicalOnly = false,
-        bool retainOldName = false, bool compressedAliases = false, bool directAliases = false) {
+        bool retainOldName = false, bool compressedAliases = false, bool directAliases = false, bool olderCompeting = false) {
         alias |= compressedAliases;
         streamXref |= compressedAliases;
         using var output = new MemoryStream();
@@ -131,7 +153,7 @@ public sealed class PdfProvenanceManifestSummaryTests {
             : current && historicalOnly ? "<< /Type /Catalog /Pages 2 0 R >>" : current && replaceAssociations
             ? "<< /Type /Catalog /Pages 2 0 R /AF [8 0 R" + (competing ? " 10 0 R" : "") + "] /Names << /EmbeddedFiles << /Names [" + (retainOldName ? "(a-old.c2pa) 6 0 R " : "") + "(z-current.c2pa) 8 0 R" + (competing ? " (second.c2pa) 10 0 R" : "") + "] >> >> >>"
             : "<< /Type /Catalog /Pages 2 0 R /AF [6 0 R" + (alias ? " 7 0 R" : "") + (current ? " 8 0 R" : "") +
-            "] /Names << /EmbeddedFiles << /Names [(a-old.c2pa) 6 0 R" + (alias ? " (b-alias.c2pa) 7 0 R" : "") + (current ? " (z-current.c2pa) 8 0 R" : "") + "] >> >> >>";
+            (!current && olderCompeting ? " 10 0 R" : "") + "] /Names << /EmbeddedFiles << /Names [(a-old.c2pa) 6 0 R" + (alias ? " (b-alias.c2pa) 7 0 R" : "") + (current ? " (z-current.c2pa) 8 0 R" : "") + (!current && olderCompeting ? " (second.c2pa) 10 0 R" : "") + "] >> >> >>";
         void Store(int streamId, int specId, string name, string generator) {
             byte[] store = ManifestStore(generator);
             Object(streamId, $"<< /Type /EmbeddedFile /Subtype /application#2Fc2pa /Length {store.Length} >>", store);
@@ -171,6 +193,7 @@ public sealed class PdfProvenanceManifestSummaryTests {
         Object(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
         Object(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>");
         Store(5, 6, "a-old", payloadMarkers ? "Previous editor startxref\n999999\n" : "Previous editor");
+        if (olderCompeting) Store(9, 10, "second", "Earlier competing editor");
         if (compressedAliases) {
             string spec = "<< /Type /Filespec /F (a-old.c2pa) /AFRelationship /C2PA_Manifest /EF << /F 5 0 R >> >>";
             string header = $"6 0 7 {spec.Length + 1} ";

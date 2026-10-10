@@ -515,22 +515,27 @@
       }
 
       function choose(file) {
-        if (file && file.size > 25 * 1024 * 1024) {
-          status.textContent = 'The limit is 25 MB per file. Choose a smaller file.';
-          return;
-        }
-        pendingFile = file || null;
+        var oversized = file && file.size > 25 * 1024 * 1024;
+        pendingFile = oversized ? null : file || null;
+        fileInput.value = '';
         input.value = '';
         var matches = filterTools();
         target.hidden = !!pendingFile;
         selected.hidden = !pendingFile;
         drop.classList.toggle('has-file', !!pendingFile);
-        if (!pendingFile) return;
+        if (!pendingFile) {
+          drop.querySelector('[data-browser-drop-name]').textContent = '';
+          drop.querySelector('[data-browser-drop-size]').textContent = '';
+          status.textContent = oversized ? 'The limit is 25 MB per file. Choose a smaller file.' : '';
+          status.hidden = !oversized;
+          return;
+        }
         drop.querySelector('[data-browser-drop-name]').textContent = pendingFile.name;
         drop.querySelector('[data-browser-drop-size]').textContent = formatSize(pendingFile.size);
         status.textContent = matches === 0
           ? 'No browser tool opens this file type yet.'
           : matches === 1 ? 'Open the tool below to continue.' : 'Pick one of the ' + matches + ' tools below.';
+        status.hidden = false;
       }
 
       function carriesFiles(event) {

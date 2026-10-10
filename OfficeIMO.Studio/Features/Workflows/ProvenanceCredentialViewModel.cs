@@ -16,6 +16,7 @@ public sealed class ProvenanceCredentialViewModel {
         CertificateSubjectDescription = localizer.Format("Provenance.CertificateSubjectFormat", CertificateSubject);
         CertificateIssuerDescription = localizer.Format("Provenance.CertificateIssuerFormat", CertificateIssuer);
         ManifestCount = manifest.ManifestCount;
+        DeclaresGenerativeAi = manifest.DeclaresGenerativeAi;
         ManifestCountDescription = localizer.Format("Provenance.ManifestCountFormat", ManifestCount);
         Label = manifest.Label ?? localizer.Get("Provenance.NotRecorded");
         Ingredients = manifest.Ingredients;
@@ -44,6 +45,8 @@ public sealed class ProvenanceCredentialViewModel {
     public string Label { get; }
     /// <summary>Gets the number of manifests present, including earlier records not expanded here.</summary>
     public int ManifestCount { get; }
+    /// <summary>Gets the claim's aggregate AI declaration, including actions beyond the displayed timeline.</summary>
+    public bool DeclaresGenerativeAi { get; }
     /// <summary>Gets the localized count of manifests in the store.</summary>
     public string ManifestCountDescription { get; }
     /// <summary>Gets the source asset titles recorded as ingredients.</summary>

@@ -7,6 +7,7 @@ using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using OfficeIMO.Workflows;
 using System.Globalization;
 using System.Text.Json;
 using Xunit;
@@ -14,6 +15,49 @@ using Xunit;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class ProvenanceWorkbenchTests {
+    [Theory]
+    [InlineData("en", 840, 600)]
+    [InlineData("pl", 840, 600)]
+    [InlineData("de", 840, 600)]
+    [InlineData("fr", 840, 600)]
+    [InlineData("en", 1280, 800)]
+    public async Task AggregateAiDeclarationRemainsVisibleWhenItsActionIsOutsideTheDisplayedTimeline(string culture, int width, int height) {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(() => {
+            var previous = StudioLocalization.Current;
+            var previousCulture = CultureInfo.CurrentCulture;
+            var previousUi = CultureInfo.CurrentUICulture;
+            var previousDefault = CultureInfo.DefaultThreadCurrentCulture;
+            var previousDefaultUi = CultureInfo.DefaultThreadCurrentUICulture;
+            var paths = ((App)Application.Current!).Services.Paths;
+            new JsonStudioPreferencesStore(paths.PreferencesPath).Save(new StudioPreferences { UiCulture = culture });
+            var services = StudioApplicationServices.Create(paths);
+            StudioLocalization.Configure(services.Localizer);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            model.ShowProvenanceCommand.Execute(null);
+            var actions = Enumerable.Range(0, 64).Select(index => new ProvenanceActionDto("c2pa.edited", "Editor " + index,
+                null, "DigitalCapture", null)).ToArray();
+            model.ProvenanceWorkbench.Credentials.Add(new("PNG/caBX", new ProvenanceManifestDto("active", "Generator", "image.png", "image/png",
+                actions, [], null, null, 1, true)));
+            var view = new ProvenanceWorkbenchView { DataContext = model };
+            var window = new Window { Width = width, Height = height, Content = view };
+            try {
+                window.Show(); window.UpdateLayout();
+                Capture(window, culture + "-provenance-aggregate-ai-" + width);
+                var indicator = Assert.Single(view.GetVisualDescendants().OfType<TextBlock>(),
+                    text => text.Text == services.Localizer.Get("Provenance.SourceGenerativeAi") && text.IsEffectivelyVisible);
+                indicator.BringIntoView(); window.UpdateLayout();
+                Assert.InRange(indicator.TranslatePoint(new Point(0, 0), window)!.Value.Y, 0, height - indicator.Bounds.Height);
+                Capture(window, culture + "-provenance-aggregate-ai-" + width);
+                return Task.FromResult(true);
+            } finally {
+                window.Close(); StudioLocalization.Configure(previous);
+                CultureInfo.CurrentCulture = previousCulture; CultureInfo.CurrentUICulture = previousUi;
+                CultureInfo.DefaultThreadCurrentCulture = previousDefault; CultureInfo.DefaultThreadCurrentUICulture = previousDefaultUi;
+            }
+        }, CancellationToken.None);
+    }
+
     [Theory]
     [InlineData("en", 840, 600)]
     [InlineData("en", 1280, 800)]

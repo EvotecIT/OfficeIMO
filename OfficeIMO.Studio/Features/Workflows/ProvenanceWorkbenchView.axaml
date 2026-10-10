@@ -38,6 +38,7 @@
       <Border Classes="card" Margin="0,0,0,10"><StackPanel Spacing="8">
        <TextBlock Text="{Binding Generator}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
        <TextBlock Text="{Binding Asset}" TextWrapping="Wrap" />
+       <TextBlock IsVisible="{Binding DeclaresGenerativeAi}" Text="{loc:Loc Provenance.SourceGenerativeAi}" FontWeight="SemiBold" TextWrapping="Wrap" />
        <TextBlock Text="{Binding CertificateSubjectDescription}" TextWrapping="Wrap" />
        <TextBlock Text="{Binding CertificateIssuerDescription}" Classes="muted" TextWrapping="Wrap" />
        <TextBlock Text="{loc:Loc Provenance.Timeline}" FontWeight="SemiBold" Margin="0,6,0,0" />

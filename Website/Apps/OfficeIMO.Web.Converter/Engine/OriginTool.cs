@@ -32,10 +32,11 @@ internal static class OriginTool {
             category.Title,
             category.Detail,
             ToolState.Found,
-            Selectable: true,
-            Selected: true)).ToList();
+            Selectable: category.Selectable,
+            Selected: category.Selectable)).ToList();
         OfficeC2paManifestSummary[] manifests = ManifestSummaries(report);
-        for (int index = 0; index < manifests.Length; index++) items.AddRange(Explain(manifests[index], index, manifests.Length));
+        var manifestEvidence = report.Evidence.Where(static evidence => evidence.Manifest != null).Take(3).ToArray();
+        for (int index = 0; index < manifests.Length; index++) items.AddRange(Explain(manifests[index], index, manifests.Length, manifestEvidence[index]));
         items.AddRange(report.Diagnostics.Select((diagnostic, index) => new ToolItem("d" + index.ToString(CultureInfo.InvariantCulture), "Note", diagnostic, ToolState.Info)));
 
         ToolVerdict verdict = report.Evidence.Count == 0
@@ -48,10 +49,11 @@ internal static class OriginTool {
         if (manifests.Length > 0) {
             OfficeC2paManifestSummary first = manifests[0];
             string? model = first.Actions.Select(static action => Clip(action.SoftwareAgent)).FirstOrDefault(static agent => agent != null);
-            if ((model ?? Clip(first.ClaimGenerator)) is { } madeWith) facts.Add(new ToolFact("Made with", madeWith));
-            if (first.DeclaresGenerativeAi) facts.Add(new ToolFact("AI-generated", "Yes, by its own record", ToolTone.Warn));
-            if (Clip(first.SignedBy) is { } signer) facts.Add(new ToolFact("Certificate subject", signer + " · unverified", ToolTone.Warn));
+            if (EmbeddedAsset(manifestEvidence[0]) is { } asset) facts.Add(new ToolFact("Credential asset", asset));
+            if ((model ?? Clip(first.ClaimGenerator)) is { } madeWith) facts.Add(new ToolFact(manifests.Length > 1 ? "First recorded tool" : "Recorded tool", madeWith));
+            if (Clip(first.SignedBy) is { } signer) facts.Add(new ToolFact(manifests.Length > 1 ? "First certificate subject" : "Certificate subject", signer + " · unverified", ToolTone.Warn));
         }
+        if (report.HasGenerativeAiDeclaration) facts.Add(new ToolFact("Generative AI", "Declared in an origin record", ToolTone.Warn));
         return new ToolResultDocument(true, verdict, facts.ToArray(), items.ToArray(), artifacts, null, 0);
     }
 
@@ -59,9 +61,12 @@ internal static class OriginTool {
         report.Evidence.Select(static evidence => evidence.Manifest).OfType<OfficeC2paManifestSummary>().Take(3).ToArray();
 
     /// <summary>Spells out what one Content Credentials record says, as written in the file.</summary>
-    private static IEnumerable<ToolItem> Explain(OfficeC2paManifestSummary manifest, int index, int count) {
+    private static IEnumerable<ToolItem> Explain(OfficeC2paManifestSummary manifest, int index, int count, OfficeProvenanceEvidence evidence) {
         string group = count > 1 ? $"What Content Credentials record {index + 1} says" : "What the Content Credentials say";
+        if (EmbeddedAsset(evidence) is { } asset) group += $" · embedded asset {asset}";
         string prefix = "m" + index.ToString(CultureInfo.InvariantCulture) + "-";
+        if (manifest.DeclaresGenerativeAi) yield return new ToolItem(prefix + "ai", "Generative AI declared",
+            "This credential declares AI-generated content, including actions beyond the displayed timeline. The declaration is unverified.", ToolState.Detail, group);
         // The first record's app is already a fact at the top of the result.
         if (index > 0 && Generator(manifest) is { } generator) {
             yield return new ToolItem(prefix + "app", "Made with " + generator, "The app that wrote this record.", ToolState.Detail, group);
@@ -101,6 +106,15 @@ internal static class OriginTool {
         string? model = manifest.Actions.Select(static action => Clip(action.SoftwareAgent)).FirstOrDefault(static agent => agent != null);
         if (generator == null) return model;
         return model != null && !generator.Contains(model, StringComparison.OrdinalIgnoreCase) ? $"{generator} ({model})" : generator;
+    }
+
+    private static string? AiGenerator(OfficeC2paManifestSummary manifest) {
+        string? generator = Clip(manifest.ClaimGenerator);
+        string? model = manifest.Actions.Where(static action => action.DigitalSourceKind is
+                OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia or OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia)
+            .Select(static action => Clip(action.SoftwareAgent)).FirstOrDefault(static agent => agent != null);
+        return generator == null ? model : model != null && !generator.Contains(model, StringComparison.OrdinalIgnoreCase)
+            ? $"{generator} ({model})" : generator;
     }
 
     private static string? Clip(string? value) {
@@ -167,9 +181,11 @@ internal static class OriginTool {
         var items = new List<ToolItem>();
         int removed = 0, keptByChoice = 0, stuck = 0;
         foreach (Category category in Categories(removal.Before)) {
-            if (!selected.Contains(category.Id)) {
+            if (!category.Selectable || !selected.Contains(category.Id)) {
                 keptByChoice += category.Count;
-                items.Add(new ToolItem(category.Id, category.Title, "Kept because you chose to keep it.", ToolState.Kept));
+                items.Add(new ToolItem(category.Id, category.Title, category.Selectable
+                    ? "Kept because you chose to keep it."
+                    : "Kept: these source labels do not declare generative AI. " + category.Detail, ToolState.Kept));
             } else if (remaining.TryGetValue(category.Id, out Category? left)) {
                 stuck += left.Count;
                 removed += category.Count - left.Count;
@@ -183,7 +199,8 @@ internal static class OriginTool {
         }
         items.Add(new ToolItem("content", file.Extension is ".png" or ".jpg" or ".jpeg" or ".webp" ? "Image pixels" : "Document content",
             "Not changed. Only the hidden records were touched.", ToolState.Kept));
-        bool watermark = selected.Contains(Manifests) && ManifestSummaries(removal.Before).Any(static manifest => manifest.Actions.Any(static action => Watermarked(action.Action)));
+        bool watermark = selected.Contains(Manifests) && removal.Before.Evidence.Select(static evidence => evidence.Manifest)
+            .OfType<OfficeC2paManifestSummary>().Any(static manifest => manifest.Actions.Any(static action => Watermarked(action.Action)));
         if (watermark) {
             items.Add(new ToolItem("watermark", "Watermark in the content", WatermarkNote, ToolState.Warning));
         }
@@ -195,7 +212,7 @@ internal static class OriginTool {
         string detail = stuck > 0
             ? ToolFormat.Count(stuck, "record") + " could not be removed. See the list below."
             : keptByChoice > 0
-                ? "We checked the copy again. Only the records you chose to keep are still there."
+                ? "We checked the copy again. The records shown as kept remain."
                 : "We checked the copy again and found no origin records.";
         if (watermark) detail += " The watermark the record mentions is part of the content and is still there.";
         var verdict = new ToolVerdict(stuck > 0 || removed == 0 ? ToolTone.Warn : ToolTone.Good, title, detail);
@@ -210,33 +227,51 @@ internal static class OriginTool {
             items.ToArray(), artifacts, preview, 0);
     }
 
-    private sealed record Category(string Id, string Title, string Detail, int Count);
+    private sealed record Category(string Id, string Title, string Detail, int Count, bool Selectable);
 
     private static IEnumerable<Category> Categories(OfficeProvenanceReport report) {
-        foreach (var group in report.Evidence.GroupBy(static evidence => evidence.Carrier).OrderBy(static group => group.Key)) {
+        foreach (var group in report.Evidence.GroupBy(static evidence => (evidence.Carrier,
+            Ai: evidence.DigitalSourceKind is OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia or
+                OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia)).OrderBy(static group => group.Key.Carrier)) {
             OfficeProvenanceEvidence[] evidence = group.ToArray();
             string[] places = evidence.Select(static item => Where(item)).Distinct(StringComparer.Ordinal).ToArray();
             string where = string.Join("; ", places.Take(3)) + (places.Length > 3 ? $"; and {places.Length - 3} more places" : string.Empty);
             string validity = evidence.All(static item => item.IsStructurallyValid) ? string.Empty : " Some look malformed and will be left in place.";
-            (string id, string title, string what) = group.Key switch {
+            (string id, string title, string what) = group.Key.Carrier switch {
                 OfficeProvenanceCarrierKind.C2paManifest => (Manifests, "Content Credentials",
                     "A record claiming how the file was made or edited (C2PA). Its signature is not verified here."),
                 OfficeProvenanceCarrierKind.C2paExternalManifest => (References, "Link to Content Credentials",
                     "Points to a record stored outside the file" + (evidence[0].Value is { Length: > 0 } uri ? $" ({uri})" : string.Empty) + "."),
-                _ => (Declarations, "AI source label", SourceTypeText(evidence))
+                _ when group.Key.Ai => (Declarations, "AI source label", SourceTypeText(evidence)),
+                _ => ("source-labels", "Other source label", SourceTypeText(evidence))
             };
-            yield return new Category(id, evidence.Length > 1 ? $"{title} ({evidence.Length})" : title, $"{what} Found in {where}.{validity}", evidence.Length);
+            yield return new Category(id, evidence.Length > 1 ? $"{title} ({evidence.Length})" : title, $"{what} Found in {where}.{validity}", evidence.Length, id != "source-labels");
         }
     }
 
     /// <summary>Describes where a record sits in plain words instead of a format-native path such as JPEG[0]/APP11@20.</summary>
-    internal static string Where(OfficeProvenanceEvidence evidence) => evidence.Carrier switch {
+    internal static string Where(OfficeProvenanceEvidence evidence) => EmbeddedAsset(evidence) is { } asset
+        ? "embedded asset " + asset
+        : evidence.Carrier switch {
         OfficeProvenanceCarrierKind.C2paManifest => "an embedded Content Credentials store",
         _ when evidence.Location.Contains("XMP", StringComparison.OrdinalIgnoreCase) => "the file's XMP metadata",
         _ => evidence.Location
     };
 
+    private static string? EmbeddedAsset(OfficeProvenanceEvidence evidence) {
+        // ZIP's package-level credential has no nested format path. Nested evidence retains its entry name.
+        if (!evidence.Location.StartsWith("ZIP/", StringComparison.Ordinal)) return null;
+        string path = evidence.Location.Substring(4);
+        int end = -1;
+        foreach (string boundary in new[] { "/PNG/", "/JPEG[", "/RIFF/", "/WebP/" }) {
+            end = Math.Max(end, path.LastIndexOf(boundary, StringComparison.Ordinal));
+        }
+        return end < 0 ? null : path.Substring(0, end);
+    }
+
     private static string SourceTypeText(OfficeProvenanceEvidence[] evidence) {
+        if (evidence.Select(static item => item.DigitalSourceKind).Distinct().Skip(1).Any())
+            return "Contains source labels with different recorded source types; see the JSON report for each value.";
         OfficeProvenanceDigitalSourceKind kind = evidence[0].DigitalSourceKind;
         return kind switch {
             OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia => "Says the file was made by a generative AI tool.",
@@ -252,14 +287,19 @@ internal static class OriginTool {
         var parts = new List<string>();
         OfficeC2paManifestSummary? first = manifests.FirstOrDefault();
         string? generator = first == null ? null : Generator(first);
-        if (report.HasGenerativeAiDeclaration || manifests.Any(static manifest => manifest.DeclaresGenerativeAi)) {
-            parts.Add(generator != null ? $"The file says it was made by a generative AI tool: {generator}." : "The file says a generative AI tool made it.");
+        if (report.HasGenerativeAiDeclaration) {
+            OfficeProvenanceEvidence? aiRecord = report.Evidence.FirstOrDefault(static evidence => evidence.Manifest?.DeclaresGenerativeAi == true);
+            string? aiGenerator = aiRecord?.Manifest is { } aiManifest ? AiGenerator(aiManifest) : null;
+            string subject = aiRecord != null && EmbeddedAsset(aiRecord) is { } aiAsset ? $"An embedded asset ({aiAsset})" : "An origin record";
+            parts.Add(aiGenerator != null ? $"{subject} says it was made by a generative AI tool: {aiGenerator}." : "An origin record declares generative AI.");
         } else if (generator != null) {
-            parts.Add($"The file says it was made with {generator}.");
+            OfficeProvenanceEvidence firstRecord = report.Evidence.First(static evidence => evidence.Manifest != null);
+            string subject = EmbeddedAsset(firstRecord) is { } asset ? $"An embedded asset ({asset})" : "A Content Credentials record";
+            parts.Add($"{subject} says it was made with {generator}.");
         }
         if (report.HasC2paManifest) {
             parts.Add(Clip(first?.SignedBy) is { } signer
-                ? $"Its Content Credentials name {signer} as the certificate subject; this is unverified."
+                ? $"The first Content Credentials record names {signer} as its certificate subject; this is unverified."
                 : "It carries Content Credentials.");
         }
         if (report.HasExternalC2paManifest) parts.Add("It links to Content Credentials stored elsewhere.");
