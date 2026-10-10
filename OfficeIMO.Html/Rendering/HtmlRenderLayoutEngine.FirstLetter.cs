@@ -28,6 +28,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var replacement = new List<HtmlInlineRun>(3);
             if (prefix.Length > 0) replacement.Add(run.CloneText(prefix, prefix, run.Style));
             if (!TryResolveFirstLetterStyle(formattingContainer, width, run.Style, out HtmlRenderBoxStyle letterStyle)) return;
+            if (run.IsTextTransformContextOnly && letterStyle.Font.Size > 0D) {
+                ReportUnsupportedComplexTextShaping(firstLetter, run.OwnerElement ?? formattingContainer, letterStyle, run.Source);
+            }
             replacement.Add(run.CloneText(firstLetter, firstLetter, letterStyle, isFirstLetter: true));
             if (suffix.Length > 0) replacement.Add(run.CloneText(suffix, suffix, run.Style));
             runs.RemoveAt(runIndex);
