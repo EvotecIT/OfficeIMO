@@ -237,9 +237,10 @@
 
     var side = root.querySelector('.imo-fmap__side'), shownKey = '';
     function renderPanel() {
-      var key = [state.surface, state.from, state.to, state.from ? '' : (state.hover || state.focus)].join('|');
-      buildPanel();
+      var hidden = Object.keys(state.hidden).filter(function (f) { return state.hidden[f]; }).sort().join(',');
+      var key = [state.surface, state.from, state.to, state.from ? '' : (state.hover || state.focus), hidden].join('|');
       if (key === shownKey) return;
+      buildPanel();
       shownKey = key;
       if (side) side.scrollTop = 0;
       if (still) return;
@@ -791,15 +792,26 @@
       tour.button.appendChild(document.createTextNode('Play tour'));
       tour.button.addEventListener('click', function () { tour.touched = true; if (tour.on) stopTour(); else startTour(); });
       canvas.appendChild(tour.button);
-      // Touching the map ends the tour.
-      root.addEventListener('click', function (e) { if (e.target !== tour.button && !tour.button.contains(e.target)) { tour.touched = true; stopTour(true); } }, true);
+      // Stop before a manual gesture moves the view; programmatic scene scrolling must not stop itself.
+      function takeControl() { tour.touched = true; stopTour(true); }
+      function takeControlOutsideButton(e) {
+        if (e.target !== tour.button && !tour.button.contains(e.target)) takeControl();
+      }
+      root.addEventListener('pointerdown', takeControlOutsideButton, true);
+      root.addEventListener('touchstart', takeControlOutsideButton, { capture: true, passive: true });
+      root.addEventListener('wheel', takeControl, { capture: true, passive: true });
+      root.addEventListener('click', takeControlOutsideButton, true);
       root.addEventListener('change', function () { tour.touched = true; stopTour(true); }, true);
       root.addEventListener('focusin', function (e) {
         if (e.target === tour.button || tour.button.contains(e.target)) return;
         tour.touched = true;
         stopTour(true);
       });
-      root.addEventListener('keydown', function (e) { if (e.target !== tour.button && e.key !== 'Tab') { tour.touched = true; stopTour(true); } }, true);
+      root.addEventListener('keydown', function (e) {
+        var onButton = e.target === tour.button || tour.button.contains(e.target);
+        var scrollKey = /^(ArrowUp|ArrowDown|ArrowLeft|ArrowRight|PageUp|PageDown|Home|End)$/.test(e.key);
+        if ((!onButton && e.key !== 'Tab') || scrollKey) takeControl();
+      }, true);
     }
 
     var pending = 0;
