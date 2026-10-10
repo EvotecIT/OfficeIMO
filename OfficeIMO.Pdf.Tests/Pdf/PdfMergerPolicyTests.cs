@@ -6,6 +6,17 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfMergerPolicyTests {
     [Fact]
+    public void PolicyMergeCancellationPreventsInputEnumeration() {
+        bool enumerated = false;
+        IEnumerable<PdfDocument> Sources() {
+            enumerated = true;
+            yield return PdfDocument.Create();
+        }
+        Assert.Throws<OperationCanceledException>(() => PdfDocument.MergeResult(new PdfMergeOptions(), Sources(), new System.Threading.CancellationToken(true)));
+        Assert.False(enumerated);
+    }
+
+    [Fact]
     public void MergeResult_ToBytesReturnsDefensiveCopies() {
         byte[] first = PdfDocument.Create().Paragraph(p => p.Text("First")).ToBytes();
         byte[] second = PdfDocument.Create().Paragraph(p => p.Text("Second")).ToBytes();

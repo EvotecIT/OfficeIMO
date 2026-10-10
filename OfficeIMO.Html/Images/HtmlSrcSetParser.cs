@@ -33,7 +33,11 @@ public static class HtmlSrcSetParser {
     /// <summary>
     /// Enumerates a <c>srcset</c> value while preserving candidate descriptors, stopping after the requested number of candidates.
     /// </summary>
-    public static IEnumerable<HtmlSrcSetCandidate> Enumerate(string? srcSet, int? maxCandidates) {
+    public static IEnumerable<HtmlSrcSetCandidate> Enumerate(string? srcSet, int? maxCandidates) =>
+        Enumerate(srcSet, maxCandidates, CancellationToken.None);
+
+    internal static IEnumerable<HtmlSrcSetCandidate> Enumerate(string? srcSet, int? maxCandidates, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(srcSet) || IsNonPositiveCandidateLimit(maxCandidates)) {
             yield break;
         }
@@ -42,13 +46,15 @@ public static class HtmlSrcSetParser {
         int index = 0;
         int parsedCandidates = 0;
         while (index < value.Length) {
-            SkipWhitespaceAndCommas(value, ref index);
+            cancellationToken.ThrowIfCancellationRequested();
+            SkipWhitespaceAndCommas(value, ref index, cancellationToken);
             if (index >= value.Length) {
                 break;
             }
 
             int urlStart = index;
             while (index < value.Length && !IsHtmlWhitespace(value[index])) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 index++;
             }
 
@@ -75,11 +81,12 @@ public static class HtmlSrcSetParser {
                 continue;
             }
 
-            SkipWhitespace(value, ref index);
+            SkipWhitespace(value, ref index, cancellationToken);
 
             int descriptorStart = index;
             int parenthesesDepth = 0;
             while (index < value.Length) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 char current = value[index];
                 if (current == ',' && parenthesesDepth == 0) break;
                 if (current == '(') parenthesesDepth++;
@@ -107,14 +114,16 @@ public static class HtmlSrcSetParser {
         return maxCandidates.HasValue && maxCandidates.Value <= 0;
     }
 
-    private static void SkipWhitespaceAndCommas(string value, ref int index) {
+    private static void SkipWhitespaceAndCommas(string value, ref int index, CancellationToken cancellationToken) {
         while (index < value.Length && (IsHtmlWhitespace(value[index]) || value[index] == ',')) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
     }
 
-    private static void SkipWhitespace(string value, ref int index) {
+    private static void SkipWhitespace(string value, ref int index, CancellationToken cancellationToken) {
         while (index < value.Length && IsHtmlWhitespace(value[index])) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             index++;
         }
     }

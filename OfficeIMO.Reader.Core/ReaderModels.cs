@@ -115,8 +115,10 @@ public enum ReaderInputKind {
     IWork = 25,
     /// <summary>Native XPS or OpenXPS fixed-page package.</summary>
     Xps = 26,
+    /// <summary>Compiled HTML Help archive.</summary>
+    Chm = 27,
     /// <summary>DjVu scanned document with optional stored text.</summary>
-    DjVu = 27
+    DjVu = 28
 }
 
 /// <summary>

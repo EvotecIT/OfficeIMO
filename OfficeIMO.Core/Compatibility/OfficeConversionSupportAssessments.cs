@@ -26,6 +26,9 @@ internal static class OfficeConversionSupportAssessments {
                 "Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.");
         }
         return routeId switch {
+        "chm-pdf" or "chm-markdown" or "chm-epub" => Targeted(
+            "A Microsoft-compiled book matches an independent decoder byte-for-byte across every entry. Contract fixtures cover contents, index, encodings, bounded reads, topic links, rich Reader results and reopened PDF/EPUB output.",
+            "ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md."),
         "book-project-epub" => Targeted(
             "Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
             "Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."),

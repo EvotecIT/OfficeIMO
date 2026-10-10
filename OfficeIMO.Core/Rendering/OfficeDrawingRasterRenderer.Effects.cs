@@ -26,7 +26,7 @@ public static partial class OfficeDrawingRasterRenderer {
             transform.OffsetX * scale, transform.OffsetY * scale);
         // Cull the complete expanded and rounded layer before charging storage.
         if (!double.IsInfinity(width) && !double.IsInfinity(height) &&
-            !canvas.IntersectsVisibleSurface(pixelTransform, width, height)) return;
+            !canvas.IntersectsVisibleSurface(pixelTransform, width, height, includePartialCoverage: layerPlan.Interpolate)) return;
         if (width > long.MaxValue || height > long.MaxValue || width * height > long.MaxValue) {
             throw new OfficeImageExportLimitException(layerScale, long.MaxValue, maximumRasterPixels,
                 OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));

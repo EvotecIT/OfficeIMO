@@ -14,7 +14,7 @@ using OpenXmlStyle = DocumentFormat.OpenXml.Wordprocessing.Style;
 namespace OfficeIMO.Word.Legacy;
 
 /// <summary>Detects and imports selected legacy word-processing formats without executing source content.</summary>
-public static class LegacyWordImporter {
+public static partial class LegacyWordImporter {
     private static readonly ILegacyWordAdapter[] Adapters = {
         new WordPerfectAdapter(),
         new WordStarAdapter(),
@@ -74,7 +74,9 @@ public static class LegacyWordImporter {
         }
 
         string text = BuildPlainText(model, effective.Limits, cancellationToken);
-        var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.Paragraphs.Count + model.Styles.Count + model.Notes.Count + model.Resources.Count);
+        int blockCount = Sections(model).Sum(section => section.Blocks.Sum(block => block is LegacyWordTable table ?
+            1 + table.Rows.Sum(row => row.Cells.Sum(cell => cell.Paragraphs.Count)) : 1));
+        var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, blockCount + model.Styles.Count + model.Notes.Count + model.Resources.Count);
         var metadata = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase));
         var content = new LegacyWordContent(model);
         WordDocument? document = null;
@@ -90,9 +92,20 @@ public static class LegacyWordImporter {
     private static string BuildPlainText(LegacyWordModel model, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         var text = new StringBuilder(Math.Min(limits.MaxTextCharacters, 4096));
         bool hasEntry = false;
-        foreach (LegacyWordParagraph paragraph in model.Paragraphs) {
-            cancellationToken.ThrowIfCancellationRequested();
-            AppendPlainTextEntry(text, paragraph.Text, ref hasEntry, limits.MaxTextCharacters);
+        foreach (LegacyWordSection section in Sections(model)) {
+            foreach (LegacyWordBlock block in section.Blocks) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (block is LegacyWordParagraph paragraph) AppendPlainTextEntry(text, paragraph.Text, ref hasEntry, limits.MaxTextCharacters);
+                else if (block is LegacyWordTable table) {
+                    foreach (LegacyWordTableRow row in table.Rows) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        foreach (LegacyWordTableCell cell in row.Cells) {
+                            foreach (LegacyWordParagraph cellParagraph in cell.Paragraphs)
+                                AppendPlainTextEntry(text, cellParagraph.Text, ref hasEntry, limits.MaxTextCharacters);
+                        }
+                    }
+                }
+            }
         }
         foreach (LegacyWordNote note in model.Notes) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -115,7 +128,6 @@ public static class LegacyWordImporter {
         WordDocument document = WordDocument.Create();
         try {
             document.EnsureStyleDefinitionsInitialized();
-            WordList? activeList = null;
             var styleIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             Styles? existingStyles = document.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
@@ -132,25 +144,13 @@ public static class LegacyWordImporter {
                 recoveredStyles[sourceStyle.Name] = sourceStyle;
                 EnsureLegacyParagraphStyle(document, styleId, sourceStyle.Name, sourceStyle);
             }
-            foreach (LegacyWordParagraph source in model.Paragraphs) {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (source.IsList) {
-                    activeList ??= document.AddListBulleted();
-                    WordParagraph paragraph = activeList.AddItem(string.Empty, Math.Max(0, Math.Min(8, source.ListLevel)));
-                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
-                } else {
-                    activeList = null;
-                    WordParagraph paragraph = document.AddParagraph();
-                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
-                }
-            }
+            ProjectSections(model, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
             foreach (LegacyWordNote note in model.Notes) {
                 cancellationToken.ThrowIfCancellationRequested();
-                activeList = null;
+                if (note.IsAnchored) continue;
                 WordParagraph paragraph = document.AddParagraph("[Recovered " + note.Kind + "] " + note.Text);
                 paragraph.AddComment("Legacy source", "LS", note.Kind + " recovered without its original source anchor.");
             }
-            if (model.Paragraphs.Count == 0) document.AddParagraph(string.Empty);
             return document;
         } catch {
             document.Dispose();
@@ -160,7 +160,7 @@ public static class LegacyWordImporter {
 
     private static void ProjectParagraph(LegacyWordParagraph source, WordParagraph paragraph, WordDocument document,
         IDictionary<string, string> styleIds, ISet<string> usedStyleIds, IReadOnlyDictionary<string, LegacyWordStyle> recoveredStyles,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, LegacyWordModel model) {
         LegacyWordStyle? recoveredStyle = null;
         if (!string.IsNullOrWhiteSpace(source.StyleName)) {
             recoveredStyles.TryGetValue(source.StyleName!, out recoveredStyle);
@@ -168,7 +168,12 @@ public static class LegacyWordImporter {
         int runIndex = 0;
         foreach (LegacyWordRun sourceRun in source.Runs) {
             if ((runIndex++ & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-            ProjectRun(sourceRun, paragraph, recoveredStyle, document, cancellationToken);
+            if (sourceRun.NoteIndex.HasValue) ProjectNote(model, sourceRun.NoteIndex.Value, paragraph, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
+            else if (sourceRun.Image != null) {
+                using var stream = new MemoryStream(sourceRun.Image.PngBytes, writable: false);
+                paragraph.AddText(string.Empty).AddImage(stream, "recovered.png", sourceRun.Image.WidthPoints * 96d / 72d, sourceRun.Image.HeightPoints * 96d / 72d);
+            }
+            else ProjectRun(sourceRun, paragraph, recoveredStyle, document, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (source.Alignment.HasValue) paragraph.SetAlignment(source.Alignment.Value);

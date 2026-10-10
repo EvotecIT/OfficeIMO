@@ -37,7 +37,7 @@ public sealed class ReaderContractTests {
     [Fact]
     public void OfficeDocumentReadResultSchema_ExposesStableCurrentContract() {
         Assert.Equal(5, OfficeDocumentReadResultSchema.MinimumSupportedVersion);
-        Assert.Equal(11, OfficeDocumentReadResultSchema.CurrentVersion);
+        Assert.Equal(12, OfficeDocumentReadResultSchema.CurrentVersion);
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
             OfficeDocumentReadResultSchema.Id, 5));
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
@@ -289,7 +289,7 @@ public sealed class ReaderContractTests {
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]
-    [InlineData("officeimo.document.read-result", 12)]
+    [InlineData("officeimo.document.read-result", 13)]
     public void OfficeDocumentReadResultJson_RejectsUnsupportedSchemaHeaders(string schemaId, int schemaVersion) {
         string json = $"{{\"schemaId\":\"{schemaId}\",\"schemaVersion\":{schemaVersion}}}";
 

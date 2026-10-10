@@ -69,7 +69,7 @@ internal sealed class PdfSourceEncryptionContext {
         int maximumCiphertextStreamBytes = 0;
         for (int number = 1; number <= maximumObjectNumber; number++) {
             cancellationToken.ThrowIfCancellationRequested();
-            PdfObject value = _handler.EncryptObject(number, 0, objects[number].Value);
+            PdfObject value = _handler.EncryptObject(number, 0, objects[number].Value, cancellationToken);
             if (value is PdfStream encryptedStream) {
                 maximumCiphertextStreamBytes = Math.Max(maximumCiphertextStreamBytes, encryptedStream.Data.Length);
             }

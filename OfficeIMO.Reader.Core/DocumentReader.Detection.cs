@@ -536,6 +536,9 @@ internal static partial class DocumentReaderEngine {
         if (prefix.Length == 0) {
             return DetectionCandidate.Unknown("content:empty");
         }
+        if (StartsWith(prefix, new byte[] { 0x49, 0x54, 0x53, 0x46 })) {
+            return DetectionCandidate.High(ReaderInputKind.Chm, "application/vnd.ms-htmlhelp", "signature:itsf");
+        }
         if (prefix.Length >= 16 && StartsWith(prefix, new byte[] { 65, 84, 38, 84, 70, 79, 82, 77 }) &&
             prefix[12] == 'D' && prefix[13] == 'J' && prefix[14] == 'V' && (prefix[15] == 'U' || prefix[15] == 'M')) {
             return DetectionCandidate.High(ReaderInputKind.DjVu, "image/vnd.djvu", "signature:djvu");
@@ -942,6 +945,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Json => "application/json",
             ReaderInputKind.Xml => "application/xml",
             ReaderInputKind.Html => "text/html",
+            ReaderInputKind.Chm => "application/vnd.ms-htmlhelp",
             ReaderInputKind.Zip => "application/zip",
             ReaderInputKind.Epub => "application/epub+zip",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",

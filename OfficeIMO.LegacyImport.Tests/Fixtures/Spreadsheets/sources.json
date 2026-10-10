@@ -1,0 +1,29 @@
+[
+  {
+    "file": "Lotus123_98.123",
+    "source": "https://raw.githubusercontent.com/LibreOffice/core/51ce606db19b1b9f1274f0968a52ccd264081059/writerperfect/qa/unit/data/calc/libwps/pass/Lotus123_98.123",
+    "repository": "LibreOffice/core",
+    "commit": "51ce606db19b1b9f1274f0968a52ccd264081059",
+    "sha256": "bc30c228b4b8627d4ef19cd7cadb216cebd126a1914bda53c36599f57a552ab7",
+    "license": "MPL-2.0",
+    "role": "independent upstream spreadsheet fixture"
+  },
+  {
+    "file": "QuattroPro.wb1",
+    "source": "https://raw.githubusercontent.com/LibreOffice/core/51ce606db19b1b9f1274f0968a52ccd264081059/writerperfect/qa/unit/data/calc/libwps/pass/QuattroPro.wb1",
+    "repository": "LibreOffice/core",
+    "commit": "51ce606db19b1b9f1274f0968a52ccd264081059",
+    "sha256": "f03c66495f1672e8a363c398669ef544c824e3b3a4c5ba5e43aaf3288aec4be6",
+    "license": "MPL-2.0",
+    "role": "independent upstream spreadsheet fixture"
+  },
+  {
+    "file": "Works_Windows.wks",
+    "source": "https://raw.githubusercontent.com/LibreOffice/core/51ce606db19b1b9f1274f0968a52ccd264081059/writerperfect/qa/unit/data/calc/libwps/pass/Works_Windows.wks",
+    "repository": "LibreOffice/core",
+    "commit": "51ce606db19b1b9f1274f0968a52ccd264081059",
+    "sha256": "6c4bdeb901322eeafcd7446e2556907997e083cabd21c1b4331d95f9b0afd1b8",
+    "license": "MPL-2.0",
+    "role": "independent upstream spreadsheet fixture"
+  }
+]

@@ -19,22 +19,22 @@
     {
       "operation": "native.header.inspect",
       "supported": true,
-      "boundary": "Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet4/ACE12/ACE14/ACE16/ACE17 fixtures; Jet3 recognized without producer qualification. Protection and feature values are not decoded."
+      "boundary": "Inert bounded header/profile, page-alignment, byte/page limits and snapshot SHA-256. Independent Jet3/Jet4/ACE12/ACE14/ACE16/ACE17 fixtures. Protection and feature values are not decoded."
     },
     {
       "operation": "native.catalog.read",
       "supported": true,
-      "boundary": "Unprotected Jet4 and ACE12/14/16/17 catalog, selected table/column properties, index definitions, relationships and inert links. System/unknown catalog entries remain separate."
+      "boundary": "Unprotected Jet3/Jet4 and ACE12/14/16/17 catalogs, selected table/column schemas, index definitions, relationships and inert links. Jet4/ACE properties are qualified; Jet3 property maps retain opaque bytes. System/unknown catalog entries remain separate."
     },
     {
       "operation": "native.rows.read",
       "supported": true,
-      "boundary": "Bounded forward-only native scans, deleted/overflow/fragmented rows, lazy fields and incremental binary streams. Qualified scalar/Unicode/Memo/OLE, complex values, attachments, BigInt and extended-date profiles; calculated/unknown values retain bytes and diagnostics."
+      "boundary": "Bounded forward-only native scans, deleted/overflow/fragmented rows, lazy fields and incremental binary streams. Qualified Jet3 single-byte scalar/Memo/OLE and Jet4/ACE Unicode, complex-value, attachment, BigInt and extended-date profiles; calculated/unknown values retain bytes and diagnostics."
     },
     {
       "operation": "native.query.records.read",
       "supported": true,
-      "boundary": "Exact inert query records and typed parameter inventory. Simple single-table SELECT and two-part UNION SQL reconstruction is qualified; other query SQL remains explicitly unavailable."
+      "boundary": "Exact inert Jet3/Jet4/ACE query records and typed parameter inventory. Simple single-table SELECT and two-part UNION SQL reconstruction is qualified; other query SQL remains explicitly unavailable."
     },
     {
       "operation": "native.create",
@@ -59,22 +59,27 @@
     {
       "operation": "application.objects.read",
       "supported": true,
-      "boundary": "Jet4/ACE application inventory and exact payloads; qualified ACE version-21 designer sections/controls/sources/event metadata, 76-byte StopMacro definitions, table data-macro XML and resource metadata. Jet version-19 designers and unknown definitions are preserve-only. Dependency references are partial and inert."
+      "boundary": "Jet3 catalog identities and exact catalog payloads with preserve-only definitions; Jet4/ACE application inventory and exact payloads; qualified ACE version-21 designer sections/controls/sources/event metadata, 76-byte StopMacro definitions, table data-macro XML and resource metadata. Jet version-19 designers and unknown definitions are preserve-only. Dependency references are partial and inert."
     },
     {
       "operation": "application.objects.write",
       "supported": false,
-      "boundary": "Form/report creation, designer changes and macro authoring are unqualified. Existing code-behind source uses vba.edit."
+      "boundary": "Form/report object creation, general designer changes and macro authoring are unqualified. Code-behind uses vba.edit; selected inert event edits use application.events.write."
+    },
+    {
+      "operation": "application.events.write",
+      "supported": true,
+      "boundary": "ACE expanded version-21 form/report Open, label/text-box/combo-box Click and text-box/combo-box AfterUpdate binding/clearing without execution. Replacing Click removes its associated embedded macro. Jet version-19, nonempty deltas and other control/event layouts reject edits."
     },
     {
       "operation": "vba.inspect",
       "supported": true,
-      "boundary": "Access Jet compound storage and ACE hierarchy adapt to shared Core MS-OVBA parsing. Module source and stored references are decoded when available; compiled/unknown streams remain exact. Built-in references and signature validation are outside this contract."
+      "boundary": "Access Jet4 compound storage and ACE hierarchy adapt to shared Core MS-OVBA parsing. Jet3 VBA storage remains unqualified. Module source and stored references are decoded when available; compiled/unknown streams remain exact. Built-in references and signature validation are outside this contract."
     },
     {
       "operation": "vba.edit",
       "supported": true,
-      "boundary": "Detached shared Core project editing and explicit native Jet4/ACE12/14 persistence. Qualified unsigned/unprotected storage supports ordinary module source/add/remove/rename and existing form/report source; native host bindings, catalog identities and unrelated pages remain preserved. First projects require an existing qualified native application. Unknown storage/permission/index/signature layouts reject mutation."
+      "boundary": "Detached shared Core project editing and explicit native Jet4/ACE12/14 persistence. Qualified unsigned/unprotected storage supports ordinary module source/add/remove/rename and new/existing code-behind on existing forms/reports; retained host bindings, catalog identities and unrelated pages remain preserved. First projects require an existing qualified native application. Unknown storage/permission/index/signature layouts reject mutation."
     },
     {
       "operation": "protection.inspect",

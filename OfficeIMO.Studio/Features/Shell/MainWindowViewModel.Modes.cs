@@ -98,6 +98,7 @@ public sealed partial class MainWindowViewModel {
             SelectedEditorToolChoice = EditorTools[0];
         }
         foreach (PdfPageViewModel page in Pages) page.SelectionMode = GetEditorSelectionMode();
+        OnPropertyChanged(nameof(EditorInstruction));
         UpdateFormAnchor();
         if ((value == StudioDocumentMode.Annotate && SelectedObject?.Kind != PdfEditorSelectionKind.Annotation) ||
             value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit) {

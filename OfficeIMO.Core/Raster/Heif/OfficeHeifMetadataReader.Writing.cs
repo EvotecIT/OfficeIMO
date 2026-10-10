@@ -12,44 +12,7 @@ public static partial class OfficeHeifMetadataReader {
     private sealed partial class Parser {
         internal bool TryWriteExifProfile(byte[] data, OfficeImageMetadata? profile, out byte[]? result) {
             result = null;
-            if (!TryFindMetaBox(data, out Box metaBox)) {
-                return false;
-            }
-
-            int metaChildrenStart = metaBox.DataOffset + 4;
-            if (metaChildrenStart > metaBox.EndOffset) {
-                return false;
-            }
-
-            Box? itemInfoBox = null;
-            Box? itemLocationBox = null;
-
-            foreach (Box childBox in EnumerateBoxes(data, metaChildrenStart, metaBox.EndOffset)) {
-                CheckWork();
-                if (childBox.Type == "iinf") {
-                    itemInfoBox = childBox;
-                } else if (childBox.Type == "iloc") {
-                    itemLocationBox = childBox;
-                }
-            }
-
-            if (itemInfoBox is null || itemLocationBox is null) {
-                return false;
-            }
-
-            if (!TryFindExifItemId(data, metaBox, itemInfoBox.Value, out uint itemId, requireSupportedPayload: true)) {
-                return false;
-            }
-
-            if (!TryFindItemExtents(data, itemLocationBox.Value, null, itemId, out IlocItem item) ||
-                item.ConstructionMethod != 0 ||
-                item.DataReferenceIndex != 0 ||
-                item.Extents.Count != 1) {
-                return false;
-            }
-
-            ItemExtent extent = item.Extents[0];
-            if (!TryValidateWriterExtentOwnership(data, itemLocationBox.Value, item.ItemId, extent)) {
+            if (!TryFindWritableMetadataItem(data, exif: true, out IlocItem item, out ItemExtent extent)) {
                 return false;
             }
             byte[]? encodedExif = profile?.EncodeExifProfile(_cancellationToken, checked(_sourceBytes + _allocatedBytes));
@@ -63,6 +26,25 @@ public static partial class OfficeHeifMetadataReader {
 
         internal bool TryWriteXmp(byte[] data, string? xmp, out byte[]? result) {
             result = null;
+            if (!TryFindWritableMetadataItem(data, exif: false, out IlocItem item, out ItemExtent extent)) {
+                return false;
+            }
+            if (xmp != null) {
+                ReserveBytes(checked(xmp.Length * 2L + 24L));
+                if (StrictXmpUtf8.GetByteCount(xmp) > OfficeExifProfileCodec.MaximumProfileBytes) {
+                    return false;
+                }
+            }
+            byte[] xmpItemData = xmp is null
+                ? Array.Empty<byte>()
+                : StrictXmpUtf8.GetBytes(xmp);
+
+            return TryWriteItemData(data, item, extent, out result, xmpItemData);
+        }
+
+        private bool TryFindWritableMetadataItem(byte[] data, bool exif, out IlocItem item, out ItemExtent extent) {
+            item = default;
+            extent = default;
             if (!TryFindMetaBox(data, out Box metaBox)) {
                 return false;
             }
@@ -88,32 +70,22 @@ public static partial class OfficeHeifMetadataReader {
                 return false;
             }
 
-            if (!TryFindXmpItemId(data, metaBox, itemInfoBox.Value, out uint itemId, requireSupportedPayload: true)) {
+            bool found = exif
+                ? TryFindExifItemId(data, metaBox, itemInfoBox.Value, out uint itemId, requireSupportedPayload: true)
+                : TryFindXmpItemId(data, metaBox, itemInfoBox.Value, out itemId, requireSupportedPayload: true);
+            if (!found) {
                 return false;
             }
 
-            if (!TryFindItemExtents(data, itemLocationBox.Value, null, itemId, out IlocItem item) ||
+            if (!TryFindItemExtents(data, itemLocationBox.Value, null, itemId, out item) ||
                 item.ConstructionMethod != 0 ||
                 item.DataReferenceIndex != 0 ||
                 item.Extents.Count != 1) {
                 return false;
             }
 
-            ItemExtent extent = item.Extents[0];
-            if (!TryValidateWriterExtentOwnership(data, itemLocationBox.Value, item.ItemId, extent)) {
-                return false;
-            }
-            if (xmp != null) {
-                ReserveBytes(checked(xmp.Length * 2L + 24L));
-                if (StrictXmpUtf8.GetByteCount(xmp) > OfficeExifProfileCodec.MaximumProfileBytes) {
-                    return false;
-                }
-            }
-            byte[] xmpItemData = xmp is null
-                ? Array.Empty<byte>()
-                : StrictXmpUtf8.GetBytes(xmp);
-
-            return TryWriteItemData(data, item, extent, out result, xmpItemData);
+            extent = item.Extents[0];
+            return TryValidateWriterExtentOwnership(data, itemLocationBox.Value, item.ItemId, extent);
         }
 
         private bool TryWriteItemData(byte[] data, IlocItem item, ItemExtent extent, out byte[]? result, byte[] itemData) {

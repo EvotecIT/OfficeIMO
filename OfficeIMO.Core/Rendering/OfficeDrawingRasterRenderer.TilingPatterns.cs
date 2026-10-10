@@ -35,7 +35,7 @@ public static partial class OfficeDrawingRasterRenderer {
         bool visibleTile = double.IsInfinity(width) || double.IsInfinity(height);
         foreach (OfficeTransform transform in transforms) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (visibleTile || canvas.IntersectsVisibleSurface(CreateTilePixelTransform(transform, scale, visibilityScaleX, visibilityScaleY), width, height)) {
+            if (visibleTile || canvas.IntersectsVisibleSurface(CreateTilePixelTransform(transform, scale, visibilityScaleX, visibilityScaleY), width, height, includePartialCoverage: false)) {
                 visibleTile = true;
                 break;
             }
@@ -70,7 +70,9 @@ public static partial class OfficeDrawingRasterRenderer {
         }, scaleX, scaleY, tilePlan, canvas.Fonts);
         foreach (OfficeTransform transform in transforms) {
             cancellationToken.ThrowIfCancellationRequested();
-            canvas.DrawAffineImage(tile, CreateTilePixelTransform(transform, scale, scaleX, scaleY), pattern.Opacity, interpolate);
+            // Neighbouring tiles own their centre-selected pixels once. Source-over
+            // compositing of separately antialiased tile edges would create seams.
+            canvas.DrawAffineImage(tile, CreateTilePixelTransform(transform, scale, scaleX, scaleY), pattern.Opacity, interpolate, antialiasBoundary: false);
         }
     }
 

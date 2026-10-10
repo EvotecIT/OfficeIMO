@@ -91,8 +91,11 @@ public static partial class EpubManuscript {
     private static void RewriteChapterLinks(List<Chapter> chapters, HtmlConversionDocument manuscript,
         List<OfficeConversionFidelityDiagnostic> diagnostics) {
         var anchors = chapters.SelectMany(chapter => chapter.Body.DescendantsAndSelf()
-            .Where(element => element.Attribute("id") != null).Select(element => new { Id = (string)element.Attribute("id")!, Chapter = chapter }))
-            .ToDictionary(item => item.Id, item => item.Chapter, StringComparer.Ordinal);
+            .SelectMany(element => EpubContentIdentifiers.GetIdentifiers(element).Select(id => new { Id = id, Chapter = chapter })))
+            // Matching id/xml:id identify one target. Content validation reports invalid
+            // duplicates within a chapter; ambiguous source links select their first target.
+            .GroupBy(item => item.Id, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First().Chapter, StringComparer.Ordinal);
         foreach (Chapter chapter in chapters) {
             foreach (XAttribute href in chapter.Body.Descendants()
                 .Where(element => element.Name == Xhtml + "a" || element.Name == Xhtml + "area" ||

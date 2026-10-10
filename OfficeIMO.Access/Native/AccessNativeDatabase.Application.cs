@@ -4,6 +4,16 @@ using static OfficeIMO.Access.AccessNativeBinary;
 namespace OfficeIMO.Access {
     internal sealed partial class AccessNativeDatabase {
         private void LoadApplicationObjects(CancellationToken cancellation) {
+            if (Layout.IsJet3) {
+                // Jet3 application storage has no qualified designer/VBA decoder. Catalog identities
+                // and raw payloads remain available without assuming the Jet4 storage grammar.
+                var retained = new Dictionary<string, AccessStorageStream>();
+                LoadApplicationCollection(_document.Forms, -32768, "Forms", retained, cancellation);
+                LoadApplicationCollection(_document.Reports, -32764, "Reports", retained, cancellation);
+                LoadApplicationCollection(_document.Macros, -32766, "Scripts", retained, cancellation);
+                _document.VbaProject = new AccessVbaProjectInfo(AccessCatalogStatus.NotDecoded);
+                return;
+            }
             Dictionary<string, AccessStorageStream> streams = ReadApplicationStorage(cancellation);
             LoadApplicationCollection(_document.Forms, -32768, "Forms", streams, cancellation);
             LoadApplicationCollection(_document.Reports, -32764, "Reports", streams, cancellation);

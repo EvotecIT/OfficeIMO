@@ -32,6 +32,13 @@
       "sha256": "9748e20fb7610ff40ad58b431d8c042e79f138ca0b11937945e0a57317043fbc",
       "profile": "Jet4",
       "contract": "Existing native application before first VBA project"
+    },
+    {
+      "path": "empty-designer-ace12.accdb",
+      "bytes": 344064,
+      "sha256": "b35b0b066bf36bd036f518bfc44f882fc6de8d66a55415738f371d3ba32a6c50",
+      "profile": "Ace12",
+      "contract": "Native expanded EventForm/EventLabel without source modules; empty VBA infrastructure is preserved"
     }
   ]
 }

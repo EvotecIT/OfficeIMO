@@ -29,6 +29,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.OneNote" />
+    <InternalsVisibleTo Include="OfficeIMO.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Xps" />
     <InternalsVisibleTo Include="OfficeIMO.DjVu" />
     <InternalsVisibleTo Include="OfficeIMO.Email.Html" />

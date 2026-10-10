@@ -54,15 +54,22 @@ public sealed partial class HtmlConversionDocument {
     }
 
     /// <summary>Creates a conversion snapshot from an owned tree without reparsing its serialized markup.</summary>
-    public static HtmlConversionDocument FromDocument(Dom.HtmlDocument document, HtmlConversionDocumentOptions? options = null) {
+    public static HtmlConversionDocument FromDocument(Dom.HtmlDocument document, HtmlConversionDocumentOptions? options = null) =>
+        FromDocument(document, options, CancellationToken.None);
+
+    /// <summary>Captures an owned tree with cooperative cancellation during validation, cloning, projection and serialization.</summary>
+    public static HtmlConversionDocument FromDocument(Dom.HtmlDocument document, HtmlConversionDocumentOptions? options, CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
         resolved.Validate();
-        Dom.HtmlDocument snapshot = HtmlConversionInputGuard.CaptureOwnedTree(document, resolved.Limits, CancellationToken.None);
-        IHtmlDocument native = NativeDomBridge.GetNativeDocument(snapshot);
-        HtmlConversionInputGuard.ValidateDocument(native, resolved.Limits);
-        string source = HtmlConversionSourceWriter.Serialize(native, resolved.Limits);
-        return new HtmlConversionDocument(source, native, resolved, HtmlDocumentParser.ResolveEffectiveBaseUri(native, resolved.BaseUri), snapshot);
+        cancellationToken.ThrowIfCancellationRequested();
+        Dom.HtmlDocument snapshot = HtmlConversionInputGuard.CaptureOwnedTree(document, resolved.Limits, cancellationToken);
+        IHtmlDocument native = NativeDomBridge.GetNativeDocument(snapshot, cancellationToken);
+        HtmlConversionInputGuard.ValidateDocument(native, resolved.Limits, cancellationToken);
+        string source = HtmlConversionSourceWriter.Serialize(native, resolved.Limits, cancellationToken);
+        Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(native, resolved.BaseUri);
+        cancellationToken.ThrowIfCancellationRequested();
+        return new HtmlConversionDocument(source, native, resolved, baseUri, snapshot);
     }
 
     /// <summary>Edits an independent source snapshot and retains this conversion's trust, resource and fidelity options.</summary>

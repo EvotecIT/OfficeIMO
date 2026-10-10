@@ -40,16 +40,7 @@ public static class OfficeRasterText {
         if (wrapWidth.HasValue && (!Finite(wrapWidth.Value) || wrapWidth.Value <= 0)) throw new ArgumentOutOfRangeException(nameof(wrapWidth));
         if (settings.Wrap && !wrapWidth.HasValue) throw new ArgumentException("Wrapped text measurement requires a width.", nameof(wrapWidth));
         var canvas = CreateCanvas(new OfficeRasterImage(1, 1), settings, cancellationToken);
-        Func<string?, double, double> measure = (value, size) => {
-            cancellationToken.ThrowIfCancellationRequested();
-            return canvas.MeasureText(value, size, settings.FontFamily, settings.FontStyle);
-        };
-        IReadOnlyList<OfficeTextLine> lines = settings.Wrap
-            ? OfficeTextLayoutEngine.WrapLines(text, settings.FontSize, wrapWidth!.Value, measure)
-            : OfficeTextLayoutEngine.MeasureUnwrappedLines(text, settings.FontSize, measure);
-        cancellationToken.ThrowIfCancellationRequested();
-        double lineHeight = settings.FontSize * settings.LineHeight;
-        return new OfficeTextBlockLayout(lines, settings.FontSize, lineHeight, OfficeTextLayoutEngine.MeasureMaxLineWidth(lines), lines.Count * lineHeight);
+        return MeasureLayout(text, settings, canvas, wrapWidth, cancellationToken);
     }
 
     /// <summary>Draws measured text, optional shadow, and a rounded raster outline over existing pixels.</summary>
@@ -59,7 +50,9 @@ public static class OfficeRasterText {
         Draw(target, text, x, y, width, height, color, new OfficeRasterTextOptions { FontSize = fontSize, FontFamily = fontFamily }, cancellationToken);
 
     /// <summary>Draws text and optional effects with the same shared font and layout settings used by measurement.</summary>
-    /// <remarks>The target is mutated. Cancellation can leave painted pixels; glyphs and effects obey the captured clipping setting.</remarks>
+    /// <remarks>The target is mutated. The rectangle places the measured block and supplies its wrap width when wrapping is enabled.
+    /// Rectangle height does not remove lines; glyphs and effects are cut at its edges only when Clip is enabled.
+    /// Cancellation can leave painted pixels.</remarks>
     public static void Draw(OfficeRasterImage target, string? text, double x, double y, double width, double height, OfficeColor color,
         OfficeRasterTextOptions options, CancellationToken cancellationToken = default) {
         if (target == null) {
@@ -77,10 +70,9 @@ public static class OfficeRasterText {
         cancellationToken.ThrowIfCancellationRequested();
         var mask = new OfficeRasterImage(target.Width, target.Height);
         var canvas = CreateCanvas(mask, settings, cancellationToken);
-        var plan = OfficeTextBlockRenderPlan.CreateTextBlockFromRectangle(text, settings.FontSize, x, y, width, height,
-            (value, size) => { cancellationToken.ThrowIfCancellationRequested(); return canvas.MeasureText(value, size, settings.FontFamily, settings.FontStyle); },
-            settings.HorizontalAlignment, settings.VerticalAlignment,
-            settings.LineHeight, settings.FontSize, settings.Wrap, false, false, OfficeTextOverflowBehavior.Clip);
+        OfficeTextBlockLayout layout = MeasureLayout(text, settings, canvas, settings.Wrap ? width : null, cancellationToken);
+        var plan = OfficeTextBlockRenderPlan.CreateFromRectangle(layout, x, y, width, height,
+            settings.HorizontalAlignment, settings.VerticalAlignment);
         using (settings.Clip ? canvas.PushClipRectangle(x, y, width, height) : null) {
             OfficeTextBlockRenderer.DrawRasterTextBox(canvas, plan, OfficeColor.White,
                 bold: (settings.FontStyle & OfficeFontStyle.Bold) != 0, italic: (settings.FontStyle & OfficeFontStyle.Italic) != 0,
@@ -93,6 +85,21 @@ public static class OfficeRasterText {
             CompositeMask(target, outline, settings.OutlineColor.Value, 0, 0, settings.Clip, x, y, width, height, cancellationToken);
         }
         CompositeMask(target, mask, color, 0, 0, settings.Clip, x, y, width, height, cancellationToken);
+    }
+
+    /// <summary>Measures complete authored or wrapped lines with the captured canvas and fractional raster line height.</summary>
+    private static OfficeTextBlockLayout MeasureLayout(string? text, OfficeRasterTextOptions settings, OfficeRasterCanvas canvas,
+        double? wrapWidth, CancellationToken cancellationToken) {
+        Func<string?, double, double> measure = (value, size) => {
+            cancellationToken.ThrowIfCancellationRequested();
+            return canvas.MeasureText(value, size, settings.FontFamily, settings.FontStyle);
+        };
+        IReadOnlyList<OfficeTextLine> lines = settings.Wrap
+            ? OfficeTextLayoutEngine.WrapLines(text, settings.FontSize, wrapWidth!.Value, measure)
+            : OfficeTextLayoutEngine.MeasureUnwrappedLines(text, settings.FontSize, measure);
+        cancellationToken.ThrowIfCancellationRequested();
+        double lineHeight = settings.FontSize * settings.LineHeight;
+        return new OfficeTextBlockLayout(lines, settings.FontSize, lineHeight, OfficeTextLayoutEngine.MeasureMaxLineWidth(lines), lines.Count * lineHeight);
     }
 
     private static OfficeRasterCanvas CreateCanvas(OfficeRasterImage image, OfficeRasterTextOptions settings, CancellationToken token) =>

@@ -248,7 +248,7 @@ public class PdfAcroFormAuthoringTests {
         };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfReadDocument.Open(source, options).HasOnlyWidgetOwnedActiveContent());
+            PdfReadDocument.Open(source, options).HasOnlyFormOwnedActiveContent());
 
         Assert.Equal(PdfReadLimitKind.ObjectNestingDepth, exception.Kind);
         Assert.Equal(8, exception.Limit);
@@ -263,7 +263,7 @@ public class PdfAcroFormAuthoringTests {
         PdfReadDocument readDocument = PdfReadDocument.Open(source);
         PdfDocument document = PdfDocument.Load(source);
 
-        Assert.False(readDocument.HasOnlyWidgetOwnedActiveContent());
+        Assert.False(readDocument.HasOnlyFormOwnedActiveContent());
         Assert.False(document.Preflight().CanFillSimpleFormFields);
         Assert.Throws<PdfMutationBlockedException>(() => document.Forms.Edit(edit => edit.Rename("run", "renamed")));
     }

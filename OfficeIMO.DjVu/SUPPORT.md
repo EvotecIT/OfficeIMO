@@ -13,7 +13,7 @@ OfficeIMO.DjVu owns managed reading and raster decoding. Reader and PDF packages
 | FGbz | Palette colours and BZZ placement correspondence | Palette indices must match decoded placements. |
 | BGjp and FGjp | Managed JPEG profiles supported by OfficeIMO.Core | JPEG 2000 BG2k/FG2k fails explicitly, including mixed supported/unsupported layers. No external fallback. |
 | Raster output | Native DPI, region selection, gamma, rotation, resolution scaling, caller-owned RGBA | Annotations and viewer settings are reported without active paint. Core resampling at changed DPI is a separate operation from native reconstruction. |
-| Reader | Native pages and text geometry, source hashes, optional complete PNG assets and OCR candidates | Text-only by default. Transport requires v11. Stored text has no invented OCR recognition evidence. |
+| Reader | Native pages and text geometry, source hashes, optional complete PNG assets and OCR candidates | Text-only by default. Transport requires v12. Stored text has no invented OCR recognition evidence. |
 | PDF | Scanned pixels, physical source size, stored searchable text, supported navigation, explicit new OCR | No editable layout/font reconstruction. Missing OCR geometry, corrupt stored text, omitted annotations and outline changes are reported. |
 
 ## Resource and ownership boundaries

@@ -4,7 +4,7 @@ description: "Check package-owned document operations and detailed Word, Excel, 
 layout: compatibility
 slug: compatibility
 meta.social_card_badge: "Format compatibility"
-meta.social_card_metrics: "70|Package owners|package;1386|Operation outcomes|check;3|Detailed legacy families|code"
+meta.social_card_metrics: "74|Package owners|package;1394|Operation outcomes|check;3|Detailed legacy families|code"
 ---
 
 ## Choose the result your workflow needs

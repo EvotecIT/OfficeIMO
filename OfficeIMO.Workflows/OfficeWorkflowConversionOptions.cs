@@ -8,6 +8,7 @@ using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.OpenDocument.Odg.Pdf;
 using OfficeIMO.Visio.Pdf;
 using OfficeIMO.Xps;
+using OfficeIMO.Chm;
 using OfficeIMO.DjVu.Pdf;
 using System.Text.Json.Serialization;
 
@@ -24,8 +25,10 @@ public sealed class OfficeWorkflowConversionOptions {
     public ExcelToPdfOptions? Excel { get; set; }
     /// <summary>Existing presentation renderer settings for PPTX input.</summary>
     public PowerPointToPdfOptions? PowerPoint { get; set; }
-    /// <summary>Existing HTML renderer settings. Workflow resource access remains scoped to the source.</summary>
+    /// <summary>Existing HTML renderer settings for HTML and CHM topics. Workflow resource access remains scoped to the source.</summary>
     public HtmlToPdfOptions? Html { get; set; }
+    /// <summary>CHM topic selection and aggregate conversion budgets.</summary>
+    public ChmConversionOptions? Chm { get; set; }
     /// <summary>Existing Markdown renderer settings.</summary>
     public MarkdownToPdfOptions? Markdown { get; set; }
     /// <summary>Existing RTF renderer settings.</summary>
@@ -77,6 +80,7 @@ public sealed class OfficeWorkflowConversionOptions {
             VisioOptions = Visio.VisioOptions, ProjectionOptions = Visio.ProjectionOptions
         };
         copy.Xps = Xps?.Clone();
+        copy.Chm = Chm?.Clone();
         copy.DjVu = DjVu?.Clone();
         return copy;
     }
@@ -96,7 +100,8 @@ public sealed class OfficeWorkflowConversionOptions {
         if (routeId is not "doc-pdf" and not "docx-pdf") copy.Word = null;
         if (routeId != "xlsx-pdf") { copy.Excel = null; copy.WorksheetLayout = null; }
         if (routeId != "pptx-pdf") copy.PowerPoint = null;
-        if (routeId != "html-pdf") copy.Html = null;
+        if (routeId is not "html-pdf" and not "chm-pdf") copy.Html = null;
+        if (routeId is not "chm-pdf" and not "chm-markdown" and not "chm-epub") copy.Chm = null;
         if (routeId != "markdown-pdf") copy.Markdown = null;
         if (routeId != "rtf-pdf") copy.Rtf = null;
         if (routeId != "odg-pdf") copy.Draw = null;
@@ -122,10 +127,12 @@ public sealed class OfficeWorkflowConversionOptions {
             throw new ArgumentException("A source password is supported for DOCX, XLSX and PPTX conversion.");
         if ((copy.Word != null && route.Id is not "doc-pdf" and not "docx-pdf") ||
             (copy.Excel != null && route.Id != "xlsx-pdf") || (copy.PowerPoint != null && route.Id != "pptx-pdf") ||
-            (copy.Html != null && route.Id != "html-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
+            (copy.Html != null && route.Id is not "html-pdf" and not "chm-pdf") || (copy.Markdown != null && route.Id != "markdown-pdf") ||
             (copy.Rtf != null && route.Id != "rtf-pdf") || (copy.Draw != null && route.Id != "odg-pdf") ||
             (copy.Visio != null && route.Id != "visio-pdf") || (copy.Xps != null && route.Id != "xps-pdf") || (copy.DjVu != null && route.Id != "djvu-pdf"))
             throw new ArgumentException("Renderer settings must match the selected conversion route.");
+        if (copy.Chm != null && route.Id is not "chm-pdf" and not "chm-markdown" and not "chm-epub")
+            throw new ArgumentException("CHM settings require a compiled-help conversion route.");
         if (copy.DjVu?.OcrEngine != null)
             throw new ArgumentException("Use the native asynchronous DjVu converter or the explicit OCR workflow for OCR engines.");
         if (copy.Visio != null && (copy.Visio.Mode != VisioPdfProjectionMode.DiagramPages ||

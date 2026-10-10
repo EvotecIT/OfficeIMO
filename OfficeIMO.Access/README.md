@@ -1,6 +1,6 @@
 # OfficeIMO.Access
 
-OfficeIMO.Access reads native Jet 4 MDB and ACE ACCDB files, inspects application objects, edits qualified native VBA projects, preserves unchanged files, and creates fresh Jet 4/ACE 12 table databases from one typed document model. It exposes catalogs, selected table schemas and properties, indexes, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
+OfficeIMO.Access reads native Jet 3/Jet 4 MDB and ACE ACCDB files, inspects qualified Jet 4/ACE application objects and VBA, edits qualified Jet 4/ACE VBA projects, preserves unchanged files, and creates fresh Jet 4/ACE 12 table databases from one typed document model. It exposes catalogs, selected table schemas and properties, indexes, relationships, saved-query records and forward-only rows. Attachments, multivalued fields and long binary values have bounded lazy access.
 
 The library runs on .NET without Microsoft Access, DAO, OLE DB or a database provider. It references OfficeIMO.Core for shared document contracts and binary primitives. File inspection never executes SQL, VBA, macros, calculated expressions or linked-table connections.
 
@@ -42,6 +42,8 @@ while (reader.Read()) {
 
 The same API reads both file families. `AccessDataReader` implements `DbDataReader` and works with `DataTable.Load`. Field order and types come from the native schema. `RowCount` is the declared native count; a complete scan validates it. Linked tables expose `LinkedTable` metadata and reject row access because the library never resolves external targets.
 
+Access 97 files use the same `Load` and `OpenDataReader` calls and report `Profile = AccessFormatProfile.Jet3`. The Jet 3 reader handles 2048-byte pages, legacy table definitions and variable-field directories, and the qualified single-byte code pages 1250, 1252, 437, 850 and MacRoman (10000). Unsupported column encodings return exact `AccessOpaqueValue` bytes with diagnostics; unsupported catalog encodings keep the whole catalog unavailable. Jet 3 property maps and application definitions remain preserve-only, and VBA inspection is unavailable for this generation.
+
 `Tables` contains user tables. `SystemTables` exposes native system/backing tables separately, and `Catalog` retains native identifiers, flags, owner metadata and exact catalog-row representations. Each collection has its own `CatalogStatus`. An application inventory can be decoded while individual definitions remain preserve-only.
 
 ## Read binary and structured fields
@@ -72,7 +74,7 @@ if (structured.Read()) {
 
 Ordinary fields decode when requested. Binary `GetStream` reads forward through native storage without allocating the whole payload; `GetValue` returns a defensive byte array. Attachment enumeration reads metadata first; requesting content allocates a bounded decoded payload. Structured fields also offer `OpenDataReader` for their backing rows. Complex-value scans use the same per-reader row limit.
 
-Calculated fields, unknown representations and Decimal definitions outside the qualified .NET precision range return `AccessOpaqueValue` with a reason and column diagnostics. `GetBytes()` returns their exact representation as a defensive copy. Rich-text markup and hyperlink strings retain their persisted content; the reader does not render or follow them.
+Calculated fields, unknown representations, unsupported Jet 3 column encodings and Decimal definitions outside the qualified .NET precision range return `AccessOpaqueValue` with a reason and column diagnostics. `GetFieldType` reports that value type so `DataTable.Load` retains the opaque value. `GetBytes()` returns its exact representation as a defensive copy. Rich-text markup and hyperlink strings retain their persisted content; the reader does not render or follow them.
 
 ## Inspect saved queries and links
 
@@ -87,13 +89,13 @@ foreach (AccessTable table in source.Tables.Where(x => x.IsLinked)) {
 }
 ```
 
-Saved queries are inert. SQL reconstruction covers the qualified simple single-table SELECT and two-part UNION shapes. Sized parameters, external-source qualifiers and other unqualified shapes have `HasSql` false and `Sql` then throws. `NativeRecords` retains all query attributes and exact record bytes, including unsupported definitions. Original expressions and typed parameters remain available without execution.
+Saved queries are inert. SQL reconstruction covers the qualified simple single-table SELECT and two-part UNION shapes. Sized parameters, external-source qualifiers, unavailable text encodings and other unqualified shapes have `HasSql` false and `Sql` then throws. `NativeRecords` retains all query attributes and exact record bytes, including unsupported definitions. Qualified expressions and typed parameters remain available without execution. Query diagnostics identify an unavailable parameter inventory when names cannot be decoded; the system-table reader retains opaque text values.
 
-Ordinary linked-table views and the `MSysObjects.Connect` reader redact credential fields. Explicit raw catalog-row access can contain sensitive native data; callers control whether to inspect or export those bytes.
+Ordinary linked-table views and the `MSysObjects.Connect` reader redact credential fields. Connection text with an unsupported encoding returns a redacted placeholder. Linked-table diagnostics identify unavailable source or table-name encodings. Explicit raw catalog-row access can contain sensitive native data; callers control whether to inspect or export those bytes.
 
 ## Inspection, limits and lifetime
 
-`AccessDocument.Inspect(path)` performs header-only inspection. `Load` decodes qualified catalogs by default; `DecodeCatalog = false` keeps header-only loading. Protected and Jet 3 inputs retain `NotDecoded` catalogs with explicit diagnostics. Header inspection checks signatures, generation, page alignment and byte/page budgets and hashes a bounded snapshot. It does not establish protection state, object absence or whole-database validity.
+`AccessDocument.Inspect(path)` performs header-only inspection. `Load` decodes qualified catalogs by default; `DecodeCatalog = false` keeps header-only loading. Protected inputs and unsupported Jet 3 catalog encodings retain `NotDecoded` catalogs with explicit diagnostics. Header inspection checks signatures, generation, page alignment and byte/page budgets and hashes a bounded snapshot. It does not establish protection state, object absence or whole-database validity.
 
 Loading snapshots the bounded file into memory and closes its file handle. Table selection limits user-schema decoding, while required system metadata is still decoded. User rows and large fields are not materialized into the document model. Limits cover input bytes, pages, catalog objects, total metadata bytes, value bytes, rows traversed and chain depth. Cancellation reaches loading, page traversal and payload reads; in-memory reader async methods complete synchronously.
 
@@ -114,7 +116,7 @@ foreach (AccessVbaReferenceInfo reference in source.VbaProject.References)
     Console.WriteLine($"{reference.Name}: {reference.LibraryId}");
 ```
 
-ACE version-21 designers expose qualified sections, controls, sources and Click bindings. Jet version-19 designers and unsupported properties retain exact bytes. Standalone and embedded `StopMacro` definitions, table data-macro XML and resource metadata have separate APIs. Stored VBA references are inventoried without resolving libraries; implicit built-in references are outside this inventory. Missing compiled-source text stays unavailable.
+ACE version-21 designers expose qualified sections, controls, sources and Open, Click and AfterUpdate bindings. Jet version-19 designers and unsupported properties retain exact bytes. Standalone and embedded `StopMacro` definitions, table data-macro XML and resource metadata have separate APIs. Stored VBA references are inventoried without resolving libraries; implicit built-in references are outside this inventory. Missing compiled-source text stays unavailable.
 
 `ApplicationStreams` retains storage paths and exact payloads, `Dependencies` contains observed references with explicit unresolved entries, and `ChangeJournal` records model mutations and rolls them back with the edit scope. Dependency inspection is partial; it does not parse arbitrary SQL or VBA. Set `DecodeApplicationObjects = false` when only the table catalog is needed.
 
@@ -137,7 +139,19 @@ database.Save("edited.accdb");
 
 The executable public workflow is `dotnet run --project OfficeIMO.Access.Verification -- --edit-vba OfficeIMO.Access.Tests/Fixtures <new-output-folder>`. On a Windows machine with Access installed, `OfficeIMO.Access.Verification/Test-NativeVbaEditing.ps1 -OutputRoot <output-folder>` independently reopens and compiles those synthetic outputs with macros disabled.
 
-Existing form/report code-behind is available through its native module name, such as `Form_Orders` or `Report_Invoices`, with `OfficeVbaModuleKind.Document`. Replace its source with `SetModuleSource`; its native `VB_Base` and host binding are preserved. Host module rename/removal, adding new code-behind, and designer/event-binding changes are unqualified.
+Existing form/report code-behind is available through its native module name, such as `Form_Orders` or `Report_Invoices`, with `OfficeVbaModuleKind.Document`. Replace its source with `SetModuleSource`; its native `VB_Base` and host binding are preserved. `SetCodeBehind` creates or replaces code-behind on an existing native form or report, including its first class module. A new class requires an ASCII VBA identifier of at most 31 characters including `Form_` or `Report_`; other object names reject creation. Host module rename/removal remains unqualified. Its `OfficeVbaWriteOptions` limits apply to both the existing project load and the staged output.
+
+```csharp
+AccessApplicationObject form = database.Forms["Orders"];
+form.SetCodeBehind("Option Explicit\r\nPrivate Sub Form_Open(Cancel As Integer)\r\nEnd Sub\r\n");
+form.SetEventBinding(AccessEventKind.Open, "[Event Procedure]");
+form.SetEventBinding(AccessEventKind.AfterUpdate, "=Len(\"inert\")", "CustomerChoice");
+database.Save("orders-edited.accdb");
+```
+
+Event authoring is qualified for ACE expanded version-21 designers: form/report Open, label/text-box/combo-box Click, and text-box/combo-box AfterUpdate. Bindings remain inert; setting an event does not create or run a handler. `[Event Procedure]` requires existing code-behind. Null or empty clears a binding. Replacing Click also removes its associated embedded macro; unrelated native records remain exact. Jet version-19 designers, nonempty designer deltas, other control/event layouts and new embedded actions reject event edits.
+
+The executable host workflow is `dotnet run --project OfficeIMO.Access.Verification -- --edit-vba-hosts OfficeIMO.Access.Tests/Fixtures <new-output-folder>`. `Test-NativeVbaHosts.ps1 -OutputRoot <output-folder>` and `Test-NativeVbaHostEvents.ps1 -OutputRoot <output-folder>` independently verify native class source, event state and VBE compilation with macros disabled.
 
 Native editing is qualified for unprotected Jet 4 and ACE 12/14 application storage. Module catalog IDs, storage slots, permission records and unrelated application payloads remain preserved. Unknown permission/index/signature carriers reject editing; signature validation and signed-project authoring are unavailable. The default `MaximumRecoveryBytes` is 64 MiB. Old unreachable pages remain allocated; this operation does not compact the database.
 

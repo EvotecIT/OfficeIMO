@@ -64,7 +64,7 @@ internal static class OfficeVbaProjectText {
             }
             string prefix = module.Kind == OfficeVbaModuleKind.Standard ? "Module="
                 : module.Kind == OfficeVbaModuleKind.Class ? "Class="
-                : module.Kind == OfficeVbaModuleKind.Designer ? "BaseClass=" : "Document=";
+                : module.Kind == OfficeVbaModuleKind.Designer ? "BaseClass=" : module.IsDocumentClass ? "DocClass=" : "Document=";
             output.Add(prefix + module.Name + (module.Kind == OfficeVbaModuleKind.Document ? "/&H00000000" : string.Empty));
         }
     }

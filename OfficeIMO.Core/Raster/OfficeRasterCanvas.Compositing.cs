@@ -4,12 +4,13 @@ namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeRasterCanvas {
     /// <summary>Draws an affine image with managed opacity and blend-mode compositing.</summary>
+    /// <remarks>Pixel area coverage at the image boundary combines with source alpha and the supplied opacity.</remarks>
     public void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, OfficeBlendMode blendMode) =>
         DrawAffineImage(image, transform, opacity, blendMode, interpolate: true);
 
-    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, OfficeBlendMode blendMode, bool interpolate) {
+    internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, OfficeBlendMode blendMode, bool interpolate, bool antialiasBoundary = true) {
         if (blendMode == OfficeBlendMode.Normal) {
-            DrawAffineImage(image, transform, opacity, interpolate);
+            DrawAffineImage(image, transform, opacity, interpolate, antialiasBoundary);
             return;
         }
 
@@ -22,9 +23,11 @@ public sealed partial class OfficeRasterCanvas {
         if (opacity <= 0D || !transform.TryInvert(out OfficeTransform inverse)) return;
 
         (double minX, double minY, double maxX, double maxY) = transform.TransformRectangleBounds(0D, 0D, image.Width, image.Height);
-        if (!IntersectsVisibleBounds((minX, minY, maxX, maxY))) return;
+        bool useAreaCoverage = interpolate && antialiasBoundary;
+        if (!IntersectsVisibleImageBounds((minX, minY, maxX, maxY), useAreaCoverage)) return;
         image = PrepareImageSource(image);
         if (interpolate) image = PrefilterAffineImage(image, ref inverse);
+        ImageBoundaryCoverage? boundary = useAreaCoverage ? new ImageBoundaryCoverage(inverse, image.Width, image.Height) : null;
         int left = Clamp((int)Math.Floor(minX), 0, Width - 1);
         int top = Clamp((int)Math.Floor(minY), 0, Height - 1);
         int right = Clamp((int)Math.Ceiling(maxX), 0, Width - 1);
@@ -34,13 +37,15 @@ public sealed partial class OfficeRasterCanvas {
             for (int x = left; x <= right; x++) {
                 if (!IsPixelInsideClip(x, y)) continue;
                 OfficePoint sourcePoint = inverse.TransformPoint(new OfficePoint(x + 0.5D, y + 0.5D));
-                if (sourcePoint.X < 0D || sourcePoint.X >= image.Width || sourcePoint.Y < 0D || sourcePoint.Y >= image.Height) continue;
+                double coverage = boundary?.GetCoverage(sourcePoint, out sourcePoint) ?? 1D;
+                if (coverage <= 0D || (boundary == null &&
+                    (sourcePoint.X < 0D || sourcePoint.X >= image.Width || sourcePoint.Y < 0D || sourcePoint.Y >= image.Height))) continue;
                 OfficeColor source = interpolate
                     ? SampleBilinear(image, sourcePoint.X - 0.5D, sourcePoint.Y - 0.5D)
                     : image.GetPixel(
                         Clamp((int)Math.Floor(sourcePoint.X), 0, image.Width - 1),
                         Clamp((int)Math.Floor(sourcePoint.Y), 0, image.Height - 1));
-                if (opacity < 1D) source = OfficeColor.FromRgba(source.R, source.G, source.B, (byte)Math.Round(source.A * opacity));
+                source = ApplyCoverage(source, coverage * opacity);
                 CompositeBlendPixel(x, y, source, blendMode);
             }
         }
