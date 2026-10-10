@@ -78,7 +78,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             InlineLine current = lines[lineIndex];
             double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
             bool alignTextBaseline = current.HasMixedTextSizes(paragraphStyle);
-            double baseline = alignTextBaseline || current.HasReplacedImage
+            bool emptyAtomicBaseline = TryResolveEmptyInlineBlockLineMetrics(current, paragraphStyle, ref lineHeight, out double resolvedEmptyBaseline);
+            double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : alignTextBaseline || current.HasReplacedImage
                 ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
                 : current.ResolveBaseline(paragraphStyle);
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
@@ -137,7 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (segment.Run.AtomicBlock != null) {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
                     double atomicBaseline = segment.Run.AtomicBaseline ?? atomic.Height;
-                    double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage ? baseline : lineHeight) - atomicBaseline);
+                    double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage || emptyAtomicBaseline ? baseline : lineHeight) - atomicBaseline);
                     if (segment.Run.Style.TableVerticalAlignment == "top") atomicY = lineY;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
                     double anchorTop = Math.Min(lineY, atomicY);
@@ -185,14 +186,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         }
                     }
                 } else if (segment.Text.Length > 0) {
-                    double textLineHeight = current.HasReplacedImage || alignTextBaseline ? segment.Run.Style.LineHeight : lineHeight;
-                    if (current.HasReplacedImage || alignTextBaseline) {
+                    double textLineHeight = current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline ? segment.Run.Style.LineHeight : lineHeight;
+                    if (current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline) {
                         // A smaller run shares the line baseline without extending
                         // its inherited leading below the containing line box.
                         double baselineOffset = Math.Max(0D, baseline - segment.Run.Style.Font.Size);
                         textLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - baselineOffset));
                     }
-                    ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline, lineY,
+                    ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline, lineY,
                         textLineHeight, baseline, out double textY, out double paintHeight,
                         out double paintTopOverflow);
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x,
@@ -362,7 +363,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             lineBreakGroups: lineBreakGroups,
             continuationGroups: continuationGroups,
             trailingGroups: trailingGroups,
-            pagedPaintExtent: hasFloats ? floatPlacements!.Max(placement => placement.Bottom) : height);
+            pagedPaintExtent: hasFloats ? floatPlacements!.Max(placement => placement.Bottom) : height,
+            hasInFlowLineBoxes: lines.Any(line => line.HasFlowContent || line.HasForcedBreak));
     }
 
 }

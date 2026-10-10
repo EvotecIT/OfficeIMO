@@ -81,7 +81,8 @@ internal static partial class HtmlPdfRenderedConverter {
         string text,
         bool bold,
         bool italic) =>
-        PlanNamedFaceStyleRuns(text, family, bold, italic, options).All(run => run.Covered);
+        (text.Length > 0 || options.TryResolveNamedFontFace(family, bold, italic, out _))
+        && PlanNamedFaceStyleRuns(text, family, bold, italic, options).All(run => run.Covered);
 
     private static double? MeasureNamedFaceStyledText(
         PdfCore.PdfOptions options,

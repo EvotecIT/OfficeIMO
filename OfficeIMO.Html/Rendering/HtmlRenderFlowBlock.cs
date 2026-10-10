@@ -158,6 +158,9 @@ internal sealed class HtmlRenderFlowBlock {
     internal double LayoutViewportWidth { get; }
     internal double LayoutViewportHeight { get; }
     internal double LeadingFlowAdjustment { get; }
+    // Stamped on the final ordinary LayoutElement result, for its immediate inline
+    // consumer. Derived/specialized blocks remain unqualified rather than guessed empty.
+    internal bool KnownNoInFlowLineBoxes { get; set; }
 
     internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
         new HtmlRenderFlowBlock(
@@ -735,13 +738,17 @@ internal sealed class HtmlInlineRun {
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningElementAssignments { get; } = Array.Empty<HtmlCssRunningStringAssignment>();
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
+    internal bool HasEmptyInlineBlockBaseline { get; set; }
     internal bool IsBlockInterruption { get; }
     internal bool IsFlowMarker { get; }
     internal HtmlInlineEdgeBoundary? InlineEdgeBoundary { get; set; }
     internal IReadOnlyList<HtmlInlineEdgeScope> InlineEdgeScopes { get; set; } = Array.Empty<HtmlInlineEdgeScope>();
+    // Inline line-box metrics also belong to wrappers without decoration edges.
+    internal IReadOnlyList<HtmlRenderBoxStyle> InlineStrutStyles { get; set; } = Array.Empty<HtmlRenderBoxStyle>();
     internal double InlineClosingAdvance { get; set; }
     internal bool InlineTokenEndsRun { get; set; }
     internal bool IsEmptyInlineBox { get; set; }
+    internal bool IsInlineStrutMarker { get; set; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }
@@ -806,6 +813,8 @@ internal sealed class HtmlInlineRun {
             EndsFirstLine = EndsFirstLine,
             FirstLineHyphen = FirstLineHyphen,
             InlineEdgeScopes = InlineEdgeScopes,
+            InlineStrutStyles = InlineStrutStyles,
+            IsInlineStrutMarker = IsInlineStrutMarker,
             InlineClosingAdvance = InlineClosingAdvance,
             InlineTokenEndsRun = InlineTokenEndsRun
         };

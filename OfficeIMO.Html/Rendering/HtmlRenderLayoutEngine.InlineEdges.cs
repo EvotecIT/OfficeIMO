@@ -204,6 +204,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 var empty = new HtmlInlineRun(string.Empty, boundaryRun.Style, boundaryRun.LinkUri,
                     boundaryRun.Source, boundaryRun.PaintOffsetX, boundaryRun.PaintOffsetY, boundaryRun.OwnerElement) {
                     InlineEdgeScopes = boundaryRun.InlineEdgeScopes,
+                    InlineStrutStyles = boundaryRun.InlineStrutStyles,
                     IsEmptyInlineBox = true
                 };
                 Add(new InlineSegment(string.Empty, 0D, empty));

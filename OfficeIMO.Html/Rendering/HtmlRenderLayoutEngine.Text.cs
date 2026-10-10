@@ -191,7 +191,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     run.PaintOffsetY,
                     run.OwnerElement,
                     run.PositionedMarkerElement,
-                    fallback.Text);
+                    fallback.Text) {
+                    InlineStrutStyles = run.InlineStrutStyles
+                };
                 resolvedRun.PreparedHyphenation = run.PreparedHyphenation?.SliceSource(fallbackOffset, fallback.Text.Length);
                 fallbackOffset += fallback.Text.Length;
                 resolvedRun.EndsFirstLine = run.EndsFirstLine && fallbackOffset == run.Text.Length;
@@ -236,7 +238,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
-        ICollection<HtmlInlineRun> runs, bool flattenInternalTableBoxes = false) {
+        IList<HtmlInlineRun> runs, bool flattenInternalTableBoxes = false) {
         CheckCancellation();
         ChargeLayoutOperation("inline node traversal");
         if (IsClosedDisclosureChild(node)) return;
@@ -288,7 +290,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         bool isPageFloat = TryGetPageFloatSide(element, style, out _);
         bool isColumnFloat = TryGetColumnEdgeFloatSide(element, style, out _, out _);
-        if (!isBlock && !isPageFloat && !isColumnFloat) {
+        // These boxes run LayoutElement, which owns their destination at the
+        // laid-out box. An additional zero-flow marker would duplicate it.
+        bool ownsAtomicDestination = !IsReplacedImageElementTag(tag) && tag is not ("math" or "ruby")
+            && (!IsFormControlElement(tag) || UsesButtonChildLayout(element))
+            && style.Display is "inline-block" or "inline-flex" or "inline-grid" or "inline-table";
+        if (!isBlock && !isPageFloat && !isColumnFloat && !ownsAtomicDestination) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (!isPageFloat && !isColumnFloat) ReportUnsupportedFloatValues(element, style);
@@ -333,7 +340,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         // Extracted figures own their destination at the moved box. A
         // rejected extraction retains the ordinary inline target in source flow.
-        if ((isPageFloat || isColumnFloat) && !isBlock) {
+        if ((isPageFloat || isColumnFloat) && !isBlock && !ownsAtomicDestination) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (style.FloatSide != "none") {
@@ -442,10 +449,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<HtmlInlineRun>? semanticRuns = ShouldCollectSemanticInlineRuns(style)
             ? new List<HtmlInlineRun>()
             : null;
-        ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        IList<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        int firstInlineRun = targetRuns.Count;
         HtmlInlineEdgeScope? inlineEdgeScope = !IsReplacedImageElementTag(tag) && tag != "math"
             ? ResolveInlineEdgeScope(element, style, inheritedStyle, paintOffsetX) : null;
         if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, true, link, paintOffsetX, paintOffsetY));
+        else if (style.Display == "inline" && !IsReplacedImageElementTag(tag) && tag != "math") {
+            targetRuns.Add(new HtmlInlineRun(string.Empty, style, link, HtmlRenderStyleResolver.DescribeSource(element),
+                paintOffsetX, paintOffsetY, element) { IsInlineStrutMarker = true });
+        }
         AddUnicodeBidiBoundaryRun(style, element, opening: true, paintOffsetX, paintOffsetY, targetRuns);
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
@@ -472,6 +484,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
         AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
         if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, false, link, paintOffsetX, paintOffsetY));
+        if (style.Display == "inline") CaptureInlineStrutStyles(targetRuns, firstInlineRun, style);
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
     }
 
@@ -673,7 +686,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool inlineEdgesPrepared = false) {
         AssignLogicalTextOrders(runs);
         if (!inlineEdgesPrepared) PrepareInlineEdgeScopes(runs);
-        if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
+        if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D,
+            hasInFlowLineBoxes: runs.Count == 0 ? false : (bool?)null);
         if (runs.Any(run => run.IsBlockInterruption)) {
             return LayoutInterruptedInlineRuns(runs, width, paragraphStyle, formattingContainer);
         }
@@ -696,6 +710,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (skipLogicalCharacters == 0) line.Indent(paragraphStyle.TextIndent?.Resolve(width) ?? 0D, paragraphStyle.Direction == "rtl");
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
+        int noWrapStrutStart = 0;
         bool noWrapRangeStartedAfterContent = false;
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
@@ -706,13 +721,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     lines,
                     ref line,
                     noWrapRangeStart,
+                    noWrapStrutStart,
                     noWrapRangeStartedAfterContent,
                     width);
                 noWrapRangeStart = -1;
                 noWrapRangeStartedAfterContent = false;
             } else if (runPreventsWrapping && noWrapRangeStart < 0) {
                 noWrapRangeStart = line.Segments.Count;
+                noWrapStrutStart = line.EmptyInlineStrutStyles.Count;
                 noWrapRangeStartedAfterContent = line.HasFlowContent;
+            }
+            if (run.IsInlineStrutMarker) {
+                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
+                continue;
             }
             if (run.RunningStringElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
@@ -755,11 +776,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
+                    line.HasForcedBreak = true;
                     if (noWrapRangeStart >= 0) {
                         FinalizeNoWrapRange(
                             lines,
                             ref line,
                             noWrapRangeStart,
+                            noWrapStrutStart,
                             noWrapRangeStartedAfterContent,
                             width);
                     }
@@ -767,6 +790,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     line = new InlineLine();
                     previousWasCollapsibleSpace = false;
                     noWrapRangeStart = runPreventsWrapping ? 0 : -1;
+                    noWrapStrutStart = 0;
                     noWrapRangeStartedAfterContent = false;
                     continue;
                 }
@@ -896,6 +920,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 lines,
                 ref line,
                 noWrapRangeStart,
+                noWrapStrutStart,
                 noWrapRangeStartedAfterContent,
                 width);
         }
@@ -1654,14 +1679,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<InlineLine> lines,
         ref InlineLine line,
         int rangeStart,
+        int strutRangeStart,
         bool startedAfterContent,
         double width) {
         if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > line.ResolveAvailableWidth(width) + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
+            IReadOnlyList<HtmlRenderBoxStyle> rangeStruts = line.TakeEmptyInlineStruts(strutRangeStart);
             while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
             TrimTrailingWhitespace(line);
             if (line.Segments.Count > 0) lines.Add(line);
             line = new InlineLine();
+            line.RecordEmptyInlineStruts(rangeStruts);
             foreach (InlineSegment segment in range) {
                 if (!line.HasFlowContent
                     && segment.Run.RunningStringElement == null

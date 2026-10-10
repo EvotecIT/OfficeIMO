@@ -16,10 +16,12 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<HtmlRenderLineBreakGroup>? lineBreakGroups = null,
         IEnumerable<HtmlRenderContinuationGroup>? continuationGroups = null,
         IEnumerable<HtmlRenderTrailingGroup>? trailingGroups = null,
-        double? pagedPaintExtent = null) {
+        double? pagedPaintExtent = null,
+        bool? hasInFlowLineBoxes = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         NormalFlowHeight = normalFlowHeight ?? height;
+        HasInFlowLineBoxes = hasInFlowLineBoxes;
         PagedPaintExtent = Math.Max(height, pagedPaintExtent ?? height);
         BreakOffsets = new List<double>(breakOffsets ?? Array.Empty<double>()).AsReadOnly();
         LineBreakOffsets = new List<double>(lineBreakOffsets ?? BreakOffsets).AsReadOnly();
@@ -38,6 +40,9 @@ internal sealed class HtmlInlineLayout {
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal double Height { get; }
     internal double NormalFlowHeight { get; }
+    // Unknown on specialized layouts; ordinary line construction supplies the fact
+    // before fragmentation filters or paint visibility can discard its evidence.
+    internal bool? HasInFlowLineBoxes { get; }
     // Shared float contexts can paint beyond this chunk's normal-flow height.
     internal double PagedPaintExtent { get; }
     /// <summary>Page-break candidates; may exclude line ends inside a floated box.</summary>

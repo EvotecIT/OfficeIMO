@@ -12,10 +12,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
         internal double Width { get; private set; }
         internal bool HasFlowContent => _flowContentCount > 0;
+        internal bool HasForcedBreak { get; set; }
         internal bool HasExplicitPlacement { get; private set; }
         internal double X { get; private set; }
         internal double Y { get; private set; }
         internal double AvailableWidth => Math.Max(0.01D, _availableWidth - _indent);
+        internal HtmlRenderBoxStyle? ParagraphStyle { get; set; }
         internal bool EndsWithHyphenation { get; set; }
 
         internal void Place(double x, double y, double availableWidth) {
