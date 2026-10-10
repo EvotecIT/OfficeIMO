@@ -35,7 +35,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException("Table max width must be a positive finite value.");
             }
 
-            return Math.Min(frameWidth, maxWidth);
+            return style.AllowWidthBeyondFrame && !style.AutoFitColumns ? maxWidth : Math.Min(frameWidth, maxWidth);
         }
 
         return frameWidth;
@@ -304,12 +304,14 @@ internal static partial class PdfWriter {
     private static double ResolveTableX(PdfAlign align, PdfTableStyle style, double containerLeft, double containerWidth, double tableWidth) {
         double frameLeft = containerLeft + style.LeftIndent + style.HorizontalOffset;
         double frameWidth = ResolveTableFrameWidth(style, containerWidth);
+        double alignmentSpace = frameWidth - tableWidth;
+        if (!style.AllowWidthBeyondFrame) alignmentSpace = Math.Max(0D, alignmentSpace);
         if (align == PdfAlign.Center) {
-            return frameLeft + Math.Max(0, (frameWidth - tableWidth) / 2);
+            return frameLeft + alignmentSpace / 2D;
         }
 
         if (align == PdfAlign.Right) {
-            return frameLeft + Math.Max(0, frameWidth - tableWidth);
+            return frameLeft + alignmentSpace;
         }
 
         return frameLeft;

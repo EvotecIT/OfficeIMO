@@ -715,6 +715,7 @@ public partial class PdfTableStyle {
             PreferredWidth = PreferredWidth,
             MaxWidth = MaxWidth,
             PreserveWidth = PreserveWidth,
+            AllowWidthBeyondFrame = AllowWidthBeyondFrame,
             ShrinkTextToFit = ShrinkTextToFit,
             MinimumShrinkFontSize = MinimumShrinkFontSize,
             LeftIndent = LeftIndent,

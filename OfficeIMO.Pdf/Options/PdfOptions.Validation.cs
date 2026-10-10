@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
-    internal void Validate() {
+    internal void Validate(bool allowDerivedHorizontalOverflow = false) {
         if (PageWidth <= 0 || double.IsNaN(PageWidth) || double.IsInfinity(PageWidth)) {
             throw new System.ArgumentException("PDF page width must be a positive finite value.");
         }
@@ -10,11 +10,11 @@ public sealed partial class PdfOptions {
             throw new System.ArgumentException("PDF page height must be a positive finite value.");
         }
 
-        if (MarginLeft < 0 || double.IsNaN(MarginLeft) || double.IsInfinity(MarginLeft)) {
+        if ((!allowDerivedHorizontalOverflow && MarginLeft < 0) || double.IsNaN(MarginLeft) || double.IsInfinity(MarginLeft)) {
             throw new System.ArgumentException("PDF left margin must be a non-negative finite value.");
         }
 
-        if (MarginRight < 0 || double.IsNaN(MarginRight) || double.IsInfinity(MarginRight)) {
+        if ((!allowDerivedHorizontalOverflow && MarginRight < 0) || double.IsNaN(MarginRight) || double.IsInfinity(MarginRight)) {
             throw new System.ArgumentException("PDF right margin must be a non-negative finite value.");
         }
 

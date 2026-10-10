@@ -33,20 +33,47 @@ namespace OfficeIMO.Word.Pdf {
             style.PreservePartialCellLines = true;
             // The independent perimeter supplies the source continuation inset.
             style.PageContinuationSpacingBefore = 0D;
-            double horizontalInset = 0D;
-            if (style.CellBorders != null) {
-                foreach (var entry in style.CellBorders.Where(entry => entry.Key.Row == 0)) {
-                    horizontalInset = Math.Max(horizontalInset,
-                        Math.Max(GetNativeFrameSide(entry.Value, top: null, right: false)?.PaintThickness ?? 0D,
-                            GetNativeFrameSide(entry.Value, top: null, right: true)?.PaintThickness ?? 0D) / 2D);
-                }
-            }
+            double horizontalInset = layout.Rows.Count == 0 ? 0D : GetNativeTableCellBorderInset(style, 0,
+                GetNativeTableRowStartColumn(layout, 0), right: false);
             style.BorderFrame = new PdfCore.PdfTableBorderFrame {
                 Spacing = style.CellSpacing, Border = border, HorizontalInset = horizontalInset,
                 Background = table._tableProperties?.GetFirstChild<W.Shading>() is { } shading
                     ? ParseNativeColor(shading.Fill?.Value) : defaults.CellFill
             };
+            ApplyNativeFixedTableSpacingWidth(layout, style);
             ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
+        }
+
+        /// <summary>Fixed widths include outer spacing; cells retain a one-point text frame after margins and paint.</summary>
+        private static void ApplyNativeFixedTableSpacingWidth(TableLayout layout, PdfCore.PdfTableStyle style) {
+            if (style.AutoFitColumns) return;
+            var minimums = style.ColumnMinWidthPoints == null
+                ? new List<double?>() : new List<double?>(style.ColumnMinWidthPoints);
+            while (minimums.Count < layout.ColumnWidths.Length) minimums.Add(null);
+            for (int row = 0; row < layout.Rows.Count; row++) {
+                int column = GetNativeTableRowStartColumn(layout, row);
+                foreach (WordTableCell cell in layout.Rows[row]) {
+                    if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                    int span = GetNativeCellColumnSpan(cell);
+                    if (!IsNativeVerticalMergeContinuation(cell)) {
+                        double width = 1D + GetNativeTableCellHorizontalMargin(style, row, column, right: false) +
+                            GetNativeTableCellHorizontalMargin(style, row, column, right: true) +
+                            2D * (GetNativeTableCellBorderInset(style, row, column, right: false) +
+                                GetNativeTableCellBorderInset(style, row, column, right: true));
+                        double perColumn = (width - Math.Max(0, span - 1) * style.CellSpacing) / span;
+                        if (perColumn > 0D)
+                            for (int index = column; index < column + span && index < minimums.Count; index++)
+                                minimums[index] = Math.Max(minimums[index] ?? 0D, perColumn);
+                    }
+                    column += span;
+                }
+            }
+            style.ColumnMinWidthPoints = minimums;
+            if (style.AllowWidthBeyondFrame && style.MaxWidth.HasValue) {
+                double minimumWidth = minimums.Sum(width => width ?? 0D) +
+                    Math.Max(0, layout.ColumnWidths.Length - 1) * style.CellSpacing;
+                style.MaxWidth = Math.Max(minimumWidth, style.MaxWidth.Value - 2D * style.CellSpacing);
+            }
         }
 
         /// <summary>Translates Word's row constraints into cell-box heights without counting spacing twice.</summary>

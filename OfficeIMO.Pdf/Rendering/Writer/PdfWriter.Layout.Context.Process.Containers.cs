@@ -101,7 +101,10 @@ internal static partial class PdfWriter {
             nestedOptions.MarginLeft = outerX + style.PaddingX;
             nestedOptions.MarginRight = nestedOptions.PageWidth - (outerX + outerWidth - style.PaddingX);
             nestedOptions.MarginBottom += style.FragmentBottomInset;
-            nestedOptions.Validate();
+            // Imported fixed table frames may extend beyond the physical page.
+            // Their derived horizontal margins are coordinates, while the page
+            // options and the positive finite content frame remain validated.
+            nestedOptions.Validate(allowDerivedHorizontalOverflow: true);
 
             var scope = new ContainerRenderScope(style, outerX, outerWidth, pageOptions, parentOptions, nestedOptions, container);
             activeContainerScopes.Add(scope);

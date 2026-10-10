@@ -203,6 +203,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            ApplyNativeFixedTablePercentageWidth(table, layout, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
             ApplyNativeUnspacedTableRowMargins(table, layout, style);
             // An explicit PDF table style retains its presentation placement.
