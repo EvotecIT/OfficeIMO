@@ -152,6 +152,13 @@ Both native executables emit the Apple-qualified bytes and check typed Decimal12
 numbers, booleans, Unicode, a completely empty grid, caller streams, dense-cell
 bounds and strict saved/reopened XLSX. This extension is qualified on macOS arm64 only.
 
+The [macOS native-preservation NativeAOT evidence](Compatibility/iwork-native-preservation-native-aot-macos-arm64-2026-10-10.json)
+adds unchanged Pages/Numbers/Keynote file-entry saves and the exact 96,452-byte
+Keynote image translation under .NET 8.0.31 and .NET 10.0.12. Both native executables
+check content identity, resource preservation, explicit cache acceptance, caller
+streams, cancellation and strict saved/reopened PPTX. This extension is qualified
+on macOS arm64 only; native application and rendering evidence remain separate.
+
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
 the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
