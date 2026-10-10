@@ -112,6 +112,7 @@ internal static partial class PdfAnnotationEditor {
 
         if (removed.Count > 0) {
             ClearRemovedPopupReferences(objects, removed);
+            DetachRemovedAnnotationRelationships(objects, removed, new HashSet<int>());
         }
 
         foreach (int objectNumber in removed) {

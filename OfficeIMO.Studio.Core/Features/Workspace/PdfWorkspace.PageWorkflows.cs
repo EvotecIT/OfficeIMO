@@ -41,8 +41,16 @@ internal sealed partial class PdfWorkspace {
         CancellationToken cancellationToken) =>
         await RunCpuWorkAsync(operation, cancellationToken, detachOnCancellation: false).ConfigureAwait(false);
 
+    internal Task<T> RunNonDetachableCpuWorkAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken) =>
+        RunCpuWorkAsync<T>(operation, cancellationToken, detachOnCancellation: false);
+
+    private Task<T> RunCpuWorkAsync<T>(Func<T> operation, CancellationToken cancellationToken, bool detachOnCancellation) {
+        ArgumentNullException.ThrowIfNull(operation);
+        return RunCpuWorkAsync<T>(() => Task.FromResult(operation()), cancellationToken, detachOnCancellation);
+    }
+
     private async Task<T> RunCpuWorkAsync<T>(
-        Func<T> operation,
+        Func<Task<T>> operation,
         CancellationToken cancellationToken,
         bool detachOnCancellation) {
         ArgumentNullException.ThrowIfNull(operation);

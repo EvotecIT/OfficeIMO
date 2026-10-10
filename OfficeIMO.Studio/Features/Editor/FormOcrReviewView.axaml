@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+             x:Class="OfficeIMO.Studio.Features.Editor.FormOcrReviewView" x:DataType="editor:FormOcrReviewViewModel">
+  <StackPanel Spacing="8">
+    <TextBlock Text="{Binding ReviewHintLabel}" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+    <TextBlock IsVisible="{Binding !HasProposals}" Text="{Binding NoProposalsLabel}" TextWrapping="Wrap" Classes="muted" />
+    <TextBlock IsVisible="{Binding IsStale}" Text="{Binding StaleLabel}" TextWrapping="Wrap" Classes="error" />
+    <ComboBox ItemsSource="{Binding Proposals}" SelectedItem="{Binding SelectedProposal}" IsVisible="{Binding HasProposals}"
+              AutomationProperties.Name="{Binding ChooseProposalLabel}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:FormOcrProposalViewModel"><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <StackPanel DataContext="{Binding SelectedProposal}" x:DataType="editor:FormOcrProposalViewModel" Spacing="6">
+      <TextBlock Text="{Binding Evidence}" TextWrapping="Wrap" Classes="muted" />
+      <TextBlock Text="{Binding OriginalText}" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Choices}" TextWrapping="Wrap" Classes="muted" />
+      <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Classes="error" />
+      <TextBox Text="{Binding Value}" IsEnabled="{Binding CanAccept}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="44"
+               AutomationProperties.Name="{Binding CorrectedValueLabel}" />
+      <TextBlock Text="{Binding Validation}" TextWrapping="Wrap" Classes="error" />
+      <CheckBox IsChecked="{Binding Accepted}" IsEnabled="{Binding CanAccept}" Content="{Binding AcceptValueLabel}" />
+    </StackPanel>
+    <TextBlock Text="{Binding PreviewError}" TextWrapping="Wrap" Classes="error" />
+    <ComboBox ItemsSource="{Binding Sources}" SelectedItem="{Binding SelectedSource}" IsVisible="{Binding HasMultipleSources}"
+              AutomationProperties.Name="{Binding SourcePreviewLabel}">
+      <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:FormOcrSourceChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+    </ComboBox>
+    <CheckBox IsChecked="{Binding FullPage}" Content="{Binding FullPageLabel}" />
+    <editor:TextEditPreview Source="{Binding Preview}" Region="{Binding PreviewRegion}" Height="170"
+                            AutomationProperties.Name="{Binding SourcePreviewLabel}" />
+    <Expander Header="{Binding DiagnosticsLabel}"><TextBlock Text="{Binding Diagnostics}" TextWrapping="Wrap" /></Expander>
+  </StackPanel>
+</UserControl>

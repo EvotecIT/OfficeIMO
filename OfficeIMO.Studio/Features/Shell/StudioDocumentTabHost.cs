@@ -10,8 +10,10 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     internal StudioDocumentTabHost(Func<Func<string, CancellationToken, Task>, MainWindowViewModel> createDocument,
         Action<MainWindowViewModel> activateDocument, Func<MainWindowViewModel, Task<bool>>? prepareActiveClose = null) {
         Core = new(createDocument, activateDocument, (document, close) => new(document, close), prepareActiveClose);
+        Panes = new(this);
         Core.PropertyChanged += (_, args) => OnPropertyChanged(args.PropertyName);
     }
+    public StudioDocumentPanes Panes { get; }
     public ObservableCollection<StudioDocumentTabViewModel> Tabs => Core.Tabs;
     public StudioDocumentTabViewModel? SelectedTab { get => Core.SelectedTab; set => Core.SelectedTab = value; }
     public bool HasTabs => Core.HasTabs;
@@ -35,5 +37,5 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     internal Task CloseTabAsync(StudioDocumentTabViewModel tab) => Core.CloseTabAsync(tab);
     internal Task<bool> RequestCloseAllAsync() => Core.RequestCloseAllAsync();
     internal void CancelAllOperations() => Core.CancelAllOperations();
-    public void Dispose() => Core.Dispose();
+    public void Dispose() { Panes.Dispose(); Core.Dispose(); }
 }

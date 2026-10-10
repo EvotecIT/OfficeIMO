@@ -27,6 +27,21 @@ internal sealed class WorkflowArguments {
     internal int PagesPerSheet { get; private set; } = 1;
     internal PdfPrintScaleMode ScaleMode { get; private set; } = PdfPrintScaleMode.Fit;
     internal double Margin { get; private set; } = 18D;
+    internal double? MarginLeft { get; private set; }
+    internal double? MarginTop { get; private set; }
+    internal double? MarginRight { get; private set; }
+    internal double? MarginBottom { get; private set; }
+    internal double CustomScalePercent { get; private set; } = 100D;
+    internal PdfPrintAlignment Alignment { get; private set; } = PdfPrintAlignment.Center;
+    internal PdfPrintPageSubset PageSubset { get; private set; }
+    internal PdfPrintColorMode ColorMode { get; private set; }
+
+    internal PdfPrintPlanRequest CreatePrintRequest() => new() {
+        InputPath = Path.GetFullPath(Inputs[0]), Pages = Pages, PaperSize = PaperSize,
+        Orientation = Orientation, PagesPerSheet = PagesPerSheet, ScaleMode = ScaleMode, Margin = Margin,
+        MarginLeft = MarginLeft, MarginTop = MarginTop, MarginRight = MarginRight, MarginBottom = MarginBottom,
+        CustomScalePercent = CustomScalePercent, Alignment = Alignment, PageSubset = PageSubset, ColorMode = ColorMode
+    };
 
     internal static WorkflowArguments Parse(string[] args) {
         if (args.Length == 0 || IsHelp(args[0])) return new WorkflowArguments { Command = WorkflowCommandKind.Help };
@@ -91,6 +106,43 @@ internal sealed class WorkflowArguments {
                 case "--margin":
                     EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
                     parsed.Margin = ParseDouble(ReadValue(args, ref index, token), token, 0D, 200D);
+                    break;
+                case "--margin-left": case "--margin-top": case "--margin-right": case "--margin-bottom":
+                    EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
+                    double margin = ParseDouble(ReadValue(args, ref index, token), token, 0D, 1000D);
+                    if (token == "--margin-left") parsed.MarginLeft = margin;
+                    if (token == "--margin-top") parsed.MarginTop = margin;
+                    if (token == "--margin-right") parsed.MarginRight = margin;
+                    if (token == "--margin-bottom") parsed.MarginBottom = margin;
+                    break;
+                case "--custom-scale":
+                    EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
+                    parsed.CustomScalePercent = ParseDouble(ReadValue(args, ref index, token), token, 1D, 1000D);
+                    break;
+                case "--alignment":
+                    EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
+                    parsed.Alignment = ReadValue(args, ref index, token).ToLowerInvariant() switch {
+                        "center" => PdfPrintAlignment.Center, "top-left" => PdfPrintAlignment.TopLeft,
+                        "top" => PdfPrintAlignment.Top, "top-right" => PdfPrintAlignment.TopRight,
+                        "left" => PdfPrintAlignment.Left, "right" => PdfPrintAlignment.Right,
+                        "bottom-left" => PdfPrintAlignment.BottomLeft, "bottom" => PdfPrintAlignment.Bottom,
+                        "bottom-right" => PdfPrintAlignment.BottomRight,
+                        _ => throw new WorkflowUsageException("Alignment must be center, top-left, top, top-right, left, right, bottom-left, bottom, or bottom-right.")
+                    };
+                    break;
+                case "--page-subset":
+                    EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
+                    parsed.PageSubset = ReadValue(args, ref index, token).ToLowerInvariant() switch {
+                        "all" => PdfPrintPageSubset.All, "odd" => PdfPrintPageSubset.Odd, "even" => PdfPrintPageSubset.Even,
+                        _ => throw new WorkflowUsageException("Page subset must be all, odd, or even.")
+                    };
+                    break;
+                case "--color":
+                    EnsureCommand(parsed.Command, token, WorkflowCommandKind.PrintPlan);
+                    parsed.ColorMode = ReadValue(args, ref index, token).ToLowerInvariant() switch {
+                        "color" => PdfPrintColorMode.Color, "grayscale" => PdfPrintColorMode.Grayscale,
+                        _ => throw new WorkflowUsageException("Color must be color or grayscale.")
+                    };
                     break;
                 default:
                     if (token.StartsWith("-", StringComparison.Ordinal)) {
@@ -191,17 +243,18 @@ internal sealed class WorkflowArguments {
     };
 
     private static int ParsePagesPerSheet(string value) {
-        int parsed = ParseInt(value, "--pages-per-sheet", 1, 4);
-        return parsed is 1 or 2 or 4
+        int parsed = ParseInt(value, "--pages-per-sheet", 1, 9);
+        return parsed is 1 or 2 or 4 or 6 or 9
             ? parsed
-            : throw new WorkflowUsageException("--pages-per-sheet must be 1, 2, or 4.");
+            : throw new WorkflowUsageException("--pages-per-sheet must be 1, 2, 4, 6, or 9.");
     }
 
     private static PdfPrintScaleMode ParseScale(string value) => value.ToLowerInvariant() switch {
         "fit" => PdfPrintScaleMode.Fit,
         "actual" or "actual-size" => PdfPrintScaleMode.ActualSize,
         "fill" => PdfPrintScaleMode.Fill,
-        _ => throw new WorkflowUsageException("Scale must be fit, actual, or fill.")
+        "custom" => PdfPrintScaleMode.Custom,
+        _ => throw new WorkflowUsageException("Scale must be fit, actual, fill, or custom.")
     };
 
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";

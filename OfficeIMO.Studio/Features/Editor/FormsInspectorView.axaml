@@ -6,6 +6,17 @@
              x:Class="OfficeIMO.Studio.Features.Editor.FormsInspectorView"
              x:DataType="shell:MainWindowViewModel">
   <StackPanel Spacing="8">
+    <Expander Header="{Binding FormOcrTitleLabel}" IsVisible="{Binding HasFormFields}" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="8">
+        <TextBlock Text="{Binding FormOcrStartHintLabel}" TextWrapping="Wrap" />
+        <Button Content="{Binding FormOcrRecognizeLabel}" Command="{Binding RecognizeFormValuesCommand}" IsEnabled="{Binding CanRecognizeFormValues}" Classes="tool" />
+        <ProgressBar IsVisible="{Binding IsFormOcrBusy}" IsIndeterminate="True" />
+        <TextBlock Text="{Binding FormOcrError}" TextWrapping="Wrap" Classes="error" />
+        <Border IsVisible="{Binding HasFormOcrReview}"><editor:FormOcrReviewView DataContext="{Binding FormOcrReview}" /></Border>
+        <Button Content="{Binding FormOcrApplyLabel}" Command="{Binding ApplyFormOcrCommand}" IsEnabled="{Binding CanApplyFormOcr}" Classes="primary" IsVisible="{Binding HasFormOcrReview}" />
+        <Button Content="{Binding FormOcrCancelLabel}" Command="{Binding CancelFormOcrCommand}" Classes="tool" />
+      </StackPanel>
+    </Expander>
     <TextBlock Text="{loc:Loc DocumentWorkspace.FillFields}" FontSize="15" FontWeight="SemiBold" />
     <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="{loc:Loc DocumentWorkspace.ThisPDFHasNoNamedFormFieldsYet}" TextWrapping="Wrap" />
     <ComboBox IsVisible="{Binding HasFormFields}" ItemsSource="{Binding FormFields}" SelectedItem="{Binding SelectedFormField, Mode=TwoWay}"
