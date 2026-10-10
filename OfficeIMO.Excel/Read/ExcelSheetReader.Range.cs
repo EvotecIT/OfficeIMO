@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            hasCells = WorksheetRoot.Descendants<Cell>().Any();
+            hasCells = EnumerateOwnedSdkWorksheetCells(WorksheetRoot).Any();
             return true;
         }
 

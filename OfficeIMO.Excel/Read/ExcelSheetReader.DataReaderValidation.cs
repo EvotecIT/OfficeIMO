@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             ct.ThrowIfCancellationRequested();
             Worksheet worksheet = _wsPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
-            foreach (Cell cell in worksheet.Descendants<Cell>()) {
+            foreach (Cell cell in EnumerateOwnedSdkWorksheetCells(worksheet)) {
                 ct.ThrowIfCancellationRequested();
                 var reference = new XmlCoordinateReference(cell.CellReference?.Value);
                 if (cell.StyleIndex?.Value is uint styleIndex) {
