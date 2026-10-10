@@ -71,6 +71,57 @@ public class DrawingTextTypographyTests {
         Assert.False(OfficeTextLineBreaks.IsValidBreakPosition("alpha-beta", 0));
     }
 
+    [Theory]
+    [InlineData('\u1680')]
+    [InlineData('\u2000')]
+    [InlineData('\u2003')]
+    [InlineData('\u2006')]
+    [InlineData('\u2008')]
+    [InlineData('\u200a')]
+    [InlineData('\u205f')]
+    [InlineData('\u3000')]
+    public void LineBreaks_AllowWrappingAfterUnicodeBreakSpaces(char separator) {
+        string text = "alpha" + separator + "beta";
+
+        Assert.Equal(new[] { 6 }, OfficeTextLineBreaks.GetBreakPositions(text));
+        Assert.Equal(new[] { 6 }, OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks: false));
+        Assert.DoesNotContain(1, OfficeTextLineBreaks.GetBreakPositions("漢" + separator + "字"));
+    }
+
+    [Theory]
+    [InlineData('\u00a0')]
+    [InlineData('\u2007')]
+    [InlineData('\u202f')]
+    public void LineBreaks_KeepUnicodeNoBreakSpacesJoinedIncludingBesideCjk(char separator) {
+        Assert.Empty(OfficeTextLineBreaks.GetBreakPositions("alpha" + separator + "beta"));
+        Assert.Empty(OfficeTextLineBreaks.GetBreakPositions("漢" + separator + "字"));
+    }
+
+    [Theory]
+    [InlineData('\u200b', '\u00a0')]
+    [InlineData('\u200b', '\u2007')]
+    [InlineData('\u200b', '\u202f')]
+    [InlineData('-', '\u00a0')]
+    [InlineData('-', '\u2007')]
+    [InlineData('-', '\u202f')]
+    [InlineData('\u2003', '\u00a0')]
+    [InlineData('\u2003', '\u2007')]
+    [InlineData('\u2003', '\u202f')]
+    public void LineBreaks_PreserveExplicitBreaksBeforeNoBreakSpaces(char breakAfter, char noBreakSpace) {
+        string text = "alpha" + breakAfter + noBreakSpace + "beta";
+
+        Assert.Equal(new[] { 6 }, OfficeTextLineBreaks.GetBreakPositions(text));
+        Assert.Equal(new[] { 6 }, OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks: false));
+    }
+
+    [Fact]
+    public void LineBreaks_PreserveZeroWidthBreakBeforeUnicodeBreakSpace() {
+        const string text = "alpha\u200b\u2003beta";
+
+        Assert.Equal(new[] { 6, 7 }, OfficeTextLineBreaks.GetBreakPositions(text));
+        Assert.Equal(new[] { 6, 7 }, OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks: false));
+    }
+
     [Fact]
     public void TextLayout_UsesSharedCjkBreakRulesInsteadOfStartingWithClosingPunctuation() {
         const string text = "日本東京、大阪京都";

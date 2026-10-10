@@ -40,8 +40,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Suppress indentation of later anonymous blocks without changing the
         // inheritance context used above by descendant inline-block elements.
         if (!applyTextIndent) parentStyle = WithoutTextIndent(parentStyle);
-        ApplyPendingInlineTextTransforms(runs);
+        ApplyPendingInlineTextTransforms(runs, retainSuppressedText: true);
         ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
+        RemoveSuppressedInlineText(runs);
         ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
 
@@ -250,7 +251,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
                 bool contextOnly = inheritedStyle.Font.Size <= 0D;
-                if (!contextOnly) ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
+                if (!contextOnly) ReportUnsupportedComplexTextShaping(textNode.Data, textNode.ParentElement, inheritedStyle);
                 string source = textNode.ParentElement != null
                     && HtmlRenderSourceIdentity.TryGet(textNode.ParentElement, out string interactionSource)
                     ? interactionSource
@@ -584,14 +585,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (style.SemanticGroupRoleOverride.HasValue) run.AssignInlineSemanticGroup(style.SemanticGroupRoleOverride.Value, structureElementKey);
     }
 
-    private void ReportUnsupportedComplexTextShaping(IText textNode, HtmlRenderBoxStyle style) {
-        IElement? element = textNode.ParentElement;
-        if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedComplexTextShapingElements.Contains(element)) return;
+    private void ReportUnsupportedComplexTextShaping(string text, IElement? element, HtmlRenderBoxStyle style, string? source = null) {
+        if (element == null || string.IsNullOrWhiteSpace(text) || _reportedComplexTextShapingElements.Contains(element)) return;
         bool featureShaping = !style.TextFeatureSettings.IsDefault;
-        if (!featureShaping && !RequiresConfiguredTextShaping(textNode.Data)) return;
+        if (!featureShaping && !RequiresConfiguredTextShaping(text)) return;
         if (featureShaping && _options.TextShapingProvider != null) return;
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
-            textNode.Data,
+            text,
             style.Font.FamilyName,
             style.FontDescriptor);
         bool allUnsupportedRunsShaped = true;
@@ -617,7 +617,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             diagnosticCode,
             message,
             HtmlDiagnosticSeverity.Warning,
-            HtmlRenderStyleResolver.DescribeSource(element),
+            source ?? HtmlRenderStyleResolver.DescribeSource(element),
             "provider-declined",
             OfficeConversionLossKind.Approximation);
     }
@@ -1518,7 +1518,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> elements = OfficeTextElements.Split(value);
         if (elements.Count == 0) return measured;
         measured += style.LetterSpacing * elements.Count;
-        measured += style.WordSpacing * elements.Count(IsWhitespaceToken);
+        // Word spacing includes no-break separators independently of collapsing.
+        measured += style.WordSpacing * elements.Count(IsWordSpacingSeparator);
         return measured;
     }
 
@@ -1581,7 +1582,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            bool currentWhitespace = char.IsWhiteSpace(current);
+            bool currentWhitespace = IsCollapsibleCssWhitespace(current);
             if (breakSpaces && currentWhitespace) {
                 if (token.Length > 0) {
                     yield return token.ToString();
@@ -1603,7 +1604,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (token.Length > 0) yield return token.ToString();
     }
 
-    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);
+    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(IsCollapsibleCssWhitespace);
+
+    // Word spacing applies to separators independently of CSS collapsing and
+    // line-breaking rules, including nonbreaking spaces retained in text tokens.
+    private static bool IsWordSpacingSeparator(string textElement) => textElement.Length > 0 && textElement.All(char.IsWhiteSpace);
 
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {

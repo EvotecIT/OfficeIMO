@@ -66,7 +66,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int start = 0;
             for (int index = 0; index <= run.Text.Length; index++) {
                 bool atEnd = index == run.Text.Length;
-                if (!atEnd && !char.IsWhiteSpace(run.Text[index])) continue;
+                if (!atEnd && !IsCollapsibleCssWhitespace(run.Text[index])) continue;
                 if (index > start) {
                     string token = run.Text.Substring(start, index - start);
                     bool breakEverywhere = run.Style.WordBreak == "break-all" || run.Style.OverflowWrap == "anywhere";
@@ -138,7 +138,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double MeasureMaxContentTextRun(IntrinsicTextRun run) {
         double fullWidth = MeasureInlineText(run.Text, run.Style);
-        if (!run.Text.Any(char.IsWhiteSpace)) return fullWidth;
+        if (!run.Text.Any(IsCollapsibleCssWhitespace)) return fullWidth;
 
         // Inline layout measures separate words and spaces. Some font shapers
         // return a slightly smaller width for the whole string, which can make
@@ -164,6 +164,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private IReadOnlyList<IntrinsicTextRun> NormalizeIntrinsicTextRuns(IReadOnlyList<IntrinsicTextRun> rawRuns) {
+        rawRuns = PrepareIntrinsicFirstLetterRuns(rawRuns);
         var normalized = new List<IntrinsicTextRun>();
         HtmlRenderBoxStyle? pendingWhitespaceStyle = null;
         bool hasLineContent = false;
@@ -195,7 +196,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 hasAnyContent = true;
                 continue;
             }
-            string transformed = ApplyTextTransform(run.Text, run.Style);
+            // Selection sees source text even when the inherited font is zero;
+            // only an effective positive-font fragment contributes to sizing.
+            if (run.Style.Font.Size <= 0D) {
+                // A suppressed collapsed space still separates intrinsic words.
+                // Its source style measures the space with zero advance, while
+                // the existing whitespace rules decide whether it permits a break.
+                if (!run.Style.PreserveWhitespace && hasLineContent && run.Text.Any(IsCollapsibleCssWhitespace)) {
+                    pendingWhitespaceStyle ??= run.Style;
+                }
+                continue;
+            }
+            string transformed = run.Text;
             if (run.Style.PreserveWhitespace) {
                 if (pendingWhitespaceStyle != null) {
                     AppendNormalizedIntrinsicText(normalized, " ", pendingWhitespaceStyle);
@@ -225,7 +237,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             var text = new StringBuilder();
             foreach (char current in transformed) {
-                if (char.IsWhiteSpace(current)) {
+                if (IsCollapsibleCssWhitespace(current)) {
                     if (pendingWhitespaceStyle == null
                         && (hasLineContent || text.Length > 0)) {
                         pendingWhitespaceStyle = run.Style;
@@ -250,6 +262,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         return hasAnyContent ? normalized : Array.Empty<IntrinsicTextRun>();
     }
+
+    private static bool IsCollapsibleCssWhitespace(char value) => value is ' ' or '\t' or '\n' or '\f' or '\r';
 
     private static void AppendNormalizedIntrinsicText(List<IntrinsicTextRun> runs, string text, HtmlRenderBoxStyle style) {
         if (text.Length == 0) return;
@@ -310,13 +324,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Inline descendants retain the surrounding paragraph owner even when
         // they override text-indent. Blocks and atomic boxes measure their own
         // first formatted line; flex/grid containers contribute their items above.
-        if (startsParagraph) result.Add(IntrinsicTextRun.ParagraphStart(parentStyle));
+        if (startsParagraph) result.Add(IntrinsicTextRun.ParagraphStart(parentStyle, parent, availableSize));
         if (sourceNodes == null) AppendGeneratedIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in sourceNodes ?? parent.ChildNodes) {
             CheckCancellation();
             if (IsClosedDisclosureChild(node)) continue;
             if (node is IText text) {
-                if (text.Data.Length > 0 && parentStyle.Font.Size > 0D) result.Add(new IntrinsicTextRun(text.Data, parentStyle));
+                if (text.Data.Length > 0) result.Add(new IntrinsicTextRun(text.Data, parentStyle));
                 continue;
             }
             if (node is not IElement child || ShouldSkipElement(child)) continue;
@@ -426,22 +440,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineRuns = new List<HtmlInlineRun>();
         AddGeneratedInlineRun(element, kind, availableSize, null, parentStyle, null, 0D, 0D, inlineRuns);
         foreach (HtmlInlineRun run in inlineRuns) {
-            if (run.IsTextTransformContextOnly) continue;
             if (run.AtomicBlock != null) {
                 result.Add(IntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
             } else if (run.Text.Length > 0) {
-                result.Add(new IntrinsicTextRun(run.Text, run.Style));
+                result.Add(new IntrinsicTextRun(run.Text, run.Style, textTransformPending: run.TextTransformPending));
             }
         }
         if (establishesLineBoundary) result.Add(IntrinsicTextRun.ForcedBreak(style));
     }
 
     private sealed class IntrinsicTextRun {
-        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null, bool isInlineInset = false, bool isInlineInsetEnd = false, bool isParagraphStart = false) {
+        internal IntrinsicTextRun(string text, HtmlRenderBoxStyle style,
+            bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D,
+            double? replacedMinWidth = null, bool isInlineInset = false, bool isInlineInsetEnd = false,
+            bool isParagraphStart = false, IElement? firstLetterOwner = null,
+            double firstLetterContainingWidth = 0D, bool textTransformPending = true) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
             IsParagraphStart = isParagraphStart;
+            FirstLetterOwner = firstLetterOwner;
+            FirstLetterContainingWidth = firstLetterContainingWidth;
+            TextTransformPending = textTransformPending;
             IsReplaced = isReplaced;
             IsInlineInset = isInlineInset;
             IsInlineInsetEnd = isInlineInsetEnd;
@@ -450,7 +470,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal static IntrinsicTextRun ForcedBreak(HtmlRenderBoxStyle style) => new(string.Empty, style, isForcedBreak: true);
-        internal static IntrinsicTextRun ParagraphStart(HtmlRenderBoxStyle style) => new(string.Empty, style, isParagraphStart: true);
+        internal static IntrinsicTextRun ParagraphStart(HtmlRenderBoxStyle style, IElement? firstLetterOwner = null, double firstLetterContainingWidth = 0D) =>
+            new(string.Empty, style, isParagraphStart: true, firstLetterOwner: firstLetterOwner, firstLetterContainingWidth: firstLetterContainingWidth);
         internal static IntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
         internal static IntrinsicTextRun Replaced(double minimum, double maximum, HtmlRenderBoxStyle style) =>
             new(string.Empty, style, isReplaced: true, replacedWidth: maximum, replacedMinWidth: minimum);
@@ -461,6 +482,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsParagraphStart { get; }
+        internal IElement? FirstLetterOwner { get; }
+        internal double FirstLetterContainingWidth { get; }
+        internal bool TextTransformPending { get; }
         internal bool IsReplaced { get; }
         internal bool IsInlineInset { get; }
         internal bool IsInlineInsetEnd { get; }

@@ -336,6 +336,31 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("abc def אבג", PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes()).ExtractText(), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("A\u00a0B", "ltr", 0)]
+    [InlineData("A\u00a0B", "ltr", 2)]
+    [InlineData("א\u00a0ב", "rtl", 0)]
+    [InlineData("abc\u00a0def אבג", "ltr", 0)]
+    public void HtmlRender_WordSpacingAdvancesNonbreakingSeparatorsInPaint(string content, string direction, int letterSpacing) {
+        string Html(double wordSpacing) => "<p dir='" + direction
+            + "' style='margin:0;font-family:Arial;font-size:16px;letter-spacing:" + letterSpacing
+            + "px;word-spacing:" + wordSpacing.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px'>"
+            + content + "</p>";
+        HtmlRenderText[] Paint(double wordSpacing) => EnumerateTextOverflowVisuals(
+                HtmlRenderTestDriver.Render(Html(wordSpacing)).Pages[0].Scene)
+            .OfType<HtmlRenderText>().ToArray();
+
+        HtmlRenderText[] baseline = Paint(.01D);
+        HtmlRenderText[] spaced = Paint(20D);
+        int separators = content.Count(char.IsWhiteSpace);
+
+        Assert.Contains(spaced, text => text.Text.Contains('\u00a0'));
+        Assert.Equal(19.99D * separators,
+            spaced.Sum(text => text.TextAdvanceWidth ?? text.Width)
+                - baseline.Sum(text => text.TextAdvanceWidth ?? text.Width), 3);
+        Assert.Single(spaced.Select(text => text.Y).Distinct());
+    }
+
     [Fact]
     public void HtmlRender_LetterSpacingPositionsEveryGraphemeWithoutScalingWholeWords() {
         const string html = "<p style='margin:0;font-family:Consolas;font-size:14px;letter-spacing:3px'>AB</p>";
