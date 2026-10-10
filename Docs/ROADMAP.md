@@ -132,7 +132,7 @@ Completion evidence: each admitted feature has a source fixture, independent exp
 
 Owners: `OfficeIMO.IWork` for decoding; Word/Drawing for Pages layout; Excel and shared spreadsheet owners for formulas, formats and ranges; PowerPoint/Drawing for Keynote scenes. Adapters map into these owners rather than adding parallel layout or calculation engines.
 
-- [ ] Extend the [qualified spacing/tab defaults and everyday subset](officeimo.iwork-support-matrix.md#qualified-everyday-subset) beyond the Pages 15.4 inherited/overriding spacing, tabs and explicit-reset reference, adding other producers and table text/layout defaults. Qualify additional frame/list geometry, interacting paragraph indents, mixed font sizes, linked flows and pagination beyond the fixed-frame keep-lines case; retain explicit diagnostics for unsupported declarations.
+- [ ] Extend the [qualified spacing/tab defaults and everyday subset](officeimo.iwork-support-matrix.md#qualified-everyday-subset) beyond the Pages 15.4 inherited/overriding spacing, tabs and explicit-reset reference, adding other producers and table text/layout defaults. Qualify paragraph locale and decimal-tab rendering beyond [uniform DOCX separator metadata](officeimo.iwork-support-matrix.md#native-pages-creation), including the recorded Pages DOCX reimport difference and PPTX separator preservation. Qualify additional frame/list geometry, interacting paragraph indents, mixed font sizes, linked flows and pagination beyond the fixed-frame keep-lines case; retain explicit diagnostics for unsupported declarations.
 
 #### Pages
 

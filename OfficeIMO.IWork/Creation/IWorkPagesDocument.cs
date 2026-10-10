@@ -46,10 +46,27 @@ public sealed class IWorkPagesDocument {
     public IWorkPagesParagraphData AddParagraph(string text, string fontName = "Arial", float fontSizePoints = 12,
         string color = "000000") => AddRichParagraph(new[] { new IWorkTextRunData(text, fontName, fontSizePoints, color) });
 
+    /// <summary>Adds a body paragraph with immutable layout and one font. TAB characters use its native tab stops.</summary>
+    /// <remarks>The default tab interval is 36 points. Line breaks still require separate paragraphs.</remarks>
+    public IWorkPagesParagraphData AddParagraph(string text, IWorkPagesParagraphLayout layout, string fontName = "Arial",
+        float fontSizePoints = 12, string color = "000000") {
+        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        return AddRichParagraph(new[] { new IWorkTextRunData(text, fontName, fontSizePoints,
+            IWorkCreationValidation.ParseColor(color), allowTabs: true) }, layout);
+    }
+
     /// <summary>Adds a snapshot of rich character runs as one left-aligned body paragraph.</summary>
     /// <remarks>Runs cannot contain line breaks. Empty ranges are discarded unless the whole paragraph is blank.</remarks>
     public IWorkPagesParagraphData AddRichParagraph(IEnumerable<IWorkTextRunData> runs) {
         var paragraph = new IWorkPagesParagraphData(runs);
+        _paragraphs.Add(paragraph);
+        return paragraph;
+    }
+
+    /// <summary>Adds a snapshot of rich runs with immutable paragraph spacing and custom tabs.</summary>
+    public IWorkPagesParagraphData AddRichParagraph(IEnumerable<IWorkTextRunData> runs, IWorkPagesParagraphLayout layout) {
+        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        var paragraph = new IWorkPagesParagraphData(runs, layout);
         _paragraphs.Add(paragraph);
         return paragraph;
     }

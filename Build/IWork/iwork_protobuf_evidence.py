@@ -43,13 +43,15 @@ def creation_records(package):
     return result
 
 
-def creation_references(message, name='TSP.Reference'):
+def creation_references(message, name='TSP.Reference', omit_style_sheet_backrefs=False):
     if message.DESCRIPTOR.full_name == name:
         return {message.identifier}
     result = set()
     for field, value in message.ListFields():
         if field.message_type is None:
             continue
+        if omit_style_sheet_backrefs and message.DESCRIPTOR.full_name == 'TSS.StyleArchive' and field.number == 5:
+            continue
         for nested in value if field.is_repeated else [value]:
-            result.update(creation_references(nested, name))
+            result.update(creation_references(nested, name, omit_style_sheet_backrefs))
     return result

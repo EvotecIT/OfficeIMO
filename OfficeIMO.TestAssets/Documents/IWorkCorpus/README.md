@@ -58,6 +58,15 @@ The manifest identifies the schema revision, descriptor hash and isolated number
 
 `native-exports/pages-simple-v15.4.json` pins the unchanged `nim-iwork/simple.pages` source and its Pages 15.4 DOCX/PDF exports. Reproduce them by opening a copy in Pages and choosing File > Export To > Word or PDF, with password protection off and best PDF image quality. Native controls show Times Regular 12-point text, single spacing, no custom tabs and a 36-point default tab interval. Saved DOCX comparisons check all three paragraphs including the empty paragraph, spacing, paragraph-mark font metrics, page size and margins. The native font label `Times Roman` and decoded `Times-Roman` resolve to Times in this renderer. A one-page native rendering of the saved OfficeIMO DOCX matches all seven word bounds and the 1200-pixel raster after paragraph-mark formatting is preserved. The adjacent manifest records the exact output, fonts and comparison hashes. This qualifies only the recorded fixture and renderer; larger documents, other fonts and producer versions remain open.
 
+The [paragraph-layout creation manifest](native-exports/pages-created-layout-v15.4.json) adds a seven-paragraph document with 1.25/1.5/2 relative spacing, before/after spacing, left/center/right/decimal tabs, TAB text, a blank paragraph and formatting resets. `IWorkPagesParagraphWritingTests.Example()` reproduces its deterministic 8,450-byte input. The 37-object graph uses native paragraph variations, a named default parent and the paragraph table's null end marker. The Apple-saved edit retains the requested layout after close/reopen. Its complete body text, spacing and tabs agree with the native Word export under an independent pinned-schema decoder:
+
+```text
+python Build/IWork/verify-pages-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-v15.4.pages --descriptor <pages-descriptor.pb> --out <created-graph.json>
+python Build/IWork/extract-pages-native-layout.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-edited-v15.4.pages --descriptor <pages-descriptor.pb> --docx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-v15.4.docx --out <native-layout.json>
+```
+
+The native PDF and the Pages rendering of OfficeIMO's strict DOCX each contain all 75 words on one page. The DOCX stores the source period separator; Pages 15.4 reimport still shifts `123.45` left by 15.0146 points. The other 74 word bounds agree. The manifest retains both inspected outputs and this rendering boundary. Newly authored fixtures use MIT; the native PDF's installed-font subsets do not establish other font environments.
+
 ## Pages paragraph spacing and decimal counters
 
 `native-exports/pages-paragraph-list-v15.4.json` pins a native Pages 15.4 derivative of the licensed `nim-iwork/simple.pages` fixture. Its parent style uses 1.5 spacing and a 180-point left tab; the second paragraph overrides these with 2.0 spacing and a 216-point tab, and the third resets to single spacing and no custom tabs. A non-tiered, level-zero decimal list visibly numbers four paragraphs as 7, 8, 3, 4. The native source, DOCX, complete one-page PDF and screenshot are hashed. Independent numbers-parser 4.19.0 schemas identify storage field `14` starts and zero continuation, the selected decimal kind and disabled tiered numbering.
@@ -481,6 +490,16 @@ python Build/IWork/extract-integer-function-boundaries.py OfficeIMO.TestAssets/D
 ```
 
 ### Complete native-content PDF references
+
+The [paragraph-layout creation reference](native-exports/pages-created-layout-v15.4.json)
+also retains its composed one-page PDF, inspected raster and public workflow
+result. Independent extraction agrees with all 75 native words in order. The
+eight selected source paragraphs are reconstructed with no omitted or unassessed
+content units; opaque record fidelity remains unassessed. Spacing, custom tabs,
+blank-paragraph height and rich/default resets remain visible. PDF font inspection
+confirms 14-point Helvetica Bold for `Rich layout` and 12-point Helvetica for the
+plain run. The shared portable profile reports Arial substitution and retains its
+separate typography and monochrome-emoji limits.
 
 `native-exports/iwork-composed-pdf-portable.json` pins the Apple-edited Pages body,
 Numbers scalar workbook and Keynote table deck, all three composed PDFs, nine

@@ -9,6 +9,7 @@ namespace OfficeIMO.Workflows.IWork.Tests;
 public sealed partial class IWorkWorkflowTests {
     [Theory]
     [InlineData("pages-created-edited-v15.4.pages", "pages-pdf", 2, "8")]
+    [InlineData("pages-created-layout-edited-v15.4.pages", "pages-pdf", 1, "8")]
     [InlineData("numbers-created-edited-v14.5.numbers", "numbers-pdf", 4, "6")]
     [InlineData("keynote-created-tables-edited-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
@@ -46,7 +47,10 @@ public sealed partial class IWorkWorkflowTests {
         IReadOnlyList<string> pages = pdf.Pages.Select(page => page.ExtractText()).ToArray();
         Assert.Equal(expectedPages, pages.Count);
         switch (route) {
-            case "pages-pdf": AssertNativePagesText(pages); break;
+            case "pages-pdf":
+                if (fixture == "pages-created-layout-edited-v15.4.pages") AssertNativePagesLayoutText(pages);
+                else AssertNativePagesText(pages);
+                break;
             case "numbers-pdf": AssertNativeNumbersText(pages); break;
             case "keynote-pdf": AssertNativeKeynoteText(pages); break;
         }
@@ -88,6 +92,20 @@ public sealed partial class IWorkWorkflowTests {
             previous = at;
         }
         Assert.Contains("Paragraph 80:", pages[^1]);
+    }
+
+    private static void AssertNativePagesLayoutText(IReadOnlyList<string> pages) {
+        string text = string.Join(" ", string.Join("\n", pages).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        int previous = -1;
+        foreach (string expected in new[] {
+            "Native paragraph layout", "Relative spacing 1.5: this paragraph has six points before and nine points after.",
+            "Start Left Center Right 123.45", "Double spacing: this paragraph has twelve points before and eighteen points after.",
+            "Rich layout plain Zażółć 😀", "Default reset Native layout edit."
+        }) {
+            int at = text.IndexOf(expected, StringComparison.Ordinal);
+            Assert.True(at > previous, "Missing or reordered content: " + expected);
+            previous = at;
+        }
     }
 
     private static void AssertNativeNumbersText(IReadOnlyList<string> pages) {

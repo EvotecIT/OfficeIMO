@@ -10,6 +10,8 @@ public static partial class WordIWorkConverter {
         long destinationTableCells = 0;
         string? inlineLimitation = FindInlineObjectLimitation(projection);
         if (inlineLimitation != null) return inlineLimitation;
+        if (PagesDecimalTabSymbols(projection).Length > 1)
+            return "Pages decimal tabs use different or unspecified separators that cannot share one DOCX document setting.";
         if (projection.TextBoxObjects.Any(textBox => textBox.Hyperlink != null)
             || projection.Images.Any(image => image.Hyperlink != null)) {
             return "Pages contains a drawable hyperlink that cannot be represented by the DOCX owner.";
@@ -244,6 +246,10 @@ public static partial class WordIWorkConverter {
     private static IEnumerable<IWorkParagraphStyle> AllPagesParagraphStyles(IWorkPagesProjection projection) =>
         AllPagesText(projection).SelectMany(content => content.Paragraphs).Select(paragraph => paragraph.Style)
             .Concat(projection.Tables.SelectMany(TableParagraphStyles));
+
+    private static string?[] PagesDecimalTabSymbols(IWorkPagesProjection projection) =>
+        AllPagesParagraphStyles(projection).Where(style => style.TabStops?.Any(tab => tab.Alignment == IWorkTabAlignment.Decimal) == true)
+            .Select(style => style.DecimalTabSymbol).Distinct(StringComparer.Ordinal).ToArray();
 
     private static IEnumerable<IWorkTextStyle> AllPagesRunStyles(IWorkPagesProjection projection) =>
         AllPagesText(projection).SelectMany(content => content.Paragraphs).SelectMany(paragraph => paragraph.Runs).Select(run => run.Style)

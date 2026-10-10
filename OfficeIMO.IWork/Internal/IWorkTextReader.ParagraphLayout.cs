@@ -5,6 +5,19 @@ internal static partial class IWorkTextReader {
     private static void AssessParagraphLayout(IWorkWireMessage message, ParagraphStyleData data, IWorkProjectionBudget budget, IWorkArchiveRecord record,
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
         var evidence = new StylePropertyEvidence(record, "12/", references.Declarations);
+        bool? clearDecimal = ReadBoolean(message, 2, evidence, ref complete);
+        if (clearDecimal == true || message.HasField(2) && !clearDecimal.HasValue || message.HasField(3)) data.DecimalTabSymbol = null;
+        if (message.HasField(3)) {
+            byte[]? symbol = message.GetBytes(3);
+            if (clearDecimal != true && (!message.HasField(2) || clearDecimal.HasValue)
+                && message.FieldCount(3) == 1 && !message.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
+                && symbol is { Length: 1 } && (symbol[0] == (byte)'.' || symbol[0] == (byte)',')) {
+                budget.AddTextCharacters(1);
+                data.DecimalTabSymbol = ((char)symbol[0]).ToString();
+            } else {
+                evidence.Record(message, 3); complete = false;
+            }
+        }
         // TSWP.ParagraphStylePropertiesArchive: line spacing and custom tabs.
         AssessMessage(12, 13, ref complete);
         AssessMessage(24, 25, ref complete);

@@ -402,6 +402,13 @@ public static partial class PowerPointIWorkConverter {
                     box.Layout.TopInsetPoints, box.Layout.RightInsetPoints, box.Layout.BottomInsetPoints }
                     .Any(points => points.HasValue && !IsExactEmu(points.Value)));
         var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(SlideText).SelectMany(content => content.Paragraphs).Select(paragraph => paragraph.Style)
+            .Concat(projection.Slides.SelectMany(slide => slide.Tables).SelectMany(TableParagraphStyles))
+            .Any(style => style.DecimalTabSymbol != null && style.TabStops?.Any(tab => tab.Alignment == IWorkTabAlignment.Decimal) == true)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_DECIMAL_TAB_SYMBOL_OMITTED",
+                "PPTX retains decimal tab stops but cannot explicitly preserve their source separator through the current owner; the iWork projection retains it.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
         if (projection.Slides.SelectMany(slide => slide.Tables)
             .Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

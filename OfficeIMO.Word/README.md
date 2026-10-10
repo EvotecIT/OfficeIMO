@@ -172,8 +172,11 @@ Use `AddTabStop` to configure a paragraph's explicit tab positions in twentieths
 
 ```csharp
 var paragraph = document.AddParagraph("Label\t12.50");
+document.Settings.DecimalSymbol = ".";
 paragraph.ClearTabStops().AddTabStop(1440, WordTabAlignment.Decimal);
 ```
+
+`Settings.DecimalSymbol` stores the DOCX document's decimal separator. It accepts one noncontrol Unicode character; assigning `null` removes the explicit setting. Decimal-tab rendering also depends on the receiving application's locale and language handling.
 
 ## Comments on table cells
 

@@ -9,8 +9,8 @@ public sealed class IWorkTextRunData {
         : this(text, fontName, fontSizePoints, IWorkCreationValidation.ParseColor(color), bold, italic, underline, strikethrough) { }
 
     internal IWorkTextRunData(string text, string fontName, float fontSizePoints, IWorkColor color,
-        bool bold = false, bool italic = false, bool underline = false, bool strikethrough = false) {
-        Text = IWorkCreationValidation.NormalizeText(text);
+        bool bold = false, bool italic = false, bool underline = false, bool strikethrough = false, bool allowTabs = false) {
+        Text = IWorkCreationValidation.NormalizeText(text, allowTabs);
         IWorkCreationValidation.ValidateFontName(fontName);
         IWorkCreationValidation.ValidatePositive(fontSizePoints, nameof(fontSizePoints));
         FontName = fontName; FontSizePoints = fontSizePoints; Color = color;

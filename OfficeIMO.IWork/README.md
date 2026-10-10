@@ -69,14 +69,22 @@ document.AddRichParagraph(new[] {
     new IWorkTextRunData(" then plain", "Arial", 12)
 });
 document.AddParagraph(""); // editable blank paragraph
+document.AddParagraph("Relative line spacing", new IWorkPagesParagraphLayout(1.5f, spaceAfterPoints: 6));
+document.AddParagraph("Total\t123.45", new IWorkPagesParagraphLayout(tabStops: new[] {
+    IWorkTabStop.Create(180, IWorkTabAlignment.Decimal)
+}));
 document.Save("report.pages");
 ```
 
-The writer creates its own native document, section, theme, style and text-storage graph. Page dimensions and body margins use points; wider pages carry landscape orientation. Each call adds one left-aligned, single-spaced paragraph with no list. Rich paragraphs snapshot immutable `IWorkTextRunData` runs. Plain runs explicitly clear decoration, and empty paragraphs retain their font metrics. Runs cannot contain line breaks or other control characters; invalid UTF-16 is rejected. Create separate paragraphs for separate lines. The receiving application flows the body over pages using its installed fonts; the writer does not measure pagination or embed fonts.
+The writer creates its own native document, section, theme, style and text-storage graph. Page dimensions and body margins use points; wider pages carry landscape orientation. Paragraphs are left-aligned with no list or indent. `IWorkPagesParagraphLayout` adds positive relative line spacing, nonnegative before/after spacing and sorted, unique left/center/right/decimal tab stops. Single spacing, zero paragraph spacing and a 36-point default tab interval apply by default. Custom layouts use a period as the decimal separator and author no tab leaders.
 
-`IWorkPagesWriteOptions` bounds paragraphs, retained runs, UTF-16 body characters including terminators, and encoded package/intermediate archive bytes. Byte, caller-stream and atomic path saves accept cancellation and use the same package and file-commit owners as Keynote creation. Encoding completes before stream copying or file staging. Stream saves leave the caller's stream open; copy failure or cancellation can leave partial stream output. File staging failure preserves an existing destination.
+Rich paragraphs snapshot immutable `IWorkTextRunData` runs. Plain runs explicitly clear decoration, and empty paragraphs retain their font metrics. Use the plain `AddParagraph(text, layout)` overload for TAB characters; public rich-run constructors reject them. Line breaks require separate paragraphs, and invalid UTF-16 is rejected. The receiving application flows the body over pages using its installed fonts; the writer does not measure pagination or embed fonts.
 
-The [Pages creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.json) records independent decoding of the complete graph and native Pages 15.4 open, edit, save, close/reopen and PDF/DOCX export. Both PDF pages are inspected. Native Pages/PDF and strict saved OfficeIMO DOCX retain the recorded rich formatting. Apple's DOCX export agrees on text and page settings but changes selected font runs and bold/italic overrides; equivalent DOCX typography is outside that reference. Lists, tables, images, custom headers/footers, additional section layouts and editing loaded native sources are unsupported by this creation model.
+`IWorkPagesWriteOptions` bounds paragraphs, retained runs, UTF-16 body characters including terminators, aggregate custom tab stops (`MaximumTabStops`) and encoded package/intermediate archive bytes. Byte, caller-stream and atomic path saves accept cancellation and use the same package and file-commit owners as Keynote creation. Encoding completes before stream copying or file staging. Stream saves leave the caller's stream open; copy failure or cancellation can leave partial stream output. File staging failure preserves an existing destination.
+
+The [Pages creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.json) records independent decoding of the complete graph and native Pages 15.4 open, edit, save, close/reopen and PDF/DOCX export. Both PDF pages are inspected. Native Pages/PDF and strict saved OfficeIMO DOCX retain the recorded rich formatting. Apple's DOCX export agrees on text and page settings but changes selected font runs and bold/italic overrides; equivalent DOCX typography is outside that reference.
+
+The [paragraph-layout reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-v15.4.json) adds 1.25/1.5/2 relative spacing, before/after spacing, all four tab alignments, a blank paragraph and formatting resets. These survive native edit/save/reopen and agree with Apple's DOCX paragraph metrics. Strict OfficeIMO DOCX retains the period separator, but its Pages 15.4 reimport places `123.45` about 15 points left of the native source; the other 74 word bounds agree. Native DOCX decimal-tab rendering equivalence remains unqualified. Lists, tables, images, custom headers/footers, additional section layouts and loaded-source editing are outside this creation model.
 
 ## Create a native Numbers spreadsheet
 

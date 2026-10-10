@@ -8,11 +8,14 @@ internal sealed class IWorkPagesArchiveBuilder {
     private const ulong DocumentId = 1, MetadataId = 2, BodyId = 3, ThemeId = 4, StylesheetId = 5;
     private const ulong SettingsId = 6, SectionId = 7, TemplateId = 8, ColumnId = 9, ListId = 10, PresetId = 11;
     private const ulong FrameStyleId = 12, ImageStyleId = 13, HeaderParagraphId = 14, HeaderCharacterId = 15;
+    private const ulong DefaultBodyParagraphId = 22;
     private readonly int _maximumBytes;
     private readonly CancellationToken _cancellationToken;
     private readonly byte[] _modelHash;
     private readonly List<(ulong Id, uint Type, IWorkProtoWriter Message)> _records = new();
     private readonly List<(ulong Id, string Identifier)> _styles = new();
+    private readonly List<ulong> _paragraphVariations = new();
+    private bool _customParagraphLayout;
     private ulong _nextId = 32;
 
     internal IWorkPagesArchiveBuilder(int maximumBytes, CancellationToken cancellationToken, byte[] modelHash) {
@@ -28,6 +31,7 @@ internal sealed class IWorkPagesArchiveBuilder {
     }
 
     internal (byte[] Document, byte[] Metadata) Build(IWorkPagesDocument document, IWorkPagesParagraphData[] paragraphs) {
+        _customParagraphLayout = paragraphs.Any(paragraph => paragraph.Layout.HasCustomProperties);
         Add(DocumentId, 10000, P().Reference(2, StylesheetId).Reference(4, BodyId).Reference(6, ThemeId).Reference(7, SettingsId)
             .Message(15, P().Message(1, P().String(4, "en_US")).String(3, "en"))
             .Float(30, (float)document.PageSize.WidthPoints).Float(31, (float)document.PageSize.HeightPoints)
@@ -65,16 +69,24 @@ internal sealed class IWorkPagesArchiveBuilder {
             .Message(11, headerCharacter).Message(12, P().UInt(1, 0).Float(4, 36).Message(13, P()).Message(25, P())
                 .Reference(40, ListId)).UInt(10, 5));
 
+        bool customLayout = _customParagraphLayout;
+        if (customLayout) Add(DefaultBodyParagraphId, 2022, P().Message(1, Style(DefaultBodyParagraphId, "OfficeIMO Body", "paragraph-style-default"))
+            .Message(11, Character(new IWorkTextRunData(string.Empty, fontSizePoints: 12)))
+            .Message(12, ParagraphProperties(IWorkPagesParagraphLayout.Default)).UInt(10, 19));
         var paragraphStyles = P(); var characterStyles = P(); var paragraphData = P();
         int offset = 0; ulong firstParagraph = 0, firstCharacter = 0;
         foreach (IWorkPagesParagraphData paragraph in paragraphs) {
             _cancellationToken.ThrowIfCancellationRequested();
             ulong paragraphId = Allocate();
             if (firstParagraph == 0) firstParagraph = paragraphId;
-            Add(paragraphId, 2022, P().Message(1, Style(paragraphId, "OfficeIMO Paragraph"))
-                .Message(11, Character(paragraph.Runs[0])).Message(12, P().UInt(1, 0).Float(4, 36)
-                    .Float(7, 0).Float(11, 0).Message(13, P().UInt(1, 0).Float(2, 1)).Float(19, 0)
-                    .Float(20, 0).Float(21, 0).Message(25, P()).Reference(40, ListId)).UInt(10, 10));
+            // The qualified custom-layout profile uses native paragraph variations and a named default parent.
+            IWorkProtoWriter paragraphStyle;
+            if (customLayout) {
+                _paragraphVariations.Add(paragraphId);
+                paragraphStyle = P().Reference(3, DefaultBodyParagraphId).Bool(4, true).Message(5, P().UInt(1, StylesheetId));
+            } else paragraphStyle = Style(paragraphId, "OfficeIMO Paragraph");
+            Add(paragraphId, 2022, P().Message(1, paragraphStyle).Message(11, Character(paragraph.Runs[0]))
+                .Message(12, ParagraphProperties(paragraph.Layout)).UInt(10, customLayout ? 19u : 10u));
             paragraphStyles.Message(1, P().UInt(1, (uint)offset).Reference(2, paragraphId));
             paragraphData.Message(1, P().UInt(1, (uint)offset).UInt(2, 0).UInt(3, 0));
             foreach (IWorkTextRunData run in paragraph.Runs) {
@@ -87,29 +99,40 @@ internal sealed class IWorkPagesArchiveBuilder {
             }
             offset++;
         }
+        if (customLayout) {
+            // Pages imports explicit layout only when its paragraph attribute table has the null end marker.
+            // Character attributes retain their existing termination to preserve mixed-run resets.
+            paragraphStyles.Message(1, P().UInt(1, (uint)offset));
+        }
         Add(BodyId, 2001, P().UInt(1, 0).Reference(2, StylesheetId)
             .String(3, string.Concat(paragraphs.Select(paragraph => paragraph.Text + "\n"))).Bool(10, true)
             .Message(5, paragraphStyles).Message(6, paragraphData).Message(7, Attribute(ListId))
             .Message(8, characterStyles).Message(12, Attribute(ColumnId)).Message(14, paragraphData)
             .Message(17, Attribute(SectionId)).Message(24, P().Message(1, P().UInt(1, 0).UInt(2, 0).UInt(3, 0)))
             .Message(28, P().Message(1, P().UInt(1, 0))));
-        Add(PresetId, 2050, P().String(1, "officeimo-body").Reference(2, firstParagraph).Reference(3, ListId));
+        ulong themeParagraph = customLayout ? DefaultBodyParagraphId : firstParagraph;
+        Add(PresetId, 2050, P().String(1, "officeimo-body").Reference(2, themeParagraph).Reference(3, ListId));
         var shape = P().Message(1, Style(FrameStyleId, "OfficeIMO Text Frame")).UInt(10, 3)
             .Message(11, P().Message(1, P()).Float(3, 1).Message(2, P().Message(6, P().UInt(1, 2))));
         Add(FrameStyleId, 2025, P().Message(1, shape).UInt(10, 7).Message(11, P().Bool(1, false).UInt(2, 0)
             .Message(4, P().Message(1, P().UInt(1, 1))).Message(6, ZeroPadding()).UInt(7, 0)
-            .Bool(11, false).Reference(10, firstParagraph)));
+            .Bool(11, false).Reference(10, themeParagraph)));
         Add(ImageStyleId, 3016, P().Message(1, Style(ImageStyleId, "OfficeIMO Image")).UInt(10, 2)
             .Message(11, P().Float(2, 1).Message(1, P().Message(6, P().UInt(1, 2)))));
         var theme = P().String(3, "OfficeIMO").Reference(4, StylesheetId)
             .Message(100, P().Reference(4, FrameStyleId).Reference(5, FrameStyleId).Reference(6, FrameStyleId)
                 .Reference(7, ImageStyleId).Reference(9, FrameStyleId))
-            .Message(110, P().Reference(1, ListId).Reference(2, PresetId).Reference(6, firstCharacter).Reference(7, firstParagraph));
+            .Message(110, P().Reference(1, ListId).Reference(2, PresetId).Reference(6, firstCharacter).Reference(7, themeParagraph));
         IWorkNativeThemeWriter.AddColorPresets(theme, _maximumBytes, _cancellationToken);
         Add(ThemeId, 10001, P().Message(1, theme));
         var stylesheet = P().Bool(4, false);
         foreach (var style in _styles)
             stylesheet.Reference(1, style.Id).Message(2, P().String(1, style.Identifier).Reference(2, style.Id));
+        if (customLayout) {
+            var children = P().Reference(1, DefaultBodyParagraphId);
+            foreach (ulong id in _paragraphVariations) { stylesheet.Reference(1, id); children.Reference(2, id); }
+            stylesheet.Message(5, children);
+        }
         Add(StylesheetId, 401, stylesheet);
         var component = P().UInt(1, DocumentId).String(2, "Document");
         Version(component, 4, 2, 4, 0); Version(component, 5, 11, 2, 4);
@@ -120,10 +143,26 @@ internal sealed class IWorkPagesArchiveBuilder {
                 _maximumBytes, _cancellationToken));
     }
 
-    private IWorkProtoWriter Style(ulong id, string name) {
-        string identifier = "officeimo-style-" + id.ToString(CultureInfo.InvariantCulture);
+    private IWorkProtoWriter ParagraphProperties(IWorkPagesParagraphLayout layout) {
+        var tabs = P();
+        foreach (IWorkTabStop stop in layout.TabStops) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            tabs.Message(1, P().Float(1, (float)stop.PositionPoints).UInt(2, (uint)stop.Alignment).String(3, ""));
+        }
+        var properties = P().UInt(1, 0);
+        if (_customParagraphLayout) properties.String(3, ".");
+        return properties.Float(4, 36).Float(7, 0).Float(11, 0)
+            .Message(13, P().UInt(1, 0).Float(2, layout.LineSpacingMultiplier)).Float(19, 0)
+            .Float(20, layout.SpaceAfterPoints).Float(21, layout.SpaceBeforePoints)
+            .Message(25, tabs).Reference(40, ListId);
+    }
+
+    private IWorkProtoWriter Style(ulong id, string name, string? identifier = null) {
+        identifier ??= "officeimo-style-" + id.ToString(CultureInfo.InvariantCulture);
         _styles.Add((id, identifier));
-        return P().String(1, name).String(2, identifier).Reference(5, StylesheetId);
+        var style = P().String(1, name).String(2, identifier);
+        // A style's stylesheet back-reference is weak in Apple's object-reference envelope.
+        return _customParagraphLayout ? style.Message(5, P().UInt(1, StylesheetId)) : style.Reference(5, StylesheetId);
     }
     private IWorkProtoWriter Character(IWorkTextRunData run) => P().Bool(1, run.Bold).Bool(2, run.Italic).Float(3, run.FontSizePoints)
         .String(5, run.FontName).Message(7, Color(run.Color)).Bool(11, run.Underline).Bool(12, run.Strikethrough)
