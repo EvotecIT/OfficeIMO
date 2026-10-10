@@ -1218,6 +1218,8 @@
 .imo-product-example figcaption p { color: var(--imo-text-secondary); font-size: .9rem; margin: .5rem 0; }
 .imo-product-example a { color: var(--imo-accent); }
 .imo-product-proof .imo-product-proof__code { position: static; inset: auto; width: 100%; min-width: 0; max-width: none; margin-top: 1rem; transform: none; }
+.imo-product-proof__code { text-align: left; }
+.imo-product-proof__code pre, .imo-product-proof__code code { display: block; text-align: left; font-size: .8rem; line-height: 1.5; tab-size: 4; }
 .imo-product-proof__code pre { min-width: 0; max-width: 100%; max-height: 26rem; overflow: auto; }
 .imo-benchmark-evidence-notes { margin: 2rem 0; border-block: 1px solid var(--imo-border); }
 .imo-benchmark-evidence-notes > summary { padding: 1.2rem 0; cursor: pointer; font-weight: 650; }
