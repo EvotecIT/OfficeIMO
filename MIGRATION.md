@@ -268,6 +268,11 @@ maximum must exclude padding and borders. These corrections can change paginatio
 Intrinsic dimension keywords that still use fallback geometry produce loss
 diagnostics and fail `RequireNoLoss()`.
 
+Ordinary percentage-height descendants use the final cell content height. A cell
+with `height:120px` and a child with `height:240px;max-height:100%` can therefore
+grow to fit the 240 px child: the cell height is a minimum. Use an absolute child
+`max-height` when a fixed cap is required. This can change table height and pagination.
+
 Custom scene consumers must retain `HtmlRenderShape` visuals when rendering text
 decorations. Explicit horizontal decoration thickness, underline offset and
 overline use vector bands; the corresponding `HtmlRenderText.UnderlineStyle` or

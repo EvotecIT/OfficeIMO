@@ -42,6 +42,32 @@ public sealed class HtmlTableCellHeightDescendantTests {
     }
 
     [Theory]
+    [InlineData("content-box", "120px", "block", "height:240px;max-block-size:calc(var(--cap) + 0px)", 240D, 242D)]
+    [InlineData("border-box", "122px", "block", "height:240px;max-block-size:calc(var(--cap) + 0px)", 240D, 242D)]
+    [InlineData("content-box", "120px", "inline-block", "height:1px;max-height:30px;min-block-size:var(--cap)", 120D, 122D)]
+    [InlineData("border-box", "122px", "inline-block", "height:1px;max-height:30px;min-block-size:var(--cap)", 120D, 122D)]
+    public void AbsoluteCellConstraintsMeasureIntrinsicContentBeforeFinalPercentageSizing(string sizing, string height, string display, string constraints, double expected, double following) {
+        HtmlRenderDocument rendered = Render("<table style='--cap:100%'><tr><td style='height:" + height + ";padding:1px;border:0;box-sizing:" + sizing + "'>"
+            + "<div id='fill' style='display:" + display + ";background:lime;" + constraints + "'></div></td></tr></table>" + Following);
+
+        Assert.Equal(expected, Shape(rendered, "div#fill").Height, 3);
+        Assert.Equal(following, Shape(rendered, "div#following").Y, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("height:200%")]
+    [InlineData("height:1px;min-height:200%")]
+    public void PercentageOverflowDoesNotFeedBackIntoTheAbsoluteCellMinimum(string constraints) {
+        HtmlRenderDocument rendered = Render("<table><tr><td style='height:120px'><span style='height:20px'>"
+            + "<div id='fill' style='display:inline-block;width:40px;background:lime;" + constraints + "'></div></span></td></tr></table>" + Following);
+
+        Assert.Equal(240D, Shape(rendered, "div#fill").Height, 3);
+        Assert.Equal(120D, Shape(rendered, "div#following").Y, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
     [InlineData("content-box")]
     [InlineData("border-box")]
     public void FinalBasisDeductsCellPaddingAndBordersOnce(string sizing) {

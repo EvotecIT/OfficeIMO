@@ -8,19 +8,20 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlVerticalTableHeaderTests {
     [Theory]
-    [InlineData("block", "height:100%")]
-    [InlineData("inline-block", "height:100%")]
-    [InlineData("block", "height:1px;min-height:100%")]
-    [InlineData("block", "height:240px;max-height:100%")]
-    public void HtmlRender_TableCellHeightRemainsAvailableForPercentageDescendants(string display, string sizing) {
-        string html = "<table style='width:200px'><tr><td style='height:120px;padding:1px;border:0'>"
+    [InlineData("block", "height:100%", 120D)]
+    [InlineData("inline-block", "height:100%", 120D)]
+    [InlineData("block", "height:1px;min-height:100%", 120D)]
+    [InlineData("block", "height:240px;max-height:100%", 240D)]
+    [InlineData("inline-block", "height:240px;max-height:100%", 240D)]
+    public void HtmlRender_TableCellHeightRemainsAvailableForPercentageDescendants(string display, string sizing, double expected) {
+        string html = "<!doctype html><table style='width:200px'><tr><td style='height:120px;padding:1px;border:0'>"
             + "<div id='fill' style='display:" + display + ";width:40px;" + sizing + ";background:red'></div>"
             + "</td></tr></table>";
         var rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html));
         var fill = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
             shape => shape.Source == "div#fill" && shape.Shape.FillColor == OfficeColor.Red);
 
-        Assert.Equal(120D, fill.Height, 3);
+        Assert.Equal(expected, fill.Height, 3);
     }
 
     [Fact]
