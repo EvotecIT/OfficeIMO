@@ -1,0 +1,55 @@
+{
+  "sourceRevision": "10d3c0afea0863a7c0acaa01344cb576e9b1ac18",
+  "fixtures": [
+    {
+      "file": "pronom-visio2003.vsd",
+      "sha256": "68ff319324ffd0741c794d0b897d3d0545a4bb770d6f2f8bee60723676738bdf",
+      "source": "https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2003%20Visio/Visio2003-Sample1.vsd",
+      "producer": "Microsoft Visio 2003 generation 11",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "pronom-visio2003.vss",
+      "sha256": "15249bb9e4279671fbff7e7bb6b4eb83d4d70f4a6445ed0b9d2b1823f6d6d573",
+      "source": "https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2003%20Visio/Visio2003-Sample1.vss",
+      "producer": "Microsoft Visio 2003 generation 11",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "pronom-visio2003.vst",
+      "sha256": "70ed83e1cc22685e4101ffd9a2abd9fc657c6da3d13c6e71629981a8e8b42631",
+      "source": "https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2003%20Visio/Visio2003-Sample1.vst",
+      "producer": "Microsoft Visio 2003 generation 11",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "pronom-visio2003.vdx",
+      "sha256": "4fcaf79273d785d42dba179890d519895fdc118d7da407ffd9b3937a9ae6cb81",
+      "source": "https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2003%20Visio/Visio2003-Sample1.vdx",
+      "producer": "Microsoft Visio 2003 generation 11",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "pronom-visio2003.vsx",
+      "sha256": "72fae3e3b94fb05d3ce978b58d141de7732219b691c13796f2faf7c669aa417a",
+      "source": "https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2003%20Visio/Visio2003-Sample1.vsx",
+      "producer": "Microsoft Visio 2003 generation 11",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "pronom-visio2003.vtx",
+      "sha256": "385290baf789232417516151fdac71cc9dcac86bfdbc54ebf12c7782b76f75b5",
+      "source": "https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2003%20Visio/Visio2003-Sample1.vtx",
+      "producer": "Microsoft Visio 2003 generation 11",
+      "license": "CC0-1.0"
+    },
+    {
+      "file": "pronom-visio-v5.vsd",
+      "sha256": "9ecf27b60839ae1c8e8972d682a2d9c6d5d5b4ae1f1870e907b7df3b5d0b00f4",
+      "source": "https://github.com/digital-preservation/pronom-research-week/blob/10d3c0afea0863a7c0acaa01344cb576e9b1ac18/Microsoft%20Visio/Samples/2002%20Visio/Visio2002-Sample1-v5.vsd",
+      "producer": "Microsoft Visio version 5 binary profile",
+      "license": "CC0-1.0"
+    }
+  ],
+  "qualification": "Independent producer binary and paired XML; Microsoft Visio application acceptance is not performed."
+}

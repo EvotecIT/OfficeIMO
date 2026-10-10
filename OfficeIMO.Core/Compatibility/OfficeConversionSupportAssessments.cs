@@ -9,6 +9,10 @@ internal sealed record OfficeConversionSupportAssessment(
 
 internal static class OfficeConversionSupportAssessments {
     internal static OfficeConversionSupportAssessment Get(string routeId) {
+        if (routeId is "visio-binary-vsdx" or "visio-binary-vssx" or "visio-binary-vstx" or "visio-binary-svg" or "visio-binary-pdf")
+            return Targeted(
+                "Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.");
         if (IsImageRoute(routeId, out string source)) return Image(source);
         if (routeId.StartsWith("email-", StringComparison.Ordinal)) {
             return Established(

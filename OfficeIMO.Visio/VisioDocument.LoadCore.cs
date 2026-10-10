@@ -6,13 +6,13 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Visio {
     // Load core and parse helpers for VisioDocument.
     public partial class VisioDocument {
-        private const int MaximumLoadedFontFamilyCharacters = 256;
-
-        private static VisioDocument LoadCore(Package package, string? filePath) {
+        private static VisioDocument LoadCore(Package package, string? filePath, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             VisioDocument document = new() { _filePath = filePath };
             Dictionary<int, string> faceNamesById = new();
 
@@ -33,99 +33,20 @@ namespace OfficeIMO.Visio {
             }
             document._packageType = packageType;
             LoadVbaProject(documentPart, document);
-            XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part");
+            XDocument documentXml = LoadPackageXml(documentPart, "Visio document XML part", cancellationToken);
             VisioFontWireCodec? fontWire = documentXml.Root == null ? null : VisioFontWireCodec.ReadDocument(documentXml.Root);
             if (documentXml.Root != null) fontWire!.DecodeCells(documentXml.Root, VisioNativeCellMetadata.Read(documentXml.Root.Elements()));
             var textBackgroundColors = ReadTextBackgroundPalette(documentXml.Root?.Element(XName.Get("Colors", VisioNamespace))?.Elements() ?? Enumerable.Empty<XElement>());
-            if (documentXml.Root != null) {
-                foreach (XAttribute attribute in documentXml.Root.Attributes().Where(ShouldPreserveDocumentAttribute)) {
-                    document.PreservedDocumentAttributes.Add(new XAttribute(attribute));
-                }
-                foreach (XElement element in documentXml.Root.Elements().Where(ShouldPreserveDocumentElement)) {
-                    document.PreservedDocumentElements.Add(new XElement(element));
-                }
-
-                XElement? documentSettings = documentXml.Root.Element(XName.Get("DocumentSettings", VisioNamespace));
-                if (documentSettings != null) {
-                    foreach (XAttribute attribute in documentSettings.Attributes().Where(ShouldPreserveDocumentSettingsAttribute)) {
-                        document.PreservedDocumentSettingsAttributes.Add(new XAttribute(attribute));
-                    }
-                    foreach (XElement element in documentSettings.Elements().Where(ShouldPreserveDocumentSettingsElement)) {
-                        document.PreservedDocumentSettingsElements.Add(new XElement(element));
-                    }
-
-                    XElement? relayout = documentSettings.Element(XName.Get("RelayoutAndRerouteUponOpen", VisioNamespace));
-                    if (relayout != null && !string.Equals(relayout.Value, "0", StringComparison.OrdinalIgnoreCase)) {
-                        document._requestRecalcOnOpen = true;
-                    }
-                }
-
-                XElement? colors = documentXml.Root.Element(XName.Get("Colors", VisioNamespace));
-                if (colors != null) {
-                    foreach (XAttribute attribute in colors.Attributes().Where(ShouldPreserveColorsAttribute)) {
-                        document.PreservedColorsAttributes.Add(new XAttribute(attribute));
-                    }
-
-                    foreach (XElement element in colors.Elements().Where(ShouldPreserveColorsElement)) {
-                        document.PreservedColorsElements.Add(new XElement(element));
-                    }
-                }
-
-                XElement? faceNames = documentXml.Root.Element(XName.Get("FaceNames", VisioNamespace));
-                if (faceNames != null) {
-                    foreach (XAttribute attribute in faceNames.Attributes().Where(ShouldPreserveFaceNamesAttribute)) {
-                        document.PreservedFaceNamesAttributes.Add(new XAttribute(attribute));
-                    }
-
-                    foreach (XElement element in faceNames.Elements().Where(ShouldPreserveFaceNamesElement)) {
-                        document.PreservedFaceNamesElements.Add(new XElement(element));
-                        if (string.Equals(element.Name.LocalName, "FaceName", StringComparison.OrdinalIgnoreCase) &&
-                            int.TryParse(element.Attribute("ID")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int faceId)) {
-                            string? name = element.Attribute("Name")?.Value;
-                            if (!string.IsNullOrWhiteSpace(name) && !faceNamesById.ContainsKey(faceId)) {
-                                string normalizedName = name!.Trim();
-                                faceNamesById[faceId] = normalizedName.Length <= MaximumLoadedFontFamilyCharacters
-                                    ? normalizedName
-                                    : normalizedName.Substring(0, MaximumLoadedFontFamilyCharacters);
-                            }
-                        }
-                    }
-                }
-
-                XElement? styleSheets = documentXml.Root.Element(XName.Get("StyleSheets", VisioNamespace));
-                if (styleSheets != null) {
-                    foreach (XAttribute attribute in styleSheets.Attributes().Where(ShouldPreserveStyleSheetsAttribute)) {
-                        document.PreservedStyleSheetsAttributes.Add(new XAttribute(attribute));
-                    }
-
-                    foreach (XElement element in styleSheets.Elements().Where(ShouldPreserveStyleSheetsElement)) {
-                        document.PreservedStyleSheetsElements.Add(new XElement(element));
-                    }
-
-                    foreach (XElement styleSheet in styleSheets.Elements(XName.Get("StyleSheet", VisioNamespace))) {
-                        string id = NormalizeStyleSheetId(styleSheet.Attribute("ID")?.Value ?? string.Empty);
-                        if (!IsGeneratedStyleSheet(id)) {
-                            document.PreservedAdditionalStyleSheets.Add(new XElement(styleSheet));
-                            continue;
-                        }
-
-                        PreservedStyleSheetData preserved = GetOrCreatePreservedStyleSheet(document, id);
-                        foreach (XAttribute attribute in styleSheet.Attributes().Where(attribute => ShouldPreserveStyleSheetAttribute(attribute, id))) {
-                            preserved.Attributes.Add(new XAttribute(attribute));
-                        }
-
-                        foreach (XElement element in styleSheet.Elements().Where(element => ShouldPreserveStyleSheetElement(element, id))) {
-                            preserved.ChildElements.Add(new XElement(element));
-                        }
-                    }
-                }
+            var paintStyles = new VisioNativePaintStyleResolver(documentXml.Root);
+            if (documentXml.Root is XElement documentRoot) {
+                PreserveDocumentMetadata(document, documentRoot, faceNamesById, cancellationToken);
             }
 
             PackageRelationship? themeRel = documentPart.GetRelationshipsByType(ThemeRelationshipType).FirstOrDefault();
             if (themeRel != null) {
                 Uri themeUri = PackUriHelper.ResolvePartUri(documentPart.Uri, themeRel.TargetUri);
                 PackagePart themePart = package.GetPart(themeUri);
-                XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part");
+                XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part", cancellationToken);
                 document.PackageTheme = new VisioPackageTheme {
                     Name = themeDoc.Root?.Attribute("name")?.Value,
                     TemplateXml = new XDocument(themeDoc)
@@ -159,7 +80,7 @@ namespace OfficeIMO.Visio {
             if (documentPart.GetRelationshipsByType(MastersRelationshipType).FirstOrDefault() is PackageRelationship mastersRel) {
                 Uri mastersUri = PackUriHelper.ResolvePartUri(documentPart.Uri, mastersRel.TargetUri);
                 PackagePart mastersPart = package.GetPart(mastersUri);
-                XDocument mastersDoc = LoadPackageXml(mastersPart, "Visio masters XML part");
+                XDocument mastersDoc = LoadPackageXml(mastersPart, "Visio masters XML part", cancellationToken);
                 if (mastersDoc.Root != null) fontWire?.DecodeCells(mastersDoc.Root, nativeCells, "Masters");
                 XNamespace ns = VisioNamespace;
                 XNamespace rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
@@ -175,6 +96,7 @@ namespace OfficeIMO.Visio {
                     .ToList() ?? new List<XElement>();
 
                 foreach (XElement masterElement in mastersDoc.Root?.Elements(ns + "Master") ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string masterId = masterElement.Attribute("ID")?.Value ?? string.Empty;
                     string masterNameU = masterElement.Attribute("NameU")?.Value ?? string.Empty;
                     string? mRelIdValue = masterElement.Element(ns + "Rel")?.Attribute(rNs + "id")?.Value;
@@ -186,14 +108,14 @@ namespace OfficeIMO.Visio {
                     PackageRelationship rel = mastersPart.GetRelationship(mRelId);
                     Uri masterUri = PackUriHelper.ResolvePartUri(mastersPart.Uri, rel.TargetUri);
                     PackagePart masterPart = package.GetPart(masterUri);
-                    XDocument masterDoc = LoadPackageXml(masterPart, "Visio master XML part");
+                    XDocument masterDoc = LoadPackageXml(masterPart, "Visio master XML part", cancellationToken);
                     if (masterDoc.Root != null) fontWire?.DecodeCells(masterDoc.Root, nativeCells, VisioNativeCellMetadata.MasterScope(masterNameU));
                     HashSet<string> foreignRelationshipIds = ForeignRelationshipIds(masterDoc.Elements());
                     var foreignResources = new List<VisioForeignResource>();
                     document.CaptureForeignResources(masterPart, masterDoc, foreignResources);
                     XElement? masterShapesElement = masterDoc.Root?.Element(ns + "Shapes");
                     XElement? masterShapeElement = masterShapesElement?.Elements(ns + "Shape").FirstOrDefault();
-                    VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById, textBackgroundColors: textBackgroundColors) : new VisioShape("1");
+                    VisioShape masterShape = masterShapeElement != null ? ParseShapeCore(masterShapeElement, ns, faceNamesById, textBackgroundColors: textBackgroundColors, paintStyles: paintStyles, cancellationToken: cancellationToken) : new VisioShape("1");
                     if (masterShapeElement != null) VisioNativeCellMetadata.BindTree(masterShape, masterShapeElement, VisioNativeCellMetadata.MasterScope(masterNameU), nativeCells);
                     BindForeignResources(masterShape, foreignResources);
                     VisioMaster master = new(masterId, masterNameU, masterShape);
@@ -205,6 +127,7 @@ namespace OfficeIMO.Visio {
                         master.LoadedModelShapeXml = document.CreateMasterModelShapeXml(masterShape, masterDoc);
                     }
                     foreach (XAttribute attribute in masterElement.Attributes().Where(ShouldPreserveMasterAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMasterAttributes.Add(new XAttribute(attribute));
                     }
                     XElement? masterPageSheet = masterElement.Element(ns + "PageSheet");
@@ -212,12 +135,15 @@ namespace OfficeIMO.Visio {
                         master.NativePageSheetMetadata = VisioNativeCellMetadata.Bind(masterPageSheet, "Masters", nativeCells);
                         master.LoadedPageSheetXml = new XElement(masterPageSheet);
                         foreach (XAttribute attribute in masterPageSheet.Attributes().Where(ShouldPreserveMasterPageSheetAttribute)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedPageSheetAttributes.Add(new XAttribute(attribute));
                         }
                         foreach (XElement cell in masterPageSheet.Elements(ns + "Cell").Where(ShouldPreserveMasterPageSheetCell)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedPageSheetCells.Add(new XElement(cell));
                         }
                         foreach (XElement section in masterPageSheet.Elements(ns + "Section")) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase)) {
                                 List<VisioUserCell> userCells = new();
                                 ParseUserCells(section, ns, userCells);
@@ -228,13 +154,16 @@ namespace OfficeIMO.Visio {
                         }
                     }
                     foreach (XElement element in masterElement.Elements().Where(ShouldPreserveMasterElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMasterElements.Add(new XElement(element));
                     }
                     if (masterShapesElement != null) {
                         foreach (XAttribute attribute in masterShapesElement.Attributes().Where(ShouldPreserveMasterShapesAttribute)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedShapesAttributes.Add(new XAttribute(attribute));
                         }
                         foreach (XElement additionalShape in masterShapesElement.Elements(ns + "Shape").Skip(1)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedAdditionalShapeElements.Add(new XElement(additionalShape));
                             VisioNativeCellMetadata.BindRawShapeTree(master.NativeAdditionalShapeMetadata, additionalShape,
                                 VisioNativeCellMetadata.MasterScope(masterNameU), nativeCells);
@@ -242,16 +171,20 @@ namespace OfficeIMO.Visio {
                     }
                     if (masterDoc.Root != null) {
                         foreach (XAttribute attribute in masterDoc.Root.Attributes().Where(ShouldPreserveMasterContentAttribute)) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedMasterContentAttributes.Add(new XAttribute(attribute));
                         }
                         foreach (XElement element in masterDoc.Root.Elements().Where(element => element.Name != ns + "Shapes")) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             master.PreservedMasterContentElements.Add(new XElement(element));
                         }
                     }
                     foreach (XAttribute attribute in preservedMastersRootAttributes) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMastersRootAttributes.Add(new XAttribute(attribute));
                     }
                     foreach (XElement element in preservedMastersRootElements) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         master.PreservedMastersRootElements.Add(new XElement(element));
                     }
                     masters[masterId] = master;
@@ -261,12 +194,13 @@ namespace OfficeIMO.Visio {
             }
 
             XDocument? pagesDoc = pagesPart == null ? null :
-                LoadPackageXml(pagesPart, "Visio pages XML part");
+                LoadPackageXml(pagesPart, "Visio pages XML part", cancellationToken);
             if (pagesDoc?.Root != null) fontWire?.DecodeCells(pagesDoc.Root, nativeCells, "Pages");
             XNamespace vNs = VisioNamespace;
             XNamespace relNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
             foreach (XElement pageRef in pagesDoc?.Root?.Elements(vNs + "Page") ?? Enumerable.Empty<XElement>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string name = pageRef.Attribute("Name")?.Value ?? "Page";
                 int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
                 VisioPage page = document.AddPage(name, id: pageId);
@@ -277,6 +211,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 foreach (XAttribute attribute in pageRef.Attributes().Where(ShouldPreservePageAttribute)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     page.PreservedPageAttributes.Add(new XAttribute(attribute));
                 }
                 string? viewScaleValue = pageRef.Attribute("ViewScale")?.Value;
@@ -313,6 +248,7 @@ namespace OfficeIMO.Visio {
                 VisioMeasurementUnit? layoutGridUnit = null;
                 if (pageSheet != null) {
                     foreach (XElement cell in pageSheet.Elements(vNs + "Cell")) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string? cellName = cell.Attribute("N")?.Value;
                         string? valueAttr = cell.Attribute("V")?.Value;
                         string? unitAttr = cell.Attribute("U")?.Value;
@@ -539,6 +475,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     foreach (XElement section in pageSheet.Elements(vNs + "Section").Where(ShouldPreservePageSection)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         if (string.Equals(section.Attribute("N")?.Value, "Layer", StringComparison.OrdinalIgnoreCase)) {
                             ParseLayerSection(page, section, vNs);
                         } else {
@@ -592,16 +529,18 @@ namespace OfficeIMO.Visio {
                 PackageRelationship pageRel = pagesPart!.GetRelationship(relId);
                 Uri pageUri = PackUriHelper.ResolvePartUri(pagesPart.Uri, pageRel.TargetUri);
                 PackagePart pagePart = package.GetPart(pageUri);
-                XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part");
+                XDocument pageDoc = LoadPackageXml(pagePart, "Visio page XML part", cancellationToken);
                 if (pageDoc.Root != null) fontWire?.DecodeCells(pageDoc.Root, nativeCells, VisioNativeCellMetadata.PageScope(pageId));
                 document.CaptureForeignResources(pagePart, pageDoc, page.ForeignResources);
 
                 if (pageDoc.Root != null) {
                     foreach (XAttribute attribute in pageDoc.Root.Attributes().Where(ShouldPreservePageContentsAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedPageContentAttributes.Add(new XAttribute(attribute));
                     }
 
                     foreach (XElement element in pageDoc.Root.Elements().Where(ShouldPreservePageContentsElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedPageContentElements.Add(new XElement(element));
                     }
                 }
@@ -609,10 +548,12 @@ namespace OfficeIMO.Visio {
                 XElement? shapesRoot = pageDoc.Root?.Element(vNs + "Shapes");
                 if (shapesRoot != null) {
                     foreach (XAttribute attribute in shapesRoot.Attributes().Where(ShouldPreserveShapesContainerAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedShapesContainerAttributes.Add(new XAttribute(attribute));
                     }
 
                     foreach (XElement element in shapesRoot.Elements().Where(ShouldPreserveShapesContainerElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedShapesContainerElements.Add(new XElement(element));
                     }
                 }
@@ -621,12 +562,13 @@ namespace OfficeIMO.Visio {
                 List<XElement> connectorElements = new();
                 Dictionary<XElement, VisioShape> loadedShapesByElement = new();
                 foreach (XElement shapeElement in shapesRoot?.Elements(vNs + "Shape") ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (IsConnectorShape(shapeElement, masters)) {
                         connectorElements.Add(shapeElement);
                         continue;
                     }
 
-                    VisioShape shape = ParseShapeCore(shapeElement, vNs, faceNamesById, textBackgroundColors: textBackgroundColors);
+                    VisioShape shape = ParseShapeCore(shapeElement, vNs, faceNamesById, textBackgroundColors: textBackgroundColors, paintStyles: paintStyles, cancellationToken: cancellationToken);
                     VisioNativeCellMetadata.BindTree(shape, shapeElement, VisioNativeCellMetadata.PageScope(pageId), nativeCells);
                     BindForeignResources(shape, page.ForeignResources);
                     ApplyMasterReferences(shape, shapeElement, vNs, masters);
@@ -642,10 +584,12 @@ namespace OfficeIMO.Visio {
                 XElement? connectsRoot = pageDoc.Root?.Element(vNs + "Connects");
                 if (connectsRoot != null) {
                     foreach (XAttribute attribute in connectsRoot.Attributes().Where(ShouldPreserveConnectsAttribute)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedConnectsAttributes.Add(new XAttribute(attribute));
                     }
 
                     foreach (XElement element in connectsRoot.Elements().Where(ShouldPreserveConnectsElement)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         page.PreservedConnectsElements.Add(new XElement(element));
                     }
                 }
@@ -653,6 +597,7 @@ namespace OfficeIMO.Visio {
                 List<XElement> orderedConnectElements = connectsRoot?.Elements(vNs + "Connect").ToList() ?? new List<XElement>();
                 Dictionary<string, (string? fromId, string? fromCell, string? toId, string? toCell, List<XAttribute> beginAttributes, List<XName> beginOrder, List<XAttribute> endAttributes, List<XName> endOrder, XElement? beginElement, XElement? endElement)> connectionMap = new();
                 foreach (XElement connectElement in orderedConnectElements) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string? connectorId = connectElement.Attribute("FromSheet")?.Value;
                     string? fromCell = connectElement.Attribute("FromCell")?.Value;
                     string? toSheet = connectElement.Attribute("ToSheet")?.Value;
@@ -688,6 +633,7 @@ namespace OfficeIMO.Visio {
                 Dictionary<string, VisioConnector> loadedConnectorsByPersistedId = new(StringComparer.Ordinal);
                 Dictionary<XElement, VisioConnector> loadedConnectorsByElement = new();
                 foreach (XElement connectorElement in connectorElements) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string persistedId = connectorElement.Attribute("ID")?.Value ?? string.Empty;
                     bool hasConnections = connectionMap.TryGetValue(persistedId, out var ids);
                     VisioShape? fromShape = null, toShape = null;
@@ -695,7 +641,7 @@ namespace OfficeIMO.Visio {
                     // preserved native XML instead of silently discarding its target.
                     if (ids.fromId != null && !shapeMap.TryGetValue(ids.fromId, out fromShape) ||
                         ids.toId != null && !shapeMap.TryGetValue(ids.toId, out toShape)) continue;
-                    VisioConnector? connector = LoadConnector(connectorElement, vNs, masters, faceNamesById, page, fromShape, toShape, ids.fromCell, ids.toCell, textBackgroundColors);
+                    VisioConnector? connector = LoadConnector(connectorElement, vNs, masters, faceNamesById, page, fromShape, toShape, ids.fromCell, ids.toCell, textBackgroundColors, paintStyles);
                     if (connector == null) continue;
                     connector.NativeCellMetadata = VisioNativeCellMetadata.Bind(connectorElement, VisioNativeCellMetadata.PageScope(pageId), nativeCells);
                     if (hasConnections) {
@@ -713,6 +659,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 foreach (XElement shapeChild in shapesRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!string.Equals(shapeChild.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase)) {
                         page.PreservedShapesChildren.Add(new VisioPage.PreservedShapeChildEntry(shapeChild));
                         continue;
@@ -732,6 +679,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 foreach (XElement connectChild in connectsRoot?.Elements() ?? Enumerable.Empty<XElement>()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!string.Equals(connectChild.Name.LocalName, "Connect", StringComparison.OrdinalIgnoreCase)) {
                         page.PreservedConnectChildren.Add(new VisioPage.PreservedConnectChildEntry(connectChild));
                         continue;
@@ -763,8 +711,9 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            LoadComments(package, documentPart, document);
+            LoadComments(package, documentPart, document, cancellationToken);
             ResolvePageBackgrounds(document);
+            cancellationToken.ThrowIfCancellationRequested();
             return document;
         }
 

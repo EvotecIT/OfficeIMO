@@ -270,6 +270,7 @@ namespace OfficeIMO.Visio {
             "LineWeight",
             "LinePattern",
             "LineColor",
+            "LineColorTrans",
             "FillPattern",
             "FillForegnd",
             "LayerMember",

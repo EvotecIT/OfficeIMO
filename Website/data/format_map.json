@@ -203,11 +203,35 @@
       "family": "web"
     },
     {
+      "name": "Binary Visio",
+      "family": "other"
+    },
+    {
+      "name": "Binary Visio stencil",
+      "family": "other"
+    },
+    {
+      "name": "Binary Visio template",
+      "family": "other"
+    },
+    {
       "name": "Compiled HTML Help",
       "family": "other"
     },
     {
       "name": "DjVu",
+      "family": "other"
+    },
+    {
+      "name": "VSDX",
+      "family": "other"
+    },
+    {
+      "name": "VSSX",
+      "family": "other"
+    },
+    {
+      "name": "VSTX",
       "family": "other"
     }
   ],
@@ -2301,6 +2325,66 @@
         "dotnet",
         "cli",
         "studio"
+      ]
+    },
+    {
+      "id": "visio-binary-pdf",
+      "source": "Binary Visio",
+      "target": "PDF",
+      "package": "OfficeIMO.Visio.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-svg",
+      "source": "Binary Visio",
+      "target": "SVG",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var svg = imported.Value.Pages[0].ToSvg()",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-vsdx",
+      "source": "Binary Visio",
+      "target": "VSDX",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(stream); var importReport = imported.Report; imported.Value.Save(output)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-vssx",
+      "source": "Binary Visio stencil",
+      "target": "VSSX",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil); var importReport = imported.Report; imported.Value.Save(output)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "visio-binary-vstx",
+      "source": "Binary Visio template",
+      "target": "VSTX",
+      "package": "OfficeIMO.Visio",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template); var importReport = imported.Report; imported.Value.Save(output)",
+      "surfaces": [
+        "dotnet"
       ]
     },
     {
