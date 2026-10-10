@@ -13,6 +13,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.chm",
         "officeimo.reader.csv",
         "officeimo.reader.dbf",
+        "officeimo.reader.djvu",
         "officeimo.reader.docbook",
         "officeimo.reader.email",
         "officeimo.reader.email.address-book",

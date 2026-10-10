@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 73,
-    "operationCount": 1395
+    "packageCount": 74,
+    "operationCount": 1396
   },
   "fidelityStates": [
     {
@@ -2263,6 +2263,31 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.DjVu.Pdf",
+      "slug": "djvu-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "DjVu",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
               "count": 1
             }
           ]

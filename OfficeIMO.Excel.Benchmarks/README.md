@@ -67,6 +67,43 @@ a row, so the first-row lane contains only OfficeIMO. Use full scans for the
 completed-row comparison, and keep cold versus warmed
 allocation and sampled process memory separate.
 
+## Worksheet preparation
+
+`ExcelWorksheetPreparationBenchmarks` measures OfficeIMO's public XLSX reader
+with a correct dimension, an absent dimension, or a stale narrow dimension.
+The first row is `["Id", "Value", DBNull]`; ordinary numeric rows use A/B, and
+the final row uses A/C, returning `[id, DBNull, value]`. The complete width is
+three even when the initial header or dimension suggests two columns.
+All cases use `HasHeaderRow=false` and raw object-schema columns.
+The timed reader opens an in-memory package, so filesystem I/O is outside this lane.
+
+`OpenThroughFirstRow` opens, consumes all three header fields and disposes the
+reader. `FullScan` opens, consumes every field, verifies the ordered checksum
+and row count, and disposes it. Each method has deflated/stored worksheet XML
+and prefetch off/on parameters. Compare before/after within the same method
+and parameter combination; these operations perform different amounts of work.
+
+Setup validates the Open XML package, relationships, physical coordinates,
+every field/type/null, row order/count and raw schema. Generation and complete
+qualification are outside timing. ZIP timestamps and entry ordering are fixed;
+setup records the package SHA-256 and each inflated part's size/hash. Check
+those identities when pairing builds, including across runtime versions.
+Fixtures remain in memory and cleanup releases them.
+
+The default is 25,000 data rows and 24 cases. `OFFICEIMO_TYPED_BENCHMARK_ROWS`
+accepts one size for this lane to keep the matrix bounded.
+
+Set `OFFICEIMO_WORKSHEET_BENCHMARK_MARKUP` to `MixedPrefixValues` for valid
+mixed-prefix value markup; `Canonical` is the default. Setup checks every field
+and confirms XML fallback against an indexed canonical control before measurement.
+For the four correct-dimension fallback cases with prefetch disabled, filter with
+`*ExcelWorksheetPreparationBenchmarks*Dimension: Correct*EnableWorksheetPrefetch: False*`.
+
+```powershell
+$env:OFFICEIMO_TYPED_BENCHMARK_ROWS = '25000'
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelWorksheetPreparationBenchmarks*' --priority Normal --warmupCount 8 --iterationCount 8 --invocationCount 1 --unrollFactor 1 --outliers DontRemove --artifacts ./Ignore/Benchmarks/worksheet-preparation
+```
+
 ## Numeric XML result shapes
 
 `ExcelNumericXmlReadBenchmarks` exercises numeric decoding through DataReader

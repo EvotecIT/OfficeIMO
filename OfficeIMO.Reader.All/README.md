@@ -44,7 +44,7 @@ Email attachments, EPUB resources and chapter pagination, and Visio
 preview-versus-semantic fallback behavior follow `PdfProjectionOptions`
 and are reported as structured conversion evidence.
 
-The preset adds Word, Excel, their safe legacy-word and legacy-spreadsheet families, PowerPoint, Markdown, direct email artifacts, Outlook stores and OAB address books, plus AsciiDoc, CHM, CSV/TSV, DBF/xBase, DocBook, EPUB, HTML/MHTML, Apple Pages/Numbers/Keynote, standalone images, JSON, LaTeX, Jupyter Notebook, offline OneNote, OpenDocument, OPML, PDF, RTF, subtitles, Visio, XML, XPS/OpenXPS, YAML, and ZIP handlers. `OfficeIMO.Reader.Core` itself contains no format parser. DBF memo sidecars require opt-in through `ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
+The preset adds Word, Excel, their safe legacy-word and legacy-spreadsheet families, PowerPoint, Markdown, direct email artifacts, Outlook stores and OAB address books, plus AsciiDoc, CHM, CSV/TSV, DBF/xBase, DjVu, DocBook, EPUB, HTML/MHTML, Apple Pages/Numbers/Keynote, standalone images, JSON, LaTeX, Jupyter Notebook, offline OneNote, OpenDocument, OPML, PDF, RTF, subtitles, Visio, XML, XPS/OpenXPS, YAML, and ZIP handlers. `OfficeIMO.Reader.Core` itself contains no format parser. DBF memo sidecars require opt-in through `ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
 
 Configure a format through one options object:
 

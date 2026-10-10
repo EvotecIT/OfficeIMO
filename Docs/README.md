@@ -47,6 +47,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Reader package family](officeimo.reader.md)
 - [Google Workspace package family](../OfficeIMO.GoogleWorkspace/README.md)
 - [XPS/OpenXPS package API](../OfficeIMO.Xps/README.md), [support matrix](../OfficeIMO.Xps/SUPPORT.md), [PDF export](../OfficeIMO.Xps.Pdf/README.md), and [Reader adapter](../OfficeIMO.Reader.Xps/README.md)
+- [DjVu document API](../OfficeIMO.DjVu/README.md), [codec and qualification contract](../OfficeIMO.DjVu/SUPPORT.md), [searchable PDF export](../OfficeIMO.DjVu.Pdf/README.md), and [Reader adapter](../OfficeIMO.Reader.DjVu/README.md)
 - [OpenDocument package family](../OfficeIMO.OpenDocument/README.md)
 - [PowerPoint package guide](../OfficeIMO.PowerPoint/README.md)
 - [Visio package guide](../OfficeIMO.Visio/README.md)

@@ -285,7 +285,8 @@ internal static partial class PdfOcr {
             evidence.AsReadOnly(), prepared?.Report, prepared?.RecognitionWidth, prepared?.RecognitionHeight, result.ProviderDiagnostics);
     }
 
-    private static bool TryConvertRegion(
+    // Shared by scanned-format PDF adapters after engine-neutral OCR execution.
+    internal static bool TryConvertRegion(
         OcrRegion region,
         OcrCoordinateUnit unit,
         OcrRequest request,

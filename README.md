@@ -348,6 +348,14 @@ the existing conversion engines and expose fidelity reports. [Reader ingestion](
 retains archive hashes and topic citations. See [supported profiles](OfficeIMO.Chm/SUPPORT.md)
 for ITSF/LZX coverage and export limits. Loading is inert and needs no Windows help viewer.
 
+#### [OfficeIMO.DjVu](OfficeIMO.DjVu/README.md)
+
+Managed DjVu scanned-book reading, stored UTF-8 text and word geometry, bounded
+page rendering, and source navigation. [OfficeIMO.DjVu.Pdf](OfficeIMO.DjVu.Pdf/README.md)
+adds searchable scanned-page PDFs and explicit OCR for missing text;
+[OfficeIMO.Reader.DjVu](OfficeIMO.Reader.DjVu/README.md) projects the native document
+into Reader. See the [codec and independent qualification contract](OfficeIMO.DjVu/SUPPORT.md).
+
 #### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
 
 Portable XPS/OpenXPS package reading, native page editing, and writing, with

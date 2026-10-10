@@ -171,7 +171,8 @@ internal static partial class DocumentReaderEngine {
         return result.ToString();
     }
 
-    private static string BuildSourceId(string sourceKey) {
+    /// <summary>Uses the canonical Reader identity for both captured input and projections of owned documents.</summary>
+    internal static string BuildSourceId(string sourceKey) {
         string normalized = sourceKey ?? string.Empty;
         if (Path.DirectorySeparatorChar == '\\') normalized = normalized.ToLowerInvariant();
         return "src:" + ComputeSha256Hex(normalized);

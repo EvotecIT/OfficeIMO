@@ -11,9 +11,10 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             using var payload = JsonDocument.Parse(json);
             int version = payload.RootElement.GetProperty("schemaVersion").GetInt32();
             using var schema = JsonDocument.Parse(OfficeDocumentReadResultSchema.GetJsonSchema(version));
-            Assert.Equal(12, version);
+            Assert.Equal(13, version);
             Assert.Equal(27, (int)ReaderInputKind.Chm);
-            Assert.Equal(28, (int)ReaderInputKind.Dbf);
+            Assert.Equal(28, (int)ReaderInputKind.DjVu);
+            Assert.Equal(29, (int)ReaderInputKind.Dbf);
             Assert.Equal(version, schema.RootElement.GetProperty("properties").GetProperty("schemaVersion").GetProperty("const").GetInt32());
             Assert.Contains(payload.RootElement.GetProperty("kind").GetString(), schema.RootElement.GetProperty("properties").GetProperty("kind").GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
             OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(json);
@@ -23,7 +24,7 @@ namespace OfficeIMO.Reader.Dbf.Tests {
 
         [Fact]
         public void OlderEnvelopesRejectDbfInRootsChunksAndNestedDocuments() {
-            for (int version = 5; version <= 11; version++) {
+            for (int version = 5; version <= 12; version++) {
                 using var schema = JsonDocument.Parse(OfficeDocumentReadResultSchema.GetJsonSchema(version));
                 Assert.DoesNotContain("Dbf", schema.RootElement.GetProperty("properties").GetProperty("kind").GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
                 var result = new OfficeDocumentReadResult { SchemaVersion = version, Kind = ReaderInputKind.Dbf };

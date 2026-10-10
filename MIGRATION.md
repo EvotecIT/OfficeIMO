@@ -168,6 +168,28 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## DBF Reader identity and transport
+
+Register `.AddDbfHandler()` from `OfficeIMO.Reader.Dbf`, or use the all-adapters
+preset, to ingest DBF/xBase tables. `ReaderInputKind.Dbf` (`29`) requires document
+transport schema v13. Update exhaustive input-kind switches and transport bindings;
+schemas v5 through v12 remain readable but cannot carry DBF input kinds. CHM (`27`)
+and DjVu (`28`) retain their existing identities and minimum schema versions.
+Memo sidecar reads require explicit opt-in through `ReaderDbfOptions` or
+`ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
+
+## DjVu Reader identity and transport
+
+Register `.AddDjVuHandler()` from `OfficeIMO.Reader.DjVu` for `.djvu` and `.djv`,
+or use the all-adapters preset. Results use `ReaderInputKind.DjVu` (`28`) and
+transport schema v12. Update exhaustive input-kind switches and transport bindings
+to accept the new value and version. Historical schemas remain readable; v11 and
+earlier cannot carry DjVu input kinds. Schema v11 and `ReaderInputKind.Chm` (`27`)
+retain their existing CHM contract. Obtain the current artifact through
+`OfficeDocumentReadResultSchema.GetJsonSchema()`. Native source page numbers remain
+stable when selected pages are reordered. Page images and new OCR are explicit
+options; corrupt stored text is a parsing diagnostic.
+
 `XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.

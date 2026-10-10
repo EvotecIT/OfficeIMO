@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Xlsb_DirectTabularSave_FallsBackForDateValuesWithoutChangingSemantics() {
+        public void Xlsb_DirectTabularSave_PreservesCellValueDateSemantics() {
             DateTime expected = new DateTime(2026, 8, 10, 14, 30, 0, DateTimeKind.Unspecified);
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Data");
@@ -88,7 +88,6 @@ namespace OfficeIMO.Tests {
 
             byte[] workbook = document.ToBytes(ExcelFileFormat.Xlsb);
 
-            Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetDateTime(0));
