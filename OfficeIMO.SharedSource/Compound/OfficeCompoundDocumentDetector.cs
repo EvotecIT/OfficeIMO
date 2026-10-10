@@ -21,7 +21,8 @@ namespace OfficeIMO.Core.Internal {
             PowerPointPresentation,
             EncryptedOpenXmlPackage,
             Ambiguous,
-            UnknownCompound
+            UnknownCompound,
+            PublisherPublication
         }
 
         internal static bool HasCompoundSignature(byte[] bytes) {
@@ -90,34 +91,38 @@ namespace OfficeIMO.Core.Internal {
         private static DocumentKind Detect(
             IReadOnlyList<OfficeCompoundFileEntry> entries,
             CancellationToken cancellationToken = default) {
-            bool hasWordDocument = ContainsRootStream(entries, "WordDocument",
+            bool hasWordDocument = ContainsPayloadStream(entries, "WordDocument",
                 cancellationToken);
-            bool hasWorkbook = ContainsRootStream(entries, "Workbook",
+            bool hasWorkbook = ContainsPayloadStream(entries, "Workbook",
                     cancellationToken)
-                || ContainsRootStream(entries, "Book", cancellationToken);
+                || ContainsPayloadStream(entries, "Book", cancellationToken);
             bool hasPowerPointPresentation =
-                ContainsRootStream(entries, "PowerPoint Document",
+                ContainsPayloadStream(entries, "PowerPoint Document",
                     cancellationToken)
-                && ContainsRootStream(entries, "Current User",
+                && ContainsPayloadStream(entries, "Current User",
                     cancellationToken);
-            bool hasEncryptedPackage = ContainsRootStream(entries,
+            bool hasEncryptedPackage = ContainsPayloadStream(entries,
                     "EncryptedPackage", cancellationToken)
-                && ContainsRootStream(entries, "EncryptionInfo",
+                && ContainsPayloadStream(entries, "EncryptionInfo",
                     cancellationToken);
+            bool hasPublisher = ContainsPayloadStream(entries, "Contents", cancellationToken)
+                && ContainsPayloadStream(entries, "Quill/QuillSub/CONTENTS", cancellationToken);
 
             int recognizedRootCount = (hasWordDocument ? 1 : 0)
                 + (hasWorkbook ? 1 : 0)
                 + (hasPowerPointPresentation ? 1 : 0)
-                + (hasEncryptedPackage ? 1 : 0);
+                + (hasEncryptedPackage ? 1 : 0)
+                + (hasPublisher ? 1 : 0);
             if (recognizedRootCount > 1) return DocumentKind.Ambiguous;
             if (hasWordDocument) return DocumentKind.WordDocument;
             if (hasWorkbook) return DocumentKind.ExcelWorkbook;
             if (hasPowerPointPresentation) return DocumentKind.PowerPointPresentation;
             if (hasEncryptedPackage) return DocumentKind.EncryptedOpenXmlPackage;
+            if (hasPublisher) return DocumentKind.PublisherPublication;
             return DocumentKind.UnknownCompound;
         }
 
-        private static bool ContainsRootStream(
+        private static bool ContainsPayloadStream(
             IEnumerable<OfficeCompoundFileEntry> entries, string name,
             CancellationToken cancellationToken) {
             foreach (OfficeCompoundFileEntry entry in entries) {

@@ -2508,6 +2508,8 @@ The generated [PDF conversion support matrix](../Docs/officeimo.pdf-conversion-s
 
 - `OfficeIMO.Pdf` provides first-party PDF parsing, layout, writing, rendering, password security, and signature structure. Optional CMS, DER, and X.509 services come from an explicitly supplied `OfficeIMO.Security` provider.
 - Source-format adapters map their document models onto the neutral `OfficeDocumentModel`; PDF projection remains owned by this package.
+- Explicit `Location.LogicalOrder` takes precedence over local paragraph indexes. With `PdfProjectionPagePolicy.ContinuousFlow`, it also takes precedence over physical page order. Automatic page headings are omitted with `MODEL_SOURCE_PAGE_LABELS_OMITTED` when they would interrupt that order.
+- Page and document table views are reconciled by source scope and occurrence count. Distinct equal tables remain in the output. An unlocated aggregate that matches several page scopes is retained with `MODEL_TABLE_CORRELATION_UNASSESSED` rather than assigned to an inferred page.
 - Neutral-model raster assets retain their aspect ratio and scale down to the configured page content area. Source diagnostics keep their severity and an explicit `lossKind` attribute (`None`, `Approximation`, `Omission` or `Failure`) in the PDF report; absent or invalid categories use the severity default, and errors remain failures.
 - See the [PDF current-state guide](../Docs/officeimo.pdf.current-state.md) for the detailed capability inventory and known limits.
 

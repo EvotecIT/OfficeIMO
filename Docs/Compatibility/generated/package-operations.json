@@ -15179,6 +15179,20 @@
       "limitation":"MPX 4 output supports a bounded mapped subset; unsupported XML fields, structures, and representation changes require explicit caller permission."
     },
     {
+      "id":"conversion:publisher-pdf",
+      "packageId":"OfficeIMO.Publisher.Pdf",
+      "formatId":"Publisher",
+      "targetFormatId":"PDF",
+      "capabilityId":"publisher-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"PublisherDocument.Load(stream, readOptions).ToPdfDocumentResult(pdfOptions)",
+      "evidence":"Native Contents/Quill/OfficeArt fixtures verify physical pages, searchable styled text, linked frames, native tables, embedded images and carried source/PDF diagnostics.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".pub"],
+      "limitation":"Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified."
+    },
+    {
       "id":"protection:rtf-editing-restrictions:rtf:create",
       "packageId":"OfficeIMO.Rtf",
       "formatId":"RTF",

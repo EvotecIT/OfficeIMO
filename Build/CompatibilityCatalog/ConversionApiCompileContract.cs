@@ -23,6 +23,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.PowerPoint.GoogleSlides;
+using OfficeIMO.Publisher;
 using OfficeIMO.Rtf;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
@@ -57,6 +58,7 @@ internal static class ConversionApiCompileContract {
         OdgDocument odg,
         PdfDocument pdf,
         PowerPointPresentation powerPoint,
+        PublisherDocument publisher,
         RtfDocument rtf,
         RtfReadResult rtfRead,
         VisioDocument visio,
@@ -149,6 +151,7 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdfDocumentResult(odp);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdpPresentationResult(pdf);
         _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
+        _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocumentResult(publisher);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
         _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");
         _ = ExcelGoogleSheetsExtensions.ExportToGoogleSheetsAsync(excel, session);

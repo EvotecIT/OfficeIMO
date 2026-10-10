@@ -4,18 +4,36 @@ namespace OfficeIMO.Workflows;
 
 // Carries an owning converter's evidence across the runner's structured failure boundary.
 internal sealed class WorkflowConversionFailureException : InvalidOperationException {
-    internal WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence, bool diagnosticsAdded = false)
+    internal WorkflowConversionFailureException(Exception cause, OfficeWorkflowConversionEvidence evidence, bool diagnosticsAdded = false,
+        ISet<string>? importDiagnosticSources = null)
         : base(cause.Message, cause) {
         Evidence = evidence;
         DiagnosticsAdded = diagnosticsAdded;
+        ImportDiagnosticSources = importDiagnosticSources == null ? null : new HashSet<string>(importDiagnosticSources, StringComparer.Ordinal);
     }
 
     internal OfficeWorkflowConversionEvidence Evidence { get; }
     internal bool DiagnosticsAdded { get; }
+    internal ISet<string>? ImportDiagnosticSources { get; }
+}
+
+// Retains available reports while preserving the runner's cancellation classification.
+internal sealed class WorkflowConversionCancellationException : OperationCanceledException {
+    internal WorkflowConversionCancellationException(OperationCanceledException cause, OfficeWorkflowConversionEvidence evidence,
+        bool diagnosticsAdded = false, ISet<string>? importDiagnosticSources = null) : base(cause.Message, cause, cause.CancellationToken) {
+        Evidence = evidence;
+        DiagnosticsAdded = diagnosticsAdded;
+        ImportDiagnosticSources = importDiagnosticSources == null ? null : new HashSet<string>(importDiagnosticSources, StringComparer.Ordinal);
+    }
+    internal OfficeWorkflowConversionEvidence Evidence { get; }
+    internal bool DiagnosticsAdded { get; }
+    internal ISet<string>? ImportDiagnosticSources { get; }
 }
 
 /// <summary>Converts a captured input into a bounded output stream. Streams remain owned by the runner.</summary>
-/// <remarks>The delegate must honor cancellation and leave both streams open. Publication and output reopen validation belong to the runner.</remarks>
+/// <remarks>The delegate must honor cancellation and leave both streams open. Publication and output reopen validation belong to the runner.
+/// Throw <see cref="OfficeConversionException"/> with the available report to retain evidence when output serialization fails.
+/// An <see cref="OfficeWorkflowConversionEvidence"/> report also retains its compact facts; an inner cancellation exception preserves cancellation classification.</remarks>
 public delegate OfficeWorkflowConversionEvidence OfficeWorkflowConverter(
     Stream input, Stream output, OfficeWorkflowLimits limits, CancellationToken cancellationToken);
 

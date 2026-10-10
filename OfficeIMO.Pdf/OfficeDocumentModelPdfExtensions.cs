@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Loss-aware PDF projection over the neutral document model.</summary>
-public static class OfficeDocumentModelPdfExtensions {
+public static partial class OfficeDocumentModelPdfExtensions {
     private const string ConverterName = "OfficeIMO.Pdf";
 
     /// <summary>
@@ -44,7 +44,10 @@ public static class OfficeDocumentModelPdfExtensions {
         if (!string.IsNullOrWhiteSpace(source.Source.Title)) document.H1(source.Source.Title!);
         if (options.IncludeMetadata) ComposeMetadata(document, source.Metadata);
 
-        if (source.Pages.Count > 0) {
+        if (options.PagePolicy == PdfProjectionPagePolicy.ContinuousFlow && HasExplicitReadingOrder(source)) {
+            assetSummary = ComposeReadingOrderedContent(document, source, identities, options, rasterDecodeOptions,
+                !string.IsNullOrWhiteSpace(pdfOptions.CatalogUriBase), report, cancellationToken);
+        } else if (source.Pages.Count > 0) {
             for (int index = 0; index < source.Pages.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeDocumentModelPage page = source.Pages[index];
@@ -91,6 +94,10 @@ public static class OfficeDocumentModelPdfExtensions {
                 source.Format.ToString(), cancellationToken);
         }
 
+        if (identities.HasAmbiguousTableProjection) report.Add(new PdfConversionWarning(ConverterName,
+            "MODEL_TABLE_CORRELATION_UNASSESSED", source.Format + "/document",
+            "Unlocated aggregate table content occurs in several page scopes. Correspondence is not inferred and all supplied entries are retained.",
+            PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Unassessed));
         AddSourceSpecificPolicyEvidence(source, options, assetSummary, report);
         return new PdfDocumentConversionResult(document, report);
     }
@@ -125,7 +132,7 @@ public static class OfficeDocumentModelPdfExtensions {
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDocumentModelTable table = tables[tableIndex];
-            OfficeDocumentModelBlock? correlated = FindCorrelatedTableBlock(blocks, table, out int correlatedIndex);
+            OfficeDocumentModelBlock? correlated = FindCorrelatedTableBlock(blocks, table, matchedBlocks, out int correlatedIndex);
             if (correlated != null) matchedBlocks.Add(correlated);
             items.Add(ProjectionContentItem.ForTable(
                 table,
@@ -140,7 +147,8 @@ public static class OfficeDocumentModelPdfExtensions {
             items.Add(ProjectionContentItem.ForBlock(block, blockIndex));
         }
 
-        foreach (ProjectionContentItem item in items.OrderBy(static item => item.Position).ThenBy(static item => item.InsertionIndex)) {
+        foreach (ProjectionContentItem item in items.OrderBy(static item => item.LogicalOrder ?? long.MaxValue)
+            .ThenBy(static item => item.Position).ThenBy(static item => item.InsertionIndex)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (item.Block != null) ComposeBlock(document, item.Block);
             else ComposeTable(document, item.Table!, item.TableIndex, report, sourceLabel);
@@ -271,10 +279,11 @@ public static class OfficeDocumentModelPdfExtensions {
     private static OfficeDocumentModelBlock? FindCorrelatedTableBlock(
         IReadOnlyList<OfficeDocumentModelBlock> blocks,
         OfficeDocumentModelTable table,
+        HashSet<OfficeDocumentModelBlock> matchedBlocks,
         out int blockIndex) {
         for (int index = 0; index < blocks.Count; index++) {
             OfficeDocumentModelBlock block = blocks[index];
-            if (IsTableBlock(block) && TableMatchesBlock(table, block)) {
+            if (!matchedBlocks.Contains(block) && IsTableBlock(block) && TableMatchesBlock(table, block)) {
                 blockIndex = index;
                 return block;
             }
@@ -290,6 +299,8 @@ public static class OfficeDocumentModelPdfExtensions {
     private static bool TableMatchesBlock(OfficeDocumentModelTable table, OfficeDocumentModelBlock block) {
         OfficeDocumentModelLocation? tableLocation = table.Location;
         OfficeDocumentModelLocation? blockLocation = block.Location;
+        if (tableLocation?.LogicalOrder.HasValue == true && blockLocation?.LogicalOrder.HasValue == true &&
+            tableLocation.LogicalOrder != blockLocation.LogicalOrder) return false;
         string? tableAnchor = tableLocation?.BlockAnchor;
         if (!string.IsNullOrWhiteSpace(tableAnchor) &&
             (string.Equals(tableAnchor, block.Id, StringComparison.Ordinal) ||
@@ -474,11 +485,13 @@ public static class OfficeDocumentModelPdfExtensions {
             OfficeDocumentModelTable? table,
             int tableIndex,
             OfficeDocumentModelLocation? location,
-            int insertionIndex) {
+            int insertionIndex,
+            OfficeDocumentModelLocation? fallbackLocation = null) {
             Block = block;
             Table = table;
             TableIndex = tableIndex;
             Position = GetPosition(location);
+            LogicalOrder = location?.LogicalOrder ?? fallbackLocation?.LogicalOrder;
             InsertionIndex = insertionIndex;
         }
 
@@ -486,6 +499,7 @@ public static class OfficeDocumentModelPdfExtensions {
         internal OfficeDocumentModelTable? Table { get; }
         internal int TableIndex { get; }
         internal int Position { get; }
+        internal long? LogicalOrder { get; }
         internal int InsertionIndex { get; }
 
         internal static ProjectionContentItem ForBlock(OfficeDocumentModelBlock block, int insertionIndex) =>
@@ -496,7 +510,7 @@ public static class OfficeDocumentModelPdfExtensions {
             int tableIndex,
             OfficeDocumentModelLocation? correlatedLocation,
             int insertionIndex) =>
-            new ProjectionContentItem(null, table, tableIndex, correlatedLocation ?? table.Location, insertionIndex);
+            new ProjectionContentItem(null, table, tableIndex, correlatedLocation ?? table.Location, insertionIndex, table.Location);
 
         private static int GetPosition(OfficeDocumentModelLocation? location) =>
             location?.SourceBlockIndex
@@ -508,24 +522,64 @@ public static class OfficeDocumentModelPdfExtensions {
 
     private sealed class ProjectionIdentitySet {
         private readonly HashSet<string> _blocks = new HashSet<string>(StringComparer.Ordinal);
-        private readonly HashSet<string> _tables = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, int> _tableOccurrences = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<string, TableProjectionCandidate?> _pageTableCandidates = new Dictionary<string, TableProjectionCandidate?>(StringComparer.Ordinal);
         private readonly HashSet<string> _assets = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _links = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _forms = new HashSet<string>(StringComparer.Ordinal);
+        internal bool HasAmbiguousTableProjection { get; private set; }
 
         internal List<OfficeDocumentModelBlock> TakeBlocks(IReadOnlyList<OfficeDocumentModelBlock> items) =>
             Take(items, _blocks, OfficeDocumentModelIdentity.BuildBlockIdentity);
 
         internal List<OfficeDocumentModelTable> TakeTables(IReadOnlyList<OfficeDocumentModelTable> items) =>
-            Take(items, _tables, static item => OfficeDocumentModelIdentity.BuildTableIdentity(item));
+            TakeTableOccurrences(items, null);
 
-        internal List<OfficeDocumentModelTable> TakeTables(IReadOnlyList<OfficeDocumentModelTable> items, OfficeDocumentModelPage page) {
+        internal List<OfficeDocumentModelTable> TakeTables(IReadOnlyList<OfficeDocumentModelTable> items, OfficeDocumentModelPage page) =>
+            TakeTableOccurrences(items, page);
+
+        private List<OfficeDocumentModelTable> TakeTableOccurrences(IReadOnlyList<OfficeDocumentModelTable> items, OfficeDocumentModelPage? page) {
             var result = new List<OfficeDocumentModelTable>(items.Count);
-            for (int index = 0; index < items.Count; index++) {
-                OfficeDocumentModelTable item = items[index];
-                if (item != null && _tables.Add(OfficeDocumentModelIdentity.BuildTableIdentity(item, page, index))) result.Add(item);
+            var collectionOccurrences = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (OfficeDocumentModelTable item in items) {
+                if (item == null) continue;
+                string identity = page == null ? OfficeDocumentModelIdentity.BuildTableOccurrenceIdentity(item)
+                    : OfficeDocumentModelIdentity.BuildTableCollectionIdentity(item, page);
+                string content = OfficeDocumentModelIdentity.BuildTableContentIdentity(item);
+                if (page != null) {
+                    if (!_pageTableCandidates.TryGetValue(content, out TableProjectionCandidate? previous))
+                        _pageTableCandidates.Add(content, new TableProjectionCandidate(identity, item, page));
+                    else if (previous != null && previous.Identity != identity)
+                        _pageTableCandidates[content] = null;
+                } else if (!_tableOccurrences.ContainsKey(identity)
+                    && _pageTableCandidates.TryGetValue(content, out TableProjectionCandidate? candidate)) {
+                    if (candidate != null && OfficeDocumentModelIdentity.TableLocationMatches(item.Location, candidate.Table.Location, candidate.Page)) {
+                        // Missing aggregate coordinates can be reconciled only when the source
+                        // content identifies one page occurrence group and known coordinates agree.
+                        identity = candidate.Identity;
+                    } else if (candidate == null && item.Location?.LogicalOrder == null && item.Location?.Page == null
+                        && item.Location?.Slide == null && string.IsNullOrWhiteSpace(item.Location?.Sheet)) {
+                        HasAmbiguousTableProjection = true;
+                    }
+                }
+                collectionOccurrences.TryGetValue(identity, out int count);
+                collectionOccurrences[identity] = ++count;
+                _tableOccurrences.TryGetValue(identity, out int previousCount);
+                if (count > previousCount) {
+                    _tableOccurrences[identity] = count;
+                    result.Add(item);
+                }
             }
             return result;
+        }
+
+        private sealed class TableProjectionCandidate {
+            internal TableProjectionCandidate(string identity, OfficeDocumentModelTable table, OfficeDocumentModelPage page) {
+                Identity = identity; Table = table; Page = page;
+            }
+            internal string Identity { get; }
+            internal OfficeDocumentModelTable Table { get; }
+            internal OfficeDocumentModelPage Page { get; }
         }
 
         internal List<OfficeDocumentModelAsset> TakeAssets(IReadOnlyList<OfficeDocumentModelAsset> items) =>

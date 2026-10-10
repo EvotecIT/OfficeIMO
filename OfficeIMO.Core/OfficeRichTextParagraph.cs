@@ -6,6 +6,8 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>A paragraph whose styled runs and layout are resolved with the drawing's render-time fonts.</summary>
 public sealed class OfficeRichTextParagraph {
+    // A native flow slice ending at a soft region boundary still justifies its last line.
+    internal bool ContinuesInNextRegion { get; set; }
     /// <summary>Creates a paragraph with independent alignment, line spacing, margins and indentation.</summary>
     /// <param name="runs">Styled inline content. The collection and runs are copied.</param>
     /// <param name="alignment">Horizontal alignment within the paragraph's margins.</param>
@@ -75,6 +77,7 @@ public sealed class OfficeRichTextParagraph {
         var copy = Label == null ? new OfficeRichTextParagraph(Runs, Alignment, LineHeight, Margins, Indent, LineHeightFactor) :
             new OfficeRichTextParagraph(Runs, Label, Alignment, LineHeight, Margins, Indent, LineHeightFactor);
         copy.TabStops = tabStops;
+        copy.ContinuesInNextRegion = ContinuesInNextRegion;
         return copy;
     }
 

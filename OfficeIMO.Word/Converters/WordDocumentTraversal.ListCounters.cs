@@ -14,7 +14,7 @@ namespace OfficeIMO.Word {
                     : info.Ordered ? BuildMarker(info.Level, index, counters, formats, info.LevelText)
                     : info.LevelText ?? "•";
                 if (rawMarker.Length > MaximumListMarkerLength) throw ListMarkerLengthExceeded();
-                (string marker, bool useTextFont) = NormalizeListMarker(rawMarker, info.MarkerFontFamily);
+                (string marker, bool useTextFont) = OfficeTextListMarkerNormalizer.Normalize(rawMarker, info.MarkerFontFamily);
                 if (marker.Length > MaximumDocumentListMarkerCharacters - totalMarkerCharacters)
                     throw new InvalidDataException("Word generated list markers exceed the supported document character budget.");
                 totalMarkerCharacters += marker.Length;

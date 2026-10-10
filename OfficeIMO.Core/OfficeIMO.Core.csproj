@@ -58,6 +58,8 @@
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Project" />
+    <InternalsVisibleTo Include="OfficeIMO.Publisher" />
+    <InternalsVisibleTo Include="OfficeIMO.Publisher.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Access" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Verification" />
     <InternalsVisibleTo Include="OfficeIMO.Project.Tests" />

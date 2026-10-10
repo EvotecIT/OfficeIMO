@@ -1,0 +1,36 @@
+{
+  "repository": "https://github.com/apache/poi",
+  "commit": "66109187d12b72696ea02101cec765d77d9bbdc9",
+  "sourceDirectory": "test-data/publisher",
+  "license": "Apache-2.0",
+  "files": [
+    {
+      "name": "Sample.pub",
+      "sha256": "6fefdef46b87c767150878dc384549cb2d2ec2ac54de25f8ddb3a5628301107e"
+    },
+    {
+      "name": "Sample2000.pub",
+      "sha256": "40701ca47b26d04771cdd58467764e9ab39d3da69b59fbc529afd16d263d2f86"
+    },
+    {
+      "name": "Sample98.pub",
+      "sha256": "8912f295ff0cd1f55b873b3b98a182218f33c420877e025d2f0fd795f12dd0c0"
+    },
+    {
+      "name": "SampleBrochure.pub",
+      "sha256": "ffed034ac87e679f0bd08ff9cf74ad11c0e0e510a42b1bc1a7502415f6c29c87"
+    },
+    {
+      "name": "SampleNewsletter.pub",
+      "sha256": "6a825ba26ba35d6e885acdc62e859591ed37cb0ff7480b554b9cb362b644dfcf"
+    },
+    {
+      "name": "Sample_2010.pub",
+      "sha256": "f0a90aa566d72eb822eb48b4f378c33007610e35f3f1b999cdb88f2c9683858b"
+    },
+    {
+      "name": "Simple.pub",
+      "sha256": "2606f530052a818c7949b88c9bf245dbc0a74ddc6b5a60004f37b387fe4b955d"
+    }
+  ]
+}

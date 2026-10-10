@@ -307,34 +307,10 @@ namespace OfficeIMO.Word {
             _ => "\t"
         };
 
-        private static (string Marker, bool UseTextFont) NormalizeListMarker(string marker, string? fontFamily) {
-            string trimmed = marker.Trim();
-            if (trimmed.Length == 0) {
-                return (string.Empty, false);
-            }
-
-            if (string.Equals(fontFamily, "Symbol", StringComparison.OrdinalIgnoreCase)) {
-                return trimmed switch {
-                    "\uf0b7" => ("•", true),
-                    "\u00b7" => ("•", true),
-                    _ => (marker, false)
-                };
-            }
-
-            if (string.Equals(fontFamily, "Wingdings", StringComparison.OrdinalIgnoreCase)) {
-                return trimmed switch {
-                    "\uf0a7" => ("▪", true),
-                    _ => (marker, false)
-                };
-            }
-
-            return (marker, false);
-        }
-
         internal static bool ShouldUseTextFontForMarker(ListInfo? info, string marker) {
             if (info == null) return false;
             if (info.Value.PictureBulletId.HasValue) return true;
-            (string normalized, bool useTextFont) = NormalizeListMarker(info.Value.LevelText ?? string.Empty, info.Value.MarkerFontFamily);
+            (string normalized, bool useTextFont) = OfficeIMO.Drawing.OfficeTextListMarkerNormalizer.Normalize(info.Value.LevelText ?? string.Empty, info.Value.MarkerFontFamily);
             return useTextFont && string.Equals(normalized, marker, StringComparison.Ordinal);
         }
 

@@ -12,9 +12,11 @@ The package does not add a second document or PDF engine. Desktop applications, 
 
 Provider directory packages use `OfficeWorkflowRequest.InputDirectoryPackage` with a registered directory-package converter. The shared runner preserves member layout in bounded private staging and verifies original provider membership and content before publication. The host supplies permission-aware root identity and output-separation checks through `OfficeWorkflowDirectoryPackageInput.SourcePublicationGuard`. The selected filename determines routing; an explicit output is required.
 
+Registered converters can throw `OfficeConversionException` with their available report when destination serialization fails. Use an `OfficeWorkflowConversionEvidence` report to retain compact facts as well. An inner `OperationCanceledException` retains cancellation classification when the workflow token is cancelled. Available reports also survive cancellation after the delegate returns.
+
 ## Single conversions and file batches
 
-`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
+`OfficeWorkflowRunner` executes its configured `ConversionRoutes`. Ordinary directory and selected-file batches use those same routes, including registered adapters, profiles, renderer options, diagnostics and publication policies. Registered adapters use the options captured when the runner was created. PDF export covers DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, ODG/FODG, Publisher PUB, XPS and OpenXPS. Other built-in targets include PDF-to-DOCX/XLSX/PPTX/HTML and reviewed book-project-to-EPUB export. Unsupported or filtered files produce skipped outcomes; their count is separate from selected conversions.
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -41,7 +43,7 @@ var html = await OfficeWorkflow.ConvertFiles("report.pdf", "appendix.pdf")
     .RunAsync(runner, cancellationToken: cancellationToken);
 ```
 
-`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `Draw`, `Visio`, `PlainText` and `Xps` accept their owning adapter's typed options. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
+`Word`, `Excel`, `PowerPoint`, `Html`, `Markdown`, `Rtf`, `Draw`, `Visio`, `PlainText` and `Xps` accept their owning adapter's typed options. Publisher uses `PublisherRead` for native recovery and `PublisherPdf` for PDF output. A mixed batch selects the settings applicable to each route. Explicit renderer options take precedence over the cross-format `OutputProfile`. For ambiguous source extensions, use `.Via("html-pdf")` or `ConversionRouteId` on the request; TXT otherwise remains literal text. Encrypted Office inputs use `ConversionOptions.SourcePassword`; PDF inputs use `PdfPassword`. Passwords remain runtime inputs and are not stored in checkpoints.
 
 Draw conversion uses original page sizes and print-visible layers, including blank pages. `ConversionOptions.Draw` accepts the [owning converter settings](../OfficeIMO.OpenDocument.Odg.Pdf/README.md). Its `ConversionEvidence` contains page-qualified source projection losses and PDF save-time diagnostics; successful publication does not mean lossless drawing fidelity. Set `ConversionOptions.RequireNoLoss` to reject source and PDF-stage losses before publication. Rejections retain both stages' diagnostics and preserve existing destinations.
 
@@ -60,6 +62,27 @@ var diagram = await OfficeWorkflow.Convert("drawing.vdx")
 ```
 
 `OfficeWorkflowLimits.MaximumXmlCharactersInPart` bounds each XML part read by built-in DOCX, XLSX, PPTX, Draw and Visio conversions, including Office inputs normalized during PDF assembly. For VDX and VTX it bounds the complete XML source. Its default is 10 MiB. `OfficeConversionBatchRequest` exposes the same setting per document; both APIs capture it before asynchronous source access.
+
+Publisher `.pub` inputs select `publisher-pdf`. Single conversions, file batches
+and in-memory preview use the [native Publisher reader](../OfficeIMO.Publisher/README.md)
+and [PDF bridge](../OfficeIMO.Publisher.Pdf/README.md). Pages keep their source
+dimensions and recovered searchable text; `ConversionEvidence` carries native
+recovery and PDF-stage losses. `RequireNoLoss` rejects approximated, omitted or
+unassessed content before replacing a destination. Unsupported earlier native
+generations are rejected. Checkpoint identity includes native limits and PDF
+settings; an application image codec requires an ordinary batch without checkpoints.
+
+```csharp
+using OfficeIMO.Publisher;
+using OfficeIMO.Workflows;
+
+var converted = await OfficeWorkflow.Convert("newsletter.pub").To("newsletter.pdf")
+    .WithConversionOptions(new OfficeWorkflowConversionOptions {
+        PublisherRead = new PublisherReadOptions { MaximumPages = 100 }
+    }).RunAsync();
+foreach (var finding in converted.ConversionEvidence?.FidelityDiagnostics ?? [])
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
+```
 
 Both `.xps` and `.oxps` select `xps-pdf`, using the native fixed-page reader and
 PDF bridge. Single conversion, batches, PDF assembly and document preview share

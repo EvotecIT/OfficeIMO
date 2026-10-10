@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## Conversion workflow diagnostics
+
+PDF import and export workflows retain the owning engine's diagnostic code and message separately, with source, loss kind and location in `Details`. Read `Code` instead of extracting a code from `Message`. PDF-to-Excel omissions use `PDF_EXCEL_PAGE_CONTENT_OMITTED` rather than `PdfTablesOnly`; other PDF import findings use their owning codes rather than the generic `ConversionWarning` code. Available reports also remain in `ConversionEvidence` when serialization or later workflow steps fail.
+
+## Legacy DOC conversion rejection reports
+
+`LegacyDocPdfConverter.ToPdfDocumentResult()` throws `OfficeConversionException` when the import reports errors or the default loss policy blocks conversion. Inspect `exception.Report` for the canonical import findings. Code that catches `InvalidOperationException` still catches this derived exception; update code that expects `InvalidDataException` directly for reported import errors. The underlying import error remains available as `InnerException`.
+
 ## PDF form value assessment
 
 `PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
@@ -11,6 +19,7 @@ numeric values to the recovered rules; use a qualified form application for
 unsupported script constraints.
 The [form review contract](OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
 defines the supported helper calls; the policy does not emulate Acrobat formatting.
+
 ## Shared raster workflow contracts
 
 `OfficeRasterEncodingOptions` uses an explicit nullable `Resolution` override in place of the shared `DpiX` and `DpiY` setters. Replace an explicit 300 DPI override with `Resolution = new OfficeImageResolution(300, 300)`. Null keeps a plain encoder's selected codec settings in control; metadata-aware encoding takes density from the supplied `OfficeImageMetadata` when the override is null. Format-specific density settings remain available on the PNG, JPEG, TIFF, and WebP option objects.
@@ -156,7 +165,7 @@ TIFF images retain their declared sample encoding.
 
 Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and
 `.oxps` files. Reader results use `ReaderInputKind.Xps` (`26`) and document transport
-schema version 10. Exhaustive kind switches and transport bindings must accept
+schema version 10 or later. Exhaustive kind switches and transport bindings must accept
 this value and version. Versions 5 through 9 remain readable; they cannot carry
 XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
@@ -165,6 +174,14 @@ page citations remain separate. Null order values retain existing container orde
 `XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.
+
+## Publisher Reader transport identity
+
+Register `.AddPublisherHandler()` from `OfficeIMO.Reader.Publisher` for native
+`.pub` recovery. Results use `ReaderInputKind.Publisher` (`29`) and document
+transport schema version 11 or later. Update exhaustive input-kind switches and
+transport consumers to accept this kind and version. Versions 5 through 10 remain
+readable for their existing formats; they cannot carry Publisher input kinds.
 
 ## XPS PDF reading order
 

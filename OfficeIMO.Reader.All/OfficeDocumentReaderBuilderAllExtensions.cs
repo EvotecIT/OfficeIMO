@@ -16,6 +16,7 @@ using OfficeIMO.Reader.Opml;
 using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.PowerPoint;
+using OfficeIMO.Reader.Publisher;
 using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Subtitles;
 using OfficeIMO.Reader.Visio;
@@ -72,6 +73,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddOpenDocumentHandler(configured.OpenDocument)
             .AddPdfHandler(configured.Pdf)
             .AddPowerPointHandler(configured.PowerPoint)
+            .AddPublisherHandler(configured.Publisher)
             .AddRtfHandler(configured.Rtf)
             .AddSubtitleHandler(configured.Subtitles)
             .AddVisioHandler(configured.Visio)

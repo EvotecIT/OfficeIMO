@@ -33,6 +33,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.pdf",
         "officeimo.reader.powerpoint",
         "officeimo.reader.powerpoint.binary",
+        "officeimo.reader.publisher",
         "officeimo.reader.rtf",
         "officeimo.reader.subtitles",
         "officeimo.reader.text",

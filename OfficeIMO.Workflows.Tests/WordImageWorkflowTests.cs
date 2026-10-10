@@ -58,7 +58,14 @@ public class WordImageWorkflowTests {
             if (format != "pdf") {
                 using WordDocument reopened = WordDocument.Load(output);
                 Assert.Equal(400, OfficeImageReader.Identify(reopened.Images[0].ToBytes()).Width);
-            } else Assert.Single(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(File.ReadAllBytes(output)));
+            } else {
+                Assert.Single(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(File.ReadAllBytes(output)));
+                var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+                foreach (var finding in evidence.FidelityDiagnostics)
+                    Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message
+                        && diagnostic.Details["source"] == finding.Source
+                        && diagnostic.Details["lossKind"] == finding.LossKind.ToString());
+            }
         });
     }
 

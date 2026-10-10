@@ -21,8 +21,10 @@ public static class LegacyDocPdfConverter {
             MaxDecodedImageBytes = supplied.MaxDecodedImageBytes, ReportUnsupportedContent = true
         };
         using LegacyDocLoadResult imported = WordDocument.LoadLegacyDocWithReport(source, settings);
-        if (imported.Summary.HasImportErrors) throw new InvalidDataException("Legacy DOC import reported errors.");
-        if (lossPolicy == OfficeConversionLossPolicy.Block) imported.EnsureNoConversionLoss();
+        if (imported.Summary.HasImportErrors) throw new OfficeConversionException("Legacy DOC import reported errors.", imported.Summary,
+            new InvalidDataException("Legacy DOC import reported errors."));
+        if (lossPolicy == OfficeConversionLossPolicy.Block && imported.Summary.HasLoss)
+            throw new OfficeConversionException("Legacy DOC import contains unsupported, preserved-only, or compound content that cannot be projected without loss.", imported.Summary);
         cancellationToken.ThrowIfCancellationRequested();
         return imported.Document.ToPdfDocumentResult(pdfOptions, cancellationToken).WithSourceConversionReport(imported.Summary);
     }

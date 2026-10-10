@@ -150,6 +150,7 @@ public static partial class OfficeDocumentReadResultExtensions {
         switch (document.Kind) {
             case ReaderInputKind.Pdf:
             case ReaderInputKind.Xps:
+            case ReaderInputKind.Publisher:
                 return OfficeDocumentPageProvenance.Native;
             case ReaderInputKind.PowerPoint:
             case ReaderInputKind.Excel:
