@@ -72,8 +72,22 @@ function Assert-ContainsPattern {
     }
 }
 
-foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
+foreach ($route in @('', 'downloads', 'studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
+    # The inline critical CSS supplies only a partial shell. Layout styles must
+    # apply before first paint, including after the production optimizer runs.
+    $headHtml = [regex]::Match($routeHtml, '(?is)<head\b[^>]*>(.*?)</head>').Groups[1].Value
+    $layoutLinks = @([regex]::Matches($headHtml, '<link\b[^>]*\shref\s*=\s*(?:"/css/[^" ]+\.css(?:\?[^" ]*)?"|''/css/[^'' ]+\.css(?:\?[^'' ]*)?''|/css/[^\s>]+\.css(?:\?[^\s>]*)?(?=\s|/?>))[^>]*>'))
+    if ($layoutLinks.Count -eq 0) {
+        throw "Route '/$route/' must load its layout styles in the document head."
+    }
+    foreach ($link in $layoutLinks) {
+        Assert-ContainsAttribute -Text $link.Value -Name 'rel' -Value 'stylesheet' -Contract "first-paint styles on /$route/"
+        if ($link.Value -match '\sonload\s*=' -or
+            $link.Value -match '\smedia\s*=\s*(?:"print"|''print''|print(?=\s|/?>))') {
+            throw "Route '/$route/' must apply layout styles before first paint: $($link.Value)"
+        }
+    }
     # The logo supplies Home; the main-menu-only verifier warning is baselined.
     if ($routeHtml -notmatch '<a\b(?=[^>]*\sclass=(?:"(?:[^"]*\s)?imo-header__logo(?:\s[^"]*)?"|''(?:[^'']*\s)?imo-header__logo(?:\s[^'']*)?''|imo-header__logo(?=\s|>)))(?=[^>]*\shref=["'']?/["'']?(?=\s|>))[^>]*>') {
         throw "Route '/$route/' must expose Home through the linked site logo."
