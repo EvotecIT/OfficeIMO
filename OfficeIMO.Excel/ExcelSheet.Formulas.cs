@@ -679,6 +679,7 @@ namespace OfficeIMO.Excel {
                     string args = functionCall.Arguments;
                     if (function == "MATCH" || function == "XMATCH") return TryEvaluateMatchValue(function, args, out result);
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
+                    if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
                     if (function == "OFFSET") return TryEvaluateOffsetValue(args, out result);
@@ -759,8 +760,9 @@ namespace OfficeIMO.Excel {
                         result = value.Number!.Value;
                         return true;
                     }
-                    if (function == "PROB" || function == "RANDBETWEEN" || function == "OFFSET") {
-                        bool evaluated = function == "PROB" ? TryEvaluateProbabilityValue(args, out FormulaArgumentValue value)
+                    if (function is "GCD" or "LCM" or "PROB" or "RANDBETWEEN" or "OFFSET") {
+                        bool evaluated = function is "GCD" or "LCM" ? TryEvaluateIntegerAggregateValue(function, args, out FormulaArgumentValue value)
+                            : function == "PROB" ? TryEvaluateProbabilityValue(args, out value)
                             : function == "RANDBETWEEN" ? TryEvaluateRandomBetweenValue(args, out value)
                             : TryEvaluateOffsetValue(args, out value);
                         if (!evaluated) return false;

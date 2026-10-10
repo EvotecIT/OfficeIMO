@@ -515,6 +515,30 @@ Reproduce with the pinned numbers-parser 4.19.0 environment:
 python Build/IWork/extract-integer-function-boundaries.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/integer-function-boundaries.json
 ```
 
+The [controlled Numbers 14.5 reference](native-exports/numbers-integer-functions-v14.5.json)
+adds 17 cases, 70 formulas, Numbers XLSX/PDF exports and a separate Excel 16.113.3
+copy saved after **Calculate Now**. The authored intake, native source, both exports
+and screenshots are hash-pinned under the repository MIT license. The independent
+decoder records function identities 58 (`GCD`) and 75 (`LCM`), source values,
+formula text and both producers' saved results.
+
+Nineteen literal calls qualify reconstruction and local recalculation. References,
+text, Booleans and large operands retain the narrower source reconstruction
+boundary. Native Numbers stores a numeric-text range LCM as zero where Excel
+recalculates 360. Native `2^53` and `2^53-1` power caches both round to
+`9007199254740990`; fresh Excel caches preserve the distinct integer results.
+The unchanged large-operand fixture above retains its separate evidence limits.
+Excel 16.113.3 accepts referenced `2^53` in GCD despite the documented error
+boundary. Neither that observation nor matching function names qualifies a wider
+domain. Native Numbers errors still have no XLSX error code; their PDF cells are
+blank. The complete native PDF and both app screenshots were inspected.
+
+Reproduce the controlled fixture decode with the pinned oracle:
+
+```sh
+python Build/IWork/extract-numbers-integer-functions.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-excel-v16.113.3.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5-decode.json
+```
+
 ### Complete native-content PDF references
 
 The [paragraph-layout creation reference](native-exports/pages-created-layout-v15.4.json)
