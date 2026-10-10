@@ -426,6 +426,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var inlineRuns = new List<HtmlInlineRun>();
         AddGeneratedInlineRun(element, kind, availableSize, null, parentStyle, null, 0D, 0D, inlineRuns);
         foreach (HtmlInlineRun run in inlineRuns) {
+            if (run.IsTextTransformContextOnly) continue;
             if (run.AtomicBlock != null) {
                 result.Add(IntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
             } else if (run.Text.Length > 0) {

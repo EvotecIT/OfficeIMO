@@ -224,7 +224,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void AssignLogicalTextOrders(IEnumerable<HtmlInlineRun> runs) {
         foreach (HtmlInlineRun run in runs) {
-            if (run.Text.Length == 0 || run.LogicalTextOrder.HasValue) continue;
+            if (run.IsTextTransformContextOnly || run.Text.Length == 0 || run.LogicalTextOrder.HasValue) continue;
             run.AssignLogicalTextOrder(_nextLogicalTextOrder++);
         }
     }
@@ -248,8 +248,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (node is IText textNode) {
-            if (textNode.Data.Length > 0 && inheritedStyle.Font.Size > 0D) {
-                ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
+            if (textNode.Data.Length > 0) {
+                bool contextOnly = inheritedStyle.Font.Size <= 0D;
+                if (!contextOnly) ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
                 string source = textNode.ParentElement != null
                     && HtmlRenderSourceIdentity.TryGet(textNode.ParentElement, out string interactionSource)
                     ? interactionSource
@@ -262,7 +263,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     inheritedPaintOffsetX,
                     inheritedPaintOffsetY,
                     textNode.ParentElement,
-                    textTransformPending: true));
+                    textTransformPending: true) { IsTextTransformContextOnly = contextOnly });
             }
 
             return;
@@ -1600,67 +1601,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (token.Length > 0) yield return token.ToString();
-    }
-
-    private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) =>
-        ApplyTextTransformSegments(new[] { text }, style)[0];
-
-    private static void ApplyPendingInlineTextTransforms(IReadOnlyList<HtmlInlineRun> runs) {
-        int start = 0;
-        while (start < runs.Count) {
-            HtmlInlineRun first = runs[start];
-            if (!first.TextTransformPending) {
-                start++;
-                continue;
-            }
-
-            int end = start + 1;
-            while (end < runs.Count
-                   && runs[end].TextTransformPending
-                   && HasEquivalentTextTransform(first.Style, runs[end].Style)) {
-                end++;
-            }
-
-            IReadOnlyList<string> transformed = ApplyTextTransformSegments(
-                runs.Skip(start).Take(end - start).Select(static run => run.Text).ToArray(),
-                first.Style);
-            for (int index = start; index < end; index++) {
-                runs[index].CompleteTextTransform(transformed[index - start]);
-            }
-            start = end;
-        }
-    }
-
-    private static bool HasEquivalentTextTransform(HtmlRenderBoxStyle left, HtmlRenderBoxStyle right) =>
-        string.Equals(left.TextTransform, right.TextTransform, StringComparison.OrdinalIgnoreCase)
-        && string.Equals(left.Language, right.Language, StringComparison.OrdinalIgnoreCase)
-        && left.ApproximateSmallCaps == right.ApproximateSmallCaps;
-
-    private static IReadOnlyList<string> ApplyTextTransformSegments(
-        IReadOnlyList<string> segments,
-        HtmlRenderBoxStyle style) {
-        CultureInfo culture = ResolveTextTransformCulture(style.Language);
-        OfficeTextCase textCase = style.TextTransform.ToLowerInvariant() switch {
-            "uppercase" => OfficeTextCase.Uppercase,
-            "lowercase" => OfficeTextCase.Lowercase,
-            "capitalize" => OfficeTextCase.Capitalize,
-            _ => OfficeTextCase.None
-        };
-        IReadOnlyList<string> transformed = string.Equals(style.TextTransform, "math-auto", StringComparison.OrdinalIgnoreCase)
-            ? segments.Select(OfficeMathTextTransform.MathAuto).ToArray()
-            : OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
-        return style.ApproximateSmallCaps
-            ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)
-            : transformed;
-    }
-
-    private static CultureInfo ResolveTextTransformCulture(string language) {
-        if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
-        try {
-            return CultureInfo.GetCultureInfo(language);
-        } catch (CultureNotFoundException) {
-            return CultureInfo.InvariantCulture;
-        }
     }
 
     private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);
