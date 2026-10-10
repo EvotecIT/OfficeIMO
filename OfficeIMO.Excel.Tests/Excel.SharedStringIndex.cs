@@ -86,7 +86,7 @@ public sealed partial class SharedStringIndexTests {
     [InlineData(' ', " ")]
     public void IndexedTable_LongTextKeepsCanonicalFallbackAndReleasesBufferedStorage(char prefix, string suffix) {
         string value = new string(prefix, 16 * 1024 - 1) + suffix;
-        string expected = prefix == ' ' ? string.Empty : value;
+        string expected = value;
         using OpenXmlPooledPartStream stream = CreateStream("<si><t>" + value + "</t></si>", declaredCount: "1");
         using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
 
