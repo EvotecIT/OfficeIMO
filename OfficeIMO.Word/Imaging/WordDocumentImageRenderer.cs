@@ -142,7 +142,8 @@ namespace OfficeIMO.Word {
                 EstimateSectionPageCounts(
                     document,
                     cancellationToken,
-                    options.CancellationCheckpoint),
+                    options.CancellationCheckpoint,
+                    options),
                 cancellationToken);
         }
 
@@ -574,7 +575,7 @@ namespace OfficeIMO.Word {
                 textLayout.ContentWidth,
                 lineHeight,
                 textLayout.ParagraphIndent,
-                context.CancellationToken);
+                context);
             int estimatedLineCount = Math.Max(1, (int)Math.Ceiling(height / lineHeight));
             WordParagraphSpacing spacing = ResolveParagraphSpacing(paragraphs[0], maxFontSize, lineHeight, context, out WordParagraphSpacingState spacingState);
             bool keepLinesTogether = ResolveKeepLinesTogether(paragraphs[0]);
@@ -630,13 +631,14 @@ namespace OfficeIMO.Word {
 
         private static bool AddTextRun(WordParagraph paragraph, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, WordImageListMarker? listMarker, DocumentFormat.OpenXml.Drawing.ColorScheme? colorScheme) {
             OfficeFontInfo font = CreateFont(paragraph);
-            double lineHeight = Math.Max(font.Size * 1.25D, 12D);
+            double lineHeight = ResolvePlainTextLineHeight(font);
             WordImageTextLayout textLayout = ResolveTextLayout(context, listMarker, paragraph);
             string text = ResolveImageExportText(paragraph, context, diagnostics);
             List<string> lines = WrapTextIntoMeasuredLines(
                 text,
                 font,
                 textLayout.LayoutWidth,
+                context.TextMetrics,
                 context.CancellationToken,
                 context.CancellationCheckpoint);
             double height = Math.Max(lineHeight, lines.Count * lineHeight);
@@ -754,47 +756,26 @@ namespace OfficeIMO.Word {
             return OfficeTextAlignment.Left;
         }
 
-        private static double EstimateTextHeight(
-            string text,
-            double fontSize,
-            double contentWidth,
-            double lineHeight,
-            CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
-            double averageCharacterWidth = Math.Max(1D, fontSize * 0.52D);
-            int charactersPerLine = Math.Max(1, (int)Math.Floor(contentWidth / averageCharacterWidth));
-            string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
-            cancellationToken.ThrowIfCancellationRequested();
-            string[] explicitLines = normalized.Split('\n');
-            int lineCount = 0;
-            foreach (string line in explicitLines) {
-                cancellationToken.ThrowIfCancellationRequested();
-                lineCount += Math.Max(1, (int)Math.Ceiling(line.Length / (double)charactersPerLine));
-            }
-
-            return Math.Max(lineHeight, lineCount * lineHeight);
-        }
-
         private static double EstimateRichTextHeight(
             IReadOnlyList<OfficeRichTextRun> runs,
             double maxFontSize,
             double contentWidth,
             double lineHeight,
             OfficeTextParagraphIndent paragraphIndent,
-            CancellationToken cancellationToken) {
+            WordImageFlowContext context) {
             double lineHeightFactor = Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize));
-            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
                 runs,
                 contentWidth,
                 double.MaxValue,
                 lineHeightFactor,
-                CreateRichTextMeasure(cancellationToken),
+                CreateRichTextMeasure(context),
                 wrap: true,
                 shrinkToFit: false,
                 minimumFontSize: Math.Min(6D, maxFontSize),
                 overflowBehavior: OfficeTextOverflowBehavior.Clip,
                 paragraphIndent: paragraphIndent,
-                cancellationToken: cancellationToken);
+                cancellationToken: context.CancellationToken);
             return Math.Max(lineHeight, layout.Height);
         }
 
@@ -803,16 +784,6 @@ namespace OfficeIMO.Word {
             context.CanAdvancePageForOverflow &&
             context.Y > context.Top &&
             context.Y + height > context.ContentBottom;
-
-        private static Func<string?, double, string?, double> CreateRichTextMeasure(
-            CancellationToken cancellationToken = default) {
-            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create();
-            return (value, size, family) => {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    OfficeTextMeasurementStyle measuredStyle = measurer.CreateStyle(new OfficeFontInfo(family, size));
-                    return measurer.MeasureWidth(value, measuredStyle);
-                };
-        }
 
         private static void AddBackgroundRectangle(OfficeDrawing drawing, OfficeColor fillColor) {
             OfficeShape shape = OfficeShape.Rectangle(drawing.Width, drawing.Height);
@@ -839,6 +810,7 @@ namespace OfficeIMO.Word {
 
             int targetPageIndex = Math.Max(0, pageIndex);
             int firstPageInSection = 0;
+            int lastRenderableSectionFirstPage = 0;
             for (int sectionIndex = 0; sectionIndex < document.Sections.Count; sectionIndex++) {
                 int sectionPages = sectionIndex < sectionPageCounts.Count
                     ? sectionPageCounts[sectionIndex]
@@ -846,6 +818,8 @@ namespace OfficeIMO.Word {
                 if (sectionPages <= 0) {
                     continue;
                 }
+
+                lastRenderableSectionFirstPage = firstPageInSection;
 
                 if (targetPageIndex < firstPageInSection + sectionPages) {
                     return new WordImagePageContext(document.Sections[sectionIndex], sectionIndex, targetPageIndex - firstPageInSection);
@@ -855,7 +829,7 @@ namespace OfficeIMO.Word {
             }
 
             int lastSectionIndex = FindLastRenderableSectionIndex(document, sectionPageCounts);
-            return new WordImagePageContext(document.Sections[lastSectionIndex], lastSectionIndex, Math.Max(0, targetPageIndex - firstPageInSection));
+            return new WordImagePageContext(document.Sections[lastSectionIndex], lastSectionIndex, Math.Max(0, targetPageIndex - lastRenderableSectionFirstPage));
         }
 
         private static int FindLastRenderableSectionIndex(WordDocument document, IReadOnlyList<int> sectionPageCounts) {
@@ -990,6 +964,11 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class WordImageFlowContext {
+            private OfficeRasterCanvas? _textMetrics;
+
+            // Allocate paragraph space with the same selected font path that paints the page.
+            internal OfficeRasterCanvas TextMetrics => _textMetrics ??=
+                OfficeDrawingTextLayout.CreateMetrics(Drawing, CancellationToken);
             internal WordImageFlowContext(
                 OfficeDrawing drawing,
                 double left,

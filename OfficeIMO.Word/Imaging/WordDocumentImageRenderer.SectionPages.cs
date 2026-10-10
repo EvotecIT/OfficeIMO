@@ -16,7 +16,8 @@ namespace OfficeIMO.Word {
         private static IReadOnlyList<int> EstimateSectionPageCounts(
             WordDocument document,
             CancellationToken cancellationToken = default,
-            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null) {
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null,
+            WordImageExportOptions? options = null) {
             cancellationToken.ThrowIfCancellationRequested();
             int sectionCount = Math.Max(1, document.Sections.Count);
             int[] pageCounts = new int[sectionCount];
@@ -47,7 +48,8 @@ namespace OfficeIMO.Word {
                         groupSection,
                         sectionElements,
                         cancellationToken,
-                        cancellationCheckpoint);
+                        cancellationCheckpoint,
+                        options);
                     int breakPages = CountSectionBreakPageAdvance(sectionPageNumberStart + contentPages - 2, boundaryProperties);
                     pageCounts[sectionGroupStart] = Math.Max(1, contentPages - 1 + breakPages);
                     sectionPageNumberStart = nextSection.GetEffectivePageNumberStart() ?? sectionPageNumberStart + pageCounts[sectionGroupStart];
@@ -63,7 +65,8 @@ namespace OfficeIMO.Word {
                     document.Sections[sectionGroupStart],
                     sectionElements,
                     cancellationToken,
-                    cancellationCheckpoint);
+                    cancellationCheckpoint,
+                    options);
             }
 
             return pageCounts;
@@ -128,10 +131,12 @@ namespace OfficeIMO.Word {
             WordSection section,
             IReadOnlyList<OpenXmlElement> sectionElements,
             CancellationToken cancellationToken,
-            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
+            Action<WordImageCancellationCheckpoint>? cancellationCheckpoint,
+            WordImageExportOptions? options) {
             cancellationToken.ThrowIfCancellationRequested();
             (double width, double height) = GetPageSizePoints(section);
             var drawing = new OfficeDrawing(width, height);
+            if (options != null) drawing.ApplyImageExportOptions(options);
             WordHeaderFooterPageFrame headerFooterFrame = CreateHeaderFooterPageFrame(section, drawing, 0, document.Sections.IndexOf(section), 1, 0, 1, 1, cancellationToken);
             WordImageFlowContext context = CreateFlowContext(
                 section,

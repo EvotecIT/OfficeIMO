@@ -9,6 +9,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Theme name.</summary>
         public string Name { get; set; } = "OfficeIMO Modern";
 
+        /// <summary>
+        /// Optional page fill for graph and sequence diagrams. A native background adornment preserves
+        /// the fill in saved drawings and previews without adding another page. Null keeps an unfilled page.
+        /// </summary>
+        public Color? PageBackgroundColor { get; set; }
+
         /// <summary>Primary process/block shape style.</summary>
         public VisioShapeStyle Primary { get; set; } = Shape(Color.FromRgb(45, 145, 225), Color.FromRgb(26, 111, 188), 0.018, Color.White);
 
@@ -59,6 +65,7 @@ namespace OfficeIMO.Visio {
         public VisioStyleTheme Clone() {
             return new VisioStyleTheme {
                 Name = Name,
+                PageBackgroundColor = PageBackgroundColor,
                 Primary = Primary.Clone(),
                 Success = Success.Clone(),
                 Decision = Decision.Clone(),

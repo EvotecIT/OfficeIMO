@@ -52,6 +52,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\WordEvidenceCorpusManifest.cs" Link="WordEvidenceCorpusManifest.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\RasterColorTestSupport.cs" Link="RasterColorTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Measurement.cs" Link="ManagedTextShapingTestAssets.Measurement.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\Pdf\PdfOperatorSearchText.cs" Link="Pdf\PdfOperatorSearchText.cs" />
   </ItemGroup>
 

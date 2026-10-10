@@ -9,13 +9,25 @@ namespace OfficeIMO.Visio.Diagrams {
     /// High-level builder for generic graph diagrams where OfficeIMO lays out arbitrary nodes and edges.
     /// </summary>
     public sealed partial class VisioGraphDiagramBuilder {
+        private void ResolveTitleHeight() {
+            if (string.IsNullOrWhiteSpace(_titleText)) {
+                return;
+            }
+
+            _resolvedTitleHeight = VisioLayoutExtensions.MeasureTextHeight(
+                _titleText,
+                VisioDiagramTitleStyles.Create(_theme),
+                TitleWidth.ToInches(_unit),
+                _titleHeight.ToInches(_unit)).FromInches(_unit);
+        }
+
         private void AddTitle(VisioPage page) {
             if (string.IsNullOrWhiteSpace(_titleText)) {
                 return;
             }
 
-            double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            double y = _pageHeight - _topMargin - (_resolvedTitleHeight / 2D);
+            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, TitleWidth, _resolvedTitleHeight, _titleText, _unit);
             title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
             MarkDiagramAdornment(title);
         }
@@ -114,7 +126,9 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
-        private double TitleHeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+        private double TitleWidth => Math.Max(1D, _pageWidth - _leftMargin - _rightMargin);
+
+        private double TitleHeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _resolvedTitleHeight + _titleGap;
 
         private VisioTextStyle CreateLegendTextStyle() {
             VisioTextStyle style = _theme.Connector.TextStyle?.Clone() ?? new VisioTextStyle();

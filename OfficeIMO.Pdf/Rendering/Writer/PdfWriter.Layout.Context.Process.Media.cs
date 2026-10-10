@@ -29,7 +29,7 @@ internal static partial class PdfWriter {
             PdfDrawingStyle drawingStyle = ResolveDrawingStyle(dbk, currentOpts);
             PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
             if (drawingStyle.KeepWithNext && nextBlock != null) {
-                KeepFixedBlockWithNext(dbk.Drawing.Width, dbk.Drawing.Height, drawingStyle.SpacingBefore, drawingStyle.SpacingAfter, blockList, blockIndex);
+                KeepDrawingBlockWithNext(dbk, drawingStyle, blockList, blockIndex);
             }
 
             RenderDrawingBlock(dbk, currentOpts.MarginLeft, width);

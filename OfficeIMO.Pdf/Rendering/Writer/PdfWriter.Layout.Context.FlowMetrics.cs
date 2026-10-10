@@ -220,7 +220,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is DrawingBlock drawing) {
-                return MeasureDrawingBlockHeight(drawing);
+                return MeasureDrawingBlockHeight(drawing, frameWidth);
             }
 
 
@@ -433,7 +433,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is DrawingBlock drawing) {
-                return MeasureDrawingBlockHeight(drawing);
+                return MeasureDrawingBlockHeight(drawing, frameWidth);
             }
 
             if (block is RowBlock row) {
@@ -477,9 +477,10 @@ internal static partial class PdfWriter {
             return ResolveTopLevelSpacingBefore(style.SpacingBefore) + shape.Shape.Height + style.SpacingAfter;
         }
 
-        private double MeasureDrawingBlockHeight(DrawingBlock drawing) {
+        private double MeasureDrawingBlockHeight(DrawingBlock drawing, double frameWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(drawing, currentOpts);
-            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + drawing.Drawing.Height + style.SpacingAfter;
+            var box = ResolveDrawingFlowBox(drawing, style, frameWidth);
+            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + box.Height + style.SpacingAfter;
         }
 
 

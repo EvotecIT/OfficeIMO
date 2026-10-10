@@ -66,6 +66,11 @@ namespace OfficeIMO.Visio.Diagrams {
             if (style.TextStyle != null) {
                 connector.TextStyle = style.TextStyle.Clone();
             }
+            if (_theme.PageBackgroundColor.HasValue && connector.TextStyle?.BackgroundColor == null) {
+                connector.TextStyle ??= new VisioTextStyle();
+                connector.TextStyle.BackgroundColor = _theme.PageBackgroundColor;
+                connector.TextStyle.BackgroundTransparency = 0D;
+            }
         }
 
         private VisioShapeStyle GetParticipantStyle(VisioSequenceParticipantKind kind) {

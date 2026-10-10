@@ -479,6 +479,8 @@ VisioDocument.Create("network-topology.vsdx")
 
 ### Sequence diagram builder
 
+Graph and sequence themes accept `PageBackgroundColor`. The fill is saved as a protected native adornment behind the diagram, without adding a background page. Connector captions inherit that fill unless their text style supplies an explicit background color.
+
 ```csharp
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;

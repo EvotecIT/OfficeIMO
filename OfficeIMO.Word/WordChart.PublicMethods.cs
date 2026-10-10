@@ -31,18 +31,14 @@ namespace OfficeIMO.Word {
 
 
         /// <summary>
-        /// Sets chart width to the page content width (page width minus left/right margins).
+        /// Sets chart width to its paragraph's estimated content width, including the owning section or cell.
         /// Optionally scales by <paramref name="fraction"/> and adjusts height in pixels.
         /// </summary>
         public WordChart SetWidthToPageContent(double fraction = 1.0, int? heightPx = null) {
+            if (_paragraph == null) return this;
             try {
-                var sect = _document.Sections.FirstOrDefault();
-                var widthTwips = (double)(sect?.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips);
-                var leftTwips = (double)(sect?.Margins.Left ?? 1440U);
-                var rightTwips = (double)(sect?.Margins.Right ?? 1440U);
-                var contentTwips = System.Math.Max(0, widthTwips - leftTwips - rightTwips);
-                var inches = contentTwips / 1440.0 * System.Math.Max(0.05, System.Math.Min(1.0, fraction));
-                var px = (int)System.Math.Round(inches * PixelsPerInch);
+                var widthPoints = _paragraph.GetContentWidthPoints();
+                var px = (int)System.Math.Round(widthPoints * PixelsPerInch / 72D * System.Math.Max(0.05, System.Math.Min(1.0, fraction)));
                 return SetSize(px, heightPx);
             } catch { return this; }
         }

@@ -9,6 +9,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         if (options.NativeTheme != null) return options.NativeTheme.Clone();
         var theme = VisioStyleTheme.Minimal();
         var source = envelope.Presentation?.Theme;
+        theme.PageBackgroundColor = source == null ? null : MapNativeColor(source.Background,
+            "Theme background", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
         var foreground = source == null ? null : MapNativeColor(source.Foreground, "Theme foreground", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
         var border = source == null ? null : MapNativeColor(source.Border, "Theme border", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);
         var connectorColor = source == null ? null : MapNativeColor(source.MutedForeground, "Theme connector", envelope.Id, report, OfficeVisioVisualEntityKind.Artifact);

@@ -356,8 +356,10 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(20, 36, 58), shape.TextStyle!.Color);
         Assert.Equal("Arial", shape.TextStyle.FontFamily);
         var custom = VisioStyleTheme.Technical();
+        custom.PageBackgroundColor = OfficeIMO.Drawing.OfficeColor.FromRgb(245, 248, 252);
         var overridden = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { NativeTheme = custom });
         Assert.Equal(custom.Primary.FillColor, overridden.Page.Shapes.Single(item => item.Id == "a").FillColor);
+        Assert.Equal(custom.PageBackgroundColor, overridden.Page.Shapes[0].FillColor);
     }
 
     private static VisualArtifactInterchangeEnvelope PlacementEnvelope() {

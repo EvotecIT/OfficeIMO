@@ -40,6 +40,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private string? _titleText;
         private string _titleId = "title";
         private double _titleHeight = 0.45;
+        private double _resolvedTitleHeight = 0.45;
         private double _titleGap = 0.35;
         private bool _showLegend;
         private string _legendTitle = "Legend";
@@ -131,7 +132,11 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
-        /// <summary>Adds a centered editable title above the graph.</summary>
+        /// <summary>Adds a centered editable title above the graph, growing its minimum height to fit wrapped text.</summary>
+        /// <param name="text">Title text; uses the page name when omitted.</param>
+        /// <param name="id">Unique title shape id.</param>
+        /// <param name="height">Minimum title height in the page measurement unit. Wrapped text can increase this height.</param>
+        /// <param name="gap">Space below the title in the page measurement unit.</param>
         public VisioGraphDiagramBuilder Title(string? text = null, string id = "title", double height = 0.45D, double gap = 0.35D) {
             string normalizedId = RequireId(id, nameof(id), "Title id");
             if (IsIdInUse(normalizedId)) {
@@ -143,6 +148,7 @@ namespace OfficeIMO.Visio.Diagrams {
             _titleText = string.IsNullOrWhiteSpace(text) ? _pageName : text;
             _titleId = normalizedId;
             _titleHeight = height;
+            _resolvedTitleHeight = height;
             _titleGap = gap;
             return this;
         }

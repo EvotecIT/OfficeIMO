@@ -118,6 +118,22 @@ namespace OfficeIMO.Visio {
             return selection;
         }
 
+        /// <summary>
+        /// Measures wrapped text at a fixed width in inches, retaining the text style's margins
+        /// and the standard layout padding used when sizing native text shapes.
+        /// </summary>
+        internal static double MeasureTextHeight(string? text, VisioTextStyle textStyle, double width, double minimumHeight) {
+            return MeasureTextBox(
+                text,
+                CreateFontInfo(textStyle),
+                DefaultHorizontalPadding,
+                DefaultVerticalPadding,
+                minimumWidth: width,
+                minimumHeight,
+                maximumWidth: width,
+                textStyle).Height;
+        }
+
 
         private static void ValidateTextResizeArguments(double horizontalPadding, double verticalPadding, double minimumWidth, double minimumHeight) {
             if (horizontalPadding < 0) {

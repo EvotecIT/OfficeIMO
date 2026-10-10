@@ -2,6 +2,8 @@
 
 Render Mermaid fences as static diagrams in OfficeIMO Markdown workflows. This optional adapter uses [ChartForgeX.Markup.Mermaid](https://github.com/EvotecIT/ChartForgeX) for parsing, layout, SVG and PNG rendering. Word, PDF and PowerPoint engines keep their own document and image-placement behavior.
 
+The adapter uses the ChartForgeX 2.0 Mermaid package. It renders through the common static artifact contract and does not add Visuals or Stories dependencies to ordinary OfficeIMO converters.
+
 ## Word and PDF
 
 Materialize a parsed Markdown document before exporting it:

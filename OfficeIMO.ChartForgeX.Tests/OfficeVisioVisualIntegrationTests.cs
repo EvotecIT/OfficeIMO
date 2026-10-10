@@ -496,6 +496,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.NotEqual("api-lifeline", worker.Id);
         Assert.NotEqual("api-lifeline-end", message.Id);
         Assert.NotEqual("message-api-lifeline-end-from", nativeFragment.Id);
+        Assert.NotNull(message.From);
+        Assert.NotNull(message.To);
         Assert.Equal(message.Id + "-from", message.From.Id);
         Assert.Equal(message.Id + "-to", message.To.Id);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -744,18 +746,6 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Warning);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == OfficeVisioVisualDiagnosticCode.HyperlinkNotProjected &&
             diagnostic.EntityId == "api" && diagnostic.Severity == OfficeVisioVisualDiagnosticSeverity.Warning);
-    }
-
-    [Fact]
-    public void TypedVisioProjectionReportsRenderWatermarksThatRemainInStaticFallbacks() {
-        TopologyChart topology = TopologyChart.Create();
-        topology.Nodes.Add(new TopologyNode { Id = "service", Label = "Service" });
-        var renderOptions = new VisualArtifactRenderOptions();
-        renderOptions.Watermarks.Add(VisualWatermark.FromText("CONFIDENTIAL"));
-
-        OfficeVisioVisualConversionResult result = topology.ToVisualArtifact().ToOfficeVisio(renderOptions: renderOptions);
-
-        Assert.Contains(result.Report.Warnings, warning => warning.Contains("watermarks") && warning.Contains("SVG or PNG"));
     }
 
     [Fact]

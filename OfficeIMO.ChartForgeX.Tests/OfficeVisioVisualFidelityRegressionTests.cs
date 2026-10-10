@@ -82,10 +82,9 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
     [Fact]
     public void RejectedTypedProjectionIncludesAllRequestedFeatureLosses() {
         var chart = TopologyChart.Create().WithTheme(TopologyTheme.Light()).AddAutoNode("service", "Service");
-        var render = new VisualArtifactRenderOptions();
-        render.Watermarks.Add(VisualWatermark.FromText("CONFIDENTIAL"));
-        var error = Assert.Throws<OfficeVisioVisualFidelityException>(() => chart.ToVisualArtifact().ToOfficeVisio(
-            new OfficeVisioVisualOptions { RequireLossless = true }, render));
+        var artifact = chart.ToVisualArtifact().WithWatermarks(VisualWatermark.FromText("CONFIDENTIAL"));
+        var error = Assert.Throws<OfficeVisioVisualFidelityException>(() => artifact.ToOfficeVisio(
+            new OfficeVisioVisualOptions { RequireLossless = true }));
         Assert.Contains(error.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
         Assert.Contains(error.Report.Diagnostics, item => item.Code != OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
     }
