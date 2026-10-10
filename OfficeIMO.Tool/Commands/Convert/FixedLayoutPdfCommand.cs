@@ -1,12 +1,13 @@
 using System.Text;
+using OfficeIMO.DjVu.Pdf;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.OpenDocument.Odg.Pdf;
 using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Tool.Commands.Convert;
 
-/// <summary>Maps Draw command options to the shared conversion and atomic publication workflow.</summary>
-internal static class DrawPdfCommand {
+/// <summary>Maps fixed-layout command options to the shared conversion and atomic publication workflow.</summary>
+internal static class FixedLayoutPdfCommand {
     internal static async Task<int> RunAsync(
         OfficePdfArguments arguments,
         string inputPath,
@@ -18,7 +19,7 @@ internal static class DrawPdfCommand {
             Operation = OfficeWorkflowOperation.Convert,
             InputPath = inputPath,
             OutputPath = outputPath,
-            ConversionRouteId = "odg-pdf",
+            ConversionRouteId = arguments.IsDjVuInput ? "djvu-pdf" : "odg-pdf",
             ConflictPolicy = arguments.Force ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
             Limits = new OfficeWorkflowLimits {
                 MaximumInputBytes = arguments.MaxInputBytes,
@@ -27,10 +28,11 @@ internal static class DrawPdfCommand {
             },
             ConversionOptions = new OfficeWorkflowConversionOptions {
                 RequireNoLoss = arguments.RequireNoLoss,
-                Draw = new OdgToPdfOptions {
+                DjVu = arguments.IsDjVuInput ? new DjVuToPdfOptions() : null,
+                Draw = arguments.IsDrawInput ? new OdgToPdfOptions {
                     ForPrint = arguments.DiagramForPrint,
                     LossPolicy = OdfConversionLossPolicy.ReportOnly
-                }
+                } : null
             }
         }, cancellationToken: token).ConfigureAwait(false);
 

@@ -10,6 +10,9 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     /// <summary>The materialized model used by every typed benchmark.</summary>
+#if OFFICEIMO_BENCHMARK_GENERATED_MAPPING
+    [OfficeIMO.Data.GenerateRowMapper]
+#endif
     public sealed class TypedRecord {
         public string? Name { get; set; }
         public int Id { get; set; }

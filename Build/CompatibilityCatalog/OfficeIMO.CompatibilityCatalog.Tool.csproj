@@ -7,6 +7,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../OfficeIMO.DjVu.Pdf/OfficeIMO.DjVu.Pdf.csproj" />
     <ProjectReference Include="../../OfficeIMO.OpenDocument.Odg.Pdf/OfficeIMO.OpenDocument.Odg.Pdf.csproj" />
     <ProjectReference Include="../../OfficeIMO.Adf/OfficeIMO.Adf.csproj" />
     <ProjectReference Include="../../OfficeIMO.Confluence/OfficeIMO.Confluence.csproj" />

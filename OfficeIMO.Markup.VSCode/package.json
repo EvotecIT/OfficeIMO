@@ -397,7 +397,7 @@
     }
   },
   "dependencies": {
-    "mermaid": "^12.0.0"
+    "mermaid": "^12.1.0"
   },
   "overrides": {
     "brace-expansion": "5.0.12",
@@ -414,7 +414,7 @@
     "katex": "0.18.2"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "@types/vscode": "1.136.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",

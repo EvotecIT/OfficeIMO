@@ -1,0 +1,338 @@
+{
+  "referenceTools": [
+    {
+      "name": "DjVuLibre",
+      "sourceVersion": "3.5.30",
+      "sourceSha256": "ee5e457d4cfebe566f94b99e5e3d3cc7f5c79ddb741c2ac2ba2e456f00329644",
+      "role": "validation-only encoder and reference decoder; not shipped"
+    },
+    {
+      "name": "minidjvu",
+      "version": "0.8",
+      "sourceSha256": "e9c892e0272ee4e560eaa2dbd16b40719b9797a1fa2749efeb6622f388dfb74a",
+      "role": "validation-only shared JB2 encoder; not shipped"
+    }
+  ],
+  "families": {
+    "Authored": "OfficeIMO-authored pixels/text, MIT. c44 progressive/colour/gray IW44; cpaldjvu palettes; cjb2 symbols; djvused text/outline/rotation; djvumake JPEG and constructed MMR; minidjvu shared bundled and indirect JB2. PPM/PBM references decoded by ddjvu. JB2 work-limit inputs use OfficeIMO-authored record sequences with native ZP encoding; DjVuLibre independently decodes their geometry and selected empty pixels.",
+    "Bzz": "OfficeIMO-authored input .bin files, MIT; native bzz -e10 output.",
+    "Archive": "Public domain source pages, unchanged FORM bytes. See Archive/manifest.json for source URL, source hash, rights basis and extraction offsets."
+  },
+  "files": [
+    {
+      "path": "Archive/manifest.json",
+      "bytes": 1113,
+      "sha256": "80075aa6704ee450209006e3c461f498a63ef054cf675028eaf40a3d4c275282"
+    },
+    {
+      "path": "Archive/time-machine-1.djvu",
+      "bytes": 149668,
+      "sha256": "f296d4f0dc7d3acd6d09c5aebd0d391490d498dbf0e27e30de115a96dfabfc8f"
+    },
+    {
+      "path": "Archive/time-machine-1.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Archive/time-machine-1.zones",
+      "bytes": 18,
+      "sha256": "bb6d74b571c693a483fd9fd3cd87d65002a3239b40f5e56ba0c4045afd60465a"
+    },
+    {
+      "path": "Archive/time-machine-16-mask.sha256",
+      "bytes": 65,
+      "sha256": "ca7bde1bde4a95fe5c6ecf0489872f3d25f8f5e5976fb123f5d05b67eb792a18"
+    },
+    {
+      "path": "Archive/time-machine-16.djvu",
+      "bytes": 14776,
+      "sha256": "626c9a1613d4d7bea16d79b8fc682297752c030d02217ad2ae6a2bf6f6e03f74"
+    },
+    {
+      "path": "Archive/time-machine-16.txt",
+      "bytes": 891,
+      "sha256": "cf4d883bd385ad6ae4a10f106dfbb584dd469589d41fce30a76b783fe51b31c3"
+    },
+    {
+      "path": "Archive/time-machine-16.zones",
+      "bytes": 6781,
+      "sha256": "09014a3567803b51eff53db9bf9f3b05ffc1960fa7cc1106bd3256ef8bf16b5d"
+    },
+    {
+      "path": "Archive/time-machine-selected.djvu",
+      "bytes": 164512,
+      "sha256": "7d8612ed9f5c42a40664f5c78a3196d0505e42a9ccaacde1c169f6093a17d8cc"
+    },
+    {
+      "path": "Authored/Shared/Indirect/index.djvu",
+      "bytes": 68,
+      "sha256": "fe1cdec0a95486bf7d812dfc1eb3e58e7eb39a29d204d815504c863c1a33f1bd"
+    },
+    {
+      "path": "Authored/Shared/Indirect/shared-1.djvu",
+      "bytes": 75,
+      "sha256": "3ad78ce781f38767ed4d1e8dc0561dcbb52abe3d56906f9f6f592635b0fef495"
+    },
+    {
+      "path": "Authored/Shared/Indirect/shared-1.iff",
+      "bytes": 33,
+      "sha256": "3601cf9c1cefe938d981b86cd540bfbabc517e805518816cf181a357f123d7bc"
+    },
+    {
+      "path": "Authored/Shared/Indirect/shared-2.djvu",
+      "bytes": 95,
+      "sha256": "c82f23b8c22a805d8a3f26d13bb7badfd5cae8b0aab949cc2197c1749f52d626"
+    },
+    {
+      "path": "Authored/Shared/page-1-reference.ppm",
+      "bytes": 36878,
+      "sha256": "f442db86bcb26b81e50e1c91e58253a85cf23911844b205124a0367fa7d9dcd9"
+    },
+    {
+      "path": "Authored/Shared/page-2-reference.ppm",
+      "bytes": 36878,
+      "sha256": "a6fd88f6da2c6c44b7d8818fdc8bd5f288dfd5715b3d6eb3b163f7c55b6f0597"
+    },
+    {
+      "path": "Authored/Shared/shared.djvu",
+      "bytes": 285,
+      "sha256": "1b89d37eb73e99cbcccea2330a50dbb81926a3a25866271d2af988233cc9f02a"
+    },
+    {
+      "path": "Authored/clipped-masks.djvu",
+      "bytes": 72,
+      "sha256": "de632f4981f5615dbb7623524553a5be16b226835f590c46a8861c6c0479f8c9"
+    },
+    {
+      "path": "Authored/comments-dictionary.jb2",
+      "bytes": 18,
+      "sha256": "a1038ee3abdbc45816f6585fad22ecf7ac98c3b879b33a5542fbdd1f5766bc52"
+    },
+    {
+      "path": "Authored/comments-page.djvu",
+      "bytes": 66,
+      "sha256": "89a55122f1f7809a766489fac9b4cd2345b79c536fc7aac89c7787793d280424"
+    },
+    {
+      "path": "Authored/corrupt.djvu",
+      "bytes": 158,
+      "sha256": "8e6138437c8c0ad3c78fecb973f34189c2a76ed94d9826596350a161560116e9"
+    },
+    {
+      "path": "Authored/empty.djvu",
+      "bytes": 152,
+      "sha256": "75c3b25c1458129539007c55db05c24d830c5bdd4c6d38dbe24165458eaa6d4e"
+    },
+    {
+      "path": "Authored/fax-inverted-reference.ppm",
+      "bytes": 781,
+      "sha256": "211d551a25cc9d92089ef7966b55b05cf074bdb27c96568fabe11a48af59711e"
+    },
+    {
+      "path": "Authored/fax-inverted.djvu",
+      "bytes": 60,
+      "sha256": "038f79dd618e7c77df5e23282eabb7c37fb5659aa9725c8fce7b00887316d68b"
+    },
+    {
+      "path": "Authored/fax-reference.ppm",
+      "bytes": 781,
+      "sha256": "498fc6af35b825a3125e21b0e91fdd6eb8cf0dfb21e0f5d68ddc4edfca2efef9"
+    },
+    {
+      "path": "Authored/fax-striped-reference.ppm",
+      "bytes": 781,
+      "sha256": "498fc6af35b825a3125e21b0e91fdd6eb8cf0dfb21e0f5d68ddc4edfca2efef9"
+    },
+    {
+      "path": "Authored/fax-striped.djvu",
+      "bytes": 76,
+      "sha256": "a75d9f173023c9da0516fc3404c0cc0c605ac31013fb4a22feb12f2cbe8e9655"
+    },
+    {
+      "path": "Authored/fax.djvu",
+      "bytes": 60,
+      "sha256": "f33bbd9807fa9d638530a4d93236610ad52f4b5eba4d18ca7154b81a63d5343d"
+    },
+    {
+      "path": "Authored/gradient-reference.ppm",
+      "bytes": 9568,
+      "sha256": "27f1c178860b152988d480266d8032e02ca08b9de2bac703505bd2c62d18af5d"
+    },
+    {
+      "path": "Authored/gradient.djvu",
+      "bytes": 123,
+      "sha256": "8d589920a5bea00d4bb940e58ec08597ed5e3a414ddb6d8191da1d09b4298ac4"
+    },
+    {
+      "path": "Authored/gray-reference.ppm",
+      "bytes": 37553,
+      "sha256": "e7b152ed3c42d5ebe1b7226e2d80fe1581464771fc21aeefeae670cbde1742ea"
+    },
+    {
+      "path": "Authored/gray.djvu",
+      "bytes": 6662,
+      "sha256": "b9ccd09818086b78a5d7168a15e85dcad96b290d88f0d0d8be3d5bc73296c20d"
+    },
+    {
+      "path": "Authored/iw44-foreground-reference.ppm",
+      "bytes": 36878,
+      "sha256": "71a8341b2965d36b3a2f33ac50a73b8cbb4bd9a450b18356f098d5304e864da6"
+    },
+    {
+      "path": "Authored/iw44-foreground.djvu",
+      "bytes": 4746,
+      "sha256": "1ef7de5a73dabf5c868e0f5082523a0c3837b894d393f3d90ee04b7ec8f67e50"
+    },
+    {
+      "path": "Authored/jpeg-background-reference.ppm",
+      "bytes": 37553,
+      "sha256": "37d103f34fd8735854ac653e47f0ab1eb9696fd3e18c511a619b2761130cd4b2"
+    },
+    {
+      "path": "Authored/jpeg-background.djvu",
+      "bytes": 24770,
+      "sha256": "243785ca4636c5d6198d0b7cb7101b374dd00f49c4aacb778d0be17c47f6fe21"
+    },
+    {
+      "path": "Authored/noise-full-reference.ppm",
+      "bytes": 37553,
+      "sha256": "b497e0109de4073cbe8388854aecd58e8aabf623ebd2b4a852ed71b387abdf51"
+    },
+    {
+      "path": "Authored/noise-full.djvu",
+      "bytes": 21741,
+      "sha256": "95bd9503a3f9f3f969f70283c7f3969e31d3eb6866a2c4c9572e42e2c8bbdf3f"
+    },
+    {
+      "path": "Authored/noise-normal-reference.ppm",
+      "bytes": 37553,
+      "sha256": "16d5c3613237eded981186b3d382c4bb66f99ae392ca881b37511ff848e53383"
+    },
+    {
+      "path": "Authored/noise-normal.djvu",
+      "bytes": 18064,
+      "sha256": "c85858d98c546b6b8ff7998581effd7445a50f3f0e8bcba1dbf41530960db618"
+    },
+    {
+      "path": "Authored/noise-small-reference.ppm",
+      "bytes": 363,
+      "sha256": "343fa98e704afafe68e745453a6d879db1af7fdb88989b82d324100efa31f8dc"
+    },
+    {
+      "path": "Authored/noise-small.djvu",
+      "bytes": 351,
+      "sha256": "c50cb6e16388db5722a26fffa69fe5576da9b6c914b0a7ba2193eb733567ea7b"
+    },
+    {
+      "path": "Authored/palette-reference.ppm",
+      "bytes": 36878,
+      "sha256": "e42ad0eb2ccad3a453f5bd20b292c8a61df370033f74dba66371115ae15e0a17"
+    },
+    {
+      "path": "Authored/palette-rotated-reference.ppm",
+      "bytes": 36878,
+      "sha256": "e9e091af36c96af883489106ef0f827f1bcf79a27bf44f22c59d12753eb79940"
+    },
+    {
+      "path": "Authored/palette-rotated.djvu",
+      "bytes": 139,
+      "sha256": "b94ba680cd3229384f7c778f5ca62a3fcd29caf3a4b0c517a43cb98206ab4c09"
+    },
+    {
+      "path": "Authored/palette.djvu",
+      "bytes": 139,
+      "sha256": "38b7090337486ed5e35b1fd4be0b851532b95a455a35fe0808abcee55bb3fb90"
+    },
+    {
+      "path": "Authored/reader-book.djvu",
+      "bytes": 860,
+      "sha256": "cbcaacdfc5e31165b06cd68ac14f212d127764b37b162c8f131e9a5f5f12c02a"
+    },
+    {
+      "path": "Authored/reader-book.outline",
+      "bytes": 187,
+      "sha256": "c1b1f721921ce6994f5adf9255c9ad98622d6bbc213482cd0fb0edab7ce002f0"
+    },
+    {
+      "path": "Authored/sampling-reference.ppm",
+      "bytes": 337866,
+      "sha256": "3b786af07545412955649f67d6a63a989d062a294adc8595d65e65c2321e1a2f"
+    },
+    {
+      "path": "Authored/sampling.djvu",
+      "bytes": 21741,
+      "sha256": "3963f66e9c2c45405455dfec83cc53bf9934ede0199e46b48a330a67767e18a9"
+    },
+    {
+      "path": "Authored/standalone-color-reference.ppm",
+      "bytes": 9568,
+      "sha256": "27f1c178860b152988d480266d8032e02ca08b9de2bac703505bd2c62d18af5d"
+    },
+    {
+      "path": "Authored/standalone-color.djvu",
+      "bytes": 101,
+      "sha256": "584f68299ec33fae1616940c603615b51ad10150313b003dcbe61753401b8d6e"
+    },
+    {
+      "path": "Authored/symbols-reference.pbm",
+      "bytes": 1546,
+      "sha256": "a7e3b22e863641727573cf43c709c5166f36a8c012c0e4d0e20e679de8bce1da"
+    },
+    {
+      "path": "Authored/symbols.djvu",
+      "bytes": 70,
+      "sha256": "85c17abc0c598c32d5a72b7ffe2f2fd7e4eb51b2bc06652ffd95f4b981849cdf"
+    },
+    {
+      "path": "Authored/unicode.djvu",
+      "bytes": 211,
+      "sha256": "98ab6c0954237c2dba792f747f7ade9216c80508137ccfc6e13921cbcce22bd2"
+    },
+    {
+      "path": "Authored/unicode.txt",
+      "bytes": 18,
+      "sha256": "0a05e146d2360cc127381b0f6f1eb3663045a7971ff4ca62521cb659e3c250ab"
+    },
+    {
+      "path": "Authored/unicode.zones",
+      "bytes": 133,
+      "sha256": "fb8d2b70268995ddf846af700b2a51529f48642d060e01554d0da27d267b84f3"
+    },
+    {
+      "path": "Authored/zero-area.djvu",
+      "bytes": 82,
+      "sha256": "0642f65cdb38d709656b7ae437ba0204684c742072d2df14202f17a2262ec2ff"
+    },
+    {
+      "path": "Bzz/binary.bin",
+      "bytes": 8192,
+      "sha256": "dc404a613fedaeb54034514bc6505f56b933caa5250299ba7d094377a51caa46"
+    },
+    {
+      "path": "Bzz/binary.bzz",
+      "bytes": 519,
+      "sha256": "4b150799d679d11bb3900d663e204db8f0587b7d18e63d7613b6009ba7299387"
+    },
+    {
+      "path": "Bzz/multiblock.bin",
+      "bytes": 40000,
+      "sha256": "e3aebd6f7a95a723f9d92900adf559c823e5c8ff5048052d3841441f546745be"
+    },
+    {
+      "path": "Bzz/multiblock.bzz",
+      "bytes": 1980,
+      "sha256": "983d19fef8db288b06a646107bb4e3bbceef72871bd39817edc94215e826afd5"
+    },
+    {
+      "path": "Bzz/short.bin",
+      "bytes": 53,
+      "sha256": "a5b74f15e7ae3581e3b2373243a03eb0772639cce4f206303198855b5cbc301d"
+    },
+    {
+      "path": "Bzz/short.bzz",
+      "bytes": 60,
+      "sha256": "e7be753e1905bac5c9a8da0ce7f494f5f6642e0e74974dd7bd0e721363652dec"
+    }
+  ]
+}

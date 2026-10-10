@@ -15,7 +15,31 @@ string? assemblyDirectory = metadata.Single(attribute => attribute.Key == "Offic
 string? newApis = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkNewApis").Value;
 string? csv = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkCsv").Value;
 string? arrow = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkArrow").Value;
+string? generatedMapping = metadata.Single(attribute => attribute.Key == "OfficeIMOBenchmarkGeneratedMapping").Value;
 BenchmarkInput.WriteDescription();
+
+if (args is ["--prepare-shared-memory-fixture", string fixturePath]) {
+    await SharedStringMemoryEvidence.SaveFixtureAsync(fixturePath);
+    return;
+}
+
+if (args.Length > 0 && args[0] == "--measure-shared-memory") {
+    await SharedStringMemoryEvidence.RunAsync(args[1..]);
+    return;
+}
+
+if (args.Length > 0 && args[0] == "--validate-native-written") {
+    if (args.Length != 3 || !int.TryParse(args[2], System.Globalization.NumberStyles.None,
+        System.Globalization.CultureInfo.InvariantCulture, out int rowCount) || rowCount is < 1 or > 1_000_000)
+        throw new ArgumentException("Usage: --validate-native-written <fixture.xlsb|fixture.xls> <dataRows>, with dataRows between 1 and 1000000.");
+    ExcelFileFormat format = Path.GetExtension(args[1]).ToLowerInvariant() switch {
+        ".xlsb" => ExcelFileFormat.Xlsb,
+        ".xls" => ExcelFileFormat.Xls,
+        _ => throw new ArgumentException("Native written-fixture qualification supports .xlsb and .xls files."),
+    };
+    NativeWrittenWorkbookValidation.Validate(File.ReadAllBytes(args[1]), rowCount, format, "External");
+    return;
+}
 
 if (args is ["--validate-bdn"]) {
     int typeCount = 0, methodCount = 0, caseCount = 0, errorCount = 0;
@@ -66,6 +90,18 @@ if (args is ["--validate-models"]) {
 #endif
     }
     return;
+}
+
+if (args is ["--validate-generated"]) {
+#if OFFICEIMO_BENCHMARK_GENERATED_MAPPING
+    foreach (int rows in new GeneratedModelReadBenchmarks().RowCounts()) {
+        foreach (TypedModelKind model in Enum.GetValues<TypedModelKind>())
+            await new GeneratedModelReadBenchmarks { RowCount = rows, Model = model }.SetupAsync();
+    }
+    return;
+#else
+    throw new InvalidOperationException("Generated mapping qualification requires -p:OfficeIMOBenchmarkGeneratedMapping=true.");
+#endif
 }
 
 if (args is ["--validate-real-typed"]) {
@@ -285,6 +321,8 @@ if (!string.IsNullOrEmpty(assemblyDirectory)) {
 }
 if (string.Equals(newApis, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkNewApis=true"));
+if (string.Equals(generatedMapping, "true", StringComparison.OrdinalIgnoreCase))
+    buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkGeneratedMapping=true"));
 if (string.Equals(csv, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkCsv=true"));
 if (string.Equals(arrow, "true", StringComparison.OrdinalIgnoreCase))

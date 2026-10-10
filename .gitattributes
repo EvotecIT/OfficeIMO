@@ -10,6 +10,14 @@ OfficeIMO.Access.Tests/Fixtures/**/*.accdb -diff
 OfficeIMO.Access.Tests/Fixtures/**/*.pdf -diff
 OfficeIMO.Access.Tests/Fixtures/**/manifest.json text eol=lf diff
 
+# DjVu inputs and decoded/text references have manifest-bound producer bytes.
+OfficeIMO.DjVu.Tests/Fixtures/** -text -whitespace
+OfficeIMO.DjVu.Tests/Fixtures/**/*.djvu -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.iff -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.bzz -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.ppm -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.pbm -diff
+
 # Browser assets are generated and hashed from canonical UTF-8/LF bytes.
 OfficeIMO.Browser/** text eol=lf
 OfficeIMO.JavaScript/** text eol=lf

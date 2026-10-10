@@ -352,6 +352,7 @@ public static class OfficeConversionCapabilityCatalog {
         var routes = new List<OfficeConversionCapability> {
         Route("doc-pdf", "DOC", "PDF", OfficeConversionInputKind.File, new[] { ".doc" }, ".pdf", "OfficeIMO.Word.Pdf", "LegacyDocPdfConverter.ToPdfDocumentResult(stream, options)", "Convert supported binary Word documents to PDF with import and rendering evidence.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
         Route("txt-pdf", "Plain text", "PDF", OfficeConversionInputKind.Text, new[] { ".txt" }, ".pdf", "OfficeIMO.Pdf", "PdfPlainTextConverter.ToPdfDocumentResult(bytes, options)", "Render literal text with explicit decoding, tab columns and page limits.", OfficeConversionFidelityKind.FixedLayout, "PdfDocumentConversionResult"),
+        Route("djvu-pdf", "DjVu", "PDF", OfficeConversionInputKind.File, new[] { ".djvu", ".djv" }, ".pdf", "OfficeIMO.DjVu.Pdf", "DjVuDocument.Load(stream).SaveAsPdf(output, options)", "Convert scanned pages with source physical size, stored searchable text and navigation, with explicit fidelity reports.", OfficeConversionFidelityKind.FixedLayout, "PdfSaveResult"),
         Route("xps-pdf", "XPS/OpenXPS", "PDF", OfficeConversionInputKind.File, new[] { ".xps", ".oxps" }, ".pdf", "OfficeIMO.Xps.Pdf", "XpsDocument.Load(stream).SavePdf(output, options)", "Preserve supported native page paint, searchable Unicode, reading order and navigation in PDF.", OfficeConversionFidelityKind.FixedLayout, "PdfSaveResult"),
         Route("chm-pdf", "Compiled HTML Help", "PDF", OfficeConversionInputKind.File, new[] { ".chm" }, ".pdf", "OfficeIMO.Chm.Pdf", "ChmDocument.Load(stream).ToPdfBytesResult(options)", "Render selected help topics independently with embedded resources and explicit fidelity evidence.", OfficeConversionFidelityKind.FixedLayout, "ChmConversionResult<byte[]>"),
         Route("chm-markdown", "Compiled HTML Help", "Markdown", OfficeConversionInputKind.File, new[] { ".chm" }, ".md", "OfficeIMO.Chm.Markdown", "ChmDocument.Load(stream).ToMarkdownResult(options)", "Recover a linked topic book through the canonical HTML-to-Markdown engine.", OfficeConversionFidelityKind.Semantic, "ChmConversionResult<string>"),
@@ -616,6 +617,10 @@ public static class OfficeConversionCapabilityCatalog {
         if (string.Equals(source, "PDF", StringComparison.Ordinal)) {
             return (OfficeConversionTextFormattingKind.ReconstructedFromFixedLayout,
                 "Reconstructs supported text and formatting from PDF logical or positioned content; it cannot recover source-only font semantics absent from the PDF.");
+        }
+        if (source == "DjVu" && target == "PDF") {
+            return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,
+                "Preserves scan appearance as page images, with searchable stored text and source word geometry; source font styling is not inferred.");
         }
         if (string.Equals(target, "PDF", StringComparison.Ordinal)) {
             return (OfficeConversionTextFormattingKind.FixedLayoutAppearance,

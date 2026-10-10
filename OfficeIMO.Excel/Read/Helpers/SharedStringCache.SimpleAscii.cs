@@ -3,25 +3,13 @@ using System.Text;
 namespace OfficeIMO.Excel {
     internal sealed partial class SharedStringCache {
         /// <summary>
-        /// Reads the small, plain ASCII SpreadsheetML shape without constructing an XML reader.
-        /// Any markup, escaping, Unicode, or different attribute layout uses the full XML path.
+        /// Validates the complete plain ASCII SpreadsheetML shape before retaining text offsets.
+        /// Markup, escaping, Unicode, or different attribute layouts use the full XML path.
         /// </summary>
-        private bool TryLoadSimpleAsciiItems(OpenXmlPooledPartStream stream, out List<string> items) {
-            items = null!;
+        private bool TryIndexSimpleAsciiItems(OpenXmlPooledPartStream stream, out IndexedAsciiItems? items) {
+            items = null;
             byte[] bytes = stream.BorrowBuffer(out int length);
-            int position = 0;
-            if (!Consume(bytes, length, ref position, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")) {
-                return false;
-            }
-            SkipWhitespace(bytes, length, ref position);
-            if (!Consume(bytes, length, ref position,
-                    "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"")) {
-                return false;
-            }
-            if (!ReadUnsignedDecimal(bytes, length, ref position, out _)
-                || !Consume(bytes, length, ref position, "\" uniqueCount=\"")
-                || !ReadUnsignedDecimal(bytes, length, ref position, out int declaredUniqueCount)
-                || !Consume(bytes, length, ref position, "\">")) {
+            if (!TryReadSimpleAsciiHeader(bytes, length, out int position, out int declaredUniqueCount)) {
                 return false;
             }
 
@@ -37,61 +25,86 @@ namespace OfficeIMO.Excel {
             }
 #endif
 
-            var parsed = new List<string>(Math.Min(declaredUniqueCount,
+            var parsed = IndexedAsciiEntryPool.Rent(Math.Min(declaredUniqueCount,
                 Math.Min(_maxSharedStringItems, length / 7)));
-            long totalCharacters = 0;
-            while (!Consume(bytes, length, ref position, "</sst>")) {
-                _cancellationToken.ThrowIfCancellationRequested();
-                bool preservesWhitespace = false;
-                if (!Consume(bytes, length, ref position, "<si><t>")) {
-                    if (!Consume(bytes, length, ref position, "<si><t xml:space=\"preserve\">")) {
-                        return false;
-                    }
-                    preservesWhitespace = true;
-                }
-
-                int textStart = position;
-                while (position < length && bytes[position] != (byte)'<') {
-                    byte value = bytes[position];
-                    if (value < 0x20 || value > 0x7E || value == (byte)'&'
-                        || value == (byte)']' && position + 2 < length
-                            && bytes[position + 1] == (byte)']'
-                            && bytes[position + 2] == (byte)'>') {
-                        return false;
-                    }
-                    position++;
-                }
-
-                int textLength = position - textStart;
-                if (!preservesWhitespace && textLength > 0) {
-                    bool onlyWhitespace = true;
-                    for (int index = textStart; index < position; index++) {
-                        if (bytes[index] != (byte)' ') {
-                            onlyWhitespace = false;
-                            break;
+            bool transferred = false;
+            try {
+                long totalCharacters = 0;
+                while (!Consume(bytes, length, ref position, "</sst>")) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    bool preservesWhitespace = false;
+                    if (!Consume(bytes, length, ref position, "<si><t>")) {
+                        if (!Consume(bytes, length, ref position, "<si><t xml:space=\"preserve\">")) {
+                            return false;
                         }
+                        preservesWhitespace = true;
                     }
-                    if (onlyWhitespace) return false;
+
+                    int textStart = position;
+                    while (position < length && bytes[position] != (byte)'<') {
+                        if ((position & 16383) == 0) _cancellationToken.ThrowIfCancellationRequested();
+                        byte value = bytes[position];
+                        if (value < 0x20 || value > 0x7E || value == (byte)'&'
+                            || value == (byte)']' && position + 2 < length
+                                && bytes[position + 1] == (byte)']'
+                                && bytes[position + 2] == (byte)'>') {
+                            return false;
+                        }
+                        // Leave SpreadsheetML escaped text to the canonical XML/SDK loader.
+                        if (value == (byte)'_' && position + 1 < length
+                            && bytes[position + 1] is (byte)'x' or (byte)'X') return false;
+                        position++;
+                    }
+
+                    int textLength = position - textStart;
+                    if (!preservesWhitespace && textLength > 0) {
+                        bool onlyWhitespace = true;
+                        for (int index = textStart; index < position; index++) {
+                            if (bytes[index] != (byte)' ') {
+                                onlyWhitespace = false;
+                                break;
+                            }
+                        }
+                        if (onlyWhitespace) return false;
+                    }
+                    if (!Consume(bytes, length, ref position, "</t></si>")) {
+                        return false;
+                    }
+
+                    EnsureCanAddSharedString(parsed.Count);
+                    ValidateSharedStringLength(textLength, ref totalCharacters);
+                    parsed.Add(new AsciiTextEntry(textStart, textLength));
                 }
-                if (!Consume(bytes, length, ref position, "</t></si>")) {
+
+                SkipWhitespace(bytes, length, ref position);
+                if (position != length) {
                     return false;
                 }
 
-                EnsureCanAddSharedString(parsed);
-                EnsureItemCharacterBudget(0, textLength, _maxSharedStringItemCharacters);
-                string valueText = Encoding.ASCII.GetString(bytes, textStart, textLength);
-                ValidateSharedStringText(valueText, ref totalCharacters);
-                parsed.Add(valueText);
+                _cancellationToken.ThrowIfCancellationRequested();
+                items = new IndexedAsciiItems(stream, bytes, parsed);
+                transferred = true;
+                return true;
+            } finally {
+                if (!transferred) IndexedAsciiEntryPool.Return(parsed, retain: false);
             }
+        }
 
+        /// <summary>Limits large-part buffering to the simple table header handled by this scanner.</summary>
+        internal static bool CanIndexSimpleAsciiPrefix(byte[] bytes, int length) =>
+            TryReadSimpleAsciiHeader(bytes, length, out _, out _);
+
+        private static bool TryReadSimpleAsciiHeader(byte[] bytes, int length, out int position, out int declaredUniqueCount) {
+            position = 0;
+            declaredUniqueCount = 0;
+            if (!Consume(bytes, length, ref position, "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>")) return false;
             SkipWhitespace(bytes, length, ref position);
-            if (position != length) {
-                return false;
-            }
-
-            _cancellationToken.ThrowIfCancellationRequested();
-            items = parsed;
-            return true;
+            return Consume(bytes, length, ref position,
+                    "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"")
+                && ReadUnsignedDecimal(bytes, length, ref position, out _)
+                && Consume(bytes, length, ref position, "\" uniqueCount=\"")
+                && ReadUnsignedDecimal(bytes, length, ref position, out declaredUniqueCount)
+                && Consume(bytes, length, ref position, "\">");
         }
 
         private static bool Consume(byte[] bytes, int length, ref int position, string value) {

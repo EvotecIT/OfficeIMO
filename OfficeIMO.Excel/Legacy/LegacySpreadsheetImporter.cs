@@ -12,6 +12,8 @@ namespace OfficeIMO.Excel.Legacy;
 /// <summary>Detects and imports selected legacy spreadsheets without executing macros or resolving external links.</summary>
 public static class LegacySpreadsheetImporter {
     private static readonly ILegacySpreadsheetAdapter[] Adapters = {
+        new SylkAdapter(),
+        new DifAdapter(),
         new QuattroProAdapter(),
         new MicrosoftWorksSpreadsheetAdapter(),
         new MultiplanAdapter(),
@@ -57,7 +59,7 @@ public static class LegacySpreadsheetImporter {
         LegacySpreadsheetImportOptions effective = Prepare(options, options?.SourceName);
         if (data.Length > effective.Limits.MaxInputBytes) throw new InvalidDataException("Legacy spreadsheet input exceeds the configured byte limit.");
         (ILegacySpreadsheetAdapter adapter, LegacySpreadsheetDetection detection) = SelectAdapter(data, effective, cancellationToken);
-        LegacySpreadsheetModel model = adapter.Parse(data, effective.Limits, cancellationToken);
+        LegacySpreadsheetModel model = adapter.Parse(data, effective, cancellationToken);
         if (effective.RequireStructured && model.Quality != OfficeLegacyImportQuality.Structured) {
             throw new InvalidDataException($"The {detection.ProfileId} adapter produced salvage quality while structured import was required.");
         }
@@ -149,7 +151,7 @@ public static class LegacySpreadsheetImporter {
         cancellationToken.ThrowIfCancellationRequested();
         if (options.FormatHint.HasValue) {
             ILegacySpreadsheetAdapter hinted = Adapters.Single(adapter => adapter.Format == options.FormatHint.Value);
-            int confidence = hinted.Probe(data, options.SourceName, options.Limits, cancellationToken, out string evidence);
+            int confidence = hinted.Probe(data, options.SourceName, options, cancellationToken, out string evidence);
             return (hinted, new LegacySpreadsheetDetection(hinted.Format, hinted.GetProfileId(data, options.Limits, cancellationToken), Math.Max(1, confidence),
                 confidence == 0 ? "Explicit caller format hint." : evidence + " Explicit caller format hint confirmed the family."));
         }
@@ -158,7 +160,7 @@ public static class LegacySpreadsheetImporter {
         int selectedConfidence = 0;
         foreach (ILegacySpreadsheetAdapter adapter in Adapters) {
             cancellationToken.ThrowIfCancellationRequested();
-            int confidence = adapter.Probe(data, options.SourceName, options.Limits, cancellationToken, out string reason);
+            int confidence = adapter.Probe(data, options.SourceName, options, cancellationToken, out string reason);
             if (confidence > selectedConfidence) {
                 selected = adapter;
                 selectedReason = reason;
@@ -176,7 +178,8 @@ public static class LegacySpreadsheetImporter {
             Limits = (source?.Limits ?? new OfficeLegacyImportLimits()).Clone(),
             FormatHint = source?.FormatHint,
             SourceName = string.IsNullOrWhiteSpace(source?.SourceName) ? fallbackName : source!.SourceName,
-            RequireStructured = source?.RequireStructured ?? false
+            RequireStructured = source?.RequireStructured ?? false,
+            TextEncoding = source?.TextEncoding == null ? null : (System.Text.Encoding)source.TextEncoding.Clone()
         };
         options.Limits.Validate();
         return options;

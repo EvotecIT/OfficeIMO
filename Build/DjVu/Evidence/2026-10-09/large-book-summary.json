@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-09",
+  "runtimeCandidate": "f80df6d9e9a7773df9dec18bbe63562e87501357",
+  "source": {
+    "name": "time-machine.djvu",
+    "sha256": "bfea3804b50f7a75714f8549bd0ab82ef413f26fa7c31c99d028b91405f3c76e",
+    "bytes": 3487428,
+    "pages": 232
+  },
+  "runner": {
+    "owner": "PowerForge/PSPublishModule",
+    "version": "3.0.151",
+    "policy": "One cold subject process per operation, no warmup, one sample; complete output validated before reporting. Startup, integrity hashing and owned PDF reopen are included.",
+    "workloadSourceSha256": "ae5dbdc6d9ce424c674cd793a97012a8f678af5c760d8989a0d9778312a3a794",
+    "definitionSha256": "057cddc70e929ef80d23bdf1c7c6cb393cad6719bc8239f1ae18d0d840814cd5"
+  },
+  "host": {
+    "cpu": "Apple M4, 4 performance and 6 efficiency cores",
+    "memoryGiB": 24,
+    "os": "macOS 27.0.1 (26A434), arm64",
+    "placement": "Automatic OS scheduling, normal priority, no affinity override",
+    "qualificationLimit": "Concurrent host workloads and memory pressure; these are completed cold-process observations, not a stable throughput ranking or portable time/memory guarantee."
+  },
+  "packageVersion": "3.4.4-djvuqualification2",
+  "operations": [
+    {
+      "operation": "ReadRender",
+      "samples": 1,
+      "failures": 0,
+      "elapsedMs": 105402.0312,
+      "wholeSubjectProcessPeakRssBytes": 362332160,
+      "pages": 232,
+      "storedTextCharacters": 198779,
+      "renderedPixels": 1018821730,
+      "pdfBytes": 0
+    },
+    {
+      "operation": "SearchablePdf",
+      "samples": 1,
+      "failures": 0,
+      "elapsedMs": 317968.1267,
+      "wholeSubjectProcessPeakRssBytes": 884785152,
+      "pages": 232,
+      "storedTextCharacters": 198779,
+      "renderedPixels": 0,
+      "pdfBytes": 104940291
+    }
+  ],
+  "pdf": {
+    "sha256": "418f5421b08550e18b97c0e6e89740fd1a99f3c2c33fe22d0dd1945793e12736",
+    "bytes": 104940291,
+    "ownedReopenedPages": 232,
+    "popplerReopenedPages": 232,
+    "pypdfReopenedPages": 232,
+    "oneNativeSizeScanImagePerPage": true,
+    "physicalPageSizesMatchNativeDpi": true,
+    "nativeExtractedTextCharacters": 242896,
+    "normalizedTitleSearchable": true,
+    "storedControlNulCharactersPreserved": 227,
+    "textBoundary": "Independent extraction preserves stored characters. Whitespace and visual reading order differ from stored logical text; not a byte-identical extraction claim.",
+    "conversionHasLoss": false,
+    "sourceCharacterHistogramMatchesIgnoringWhitespace": true
+  },
+  "reproduction": {
+    "readRender": "Load the complete document, project Reader pages, render each page at default native DPI, validate page count and hash every returned RGBA raster.",
+    "searchablePdf": "Load the complete document, convert all pages with default ToPdfDocumentResult, validate source report page/text counts, save, reopen with PdfReadDocument and extract text. Independently reopen with Poppler and pypdf, check every scan image and physical page size.",
+    "memory": "macOS /usr/bin/time -l maximum resident set size measures the whole subject process in bytes, separate from runner-managed allocations."
+  }
+}

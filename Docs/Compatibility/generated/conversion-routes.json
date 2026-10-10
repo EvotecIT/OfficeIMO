@@ -42,6 +42,26 @@
       "agentDiscoverable":true
     },
     {
+      "id":"djvu-pdf",
+      "source":"DjVu",
+      "target":"PDF",
+      "inputKind":"File",
+      "sourceExtensions":[ ".djvu", ".djv" ],
+      "targetExtension":".pdf",
+      "packageId":"OfficeIMO.DjVu.Pdf",
+      "api":"DjVuDocument.Load(stream).SaveAsPdf(output, options)",
+      "description":"Convert scanned pages with source physical size, stored searchable text and navigation, with explicit fidelity reports.",
+      "fidelity":"FixedLayout",
+      "textFormatting":"FixedLayoutAppearance",
+      "textFormattingContract":"Preserves scan appearance as page images, with searchable stored text and source word geometry; source font styling is not inferred.",
+      "supportLevel":"Targeted",
+      "supportEvidence":"Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
+      "knownLimitations":"JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md.",
+      "resultContract":"PdfSaveResult",
+      "browserAvailable":false,
+      "agentDiscoverable":true
+    },
+    {
       "id":"xps-pdf",
       "source":"XPS/OpenXPS",
       "target":"PDF",

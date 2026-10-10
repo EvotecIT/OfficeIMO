@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="PdfPig" Version="0.1.14" />
+    <None Include="../OfficeIMO.DjVu.Tests/Fixtures/Authored/reader-book.djvu" Link="Fixtures/DjVu/reader-book.djvu" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.DjVu.Tests/Fixtures/Authored/noise-small.djvu" Link="Fixtures/DjVu/noise-small.djvu" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\wwwroot\samples\provenance-demo.png" Link="samples\provenance-demo.png" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
     <Compile Include="../OfficeIMO.Chm.Tests/ChmFixture.cs" Link="Fixtures/ChmFixture.cs" />
