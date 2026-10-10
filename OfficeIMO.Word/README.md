@@ -176,7 +176,7 @@ document.Settings.DecimalSymbol = ".";
 paragraph.ClearTabStops().AddTabStop(1440, WordTabAlignment.Decimal);
 ```
 
-`Settings.DecimalSymbol` stores the DOCX document's decimal separator. It accepts one noncontrol Unicode character; assigning `null` removes the explicit setting. Decimal-tab rendering also depends on the receiving application's locale and language handling.
+`Settings.DecimalSymbol` stores the DOCX document's decimal separator. It accepts one noncontrol Unicode character; assigning `null` removes the explicit setting. OfficeIMO PDF export uses that separator for body and table decimal tabs, so grouping punctuation in values such as `1,234.56` does not become the alignment anchor. Other applications also apply their locale and language handling when rendering decimal tabs.
 
 ## Comments on table cells
 

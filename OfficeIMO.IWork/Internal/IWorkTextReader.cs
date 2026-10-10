@@ -339,6 +339,7 @@ internal static partial class IWorkTextReader {
         internal double? LineSpacingMultiplier;
         internal IReadOnlyList<IWorkTabStop>? TabStops;
         internal string? DecimalTabSymbol;
+        internal bool DecimalTabSymbolDeclared;
         internal bool? PageBreakBefore;
         internal bool? KeepWithNext;
         internal bool? KeepLinesTogether;
@@ -347,7 +348,7 @@ internal static partial class IWorkTextReader {
         internal IWorkParagraphStyle ToPublic() => new(Name, Alignment,
             FirstLineIndentPoints, LeftIndentPoints, RightIndentPoints,
             SpaceBeforePoints, SpaceAfterPoints, PageBreakBefore, KeepWithNext,
-            KeepLinesTogether, Text.ToPublic(), LineSpacingMultiplier, TabStops, DecimalTabSymbol);
+            KeepLinesTogether, Text.ToPublic(), LineSpacingMultiplier, TabStops, DecimalTabSymbol, DecimalTabSymbolDeclared);
     }
 
     private sealed class TextSpan {

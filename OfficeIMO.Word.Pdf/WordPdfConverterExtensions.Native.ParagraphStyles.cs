@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.TabStops.Add(new PdfCore.PdfTabStop(
                     framePosition,
                     MapNativeTabAlignment(tabStop.Alignment),
-                    MapNativeTabLeader(tabStop.Leader)));
+                    MapNativeTabLeader(tabStop.Leader)) { DecimalSeparator = GetNativeDecimalTabSeparator(paragraph) });
             }
 
             style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
@@ -274,6 +274,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfTabAlignment MapNativeTabAlignment(WordTabAlignment alignment) =>
             MapNativeTabAlignment(alignment.ToOpenXml());
+
+        private static char? GetNativeDecimalTabSeparator(WordParagraph paragraph) {
+            string? symbol = paragraph._document.Settings.DecimalSymbol;
+            return symbol is { Length: 1 } && !char.IsControl(symbol[0]) && !char.IsSurrogate(symbol[0]) ? symbol[0] : null;
+        }
 
         private static PdfCore.PdfPanelStyle? CreateNativeParagraphPanelStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);

@@ -97,7 +97,7 @@ public sealed class IWorkParagraphStyle {
         double? firstLineIndentPoints, double? leftIndentPoints, double? rightIndentPoints,
         double? spaceBeforePoints, double? spaceAfterPoints, bool? pageBreakBefore,
         bool? keepWithNext, bool? keepLinesTogether, IWorkTextStyle textStyle, double? lineSpacingMultiplier = null,
-        IReadOnlyList<IWorkTabStop>? tabStops = null, string? decimalTabSymbol = null) {
+        IReadOnlyList<IWorkTabStop>? tabStops = null, string? decimalTabSymbol = null, bool decimalTabSymbolDeclared = false) {
         Name = name;
         Alignment = alignment;
         FirstLineIndentPoints = firstLineIndentPoints;
@@ -112,6 +112,7 @@ public sealed class IWorkParagraphStyle {
         LineSpacingMultiplier = lineSpacingMultiplier;
         TabStops = tabStops;
         DecimalTabSymbol = decimalTabSymbol;
+        DecimalTabSymbolDeclared = decimalTabSymbolDeclared || decimalTabSymbol != null;
     }
 
     /// <summary>Gets the source style name, when present.</summary>
@@ -134,6 +135,9 @@ public sealed class IWorkParagraphStyle {
     public IReadOnlyList<IWorkTabStop>? TabStops { get; }
     /// <summary>Gets an explicit period or comma used by decimal tabs; null when unspecified, cleared or unqualified.</summary>
     public string? DecimalTabSymbol { get; }
+
+    // An explicit native clear must suppress a cell default; absence inherits it.
+    internal bool DecimalTabSymbolDeclared { get; }
     /// <summary>Gets whether the paragraph starts on a new page.</summary>
     public bool? PageBreakBefore { get; }
     /// <summary>Gets whether the paragraph should stay with the next paragraph.</summary>

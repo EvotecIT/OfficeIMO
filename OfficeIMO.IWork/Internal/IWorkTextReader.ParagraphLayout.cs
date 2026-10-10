@@ -6,7 +6,10 @@ internal static partial class IWorkTextReader {
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
         var evidence = new StylePropertyEvidence(record, "12/", references.Declarations);
         bool? clearDecimal = ReadBoolean(message, 2, evidence, ref complete);
-        if (clearDecimal == true || message.HasField(2) && !clearDecimal.HasValue || message.HasField(3)) data.DecimalTabSymbol = null;
+        if (clearDecimal == true || message.HasField(2) && !clearDecimal.HasValue || message.HasField(3)) {
+            data.DecimalTabSymbol = null;
+            data.DecimalTabSymbolDeclared = true;
+        }
         if (message.HasField(3)) {
             byte[]? symbol = message.GetBytes(3);
             if (clearDecimal != true && (!message.HasField(2) || clearDecimal.HasValue)

@@ -136,6 +136,19 @@ including inside columns, table cells and canvas text boxes.
 on a blank line can expand proportional or minimum spacing; exact spacing keeps
 its fixed advance.
 
+## Decimal tab alignment
+
+An explicit decimal tab can select its decimal separator independently of grouping punctuation:
+
+```csharp
+var style = new PdfParagraphStyle();
+style.AddTabStop(180, PdfTabAlignment.DecimalSeparator).DecimalSeparator = '.';
+var pdf = PdfDocument.Create(new PdfOptions { TextWhitespaceMode = PdfTextWhitespaceMode.Preserve })
+    .Paragraph(p => p.Text("Total\t1,234.56"), style: style);
+```
+
+This aligns the period at 180 points from the paragraph frame. A value without the selected separator is right-aligned at that stop. Leaving `DecimalSeparator` unset retains the first-period-or-comma behavior. The setting survives paragraph-style copies and table layout.
+
 ## Glyph width and character spacing
 
 Run width and tracking adjust horizontal advances without changing font height:

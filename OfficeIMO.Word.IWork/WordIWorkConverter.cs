@@ -121,7 +121,7 @@ public static partial class WordIWorkConverter {
                 ApplyPageLayout(document.Sections[0], pageLayout);
             }
             if (editable) {
-                if (PagesDecimalTabSymbols(projection).SingleOrDefault() is string decimalSymbol)
+                if (PagesDecimalTabSymbols(projection, cancellationToken).SingleOrDefault() is string decimalSymbol)
                     document.Settings.DecimalSymbol = decimalSymbol;
                 var nativeLists = new IWorkNativeListCatalog(document);
                 var cellComments = new List<WordCellComment>();
