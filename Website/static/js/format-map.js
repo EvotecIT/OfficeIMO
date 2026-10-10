@@ -210,7 +210,17 @@
       var shell = everywhere('powershell') && (state.surface === 'powershell' || !everywhere('dotnet'));
       if (shell) {
         lines.push('Install-Module PSWriteOffice');
-        path.forEach(function (r) { lines.push('# ' + r.source + ' → ' + r.target, r.example || r.cmdlet); });
+        var previous = null;
+        path.forEach(function (r, i) {
+          var example = r.example || r.cmdlet;
+          if (previous) example = example.replace(/\.\/in\.[a-z0-9]+\b/gi, previous);
+          var output = example.match(/\.\/out\.[a-z0-9]+\b/i);
+          if (output && i < path.length - 1) {
+            previous = output[0].replace('./out.', './step-' + (i + 1) + '.');
+            example = example.replace(output[0], previous);
+          } else previous = null;
+          lines.push('# ' + r.source + ' → ' + r.target, example);
+        });
       } else {
         path.forEach(function (r) { if (lines.indexOf('dotnet add package ' + r.pkg) < 0) lines.push('dotnet add package ' + r.pkg); });
         path.forEach(function (r) { lines.push('// ' + r.source + ' → ' + r.target, r.api); });
@@ -279,7 +289,7 @@
       panel.appendChild(el('span', 'imo-fmap__label', outs.length ? 'Converts to ' + plural(outs.length, 'format') + where() : 'No mapped conversion from ' + focus + where() + ' yet'));
       var list = el('ul', 'imo-fmap__list imo-fmap__outs');
       outs.forEach(function (r) { list.appendChild(row(r, r.target)); });
-      if (view === 'list') list.addEventListener('scroll', relayout);
+      if (view === 'list') list.addEventListener('scroll', function () { relayout(false); });
       panel.appendChild(list);
       if (ins.length) {
         panel.appendChild(el('span', 'imo-fmap__label', 'Made from ' + plural(ins.length, 'format') + where()));
@@ -346,7 +356,7 @@
 
     // ---------------------------------------------------------------- list view: curves from the chip to its results
     var wires = root.querySelector('.imo-fmap__wires');
-    function drawWires() {
+    function drawWires(animate) {
       if (!wires) return;
       while (wires.firstChild) wires.removeChild(wires.firstChild);
       var chip = state.from && root.querySelector('.imo-fmap__chip.is-active');
@@ -371,7 +381,7 @@
           'class': 'imo-fmap__edge is-out' + (li.classList.contains('is-hl') ? ' is-hl' : '')
         });
         wires.appendChild(path);
-        if (still) return;
+        if (still || animate === false) return;
         var length = Math.ceil(path.getTotalLength());
         path.style.strokeDasharray = length + ' ' + length;
         path.style.strokeDashoffset = String(length);
@@ -434,7 +444,7 @@
           g.addEventListener('mouseenter', function () { if (moved()) setHover(n); });
           g.addEventListener('mousemove', function () { if (moved()) setHover(n); });
           g.addEventListener('mouseleave', function () { setHover(null); });
-          g.addEventListener('focus', function () { state.focus = n; refreshPreview(true); });
+          g.addEventListener('focus', function () { tour.touched = true; stopTour(true); state.focus = n; refreshPreview(true); });
           g.addEventListener('blur', function () { state.focus = null; refreshPreview(true); });
           g.addEventListener('click', function (e) { e.stopPropagation(); pick(n, true); });
           g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(n, true); } });
@@ -579,9 +589,8 @@
     function moved() { return Date.now() - pointer.at < 400; }
     function setHover(n) {
       window.clearTimeout(hoverLeave);
+      if (tour.on) return;
       if (n) {
-        tour.touched = true;
-        stopTour();
         if (state.hover === n) return;
         state.hover = n;
         refreshPreview();
@@ -618,7 +627,9 @@
     var query = {};
     (window.location.search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
       var p = kv.split('=');
-      if (p[0]) query[decodeURIComponent(p[0])] = decodeURIComponent((p[1] || '').replace(/\+/g, ' '));
+      try {
+        if (p[0]) query[decodeURIComponent(p[0])] = decodeURIComponent((p[1] || '').replace(/\+/g, ' '));
+      } catch (e) { /* Ignore a malformed tracking parameter without disabling the map. */ }
     });
     var speed = Math.max(0.4, Math.min(3, parseFloat(query.speed) || 1));
     var tour = { on: false, touched: false, timer: 0, scrollTimer: 0, drift: 0, index: -1, scenes: [], before: 'all', button: null, caption: null };
@@ -733,20 +744,29 @@
     }
     function startTour() {
       if (tour.on || !svg) return;
+      state.hidden = {};
+      legend.forEach(function (b) { b.setAttribute('aria-pressed', 'true'); });
+      update(true);
       tour.scenes = buildScenes();
       tour.on = true;
+      panel.setAttribute('aria-live', 'off');
       tour.index = -1;
       tour.before = state.surface;
       root.classList.add('is-touring');
       syncTourButton();
       advance();
     }
-    function stopTour() {
+    function stopTour(keepView) {
       if (!tour.on) return;
       tour.on = false;
+      ++tour.drift;
       window.clearTimeout(tour.timer);
       window.clearTimeout(tour.scrollTimer);
       root.classList.remove('is-touring');
+      panel.setAttribute('aria-live', 'polite');
+      syncTourButton();
+      // Keep the current DOM intact until a user's click or keyboard activation completes.
+      if (keepView) return;
       state.from = state.to = null;
       var changed = state.surface !== tour.before;
       state.surface = tour.before;
@@ -772,14 +792,15 @@
       tour.button.addEventListener('click', function () { tour.touched = true; if (tour.on) stopTour(); else startTour(); });
       canvas.appendChild(tour.button);
       // Touching the map ends the tour.
-      root.querySelector('.imo-fmap__board').addEventListener('pointerdown', function (e) { if (e.target !== tour.button && !tour.button.contains(e.target)) { tour.touched = true; stopTour(); } }, true);
-      root.addEventListener('keydown', function (e) { if (e.target !== tour.button && e.key !== 'Tab') { tour.touched = true; stopTour(); } }, true);
+      root.addEventListener('click', function (e) { if (e.target !== tour.button && !tour.button.contains(e.target)) { tour.touched = true; stopTour(true); } }, true);
+      root.addEventListener('change', function () { tour.touched = true; stopTour(true); }, true);
+      root.addEventListener('keydown', function (e) { if (e.target !== tour.button && e.key !== 'Tab') { tour.touched = true; stopTour(true); } }, true);
     }
 
     var pending = 0;
-    function relayout() {
+    function relayout(animate) {
       if (pending) return;
-      pending = window.requestAnimationFrame(function () { pending = 0; drawWires(); });
+      pending = window.requestAnimationFrame(function () { pending = 0; drawWires(animate); });
     }
     if (wires) {
       window.addEventListener('resize', relayout);
@@ -822,8 +843,7 @@
     // The tour starts by itself as soon as the circle is in view, unless the visitor got there first (hovered or picked
     // something) or asked for no tour (?tour=0). Reduced motion keeps the button only.
     if (svg && view === 'radial' && !still && query.tour !== '0') {
-      if (!window.IntersectionObserver) startTour();
-      else {
+      if (window.IntersectionObserver) {
         new window.IntersectionObserver(function (entries, observer) {
           if (!entries[0].isIntersecting) return;
           observer.disconnect();
