@@ -3,12 +3,14 @@
  *   radial - home page: formats around a circle, conversions as lines, paths between two formats.
  *   list   - browser tools: formats as chips grouped by family, curves to what the chosen one becomes.
  * Phones get the chip list in both views. ES5 for the site minifier.
+ * The radial view also runs a tour (starts when the circle is in view; Play tour button): it spotlights formats around the
+ * circle, finds paths between formats and steps through the surfaces, with a caption for each scene.
  */
 (function () {
   'use strict';
 
   var NS = 'http://www.w3.org/2000/svg';
-  var SURFACES = ['dotnet', 'browser', 'cli', 'studio'];
+  var SURFACES = ['dotnet', 'browser', 'cli', 'studio', 'powershell'];
   var FIDELITY = { Editable: 'editable output', FixedLayout: 'fixed layout', Semantic: 'structure and text' };
   var still = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
@@ -39,7 +41,7 @@
     data.formats.forEach(function (f) { familyOf[f[0]] = f[1]; order.push(f[0]); });
     var routes = data.routes.map(function (r) {
       var tool = data.tools[r[6]];
-      return { source: r[0], target: r[1], pkg: r[2], surfaces: r[3].split(' '), fidelity: r[4], support: r[5], id: r[6], api: r[7], tool: tool ? tool[0] : null, toolTitle: tool ? tool[1] : null };
+      return { source: r[0], target: r[1], pkg: r[2], surfaces: r[3].split(' '), fidelity: r[4], support: r[5], id: r[6], api: r[7], cmdlet: r[8] || '', example: r[9] || '', tool: tool ? tool[0] : null, toolTitle: tool ? tool[1] : null };
     });
     var packages = data.packages || {};
     var surfaceLinks = data.surfaces || {};
@@ -95,7 +97,9 @@
       var li = el('li', 'imo-fmap__row' + (highlight(r) ? ' is-hl' : ''));
       var body = el('span', 'imo-fmap__body');
       body.appendChild(el('strong', null, label));
-      body.appendChild(el('span', 'imo-fmap__pkg', r.pkg + (FIDELITY[r.fidelity] ? ' · ' + FIDELITY[r.fidelity] : '')));
+      // On the PowerShell filter the useful name is the cmdlet, not the .NET package behind it.
+      var what = state.surface === 'powershell' && r.cmdlet ? r.cmdlet : r.pkg;
+      body.appendChild(el('span', 'imo-fmap__pkg', what + (FIDELITY[r.fidelity] ? ' · ' + FIDELITY[r.fidelity] : '')));
       li.appendChild(body);
       li.appendChild(badges(r));
       if (r.tool) {
@@ -186,32 +190,64 @@
       var pkgs = [];
       outs.forEach(function (r) { if (pkgs.indexOf(r.pkg) < 0) pkgs.push(r.pkg); });
       var shown = pkgs.slice(0, 4).map(packageLink);
-      var cli = count(outs, 'cli'), studio = count(outs, 'studio');
+      var cli = count(outs, 'cli'), studio = count(outs, 'studio'), ps = count(outs, 'powershell');
+      var of = function (n) { return n === outs.length ? 'Runs all of these' : 'Runs ' + n + ' of these'; };
       next('Go further with ' + name, [
         toolLinks(outs),
         linkList(shown.concat([
           pkgs.length > 4 ? link('/libraries/', 'And ' + plural(pkgs.length - 4, 'more package'), 'Every package on one page', 'dotnet') : null,
-          cli ? surfaceLink('cli', cli === outs.length ? 'Runs all of these' : 'Runs ' + cli + ' of these') : null,
-          studio ? surfaceLink('studio', studio === outs.length ? 'Runs all of these' : 'Runs ' + studio + ' of these') : null
+          cli ? surfaceLink('cli', of(cli)) : null,
+          studio ? surfaceLink('studio', of(studio)) : null,
+          ps ? surfaceLink('powershell', of(ps)) : null
         ]))
       ]);
     }
     function goFurtherPath(path) {
+      var everywhere = function (s) { return path.every(function (r) { return r.surfaces.indexOf(s) >= 0; }); };
       var code = el('pre', 'imo-fmap__code');
       var lines = [];
-      path.forEach(function (r) { if (lines.indexOf('dotnet add package ' + r.pkg) < 0) lines.push('dotnet add package ' + r.pkg); });
-      path.forEach(function (r) { lines.push('// ' + r.source + ' → ' + r.target, r.api); });
+      // On the PowerShell filter (or when it is the only way to run every step) show the cmdlets instead of the .NET calls.
+      var shell = everywhere('powershell') && (state.surface === 'powershell' || !everywhere('dotnet'));
+      if (shell) {
+        lines.push('Install-Module PSWriteOffice');
+        var previous = null;
+        path.forEach(function (r, i) {
+          var example = r.example || r.cmdlet;
+          if (previous) example = example.replace(/\.\/in\.[a-z0-9]+\b/gi, previous);
+          var output = example.match(/\.\/out\.[a-z0-9]+\b/i);
+          if (output && i < path.length - 1) {
+            previous = output[0].replace('./out.', './step-' + (i + 1) + '.');
+            example = example.replace(output[0], previous);
+          } else previous = null;
+          lines.push('# ' + r.source + ' → ' + r.target, example);
+        });
+      } else {
+        path.forEach(function (r) { if (lines.indexOf('dotnet add package ' + r.pkg) < 0) lines.push('dotnet add package ' + r.pkg); });
+        path.forEach(function (r) { lines.push('// ' + r.source + ' → ' + r.target, r.api); });
+      }
       code.appendChild(el('code', null, lines.join('\n')));
-      var everywhere = function (s) { return path.every(function (r) { return r.surfaces.indexOf(s) >= 0; }); };
       var refs = [];
       path.forEach(function (r) { var a = packageLink(r.pkg); if (a && refs.every(function (x) { return x.href !== a.href; })) refs.push(a); });
       next('Use it in your code', [code, linkList(refs.concat([
         everywhere('cli') ? surfaceLink('cli', 'Runs this from the command line') : null,
-        everywhere('studio') ? surfaceLink('studio', 'Runs this in the desktop app') : null
+        everywhere('studio') ? surfaceLink('studio', 'Runs this in the desktop app') : null,
+        everywhere('powershell') ? surfaceLink('powershell', 'Runs this from PowerShell') : null
       ]))]);
     }
 
+    var side = root.querySelector('.imo-fmap__side'), shownKey = '';
     function renderPanel() {
+      var key = [state.surface, state.from, state.to, state.from ? '' : (state.hover || state.focus)].join('|');
+      buildPanel();
+      if (key === shownKey) return;
+      shownKey = key;
+      if (side) side.scrollTop = 0;
+      if (still) return;
+      panel.classList.remove('is-swap');
+      void panel.offsetWidth;
+      panel.classList.add('is-swap');
+    }
+    function buildPanel() {
       panel.textContent = '';
       var focus = state.from || state.hover || state.focus;
       if (!focus) {
@@ -253,6 +289,7 @@
       panel.appendChild(el('span', 'imo-fmap__label', outs.length ? 'Converts to ' + plural(outs.length, 'format') + where() : 'No mapped conversion from ' + focus + where() + ' yet'));
       var list = el('ul', 'imo-fmap__list imo-fmap__outs');
       outs.forEach(function (r) { list.appendChild(row(r, r.target)); });
+      if (view === 'list') list.addEventListener('scroll', function () { relayout(false); });
       panel.appendChild(list);
       if (ins.length) {
         panel.appendChild(el('span', 'imo-fmap__label', 'Made from ' + plural(ins.length, 'format') + where()));
@@ -293,7 +330,7 @@
       if (second && state.from && state.from !== name && !state.to) state.to = name;
       else if (state.from === name && !state.to) state.from = null;
       else { state.from = name; state.to = null; }
-      update();
+      update(false, true);
     }
 
     surfaceButtons.forEach(function (b) {
@@ -319,11 +356,14 @@
 
     // ---------------------------------------------------------------- list view: curves from the chip to its results
     var wires = root.querySelector('.imo-fmap__wires');
-    function drawWires() {
+    function drawWires(animate) {
       if (!wires) return;
       while (wires.firstChild) wires.removeChild(wires.firstChild);
       var chip = state.from && root.querySelector('.imo-fmap__chip.is-active');
       var rows = Array.prototype.slice.call(panel.querySelectorAll('.imo-fmap__outs .imo-fmap__row'));
+      // The list scrolls when it is long: only draw to the rows that are in view.
+      var outsBox = panel.querySelector('.imo-fmap__outs'), clip = outsBox && outsBox.getBoundingClientRect();
+      if (clip) rows = rows.filter(function (li) { var r = li.getBoundingClientRect(); return r.top >= clip.top - 2 && r.bottom <= clip.bottom + 2; });
       if (!chip || !rows.length || getComputedStyle(wires).display === 'none') return;
       // Leave from the end of the chip's row, so curves don't cut through its neighbours.
       var box = wires.getBoundingClientRect(), start = chip.getBoundingClientRect(), rowEnd = start.right;
@@ -341,7 +381,7 @@
           'class': 'imo-fmap__edge is-out' + (li.classList.contains('is-hl') ? ' is-hl' : '')
         });
         wires.appendChild(path);
-        if (still) return;
+        if (still || animate === false) return;
         var length = Math.ceil(path.getTotalLength());
         path.style.strokeDasharray = length + ' ' + length;
         path.style.strokeDashoffset = String(length);
@@ -376,7 +416,7 @@
         labels.push([f, (start + k - 1) / 2, k - start]);
         k += gap;
       });
-      var gF = sv('g'), gE = sv('g'), gN = sv('g');
+      var gF = sv('g'), gE = sv('g', { 'class': 'imo-fmap__edges' }), gN = sv('g');
       pulseLayer = sv('g');
       labels.forEach(function (l) {
         if (l[2] < 2) return;
@@ -401,10 +441,11 @@
         var lx = C + (R + 18) * c, ly = C + (R + 18) * s;
         g.appendChild(sv('text', { x: lx, y: ly, 'text-anchor': c >= 0 ? 'start' : 'end', 'dominant-baseline': 'middle', transform: 'rotate(' + ((c >= 0 ? at.a : at.a + Math.PI) * 180 / Math.PI) + ' ' + lx + ' ' + ly + ')' }, n));
         if (degree) {
-          g.addEventListener('mouseenter', function () { state.hover = n; refreshPreview(); });
-          g.addEventListener('mouseleave', function () { state.hover = null; refreshPreview(); });
-          g.addEventListener('focus', function () { state.focus = n; refreshPreview(); });
-          g.addEventListener('blur', function () { state.focus = null; refreshPreview(); });
+          g.addEventListener('mouseenter', function () { if (moved()) setHover(n); });
+          g.addEventListener('mousemove', function () { if (moved()) setHover(n); });
+          g.addEventListener('mouseleave', function () { setHover(null); });
+          g.addEventListener('focus', function () { tour.touched = true; stopTour(true); state.focus = n; refreshPreview(true); });
+          g.addEventListener('blur', function () { state.focus = null; refreshPreview(true); });
           g.addEventListener('click', function (e) { e.stopPropagation(); pick(n, true); });
           g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(n, true); } });
         }
@@ -418,7 +459,20 @@
       fillPickers(nodes.filter(function (n) { return outOf(n).length + inTo(n).length > 0; }));
     }
 
-    function paint() {
+    // Lines grow out of their source dot. Used when a format is chosen or the tour moves on, not for plain hovering.
+    function drawOn(p, delay, ms) {
+      if (still) return;
+      var len = p._len || (p._len = Math.ceil(p.getTotalLength()));
+      p.style.transition = 'none';
+      p.style.strokeDasharray = len + ' ' + len;
+      p.style.strokeDashoffset = String(len);
+      void p.getBoundingClientRect();
+      p.style.transition = 'stroke-dashoffset ' + ms + 'ms cubic-bezier(.3,.6,.2,1) ' + delay + 'ms, opacity .3s, stroke-width .3s, stroke .3s';
+      p.style.strokeDashoffset = '0';
+      window.setTimeout(function () { p.style.transition = p.style.strokeDasharray = p.style.strokeDashoffset = ''; }, delay + ms + 60);
+    }
+
+    function paint(animate) {
       if (!svg) return;
       var focus = state.from || state.hover || state.focus;
       svg.classList.toggle('is-focus', !!focus);
@@ -427,13 +481,16 @@
       paths.forEach(function (p) { onPath = onPath.concat(p); });
       var hot = {};
       if (focus) hot[focus] = true;
+      var grow = 0;
       edgeEls.forEach(function (p) {
         var r = p._route;
         var out = !!focus && !state.to && r.source === focus, inn = !!focus && !state.to && r.target === focus, on = onPath.indexOf(r) >= 0;
+        var wasOut = p.classList.contains('is-out'), wasOn = p.classList.contains('is-on');
         p.classList.toggle('is-out', out);
         p.classList.toggle('is-in', inn);
         p.classList.toggle('is-on', on);
         if (out || inn || on) { hot[r.source] = true; hot[r.target] = true; }
+        if (animate && ((out && !wasOut) || (on && !wasOn))) drawOn(p, on ? onPath.indexOf(r) * 420 : Math.min(grow++ * 28, 420), on ? 700 : 650);
       });
       for (var n in nodeEls) {
         nodeEls[n].classList.toggle('is-hot', !!hot[n]);
@@ -464,7 +521,7 @@
       select.addEventListener('change', function () {
         if (select.getAttribute('data-pick') === 'from') { state.from = select.value || null; if (!state.from) state.to = null; }
         else { state.to = select.value || null; if (state.to && !state.from) { state.from = state.to; state.to = null; } }
-        update();
+        update(false, true);
       });
     });
     legend.forEach(function (b) {
@@ -487,12 +544,18 @@
       if (window.IntersectionObserver) new window.IntersectionObserver(function (entries) { onScreen = entries[0].isIntersecting; }).observe(svg);
       var pulses = [];
       window.setInterval(function () {
-        if (state.from || state.hover || state.focus || document.hidden || !onScreen || !pulseLayer) return;
-        var pool = edgeEls.filter(function (p) { return p.classList.contains('is-hl'); });
-        if (!pool.length || Math.random() < 0.35) pool = edgeEls;
+        if (state.hover || state.focus || document.hidden || !onScreen || !pulseLayer) return;
+        var pool;
+        if (state.from) {
+          // A chosen format or path: carry data along its own lines.
+          pool = edgeEls.filter(function (p) { return p.classList.contains(state.to ? 'is-on' : 'is-out'); });
+        } else {
+          pool = edgeEls.filter(function (p) { return p.classList.contains('is-hl'); });
+          if (!pool.length || Math.random() < 0.35) pool = edgeEls;
+        }
         if (!pool.length) return;
         var p = pool[Math.floor(Math.random() * pool.length)];
-        var dot = sv('circle', { r: 4.5, 'class': 'imo-fmap__pulse' });
+        var dot = sv('circle', { r: 4.5, 'class': 'imo-fmap__pulse', opacity: 0 });
         pulseLayer.appendChild(dot);
         pulses.push({ p: p, dot: dot, t0: performance.now(), len: p.getTotalLength() });
         if (pulses.length === 1) window.requestAnimationFrame(step);
@@ -500,7 +563,7 @@
       var step = function (now) {
         for (var i = pulses.length - 1; i >= 0; i--) {
           var u = (now - pulses[i].t0) / 1700;
-          if (u >= 1 || state.from || state.hover || state.focus || !pulses[i].p.isConnected) { pulses[i].dot.remove(); pulses.splice(i, 1); continue; }
+          if (u >= 1 || state.hover || state.focus || !pulses[i].p.isConnected) { pulses[i].dot.remove(); pulses.splice(i, 1); continue; }
           var pt = pulses[i].p.getPointAtLength(pulses[i].len * u);
           pulses[i].dot.setAttribute('cx', pt.x);
           pulses[i].dot.setAttribute('cy', pt.y);
@@ -510,33 +573,284 @@
       };
     }
 
-    // ---------------------------------------------------------------- update
-    function refreshPreview() {
-      paint();
-      renderPanel();
+    // ---------------------------------------------------------------- hover smoothing
+    // Sweeping the pointer across the circle should read as one smooth motion: the lines repaint at once (CSS eases them),
+    // but the panel is only rebuilt once the pointer settles, and leaving a dot keeps its routes lit for a moment so that
+    // crossing the gap to the next dot never flashes back to the idle state.
+    var hoverLeave = 0, panelTimer = 0;
+    // Scrolling or a redraw slides dots under a parked pointer and browsers answer with mouseenter. That is not the visitor
+    // reaching for a dot, so hover only counts while the pointer has actually moved a moment ago.
+    var pointer = { x: -1, y: -1, at: 0 };
+    document.addEventListener('mousemove', function (e) {
+      if (pointer.x >= 0 && (e.screenX !== pointer.x || e.screenY !== pointer.y)) pointer.at = Date.now();
+      pointer.x = e.screenX;
+      pointer.y = e.screenY;
+    }, true);
+    function moved() { return Date.now() - pointer.at < 400; }
+    function setHover(n) {
+      window.clearTimeout(hoverLeave);
+      if (tour.on) return;
+      if (n) {
+        if (state.hover === n) return;
+        state.hover = n;
+        refreshPreview();
+      } else if (state.hover) {
+        hoverLeave = window.setTimeout(function () { state.hover = null; refreshPreview(); }, 170);
+      }
     }
-    function update(redraw) {
+    function schedulePanel(now) {
+      window.clearTimeout(panelTimer);
+      if (now) { renderPanel(); return; }
+      panelTimer = window.setTimeout(renderPanel, 90);
+    }
+
+    // ---------------------------------------------------------------- update
+    function refreshPreview(now) {
+      paint();
+      schedulePanel(now);
+    }
+    function update(redraw, animate) {
+      window.clearTimeout(panelTimer);
       syncSurfaceButtons();
       syncChips();
       if (redraw) drawRadial();
-      paint();
+      paint(animate);
       syncPickers();
       renderPanel();
       drawWires();
     }
 
+    // ---------------------------------------------------------------- tour
+    // Scenes: an intro, a spotlight on some formats around the circle, routes between formats, then each surface in turn.
+    // It starts once the circle is in view and stops at the first touch; the Play tour button starts it again.
+    //   ?tour=0   no autoplay        ?speed=1.5   faster or slower (0.4 to 3)
+    var query = {};
+    (window.location.search || '').replace(/^\?/, '').split('&').forEach(function (kv) {
+      var p = kv.split('=');
+      try {
+        if (p[0]) query[decodeURIComponent(p[0])] = decodeURIComponent((p[1] || '').replace(/\+/g, ' '));
+      } catch (e) { /* Ignore a malformed tracking parameter without disabling the map. */ }
+    });
+    var speed = Math.max(0.4, Math.min(3, parseFloat(query.speed) || 1));
+    var tour = { on: false, touched: false, timer: 0, scrollTimer: 0, drift: 0, index: -1, scenes: [], before: 'all', button: null, caption: null };
+    var surfaceNotes = {};
+    each(root.querySelectorAll('[data-surface][data-note]'), function (b) { surfaceNotes[b.getAttribute('data-surface')] = b.getAttribute('data-note'); });
+
+    // ---- Scenes. Each builder returns null when the map has nothing to show for it (an unknown format, no route on that surface).
+    var SPOTS = ['DOCX', 'XLSX', 'PPTX', 'PDF', 'OneNote', 'MSG', 'BibTeX', 'Markdown', 'HTML'];
+    var PATHS = [['DOCX', 'Markdown'], ['XLSX', 'PDF'], ['Markdown', 'DOCX'], ['PPTX', 'PDF'], ['OneNote', 'PDF'], ['HTML', 'DOCX'], ['Pages', 'Markdown'], ['EPUB', 'DOCX']];
+    function norm(s) { return String(s).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+    function findFormat(name) {
+      var key = norm(name);
+      for (var i = 0; i < order.length; i++) if (norm(order[i]) === key) return order[i];
+      return null;
+    }
+    function introScene() {
+      return { kind: 'OfficeIMO', title: order.length + ' formats, ' + routes.length + ' conversions', note: 'Every dot is a format. Every line is a conversion.', surface: 'all', dwell: 3600 };
+    }
+    function spotScene(n, surface) {
+      surface = surface || 'all';
+      var outs = routes.filter(function (r) { return r.source === n && (surface === 'all' || r.surfaces.indexOf(surface) >= 0); });
+      if (!outs.length) return null;
+      var inBrowser = outs.filter(function (r) { return r.surfaces.indexOf('browser') >= 0; }).length;
+      var where = surface === 'all' ? (inBrowser ? ' · ' + inBrowser + ' in your browser' : '') : ' in ' + surfaceNames[surface];
+      return { kind: families[familyOf[n]], family: familyOf[n], title: n, from: n, surface: surface, dwell: 4200, note: 'Converts to ' + plural(outs.length, 'format') + where };
+    }
+    function pathScene(a, b, surface) {
+      surface = surface || 'all';
+      var keep = state.surface;
+      state.surface = surface;
+      var paths = shortest(a, b);
+      state.surface = keep;
+      if (!paths.length) return null;
+      var steps = paths[0].length;
+      var first = paths[0][0];
+      return { kind: 'Find the way', title: a + ' → ' + b, from: a, to: b, surface: surface, dwell: 3600 + steps * 900,
+        note: steps === 1 ? 'One step · ' + (surface === 'powershell' && first.cmdlet ? first.cmdlet : first.pkg) : steps + ' steps · each one is its own conversion with its own report' };
+    }
+    function surfaceScene(id) {
+      if (!counts[id]) return null;
+      return { kind: 'Where it runs', title: surfaceNames[id] + ' · ' + plural(counts[id], 'conversion'), surface: id, dwell: 3800, note: surfaceNotes[id] || '' };
+    }
+    function compact(list) { return list.filter(function (s) { return !!s; }); }
+    function defaultSpots(surface) { return compact(SPOTS.map(function (n) { return findFormat(n) && spotScene(findFormat(n), surface); })); }
+    function defaultPaths(surface) { return compact(PATHS.map(function (p) { var a = findFormat(p[0]), b = findFormat(p[1]); return a && b && pathScene(a, b, surface); })); }
+    function defaultSurfaces() { return compact(['dotnet', 'browser', 'cli', 'studio', 'powershell'].map(surfaceScene)); }
+
+    function buildScenes() {
+      return [introScene()].concat(defaultSpots('all'), defaultPaths('all'), defaultSurfaces());
+    }
+
+    function showCaption(s, ms) {
+      var c = tour.caption;
+      if (!c) return;
+      c.className = 'imo-fmap__caption' + (s.family ? ' imo-fam--' + s.family : s.surface !== 'all' ? ' imo-fmap__caption--' + s.surface : '');
+      c.querySelector('.imo-fmap__capkind').textContent = s.kind;
+      c.querySelector('.imo-fmap__captitle').textContent = s.title;
+      c.querySelector('.imo-fmap__capnote').textContent = s.note || '';
+      var bar = c.querySelector('i');
+      bar.style.animation = 'none';
+      void bar.offsetWidth;
+      bar.style.animation = 'imo-fmap-bar ' + ms + 'ms linear forwards';
+      c.classList.remove('is-swap');
+      void c.offsetWidth;
+      c.classList.add('is-swap');
+    }
+
+    function runScene(s) {
+      window.clearTimeout(hoverLeave);
+      window.clearTimeout(tour.scrollTimer);
+      state.hover = state.focus = null;
+      var changed = s.surface !== state.surface;
+      state.surface = s.surface;
+      state.from = s.from || null;
+      state.to = s.to || null;
+      update(changed, true);
+      var ms = s.dwell / speed;
+      showCaption(s, ms);
+      // A long answer drifts upward so the whole list shows during the scene.
+      if (side && !still) {
+        var token = ++tour.drift;
+        tour.scrollTimer = window.setTimeout(function () {
+          var room = side.scrollHeight - side.clientHeight;
+          if (room <= 8) return;
+          var from = side.scrollTop, began = performance.now(), length = Math.min(1200, ms * 0.3);
+          var frame = function (now) {
+            if (token !== tour.drift) return;
+            var u = Math.min(1, (now - began) / length);
+            side.scrollTop = from + (room - from) * (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+            if (u < 1) window.requestAnimationFrame(frame);
+          };
+          window.requestAnimationFrame(frame);
+        }, ms * 0.45);
+      }
+    }
+
+    // Moves to the next scene. Waits while the tab is hidden or the circle is out of view.
+    function advance() {
+      window.clearTimeout(tour.timer);
+      if (!tour.on) return;
+      if (document.hidden || !onScreen) { tour.timer = window.setTimeout(advance, 400); return; }
+      tour.index = (tour.index + 1) % tour.scenes.length;
+      var scene = tour.scenes[tour.index];
+      runScene(scene);
+      tour.timer = window.setTimeout(advance, scene.dwell / speed);
+    }
+
+    function syncTourButton() {
+      if (!tour.button) return;
+      tour.button.setAttribute('aria-pressed', tour.on ? 'true' : 'false');
+      tour.button.lastChild.textContent = tour.on ? 'Stop tour' : 'Play tour';
+    }
+    function startTour() {
+      if (tour.on || !svg) return;
+      state.hidden = {};
+      legend.forEach(function (b) { b.setAttribute('aria-pressed', 'true'); });
+      update(true);
+      tour.scenes = buildScenes();
+      tour.on = true;
+      panel.setAttribute('aria-live', 'off');
+      tour.index = -1;
+      tour.before = state.surface;
+      root.classList.add('is-touring');
+      syncTourButton();
+      advance();
+    }
+    function stopTour(keepView) {
+      if (!tour.on) return;
+      tour.on = false;
+      ++tour.drift;
+      window.clearTimeout(tour.timer);
+      window.clearTimeout(tour.scrollTimer);
+      root.classList.remove('is-touring');
+      panel.setAttribute('aria-live', 'polite');
+      syncTourButton();
+      // Keep the current DOM intact until a user's click or keyboard activation completes.
+      if (keepView) return;
+      state.from = state.to = null;
+      var changed = state.surface !== tour.before;
+      state.surface = tour.before;
+      update(changed);
+      syncTourButton();
+    }
+
+    if (svg && order.length) {
+      var canvas = root.querySelector('.imo-fmap__canvas');
+      tour.caption = el('div', 'imo-fmap__caption');
+      tour.caption.setAttribute('aria-hidden', 'true');
+      tour.caption.appendChild(el('span', 'imo-fmap__capkind'));
+      tour.caption.appendChild(el('b', 'imo-fmap__captitle'));
+      tour.caption.appendChild(el('span', 'imo-fmap__capnote'));
+      tour.caption.appendChild(el('i'));
+      canvas.appendChild(tour.caption);
+      // The button sits in the circle's empty top-left corner, so it never wraps or moves with the chip row above.
+      tour.button = el('button', 'imo-fmap__tourbtn');
+      tour.button.type = 'button';
+      tour.button.setAttribute('aria-pressed', 'false');
+      tour.button.appendChild(el('i'));
+      tour.button.appendChild(document.createTextNode('Play tour'));
+      tour.button.addEventListener('click', function () { tour.touched = true; if (tour.on) stopTour(); else startTour(); });
+      canvas.appendChild(tour.button);
+      // Touching the map ends the tour.
+      root.addEventListener('click', function (e) { if (e.target !== tour.button && !tour.button.contains(e.target)) { tour.touched = true; stopTour(true); } }, true);
+      root.addEventListener('change', function () { tour.touched = true; stopTour(true); }, true);
+      root.addEventListener('keydown', function (e) { if (e.target !== tour.button && e.key !== 'Tab') { tour.touched = true; stopTour(true); } }, true);
+    }
+
     var pending = 0;
-    function relayout() {
+    function relayout(animate) {
       if (pending) return;
-      pending = window.requestAnimationFrame(function () { pending = 0; drawWires(); });
+      pending = window.requestAnimationFrame(function () { pending = 0; drawWires(animate); });
     }
     if (wires) {
       window.addEventListener('resize', relayout);
       if (window.ResizeObserver) new window.ResizeObserver(relayout).observe(root.querySelector('.imo-fmap__board'));
     }
 
+    // Choosing a format must not move what is below the map. Where the answer panel is not pinned to the height of the circle
+    // (the list view, and the stacked layouts), reserve the height of the tallest answer, measured once per layout.
+    var reserveTimer = 0;
+    function reservePanelHeight() {
+      if (!side) return;
+      side.style.minHeight = '';
+      if (/size/.test(getComputedStyle(side).contain || '')) return;
+      var keep = { from: state.from, to: state.to, hover: state.hover, focus: state.focus, surface: state.surface, top: side.scrollTop };
+      var tallest = 0;
+      state.hover = state.focus = state.to = null;
+      state.surface = 'all';
+      order.forEach(function (n) {
+        if (!outOf(n).length) return;
+        state.from = n;
+        buildPanel();
+        tallest = Math.max(tallest, side.offsetHeight);
+      });
+      state.from = keep.from; state.to = keep.to; state.hover = keep.hover; state.focus = keep.focus; state.surface = keep.surface;
+      buildPanel();
+      side.scrollTop = keep.top;
+      if (tallest) side.style.minHeight = tallest + 'px';
+      drawWires();
+    }
+    function scheduleReserve() {
+      window.clearTimeout(reserveTimer);
+      reserveTimer = window.setTimeout(reservePanelHeight, 150);
+    }
+    window.addEventListener('resize', scheduleReserve);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleReserve);
+
     if (view === 'list') state.from = 'DOCX';
     update(true);
+    scheduleReserve();
+    // The tour starts by itself as soon as the circle is in view, unless the visitor got there first (hovered or picked
+    // something) or asked for no tour (?tour=0). Reduced motion keeps the button only.
+    if (svg && view === 'radial' && !still && query.tour !== '0') {
+      if (window.IntersectionObserver) {
+        new window.IntersectionObserver(function (entries, observer) {
+          if (!entries[0].isIntersecting) return;
+          observer.disconnect();
+          if (!tour.on && !tour.touched && !state.from && !state.hover && !state.focus) startTour();
+        }, { threshold: 0.4 }).observe(svg);
+      }
+    }
   }
 
   function start() { each(document.querySelectorAll('[data-format-map]'), init); }
