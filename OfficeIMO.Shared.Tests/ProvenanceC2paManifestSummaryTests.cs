@@ -250,6 +250,64 @@ public sealed class ProvenanceC2paManifestSummaryTests {
 
     // ---- fixture builders: JUMBF boxes, CBOR, and a minimal DER certificate ----
 
+    [Fact]
+    public void ScalarAgentsAreBoundedBeforeRepeatingTemplateAndRelatedActions() {
+        string agent = new string('x', 1024 * 1024);
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", "c2pa.created"), ("related", new object?[] { Map(("action", "c2pa.edited")) })) }),
+            ("templates", new object?[] { Map(("action", "*"), ("softwareAgent", agent)) })));
+        byte[] store = Store(Manifest("active", null, assertion, null));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        Assert.Equal(2, summary.Actions.Count);
+        Assert.All(summary.Actions, action => Assert.Equal(new string('x', 300), action.SoftwareAgent));
+    }
+
+    [Fact]
+    public void TemplateMatchingUsesTheCompleteActionIdentifier() {
+        string prefix = "com." + new string('a', 296);
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", prefix + "A")), Map(("action", prefix + "B")) }),
+            ("templates", new object?[] {
+                Map(("action", prefix + "A"), ("softwareAgent", "Editor")),
+                Map(("action", prefix + "B"), ("softwareAgent", "Model"), ("digitalSourceType", TrainedAlgorithmicMedia)) })));
+        byte[] store = Store(Manifest("active", null, assertion, null));
+        var actions = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!.Actions;
+        Assert.Equal("Editor", actions[0].SoftwareAgent);
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.Unknown, actions[0].DigitalSourceKind);
+        Assert.Equal("Model", actions[1].SoftwareAgent);
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia, actions[1].DigitalSourceKind);
+        Assert.All(actions, action => Assert.Equal(prefix, action.Action));
+    }
+
+    [Fact]
+    public void ReportAggregatesTheActiveManifestDeclarationBeyondDisplayedActions() {
+        object?[] actions = Enumerable.Range(0, 64).Select(_ => (object?)Map(("action", "c2pa.edited")))
+            .Concat(new object?[] { Map(("action", "c2pa.created"), ("digitalSourceType", TrainedAlgorithmicMedia)) }).ToArray();
+        byte[] store = Store(Manifest("active", null, Cbor(Map(("actions", actions))), null));
+        var summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length)!;
+        var carrier = new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, "fixture", true, store.Length);
+        carrier.WithManifest(summary);
+        var report = new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Pdf, new[] { carrier });
+        Assert.Equal(OfficeProvenanceDigitalSourceKind.Unknown, carrier.DigitalSourceKind);
+        Assert.True(report.HasGenerativeAiDeclaration);
+    }
+
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void LargeActionTemplateAssertionRetainsItsFinalDeclaration() {
+        object?[] actions = Enumerable.Range(0, 2000).Select(index => (object?)Map(("action", "c2pa.created"))).ToArray();
+        object?[] templates = Enumerable.Range(0, 3000).Select(index => (object?)Map(("action", "c2pa.created"),
+            ("digitalSourceType", index == 2999 ? TrainedAlgorithmicMedia : "http://cv.iptc.org/newscodes/digitalsourcetype/digitalCapture"))).ToArray();
+        byte[] store = Store(Manifest("active", "Generator", Cbor(Map(("actions", actions), ("templates", templates))), null));
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        OfficeC2paManifestSummary? summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length);
+        timer.Stop();
+        Assert.NotNull(summary);
+        Assert.Equal(64, summary!.Actions.Count);
+        Assert.True(summary.DeclaresGenerativeAi);
+        Console.WriteLine($"C2PA template projection: 2000 actions/3000 templates, {store.Length} bytes, {timer.Elapsed.TotalMilliseconds:F2} ms.");
+    }
+
     private static byte[] Store(params byte[][] manifests) =>
         Box("jumb", Join(Description("c2pa", "c2pa"), Join(manifests)));
 
@@ -340,6 +398,11 @@ public sealed class ProvenanceC2paManifestSummaryTests {
     private static void Head(List<byte> output, int major, ulong argument) {
         if (argument < 24) { output.Add((byte)(major << 5 | (int)argument)); return; }
         if (argument <= byte.MaxValue) { output.Add((byte)(major << 5 | 24)); output.Add((byte)argument); return; }
+        if (argument > ushort.MaxValue) {
+            output.Add((byte)(major << 5 | 26));
+            for (int shift = 24; shift >= 0; shift -= 8) output.Add((byte)(argument >> shift));
+            return;
+        }
         output.Add((byte)(major << 5 | 25));
         output.Add((byte)(argument >> 8));
         output.Add((byte)argument);

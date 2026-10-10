@@ -188,7 +188,7 @@ internal static partial class OfficeC2paManifestStore {
     }
 
     private static string? Agent(object? value) {
-        if (value is string text) return text;
+        if (value is string text) return Text(text);
         if (value is not Dictionary<object, object?> map) return null;
         string? name = Text(Get(map, "name"));
         string? version = Text(Get(map, "version"));

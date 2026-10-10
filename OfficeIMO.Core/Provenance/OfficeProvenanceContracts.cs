@@ -167,7 +167,8 @@ public sealed class OfficeProvenanceReport {
         get {
             foreach (OfficeProvenanceEvidence item in Evidence) {
                 if (item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.TrainedAlgorithmicMedia ||
-                    item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia) return true;
+                    item.DigitalSourceKind == OfficeProvenanceDigitalSourceKind.CompositeWithTrainedAlgorithmicMedia ||
+                    item.Manifest?.DeclaresGenerativeAi == true) return true;
             }
             return false;
         }

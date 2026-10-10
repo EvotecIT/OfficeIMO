@@ -49,7 +49,7 @@ In .NET, the same summary is available as `OfficeProvenanceEvidence.Manifest` on
 
 ## Find hidden characters in text
 
-The [hidden characters tool](/browser/hidden-characters/) reviews text the same way. Paste text or open a UTF-8 file, or a UTF-16/32 file with a byte-order mark. The text stays in the browser. This review accepts up to 1 MB of encoded data, 262,144 UTF-16 code units and 512 findings.
+The [hidden characters tool](/browser/hidden-characters/) reviews text the same way. Paste text or open a UTF-8 file, or a UTF-16/32 file with a byte-order mark. The text stays in the browser. This review accepts up to 1 MiB of encoded data, 1,048,576 UTF-16 code units and 512 findings.
 
 Inspect the code-point markers, offsets and contextual risks, then select individual occurrences to remove from a separate text copy. No occurrences are selected automatically. Language joiners, emoji selectors and typographic spaces may be intentional; the tool does not normalize them or treat them as proof of AI authorship. File exports preserve the original encoding, byte-order mark and line endings. Editing the source clears the previous review and downloads.
 

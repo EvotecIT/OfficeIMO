@@ -13,7 +13,8 @@ Use this skill for OfficeIMO.com browser tool work.
   `Website/data/browser_tools.json`. The page is usable before any .NET code loads.
 - **One script drives every tool.** `Website/static/js/browser-tool.js` (ES5 style for the site minifier) reads the page's
   `data-*` attributes, stages files, runs the engine, and renders the uniform result (verdict, facts, items, preview,
-  downloads, "continue with" hand-off through a one-entry IndexedDB store).
+  downloads, "continue with" hand-off through a randomized, short-lived BroadcastChannel). Files remain in memory;
+  the sender retains them until the receiving page accepts them. The script deletes the retired IndexedDB store.
 - **The engine runs in a Web Worker.** `Website/Apps/OfficeIMO.Web.Converter` is a `Microsoft.NET.Sdk.WebAssembly` app with
   no UI. `wwwroot/engine-worker.js` boots it and calls `Engine/EngineExports.cs` through `[JSExport]`. Conversions never
   block the page. Each tool lists the lazily loaded engine assemblies it needs; the worker prefetches them while the

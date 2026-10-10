@@ -416,7 +416,7 @@
       "seoTitle": "Check file provenance and Content Credentials | OfficeIMO",
       "input": { "kind": "file", "accept": ".docx,.jpeg,.jpg,.pdf,.png,.pptx,.webp,.xlsx", "label": "image, PDF or Office file", "sample": "samples/provenance-demo.png", "sampleName": "provenance-demo.png", "sampleNote": "The sample's AI source label is test data added for this demo.", "auto": true },
       "options": [],
-      "engine": { "kind": "origin", "action": "inspect", "commit": "remove", "assemblies": ["OfficeIMO.Word.wasm", "OfficeIMO.Excel.wasm", "OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Html.wasm", "OfficeIMO.Markdown.wasm", "AngleSharp.wasm", "AngleSharp.Css.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Word.Pdf.wasm", "OfficeIMO.Excel.Pdf.wasm", "OfficeIMO.PowerPoint.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Word.Html.wasm", "OfficeIMO.Word.Markdown.wasm", "OfficeIMO.Markdown.Html.wasm", "OfficeIMO.MarkdownRenderer.wasm", "OfficeIMO.Html.Core.wasm", "OfficeIMO.Html.AngleSharp.wasm"] },
+      "engine": { "kind": "origin", "action": "inspect", "commit": "remove", "assemblies": ["OfficeIMO.Word.wasm", "OfficeIMO.Excel.wasm", "OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm"] },
       "run": { "label": "Check again", "confirmLabel": "Remove selected and save a copy", "busy": ["Reading the file", "Looking for origin records"] },
       "expect": "Visible watermarks, image pixels and other metadata such as camera details stay as they are. The check can't prove whether a file was made by AI.",
       "next": ["file-origin"],

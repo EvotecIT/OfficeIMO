@@ -79,6 +79,7 @@
     intakeGeneration: 0,
     replacementGeneration: 0,
     fileIntake: null,
+    readingIntakes: [],
     inputReady: false
   };
 
@@ -240,6 +241,7 @@
     if (total > MAX_TOTAL_BYTES) { setHint('Together these files are ' + bytes(total) + '. The limit is 75 MB.', 'bad'); return Promise.resolve(); }
     var intake = ++state.intakeGeneration;
     var replacement = cfg.max > 1 ? state.replacementGeneration : ++state.replacementGeneration;
+    beginIntake(intake, cfg.max <= 1);
     var inputGeneration = state.inputGeneration;
     function current() {
       return replacement === state.replacementGeneration && (cfg.max > 1 || (intake === state.intakeGeneration && inputGeneration === state.inputGeneration));
@@ -255,14 +257,30 @@
     }).then(function (loaded) {
       if (!loaded || !current()) return;
       var keep = cfg.max > 1 ? state.files.slice() : [];
-      if (keep.length + loaded.length > cfg.max) { setHint('This tool takes up to ' + cfg.max + ' files. No files were added.', 'bad'); return; }
+      if (keep.length + loaded.length > cfg.max) return 'This tool takes up to ' + cfg.max + ' files. No files were added.';
       var all = keep.concat(loaded);
       var total = all.reduce(function (sum, file) { return sum + file.size; }, 0);
-      if (total > MAX_TOTAL_BYTES) { setHint('Together these files are ' + bytes(total) + '. The limit is 75 MB.', 'bad'); return; }
+      if (total > MAX_TOTAL_BYTES) return 'Together these files are ' + bytes(total) + '. The limit is 75 MB.';
       return setFiles(all);
-    }).catch(function () { if (current() && intake === state.intakeGeneration) setHint('That file couldn’t be read. It may be open in another program.', 'bad'); });
+    }).catch(function () { return 'That file couldn’t be read. It may be open in another program.'; });
+    operation = operation.then(function (problem) { finishIntake(intake, typeof problem === 'string' ? problem : ''); });
     if (cfg.max > 1) state.fileIntake = operation;
     return operation;
+  }
+
+  function beginIntake(intake, replacement) {
+    if (replacement) { state.readingIntakes = []; state.fileIntake = null; }
+    state.readingIntakes.push(intake);
+    state.generation++;
+    clearResult();
+    updateRunButton();
+  }
+  function finishIntake(intake, problem) {
+    var index = state.readingIntakes.indexOf(intake);
+    if (index < 0) return;
+    state.readingIntakes.splice(index, 1);
+    if (problem) { updateRunButton(); setHint(problem, 'bad'); }
+    else afterInputChanged();
   }
 
   function setFiles(files) {
@@ -371,6 +389,7 @@
     if (!cfg.sample) return Promise.resolve();
     var intake = ++state.intakeGeneration;
     ++state.replacementGeneration;
+    beginIntake(intake, true);
     var generation = state.generation;
     setHint('Loading the sample…');
     function get(path) {
@@ -397,7 +416,10 @@
       var staging = setFiles(files);
       generation = state.generation;
       return staging.then(function () { if (intake === state.intakeGeneration && generation === state.generation && cfg.sampleNote) setHint(cfg.sampleNote); });
-    }).catch(function (error) { if (intake === state.intakeGeneration && generation === state.generation) setHint(error.message, 'bad'); });
+    }).catch(function (error) { return error.message; }).then(function (problem) {
+      finishIntake(intake, typeof problem === 'string' ? problem : '');
+      if (!problem && intake === state.intakeGeneration && generation === state.generation && cfg.sampleNote) setHint(cfg.sampleNote);
+    });
   }
 
   // ---------------------------------------------------------------- input: text
@@ -407,9 +429,11 @@
   }
   function setText(value, fromFile) {
     var problem = textProblem(value);
-    if (problem) { setHint(problem, 'bad'); return; }
+    if (problem) { setHint(problem, 'bad'); return problem; }
     ++state.intakeGeneration;
     ++state.replacementGeneration;
+    state.readingIntakes = [];
+    state.fileIntake = null;
     markStale();
     state.text = value;
     state.textFromFile = !!fromFile;
@@ -474,11 +498,12 @@
     // Once there is a fresh result, the download is the next step, so the run button steps back.
     var settled = state.result && state.result.ok && !state.stale && !state.busy;
     ui.run.className = 'bt-btn bt-btn--block' + (settled ? '' : ' bt-btn--primary');
-    ui.run.disabled = state.busy || !complete || (cfg.input !== 'text' && !state.inputReady) || !!options.problem || passwordBlocked();
+    ui.run.disabled = state.busy || state.readingIntakes.length > 0 || !complete || (cfg.input !== 'text' && !state.inputReady) || !!options.problem || passwordBlocked();
     // Tools that run as soon as a file arrives have nothing to "check again" before the first file.
     var waitingForFirstFile = !!cfg.auto && cfg.input !== 'text' && !complete;
     ui.run.hidden = waitingForFirstFile;
     if (state.busy) return;
+    if (state.readingIntakes.length) { setHint('Reading the selected file…'); return; }
     if (waitingForFirstFile) { setHint(''); return; }
     if (!complete) {
       if (cfg.input === 'pair') setHint(state.files.length === 1 ? 'Add the second PDF to compare.' : 'Add two PDFs to compare.');
@@ -539,7 +564,7 @@
     return cfg.input !== 'text' || (cfg.kind === 'text' && state.textFromFile);
   }
   function run(action, extra) {
-    if (state.busy) return;
+    if (state.busy || state.readingIntakes.length) return;
     action = action || cfg.action;
     var collected = collectOptions();
     if (collected.problem && (action === cfg.action || action === cfg.find)) { setHint(collected.problem, 'warn'); return; }
@@ -550,6 +575,7 @@
       else options.text = state.text;
     }
     if (cfg.confirm && action === cfg.action) options.confirm = 'true';
+    clearPasswords(); // Options own the captured values; secrets need not remain in the live DOM.
     var generation = state.generation;
     state.busy = true;
     state.stale = false;
@@ -584,6 +610,15 @@
       else discardRun();
       if (webMcpWaiter) { webMcpWaiter(null, error); webMcpWaiter = null; }
     });
+  }
+
+  function clearPasswords() {
+    if (!ui.form) return;
+    Array.prototype.forEach.call(ui.form.querySelectorAll('.bt-password input, input[data-confirms]'), function (field) {
+      field.value = '';
+      field.type = 'password';
+    });
+    Array.prototype.forEach.call(ui.form.querySelectorAll('[data-bt-reveal]'), function (button) { button.textContent = 'Show'; });
   }
 
   function discardRun() {
@@ -638,11 +673,12 @@
   function clearResult() {
     state.result = null;
     state.stale = false;
+    if (ui.output) ['data-result-state', 'data-result-action', 'data-conversion-ms', 'data-peak-retained-bytes', 'data-result-bytes'].forEach(function (name) { ui.output.removeAttribute(name); });
     revokeUrls();
     state.artifacts = [];
     if (ui.output && !ui.output.querySelector('[data-bt-empty]')) {
       ui.output.innerHTML = '';
-      ui.output.appendChild(emptyState());
+    ui.output.appendChild(emptyState());
     }
   }
   var emptyTemplate = ui.output ? ui.output.innerHTML : '';
@@ -1033,6 +1069,8 @@
       }
       button.disabled = true;
       button.textContent = 'Preparing…';
+      state.busy = true;
+      updateRunButton();
       engine.call('run', { kind: cfg.kind, target: cfg.target, action: 'support', options: { includeContent: include.checked ? 'true' : 'false' } }).then(function (result) {
         if (generation !== state.generation || !button.isConnected) return;
         if (!result.ok || !result.artifacts.length) throw new Error(result.verdict ? result.verdict.detail : 'Not available.');
@@ -1047,6 +1085,10 @@
       }).catch(function (error) {
         if (generation !== state.generation || !button.isConnected) return;
         button.disabled = false; button.textContent = 'Prepare bug report files'; setHint(error.message, 'bad');
+      }).then(function () {
+        state.busy = false;
+        updateRunButton();
+        if (generation !== state.generation && (cfg.live || cfg.auto) && inputComplete()) liveRun();
       });
     });
     box.appendChild(label);
@@ -1132,9 +1174,16 @@
           if (callContext && callContext.signal && callContext.signal.aborted) return Promise.resolve({ success: false, message: 'Conversion was cancelled before it started.' });
           if (!inputComplete()) return Promise.resolve({ success: false, tool: cfg.id, message: 'No file is chosen yet. Choose a file or load the sample on the page, then try again.' });
           if (state.busy) return Promise.resolve({ success: false, tool: cfg.id, message: 'The tool is already running in this tab.' });
+          if (state.readingIntakes.length) {
+            var pendingMessage = 'The selected file is still being read. Try again after it is ready.';
+            showResult({ ok: false, verdict: { tone: 'warn', title: 'The input is not ready', detail: pendingMessage }, facts: [], items: [], artifacts: [] }, cfg.find || cfg.action);
+            return Promise.resolve({ success: false, tool: cfg.id, message: pendingMessage });
+          }
           var validation = collectOptions();
           if (validation.problem || passwordBlocked() || (requiresStagedInput() && !state.inputReady)) {
-            return Promise.resolve({ success: false, tool: cfg.id, message: validation.problem || 'The input is not ready. Review the visible file status first.' });
+            var message = validation.problem || (state.probe && state.probe.error) || 'The input is not ready. Review the visible file status first.';
+            showResult({ ok: false, verdict: { tone: 'bad', title: 'The input couldn’t be prepared', detail: message }, facts: [], items: [], artifacts: [] }, cfg.find || cfg.action);
+            return Promise.resolve({ success: false, tool: cfg.id, message: bounded(message, 300) });
           }
           return new Promise(function (resolve) {
             webMcpWaiter = function (result, error) { resolve(webMcpOutput(result, error)); };
@@ -1179,14 +1228,15 @@
     if (file.size > 1024 * 1024) { setHint('Text files up to 1 MB can be checked here.', 'bad'); return Promise.resolve(); }
     var intake = ++state.intakeGeneration;
     ++state.replacementGeneration;
+    beginIntake(intake, true);
     if (cfg.kind !== 'text') {
-      return file.text().then(function (text) { if (intake === state.intakeGeneration) setText(text, false); }).catch(function () { if (intake === state.intakeGeneration) setHint('That text file could not be read.', 'bad'); });
+      return file.text().then(function (text) { if (intake === state.intakeGeneration) return setText(text, false); }).catch(function () { return 'That text file could not be read.'; }).then(function (problem) { finishIntake(intake, problem); });
     }
     return readFile(file).then(function (buffer) {
       if (intake !== state.intakeGeneration) return;
       state.textFromFile = true;
       return setFiles([{ name: file.name, size: buffer.byteLength, ext: extOf(file.name), buffer: buffer }]);
-    }).catch(function () { if (intake === state.intakeGeneration) setHint('That text file could not be read. Choose it again.', 'bad'); });
+    }).catch(function () { return 'That text file could not be read. Choose it again.'; }).then(function (problem) { finishIntake(intake, typeof problem === 'string' ? problem : ''); });
   }
 
   if (ui.drop) {
@@ -1233,6 +1283,7 @@
   if (ui.run) ui.run.addEventListener('click', function () { run(cfg.find || cfg.action); });
 
   window.addEventListener('pagehide', function (event) {
+    clearPasswords();
     if (!event.persisted) { revokeUrls(); if (state.grid) state.grid.dispose(); }
   });
 
@@ -1245,6 +1296,8 @@
       if (cfg.input === 'text') return addTextFile(new File([file.buffer], file.name, { type: file.type || '' }));
       ++state.intakeGeneration;
       ++state.replacementGeneration;
+      state.readingIntakes = [];
+      state.fileIntake = null;
       return setFiles([{ name: file.name, size: file.buffer.byteLength, ext: extOf(file.name), buffer: file.buffer }]);
     }).catch(function (error) { if (handoffIntake === state.intakeGeneration) setHint(error.message, 'bad'); });
   }
