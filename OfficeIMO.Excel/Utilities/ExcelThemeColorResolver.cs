@@ -41,8 +41,11 @@ namespace OfficeIMO.Excel.Utilities {
             if (argb == null && color.Indexed?.Value is uint indexed) {
                 if (indexedColorOverrides != null && indexedColorOverrides.TryGetValue(indexed, out string? custom)) {
                     argb = NormalizeArgb(custom);
-                } else if (indexed < IndexedColors.Length) {
-                    argb = NormalizeArgb(IndexedColors[indexed]);
+                } else {
+                    argb = ResolveWorkbookIndexedColor(indexed, workbookPart);
+                    if (argb == null && indexed < IndexedColors.Length) {
+                        argb = NormalizeArgb(IndexedColors[indexed]);
+                    }
                 }
             }
 
@@ -53,6 +56,16 @@ namespace OfficeIMO.Excel.Utilities {
             return color.Tint?.Value is double tint && Math.Abs(tint) > double.Epsilon
                 ? ApplySpreadsheetTint(argb, tint)
                 : argb;
+        }
+
+        private static string? ResolveWorkbookIndexedColor(uint indexed, WorkbookPart? workbookPart) {
+            var palette = workbookPart?.WorkbookStylesPart?.Stylesheet?.Colors?.IndexedColors;
+            if (palette == null) return null;
+            uint index = 0;
+            foreach (RgbColor entry in palette.Elements<RgbColor>()) {
+                if (index++ == indexed) return NormalizeArgb(entry.Rgb?.Value);
+            }
+            return null;
         }
 
         internal static string? Resolve(A.SolidFill? solidFill, WorkbookPart? workbookPart) {

@@ -19,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidDataException>(() => result.Report.RequireCompleteEditableReconstruction());
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
         Assert.False(result.IsVisualFallback);
         var table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.True(table.HasBorderDeclarations);

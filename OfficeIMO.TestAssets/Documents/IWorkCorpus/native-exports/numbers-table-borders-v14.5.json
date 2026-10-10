@@ -73,6 +73,53 @@
       "path": "numbers-table-borders-v14.5.xlsx",
       "bytes": 6024,
       "sha256": "c54562907c40affd5aadd60263dd98340a39fb821ce328b65f8e0dbd095c4531"
+    },
+    {
+      "path": "numbers-table-borders-officeimo.xlsx",
+      "bytes": 5120,
+      "sha256": "0a2f3858aba5e6ecfae70bca547204ac77c04ba4a379553d71c0ac4f5e4c63c6"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-from-xlsx.pdf",
+      "bytes": 2058,
+      "sha256": "54ca5923c3087c3ac2cc69e4b89dff12ddb68103066238fef2a02d2596e2db2f"
+    },
+    {
+      "path": "numbers-table-borders-officeimo-from-xlsx-page1.png",
+      "bytes": 24715,
+      "sha256": "777576f8c071735bc976a7c2e898dc34ce067de988b7ae08e14720ed5bb9926e"
+    },
+    {
+      "path": "numbers-table-borders-native-xlsx-officeimo.pdf",
+      "bytes": 2121,
+      "sha256": "eb5fa4170bf283694a91ece5836c0d1879e3c70f20d667bf2926f655e0e13655"
+    },
+    {
+      "path": "numbers-table-borders-native-xlsx-officeimo-page1.png",
+      "bytes": 25466,
+      "sha256": "c74a894d24c7eb420da3aec61350beaf44c7cfdec669c21cc4e1478bd9ee8cb9"
     }
-  ]
+  ],
+  "officeimoQualification": {
+    "sourceProjectionAndSavedXlsx": "All 16 cells and 64 independently decoded edges agree; saved XLSX validates and reopens. The source remains unchanged.",
+    "policy": "Explicit partial editable reconstruction with IWORK_NUMBERS_CELL_PADDING_OMITTED. Complete editable acceptance and both complete/partial PDF requests reject the source.",
+    "workflowSourceUnits": 3,
+    "workflowReconstructedUnits": 3,
+    "workflowOmittedUnits": 0,
+    "workflowUnassessedUnits": 0,
+    "independentExtractorByteIdentical": true,
+    "appearance": "Both one-page XLSX-to-PDF outputs and the one-page native PDF were inspected. Colors, the hidden edge and edited-edge locations agree. This is separate appearance evidence for partial XLSX, not complete iWork PDF acceptance.",
+    "renderingProfile": "Caller-provided Carlito regular/bold/italic/bold-italic fallback faces; portable deterministic resource policy. Latin text uses standard PDF Helvetica/Helvetica-Bold in these outputs.",
+    "renderingLimits": [
+      "Native Arial and PDF standard font appearance differ; bold declarations remain in both saved XLSX and PDF operators.",
+      "XLSX thin/medium styles render at 0.5/1.25 points in the shared PDF owner, versus native 1/2-point strokes. Exact native stroke thickness is not qualified.",
+      "Native page placement, paper orientation, column geometry and print footer differ from reconstructed output; exact native print layout is not qualified."
+    ],
+    "checks": [
+      "IWorkNumbersBorderCorpusTests",
+      "IWorkWorkflowNumbersBorderPdfTests",
+      "ExcelCustomIndexedColorTests",
+      "NativeNumbersBorderSmoke"
+    ]
+  }
 }
