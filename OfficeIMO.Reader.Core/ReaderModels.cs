@@ -115,8 +115,12 @@ public enum ReaderInputKind {
     IWork = 25,
     /// <summary>Native XPS or OpenXPS fixed-page package.</summary>
     Xps = 26,
+    /// <summary>Compiled HTML Help document.</summary>
+    Chm = 27,
     /// <summary>DBF/xBase table.</summary>
-    Dbf = 27
+    Dbf = 28,
+    /// <summary>Microsoft Publisher publication.</summary>
+    Publisher = 29
 }
 
 /// <summary>

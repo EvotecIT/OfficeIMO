@@ -266,7 +266,7 @@ public static partial class OfficeDocumentReadResultJson {
         bool requiresVersion7 = kind == ReaderInputKind.Opml || kind == ReaderInputKind.DocBook;
         bool requiresVersion8 = kind == ReaderInputKind.IWork;
         bool requiresVersion10 = kind == ReaderInputKind.Xps;
-        bool requiresVersion11 = kind == ReaderInputKind.Dbf;
+        bool requiresVersion11 = kind == ReaderInputKind.Chm || kind == ReaderInputKind.Dbf || kind == ReaderInputKind.Publisher;
         if (!Enum.IsDefined(typeof(ReaderInputKind), kind) ||
             schemaVersion < 6 && requiresVersion6 ||
             schemaVersion < 7 && requiresVersion7 ||

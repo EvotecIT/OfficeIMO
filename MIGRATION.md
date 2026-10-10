@@ -156,7 +156,7 @@ TIFF images retain their declared sample encoding.
 
 Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and
 `.oxps` files. Reader results use `ReaderInputKind.Xps` (`26`) and document transport
-schema version 10. Exhaustive kind switches and transport bindings must accept
+schema version 10 or later. Exhaustive kind switches and transport bindings must accept
 this value and version. Versions 5 through 9 remain readable; they cannot carry
 XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
@@ -165,6 +165,15 @@ page citations remain separate. Null order values retain existing container orde
 `XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.
+
+## Reader identities for CHM, DBF, and Publisher
+
+Document transport schema version 11 declares `ReaderInputKind.Chm` (`27`),
+`ReaderInputKind.Dbf` (`28`), and `ReaderInputKind.Publisher` (`29`). Update
+exhaustive kind switches and transport bindings when registering these format
+handlers. Earlier input-kind numbers (`0` through `26`) retain their values.
+Versions 5 through 10 remain readable for their existing formats; they cannot
+carry these three kinds in roots, chunks, or nested documents.
 
 ## XPS PDF reading order
 
