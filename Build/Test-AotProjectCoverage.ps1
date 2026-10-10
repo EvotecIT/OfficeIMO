@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Reader.Dbf'
+        classification = 'managed-cross-platform'
+        evidence = 'DBF ingestion is qualified through managed .NET 8 and 10 extraction and CSV/XLSX conversion tests; the DBAClientX.Dbf owner and Reader adapter are not rooted in a NativeAOT qualification host.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Chm'
         classification = 'managed-cross-platform'
         evidence = 'Bounded CHM archive reading is qualified through managed .NET 8 and 10 contracts and independent entry extraction; no dedicated NativeAOT qualification host is claimed.'

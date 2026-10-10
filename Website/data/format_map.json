@@ -51,6 +51,10 @@
       "family": "spreadsheets"
     },
     {
+      "name": "DBF/xBase",
+      "family": "spreadsheets"
+    },
+    {
       "name": "Numbers",
       "family": "spreadsheets"
     },
@@ -708,6 +712,30 @@
       "support": "Established",
       "fidelity": "Editable",
       "api": "CsvDocument.Load(stream).ToExcelDocument(options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "dbf-csv",
+      "source": "DBF/xBase",
+      "target": "CSV",
+      "package": "OfficeIMO.CSV",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "DbfDataReader.Open(path), then CsvDocument.WriteDataReader(writer, reader, options)",
+      "surfaces": [
+        "dotnet"
+      ]
+    },
+    {
+      "id": "dbf-xlsx",
+      "source": "DBF/xBase",
+      "target": "XLSX",
+      "package": "OfficeIMO.Excel",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "DbfDataReader.Open(path), then ExcelDocument.WriteDataReader(stream, reader, options)",
       "surfaces": [
         "dotnet"
       ]

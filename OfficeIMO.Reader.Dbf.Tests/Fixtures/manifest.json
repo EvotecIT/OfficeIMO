@@ -1,0 +1,211 @@
+{
+  "producer": "dbf 0.99.11 (BSD)",
+  "oracle": "dbfread 2.0.7 (MIT)",
+  "qualification": "Python-produced fixtures, independently decoded; no native dBASE/FoxPro application qualification",
+  "oracle_limitations": "dbfread does not interpret VFP nullable or binary-character flags completely; original producer inputs qualify those fields",
+  "tables": {
+    "db3": {
+      "profile": "db3",
+      "fields": "NAME C(24); AMOUNT N(12,2); ACTIVE L; STAMP D; NOTES M",
+      "input_rows": [
+        [
+          "Caf\u00e9 \u00a3",
+          "1234.50",
+          true,
+          "2020-02-29",
+          "First memo\r\nSecond line: na\u00efve"
+        ],
+        [
+          "deleted",
+          "-2.75",
+          false,
+          "2021-01-02",
+          "Deleted memo"
+        ],
+        [
+          "",
+          null,
+          null,
+          null,
+          ""
+        ]
+      ],
+      "oracle_records": [
+        {
+          "NAME": "Caf\u00e9 \u00a3",
+          "AMOUNT": 1234.5,
+          "ACTIVE": true,
+          "STAMP": "2020-02-29",
+          "NOTES": "First memo\r\nSecond line: na\u00efve"
+        },
+        {
+          "NAME": "",
+          "AMOUNT": null,
+          "ACTIVE": null,
+          "STAMP": null,
+          "NOTES": ""
+        }
+      ],
+      "oracle_deleted_records": [
+        {
+          "NAME": "deleted",
+          "AMOUNT": -2.75,
+          "ACTIVE": false,
+          "STAMP": "2021-01-02",
+          "NOTES": "Deleted memo"
+        }
+      ]
+    },
+    "fp": {
+      "profile": "fp",
+      "fields": "NAME C(24); AMOUNT N(12,2); ACTIVE L; STAMP D; NOTES M",
+      "input_rows": [
+        [
+          "Caf\u00e9 \u00a3",
+          "1234.50",
+          true,
+          "2020-02-29",
+          "First memo\r\nSecond line: na\u00efve"
+        ],
+        [
+          "deleted",
+          "-2.75",
+          false,
+          "2021-01-02",
+          "Deleted memo"
+        ],
+        [
+          "",
+          null,
+          null,
+          null,
+          ""
+        ]
+      ],
+      "oracle_records": [
+        {
+          "NAME": "Caf\u00e9 \u00a3",
+          "AMOUNT": 1234.5,
+          "ACTIVE": true,
+          "STAMP": "2020-02-29",
+          "NOTES": "First memo\r\nSecond line: na\u00efve"
+        },
+        {
+          "NAME": "",
+          "AMOUNT": null,
+          "ACTIVE": null,
+          "STAMP": null,
+          "NOTES": ""
+        }
+      ],
+      "oracle_deleted_records": [
+        {
+          "NAME": "deleted",
+          "AMOUNT": -2.75,
+          "ACTIVE": false,
+          "STAMP": "2021-01-02",
+          "NOTES": "Deleted memo"
+        }
+      ]
+    },
+    "vfp": {
+      "profile": "vfp",
+      "fields": "NAME C(24) NULL; COUNT I; REAL B; PRICE Y; STAMP T NULL; NOTES M; RAW C(8) BINARY; BINMEMO M BINARY",
+      "input_rows": [
+        [
+          "Caf\u00e9",
+          42,
+          1.25,
+          "-123.4567",
+          "2020-02-29T12:34:56.789000",
+          "VFP memo",
+          {
+            "hex": "00ff012041424320"
+          },
+          {
+            "hex": "00ff01"
+          }
+        ],
+        [
+          "deleted",
+          -17,
+          3.5,
+          "1.0001",
+          "2021-01-02T00:00:00",
+          "Deleted memo",
+          {
+            "hex": "3132333435363738"
+          },
+          {
+            "hex": "0203"
+          }
+        ],
+        [
+          null,
+          0,
+          0.0,
+          "0",
+          null,
+          "",
+          {
+            "hex": "0000000000000000"
+          },
+          {
+            "hex": ""
+          }
+        ]
+      ],
+      "oracle_records": [
+        {
+          "NAME": "Caf\u00e9",
+          "COUNT": 42,
+          "REAL": 1.25,
+          "PRICE": "-123.4567",
+          "STAMP": "2020-02-29T12:34:56.789000",
+          "NOTES": "VFP memo",
+          "RAW": "\u0000\u00ff\u0001 ABC",
+          "BINMEMO": "\u0000\u00ff\u0001",
+          "_NULLFLAGS": {
+            "hex": "fc"
+          }
+        },
+        {
+          "NAME": "",
+          "COUNT": 0,
+          "REAL": 0.0,
+          "PRICE": "0",
+          "STAMP": null,
+          "NOTES": "",
+          "RAW": "",
+          "BINMEMO": "",
+          "_NULLFLAGS": {
+            "hex": "ff"
+          }
+        }
+      ],
+      "oracle_deleted_records": [
+        {
+          "NAME": "deleted",
+          "COUNT": -17,
+          "REAL": 3.5,
+          "PRICE": "1.0001",
+          "STAMP": "2021-01-02T00:00:00",
+          "NOTES": "Deleted memo",
+          "RAW": "12345678",
+          "BINMEMO": "\u0002\u0003",
+          "_NULLFLAGS": {
+            "hex": "fc"
+          }
+        }
+      ]
+    }
+  },
+  "sha256": {
+    "db3.dbf": "e5706b4bfad7cc01cc9310a846ecd69450f3506b8b797e3721f0aee8ca25edf7",
+    "db3.dbt": "f8ffd0f8c4bf360b6361be82f5639d1c9706b9c48680bdfdba68598ac67db3af",
+    "fp.dbf": "59a96032e6d3ef97f1e8095a1e1c5639711826aeba3d763db59654a5e99a1deb",
+    "fp.fpt": "bb868d8b3e971ad3bbe8240672e3fc1195f7b053ef33f157122f2d95de0ecf79",
+    "vfp.dbf": "c3e85bf1e5aa0d57a9907155cc90f1dd501b47343bea955962400ca636b726e5",
+    "vfp.fpt": "f8403b698f2dc3e8009ebfb6507f856615a37fb75f8e81fa45e487d8433f0223"
+  }
+}

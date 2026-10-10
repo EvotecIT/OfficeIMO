@@ -917,6 +917,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Preserve | 0 | 1 | 0 | 0 | 0 | 0 |
 | Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 1 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.CSV` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

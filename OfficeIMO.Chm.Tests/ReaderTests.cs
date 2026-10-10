@@ -54,9 +54,12 @@ public sealed class ReaderTests {
         Assert.NotEmpty(result.Blocks); Assert.NotEmpty(result.Tables); Assert.NotEmpty(result.Links);
         Assert.Equal(result.Blocks.Count, result.Blocks.Select(block => block.Id).Distinct().Count());
         Assert.Equal(ReaderInputKind.Chm, OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(result)).Kind);
-        var oldEnvelope = System.Text.Json.Nodes.JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(result))!;
-        oldEnvelope["schemaVersion"] = 10;
-        string oldBinding = oldEnvelope.ToJsonString();
+        result.SchemaVersion = 11;
+        string chmBinding = OfficeDocumentReadResultJson.Serialize(result);
+        Assert.Equal(ReaderInputKind.Chm, OfficeDocumentReadResultJson.Deserialize(chmBinding).Kind);
+        var oldBindingJson = System.Text.Json.Nodes.JsonNode.Parse(chmBinding)!;
+        oldBindingJson["schemaVersion"] = 10;
+        string oldBinding = oldBindingJson.ToJsonString();
         Assert.Throws<System.Text.Json.JsonException>(() => OfficeDocumentReadResultJson.Deserialize(oldBinding));
     }
 

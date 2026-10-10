@@ -168,6 +168,16 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## DBF Reader identity and transport
+
+Register `.AddDbfHandler()` from `OfficeIMO.Reader.Dbf`, or use the all-adapters
+preset, to ingest DBF/xBase tables. `ReaderInputKind.Dbf` (`29`) requires document
+transport schema v13. Update exhaustive input-kind switches and transport bindings;
+schemas v5 through v12 remain readable but cannot carry DBF input kinds. CHM (`27`)
+and DjVu (`28`) retain their existing identities and minimum schema versions.
+Memo sidecar reads require explicit opt-in through `ReaderDbfOptions` or
+`ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
+
 ## DjVu Reader identity and transport
 
 Register `.AddDjVuHandler()` from `OfficeIMO.Reader.DjVu` for `.djvu` and `.djv`,

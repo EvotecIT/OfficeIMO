@@ -66,7 +66,7 @@ internal static class FormatMapProjection {
     /// <summary>Within a family, the best-known formats come first.</summary>
     private static readonly string[] Prominence = [
         "DOCX", "DOC", "ODT", "RTF", "Pages", "Google Docs",
-        "XLSX", "ODS", "CSV", "Numbers", "Google Sheets",
+        "XLSX", "ODS", "CSV", "DBF/xBase", "Numbers", "Google Sheets",
         "PPTX", "ODP", "Keynote", "Google Slides",
         "PDF", "XPS/OpenXPS", "MHTML", "Visio", "ODG/FODG",
         "PNG", "SVG", "JPEG", "TIFF", "WebP",
@@ -84,7 +84,7 @@ internal static class FormatMapProjection {
 
     private static string Family(string format) => format switch {
         "DOCX" or "DOC" or "ODT" or "RTF" or "Pages" or "Google Docs" => "documents",
-        "XLSX" or "ODS" or "CSV" or "Numbers" or "Google Sheets" => "spreadsheets",
+        "XLSX" or "ODS" or "CSV" or "DBF/xBase" or "Numbers" or "Google Sheets" => "spreadsheets",
         "PPTX" or "ODP" or "Keynote" or "Google Slides" => "presentations",
         "PDF" or "XPS/OpenXPS" or "MHTML" or "Visio" or "ODG/FODG" => "fixed",
         "PNG" or "SVG" or "JPEG" or "TIFF" or "WebP" => "images",

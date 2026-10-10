@@ -99,6 +99,7 @@
     "OfficeIMO.Reader.AsciiDoc": "3.4.X",
     "OfficeIMO.Reader.Chm": "3.4.X",
     "OfficeIMO.Reader.Csv": "3.4.X",
+    "OfficeIMO.Reader.Dbf": "3.4.X",
     "OfficeIMO.Reader.DocBook": "3.4.X",
     "OfficeIMO.Reader.Email": "3.4.X",
     "OfficeIMO.Reader.Excel": "3.4.X",
