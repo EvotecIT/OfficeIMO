@@ -22,7 +22,7 @@ public static partial class PdfProvenance {
         PdfLoadOptions? readOptions,
         out PdfReadDocument document,
         out List<HistoricalCarrier> historicalCarriers,
-        out Dictionary<PdfExtractedAttachment, int> currentCarriers) {
+        out Dictionary<PdfExtractedAttachment, CurrentCarrier> currentCarriers) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
@@ -40,13 +40,16 @@ public static partial class PdfProvenance {
             _ = outputIntent.DestinationOutputProfileDeviceClass;
         }
         var evidence = new List<OfficeProvenanceEvidence>();
-        var stores = new List<(OfficeProvenanceEvidence Evidence, int Revision, int Stream, OfficeC2paManifestSummary? Summary)>();
+        var stores = new List<ManifestOccurrence>();
+        var occurrences = new Dictionary<AssociationIdentity, ManifestOccurrence>();
+        int[] revisionEnds = PdfSyntax.GetHistoricalRevisionEnds(pdf, document, options.CancellationToken);
         historicalCarriers = new List<HistoricalCarrier>();
         var seen = new Dictionary<CarrierIdentity, int>();
-        currentCarriers = new Dictionary<PdfExtractedAttachment, int>();
-        InspectRevisionCarriers(document, options, maximumManifestBytes, evidence, stores, seen, null, currentCarriers);
+        currentCarriers = new Dictionary<PdfExtractedAttachment, CurrentCarrier>();
+        InspectRevisionCarriers(document, options, maximumManifestBytes, evidence, stores, occurrences,
+            revisionEnds.Length + 1, seen, null, currentCarriers);
         long historicalBytes = InspectHistoricalCarriers(pdf, document, options, effectiveReadOptions, inspectionTimer,
-            maximumManifestBytes, evidence, stores, seen, historicalCarriers);
+            maximumManifestBytes, evidence, stores, occurrences, revisionEnds, seen, historicalCarriers);
         IReadOnlyList<string> diagnostics = SelectActiveManifest(stores);
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Pdf,
@@ -110,8 +113,8 @@ public static partial class PdfProvenance {
         foreach (var current in currentCarriers) {
             options.Limits.CancellationToken.ThrowIfCancellationRequested();
             PdfExtractedAttachment attachment = current.Key;
-            OfficeProvenanceEvidence evidence = before.Evidence[current.Value];
-            if (!evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
+            OfficeProvenanceEvidence evidence = before.Evidence[current.Value.EvidenceIndex];
+            if (!current.Value.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
             if (attachment.FileSpecObjectNumber <= 0) {
                 throw new InvalidDataException("A direct PDF provenance filespec cannot be removed without risking unrelated associations.");
             }
@@ -128,7 +131,8 @@ public static partial class PdfProvenance {
             rewriteHistory = true;
             // Object numbers may have been reused by an unrelated later definition. Only
             // delete still-retained objects with the same physical definition identity.
-            if (document.Objects.TryGetValue(historical.Spec, out var spec) && spec.SourceOffset == historical.SpecOffset)
+            if (document.Objects.ContainsKey(historical.Spec) &&
+                GetCarrierDefinition(document, historical.Spec, options.Limits).Identity == historical.Definition)
                 removeFileSpecifications.Add(historical.Spec);
             if (document.Objects.TryGetValue(historical.Stream, out var stream) && stream.SourceOffset == historical.StreamOffset)
                 removeEmbeddedFiles.Add(historical.Stream);
@@ -270,7 +274,7 @@ public static partial class PdfProvenance {
     private static HashSet<int> CollectReachableObjectNumbers(
         Dictionary<int, PdfIndirectObject> objects,
         PdfReference root,
-        int maximumContainerEntries) {
+        int maximumContainerEntries, CancellationToken cancellationToken = default) {
         var result = new HashSet<int>();
         var visitedDirectObjects = new HashSet<PdfObject>();
         var indirectValues = new HashSet<PdfObject>(objects.Values.Select(static item => item.Value));
@@ -278,6 +282,7 @@ public static partial class PdfProvenance {
         var pending = new Stack<PdfObject>();
         pending.Push(root);
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject value = pending.Pop();
             if (value is PdfReference reference) {
                 if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||

@@ -36,6 +36,34 @@ public sealed class EngineToolTests {
         new(values.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal));
 
     [Theory]
+    [InlineData(0xd800)]
+    [InlineData(0xdc00)]
+    public void WorkerTextTransportPreservesUnpairedCodeUnitsForReviewAndRemoval(int unit) {
+        string text = "a" + (char)unit + "b\u200bc";
+        byte[] bytes = text.SelectMany(character => new[] { (byte)character, (byte)(character >> 8) }).ToArray();
+        string json = JsonSerializer.Serialize(new Dictionary<string, string> { ["_utf16:text"] = Convert.ToBase64String(bytes) });
+        var session = new ToolSession();
+        var reviewed = TextTool.Run(session, "inspect", ToolOptions.Parse(json));
+        Assert.True(reviewed.Ok);
+        Assert.Equal(text, reviewed.Preview!.Text);
+        Assert.Contains(reviewed.Items, item => item.Title.StartsWith("Broken character", StringComparison.Ordinal));
+        Assert.Equal(2, reviewed.Items.Length);
+        using var serialized = JsonDocument.Parse(JsonSerializer.Serialize(reviewed, EngineJsonContext.Default.ToolResultDocument));
+        Assert.Equal(Convert.ToBase64String(bytes), serialized.RootElement.GetProperty("preview").GetProperty("textUtf16").GetString());
+        string partialJson = JsonSerializer.Serialize(new Dictionary<string, string> {
+            ["_utf16:text"] = Convert.ToBase64String(bytes), ["remove"] = "f1"
+        });
+        Assert.Throws<System.Text.EncoderFallbackException>(() => TextTool.Run(session, "remove", ToolOptions.Parse(partialJson)));
+        string removeJson = JsonSerializer.Serialize(new Dictionary<string, string> {
+            ["_utf16:text"] = Convert.ToBase64String(bytes), ["remove"] = "f0,f1"
+        });
+        var removed = TextTool.Run(session, "remove", ToolOptions.Parse(removeJson));
+        Assert.True(removed.Ok);
+        Assert.Equal("abc", System.Text.Encoding.UTF8.GetString(session.Artifact(0)));
+        Assert.Equal(text, removed.Preview!.Text);
+    }
+
+    [Theory]
     [InlineData(300_000)]
     [InlineData(1_048_573)]
     public void TextFileReviewScansTheEntireAdvertisedByteAllowance(int prefixCharacters) {

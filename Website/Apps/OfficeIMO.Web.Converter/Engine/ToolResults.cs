@@ -49,7 +49,10 @@ internal sealed record ToolItem(
 internal sealed record ToolArtifact(int Index, string FileName, string ContentType, long Bytes, string Role);
 
 /// <summary>How the shell previews the primary output: pdf, image, html, text, or none.</summary>
-internal sealed record ToolPreview(string Kind, int? ArtifactIndex = null, int? PageCount = null, string? Html = null, string? Text = null);
+internal sealed record ToolPreview(string Kind, int? ArtifactIndex = null, int? PageCount = null, string? Html = null, string? Text = null) {
+    // JSON strings cannot represent lone surrogates. The worker restores this exact code-unit payload.
+    public string? TextUtf16 => Utf16Transport.EncodeIfUnpaired(Text);
+}
 
 internal sealed record PdfProbeDocument(bool Ok, int PageCount, bool Encrypted, bool NeedsPassword, bool CanManipulatePages, string? Error);
 

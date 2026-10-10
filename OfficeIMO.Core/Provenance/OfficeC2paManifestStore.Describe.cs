@@ -25,12 +25,15 @@ internal static partial class OfficeC2paManifestStore {
         if (!TryOpenSuperbox(data, offset, length, out _, out string storeLabel, out int cursor, out int storeEnd) || storeLabel != "c2pa") return null;
 
         int manifestCount = 0, activeOffset = -1, activeLength = 0;
+        var manifestIdentities = new List<string>();
+        using var digest = System.Security.Cryptography.SHA256.Create();
         string? activeLabel = null;
         while (cursor < storeEnd) {
             if (!TryReadBox(data, cursor, storeEnd - cursor, out _, out ulong boxLength, out string type) || boxLength > int.MaxValue) return null;
             if (type == "jumb" && TryOpenSuperbox(data, cursor, (int)boxLength, out byte[] uuid, out string label, out _, out _) &&
                 (SameUuid(uuid, StandardManifestUuid) || SameUuid(uuid, UpdateManifestUuid))) {
                 manifestCount++;
+                manifestIdentities.Add(Convert.ToBase64String(digest.ComputeHash(data, cursor, (int)boxLength)));
                 activeOffset = cursor;
                 activeLength = (int)boxLength;
                 activeLabel = label;
@@ -97,7 +100,8 @@ internal static partial class OfficeC2paManifestStore {
             signedBy,
             issuer,
             manifestCount,
-            declaresGenerativeAi);
+            declaresGenerativeAi,
+            manifestIdentities);
     }
 
     // A store may contain assertions which the active claim does not claim. Reading them as

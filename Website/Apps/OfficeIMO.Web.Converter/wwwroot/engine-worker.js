@@ -88,13 +88,50 @@ async function prepare(kind, assemblies) {
   return { ms: Math.round(performance.now() - started), bytes: downloaded };
 }
 
+// JSON rejects lone surrogates in .NET strings. Preserve code units instead of normalizing
+// them: the hidden-character inspector must see and selectively remove the original input.
+function encodeOptions(options) {
+  const encoded = {};
+  for (const [key, value] of Object.entries(options || {})) {
+    if (key.startsWith("_utf16:")) throw new Error("Reserved engine option name.");
+    let unpaired = false;
+    if (typeof value === "string") for (let index = 0; index < value.length; index++) {
+      const unit = value.charCodeAt(index);
+      if (unit >= 0xD800 && unit <= 0xDBFF && index + 1 < value.length && value.charCodeAt(index + 1) >= 0xDC00 && value.charCodeAt(index + 1) <= 0xDFFF) { index++; continue; }
+      if (unit >= 0xD800 && unit <= 0xDFFF) { unpaired = true; break; }
+    }
+    if (!unpaired) { encoded[key] = value; continue; }
+    let bytes = "";
+    for (let index = 0; index < value.length; index++) {
+      const unit = value.charCodeAt(index);
+      bytes += String.fromCharCode(unit & 255, unit >>> 8);
+    }
+    encoded["_utf16:" + key] = btoa(bytes);
+  }
+  return JSON.stringify(encoded);
+}
+
+function decodeResult(json) {
+  const result = JSON.parse(json);
+  if (result.preview?.textUtf16 != null) {
+    const bytes = atob(result.preview.textUtf16);
+    if (bytes.length % 2) throw new Error("Incomplete preview code unit.");
+    let text = "";
+    for (let index = 0; index < bytes.length; index += 2) text += String.fromCharCode(bytes.charCodeAt(index) | (bytes.charCodeAt(index + 1) << 8));
+    result.preview.text = text;
+    delete result.preview.textUtf16;
+  }
+  return result;
+}
+
 const handlers = {
   prepare: ({ kind, assemblies }) => prepare(kind, assemblies),
   stage: async ({ slot, bytes, name }) => { await boot(); engine.Stage(slot, new Uint8Array(bytes), name); return true; },
   clear: async () => { await boot(); engine.ClearInputs(); return true; },
   run: async ({ kind, target, action, options }) => {
     await boot();
-    const call = () => JSON.parse(engine.Run(kind, target || "", action, JSON.stringify(options || {})));
+    const optionsJson = encodeOptions(options);
+    const call = () => decodeResult(engine.Run(kind, target || "", action, optionsJson));
     let result = call();
     // Some documents need more than the tool preloads (for example Japanese or symbol fonts): load it, then run again.
     if (result.needs && result.needs.length) {

@@ -131,11 +131,104 @@ public sealed class PdfProvenanceManifestSummaryTests {
         Assert.Contains(report.Diagnostics, message => message.Contains("multiple C2PA stores"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReassociatedOldPayloadUsesTheAssociationUpdate(bool newFileSpec) {
+        byte[] updated = ReassociatedFixture(newFileSpec);
+        var report = PdfProvenance.Inspect(updated);
+        var active = Assert.Single(report.Evidence, item => item.Manifest != null).Manifest!;
+        Assert.Equal("Previous editor", active.ClaimGenerator);
+        Assert.Equal(2, active.ManifestCount);
+        Assert.Empty(report.Diagnostics);
+        var removed = PdfProvenance.Remove(updated);
+        Assert.Empty(removed.After.Evidence);
+    }
+
+    private static byte[] ReassociatedFixture(bool newFileSpec) {
+        byte[] pdf = RevisionFixture(replaceAssociations: true);
+        using var output = new MemoryStream();
+        output.Write(pdf, 0, pdf.Length);
+        void Text(string value) { byte[] bytes = Encoding.ASCII.GetBytes(value); output.Write(bytes, 0, bytes.Length); }
+        var pointers = System.Text.RegularExpressions.Regex.Matches(Encoding.ASCII.GetString(pdf), @"startxref\s+(\d+)");
+        int previous = int.Parse(pointers[pointers.Count - 1].Groups[1].Value);
+        long specOffset = output.Position;
+        if (newFileSpec) Text("11 0 obj\n<< /Type /Filespec /F (reassociated.c2pa) /AFRelationship /C2PA_Manifest /EF << /F 5 0 R >> >>\nendobj\n");
+        int spec = newFileSpec ? 11 : 6;
+        long catalogOffset = output.Position;
+        Text($"1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AF [{spec} 0 R] /Names << /EmbeddedFiles << /Names [(reassociated.c2pa) {spec} 0 R] >> >> >>\nendobj\n");
+        long xref = output.Position;
+        Text($"xref\n1 1\n{catalogOffset:D10} 00000 n \n");
+        if (newFileSpec) Text($"11 1\n{specOffset:D10} 00000 n \n");
+        Text($"trailer\n<< /Size 19 /Root 1 0 R /Prev {previous} >>\nstartxref\n{xref}\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    [Fact]
+    public void CopiedHistoricalManifestCountsOnceAcrossStores() {
+        var report = PdfProvenance.Inspect(RevisionFixture(replaceAssociations: true, copiedManifest: true));
+        var active = Assert.Single(report.Evidence, item => item.Manifest != null).Manifest!;
+        Assert.Equal("Current editor", active.ClaimGenerator);
+        Assert.Equal(2, active.ManifestCount);
+    }
+
+    [Fact]
+    public void MetadataRewriteDoesNotBecomeANewCredentialAssociation() {
+        byte[] pdf = AppendUpdate(RevisionFixture(), (6,
+            "<< /Type /Filespec /F (a-old.c2pa) /AFRelationship /C2PA_Manifest /EF << /F 5 0 R >> /Desc (Changed caption) >>"));
+        var report = PdfProvenance.Inspect(pdf);
+        Assert.Equal("Current editor", Assert.Single(report.Evidence, item => item.Manifest != null).Manifest!.ClaimGenerator);
+        Assert.Empty(PdfProvenance.Remove(pdf).After.Evidence);
+    }
+
+    [Theory]
+    [InlineData("variants")]
+    [InlineData("relationship")]
+    [InlineData("mime")]
+    public void UpdatedIndirectCarrierDefinitionsDoNotInheritHistoricalRemovalEligibility(string changed) {
+        byte[] pdf = RevisionFixture(sameRevision: true);
+        pdf = AppendUpdate(pdf,
+            (6, "<< /Type /Filespec /F (a-old.c2pa) /AFRelationship 12 0 R /EF 13 0 R >>"),
+            (12, "/C2PA_Manifest"), (13, "<< /UF 5 0 R /F 5 0 R >>"));
+        string value = changed == "variants" ? "<< /UF 5 0 R /F 14 0 R >>" :
+            changed == "relationship" ? "/Data" : "/text#2Fplain";
+        if (changed == "mime") {
+            byte[] store = ManifestStore("Previous editor");
+            // Resolve the stream subtype through a separately updated indirect name.
+            pdf = AppendUpdate(pdf, (5, $"<< /Type /EmbeddedFile /Subtype 15 0 R /Length {store.Length} >>\nstream\n{Encoding.GetEncoding(28591).GetString(store)}\nendstream"),
+                (15, "/application#2Fc2pa"));
+        }
+        pdf = AppendUpdate(pdf, (changed == "variants" ? 13 : changed == "relationship" ? 12 : 15, value),
+            (14, "<< /Type /EmbeddedFile /Subtype /text#2Fplain /Length 27 >>\nstream\nUnrelated attachment variant\nendstream"));
+        var report = PdfProvenance.Inspect(pdf);
+        Assert.Contains(report.Evidence, item => !item.IsStructurallyValid);
+        Assert.All(report.Evidence, item => Assert.Null(item.Manifest));
+        Assert.Throws<InvalidDataException>(() => PdfProvenance.Remove(pdf));
+        Assert.Contains("Unrelated attachment variant", Encoding.ASCII.GetString(pdf));
+    }
+
+    private static byte[] AppendUpdate(byte[] pdf, params (int Number, string Body)[] objects) {
+        using var output = new MemoryStream();
+        output.Write(pdf, 0, pdf.Length);
+        void Text(string value) { byte[] bytes = Encoding.GetEncoding(28591).GetBytes(value); output.Write(bytes, 0, bytes.Length); }
+        var pointers = System.Text.RegularExpressions.Regex.Matches(Encoding.ASCII.GetString(pdf), @"startxref\s+(\d+)");
+        var offsets = new Dictionary<int, long>();
+        foreach (var item in objects) {
+            offsets[item.Number] = output.Position;
+            Text($"{item.Number} 0 obj\n{item.Body}\nendobj\n");
+        }
+        long xref = output.Position;
+        Text("xref\n");
+        foreach (var item in offsets.OrderBy(item => item.Key)) Text($"{item.Key} 1\n{item.Value:D10} 00000 n \n");
+        Text($"trailer\n<< /Size 19 /Root 1 0 R /Prev {pointers[pointers.Count - 1].Groups[1].Value} >>\nstartxref\n{xref}\n%%EOF\n");
+        return output.ToArray();
+    }
+
     // An independent, minimal classic-xref PDF. The newer embedded stream deliberately uses
     // a lower object number; the old store remains first in both the name tree and AF list.
     private static byte[] RevisionFixture(bool sameRevision = false, bool payloadMarkers = false, bool alias = false,
         bool replaceAssociations = false, bool streamXref = false, bool hybrid = false, bool competing = false, bool historicalOnly = false,
-        bool retainOldName = false, bool compressedAliases = false, bool directAliases = false, bool olderCompeting = false) {
+        bool retainOldName = false, bool compressedAliases = false, bool directAliases = false, bool olderCompeting = false, bool copiedManifest = false) {
         alias |= compressedAliases;
         streamXref |= compressedAliases;
         using var output = new MemoryStream();
@@ -155,7 +248,16 @@ public sealed class PdfProvenanceManifestSummaryTests {
             : "<< /Type /Catalog /Pages 2 0 R /AF [6 0 R" + (alias ? " 7 0 R" : "") + (current ? " 8 0 R" : "") +
             (!current && olderCompeting ? " 10 0 R" : "") + "] /Names << /EmbeddedFiles << /Names [(a-old.c2pa) 6 0 R" + (alias ? " (b-alias.c2pa) 7 0 R" : "") + (current ? " (z-current.c2pa) 8 0 R" : "") + (!current && olderCompeting ? " (second.c2pa) 10 0 R" : "") + "] >> >> >>";
         void Store(int streamId, int specId, string name, string generator) {
-            byte[] store = ManifestStore(generator);
+            byte[] store = ManifestStore(generator, copiedManifest && streamId == 5 ? "previous" : "manifest");
+            if (copiedManifest && streamId == 4) {
+                byte[] old = ManifestStore("Previous editor", "previous");
+                int DescriptionLength(byte[] bytes) => (bytes[8] << 24) | (bytes[9] << 16) | (bytes[10] << 8) | bytes[11];
+                byte[] contents = old.Skip(8).Concat(store.Skip(8 + DescriptionLength(store))).ToArray();
+                int length = contents.Length + 8;
+                store = new[] { (byte)(length >> 24), (byte)(length >> 16), (byte)(length >> 8), (byte)length }
+                    .Concat(Encoding.ASCII.GetBytes("jumb")).Concat(contents).ToArray();
+                Assert.True(OfficeC2paManifestStore.IsValid(store, 0, store.Length, store.Length, 1024, out _));
+            }
             Object(streamId, $"<< /Type /EmbeddedFile /Subtype /application#2Fc2pa /Length {store.Length} >>", store);
             if (!compressedAliases || specId != 6)
                 Object(specId, $"<< /Type /Filespec /F ({name}.c2pa) /AFRelationship /C2PA_Manifest /EF << /F {streamId} 0 R >> >>");
@@ -215,7 +317,7 @@ public sealed class PdfProvenanceManifestSummaryTests {
         return output.ToArray();
     }
 
-    private static byte[] ManifestStore(string generator) {
+    private static byte[] ManifestStore(string generator, string label = "manifest") {
         byte[] Join(params byte[][] chunks) => chunks.SelectMany(chunk => chunk).ToArray();
         byte[] Box(string type, byte[] value) {
             int length = value.Length + 8;
@@ -228,7 +330,7 @@ public sealed class PdfProvenanceManifestSummaryTests {
             return Join(text.Length < 24 ? new[] { (byte)(0x60 + text.Length) } : new[] { (byte)0x78, (byte)text.Length }, text);
         }
         byte[] claim = Join(new byte[] { 0xA1 }, CborText("claim_generator"), CborText(generator));
-        byte[] manifest = Box("jumb", Join(Description("c2ma", "manifest"),
+        byte[] manifest = Box("jumb", Join(Description("c2ma", label),
             Box("jumb", Join(Description("c2as", "c2pa.assertions"),
                 Box("jumb", Join(Description("cbor", "c2pa.actions"), Box("cbor", new byte[] { 0xA0 }))))),
             Box("jumb", Join(Description("c2cl", "c2pa.claim"), Box("cbor", claim))),

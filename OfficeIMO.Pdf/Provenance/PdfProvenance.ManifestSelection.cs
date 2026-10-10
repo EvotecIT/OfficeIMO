@@ -3,12 +3,16 @@ using OfficeIMO.Provenance;
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfProvenance {
-    private static int ManifestRevision(PdfReadDocument document, int streamNumber) {
-        return document.Objects.TryGetValue(streamNumber, out var stream) ? stream.SourceRevision : -1;
+    private sealed class ManifestOccurrence(OfficeProvenanceEvidence evidence, int revision, int stream, OfficeC2paManifestSummary? summary) {
+        internal OfficeProvenanceEvidence Evidence { get; } = evidence;
+        internal int Revision { get; set; } = revision;
+        internal int LastSnapshot { get; set; } = revision;
+        internal int Stream { get; } = stream;
+        internal OfficeC2paManifestSummary? Summary { get; } = summary;
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<string> SelectActiveManifest(
-        List<(OfficeProvenanceEvidence Evidence, int Revision, int Stream, OfficeC2paManifestSummary? Summary)> stores) {
+        List<ManifestOccurrence> stores) {
         var diagnostics = new List<string>();
         var eligible = new List<(OfficeProvenanceEvidence Evidence, OfficeC2paManifestSummary? Summary)>();
         // An undated store may be newer than every dated store. Do not assert an active claim.
@@ -33,11 +37,12 @@ public static partial class PdfProvenance {
         }
         if (canSelect && eligible.Count > 0 && eligible[0].Summary is { } active) {
             // Known historical counts are independent of which revision can be active.
-            int count = stores.GroupBy(store => (store.Revision, store.Stream))
-                .Sum(group => group.Select(store => store.Summary?.ManifestCount ?? 0).Max());
+            string[] identities = stores.Where(store => store.Summary != null)
+                .SelectMany(store => store.Summary!.ManifestIdentities).Distinct(StringComparer.Ordinal).ToArray();
+            int count = identities.Length;
             eligible[0].Evidence.WithManifest(new OfficeC2paManifestSummary(active.Label, active.ClaimGenerator,
                 active.Title, active.Format, active.Actions, active.Ingredients, active.SignedBy,
-                active.CertificateIssuer, count, active.DeclaresGenerativeAi));
+                active.CertificateIssuer, count, active.DeclaresGenerativeAi, identities));
         }
         return diagnostics.AsReadOnly();
     }

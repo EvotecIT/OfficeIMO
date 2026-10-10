@@ -80,10 +80,18 @@ internal sealed class ToolSession {
 
 /// <summary>Flat option bag sent by the tool shell.</summary>
 internal sealed class ToolOptions(Dictionary<string, string> values) {
-    internal static ToolOptions Parse(string? json) =>
-        new(string.IsNullOrWhiteSpace(json)
+    internal static ToolOptions Parse(string? json) {
+        var parsed = string.IsNullOrWhiteSpace(json)
             ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : JsonSerializer.Deserialize(json, EngineJsonContext.Default.DictionaryStringString) ?? []);
+            : JsonSerializer.Deserialize(json, EngineJsonContext.Default.DictionaryStringString) ?? [];
+        foreach (string key in parsed.Keys.Where(static key => key.StartsWith("_utf16:", StringComparison.Ordinal)).ToArray()) {
+            string target = key[7..];
+            if (target.Length == 0 || parsed.ContainsKey(target)) throw new ArgumentException("The UTF-16 option has a duplicate or missing name.");
+            parsed[target] = Utf16Transport.Decode(parsed[key]);
+            parsed.Remove(key);
+        }
+        return new ToolOptions(parsed);
+    }
 
     internal string Text(string key, string fallback = "") =>
         values.TryGetValue(key, out string? value) && value is not null ? value : fallback;

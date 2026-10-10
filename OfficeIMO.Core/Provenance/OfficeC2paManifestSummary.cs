@@ -27,7 +27,7 @@ public sealed class OfficeC2paManifestSummary {
 
     internal OfficeC2paManifestSummary(string? label, string? claimGenerator, string? title, string? format,
         IReadOnlyList<OfficeC2paAction>? actions, IReadOnlyList<string>? ingredients, string? signedBy,
-        string? certificateIssuer, int manifestCount, bool declaresGenerativeAi) {
+        string? certificateIssuer, int manifestCount, bool declaresGenerativeAi, IReadOnlyList<string>? manifestIdentities = null) {
         Label = label;
         ClaimGenerator = claimGenerator;
         Title = title;
@@ -38,7 +38,11 @@ public sealed class OfficeC2paManifestSummary {
         CertificateIssuer = certificateIssuer;
         ManifestCount = manifestCount;
         _declaresGenerativeAi = declaresGenerativeAi;
+        ManifestIdentities = new List<string>(manifestIdentities ?? Array.Empty<string>()).AsReadOnly();
     }
+
+    // Content identities distinguish copied manifests from different claims using the same label.
+    internal IReadOnlyList<string> ManifestIdentities { get; }
 
     /// <summary>Gets the active manifest label, usually a URN.</summary>
     public string? Label { get; }
