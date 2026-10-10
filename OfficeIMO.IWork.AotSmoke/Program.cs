@@ -79,6 +79,7 @@ NativePagesParagraphWriterSmoke.Run();
 NativePagesListCounterSmoke.Run();
 NativeNumbersFixedDurationSmoke.Run();
 NativeNumbersIntegerFunctionSmoke.Run();
+NativeNumbersBorderSmoke.Run();
 NativeNumbersWriterSmoke.Run();
 NativePreservationSmoke.Run();
 

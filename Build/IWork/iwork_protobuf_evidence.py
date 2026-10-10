@@ -27,19 +27,30 @@ def fields(data):
     return result
 
 
-def creation_records(package):
-    result = {}
+def archive_messages(package):
+    """Yield every message, including secondary payloads sharing an archive identity."""
     for name in package.namelist():
         if not name.endswith('.iwa'):
             continue
         data = b''.join(IWACompressedChunk._decompress_all(package.read(name)))
         while data:
             header, payload = get_archive_info_and_remainder(data)
-            assert len(header.message_infos) == 1
-            info = header.message_infos[0]
-            assert header.identifier not in result
-            result[header.identifier] = (info.type, payload[:info.length], header)
-            data = payload[info.length:]
+            assert header.message_infos
+            offset = 0
+            for info in header.message_infos:
+                content = payload[offset:offset + info.length]
+                assert len(content) == info.length
+                offset += info.length
+                yield name, header, info, content
+            data = payload[offset:]
+
+
+def creation_records(package):
+    result = {}
+    for _, header, info, content in archive_messages(package):
+        assert len(header.message_infos) == 1
+        assert header.identifier not in result
+        result[header.identifier] = (info.type, content, header)
     return result
 
 

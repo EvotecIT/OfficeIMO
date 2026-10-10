@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "source": "numbers-table-borders-v14.5.numbers",
+  "decode": "numbers-table-borders-v14.5-decode.json",
+  "nativeProducer": "Numbers 14.5 (7045.0.17)",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "license": "MIT, OfficeIMO contributors",
+  "intake": "numbers-table-borders-intake.xlsx",
+  "recipe": "Import the controlled XLSX in Numbers, crop the table to four rows and columns, set one header row, one header column and one footer row. Change B2 bottom from red 3pt to red 2pt in Numbers. Save locally, reopen, export XLSX and one-page PDF. The later order-3 edit overrides the adjacent order-2 3pt edge.",
+  "rows": 4,
+  "columns": 4,
+  "headerRows": 1,
+  "headerColumns": 1,
+  "footerRows": 1,
+  "cellEdges": 64,
+  "nativePdfPages": 1,
+  "nativePdfPagesInspected": 1,
+  "nativeAppScreenshotsInspected": true,
+  "ownedAppsClosed": true,
+  "independentDecode": {
+    "tool": "Build/IWork/extract-numbers-table-borders.py",
+    "numbersParserVersion": "4.19.0",
+    "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+    "descriptorSource": "https://github.com/orcastor/iwork-converter/tree/be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "descriptorLicense": "MIT",
+    "qualifiedEdges": 64,
+    "nativeXlsxEdgesAgree": true
+  },
+  "limits": [
+    "Controlled imported-and-natively-edited Numbers source; this does not establish arbitrary templates or producer versions.",
+    "One- and two-point visible strokes qualify native thin/medium XLSX mapping. Hidden edges use zero width. Other widths and exact native print layout remain separate.",
+    "Source header and footer regions are recovered. XLSX uses resolved cell edges; it does not inherit Numbers table roles.",
+    "Native cells declare padding without an XLSX equivalent. Editable XLSX therefore uses the explicit partial policy and reports IWORK_NUMBERS_CELL_PADDING_OMITTED.",
+    "The iWork PDF route requires complete editable reconstruction and rejects this fixture. A PDF of the partial XLSX is separate appearance evidence, not complete native-document acceptance."
+  ],
+  "artifacts": [
+    {
+      "path": "numbers-table-borders-intake.xlsx",
+      "bytes": 5429,
+      "sha256": "746bb11ca57a1b75844e47a16dedcbeddfc02bc847c27ca075be885fe2de8a8b"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-decode.json",
+      "bytes": 14062,
+      "sha256": "68f424577914412972fbf212f81cb3b85e46a3dff1fe3840a40ec1b8abd281ed"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-native.png",
+      "bytes": 94534,
+      "sha256": "c62b7bd160b2493ba80373f35da9a41518c31b0e49086fc779a245a289ba25fa"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-page1.png",
+      "bytes": 22915,
+      "sha256": "194d8cb2d9592241d42a69935eaf2766552b35368ef0479ea7a09d555ff0a858"
+    },
+    {
+      "path": "numbers-table-borders-v14.5-reopened.png",
+      "bytes": 75025,
+      "sha256": "1647f85dd61183b5b6c00070f61fc009ac67bc3e55de272d64abe7beb0c9a439"
+    },
+    {
+      "path": "numbers-table-borders-v14.5.numbers",
+      "bytes": 678192,
+      "sha256": "f26c9e0ef5e2e385dee2d117a491a9f078ab29bdf206154be774a922185a0911"
+    },
+    {
+      "path": "numbers-table-borders-v14.5.pdf",
+      "bytes": 30123,
+      "sha256": "94b41069593f9d2b34c0cb05579b5edeb76fc43803665511890d58811453169f"
+    },
+    {
+      "path": "numbers-table-borders-v14.5.xlsx",
+      "bytes": 6024,
+      "sha256": "c54562907c40affd5aadd60263dd98340a39fb821ce328b65f8e0dbd095c4531"
+    }
+  ]
+}
