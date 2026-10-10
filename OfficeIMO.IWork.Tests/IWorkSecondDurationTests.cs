@@ -7,20 +7,26 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     public static IEnumerable<object[]> SecondDurationContainers() {
         foreach (var kind in new[] { IWorkDocumentKind.Pages, IWorkDocumentKind.Numbers, IWorkDocumentKind.Keynote }) {
-            yield return new object[] { kind, IWorkDurationUnit.Hour, "[h]\"h\" m\"m\" s\"s\"", "-36h 1m 1s" };
-            yield return new object[] { kind, IWorkDurationUnit.Minute, "[m]\"m\" s\"s\"", "-2161m 1s" };
-            yield return new object[] { kind, IWorkDurationUnit.Second, "[s]\"s\"", "-129661s" };
+            yield return new object[] { kind, IWorkDurationUnit.Hour, -129661d, "[h]\"h\" m\"m\" s\"s\"", "-36h 1m 1s" };
+            yield return new object[] { kind, IWorkDurationUnit.Minute, -129661d, "[m]\"m\" s\"s\"", "-2161m 1s" };
+            yield return new object[] { kind, IWorkDurationUnit.Second, -129661d, "[s]\"s\"", "-129661s" };
+            foreach (double seconds in new[] { 11d, -11d }) {
+                string sign = seconds < 0 ? "-" : "";
+                yield return new object[] { kind, IWorkDurationUnit.Hour, seconds, "[h]\"h\" m\"m\" s\"s\"", sign + "0h 0m 11s" };
+                yield return new object[] { kind, IWorkDurationUnit.Minute, seconds, "[m]\"m\" s\"s\"", sign + "0m 11s" };
+                yield return new object[] { kind, IWorkDurationUnit.Second, seconds, "[s]\"s\"", sign + "11s" };
+            }
         }
     }
 
     [Theory]
     [MemberData(nameof(SecondDurationContainers))]
     public void Fixed_second_ranges_preserve_raw_seconds_and_editable_saved_table_display(
-        IWorkDocumentKind kind, IWorkDurationUnit largest, string code, string expected) {
-        using var package = DurationFormatPackage(kind, -129661, DurationFormat(largest: (ulong)largest, smallest: 16));
+        IWorkDocumentKind kind, IWorkDurationUnit largest, double seconds, string code, string expected) {
+        using var package = DurationFormatPackage(kind, seconds, DurationFormat(largest: (ulong)largest, smallest: 16));
         var source = IWorkSourceDocument.Open(package, kind);
         var cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
-        Assert.Equal(-129661d, cell.Value);
+        Assert.Equal(seconds, cell.Value);
         Assert.Equal(IWorkCellKind.Duration, cell.ValueKind);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
         Assert.Equal(largest, cell.NumberFormat!.DurationFormat!.LargestUnit);
@@ -35,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            Assert.Equal(-129661d / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+            Assert.Equal(seconds / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
             Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
             Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         } else if (kind == IWorkDocumentKind.Pages) {

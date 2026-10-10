@@ -100,9 +100,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(read.Diagnostics, d => d.Code == "IWORK_READER_NUMBER_FORMAT_APPROXIMATED");
     }
 
-    [Fact]
-    public void Duration_outside_the_shared_display_range_preserves_raw_text_and_reports_omission() {
-        using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, 1e308);
+    [Theory]
+    [InlineData(1e308)]
+    [InlineData(-1e308)]
+    [InlineData(922337203685.4776)]
+    [InlineData(-922337203685.4776)]
+    public void Duration_outside_the_shared_display_range_preserves_raw_text_and_reports_omission(double seconds) {
+        using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, seconds);
         var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.False(cell.TryGetFormattedNumber(out string raw, out _));
         Assert.Equal(cell.CachedDisplayText, raw);

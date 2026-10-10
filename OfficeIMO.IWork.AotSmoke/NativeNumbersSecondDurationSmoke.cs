@@ -46,6 +46,8 @@ internal static class NativeNumbersSecondDurationSmoke {
                 }
                 cells++;
             }
+            reopened.Sheets[index].CellValue(2, 3, 11d / 86400d);
+            reopened.Sheets[index].CellValue(3, 3, -11d / 86400d);
             reopened.Sheets[index].CellValue(5, 3, 1.75d);
         }
         Require(cells == 42 && formulas == 21, "Native duration cells/formulas were omitted.");
@@ -54,10 +56,21 @@ internal static class NativeNumbersSecondDurationSmoke {
         using var final = ExcelDocument.Load(recalculated);
         Require(final.Sheets.All(s => s.GetFormulaText(5, 4) == "C5+C5" && s.CellAt(5, 4).GetValue<double>() == 3.5d),
             "Edited duration operands did not reach saved formula caches.");
+        var eleven = new[] { "0h 0m 11s", "0m 11s", "11s" };
+        var twentyTwo = new[] { "0h 0m 22s", "0m 22s", "22s" };
+        for (int index = 0; index < 3; index++) {
+            var display = final.Sheets[index].Range("C2:D3").CreateVisualSnapshot().Cells;
+            foreach (int row in new[] { 2, 3 }) {
+                string sign = row == 3 ? "-" : "";
+                Require(display.Single(c => c.Row == row && c.Column == 3).Text == sign + eleven[index]
+                    && display.Single(c => c.Row == row && c.Column == 4).Text == sign + twentyTwo[index],
+                    "Integral second operands or recalculated caches lost a second in saved display.");
+            }
+        }
         Require(!final.ValidateOpenXml().Any(), "Native duration XLSX failed validation.");
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == hash, "Native duration conversion changed the source.");
         Console.WriteLine("PASS | native Numbers fixed second ranges | " + hash
-            + " | three profiles, 42 typed caches, 21 formulas, native XLSX codes, saved/reopened recalculation and explicit display limits");
+            + " | three profiles, 42 typed caches, 21 formulas, native XLSX codes, saved/reopened recalculation, integral-second boundaries and explicit display limits");
     }
 
     private static void Require(bool condition, string message) {
