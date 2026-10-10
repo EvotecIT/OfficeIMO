@@ -88,19 +88,28 @@ public class CsvIncrementalAsyncReaderTests
     }
 
     [Theory]
-    [InlineData(CsvCompressionType.None)]
-    [InlineData(CsvCompressionType.GZip)]
-    [InlineData(CsvCompressionType.Deflate)]
-    public async Task Supports_Bom_Compression_And_Caller_Ownership(CsvCompressionType compression)
+    [InlineData("utf16", CsvCompressionType.None, 2)]
+    [InlineData("utf16", CsvCompressionType.GZip, 2)]
+    [InlineData("utf16", CsvCompressionType.Deflate, 2)]
+    [InlineData("utf8", CsvCompressionType.None, 1)]
+    [InlineData("utf32", CsvCompressionType.Deflate, 1)]
+    public async Task Supports_Bom_Compression_And_Caller_Ownership(string encodingName, CsvCompressionType compression, int chunk)
     {
+        Encoding encoding = encodingName switch
+        {
+            "utf16" => new UnicodeEncoding(false, true),
+            "utf32" => new UTF32Encoding(false, true),
+            _ => new UTF8Encoding(true)
+        };
         using var bytes = new MemoryStream();
-        await CsvDocument.Parse("Name,Value\nAlpha,7\n").SaveAsync(bytes,
-            new CsvSaveOptions { Encoding = new UnicodeEncoding(false, true), CompressionType = compression });
-        using var input = new AsyncInput(bytes.ToArray(), 2);
+        await CsvDocument.Parse("Name,Value\nŻółć 😀,7\n").SaveAsync(bytes,
+            new CsvSaveOptions { Encoding = encoding, CompressionType = compression });
+        using var input = new AsyncInput(bytes.ToArray(), chunk);
         using (var reader = await CsvDocument.OpenDataReaderAsync(input, new CsvLoadOptions { CompressionType = compression }))
         {
             Assert.Equal("Name", reader.GetName(0));
             Assert.True(await reader.ReadAsync());
+            Assert.Equal("Żółć 😀", reader.GetString(0));
             Assert.Equal("7", reader.GetString(1));
             Assert.False(await reader.ReadAsync());
         }
