@@ -205,6 +205,10 @@
     {
       "name": "Compiled HTML Help",
       "family": "other"
+    },
+    {
+      "name": "DjVu",
+      "family": "other"
     }
   ],
   "routes": [
@@ -706,6 +710,20 @@
       "api": "CsvDocument.Load(stream).ToExcelDocument(options)",
       "surfaces": [
         "dotnet"
+      ]
+    },
+    {
+      "id": "djvu-pdf",
+      "source": "DjVu",
+      "target": "PDF",
+      "package": "OfficeIMO.DjVu.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "DjVuDocument.Load(stream).SaveAsPdf(output, options)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
       ]
     },
     {

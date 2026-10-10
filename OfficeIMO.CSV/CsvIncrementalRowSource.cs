@@ -11,6 +11,7 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
     private readonly CsvParser.IncrementalRecords _records;
     private readonly CsvLoadOptions _options;
     private readonly CancellationTokenSource _lifetime;
+    private readonly CancellationToken _openingToken, _loadToken;
     private readonly int _headerCount;
     private readonly Queue<BufferedRecord> _buffered;
     private IReadOnlyList<string> _current = Array.Empty<string>();
@@ -20,11 +21,14 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
     private readonly object?[] _staticValues;
 
     internal CsvIncrementalRowSource(CsvParser.IncrementalRecords records, CsvLoadOptions options,
-        CancellationTokenSource lifetime, int headerCount, Queue<BufferedRecord> buffered)
+        CancellationTokenSource lifetime, CancellationToken openingToken, CancellationToken loadToken,
+        int headerCount, Queue<BufferedRecord> buffered)
     {
         _records = records;
         _options = options;
         _lifetime = lifetime;
+        _openingToken = openingToken;
+        _loadToken = loadToken;
         _headerCount = headerCount;
         _buffered = buffered;
         _staticValues = options.StaticColumns?.Values.ToArray() ?? Array.Empty<object?>();
@@ -48,7 +52,10 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
     {
         token.ThrowIfCancellationRequested();
         _options.CancellationToken.ThrowIfCancellationRequested();
-        using var operation = token.CanBeCanceled && token != _options.CancellationToken
+        // The lifetime already observes both tokens used to open the reader. Only a new
+        // per-read token needs another link; aggregation reuses its opening token for every row.
+        using var operation = token.CanBeCanceled && token != _options.CancellationToken &&
+            token != _openingToken && token != _loadToken
             ? CancellationTokenSource.CreateLinkedTokenSource(token, _options.CancellationToken) : null;
         var effective = operation?.Token ?? _options.CancellationToken;
         if (_buffered.Count > 0)
@@ -83,9 +90,21 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
         if (ordinal >= sourceCount) return _staticValues[ordinal - sourceCount];
         return IsNull(ordinal, _options.NullValue) ? null : GetString(ordinal);
     }
-    public ReadOnlySpan<char> GetSpan(int ordinal) => GetString(ordinal).AsSpan();
+    public ReadOnlySpan<char> GetSpan(int ordinal) => _current is CsvIncrementalFieldValues fields
+        ? fields.GetSpan(ordinal) : GetString(ordinal).AsSpan();
+    internal ReadOnlySpan<char> GetSpan(int ordinal, out string? materialized)
+    {
+        if (_current is CsvIncrementalFieldValues fields)
+        {
+            materialized = fields.GetMaterializedString(ordinal);
+            return fields.GetSpan(ordinal);
+        }
+        materialized = GetString(ordinal);
+        return materialized.AsSpan();
+    }
     public bool IsMissing(int ordinal) => ordinal >= _sourceValueCount && ordinal < _headerCount - (_options.StaticColumns?.Count ?? 0);
-    public bool IsNull(int ordinal, string? nullValue) => !IsMissing(ordinal) && nullValue is not null && GetString(ordinal) == nullValue;
+    public bool IsNull(int ordinal, string? nullValue) => !IsMissing(ordinal) && nullValue is not null &&
+        GetSpan(ordinal).SequenceEqual(nullValue.AsSpan());
     public int CopyStringValues(object[] values, int count, string? nullValue)
     {
         int copied = Math.Min(count, _current.Count);

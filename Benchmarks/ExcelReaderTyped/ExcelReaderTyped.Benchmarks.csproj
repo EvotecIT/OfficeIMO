@@ -9,9 +9,12 @@
     <OfficeIMOBenchmarkNewApis Condition="'$(OfficeIMOBenchmarkNewApis)' == ''">false</OfficeIMOBenchmarkNewApis>
     <OfficeIMOBenchmarkCsv Condition="'$(OfficeIMOBenchmarkCsv)' == ''">false</OfficeIMOBenchmarkCsv>
     <OfficeIMOBenchmarkArrow Condition="'$(OfficeIMOBenchmarkArrow)' == ''">false</OfficeIMOBenchmarkArrow>
+    <OfficeIMOBenchmarkGeneratedMapping Condition="'$(OfficeIMOBenchmarkGeneratedMapping)' == ''">false</OfficeIMOBenchmarkGeneratedMapping>
+    <RunAnalyzers Condition="'$(OfficeIMOBenchmarkGeneratedMapping)' == 'true'">true</RunAnalyzers>
     <DefineConstants Condition="'$(OfficeIMOBenchmarkNewApis)' == 'true'">$(DefineConstants);OFFICEIMO_BENCHMARK_NEW_APIS</DefineConstants>
     <DefineConstants Condition="'$(OfficeIMOBenchmarkCsv)' == 'true'">$(DefineConstants);OFFICEIMO_BENCHMARK_CSV</DefineConstants>
     <DefineConstants Condition="'$(OfficeIMOBenchmarkArrow)' == 'true'">$(DefineConstants);OFFICEIMO_BENCHMARK_ARROW</DefineConstants>
+    <DefineConstants Condition="'$(OfficeIMOBenchmarkGeneratedMapping)' == 'true'">$(DefineConstants);OFFICEIMO_BENCHMARK_GENERATED_MAPPING</DefineConstants>
     <AllowUnsafeBlocks Condition="'$(OfficeIMOBenchmarkNewApis)' == 'true'">true</AllowUnsafeBlocks>
     <OfficeIMOBenchmarkAssemblyDirectory Condition="'$(OfficeIMOBenchmarkAssemblyDirectory)' != ''">$([System.IO.Path]::GetFullPath('$(OfficeIMOBenchmarkAssemblyDirectory)'))</OfficeIMOBenchmarkAssemblyDirectory>
   </PropertyGroup>
@@ -35,9 +38,15 @@
     <AssemblyMetadata Include="OfficeIMOBenchmarkNewApis" Value="$(OfficeIMOBenchmarkNewApis)" />
     <AssemblyMetadata Include="OfficeIMOBenchmarkCsv" Value="$(OfficeIMOBenchmarkCsv)" />
     <AssemblyMetadata Include="OfficeIMOBenchmarkArrow" Value="$(OfficeIMOBenchmarkArrow)" />
+    <AssemblyMetadata Include="OfficeIMOBenchmarkGeneratedMapping" Value="$(OfficeIMOBenchmarkGeneratedMapping)" />
     <Compile Include="../BenchmarkProcessorAffinity.cs" Link="Shared/BenchmarkProcessorAffinity.cs" />
     <Compile Include="../BenchmarkProcessPriority.cs" Link="Shared/BenchmarkProcessPriority.cs" />
     <Compile Include="../MarkPflug65KFixture.cs" Link="Shared/MarkPflug65KFixture.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(OfficeIMOBenchmarkGeneratedMapping)' == 'true'">
+    <ProjectReference Include="../../OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(OfficeIMOBenchmarkCsv)' != 'true'">

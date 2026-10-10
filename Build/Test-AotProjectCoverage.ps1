@@ -84,6 +84,21 @@ $nonNativeValidated = @(
         evidence = 'Native MDB/ACCDB reading, inert application inspection, unchanged preservation and Jet 4/ACE 12 creation are qualified through managed .NET tests and independent Access/DAO evidence; no dedicated NativeAOT qualification host is claimed.'
     }
     [ordered]@{
+        name = 'OfficeIMO.DjVu'
+        classification = 'managed-cross-platform'
+        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.DjVu.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.DjVu'
+        classification = 'managed-cross-platform'
+        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Xps'
         classification = 'managed-cross-platform'
         evidence = 'XPS/OpenXPS lifecycle and rendering are qualified through managed .NET tests; no dedicated NativeAOT qualification host is claimed.'

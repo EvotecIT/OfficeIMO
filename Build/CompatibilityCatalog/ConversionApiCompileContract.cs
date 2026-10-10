@@ -4,6 +4,8 @@ using OfficeIMO.Confluence;
 using OfficeIMO.CSV;
 using OfficeIMO.Chm;
 using OfficeIMO.Drawing;
+using OfficeIMO.DjVu;
+using OfficeIMO.DjVu.Pdf;
 using OfficeIMO.Email;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
@@ -70,6 +72,7 @@ internal static class ConversionApiCompileContract {
             Language = "en",
             NewLine = "\n"
         };
+        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuToPdfOptions());
         WordToHtmlOptions wordOptions = WordToHtmlOptions.CreateDocumentRoundTripProfile();
         wordOptions.DocumentOutput = output.Clone();
         ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateVisualReviewProfile();

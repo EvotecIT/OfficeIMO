@@ -3,7 +3,7 @@
     <Description>Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.</Description>
     <AssemblyName>OfficeIMO.Reader.Core</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Core</AssemblyTitle>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -28,6 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v12.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v12.schema.json" />
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v12.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v12.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v11.schema.json">
       <Pack>True</Pack>
       <PackagePath>schemas\officeimo.document.read-result.v11.schema.json</PackagePath>
@@ -122,6 +124,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Subtitles" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xps" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.DjVu" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Web" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />

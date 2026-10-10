@@ -16,9 +16,10 @@ namespace OfficeIMO.Tests {
                     "<si><r><t>東京</t></r><rPh sb=\"0\" eb=\"2\"><t>Ignored</t></rPh><r><t>😀</t></r></si>" +
                     "<si><r><t>A</t></r><r><t>B</t></r></si>", "5", "5");
                 using var spreadsheet = SpreadsheetDocument.Open(filePath, editable);
-                var cache = SharedStringCache.Build(spreadsheet);
+                using SharedStringCache cache = SharedStringCache.Build(spreadsheet);
 
-                Assert.Equal(new[] { "AlphaBetaGamma", "Plain", "", "東京😀", "AB" }, cache.GetItems());
+                Assert.Equal(new[] { "AlphaBetaGamma", "Plain", "", "東京😀", "AB" },
+                    Enumerable.Range(0, cache.Count).Select(cache.Get));
                 Assert.Equal("AlphaBetaGamma", cache.Get(0));
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);

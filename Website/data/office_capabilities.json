@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 73,
-    "operationCount": 1393
+    "packageCount": 74,
+    "operationCount": 1394
   },
   "fidelityStates": [
     {
@@ -117,7 +117,7 @@
       "id": "word",
       "title": "Microsoft Word",
       "package": "OfficeIMO.Word",
-      "packageVersion": "3.4.4",
+      "packageVersion": "3.4.5",
       "productUrl": "/products/word/",
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -595,7 +595,7 @@
       "id": "excel",
       "title": "Microsoft Excel",
       "package": "OfficeIMO.Excel",
-      "packageVersion": "3.4.4",
+      "packageVersion": "3.4.5",
       "productUrl": "/products/excel/",
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1223,7 +1223,7 @@
       "id": "powerpoint",
       "title": "Microsoft PowerPoint",
       "package": "OfficeIMO.PowerPoint",
-      "packageVersion": "3.4.4",
+      "packageVersion": "3.4.5",
       "productUrl": "/products/powerpoint/",
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -2249,6 +2249,31 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.DjVu.Pdf",
+      "slug": "djvu-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "DjVu",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
               "count": 1
             }
           ]

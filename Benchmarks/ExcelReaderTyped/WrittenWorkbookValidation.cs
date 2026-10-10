@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using ExcelReader.Core.Parser;
 using ExcelReader.Core.Reader.Xlsx;
 using Sylvan.Data.Excel;
@@ -11,6 +13,7 @@ using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     internal static class WrittenWorkbookValidation {
         private const string Worksheet = "xl/worksheets/sheet1.xml";
+        private const string SpreadsheetNamespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
         internal static void Validate(byte[] bytes, int rowCount, bool officeIMO, bool sharedStrings = false, bool? includeReferences = null) {
             string engine = officeIMO ? "OfficeIMO" : "ExcelReader";
@@ -44,6 +47,30 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 + $"sharedStrings={sharedStrings}/references={includeReferences ?? officeIMO}", bytes);
             Console.WriteLine($"Validated {engine} write: {description}, packageBytes={bytes.Length}, "
                 + $"checksum={TypedWorkbookFixture.ExpectedChecksum(rowCount)}, independentReaders=ExcelReader+Sylvan.");
+        }
+
+        /// <summary>Checks a saved fixture's first worksheet data row count without opening a measured reader or populating its caches.</summary>
+        internal static void ValidateSavedXlsxRowCount(byte[] bytes, int expectedDataRows, string fixturePath) {
+            using MemoryStream stream = new MemoryStream(bytes, writable: false);
+            using SpreadsheetDocument document = SpreadsheetDocument.Open(stream, false);
+            WorkbookPart workbook = document.WorkbookPart
+                ?? throw new InvalidDataException($"Saved XLSX fixture '{fixturePath}' is missing its workbook part.");
+            // Resolve workbook order through package relationships without loading worksheet or SST data.
+            WorksheetPart worksheet = workbook.Workbook?.Sheets?.Elements<Sheet>()
+                .Select(sheet => sheet.Id?.Value is string id ? workbook.GetPartById(id) : null)
+                .OfType<WorksheetPart>().FirstOrDefault()
+                ?? throw new InvalidDataException($"Saved XLSX fixture '{fixturePath}' is missing its first worksheet.");
+            using XmlReader reader = CreateReader(worksheet.GetStream(FileMode.Open, FileAccess.Read));
+            long worksheetRows = 0;
+            while (reader.Read()) {
+                if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row"
+                    && reader.NamespaceURI == SpreadsheetNamespace) worksheetRows++;
+            }
+            // The prepared string-heavy fixture has one header followed by dense data rows.
+            long actualDataRows = Math.Max(0, worksheetRows - 1);
+            if (actualDataRows != expectedDataRows)
+                throw new InvalidDataException($"Saved XLSX fixture '{fixturePath}' data row count differs: "
+                    + $"expected {expectedDataRows}, actual {actualDataRows} (excluding the header).");
         }
 
         internal static void ValidateEntries(ZipArchive package) {
