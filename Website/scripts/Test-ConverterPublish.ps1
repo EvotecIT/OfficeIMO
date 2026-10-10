@@ -12,7 +12,6 @@ $converterRoot = Join-Path $SiteRoot 'apps/officeimo-converter'
 $indexPath = Join-Path $converterRoot 'index.html'
 $workerPath = Join-Path $converterRoot 'engine-worker.js'
 $siteScriptPath = Join-Path $SiteRoot 'js/site.js'
-$toolScriptPath = Join-Path $SiteRoot 'js/browser-tool.js'
 $frameworkRoot = Join-Path $converterRoot '_framework'
 $dotnetPath = Join-Path $frameworkRoot 'dotnet.js'
 $appAssemblyPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'OfficeIMO.Web.Converter*.wasm' -ErrorAction SilentlyContinue |
@@ -34,7 +33,6 @@ foreach ($path in @(
         $workerPath,
         $dotnetPath,
         $siteScriptPath,
-        $toolScriptPath,
         $appAssemblyPath,
         $runtimeWasmPath,
         $managedAesNoticePath,
@@ -50,6 +48,7 @@ foreach ($path in @(
 }
 
 $catalog = Get-Content (Join-Path $PSScriptRoot '../data/browser_tools.json') -Raw | ConvertFrom-Json
+$toolScriptPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
 $convertPage = Get-Content -LiteralPath $convertPagePath -Raw
 if ($convertPage -match '<iframe\b' -or $convertPage -match 'browser-workspace-template') {
     throw 'The /convert/ directory must be plain HTML; tools open on their own /browser/ pages.'
@@ -64,12 +63,18 @@ foreach ($tool in $catalog.tools) {
         throw "Browser tool page '/browser/$($tool.id)/' was not generated. Run scripts/Sync-BrowserToolPages.ps1."
     }
     $toolPage = Get-Content -LiteralPath $toolPagePath -Raw
+    $toolScriptReference = [regex]::Match($toolPage, '<script\b[^>]*\ssrc=["'']?(?<path>/js/browser-tool(?:\.[a-f0-9]+)?\.js)["'']?(?=\s|/?>)')
     if ($toolPage -notmatch ('\bdata-browser-tool=["'']?' + [regex]::Escape($tool.id) + '["'']?(?=\s|>)') -or
         $toolPage -notmatch 'data-engine-base=["'']?/apps/officeimo-converter/' -or
         $toolPage -notmatch '<link[^>]+href=["'']?/css/browser-tool(?:\.[a-f0-9]+)?\.css' -or
-        $toolPage -notmatch '<script[^>]+src=["'']?/js/browser-tool(?:\.[a-f0-9]+)?\.js') {
+        -not $toolScriptReference.Success) {
         throw "Browser tool page '/browser/$($tool.id)/' is missing its tool wiring, stylesheet, or script."
     }
+    $referencedScriptPath = Join-Path $SiteRoot $toolScriptReference.Groups['path'].Value.TrimStart('/')
+    if (-not (Test-Path -LiteralPath $referencedScriptPath -PathType Leaf)) {
+        throw "Browser tool page '/browser/$($tool.id)/' references missing script '$referencedScriptPath'."
+    }
+    $null = $toolScriptPaths.Add($referencedScriptPath)
     if ($toolPage -notmatch [regex]::Escape([System.Net.WebUtility]::HtmlEncode($tool.title))) {
         throw "Browser tool page '/browser/$($tool.id)/' does not show its title."
     }
@@ -137,9 +142,13 @@ if ($worker -notmatch 'from "\./_framework/dotnet\.js"' -or
     throw 'The engine worker must boot ./_framework/dotnet.js, load engines lazily, and call the exported tool entry points.'
 }
 
-$toolScript = Get-Content -LiteralPath $toolScriptPath -Raw
-if ($toolScript -notmatch "new Worker\(cfg\.base \+ 'engine-worker\.js', \{ type: 'module' \}\)") {
-    throw 'The tool page script must run the engine in a module Web Worker.'
+# Verify the actual assets loaded by the pages, including fingerprinted copies.
+foreach ($referencedScriptPath in $toolScriptPaths) {
+    $toolScript = Get-Content -LiteralPath $referencedScriptPath -Raw
+    # Minification renames the local configuration variable and normalizes quotes and spacing.
+    if ($toolScript -cnotmatch 'new\s+Worker\(\s*[$A-Za-z_][$\w]*\.base\s*\+\s*["'']engine-worker\.js["'']\s*,\s*\{\s*type\s*:\s*["'']module["'']\s*\}\s*\)') {
+        throw "Tool page script '$referencedScriptPath' must run the engine in a module Web Worker."
+    }
 }
 
 & (Join-Path $PSScriptRoot 'Test-ConverterAssetGraph.ps1') -SiteRoot $converterRoot

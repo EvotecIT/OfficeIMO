@@ -60,6 +60,18 @@ function Assert-ContainsAttribute {
     }
 }
 
+function Assert-ContainsPattern {
+    param(
+        [Parameter(Mandatory)] [string] $Text,
+        [Parameter(Mandatory)] [string] $Pattern,
+        [Parameter(Mandatory)] [string] $Contract
+    )
+
+    if ($Text -cnotmatch $Pattern) {
+        throw "Presentation contract '$Contract' is missing."
+    }
+}
+
 foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
     # The logo supplies Home; the main-menu-only verifier warning is baselined.
@@ -91,9 +103,9 @@ $pdfWorkflowCatalog = Get-Content -LiteralPath $pdfWorkflowCatalogPath -Raw | Co
 Assert-ContainsLiteral -Text $solutionHtml -Expected 'imo-intent-content imo-prose markdown-body' -Contract 'solution prose styling'
 Assert-ContainsLiteral -Text $conversionHtml -Expected 'imo-intent-content imo-prose markdown-body' -Contract 'conversion prose styling'
 Assert-ContainsLiteral -Text $comparisonHtml -Expected 'imo-comparison-detail-content imo-prose markdown-body' -Contract 'comparison prose styling'
-Assert-ContainsLiteral -Text $productCss -Expected '.imo-intent-content > article :is(ul, ol)' -Contract 'solution list presentation'
-Assert-ContainsLiteral -Text $productCss -Expected '.imo-intent-content > article h2' -Contract 'prose divider scope'
-Assert-ContainsLiteral -Text $productCss -Expected '.imo-capability-state[data-state="Native"]' -Contract 'capability state presentation'
+Assert-ContainsPattern -Text $productCss -Pattern '\.imo-intent-content\s*>\s*article\s+:is\(ul,\s*ol\)' -Contract 'solution list presentation'
+Assert-ContainsPattern -Text $productCss -Pattern '\.imo-intent-content\s*>\s*article\s+h2(?=\s|[,\{])' -Contract 'prose divider scope'
+Assert-ContainsPattern -Text $productCss -Pattern '\.imo-capability-state\[data-state=["'']?Native["'']?\]' -Contract 'capability state presentation'
 Assert-ContainsLiteral -Text $productCss -Expected '.imo-capability-card__source' -Contract 'source-first compatibility metadata'
 $appCss = Get-RequiredText -Path (Join-Path $siteRootPath 'css\app.css')
 Assert-ContainsLiteral -Text $appCss -Expected 'var(--imo-on-accent,#fff)' -Contract 'accent control contrast'
