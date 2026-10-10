@@ -7,10 +7,8 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeFormula = DocumentFormat.OpenXml.Office.Excel.Formula;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Represents an Excel document and provides methods for creating,
-    /// loading and saving spreadsheets.
-    /// </summary>
+    // Represents an Excel document and provides methods for creating,
+    // loading and saving spreadsheets.
     public partial class ExcelDocument {
         /// <summary>
         /// Imports selected or all worksheets from another workbook into this workbook.

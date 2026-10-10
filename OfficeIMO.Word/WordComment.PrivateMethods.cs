@@ -5,9 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// A wrapper for Word document comments.
-    /// </summary>
+    // A wrapper for Word document comments.
     public partial class WordComment {
         private WordComment(WordDocument document, Comment comment, CommentEx? commentEx) {
             if (document == null) throw new ArgumentNullException(nameof(document));

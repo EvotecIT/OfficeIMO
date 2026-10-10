@@ -44,23 +44,51 @@ function Assert-ContainsLiteral {
 
 $siteRootPath = (Resolve-Path -LiteralPath $SiteRoot).Path
 $sourceRootPath = (Resolve-Path -LiteralPath $SourceRoot).Path
-foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
+
+function Assert-ContainsAttribute {
+    param(
+        [Parameter(Mandatory)] [string] $Text,
+        [Parameter(Mandatory)] [string] $Name,
+        [Parameter(Mandatory)] [string] $Value,
+        [Parameter(Mandatory)] [string] $Contract
+    )
+
+    $escapedValue = [regex]::Escape($Value)
+    $pattern = '\s' + [regex]::Escape($Name) + '\s*=\s*(?:"' + $escapedValue + '"|''' + $escapedValue + '''|' + $escapedValue + '(?=\s|/?>))'
+    if ($Text -notmatch $pattern) {
+        throw "Presentation contract '$Contract' is missing attribute '$Name=$Value'."
+    }
+}
+
+function Assert-ContainsPattern {
+    param(
+        [Parameter(Mandatory)] [string] $Text,
+        [Parameter(Mandatory)] [string] $Pattern,
+        [Parameter(Mandatory)] [string] $Contract
+    )
+
+    if ($Text -cnotmatch $Pattern) {
+        throw "Presentation contract '$Contract' is missing."
+    }
+}
+
+foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
     # The logo supplies Home; the main-menu-only verifier warning is baselined.
-    if ($routeHtml -notmatch '<a\b[^>]*class="[^"]*\bimo-header__logo\b[^"]*"[^>]*href="/"') {
+    if ($routeHtml -notmatch '<a\b(?=[^>]*\sclass=(?:"(?:[^"]*\s)?imo-header__logo(?:\s[^"]*)?"|''(?:[^'']*\s)?imo-header__logo(?:\s[^'']*)?''|imo-header__logo(?=\s|>)))(?=[^>]*\shref=["'']?/["'']?(?=\s|>))[^>]*>') {
         throw "Route '/$route/' must expose Home through the linked site logo."
     }
-    $navigationCount = [regex]::Matches($routeHtml, '<nav\b[^>]*\bid="main-navigation"').Count
+    $navigationCount = [regex]::Matches($routeHtml, '<nav\b[^>]*\sid=["'']?main-navigation["'']?(?=\s|>)').Count
     if ($navigationCount -ne 1) {
         throw "Route '/$route/' must render one global navigation menu; found $navigationCount."
     }
     foreach ($destination in @('/studio/', '/convert/', '/tool/', '/libraries/', '/docs/', '/downloads/')) {
-        Assert-ContainsLiteral -Text $routeHtml -Expected "href=`"$destination`"" -Contract "global navigation on /$route/"
+        Assert-ContainsAttribute -Text $routeHtml -Name 'href' -Value $destination -Contract "global navigation on /$route/"
     }
 }
 foreach ($route in @('docs', 'api/word', 'convert/guides', 'convert/doc-docx', 'pdf', 'pdf/merge')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
-    Assert-ContainsLiteral -Text $routeHtml -Expected 'id="documentation-navigation"' -Contract "documentation navigation on /$route/"
+    Assert-ContainsAttribute -Text $routeHtml -Name 'id' -Value 'documentation-navigation' -Contract "documentation navigation on /$route/"
     Assert-ContainsLiteral -Text $routeHtml -Expected 'imo-documentation-toolbar' -Contract "documentation toolbar on /$route/"
 }
 
@@ -75,9 +103,9 @@ $pdfWorkflowCatalog = Get-Content -LiteralPath $pdfWorkflowCatalogPath -Raw | Co
 Assert-ContainsLiteral -Text $solutionHtml -Expected 'imo-intent-content imo-prose markdown-body' -Contract 'solution prose styling'
 Assert-ContainsLiteral -Text $conversionHtml -Expected 'imo-intent-content imo-prose markdown-body' -Contract 'conversion prose styling'
 Assert-ContainsLiteral -Text $comparisonHtml -Expected 'imo-comparison-detail-content imo-prose markdown-body' -Contract 'comparison prose styling'
-Assert-ContainsLiteral -Text $productCss -Expected '.imo-intent-content > article :is(ul, ol)' -Contract 'solution list presentation'
-Assert-ContainsLiteral -Text $productCss -Expected '.imo-intent-content > article h2' -Contract 'prose divider scope'
-Assert-ContainsLiteral -Text $productCss -Expected '.imo-capability-state[data-state="Native"]' -Contract 'capability state presentation'
+Assert-ContainsPattern -Text $productCss -Pattern '\.imo-intent-content\s*>\s*article\s+:is\(ul,\s*ol\)' -Contract 'solution list presentation'
+Assert-ContainsPattern -Text $productCss -Pattern '\.imo-intent-content\s*>\s*article\s+h2(?=\s|[,\{])' -Contract 'prose divider scope'
+Assert-ContainsPattern -Text $productCss -Pattern '\.imo-capability-state\[data-state=["'']?Native["'']?\]' -Contract 'capability state presentation'
 Assert-ContainsLiteral -Text $productCss -Expected '.imo-capability-card__source' -Contract 'source-first compatibility metadata'
 $appCss = Get-RequiredText -Path (Join-Path $siteRootPath 'css\app.css')
 Assert-ContainsLiteral -Text $appCss -Expected 'var(--imo-on-accent,#fff)' -Contract 'accent control contrast'
@@ -92,16 +120,17 @@ if ($compatibilityHtml -match 'imo-capability-card__version' -or
 $pdfHubHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'pdf\index.html')
 Assert-ContainsLiteral -Text $pdfHubHtml -Expected 'PDF tools for browsers and .NET' -Contract 'PDF workflow hub'
 
+$browserTools = (Get-Content -LiteralPath (Join-Path $sourceRootPath 'data\browser_tools.json') -Raw | ConvertFrom-Json).tools
 foreach ($operation in @($pdfWorkflowCatalog.operations)) {
     $operationHtml = Get-RequiredText -Path (Join-Path $siteRootPath "pdf\$($operation.slug)\index.html")
-    $expectedUrl = "$($pdfWorkflowCatalog.browserBaseUrl)$($operation.id)"
+    $expectedUrl = "/browser/$((@($browserTools | Where-Object { $_.engine.kind -eq 'pdf' -and $_.engine.target -eq $operation.id }))[0].id)/"
     Assert-ContainsLiteral -Text $operationHtml -Expected $expectedUrl -Contract "PDF operation handoff '$($operation.id)'"
     Assert-ContainsLiteral -Text $operationHtml -Expected '/css/product.css' -Contract "PDF operation styling '$($operation.id)'"
 }
 
 foreach ($conversion in @($pdfWorkflowCatalog.browserConversions)) {
     $conversionHtml = Get-RequiredText -Path (Join-Path $siteRootPath "convert\$($conversion.slug)\index.html")
-    $expectedUrl = "/convert/?workspace=convert&route=$($conversion.routeId)"
+    $expectedUrl = "/browser/$((@($browserTools | Where-Object { $_.engine.kind -eq 'convert' -and $_.engine.target -eq $conversion.routeId }))[0].id)/"
     Assert-ContainsLiteral -Text $conversionHtml -Expected $expectedUrl -Contract "PDF conversion handoff '$($conversion.routeId)'"
 }
 

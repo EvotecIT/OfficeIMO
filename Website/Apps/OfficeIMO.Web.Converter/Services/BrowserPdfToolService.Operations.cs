@@ -43,16 +43,17 @@ internal sealed partial class BrowserPdfToolService {
         string summary = pageCount.HasValue
             ? $"Inspected {pageCount.Value} PDF page{(pageCount.Value == 1 ? string.Empty : "s")}."
             : "Created a bounded PDF preflight report.";
-        byte[] inspection = JsonSerializer.SerializeToUtf8Bytes(new {
-            schemaVersion = 1,
-            tool = request.Tool.Id,
-            engine = "OfficeIMO.Pdf",
-            browserLocal = true,
-            source = new { fileName = file.Name, bytes = file.Bytes.LongLength },
-            summary,
-            details,
-            messages = messages.Select(static message => new { title = message.Title, message = message.Message })
-        }, new JsonSerializerOptions { WriteIndented = true });
+        byte[] inspection = JsonSerializer.SerializeToUtf8Bytes(
+            new PdfInspectionDocument(
+                1,
+                request.Tool.Id,
+                "OfficeIMO.Pdf",
+                BrowserLocal: true,
+                new PdfInspectionSource(file.Name, file.Bytes.LongLength),
+                summary,
+                details,
+                messages.Select(static message => new PdfInspectionMessage(message.Title, message.Message)).ToArray()),
+            BrowserReportJsonContext.Default.PdfInspectionDocument);
         return new PdfToolExecution(
             new BrowserConversionArtifact(inspection, OutputName(file, "inspection", ".json"), "application/json"),
             summary,
@@ -262,22 +263,26 @@ internal sealed partial class BrowserPdfToolService {
             expectedReadOptions: BrowserPdfPolicy.CreateReadOptions(),
             actualReadOptions: BrowserPdfPolicy.CreateReadOptions());
         string html = comparison.ToHtmlGallery($"{expected.Name} compared with {actual.Name}");
+        bool hasDifferences = comparison.DifferentPageCount > 0 || comparison.StructuralDifferences.Count > 0;
         var artifact = new BrowserConversionArtifact(
             Encoding.UTF8.GetBytes(html),
             $"{Path.GetFileNameWithoutExtension(expected.Name)}-vs-{Path.GetFileNameWithoutExtension(actual.Name)}.html",
             "text/html;charset=utf-8");
         var messages = new List<PdfToolMessage> {
-            new(comparison.IsMatch ? "Visual match" : "Differences found", comparison.IsMatch ? "Every compared page satisfied the exact comparison threshold." : "Open the gallery to review expected, actual, and highlighted difference images.", comparison.IsMatch ? "ocx-dot--good" : "ocx-dot--warn")
+            new(comparison.IsMatch ? "Visual match" : hasDifferences ? "Differences found" : "Comparison incomplete", comparison.IsMatch ? "Every compared page satisfied the exact comparison threshold." : hasDifferences ? "Open the gallery to review expected, actual, and highlighted difference images." : "Managed rendering is incomplete. The gallery cannot establish whether the PDFs look the same.", comparison.IsMatch ? "ocx-dot--good" : "ocx-dot--warn")
         };
         foreach (string difference in comparison.StructuralDifferences.Take(10)) messages.Add(new("Structural difference", difference, "ocx-dot--warn"));
         return new PdfToolExecution(
             artifact,
-            comparison.IsMatch ? "The PDFs match at the configured exact visual threshold." : $"Compared {comparison.Pages.Count} pages and found visual or structural differences.",
+            comparison.IsMatch ? "The PDFs match at the configured exact visual threshold." : hasDifferences ? $"Compared {comparison.Pages.Count} pages and found visual or structural differences." : "The comparison is incomplete; review the rendering limitations in the gallery.",
             comparison.Pages.Count,
             messages,
             new Dictionary<string, string>(StringComparer.Ordinal) {
                 ["isMatch"] = comparison.IsMatch.ToString(),
                 ["comparedPages"] = comparison.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["differentPages"] = comparison.DifferentPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["incompletePages"] = comparison.IncompletePageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["hasDifferences"] = hasDifferences.ToString(),
                 ["structuralDifferences"] = comparison.StructuralDifferences.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["channelTolerance"] = options.ChannelTolerance.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["allowedDifferenceRatio"] = options.AllowedDifferenceRatio.ToString(System.Globalization.CultureInfo.InvariantCulture)

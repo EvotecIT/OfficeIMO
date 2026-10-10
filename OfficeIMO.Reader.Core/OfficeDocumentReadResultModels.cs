@@ -4,9 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OfficeIMO.Reader;
 
-/// <summary>
-/// Stable schema values for the OfficeIMO document read result transport contract.
-/// </summary>
+// Stable schema values for the OfficeIMO document read result transport contract.
 public static partial class OfficeDocumentReadResultSchema {
     /// <summary>
     /// Stable schema identifier for shared document readback results.

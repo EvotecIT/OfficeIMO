@@ -8,6 +8,8 @@ $repoRoot = Split-Path -Parent $websiteRoot
 $catalog = Get-Content -LiteralPath (Join-Path $websiteRoot 'data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
 $cards = @($catalog.cards | Where-Object walkthrough_url)
 $sources = [ordered]@{}
+$browserCatalog = Get-Content -LiteralPath (Join-Path $websiteRoot 'data/browser_tools.json') -Raw | ConvertFrom-Json -Depth 40
+$browserLinks = [ordered]@{}
 $expected = [ordered]@{}
 $pageRoot = Join-Path $websiteRoot 'content/showcase-examples'
 
@@ -27,6 +29,26 @@ foreach ($card in $cards) {
         if ($related -cnotin @($catalog.cards.id)) { throw "Unknown related example '$related' on '$($card.id)'." }
     }
     $sources[$card.id] = $sourceText
+    $extension = [IO.Path]::GetExtension($card.artifact_url).ToLowerInvariant()
+    $preferred = switch ($extension) {
+        '.pdf' { 'inspect-pdf' }
+        '.html' { 'html-to-pdf' }
+        '.docx' { 'word-to-pdf' }
+        '.xlsx' { 'excel-to-pdf' }
+        '.pptx' { 'powerpoint-to-pdf' }
+        '.md' { 'markdown-to-html' }
+        default { '' }
+    }
+    $tools = @($browserCatalog.tools | Where-Object {
+        $_.input.kind -in @('file', 'text') -and $extension -in $_.input.accept.Split(',')
+    } | Sort-Object @{ Expression = {
+        if ($_.id -eq $preferred) { 0 } elseif ($_.group -eq 'convert') { 1 } else { 2 }
+    } }, id)
+    if ($tools.Count -gt 0) {
+        $browserLinks[$card.id] = @($tools | ForEach-Object {
+            [ordered]@{ title = $_.title; url = "/browser/$($_.id)/"; artifact = $card.artifact_url }
+        })
+    }
     $title = $card.title | ConvertTo-Json -Compress
     $description = $card.description | ConvertTo-Json -Compress
     $seoTitle = "$($card.title) in C# | OfficeIMO" | ConvertTo-Json -Compress
@@ -47,6 +69,7 @@ Browse [the showcase](/showcase/) for generated documents and source code.
 "@ + "`n"
 }
 $expected[(Join-Path $websiteRoot 'data/showcase_sources.json')] = ($sources | ConvertTo-Json -Depth 4).Replace("`r`n", "`n") + "`n"
+$expected[(Join-Path $websiteRoot 'data/showcase_browser_tools.json')] = ($browserLinks | ConvertTo-Json -Depth 5).Replace("`r`n", "`n") + "`n"
 foreach ($file in Get-ChildItem -LiteralPath $pageRoot -Filter '*.md' -File -ErrorAction SilentlyContinue) {
     if (-not $expected.Contains($file.FullName)) { throw "Unmapped generated showcase page needs review: $($file.FullName)" }
 }

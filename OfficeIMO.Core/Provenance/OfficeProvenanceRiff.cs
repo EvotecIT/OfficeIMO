@@ -90,7 +90,8 @@ internal static class OfficeProvenanceRiff {
                     hasUnambiguousImagePayload && OfficeC2paManifestStore.IsValid(
                     data, offset + 8, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"RIFF/C2PA@{offset}";
-                context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength));
+                context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, payloadLength)
+                    .WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(data, offset + 8, payloadLength) : null));
                 if (c2paChunkCount > 1) context?.Diagnostics.Add("The WebP container contains multiple C2PA chunks.");
                 if (!isLast) context?.Diagnostics.Add("The C2PA chunk is not the last chunk in the first RIFF container.");
                 bool remove = output != null && removalOptions != null && changes != null &&

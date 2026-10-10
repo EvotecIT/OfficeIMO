@@ -9,9 +9,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Helpers for inserting images anchored to worksheet cells.
-    /// </summary>
+    // Helpers for inserting images anchored to worksheet cells.
     public partial class ExcelSheet {
         /// <summary>
         /// Enumerates worksheet images anchored in the drawing layer.

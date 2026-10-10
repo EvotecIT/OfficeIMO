@@ -10,9 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides functionality for creating, loading and manipulating Word documents.
-    /// </summary>
+    // Provides functionality for creating, loading and manipulating Word documents.
     public partial class WordDocument : IDisposable {
         private static readonly Lazy<byte[]> DefaultDocumentPackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.Document));
         private static readonly Lazy<byte[]> DefaultTemplatePackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.Template));

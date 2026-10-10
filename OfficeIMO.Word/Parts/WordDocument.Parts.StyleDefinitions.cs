@@ -5,9 +5,7 @@ using System.Xml.Linq;
 using Style = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Generates the style definitions part.
-    /// </summary>
+    // Generates the style definitions part.
     public partial class WordDocument {
         private static readonly Lazy<Styles> BuiltInStyleDefinitions = new(CreateBuiltInStyleDefinitions);
         private static readonly Lazy<Styles> RequiredLoadedStyleDefinitions = new(CreateRequiredLoadedStyleDefinitions);

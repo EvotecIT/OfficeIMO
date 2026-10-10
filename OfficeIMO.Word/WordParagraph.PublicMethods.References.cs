@@ -11,9 +11,7 @@ using V = DocumentFormat.OpenXml.Vml;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Contains public methods for editing paragraphs.
-    /// </summary>
+    // Contains public methods for editing paragraphs.
     public partial class WordParagraph {
         // Should author and initials be made optional or should the user handle that with ""?
         /// <summary>

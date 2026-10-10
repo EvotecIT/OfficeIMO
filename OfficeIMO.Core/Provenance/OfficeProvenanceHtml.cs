@@ -171,7 +171,7 @@ internal static class OfficeProvenanceHtml {
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"HTML/script[type=application/c2pa][{carrierIndex++}]",
                 embeddedValid,
-                manifest.Length));
+                manifest.Length).WithManifest(embeddedValid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
         }
     }
 

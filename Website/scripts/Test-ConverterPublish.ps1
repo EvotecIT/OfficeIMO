@@ -4,13 +4,16 @@ param(
     [string] $SiteRoot
 )
 
+# Verifies the published browser tools: the static /browser/<tool>/ pages, the /convert/ directory,
+# and the OfficeIMO engine that the pages run in a Web Worker from /apps/officeimo-converter/.
+
 $ErrorActionPreference = 'Stop'
 $converterRoot = Join-Path $SiteRoot 'apps/officeimo-converter'
 $indexPath = Join-Path $converterRoot 'index.html'
-$modulePath = Join-Path $converterRoot 'Components/ConverterWorkspace.razor.js'
-$workspaceModulePath = Join-Path $converterRoot 'Components/DocumentWorkspace.razor.js'
+$workerPath = Join-Path $converterRoot 'engine-worker.js'
 $siteScriptPath = Join-Path $SiteRoot 'js/site.js'
 $frameworkRoot = Join-Path $converterRoot '_framework'
+$dotnetPath = Join-Path $frameworkRoot 'dotnet.js'
 $appAssemblyPath = Get-ChildItem -LiteralPath $frameworkRoot -File -Filter 'OfficeIMO.Web.Converter*.wasm' -ErrorAction SilentlyContinue |
     Where-Object { $_.Name -notmatch '\.(br|gz)$' } |
     Select-Object -First 1 -ExpandProperty FullName
@@ -27,8 +30,8 @@ $redirectManifestPath = Join-Path $SiteRoot '_powerforge/redirects.json'
 
 foreach ($path in @(
         $indexPath,
-        $modulePath,
-        $workspaceModulePath,
+        $workerPath,
+        $dotnetPath,
         $siteScriptPath,
         $appAssemblyPath,
         $runtimeWasmPath,
@@ -39,30 +42,41 @@ foreach ($path in @(
         $provenanceGuidePath,
         $redirectManifestPath
     )) {
-    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-        throw "Converter publish is missing '$path'."
+    if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "Browser tools publish is missing '$path'."
     }
 }
 
-$converterFramePattern = 'data-workspace-src="/apps/officeimo-converter/\?embedded=1"'
+$catalog = Get-Content (Join-Path $PSScriptRoot '../data/browser_tools.json') -Raw | ConvertFrom-Json
+$toolScriptPaths = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
 $convertPage = Get-Content -LiteralPath $convertPagePath -Raw
-if ($convertPage -notmatch $converterFramePattern) {
-    throw "The primary /convert/ route does not host the browser converter."
+if ($convertPage -match '<iframe\b' -or $convertPage -match 'browser-workspace-template') {
+    throw 'The /convert/ directory must be plain HTML; tools open on their own /browser/ pages.'
 }
-$withoutTemplates = [regex]::Replace($convertPage, '(?is)<template\b[^>]*>.*?</template>', '')
-if ($withoutTemplates -match '<iframe\b' -or $convertPage -notmatch '\bid=["'']?browser-workspace-template["'']?(?=\s|>)') {
-    throw 'The tool directory must keep its workspace iframe inert until a tool is selected.'
-}
-$routeCatalog = Get-Content (Join-Path $PSScriptRoot '../data/office_conversion_routes.json') -Raw | ConvertFrom-Json
-$pdfCatalog = Get-Content (Join-Path $PSScriptRoot '../data/pdf_workflows.json') -Raw | ConvertFrom-Json
-foreach ($route in @($routeCatalog.routes | Where-Object browserAvailable)) {
-    if ($convertPage -notmatch ('\bdata-route=["'']?' + [regex]::Escape($route.id) + '["'']?(?=\s|>)')) {
-        throw "The static directory is missing browser conversion '$($route.id)'."
+foreach ($tool in $catalog.tools) {
+    if ($convertPage -notmatch ('\bdata-tool=["'']?' + [regex]::Escape($tool.id) + '["'']?(?=\s|>)') -or
+        $convertPage -notmatch ('href=["'']?/browser/' + [regex]::Escape($tool.id) + '/["'']?')) {
+        throw "The /convert/ directory is missing a card for '$($tool.id)'."
     }
-}
-foreach ($tool in $pdfCatalog.operations) {
-    if ($convertPage -notmatch ('\bdata-pdf-tool=["'']?' + [regex]::Escape($tool.id) + '["'']?(?=\s|>)')) {
-        throw "The static directory is missing PDF tool '$($tool.id)'."
+    $toolPagePath = Join-Path $SiteRoot "browser/$($tool.id)/index.html"
+    if (-not (Test-Path -LiteralPath $toolPagePath -PathType Leaf)) {
+        throw "Browser tool page '/browser/$($tool.id)/' was not generated. Run scripts/Sync-BrowserToolPages.ps1."
+    }
+    $toolPage = Get-Content -LiteralPath $toolPagePath -Raw
+    $toolScriptReference = [regex]::Match($toolPage, '<script\b[^>]*\ssrc=["'']?(?<path>/js/browser-tool(?:\.[a-f0-9]+)?\.js)["'']?(?=\s|/?>)')
+    if ($toolPage -notmatch ('\bdata-browser-tool=["'']?' + [regex]::Escape($tool.id) + '["'']?(?=\s|>)') -or
+        $toolPage -notmatch 'data-engine-base=["'']?/apps/officeimo-converter/' -or
+        $toolPage -notmatch '<link[^>]+href=["'']?/css/browser-tool(?:\.[a-f0-9]+)?\.css' -or
+        -not $toolScriptReference.Success) {
+        throw "Browser tool page '/browser/$($tool.id)/' is missing its tool wiring, stylesheet, or script."
+    }
+    $referencedScriptPath = Join-Path $SiteRoot $toolScriptReference.Groups['path'].Value.TrimStart('/')
+    if (-not (Test-Path -LiteralPath $referencedScriptPath -PathType Leaf)) {
+        throw "Browser tool page '/browser/$($tool.id)/' references missing script '$referencedScriptPath'."
+    }
+    $null = $toolScriptPaths.Add($referencedScriptPath)
+    if ($toolPage -notmatch [regex]::Escape([System.Net.WebUtility]::HtmlEncode($tool.title))) {
+        throw "Browser tool page '/browser/$($tool.id)/' does not show its title."
     }
 }
 
@@ -80,10 +94,10 @@ if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance
     $provenanceGuide -notmatch 'OfficeIMO\.Workflows \+ format packages' -or
     $provenanceGuide -notmatch 'href=["'']?https://www\.nuget\.org/packages/OfficeIMO\.Workflows["'']?(?:\s|/?>)' -or
     $provenanceGuide -notmatch 'Content Credentials' -or
-    $provenanceGuide -notmatch 'does not remove visible watermarks' -or
-    $provenanceGuide -notmatch 'href="/convert/\?workspace=provenance"' -or
-    $provenanceGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)' -or
-    $provenanceGuide -notmatch 'carrier categories') {
+    $provenanceGuide -notmatch 'does not remove visible or invisible watermarks' -or
+    $provenanceGuide -notmatch 'href=["'']?/browser/file-origin/["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch 'href=["'']?/browser/hidden-characters/["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)') {
     throw 'The /provenance/ route does not explain the supported file-origin workflow and its limits.'
 }
 
@@ -96,58 +110,47 @@ if ($playgroundRedirect.Count -ne 1) {
     throw 'The compatibility /playground/ route must redirect to /convert/ and preserve workflow query parameters.'
 }
 
+# Older links (/convert/?route=docx-pdf) resolve through the directory's legacy keys.
+$siteScript = Get-Content -LiteralPath $siteScriptPath -Raw
+if ($siteScript -notmatch 'data-legacy' -or $siteScript -notmatch 'location\.replace') {
+    throw 'The /convert/ directory script no longer forwards legacy workspace links to tool pages.'
+}
+foreach ($tool in $catalog.tools) {
+    foreach ($legacy in @($tool.legacy)) {
+        if ($convertPage -notmatch [regex]::Escape([System.Net.WebUtility]::HtmlEncode($legacy))) {
+            throw "Legacy link '$legacy' for '$($tool.id)' is not declared on the /convert/ directory."
+        }
+    }
+}
+
 $runtimeWasm = [System.Text.Encoding]::ASCII.GetString(
     [System.IO.File]::ReadAllBytes($runtimeWasmPath)
 )
 if ($runtimeWasm -notmatch 'hb_blob_create') {
-    throw "Converter runtime '$runtimeWasmPath' does not contain the HarfBuzz native symbols required by the faithful PDF profile. Install the wasm-tools workload and publish with WasmBuildNative enabled."
+    throw "Engine runtime '$runtimeWasmPath' does not contain the HarfBuzz native symbols required by the faithful PDF profile. Install the wasm-tools workload and publish with WasmBuildNative enabled."
 }
 
 $index = Get-Content -LiteralPath $indexPath -Raw
-if ($index -notmatch '<base href="/apps/officeimo-converter/"') {
-    throw 'Converter index does not use the production base path.'
-}
-if ($index -match 'converter-interop\.js') {
-    throw 'Converter index still references the removed global interop script.'
-}
-if ($index -notmatch '_framework/blazor\.webassembly') {
-    throw 'Converter index does not reference the Blazor WebAssembly bootstrap.'
-}
-if ($index -notmatch "embedded'\)===\'1\'" -or $index -notmatch "classList\.add\('ocx-embedded'\)") {
-    throw 'Converter index does not enable the shared-shell embedded mode.'
+if ($index -notmatch 'location\.replace\(\s*["'']/convert/["'']\s*\+\s*location\.search\s*\)' -or $index -match '_framework/blazor') {
+    throw 'The engine folder index must only forward older app links to the /convert/ directory.'
 }
 
-$converterCssPath = Join-Path $converterRoot 'converter.css'
-$converterCss = Get-Content -LiteralPath $converterCssPath -Raw
-if ($converterCss -notmatch '\.ocx-embedded \.ocx-site-header' -or
-    $converterCss -notmatch '\.ocx-embedded \.ocx-site-footer\s*\{\s*display:\s*none') {
-    throw 'Converter stylesheet does not hide the standalone site shell in embedded mode.'
-}
-if ($converterCss -notmatch '\.ocx-hidden-input\s*\{[^}]*\binset:\s*0' -or
-    $converterCss -match '\.ocx-hidden-input\s*\{[^}]*\bpointer-events:\s*none') {
-    throw 'Converter file inputs do not cover the visible dropzone as native click targets.'
+$worker = Get-Content -LiteralPath $workerPath -Raw
+if ($worker -notmatch 'from "\./_framework/dotnet\.js"' -or
+    $worker -notmatch 'loadLazyAssembly' -or
+    $worker -notmatch 'getAssemblyExports') {
+    throw 'The engine worker must boot ./_framework/dotnet.js, load engines lazily, and call the exported tool entry points.'
 }
 
-$module = Get-Content -LiteralPath $modulePath -Raw
-if ($module -notmatch 'export function createObjectUrl') {
-    throw 'Converter collocated interop module is incomplete.'
-}
-
-$workspaceModule = Get-Content -LiteralPath $workspaceModulePath -Raw
-$siteScript = Get-Content -LiteralPath $siteScriptPath -Raw
-$titleValidation = [regex]::Match(
-    $siteScript,
-    'typeof\s+(?<selection>[A-Za-z_$][\w$]*)\.title\s*(?:!==|!=)\s*["'']string["'']'
-)
-$validatedSelection = if ($titleValidation.Success) {
-    [regex]::Escape($titleValidation.Groups['selection'].Value)
-}
-if ($workspaceModule -notmatch 'officeimo:workspace-selection[^\r\n]+title' -or
-    -not $titleValidation.Success -or
-    $siteScript -notmatch "document\.title\s*=\s*$validatedSelection\.title") {
-    throw 'The converter selection protocol does not propagate validated tool titles to the host page.'
+# Verify the actual assets loaded by the pages, including fingerprinted copies.
+foreach ($referencedScriptPath in $toolScriptPaths) {
+    $toolScript = Get-Content -LiteralPath $referencedScriptPath -Raw
+    # Minification renames the local configuration variable and normalizes quotes and spacing.
+    if ($toolScript -cnotmatch 'new\s+Worker\(\s*[$A-Za-z_][$\w]*\.base\s*\+\s*["'']engine-worker\.js["'']\s*,\s*\{\s*type\s*:\s*["'']module["'']\s*\}\s*\)') {
+        throw "Tool page script '$referencedScriptPath' must run the engine in a module Web Worker."
+    }
 }
 
 & (Join-Path $PSScriptRoot 'Test-ConverterAssetGraph.ps1') -SiteRoot $converterRoot
 
-Write-Output "Converter publish verified: $converterRoot ($([System.IO.Path]::GetFileName($appAssemblyPath)))"
+Write-Output "Browser tools publish verified: $($catalog.tools.Count) tool pages, engine $([System.IO.Path]::GetFileName($appAssemblyPath))"

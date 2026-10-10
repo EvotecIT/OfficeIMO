@@ -80,9 +80,7 @@ namespace OfficeIMO.Excel {
         internal int EndDy { get; }
     }
 
-    /// <summary>
-    /// Helpers for worksheet cell comments (notes).
-    /// </summary>
+    // Helpers for worksheet cell comments (notes).
     public partial class ExcelSheet {
         /// <summary>
         /// Adds or replaces a comment on the specified cell.

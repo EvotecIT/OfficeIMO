@@ -1,0 +1,3 @@
+[
+  {"title":"Google Drive","url":"/docs/google-workspace/drive/","summary":"Use the shared typed Drive owner for files, conversion, collaboration, media, and change tokens. Includes examples and package links.","kind":"guide","targets":["OfficeIMO.GoogleWorkspace.Drive.GoogleDriveAboutFormats","OfficeIMO.GoogleWorkspace.Drive.GoogleDriveClient","OfficeIMO.GoogleWorkspace.Drive.GoogleDriveClientOptions","OfficeIMO.GoogleWorkspace.Drive.GoogleDriveFile","OfficeIMO.GoogleWorkspace.Drive.GoogleDriveFileList","OfficeIMO.GoogleWorkspace.Drive.GoogleDriveListOptions"]}
+]

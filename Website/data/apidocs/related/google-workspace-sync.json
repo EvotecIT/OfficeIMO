@@ -1,0 +1,3 @@
+[
+  {"title":"Change tracking and synchronization","url":"/docs/google-workspace/sync/","summary":"Consume Drive changes and execute explicit dry-run, approval, conflict, cancellation, and partial-failure plans. Includes examples and package links.","kind":"guide","targets":["OfficeIMO.GoogleWorkspace.Sync.GoogleWorkspaceChangeReadOptions","OfficeIMO.GoogleWorkspace.Sync.GoogleWorkspaceChangeReadResult","OfficeIMO.GoogleWorkspace.Sync.GoogleWorkspaceChangeTracker","OfficeIMO.GoogleWorkspace.Sync.GoogleWorkspaceSyncCheckpoint","OfficeIMO.GoogleWorkspace.Sync.GoogleWorkspaceSyncExecutor","OfficeIMO.GoogleWorkspace.Sync.GoogleWorkspaceSyncItem"]}
+]

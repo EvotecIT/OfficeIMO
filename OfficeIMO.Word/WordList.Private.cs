@@ -3,9 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
-/// <summary>
-/// Contains private methods for list handling.
-/// </summary>
+// Contains private methods for list handling.
 public partial class WordList : WordElement {
     /// <summary>
     /// Retrieves the <see cref="AbstractNum"/> associated with this list.

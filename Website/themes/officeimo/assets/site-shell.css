@@ -8,6 +8,50 @@
   --imo-shell-top: calc(var(--imo-header-height) + var(--imo-toolbar-height));
 }
 html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--imo-shell-top) + 24px); }
+/* Landing content under product, Studio and CLI heroes: sectioned headings, feature lists as cards (site.js marks them). */
+/* Accent: the product's own colour on product pages (--product-color on main), the site accent elsewhere. */
+:is(.imo-product__content, .imo-application-guide) { --landing-accent: var(--product-color, var(--imo-accent)); }
+:is(.imo-product__content, .imo-application-guide) .markdown-body > h2 { position: relative; margin-top: 2.75rem; padding-top: 1.5rem; border-top: 1px solid var(--imo-border); }
+:is(.imo-product__content, .imo-application-guide) .markdown-body > h2:first-child { margin-top: 0; }
+:is(.imo-product__content, .imo-application-guide) .markdown-body > h2::before { content: ""; position: absolute; top: -1px; left: 0; width: 56px; height: 2px; border-radius: 2px; background: var(--landing-accent, var(--imo-accent)); }
+/* "Do this:" + command pairs (site.js groups them) read as command cards. */
+.imo-commands { display: grid; gap: 8px; margin: 1rem 0 1.4rem; }
+.imo-command { display: grid; grid-template-columns: minmax(170px, .42fr) minmax(0, 1fr); align-items: stretch; margin: 0; border: 1px solid var(--imo-border); border-radius: 12px; overflow: hidden; background: var(--imo-surface); }
+.imo-command > p { display: flex; align-items: center; margin: 0; padding: 10px 14px; font-size: .86rem; font-weight: 600; line-height: 1.4; color: var(--imo-text); }
+.imo-command > p::before { content: "›"; margin-right: 9px; color: var(--landing-accent, var(--imo-accent)); font-weight: 800; }
+.imo-command > pre { margin: 0; border: 0; border-left: 1px solid var(--imo-border); border-radius: 0; overflow-x: auto; display: flex; align-items: center; }
+@media (max-width: 640px) {
+  .imo-command { grid-template-columns: minmax(0, 1fr); }
+  .imo-command > pre { border-left: 0; border-top: 1px solid var(--imo-border); }
+}
+.markdown-body > ul.imo-features { list-style: none; margin: 1.1rem 0 1.6rem; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.markdown-body > ul.imo-features > li {
+  display: grid; gap: 5px; align-content: start; margin: 0; padding: 14px 16px; border-radius: 12px;
+  border: 1px solid var(--imo-border); background: linear-gradient(180deg, color-mix(in srgb, var(--landing-accent, var(--imo-accent)) 6%, var(--imo-surface)), var(--imo-surface));
+  transition: border-color .2s ease, transform .2s ease;
+}
+.markdown-body > ul.imo-features > li::marker { content: none; }
+.markdown-body > ul.imo-features > li:hover { border-color: color-mix(in srgb, var(--landing-accent, var(--imo-accent)) 45%, var(--imo-border)); transform: translateY(-1px); }
+.imo-features__title { font-size: .95rem; color: var(--imo-text); }
+.imo-features__title::before { content: ""; display: inline-block; width: 7px; height: 7px; margin: 0 9px 2px 0; border-radius: 50%; background: var(--landing-accent, var(--imo-accent)); vertical-align: middle; }
+.imo-features__text { font-size: .88rem; line-height: 1.55; color: var(--imo-text-secondary); }
+@media (prefers-reduced-motion: reduce) { .markdown-body > ul.imo-features > li { transition: none; } .markdown-body > ul.imo-features > li:hover { transform: none; } }
+
+/* Scrollbars that belong to the theme: a slim rounded thumb on the page colour, in the page, panels and select lists. */
+:root {
+  --imo-scroll-thumb: color-mix(in srgb, var(--imo-text-muted) 45%, transparent);
+  --imo-scroll-thumb-hover: color-mix(in srgb, var(--imo-text-muted) 75%, transparent);
+  --imo-scroll-track: transparent;
+}
+html, select, textarea, .imo-scroll { scrollbar-color: var(--imo-scroll-thumb) var(--imo-scroll-track); }
+html { scrollbar-width: thin; }
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--imo-scroll-track); }
+  ::-webkit-scrollbar-thumb { background: var(--imo-scroll-thumb); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--imo-scroll-thumb-hover); }
+  ::-webkit-scrollbar-corner { background: transparent; }
+}
 body.imo-body { overflow-x: clip; }
 /* Shared content rhythm and controls across the catalog surfaces. */
 .imo-body .imo-btn { min-height: 42px; padding: 10px 16px; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 650; gap: 8px; }
@@ -167,20 +211,30 @@ body.imo-body { overflow-x: clip; }
 .imo-reference-browser .pf-combobox-option { white-space: normal; overflow-wrap: anywhere; }
 .imo-reference-browser .pf-combobox-list { overflow-x: hidden; }
 .imo-reference-browser .pf-combobox-panel { position: static; margin-top: 6px; }
+.imo-reference-browser .pf-combobox-trigger, .imo-reference-browser .sidebar-reset { min-height: 34px; padding: 6px 10px; font-size: 12px; }
+.imo-reference-browser .pf-combobox-option { font-size: 12px; }
+.imo-reference-browser .sidebar-reset { justify-content: center; }
+.imo-reference-browser .sidebar-browse-all { display: inline-block; margin-bottom: 8px; font-size: 13px; font-weight: 600; }
 .imo-search__filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 20px; }
 .imo-search__filters label { display: grid; gap: 6px; flex: 1 1 220px; font-size: 13px; color: var(--imo-text-secondary); }
 .imo-search__filters select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-bg); color: var(--imo-text); }
 .imo-search__signature { display: block; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; font-size: 13px; color: var(--imo-text); }
 .imo-search__context { font-size: 12px; color: var(--imo-text-secondary); }
-.related-content-list { display: grid; gap: 10px; padding: 0; list-style: none; }
-.related-content-item { padding: 12px; border: 1px solid var(--imo-border); border-radius: 8px; }
-.related-content-kind { margin-right: 8px; color: var(--imo-text-secondary); font-size: 12px; text-transform: uppercase; }
+/* Guides & Samples on API pages use the same link cards as the docs. */
+.related-content-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.related-content-item { padding: 12px 14px; border: 1px solid var(--imo-border); border-radius: 10px; background: var(--imo-bg-elevated); transition: border-color var(--imo-duration) var(--imo-ease); }
+.related-content-item:hover { border-color: color-mix(in srgb, var(--imo-accent) 45%, var(--imo-border)); }
+.related-content-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.related-content-link { font-weight: 600; text-decoration: none; }
+.related-content-kind { flex: 0 0 auto; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--imo-accent) 12%, transparent); color: var(--imo-accent); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.related-content-kind.sample { background: color-mix(in srgb, #22c55e 14%, transparent); color: #16a34a; }
+.related-content-copy { margin: 6px 0 0; color: var(--imo-text-secondary); font-size: 13px; line-height: 1.5; }
 .imo-body--reference .type-detail-shell { display: block; }
 .imo-body--reference .api-overview, .imo-body--reference .type-detail { padding: 0; margin: 0; }
 .imo-body--reference .type-toc { display: none; }
 .imo-body--reference .api-content .api-overview-header { margin: 0 0 24px; }
-.imo-body--reference .api-overview-header > .ev-eyebrow { display: none; }
 .imo-body--reference .api-content h2 { font-size: 24px; line-height: 1.2; margin-top: 28px; }
+.imo-body--reference .api-content .type-inheritance h2 { margin: 0 0 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--imo-text-muted); }
 .imo-body--reference .type-chip { font-size: 12px; }
 .imo-body--reference .quick-card { padding: 16px; }
 .imo-product-hero { padding-top: 64px; }
@@ -254,6 +308,8 @@ body.imo-body { overflow-x: clip; }
 @media(max-width:900px) { .imo-browser-tools__grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .imo-browser-tools__toolbar { position:static; align-items:stretch; flex-direction:column; gap:14px; margin-inline:0; padding-inline:0; background:none; -webkit-backdrop-filter:none; backdrop-filter:none; } }
 @media(max-width:600px) { .imo-browser-tools { padding-block:32px 48px; } .imo-browser-tools__grid { grid-template-columns:minmax(0,1fr); } .imo-browser-tools__trust { gap:10px 14px; font-size:.84rem; } }
 @media(max-width:360px) { .imo-browser-tools__trust { grid-template-columns:minmax(0,1fr); } }
+/* Phones: tool cards become compact rows (chips + title, one-line summary, arrow) so 26 tools fit in a short scroll. */
+@media(max-width:600px) { .imo-browser-tools__grid { gap:8px; } .imo-browser-tools__card { flex-direction:row; flex-wrap:wrap; align-items:center; gap:6px 10px; padding:12px 40px 12px 14px; } .imo-browser-tools__card:hover { transform:none; } .imo-browser-tools__card strong { flex:1 1 auto; font-size:1rem; } .imo-browser-tools__desc { flex-basis:100%; -webkit-line-clamp:1; line-clamp:1; font-size:12.5px; } .imo-browser-tools__open { position:absolute; top:50%; right:14px; margin:0; padding:0; font-size:0; transform:translateY(-50%); } .imo-browser-tools__open span { font-size:18px; } .imo-browser-tools__glyph { width:26px; height:26px; } }
 @media(prefers-reduced-motion:reduce) { .imo-browser-tools__card, .imo-browser-tools__open span { transition:none; } .imo-browser-tools__card:hover { transform:none; } }
 
 @media (max-width: 1199px) {
@@ -650,7 +706,7 @@ body.imo-body::after {
 .imo-file-drop__file { display: grid; gap: 2px; min-width: 0; }
 .imo-file-drop__file strong { color: var(--imo-text); font-size: 1.05rem; overflow-wrap: anywhere; }
 .imo-file-drop__file span { color: var(--imo-text-muted); font-size: .85rem; }
-.imo-file-drop__hint { grid-column: 1 / -1; color: var(--imo-text-secondary); font-size: .95rem; }
+.imo-file-drop__hint { display: block; position: relative; z-index: 1; margin: 0 24px 24px; color: var(--imo-text-secondary); font-size: .95rem; }
 .imo-file-drop__clear {
   grid-column: 1 / -1;
   justify-self: start;
@@ -803,3 +859,58 @@ body.imo-body::after {
 @media (max-width: 380px) {
   .imo-header .imo-nav.is-open { grid-template-columns: minmax(0, 1fr); }
 }
+/* Studio's guide takes Studio's colour. */
+.imo-workbench[data-product="studio"] ~ #application-guide .imo-application-guide { --landing-accent: var(--imo-p-studio); }
+
+/* "Use OfficeIMO another way" (partials/sections/surface-switcher): the other surfaces, coloured like the home page cards. */
+.imo-switcher { padding-block: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 3vw, 2.5rem); }
+.imo-switcher__head { margin-bottom: 1.1rem; }
+.imo-switcher__head h2 { margin: 0; font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem); }
+.imo-switcher__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.imo-switcher__card {
+  --s: var(--imo-accent);
+  position: relative; display: flex; flex-direction: column; gap: .5rem; min-height: 150px; padding: 1.15rem 1.2rem 1rem; overflow: hidden;
+  border: 1px solid var(--imo-border); border-radius: 14px; text-decoration: none; color: var(--imo-text);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--s) 12%, var(--imo-surface)), var(--imo-surface) 55%);
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.imo-switcher__card::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--s); }
+.imo-switcher__card:hover { border-color: color-mix(in srgb, var(--s) 50%, var(--imo-border)); transform: translateY(-2px); box-shadow: 0 18px 40px -30px color-mix(in srgb, var(--s) 80%, transparent); }
+.imo-switcher__card:focus-visible { outline: 2px solid var(--s); outline-offset: 3px; }
+.imo-switcher__card b { font-family: var(--imo-font-display); font-size: 1.2rem; }
+.imo-switcher__card span { font-size: .9rem; line-height: 1.55; color: var(--imo-text-secondary); }
+.imo-switcher__card em { margin-top: auto; font-style: normal; font-weight: 700; font-size: .88rem; color: var(--s); }
+.imo-switcher__card--studio { --s: var(--imo-p-studio); }
+.imo-switcher__card--browser { --s: var(--imo-p-browser); }
+.imo-switcher__card--cli { --s: var(--imo-p-cli); }
+.imo-switcher__card--dotnet { --s: var(--imo-p-dotnet); }
+.imo-switcher__card--powershell { --s: var(--imo-p-powershell); }
+@media (prefers-reduced-motion: reduce) { .imo-switcher__card { transition: none; } .imo-switcher__card:hover { transform: none; } }
+/* Download platform cards inside landing content (studio.md "Get Studio"). */
+.imo-platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 1rem 0 1.25rem; }
+.markdown-body .imo-platform, .imo-platform {
+  display: grid; gap: 4px; padding: 16px 18px; border-radius: 12px; text-decoration: none; color: var(--imo-text);
+  border: 1px solid var(--imo-border); background: linear-gradient(160deg, color-mix(in srgb, var(--landing-accent, var(--imo-accent)) 10%, var(--imo-surface)), var(--imo-surface) 60%);
+  transition: border-color .2s ease, transform .2s ease;
+}
+.imo-platform:hover { border-color: color-mix(in srgb, var(--landing-accent, var(--imo-accent)) 50%, var(--imo-border)); transform: translateY(-1px); }
+.imo-platform b { font-family: var(--imo-font-display); font-size: 1.15rem; }
+.imo-platform b::after { content: " →"; color: var(--imo-text-muted); }
+.imo-platform span { font-size: .9rem; color: var(--imo-text-secondary); }
+.imo-platform small { font-size: .78rem; color: var(--imo-text-muted); }
+/* Solution pages: short prose sections as numbered principle cards (site.js initSectionCards). */
+.imo-section-cards { counter-reset: imo-section-card; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 2rem 0 1.5rem; }
+.markdown-body .imo-section-card { counter-increment: imo-section-card; position: relative; padding: 1.25rem 1.3rem 1.1rem; border: 1px solid var(--imo-border); border-radius: 14px; background: linear-gradient(170deg, color-mix(in srgb, var(--imo-accent) 7%, var(--imo-surface)), var(--imo-surface) 60%); }
+.markdown-body .imo-section-card > h2 { margin: 0 0 .6rem; padding: 0; border: 0; font-size: 1.12rem; line-height: 1.35; }
+.markdown-body .imo-section-card > h2::before { content: counter(imo-section-card, decimal-leading-zero); display: block; margin-bottom: .45rem; font-family: var(--imo-font-mono); font-size: .72rem; font-weight: 700; letter-spacing: .08em; color: var(--imo-accent); }
+.markdown-body .imo-section-card > p { margin: 0 0 .6rem; font-size: .92rem; line-height: 1.65; color: var(--imo-text-secondary); }
+.markdown-body .imo-section-card > p:last-child { margin-bottom: 0; }
+@media (max-width: 760px) { .imo-section-cards { grid-template-columns: minmax(0, 1fr); } }
+/* Feature cards whose term is a link: the whole card opens it; links inside the text stay clickable. */
+.markdown-body > ul.imo-features > li.imo-features__item--link { position: relative; padding-right: 2.2rem; }
+.markdown-body > ul.imo-features > li.imo-features__item--link > a.imo-features__title { color: var(--imo-text); text-decoration: none; font-weight: 700; }
+.markdown-body > ul.imo-features > li.imo-features__item--link > a.imo-features__title::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.markdown-body > ul.imo-features > li.imo-features__item--link::after { content: "→"; position: absolute; top: 14px; right: 16px; color: var(--imo-text-muted); transition: transform .2s ease, color .2s ease; }
+.markdown-body > ul.imo-features > li.imo-features__item--link:hover::after { color: var(--landing-accent, var(--imo-accent)); transform: translateX(2px); }
+.markdown-body > ul.imo-features > li.imo-features__item--link .imo-features__text a { position: relative; z-index: 1; }
+.markdown-body > ul.imo-features > li.imo-features__item--link > a.imo-features__title:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; border-radius: 4px; }

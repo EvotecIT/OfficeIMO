@@ -84,7 +84,7 @@ internal static class OfficeProvenanceZip {
                     OfficeProvenanceCarrierKind.C2paManifest,
                     $"ZIP/{ManifestPath}[{index++}]",
                     valid,
-                    manifest.Length));
+                    manifest.Length).WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
                 continue;
             }
             if (!options.ProcessEmbeddedAssets ||
@@ -1157,7 +1157,7 @@ internal static class OfficeProvenanceZip {
             evidence.IsStructurallyValid,
             evidence.PayloadLength,
             evidence.Value,
-            evidence.DigitalSourceKind);
+            evidence.DigitalSourceKind).WithManifest(evidence.Manifest);
 
     private static byte[] ReadEntry(ZipArchiveEntry entry, int length, CancellationToken cancellationToken = default) {
         byte[] data = new byte[length];

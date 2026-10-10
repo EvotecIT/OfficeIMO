@@ -4,9 +4,7 @@ using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Layout and geometry helpers for Visio pages, shapes, and selections.
-    /// </summary>
+    // Layout and geometry helpers for Visio pages, shapes, and selections.
     public static partial class VisioLayoutExtensions {
         /// <summary>
         /// Moves connector label boxes away from page edges, unrelated shapes, and previously placed connector labels.

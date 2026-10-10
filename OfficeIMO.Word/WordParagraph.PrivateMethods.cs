@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Contains private helper methods for WordParagraph.
-    /// </summary>
+    // Contains private helper methods for WordParagraph.
     public partial class WordParagraph {
         /// <summary>
         /// Checks which document story owns the paragraph.

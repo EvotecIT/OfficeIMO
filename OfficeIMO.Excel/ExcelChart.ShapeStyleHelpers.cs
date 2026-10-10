@@ -9,9 +9,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Represents a chart on a worksheet.
-    /// </summary>
+    // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
         private static void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
             string? lineColor, double? lineWidthPoints) {

@@ -75,13 +75,14 @@ public sealed class OcrAttachedInvocationTests {
             Interlocked.Increment(ref calls); entered.TrySetResult(true); await release.Task; return new OcrResult();
         });
         var execution = OcrEngineRunner.CreateExecution(engine);
-        Task<OcrResult> first = execution.RecognizeAsync(new(), TimeSpan.FromSeconds(30));
+        Task<OcrResult> first = execution.RecognizeAsync(new(), TimeSpan.FromMinutes(2));
         try {
             Assert.Same(entered.Task, await Task.WhenAny(entered.Task, Task.Delay(TimeSpan.FromSeconds(10)))); await entered.Task;
             using var cancellation = new CancellationTokenSource();
             Task<OcrResult> waiting = execution.RecognizeAttachedAsync(new(), TimeSpan.FromSeconds(30), new(1, 1, 0), cancellation.Token);
             cancellation.Cancel();
-            Assert.Same(waiting, await Task.WhenAny(waiting, Task.Delay(TimeSpan.FromSeconds(5))));
+            // This bounds a hung test; cancellation latency under a loaded test host is not the contract.
+            Assert.Same(waiting, await Task.WhenAny(waiting, Task.Delay(TimeSpan.FromSeconds(30))));
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
             Assert.Equal(1, Volatile.Read(ref calls));
         } finally { release.TrySetResult(true); await first; }

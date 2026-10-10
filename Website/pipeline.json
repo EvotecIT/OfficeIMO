@@ -155,9 +155,25 @@
     },
     {
       "task": "exec",
-      "id": "test-documentation-contracts",
+      "id": "test-api-cross-links",
       "dependsOn": [
         "test-showcase-walkthroughs"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-ApiCrossLinks.ps1",
+        "-Check"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-documentation-contracts",
+      "dependsOn": [
+        "test-api-cross-links"
       ],
       "command": "pwsh",
       "argsList": [
@@ -1512,7 +1528,7 @@
       "injectCriticalCss": true,
       "quickStartTypes": "WordDocument,WordParagraph,WordTable,WordSection",
       "packageId": "OfficeIMO.Word",
-      "relatedContentManifest": "./data/apidocs/word-guides.json"
+      "relatedContentManifests": ["./data/apidocs/word-guides.json", "./data/apidocs/related/word.json"]
     },
     {
       "task": "apidocs",
@@ -1546,7 +1562,7 @@
       "injectCriticalCss": true,
       "quickStartTypes": "ExcelDocument,ExcelSheet",
       "packageId": "OfficeIMO.Excel",
-      "relatedContentManifest": "./data/apidocs/excel-guides.json"
+      "relatedContentManifests": ["./data/apidocs/excel-guides.json", "./data/apidocs/related/excel.json"]
     },
     {
       "task": "apidocs",
@@ -1577,7 +1593,7 @@
       "injectCriticalCss": true,
       "quickStartTypes": "MarkdownDoc,MarkdownNativeDocument",
       "packageId": "OfficeIMO.Markdown",
-      "relatedContentManifest": "./data/apidocs/markdown-guides.json"
+      "relatedContentManifests": ["./data/apidocs/markdown-guides.json", "./data/apidocs/related/markdown.json"]
     },
     {
       "task": "apidocs",
@@ -1608,7 +1624,7 @@
       "injectCriticalCss": true,
       "quickStartTypes": "PowerPointPresentation",
       "packageId": "OfficeIMO.PowerPoint",
-      "relatedContentManifest": "./data/apidocs/powerpoint-guides.json"
+      "relatedContentManifests": ["./data/apidocs/powerpoint-guides.json", "./data/apidocs/related/powerpoint.json"]
     },
     {
       "task": "apidocs",
@@ -1623,6 +1639,7 @@
       "out": "./_site/api/csv",
       "title": "OfficeIMO.CSV API Reference",
       "baseUrl": "/api/csv",
+      "relatedContentManifests": ["./data/apidocs/related/csv.json"],
       "docsHome": "/docs/csv/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1652,6 +1669,7 @@
       "out": "./_site/api/visio",
       "title": "OfficeIMO.Visio API Reference",
       "baseUrl": "/api/visio",
+      "relatedContentManifests": ["./data/apidocs/related/visio.json"],
       "docsHome": "/docs/visio/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1697,7 +1715,7 @@
       "injectCriticalCss": true,
       "quickStartTypes": "PdfDocument",
       "packageId": "OfficeIMO.Pdf",
-      "relatedContentManifest": "./data/apidocs/pdf-guides.json"
+      "relatedContentManifests": ["./data/apidocs/pdf-guides.json", "./data/apidocs/related/pdf.json"]
     },
     {
       "task": "apidocs",
@@ -1712,6 +1730,7 @@
       "out": "./_site/api/html",
       "title": "OfficeIMO.Html API Reference",
       "baseUrl": "/api/html",
+      "relatedContentManifests": ["./data/apidocs/related/html.json"],
       "docsHome": "/docs/html/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1857,6 +1876,7 @@
       "out": "./_site/api/email",
       "title": "OfficeIMO.Email API Reference",
       "baseUrl": "/api/email",
+      "relatedContentManifests": ["./data/apidocs/related/email.json"],
       "docsHome": "/docs/email/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1886,6 +1906,7 @@
       "out": "./_site/api/onenote",
       "title": "OfficeIMO.OneNote API Reference",
       "baseUrl": "/api/onenote",
+      "relatedContentManifests": ["./data/apidocs/related/onenote.json"],
       "docsHome": "/docs/onenote/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1915,6 +1936,7 @@
       "out": "./_site/api/open-document",
       "title": "OfficeIMO.OpenDocument API Reference",
       "baseUrl": "/api/open-document",
+      "relatedContentManifests": ["./data/apidocs/related/open-document.json"],
       "docsHome": "/docs/open-document/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1944,6 +1966,7 @@
       "out": "./_site/api/google-workspace",
       "title": "OfficeIMO.GoogleWorkspace API Reference",
       "baseUrl": "/api/google-workspace",
+      "relatedContentManifests": ["./data/apidocs/related/google-workspace.json"],
       "docsHome": "/docs/google-workspace/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -1973,6 +1996,7 @@
       "out": "./_site/api/google-workspace-drive",
       "title": "OfficeIMO.GoogleWorkspace.Drive API Reference",
       "baseUrl": "/api/google-workspace-drive",
+      "relatedContentManifests": ["./data/apidocs/related/google-workspace-drive.json"],
       "docsHome": "/docs/google-workspace/drive/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -2002,6 +2026,7 @@
       "out": "./_site/api/google-workspace-auth",
       "title": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis API Reference",
       "baseUrl": "/api/google-workspace-auth",
+      "relatedContentManifests": ["./data/apidocs/related/google-workspace-auth.json"],
       "docsHome": "/docs/google-workspace/authentication/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -2031,6 +2056,7 @@
       "out": "./_site/api/google-workspace-sync",
       "title": "OfficeIMO.GoogleWorkspace.Sync API Reference",
       "baseUrl": "/api/google-workspace-sync",
+      "relatedContentManifests": ["./data/apidocs/related/google-workspace-sync.json"],
       "docsHome": "/docs/google-workspace/sync/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -2060,6 +2086,7 @@
       "out": "./_site/api/reader",
       "title": "OfficeIMO.Reader.Core API Reference",
       "baseUrl": "/api/reader",
+      "relatedContentManifests": ["./data/apidocs/related/reader.json"],
       "docsHome": "/docs/reader/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -2089,6 +2116,7 @@
       "out": "./_site/api/ocr",
       "title": "OfficeIMO.Ocr API Reference",
       "baseUrl": "/api/ocr",
+      "relatedContentManifests": ["./data/apidocs/related/ocr.json"],
       "docsHome": "/docs/capabilities/packages/",
       "format": "both",
       "legacyAliasMode": "omit",
@@ -2237,6 +2265,7 @@
       "out": "./_site/api/powershell",
       "title": "PSWriteOffice Cmdlet Reference",
       "baseUrl": "/api/powershell",
+      "relatedContentManifests": ["./data/apidocs/related/powershell.json"],
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -3997,6 +4026,7 @@
       "siteRoot": "./_site",
       "config": "./site.json",
       "criticalCss": "./themes/officeimo/critical.css",
+      "cssStrategy": "preload",
       "minifyHtml": true,
       "htmlExclude": [
         "downloads/showcase/**"

@@ -864,7 +864,7 @@
 
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 0.55rem;
   margin-top: 0.72rem;
   max-width: 1040px;
@@ -932,7 +932,8 @@
   font-size: 0.9rem;
   line-height: 1.18;
   color: var(--imo-text);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 .quick-card p {
@@ -944,7 +945,11 @@
 }
 
 .namespace-group {
-  margin-bottom: 1.2rem;
+  margin-bottom: 0.9rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 14px;
+  background: var(--imo-bg-elevated);
 }
 
 .namespace-group h3 {
@@ -954,9 +959,11 @@
 }
 
 .namespace-group h3 .count {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--imo-text-secondary);
+  margin-left: 0.3rem;
+  font-family: var(--imo-font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--imo-text-muted);
 }
 
 .member-toolbar {
@@ -1962,4 +1969,302 @@
 
   .member-header,
   .type-title-row { flex-direction: column; }
+
+  .type-title-row { align-items: flex-start; }
+}
+
+/* Type pages: one eyebrow, badge, button and source style shared with the docs pages.
+   The reference rail and page-level heading sizes live with the shell in site-shell.css. */
+.member-kind,
+.member-expand-all,
+.member-collapse-all,
+.member-reset,
+.type-source-action {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.api-overview-header .ev-eyebrow,
+.type-header .ev-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--imo-accent);
+}
+
+.type-title-row .type-badge {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.type-actions {
+  align-self: center;
+}
+
+.type-source-action {
+  text-decoration: none;
+}
+
+.member-section-toggle svg {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--imo-duration) var(--imo-ease);
+}
+
+.member-section:not(.collapsed) .member-section-toggle svg {
+  transform: rotate(90deg);
+}
+
+/* Inheritance reads as one chain rather than a stack of rows. */
+.type-inheritance {
+  padding: 0.7rem 0.9rem;
+}
+
+.inheritance-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1.35rem;
+  margin: 0;
+  list-style: none;
+}
+
+.inheritance-list li {
+  position: relative;
+  min-height: 0;
+  padding: 0.22rem 0.6rem;
+  font-family: var(--imo-font-mono);
+  font-size: 0.8rem;
+}
+
+.inheritance-list li + li::before {
+  content: "\203A";
+  position: absolute;
+  left: -0.95rem;
+  color: var(--imo-text-muted);
+}
+
+.inheritance-list .inheritance-current {
+  color: var(--imo-text);
+  border-color: color-mix(in srgb, var(--imo-accent) 45%, var(--imo-border));
+}
+
+/* Source locations are short file links; the repository path is the tooltip. */
+.source-link {
+  font-family: var(--imo-font-mono);
+  font-size: 0.76rem;
+  color: var(--imo-text-muted);
+  text-decoration: none;
+}
+
+a.source-link:hover {
+  color: var(--imo-accent);
+  text-decoration: underline;
+}
+
+.type-meta-row .source-link {
+  font-size: 0.82rem;
+}
+
+.usage-count {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--imo-accent) 14%, transparent);
+  color: var(--imo-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+/* Package overview: header actions, capped namespace lists. */
+.type-chip[hidden] {
+  display: none;
+}
+
+.api-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.api-overview-actions .api-overview-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.2rem;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--imo-text);
+  transition: border-color var(--imo-duration) var(--imo-ease), background var(--imo-duration) var(--imo-ease);
+}
+
+.api-overview-actions .api-overview-action:hover {
+  border-color: color-mix(in srgb, var(--imo-accent) 55%, var(--imo-border));
+  color: var(--imo-text);
+}
+
+.api-overview-actions .api-overview-action--guide {
+  border-color: transparent;
+  background: var(--imo-accent);
+  color: var(--imo-on-accent, #fff);
+}
+
+.api-overview-actions .api-overview-action--guide:hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--imo-accent) 85%, black);
+  color: var(--imo-on-accent, #fff);
+}
+
+.api-overview-actions .api-overview-install {
+  padding: 0.38rem 0.7rem;
+  border: 1px dashed var(--imo-border);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.78rem;
+  color: var(--imo-text-secondary);
+  user-select: all;
+}
+
+.namespace-group-actions .overview-group-toggle {
+  font-size: 0.78rem;
+}
+/* Aliases sit under the cmdlet name instead of widening the icon column. */
+.type-chip .type-chip-meta {
+  grid-column: 2 / -1;
+  font-size: 0.72rem;
+  color: var(--imo-text-muted);
+}
+
+/* .NET parameters read as a plain list: name and type on one line, description under it.
+   Position and required chips only mean something for cmdlets. */
+.pf-api-docs:not(.pf-api-docs--powershell) .param-list {
+  display: block;
+  margin: 0.35rem 0 0;
+  padding: 0.55rem 0 0;
+  border-top: 1px solid var(--imo-border);
+}
+
+.pf-api-docs:not(.pf-api-docs--powershell) .param-list dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.55rem;
+  min-height: 0;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.pf-api-docs:not(.pf-api-docs--powershell) .param-list dt:first-child {
+  margin-top: 0;
+}
+
+.pf-api-docs:not(.pf-api-docs--powershell) .param-list dt > span {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.pf-api-docs:not(.pf-api-docs--powershell) .param-list dd {
+  margin: 0.1rem 0 0;
+  padding: 0;
+  color: var(--imo-text-secondary);
+}
+
+.pf-api-docs:not(.pf-api-docs--powershell) .param-name {
+  font-family: var(--imo-font-mono);
+  font-size: 0.82rem;
+}
+
+.pf-api-docs:not(.pf-api-docs--powershell) .param-type,
+.pf-api-docs:not(.pf-api-docs--powershell) .param-default {
+  font-family: var(--imo-font-mono);
+  font-size: 0.74rem;
+  color: var(--imo-text-muted);
+}
+
+.pf-api-docs:not(.pf-api-docs--powershell) .param-meta {
+  display: none;
+}
+/* The usage index opens from a button-like summary. */
+.type-usage-details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--imo-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--imo-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.type-usage-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.type-usage-details > summary::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--imo-duration) var(--imo-ease);
+}
+
+.type-usage-details[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.type-usage-details > summary:hover {
+  border-color: color-mix(in srgb, var(--imo-accent) 55%, var(--imo-border));
+}
+
+.type-usage-details[open] > summary {
+  margin-bottom: 0.75rem;
+}
+/* Usage entries: compact two-column index with the member kind as a small label. */
+.pf-api-docs .usage-list {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.3rem 1.2rem;
+}
+
+.pf-api-docs .usage-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 0.86rem;
+}
+
+.pf-api-docs .usage-kind {
+  flex: 0 0 4.6rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--imo-text-muted);
+}
+
+.pf-api-docs .usage-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

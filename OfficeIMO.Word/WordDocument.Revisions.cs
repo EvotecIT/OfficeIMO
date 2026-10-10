@@ -3,9 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Handles revisions within the document.
-    /// </summary>
+    // Handles revisions within the document.
     public partial class WordDocument {
 
         /// <summary>

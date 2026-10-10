@@ -10,12 +10,13 @@ internal static class PdfProvenanceGraphEditor {
         PdfLoadOptions? readOptions,
         long maximumOutputBytes,
         HashSet<int>? embeddedFileObjectNumbers = null,
+        bool rewriteHistory = false,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(fileSpecificationObjectNumbers, nameof(fileSpecificationObjectNumbers));
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        if (fileSpecificationObjectNumbers.Count == 0) return (byte[])pdf.Clone();
+        if (fileSpecificationObjectNumbers.Count == 0 && !rewriteHistory) return (byte[])pdf.Clone();
         _ = PdfMutationPlanner.RequireFullRewriteDocument(
             pdf,
             PdfMutationOperation.ModifyAttachments,
