@@ -60,7 +60,7 @@ internal static class PublisherDrawingFixture {
                 entries.AddRange(values.Select(item => (item.Key, item.Value, (byte[]?)null)));
                 if (complexValues != null)
                     entries.AddRange(complexValues.Select(item => ((ushort)(item.Key | 0x8000),
-                        (uint)(item.Value.Length - (arrayLengthsExcludeHeader && item.Key is 0x145 or 0x146 or 0x197 ? 6 : 0)),
+                        (uint)(item.Value.Length - (arrayLengthsExcludeHeader && item.Key is 0x145 or 0x146 or 0x156 or 0x197 ? 6 : 0)),
                         (byte[]?)item.Value)));
                 entries = entries.OrderBy(item => item.Op & 0x3FFF).ToList();
                 using var data = new MemoryStream(); using var properties = new BinaryWriter(data);

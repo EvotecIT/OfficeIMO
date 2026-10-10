@@ -27,7 +27,7 @@ they are not produced by an OfficeIMO writer.
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | `PublisherPage.Tables` exposes native tracks, spans, styled paragraphs, text and placement; master tables remain on their owner | Unresolved text mappings retain the grid with `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
-| Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Guide references, advanced commands and separate paint groups retain an explicit fallback; shared nonzero winding and native appearance remain unqualified |
+| Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; decorations on unsupported open geometry are omitted |
 | Groups | Native child coordinate spaces, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
@@ -112,12 +112,23 @@ outlines and other markers as filled geometry. Marker dimensions and native dash
 rendering remain unqualified against Publisher-produced output.
 Custom-path record mutations check coordinate offsets, compact vertices,
 line/cubic command consumption, subpaths, paint controls, malformed arrays,
-guide/command fallback reports and inset picture masks. High-coordinate
+guide/command fallback reports and inset picture masks. SG guide checks cover
+all 17 stored formula identifiers, unsigned constants, signed adjustment values,
+geometry-space centres and dimensions, stroke use masks, physical frame EMUs,
+backward references, fixed-point degrees and the 128-record ceiling.
+Device-pixel operands require an output-device context and retain a reported
+fallback. Malformed references, division by zero, invalid square roots and
+32-bit overflow also retain fallback evidence without partial custom artwork.
+Integer rounding follows the corresponding [VML formula contract](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.vml.formula):
+products round to nearest with ties toward positive infinity, averages truncate
+toward zero, and inexact operations floor their results. These managed checks
+do not qualify Publisher's rounding or discontinuous guide behaviour.
+High-coordinate
 shape/mask checks retain the full unsigned compact range;
 eight-byte coordinates retain signed negative values. Shared array decoding
 preserves following complex properties when native lengths exclude their
 six-byte headers, including empty arrays. Cumulative limits account for decoded vertices/segments,
-expanded commands and copied shape/mask paths. The producer corpus has no custom
+evaluated guides, expanded commands and copied shape/mask paths. The producer corpus has no custom
 paths; these managed scene and SVG/raster/PDF checks do not establish native
 Publisher winding or mask fidelity.
 Native linear-fill mutations check physical and aspect-scaled angles, positive

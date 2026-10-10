@@ -10,6 +10,7 @@ public partial class DrawingTests {
     [InlineData(0x0145, 4)]
     [InlineData(0x0145, 0xFFF0)]
     [InlineData(0x0146, 2)]
+    [InlineData(0x0156, 8)]
     [InlineData(0x0197, 8)]
     public void OfficeArtPropertyTableReader_ArrayLengthExcludingHeaderPreservesTheFollowingProperty(ushort id, int elementSize) {
         int stride = elementSize == 0xFFF0 ? 4 : elementSize;
@@ -36,6 +37,7 @@ public partial class DrawingTests {
     [InlineData(0x0145, 4)]
     [InlineData(0x0145, 0xFFF0)]
     [InlineData(0x0146, 2)]
+    [InlineData(0x0156, 8)]
     [InlineData(0x0197, 8)]
     public void OfficeArtPropertyTableReader_EmptyArrayHeaderPreservesTheFollowingProperty(ushort id, ushort elementSize) {
         byte[] name = Encoding.Unicode.GetBytes("After");
