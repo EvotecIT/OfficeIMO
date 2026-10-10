@@ -1,6 +1,6 @@
 # OfficeIMO.IWork - Apple iWork reading and native creation for .NET
 
-`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and creates native Keynote presentations and Pages body documents without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and creates native Keynote presentations, Pages body documents and Numbers scalar-table spreadsheets without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
 ## Reference from a source checkout
 
@@ -54,7 +54,7 @@ Each axis supports 1–256 cells. Tables use equal row heights and column widths
 
 `IWorkKeynoteWriteOptions` limits slides, total text boxes and retained character runs, UTF-16 text length, image count, combined encoded/RGBA image bytes and package/intermediate archive size. Image limits count each instance, including repeated payloads; Core image validation also bounds each input. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
 
-The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. The [rich-run reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) adds Helvetica Neue, character decorations and resets, mixed font sizes/colors and Unicode ranges. The [image reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies PNG alpha, JPEG stretching, stacking and accessibility descriptions, with native PPTX/PDF exports and an image edit/save/reopen check. These qualify their recorded fixtures and font environment. Other native versions, fonts/scripts, image transformations, broader table formatting, transitions, builds and editing loaded packages remain outside this evidence. Native Numbers writing is unsupported.
+The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. The [rich-run reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) adds Helvetica Neue, character decorations and resets, mixed font sizes/colors and Unicode ranges. The [image reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies PNG alpha, JPEG stretching, stacking and accessibility descriptions, with native PPTX/PDF exports and an image edit/save/reopen check. These qualify their recorded fixtures and font environment. Other native versions, fonts/scripts, image transformations, broader table formatting, transitions, builds and editing loaded packages remain outside this evidence.
 
 ## Create a native Pages body document
 
@@ -77,6 +77,29 @@ The writer creates its own native document, section, theme, style and text-stora
 `IWorkPagesWriteOptions` bounds paragraphs, retained runs, UTF-16 body characters including terminators, and encoded package/intermediate archive bytes. Byte, caller-stream and atomic path saves accept cancellation and use the same package and file-commit owners as Keynote creation. Encoding completes before stream copying or file staging. Stream saves leave the caller's stream open; copy failure or cancellation can leave partial stream output. File staging failure preserves an existing destination.
 
 The [Pages creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.json) records independent decoding of the complete graph and native Pages 15.4 open, edit, save, close/reopen and PDF/DOCX export. Both PDF pages are inspected. Native Pages/PDF and strict saved OfficeIMO DOCX retain the recorded rich formatting. Apple's DOCX export agrees on text and page settings but changes selected font runs and bold/italic overrides; equivalent DOCX typography is outside that reference. Lists, tables, images, custom headers/footers, additional section layouts and editing loaded native sources are unsupported by this creation model.
+
+## Create a native Numbers spreadsheet
+
+```csharp
+using OfficeIMO.IWork;
+
+var spreadsheet = IWorkNumbersDocument.Create();
+var sheet = spreadsheet.AddSheet("Budget");
+var values = IWorkTableData.Create(2, 3)
+    .SetText(1, 1, "Product").SetText(1, 2, "Amount").SetText(1, 3, "Active")
+    .SetText(2, 1, "Widget").SetNumber(2, 2, 1200.5).SetBoolean(2, 3, true);
+sheet.AddTable(values, "Sales", leftPoints: 40, topPoints: 80,
+    columnWidthPoints: 130, rowHeightPoints: 36, fontSizePoints: 14);
+spreadsheet.Save("budget.numbers");
+```
+
+The writer creates its own document, calculation metadata, sheet/sidebar, table, styles and hidden header/footer graph. It reuses the shared scalar table codec, native package encoder and Core atomic-file owner. Add at least one sheet and one table to each sheet. Sheet names are unique across the document; table names are unique within their sheet, compared without case. Names contain 1–128 UTF-16 code units and no control characters. Added tables snapshot their input data; their exposed collections are read-only.
+
+Each table supports 1–256 positions on either axis, equal positive row/column dimensions and finite positions in points. Cells share a requested font, size and opaque sRGB color, white fills, black one-point borders, wrapping and four-point padding. Text, finite numbers, booleans and unset empty positions remain distinct; text beginning with `=` is literal. Formulas, selected number formats, comments, merges, headers, rich cell text, images and editing loaded sources are unsupported by this creation model.
+
+`IWorkNumbersWriteOptions` bounds sheets, combined tables, dense grid positions including unset cells, combined UTF-16 sheet/table names and cell text, and package/intermediate bytes. Encoding and validation finish before copying or atomic path staging. Stream saves write at the current position and leave the caller open; copying failures can leave partial stream data. Path saves reject existing destinations unless `overwrite: true` is supplied and preserve the existing file after failed staging. Save operations accept cancellation. Creation instances are not thread safe.
+
+The [Numbers creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5.json) records independent decoding of all 108 objects and native Numbers 14.5 open, numeric edit, save, close/reopen and PDF/XLSX export. Both sheets and both PDF pages are inspected. Strict saved/reopened OfficeIMO XLSX retains all three tables and their typed values, including Polish text, emoji, booleans, literal equals-sign text and a completely empty grid. Apple's empty-table Excel placement differs from the table-relative OfficeIMO output; this reference does not qualify equivalent Excel positioning or appearance. Other versions, fonts, scripts, layouts and runtime architectures require additional qualification.
 
 ## Read and inspect a source
 
@@ -233,7 +256,7 @@ Qualified cross-table cell and rectangular-range references remain incomplete un
 
 Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports expose source payloads through `PreservedRecords` when `PreserveSourceRecords` is enabled. `PreservedRecordCount` counts source payloads regardless of that detail setting. `UnassessedRecordCount` includes consumed and auxiliary records whose field-level fidelity has not been assessed; it is not an omission count. `IWORK_RECORD_FIDELITY_UNASSESSED` uses `OfficeConversionLossKind.Unassessed`, so strict no-loss policies reject it without claiming those records are missing content. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
 
-Loaded Pages, Numbers and Keynote packages remain read-only. Native Keynote creation uses the separate `IWorkKeynoteDocument` model; it does not provide save-back or preservation of edited source packages.
+Loaded Pages, Numbers and Keynote packages remain read-only. Native creation uses separate `IWorkKeynoteDocument`, `IWorkPagesDocument` and `IWorkNumbersDocument` models; these do not provide save-back or preservation of edited source packages.
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
 

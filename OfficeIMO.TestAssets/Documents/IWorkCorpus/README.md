@@ -1,6 +1,6 @@
 # iWork reader corpus
 
-These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote and Pages fixtures qualify their bounded creation models.
+These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote, Pages and Numbers fixtures qualify their bounded creation models.
 
 | Folder | Upstream | Revision | Producer evidence | License |
 |---|---|---|---|---|
@@ -13,6 +13,18 @@ These package fixtures prove the bounded Pages, Numbers, and Keynote reader agai
 The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-PARTY-NOTICES.md`. Fixture provenance and expected semantic assertions live beside the executable corpus tests in `OfficeIMO.IWork.Tests`.
 
 The parameterized independent-corpus output check converts all 12 fixtures listed by `IWorkCorpusTests.Corpus` to editable DOCX, XLSX or PPTX, saves and reopens the result, and validates the destination Open XML schema. It explicitly accepts partial reconstruction and normalizes worksheet names. This gate catches invalid destination packages; separate semantic tests establish supported content. Passing it does not qualify native application rendering, pagination or complete document fidelity.
+
+## Native Numbers scalar-table creation
+
+The [Numbers creation manifest](native-exports/numbers-created-v14.5.json) pins a template-free OfficeIMO two-sheet/three-table spreadsheet, its native Numbers 14.5 numeric edit/save/close/reopen, and PDF/XLSX exports. `IWorkNumbersWritingTests.Example()` reproduces the frozen input with scalar text, finite numbers, booleans, Polish text, emoji, an inline LF, literal `=` text and a completely empty 2-by-3 table. Both native PDF pages are inspected. These are newly authored MIT fixtures; no seed archive or standalone font is distributed.
+
+`numbers-created-graph-v14.5.json` independently decodes all 108 objects with complete required fields and object references, typed scalar tiles/catalogs, style networks, ordered sidebar/sheet tables, modern custom-format references and mandatory blank header/footer storages. Reproduce it with the manifest's pinned protobuf descriptor and isolated numbers-parser version:
+
+```sh
+python Build/IWork/verify-numbers-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5.numbers --descriptor <numbers-descriptor.pb> --out <graph.json>
+```
+
+Native readback and strict saved/reopened OfficeIMO XLSX retain all tables and typed values after B2 changes from 12.5 to 20.75. The populated tables agree with Apple's XLSX export. Apple's empty-grid positioning is B2:D3; the adapter produces a table-relative A1:C2 grid. Exact Excel positioning and appearance, broader authored objects, formulas, formats, comments, other native versions and fonts/scripts remain unqualified.
 
 ## Native Pages body creation
 

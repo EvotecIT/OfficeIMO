@@ -14,7 +14,7 @@ from zipfile import ZipFile
 
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory
 from iwork_protobuf_evidence import fields, creation_records as records, creation_references as references
-from keynote_table_creation_evidence import verify_tables
+from iwork_table_creation_evidence import verify_tables
 
 SCHEMAS = {1: 'KN.DocumentArchive', 11006: 'TSP.PackageMetadata', 2: 'KN.ShowArchive',
     10: 'KN.ThemeArchive', 401: 'TSS.StylesheetArchive', 2021: 'TSWP.CharacterStyleArchive',

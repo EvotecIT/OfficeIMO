@@ -1,0 +1,140 @@
+{
+  "title": "Template-free native Numbers scalar-table creation",
+  "recordedUtc": "2026-10-09T23:52:33.995053+00:00",
+  "license": "Newly authored OfficeIMO fixtures and evidence use the repository MIT license; no seed package or standalone fonts are distributed.",
+  "producer": {
+    "application": "Numbers",
+    "version": "14.5",
+    "build": "7045.0.17",
+    "operatingSystem": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "sheets": [
+      "Budget",
+      "Empty grid"
+    ],
+    "tables": [
+      {
+        "name": "Data",
+        "rows": 4,
+        "columns": 4,
+        "positionPoints": [
+          40,
+          80
+        ],
+        "columnWidthPoints": 130,
+        "rowHeightPoints": 36,
+        "font": "Arial",
+        "fontSizePoints": 14,
+        "color": "003366"
+      },
+      {
+        "name": "Totals",
+        "rows": 2,
+        "columns": 2,
+        "positionPoints": [
+          40,
+          300
+        ],
+        "columnWidthPoints": 130,
+        "rowHeightPoints": 36,
+        "font": "Arial",
+        "fontSizePoints": 12,
+        "color": "000000"
+      },
+      {
+        "name": "Empty",
+        "rows": 2,
+        "columns": 3,
+        "positionPoints": [
+          30,
+          40
+        ],
+        "columnWidthPoints": 80,
+        "rowHeightPoints": 28,
+        "font": "Arial",
+        "fontSizePoints": 12,
+        "color": "000000"
+      }
+    ],
+    "values": "Finite numeric scalars, booleans, plain Unicode text including Polish/non-BMP emoji, literal equals-prefixed text, multiline text and unset empty positions. No authored formulas."
+  },
+  "files": [
+    {
+      "path": "native-exports/numbers-created-v14.5.numbers",
+      "sha256": "08f6f8c2b82b99514d657fdbb0402e3fad25ef7c7005c9b84afafd929d1e719c",
+      "bytes": 22090,
+      "role": "OfficeIMO deterministic creation; frozen original"
+    },
+    {
+      "path": "native-exports/numbers-created-edited-v14.5.numbers",
+      "sha256": "c907c567584786ce9c5183a376f61d813f3bf56757de531cbdbfb1fefb4fcfd6",
+      "bytes": 86050,
+      "role": "Native Numbers B2 edit, save, close and reopen"
+    },
+    {
+      "path": "native-exports/numbers-created-v14.5.xlsx",
+      "sha256": "d355f637287d9f10def1e50d4fdf5503881e36ea7d9c81a64728ca1096d2528f",
+      "bytes": 7186,
+      "role": "Native Excel export, one worksheet per table"
+    },
+    {
+      "path": "native-exports/numbers-created-v14.5.pdf",
+      "sha256": "4fbc275c790251fa8b2856488ee7c10221546df97c6401bb888ab25c25aec377",
+      "bytes": 74668,
+      "role": "Native PDF, each sheet on its own page"
+    },
+    {
+      "path": "native-exports/numbers-created-v14.5-page1.png",
+      "sha256": "bdef28bb769f2c421e5c8156e675ca0089e2e8320a0a8d78e2115f3742500108",
+      "bytes": 29073,
+      "role": "Inspected complete native PDF first sheet"
+    },
+    {
+      "path": "native-exports/numbers-created-v14.5-page2.png",
+      "sha256": "284ee661f984fff0f307151974ea5b15fa012e5d44e437148a2b280ed626ea0d",
+      "bytes": 3803,
+      "role": "Inspected complete native PDF empty second sheet"
+    },
+    {
+      "path": "native-exports/numbers-created-graph-v14.5.json",
+      "sha256": "fed8b64647efdb89344b040a1c642da1f32f5c7164e008f7316553837520fa4e",
+      "bytes": 19562,
+      "role": "Independent pinned-schema graph and decoded scalar grid"
+    }
+  ],
+  "independentDecode": {
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT, Steve Dunham",
+    "descriptorSha256": "d5e97836e04ffffe2145b6bd93aa01a0c3fa4af420a0f82ae9d3c8019844d45e",
+    "numbersParserVersion": "4.19.0",
+    "records": 108,
+    "requiredFieldsComplete": true,
+    "referencesComplete": true,
+    "scalarCellStorageComplete": true,
+    "sidebarAndHiddenHeadersFootersComplete": true,
+    "modernCustomFormatReference": "TSA document slot12 references TSK.CustomFormatListArchive; legacy slot7 expects a different native object class."
+  },
+  "nativeAcceptance": {
+    "openedWithoutRepair": true,
+    "allSheetsInspected": true,
+    "edit": "Budget/Data B2 numeric value12.5 to20.75",
+    "savedClosedReopened": true,
+    "allTablesValuesRetained": true,
+    "emptyGridRetained": true,
+    "sourceFormattingAndGeometryRetained": true,
+    "PDFPages": 2,
+    "allPDFPagesInspected": true,
+    "ExcelWorksheets": 3,
+    "ownedApplicationQuitVerified": true
+  },
+  "fontProvenance": "Installed macOS/Microsoft Arial and native Apple emoji fallback. No font files are embedded by the writer.",
+  "reproduction": "Generate IWorkNumbersWritingTests.Example(), decode with Build/IWork/verify-numbers-creation.py and the pinned TN/TST/TSCE descriptor set. Open a working copy in Numbers14.5, change Budget/Data B2 to20.75, save, close and reopen. Export best-quality PDF with each sheet fitted to one page, and Excel with one worksheet per table and no summary/password. Inspect every sheet/PDF page and compare native scalar values.",
+  "boundaries": [
+    "This profile creates new documents only. Formulas/caches, selected formats, comments, rich cell text, merged cells, header/footer bands and loaded-source save-back are separate work.",
+    "Scalar values and native table dimensions/fonts/grid are qualified in this recorded environment. Other versions, fonts, scripts and layout combinations remain unqualified.",
+    "Native PDF uses fit-each-sheet export and localized scalar labels. Native Excel places the completely empty table at B2:D3; OfficeIMO materializes its relative two-by-three grid at A1:C2. Exact Excel positioning and native appearance equivalence are not claimed."
+  ]
+}

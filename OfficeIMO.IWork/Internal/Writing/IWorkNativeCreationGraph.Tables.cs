@@ -2,10 +2,10 @@ using System.Globalization;
 
 namespace OfficeIMO.IWork.Internal;
 
-internal sealed partial class IWorkKeynoteArchiveBuilder {
+internal abstract partial class IWorkNativeCreationGraph {
     private readonly List<ulong> _tablePresets = new();
 
-    private ulong AddTable(ulong slideId, IWorkKeynoteTable table) {
+    protected ulong AddTable(ulong slideId, IWorkNativeTableData table) {
         ulong infoId = Allocate(), modelId = Allocate(), tableStyleId = Allocate(), cellStyleId = Allocate();
         ulong characterId = Allocate(), paragraphId = Allocate(), frameStyleId = Allocate();
         ulong rowHeaderId = Allocate(), columnHeaderId = Allocate(), tileId = Allocate(), stringsId = Allocate();
@@ -44,7 +44,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             Add(id, 6005, P().UInt(1, catalog.Item2).UInt(2, 1));
             store.Reference(catalog.Item1, id);
         }
-        var model = P().String(1, IWorkCreationIdentity.Create(_modelHash, "table-" + modelId.ToString(CultureInfo.InvariantCulture)).Text)
+        var model = P().String(1, IWorkCreationIdentity.Create(_modelHash, "table-" + modelId.ToString(CultureInfo.InvariantCulture), _kind).Text)
             .Reference(3, tableStyleId).Message(4, store).UInt(6, (uint)table.RowCount).UInt(7, (uint)table.ColumnCount)
             .String(8, table.Name).UInt(9, 0).UInt(10, 0).UInt(11, 0).Bool(12, false).Bool(13, false)
             .Double(16, table.Geometry.HeightPoints / table.RowCount).Double(17, table.Geometry.WidthPoints / table.ColumnCount)
@@ -68,7 +68,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         return presetId;
     }
 
-    private void AddTableThemePresets(IWorkProtoWriter theme) {
+    protected void AddTableThemePresets(IWorkProtoWriter theme) {
         if (_tablePresets.Count == 0) return;
         var presets = P();
         foreach (ulong id in _tablePresets) presets.Reference(1, id);
@@ -83,7 +83,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         return headers;
     }
 
-    private IWorkProtoWriter ScalarTile(IWorkKeynoteTable table, IReadOnlyDictionary<string, uint> strings) {
+    private IWorkProtoWriter ScalarTile(IWorkNativeTableData table, IReadOnlyDictionary<string, uint> strings) {
         var tile = P().UInt(1, (uint)table.ColumnCount - 1).UInt(2, (uint)table.RowCount - 1)
             .UInt(3, (uint)(table.RowCount * table.ColumnCount)).UInt(4, (uint)table.RowCount)
             .UInt(6, 5).Bool(7, true).Bool(8, false);

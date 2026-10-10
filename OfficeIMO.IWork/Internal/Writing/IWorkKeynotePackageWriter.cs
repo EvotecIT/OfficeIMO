@@ -79,17 +79,7 @@ internal static class IWorkKeynotePackageWriter {
                     continue;
                 }
                 if (drawable is IWorkKeynoteTable table) {
-                    var data = P().UInt(1, (uint)table.RowCount).UInt(2, (uint)table.ColumnCount).String(3, table.Name)
-                        .Float(4, (float)table.Geometry.LeftPoints).Float(5, (float)table.Geometry.TopPoints)
-                        .Float(6, (float)table.Geometry.WidthPoints).Float(7, (float)table.Geometry.HeightPoints)
-                        .String(8, table.FontName).Float(9, table.FontSizePoints).String(10, table.Color.RgbHex);
-                    foreach (IWorkTableCell cell in table.Cells) {
-                        var value = P().UInt(1, (uint)cell.Row).UInt(2, (uint)cell.Column).UInt(3, (uint)cell.Kind);
-                        if (cell.Kind == IWorkCellKind.Text) value.String(4, (string)cell.Value!);
-                        else if (cell.Kind == IWorkCellKind.Number) value.Double(5, (double)cell.Value!);
-                        else if (cell.Kind == IWorkCellKind.Boolean) value.Bool(6, (bool)cell.Value!);
-                        data.Message(11, value);
-                    }
+                    var data = table.Data.ModelFields(limits.MaximumPackageBytes, cancellationToken);
                     row.Message(3, P().Message(3, data));
                     continue;
                 }

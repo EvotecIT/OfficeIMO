@@ -88,6 +88,7 @@ public sealed class IWorkKeynoteTableWritingTests {
         var data = IWorkTableData.Create(2, 2).SetText(1, 1, "ORIGINAL");
         var document = IWorkKeynoteDocument.Create(); var slide = document.AddSlide();
         var table = slide.AddTable(data, 0, 0, 400, 200);
+        Assert.Equal("Table", table.Name); Assert.Equal("Arial", table.FontName);
         byte[] before = document.SaveBytes();
         data.SetText(1, 1, "CHANGED").SetBoolean(2, 2, true).ClearCell(1, 1);
         Assert.Equal(before, document.SaveBytes()); Assert.Equal("ORIGINAL", Assert.Single(table.Cells).Value);

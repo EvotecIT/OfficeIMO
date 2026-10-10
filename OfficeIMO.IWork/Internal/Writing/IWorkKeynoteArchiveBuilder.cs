@@ -4,33 +4,17 @@ using System.Threading;
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Builds an owned Keynote 14.4.1 object graph from the creation model. No seed package or opaque archive payload is used.</summary>
-internal sealed partial class IWorkKeynoteArchiveBuilder {
-    private const ulong DocumentId = 1, MetadataId = 2, ShowId = 3, ThemeId = 4, StylesheetId = 5;
+internal sealed partial class IWorkKeynoteArchiveBuilder : IWorkNativeCreationGraph {
+    private const ulong DocumentId = 1, MetadataId = 2, ShowId = 3, ThemeId = 4;
     private const ulong DefaultCharacterId = 6, DefaultParagraphId = 7, DefaultFrameId = 8, BlankBackgroundId = 9;
-    private const ulong ListId = 14, TextPresetId = 15, BlankSlideId = 30, BlankNodeId = 31;
+    private const ulong TextPresetId = 15, BlankSlideId = 30, BlankNodeId = 31;
     private readonly IWorkKeynoteWriteOptions _limits;
-    private readonly CancellationToken _cancellationToken;
-    private readonly List<(ulong Id, uint Type, IWorkProtoWriter Message)> _records = new();
-    private readonly List<(ulong Id, string Identifier)> _styles = new();
-    private readonly byte[] _modelHash;
-    private ulong _nextId = 32;
-
-    internal IWorkKeynoteArchiveBuilder(IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken, byte[] modelHash) {
+    internal IWorkKeynoteArchiveBuilder(IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken, byte[] modelHash)
+        : base(limits.MaximumPackageBytes, cancellationToken, modelHash, IWorkDocumentKind.Keynote, 5, 14) {
         _limits = limits;
-        _cancellationToken = cancellationToken;
-        _modelHash = modelHash;
     }
 
     internal string DocumentIdentifier => IWorkCreationIdentity.Create(_modelHash, "document").Text;
-    private IWorkProtoWriter P() => new(_limits.MaximumPackageBytes, _cancellationToken);
-    private ulong Allocate() {
-        // Apple reserves 71/72 for document/support metadata during unarchiving.
-        // Using either ID for a style or storage makes larger decks unreadable.
-        if (_nextId is 71 or 72) _nextId = 73;
-        return _nextId++;
-    }
-    private void Add(ulong id, uint type, IWorkProtoWriter message) => _records.Add((id, type, message));
-
     internal (byte[] Document, byte[] Metadata) Build(IWorkCanvasSize size,
         IReadOnlyList<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)> slides) {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -58,7 +42,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
                     continue;
                 }
                 if (drawable is IWorkKeynoteTable table) {
-                    ulong tableId = AddTable(slideId, table);
+                    ulong tableId = AddTable(slideId, table.Data);
                     slide.Reference(7, tableId).Reference(42, tableId);
                     continue;
                 }
@@ -111,15 +95,6 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
 
     private byte[] Archive(IEnumerable<(ulong Id, uint Type, IWorkProtoWriter Message)> records) =>
         IWorkNativeArchiveWriter.Encode(records, _limits.MaximumPackageBytes, _cancellationToken);
-
-    private static void Version(IWorkProtoWriter message, int field, params uint[] values) {
-        foreach (uint value in values) message.UInt(field, value);
-    }
-
-    private IWorkProtoWriter Size(double width, double height) => P().Float(1, (float)width).Float(2, (float)height);
-    private IWorkProtoWriter Point(double x, double y) => P().Float(1, (float)x).Float(2, (float)y);
-    private IWorkProtoWriter Color(IWorkColor color) => P().UInt(1, 1).Float(3, color.Red / 255f)
-        .Float(4, color.Green / 255f).Float(5, color.Blue / 255f).Float(6, 1).UInt(12, 1);
 
     private IWorkProtoWriter Transition() => P().Message(2, P().Message(8,
         P().String(1, "Transition").String(2, "none").Double(3, 1).Double(5, 0).Bool(6, false).UInt(11, 1).Bool(16, false)));
