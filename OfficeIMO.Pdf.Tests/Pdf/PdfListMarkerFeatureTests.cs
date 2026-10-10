@@ -8,6 +8,30 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfListMarkerFeatureTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MixedNumberingMeasuresOnlyMarkersActuallyRendered(bool inRow) {
+        var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 10D };
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('1', '.', 'A', 'V')));
+        var style = new PdfListStyle {
+            MarkerFontFamily = ManagedTextShapingTestAssets.FamilyName,
+            MarkerFontSize = 20D,
+            MarkerGap = 12D
+        };
+        var items = new[] { new PdfListItem("first"), new PdfListItem("second", marker: "AV") };
+        var document = PdfDocument.Create(options);
+        if (inRow) {
+            document.Compose(compose => compose.Page(page => page.Content(content =>
+                content.Row(row => row.PercentColumn(100, column => column.RichNumbered(items, style: style))))));
+        } else {
+            document.RichNumbered(items, style: style);
+        }
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal("1.firstAVsecond", pdf.GetPage(1).Text);
+    }
+
+    [Theory]
     [InlineData(false, 0, 10D)]
     [InlineData(true, 0, 10D)]
     [InlineData(false, 1, 9.2D)]

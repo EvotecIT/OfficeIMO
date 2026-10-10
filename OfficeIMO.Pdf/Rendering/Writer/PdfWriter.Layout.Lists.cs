@@ -85,15 +85,9 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(style, currentOpts);
 
             var markers = new string[block.RichItems.Count];
-            // A font used only for explicit markers need not contain the unused
-            // default bullet or numbering glyphs.
-            bool usesDefaultMarker = block.RichItems.Any(item => item.Marker == null);
-            double estimatedMarkerWidth = style?.MarkerAlignsAtIndent == true || !usesDefaultMarker ? 0D : EstimateSimpleTextWidthForOptions(
-                block.GetWidestDefaultMarker(),
-                markerFont,
-                markerNamedFont,
-                markerSize,
-                currentOpts, style?.MarkerFeatureSettings);
+            // Estimate from the actual markers, including default/custom mixtures.
+            // The selected font need not contain unused numbering or bullet glyphs.
+            double estimatedMarkerWidth = 0D;
             for (int itemIndex = 0; itemIndex < markers.Length; itemIndex++) {
                 string marker = block.GetMarker(itemIndex);
                 markers[itemIndex] = marker;
