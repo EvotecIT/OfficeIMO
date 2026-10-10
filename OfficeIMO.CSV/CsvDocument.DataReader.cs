@@ -507,8 +507,7 @@ public sealed partial class CsvDocument
         CsvDataReaderOptions readerOptions) =>
         (CanUseSinglePassFileDataReader(options, readerOptions)
             || (options.Mode == CsvLoadMode.Stream
-                && !options.HasHeaderRow
-                && options.Header is null
+                && (options.Header is not null || !options.HasHeaderRow)
                 && options.SkipInitialRecords == 0
                 && !options.DetectDelimiter))
         && readerOptions.Schema is null
@@ -548,6 +547,20 @@ public sealed partial class CsvDocument
     {
         try
         {
+            IReadOnlyList<string>? explicitHeader = NormalizeExplicitHeader(options);
+            if (explicitHeader is not null)
+            {
+                rows.SetSourceColumnCount(explicitHeader.Count);
+                dataReader = new CsvDataReader(
+                    CreateDataReaderColumns(explicitHeader, readerOptions),
+                    rows,
+                    explicitHeader.Count,
+                    options,
+                    options.Culture,
+                    options.DateTimeFormats);
+                return true;
+            }
+
             if (!rows.Read())
             {
                 rows.Dispose();
