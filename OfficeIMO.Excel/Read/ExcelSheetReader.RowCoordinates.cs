@@ -27,15 +27,15 @@ namespace OfficeIMO.Excel {
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
             var coordinates = new ImplicitXmlRowIndexBuilder();
+            var worksheetRows = new WorksheetXmlRowSelector();
             int rowDepth = -1;
             while (reader.Read()) {
                 ct.ThrowIfCancellationRequested();
-                if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row" && rowDepth < 0) {
+                if (worksheetRows.IsRowElement(reader)) {
                     coordinates.BeginRow(reader, ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text));
                     if (reader.IsEmptyElement) coordinates.EndRow();
                     else rowDepth = reader.Depth;
-                } else if (rowDepth >= 0 && reader.NodeType == XmlNodeType.Element
-                    && reader.LocalName == "c" && reader.Depth == rowDepth + 1) {
+                } else if (rowDepth >= 0 && SpreadsheetXmlContent.IsDirectChildElement(reader, rowDepth, "c")) {
                     if (coordinates.NeedsCellReference) coordinates.AddCell(ReadXmlReferenceAttribute(reader).Text);
                 } else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName == "row" && reader.Depth == rowDepth) {
                     coordinates.EndRow();

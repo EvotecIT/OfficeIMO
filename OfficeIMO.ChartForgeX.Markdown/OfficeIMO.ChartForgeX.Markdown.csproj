@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>Optional static Mermaid rendering for OfficeIMO Markdown document and HTML pipelines.</Description>
     <PackageId>OfficeIMO.ChartForgeX.Markdown</PackageId>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <Company>Evotec</Company>

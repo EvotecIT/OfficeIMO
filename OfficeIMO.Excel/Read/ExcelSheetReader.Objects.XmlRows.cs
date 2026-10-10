@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (cellKind == XmlCellKind.SharedString
                             && !hasFormula
@@ -448,8 +448,10 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex, XmlCellKind cellKind, bool readStyleIndex) {
-            string? metadataIndex = ReadXmlCellTypeAttribute(cellReader) == "e" ? cellReader.GetAttribute("vm") : null;
+        private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex, XmlCellKind cellKind, bool readStyleIndex,
+            XmlDataReaderTextBudget? textBudget = null) {
+            string? metadataIndex = ReadXmlCellTypeAttribute(cellReader) == "e"
+                ? textBudget == null ? cellReader.GetAttribute("vm") : textBudget.ReadAttribute(cellReader, "vm") : null;
             var raw = new CellRaw {
                 Row = rowIndex,
                 Col = columnIndex,
@@ -475,16 +477,18 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
-                        rawText = cellReader.ReadElementContentAsString();
+                        rawText = textBudget == null ? cellReader.ReadElementContentAsString()
+                            : textBudget.ReadElementText(cellReader, advancePastEnd: true);
                         hasNode = true;
                         continue;
                     }
 
                     if (cellReader.LocalName == "f") {
                         hasFormula = true;
-                        formulaText = cellReader.ReadElementContentAsString();
+                        formulaText = textBudget == null ? cellReader.ReadElementContentAsString()
+                            : textBudget.ReadElementText(cellReader, advancePastEnd: true);
                         if (!_opt.UseCachedFormulaResult) {
                             SkipXmlElementContent(cellReader, depth, "c");
                             raw.HasFormula = true;
@@ -497,7 +501,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (cellReader.LocalName == "is") {
-                        inlineText = ReadXmlInlineString(cellReader);
+                        inlineText = ReadXmlInlineString(cellReader, textBudget);
                         hasNode = true;
                         continue;
                     }
@@ -510,8 +514,14 @@ namespace OfficeIMO.Excel {
             raw.HasFormula = hasFormula;
             raw.FormulaText = formulaText;
             raw.RawText = preferFormulaText ? null : metadataIndex == null ? rawText : _richValueErrors.Value.Resolve(metadataIndex, rawText);
+            if (textBudget != null && !ReferenceEquals(raw.RawText, rawText)) textBudget.Charge(raw.RawText);
             raw.InlineText = preferFormulaText ? null : inlineText;
             return raw;
+        }
+
+        /// <summary>Matches direct SpreadsheetML children without interpreting extension descendants as cell content.</summary>
+        private static bool IsXmlCellChildElement(XmlReader reader, int cellDepth) {
+            return SpreadsheetXmlContent.IsDirectChildElement(reader, cellDepth, reader.LocalName);
         }
 
         private static void SkipXmlElement(XmlReader reader, string localName) {

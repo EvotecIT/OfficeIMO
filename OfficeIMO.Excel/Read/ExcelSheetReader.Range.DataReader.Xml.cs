@@ -18,7 +18,9 @@ namespace OfficeIMO.Excel {
         private sealed partial class ExcelXmlRangeDataReader : DbDataReader, IDataReaderFastValueSource {
             private readonly ExcelSheetReader _owner;
             private readonly Stream _stream = Stream.Null;
-            private readonly XmlReader _reader = null!;
+            private XmlReader _reader = null!;
+            private WorksheetXmlRowSelector _worksheetRows;
+            private readonly XmlDataReaderTextBudget? _xmlTextBudget;
             private readonly ExcelUtf8RangeRowSource? _utf8Source;
             private readonly int _utf8SourceOrdinalOffset;
             private readonly int _firstRow;
@@ -58,6 +60,7 @@ namespace OfficeIMO.Excel {
             private bool _currentRowIsBlank;
             private bool _closed;
             private bool _disposed;
+            private bool _xmlTextBufferingFailed;
 
             IDataReaderFastValueSource? IDataReaderFastValueSource.FastValueSource =>
                 _utf8Source != null ? this : null;
@@ -109,6 +112,8 @@ namespace OfficeIMO.Excel {
                     _stream = owner.OpenDataReaderWorksheetStream(ct);
                     RewindWorksheetStream(_stream);
                     _reader = OpenWorksheetXmlReader(_stream);
+                    _xmlTextBudget = new XmlDataReaderTextBudget(options.MaxXmlDataReaderBufferedCharacters,
+                        ThrowIfReadCancellationRequested);
                 }
 
                 try {
@@ -135,9 +140,12 @@ namespace OfficeIMO.Excel {
                         : CreateGeneratedColumnNames(fieldCount);
                     _columnTypes = CreateObjectColumnTypes(fieldCount);
                     _hasRows = _nextLogicalRow <= _lastRow;
+                    ReleaseCurrentValueReferences();
                     _currentRow = null;
                 } catch {
-                    _reader?.Dispose();
+                    ReleaseCurrentValueReferences();
+                    ReleaseBufferedValueReferences();
+                    ReleaseXmlReader();
                     _stream.Dispose();
                     _utf8Source?.Dispose();
                     throw;
@@ -337,12 +345,14 @@ namespace OfficeIMO.Excel {
                     if (_closed) {
                         return false;
                     }
+                    ThrowIfXmlTextBufferingFailed();
 
                     if (TryReadLogicalRow(out var row)) {
                         _currentRow = row;
                         return true;
                     }
 
+                    ReleaseCurrentValueReferences();
                     _currentRow = null;
                     return false;
                 } finally {
@@ -357,11 +367,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 _closed = true;
+                ReleaseCurrentValueReferences();
+                ReleaseBufferedValueReferences();
                 _currentRow = null;
                 _currentCellPresence = null;
                 _bufferedCellPresence?.Clear();
                 _utf8Source?.Dispose();
-                _reader?.Dispose();
+                ReleaseXmlReader();
                 if (!ReferenceEquals(_stream, Stream.Null)) {
                     _stream.Dispose();
                 }
@@ -390,6 +402,7 @@ namespace OfficeIMO.Excel {
             }
 
             internal bool IsCellPresent(int ordinal) {
+                ThrowIfXmlTextBufferingFailed();
                 if (_currentRowIsBlank) return false;
                 if (_utf8Source != null) return _utf8Source.IsCellPresent(ordinal + _utf8SourceOrdinalOffset);
                 EnsureCurrentValue(ordinal);
@@ -405,7 +418,7 @@ namespace OfficeIMO.Excel {
                 ThrowIfReadCancellationRequested();
                 if (_utf8Source != null) {
                     bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow, _ct, _activeReadCancellationToken);
-                    Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
+                    ReleaseCurrentValueReferences();
                     row = hasPhysicalRow ? _currentValues : _blankRow;
                     _currentRow = row;
                     _currentRowIsBlank = !hasPhysicalRow;
@@ -452,7 +465,7 @@ namespace OfficeIMO.Excel {
                 while (_reader.Read()) {
                     ThrowIfReadCancellationRequested();
 
-                    if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "row") {
+                    if (!_worksheetRows.IsRowElement(_reader)) {
                         continue;
                     }
 
@@ -484,6 +497,8 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                ReleaseCurrentValueReferences();
+
                 if (_bufferedRows != null && _bufferedRows.TryGetValue(_nextLogicalRow, out var bufferedRow)) {
                     row = bufferedRow;
                     _bufferedRows.Remove(_nextLogicalRow);
@@ -505,7 +520,8 @@ namespace OfficeIMO.Excel {
             }
 
             private void BeginPendingRow() {
-                Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
+                ReleaseCurrentValueReferences();
+                _xmlTextBudget!.Reset();
                 if (_currentCellPresence != null) Array.Clear(_currentCellPresence, 0, _currentCellPresence.Length);
                 _currentRow = _currentValues;
                 _currentRowDepth = _reader.Depth;
@@ -517,6 +533,7 @@ namespace OfficeIMO.Excel {
 
             private void FinishCurrentRow() {
                 if (_utf8Source != null) {
+                    ReleaseCurrentValueReferences();
                     _currentRowActive = false;
                     _currentRowFinished = true;
                     _currentRow = null;
@@ -528,6 +545,7 @@ namespace OfficeIMO.Excel {
                     SkipXmlElementContent(_reader, _currentRowDepth);
                 }
 
+                ReleaseCurrentValueReferences();
                 _currentRowActive = false;
                 _currentRowFinished = true;
                 _currentRow = null;
@@ -535,6 +553,7 @@ namespace OfficeIMO.Excel {
             }
 
             private void EnsureCurrentValue(int ordinal, XmlDataReaderTargetKind targetKind = XmlDataReaderTargetKind.None) {
+                ThrowIfXmlTextBufferingFailed();
                 if ((uint)ordinal >= (uint)_fieldCount) {
                     throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
                 }
@@ -543,7 +562,8 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (_currentValueLoaded[ordinal]) {
+                if (_currentValueLoaded[ordinal]
+                    && (_utf8Source != null || !_currentRowActive || _currentRowFinished)) {
                     return;
                 }
 
@@ -572,66 +592,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                int targetColumn = _firstColumn + ordinal;
-                while (_reader.Read()) {
-                    ThrowIfReadCancellationRequested();
-
-                    if (_reader.NodeType == XmlNodeType.EndElement && _reader.Depth == _currentRowDepth && _reader.LocalName == "row") {
-                        _currentRowActive = false;
-                        _currentRowFinished = true;
-                        break;
-                    }
-
-                    if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "c") {
-                        continue;
-                    }
-
-                    int columnIndex = GetXmlCellColumnIndex(_reader, ref _currentNextCellColumnIndex);
-                    if (columnIndex <= 0) {
-                        SkipXmlElement(_reader, "c");
-                        continue;
-                    }
-
-                    if (columnIndex < _firstColumn || columnIndex > _lastColumn) {
-                        SkipXmlElement(_reader, "c");
-                        continue;
-                    }
-
-                    int columnOffset = columnIndex - _firstColumn;
-                    if ((uint)columnOffset >= (uint)_fieldCount) {
-                        SkipXmlElement(_reader, "c");
-                        continue;
-                    }
-
-                    string? cellType = ReadXmlCellTypeAttribute(_reader);
-                    if (_currentCellPresence != null) _currentCellPresence[columnOffset] = true;
-                    if (columnIndex == targetColumn
-                        && targetKind != XmlDataReaderTargetKind.None
-                        && _owner.TryReadXmlCellPrimitiveForDataReader(
-                            _reader,
-                            cellType,
-                            targetKind,
-                            out XmlDataReaderPrimitiveKind primitiveKind,
-                            out double doubleValue,
-                            out decimal decimalValue,
-                            out bool booleanValue,
-                            out object? objectValue)) {
-                        _currentValues[columnOffset] = objectValue;
-                        _currentPrimitiveKinds[columnOffset] = primitiveKind;
-                        _currentDoubleValues[columnOffset] = doubleValue;
-                        _currentDecimalValues[columnOffset] = decimalValue;
-                        _currentBooleanValues[columnOffset] = booleanValue;
-                    } else {
-                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, cellType, preserveDateSerial: true);
-                        _currentPrimitiveKinds[columnOffset] = XmlDataReaderPrimitiveKind.None;
-                    }
-
-                    _currentValueLoaded[columnOffset] = true;
-
-                    if (columnIndex == targetColumn) {
-                        return;
-                    }
-                }
+                CompleteCurrentXmlRow();
 
                 if (!_currentValueLoaded[ordinal]) {
                     MarkCurrentValueMissing(ordinal);
@@ -650,43 +611,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (_currentRowActive && !_currentRowFinished) {
-                    while (_reader.Read()) {
-                        ThrowIfReadCancellationRequested();
-
-                        if (_reader.NodeType == XmlNodeType.EndElement && _reader.Depth == _currentRowDepth && _reader.LocalName == "row") {
-                            _currentRowActive = false;
-                            _currentRowFinished = true;
-                            break;
-                        }
-
-                        if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "c") {
-                            continue;
-                        }
-
-                        int columnIndex = GetXmlCellColumnIndex(_reader, ref _currentNextCellColumnIndex);
-                        if (columnIndex <= 0) {
-                            SkipXmlElement(_reader, "c");
-                            continue;
-                        }
-
-                        if (columnIndex < _firstColumn || columnIndex > _lastColumn) {
-                            SkipXmlElement(_reader, "c");
-                            continue;
-                        }
-
-                        int columnOffset = columnIndex - _firstColumn;
-                        if ((uint)columnOffset >= (uint)_fieldCount) {
-                            SkipXmlElement(_reader, "c");
-                            continue;
-                        }
-
-                        if (_currentCellPresence != null) _currentCellPresence[columnOffset] = true;
-                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, ReadXmlCellTypeAttribute(_reader), preserveDateSerial: true);
-                        _currentPrimitiveKinds[columnOffset] = XmlDataReaderPrimitiveKind.None;
-                        _currentValueLoaded[columnOffset] = true;
-                    }
-                }
+                CompleteCurrentXmlRow();
 
                 for (int i = 0; i < _currentValueLoaded.Length; i++) {
                     if (!_currentValueLoaded[i]) {
@@ -702,6 +627,7 @@ namespace OfficeIMO.Excel {
             }
 
             private void BufferRemainingRows() {
+                _xmlTextBudget!.Reset();
                 _bufferedRows ??= new Dictionary<int, object?[]>();
                 if (_trackCellPresence) _bufferedCellPresence ??= new Dictionary<int, bool[]>();
                 if (_hasPendingRow) {
@@ -712,7 +638,7 @@ namespace OfficeIMO.Excel {
                 while (_reader.Read()) {
                     ThrowIfReadCancellationRequested();
 
-                    if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "row") {
+                    if (!_worksheetRows.IsRowElement(_reader)) {
                         continue;
                     }
 
@@ -751,18 +677,9 @@ namespace OfficeIMO.Excel {
                     _bufferedCellPresence?.Add(rowIndex, new bool[_fieldCount]);
                 }
 
-                // Apply only the present cells to the logical row. A new empty
-                // array for every fragment would discard earlier omitted cells.
-                _owner.ReadXmlRowIntoChunk(
-                    _reader,
-                    new[] { values },
-                    rowIndex,
-                    rowIndex,
-                    _firstColumn,
-                    _lastColumn,
-                    _activeReadCancellationToken,
-                    preserveDateSerial: true,
-                    cellPresence: _bufferedCellPresence?[rowIndex]);
+                // Apply only present cells across every fragment, sharing the
+                // aggregate text allowance for all buffered logical rows.
+                ReadBufferedXmlRowValues(values, _bufferedCellPresence?[rowIndex]);
             }
 
             private bool IsCurrentStreamingRow => ReferenceEquals(_currentRow, _currentValues);
@@ -771,6 +688,7 @@ namespace OfficeIMO.Excel {
                 if (_closed) {
                     throw new InvalidOperationException("The reader is closed.");
                 }
+                ThrowIfXmlTextBufferingFailed();
 
                 if (_currentRow == null) {
                     throw new InvalidOperationException("The reader is not positioned on a row.");

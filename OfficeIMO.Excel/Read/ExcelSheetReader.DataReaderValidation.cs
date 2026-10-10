@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             ct.ThrowIfCancellationRequested();
             Worksheet worksheet = _wsPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{_sheetName}' has no worksheet root.");
-            foreach (Cell cell in worksheet.Descendants<Cell>()) {
+            foreach (Cell cell in EnumerateOwnedSdkWorksheetCells(worksheet)) {
                 ct.ThrowIfCancellationRequested();
                 var reference = new XmlCoordinateReference(cell.CellReference?.Value);
                 if (cell.StyleIndex?.Value is uint styleIndex) {
@@ -56,6 +56,11 @@ namespace OfficeIMO.Excel {
             Stream stream,
             CancellationToken ct) {
             using var reader = OpenWorksheetXmlReader(stream);
+            // Qualification reads index/follower text before constructing the XML
+            // row cache. Bound those strings too, so preflight cannot bypass the
+            // streaming reader's protection with a padded index or formula.
+            var textBudget = new XmlDataReaderTextBudget(_opt.MaxXmlDataReaderBufferedCharacters,
+                ct.ThrowIfCancellationRequested);
             // Table-backed dimensions can intentionally include empty cells.
             // Otherwise reuse this complete validation scan to discover actual bounds.
             var bounds = _usedRangeA1 == null && (!_hasSdkWorksheetPart || !_wsPart.TableDefinitionParts.Any())
@@ -66,33 +71,33 @@ namespace OfficeIMO.Excel {
             bool completedSheetData = false;
             int sheetDataDepth = -1;
             int rowDepth = -1;
+            var worksheetRows = new WorksheetXmlRowSelector();
             while (reader.Read()) {
                 ct.ThrowIfCancellationRequested();
                 XmlNodeType nodeType = reader.NodeType;
                 string localName = reader.LocalName;
-                if (nodeType != XmlNodeType.Element || localName != "c") {
+                bool isCellElement = worksheetRows.IsCellElement(reader);
+                bool isRowElement = localName == "row" && worksheetRows.IsRowElement(reader);
+                if (isRowElement) textBudget.Reset();
+                if (!isCellElement) {
                     if (bounds != null) {
-                        bool spreadsheetElement = reader.NamespaceURI == SpreadsheetNamespace
-                            || reader.NamespaceURI == StrictSpreadsheetNamespace;
                         if (nodeType == XmlNodeType.Element && reader.Depth == 0
-                            && (localName != "worksheet" || !spreadsheetElement)) {
+                            && !SpreadsheetXmlContent.IsSpreadsheetElement(reader, "worksheet")) {
                             bounds = null;
-                        } else if (!_hasSdkWorksheetPart && localName == "tableParts"
-                            && nodeType == XmlNodeType.Element) {
+                        } else if (!_hasSdkWorksheetPart && worksheetRows.IsWorksheetChildElement(reader, "tableParts")) {
                             // Table extents may include intentional empty rows and
                             // columns; their discovery retains the SDK owner.
                             bounds = null;
-                        } else if (localName == "sheetData" && nodeType == XmlNodeType.Element) {
-                            if (haveSheetData || reader.Depth != 1 || !spreadsheetElement) {
+                        } else if (worksheetRows.IsWorksheetChildElement(reader, "sheetData")) {
+                            if (haveSheetData) {
                                 bounds = null;
                             } else {
                                 haveSheetData = true;
                                 completedSheetData = reader.IsEmptyElement;
                                 sheetDataDepth = reader.IsEmptyElement ? -1 : reader.Depth;
                             }
-                        } else if (localName == "row" && nodeType == XmlNodeType.Element) {
-                            if (sheetDataDepth < 0 || rowDepth >= 0
-                                || reader.Depth != sheetDataDepth + 1 || !spreadsheetElement) {
+                        } else if (isRowElement) {
+                            if (rowDepth >= 0) {
                                 bounds = null;
                             } else {
                                 int declaredRowIndex = bounds.BeginRow(ReadXmlReferenceAttribute(reader).Text);
@@ -118,13 +123,8 @@ namespace OfficeIMO.Excel {
 
                 XmlCoordinateReference reference = ReadXmlReferenceAttribute(reader);
                 if (bounds != null) {
-                    if (rowDepth >= 0 && reader.Depth == rowDepth + 1
-                        && (reader.NamespaceURI == SpreadsheetNamespace || reader.NamespaceURI == StrictSpreadsheetNamespace)) {
-                        bounds.AddCell(reference.Text);
-                        coordinates?.AddCell(reference.Text);
-                    } else {
-                        bounds = null;
-                    }
+                    bounds.AddCell(reference.Text);
+                    coordinates?.AddCell(reference.Text);
                 }
                 XmlStyleAttribute styleIndex = ReadXmlStyleAttribute(reader);
                 if (styleIndex.Present) {
@@ -152,16 +152,7 @@ namespace OfficeIMO.Excel {
                         && reader.LocalName == "c") {
                         break;
                     }
-                    if (reader.NodeType != XmlNodeType.Element
-                        || reader.Depth != cellDepth + 1
-                        || (!string.Equals(
-                                reader.NamespaceURI,
-                                SpreadsheetNamespace,
-                                StringComparison.Ordinal)
-                            && !string.Equals(
-                                reader.NamespaceURI,
-                                StrictSpreadsheetNamespace,
-                                StringComparison.Ordinal))) {
+                    if (!IsXmlCellChildElement(reader, cellDepth)) {
                         continue;
                     }
 
@@ -170,7 +161,7 @@ namespace OfficeIMO.Excel {
                         if (sharedStringCell) {
                             sharedStringReference = reader.IsEmptyElement
                                 ? string.Empty
-                                : ReadSimpleElementText(reader, ct, reference);
+                                : ReadSimpleElementText(reader, ct, reference, textBudget);
                         }
                         continue;
                     }
@@ -186,7 +177,7 @@ namespace OfficeIMO.Excel {
                     bool isFollower = reader.IsEmptyElement;
                     if (!isFollower) {
                         isFollower = string.IsNullOrWhiteSpace(
-                            ReadSimpleElementText(reader, ct, reference));
+                            ReadSimpleElementText(reader, ct, reference, textBudget));
                     }
                     sharedFollower |= isFollower;
                 }
@@ -221,11 +212,20 @@ namespace OfficeIMO.Excel {
         private static string ReadSimpleElementText(
             XmlReader reader,
             CancellationToken ct,
-            XmlCoordinateReference cellReference) {
+            XmlCoordinateReference cellReference,
+            XmlDataReaderTextBudget textBudget) {
             int elementDepth = reader.Depth;
             string elementName = reader.LocalName;
             string elementNamespace = reader.NamespaceURI;
-            string value = reader.ReadString();
+            string value;
+            try {
+                value = textBudget.ReadElementText(reader, advancePastEnd: false);
+            } catch (XmlException exception) {
+                // Keep a malformed text-only value as a hard validation failure;
+                // falling back to the SDK DOM would undo the bounded read.
+                throw new InvalidDataException(
+                    $"Worksheet cell {cellReference.ToString()} element '{elementName}' must contain only text.", exception);
+            }
             ct.ThrowIfCancellationRequested();
             if (reader.NodeType != XmlNodeType.EndElement
                 || reader.Depth != elementDepth
