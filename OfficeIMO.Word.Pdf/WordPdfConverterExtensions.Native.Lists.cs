@@ -46,6 +46,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             style = ApplyNativeListContextualItemSpacing(style, paragraphs);
+            if (style != null && RenderNativeDocumentStartSpacing(pdf, firstParagraph, style.SpacingBefore)) {
+                style = style.Clone();
+                style.SpacingBefore = 0D;
+            }
             if (ordered) {
                 pdf.RichNumbered(items, align, color, startNumber, style);
             } else {
@@ -410,6 +414,7 @@ namespace OfficeIMO.Word.Pdf {
             left.Rule == right.Rule && DoubleEquals(left.Value, right.Value) &&
             DoubleEquals(left.NaturalMultiplier, right.NaturalMultiplier) &&
             NullableDoubleEquals(left.FontLineBoxMultiplier, right.FontLineBoxMultiplier) &&
+            NullableDoubleEquals(left.LineGridPitch, right.LineGridPitch) &&
             NullableDoubleEquals(left.FixedLineBoxBaselineOffset, right.FixedLineBoxBaselineOffset);
 
         private static bool NullableDoubleEquals(double? left, double? right) {

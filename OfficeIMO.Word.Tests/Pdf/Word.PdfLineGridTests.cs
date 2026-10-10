@@ -88,13 +88,14 @@ public partial class Word {
     private static double[] ExportGridDocumentBaselines(WordDocument source) {
         var options = new PdfOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,
-            ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 0, 300, 'A', 'B', 'C', ' '), "OfficeIMO-Grid-Regular");
+            ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 0, 300,
+                Enumerable.Range(32, 95).ToArray()), "OfficeIMO-Grid-Regular");
         string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
         }));
         Assert.Equal(original, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
-        var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value is "A" or "B" or "C").ToArray();
+        var letters = pdf.GetPages().SelectMany(page => page.Letters).Where(letter => letter.Value is "A" or "B" or "C").ToArray();
         Assert.Equal("ABC", string.Concat(letters.Select(letter => letter.Value)));
         return letters.Select(letter => letter.StartBaseLine.Y).ToArray();
     }

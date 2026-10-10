@@ -104,6 +104,7 @@ namespace OfficeIMO.Word {
             if (bodyChild?.Parent is not Body body) {
                 return null;
             }
+            if (document.Sections.Count == 1) return document.Sections[0];
 
             int sectionIndex = 0;
             foreach (OpenXmlElement child in body.ChildElements) {

@@ -57,4 +57,13 @@ public static partial class WordPdfConverterExtensions {
         return grid?.Type?.Value != null && grid.Type.Value != W.DocGridValues.Default &&
             grid.LinePitch?.Value is int pitch && pitch > 0 ? pitch / 20D : null;
     }
+
+    private static bool RenderNativeDocumentStartSpacing(INativePdfFlow pdf, WordParagraph paragraph, double spacingBefore) {
+        if (spacingBefore <= 0D || !ReferenceEquals(paragraph._paragraph, paragraph._document
+            ._wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<W.Paragraph>().FirstOrDefault())) return false;
+        // Initial document spacing is authored content. Reserve it explicitly
+        // so normal page/column breaks continue to suppress spacing at the top.
+        pdf.Spacer(spacingBefore);
+        return true;
+    }
 }

@@ -195,6 +195,8 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
             PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = GetHeadingLevel(paragraph);
+            if ((headingLevel <= 0 || marker != null || needsAnchorLine) && RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore))
+                style.SpacingBefore = 0D;
             PdfCore.PdfColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
             PdfCore.PdfHorizontalRuleStyle? topBorderRuleStyle = marker == null ? CreateNativeTopBorderRuleStyle(paragraph, style) : null;
             PdfCore.PdfParagraphStyle paragraphStyle = topBorderRuleStyle == null ? style : style.Clone();

@@ -65,11 +65,60 @@ public partial class Word {
         Assert.Equal(34.5D, baselines[1] - baselines[2], 3);
     }
 
-    private static WordDocument CreateLineUnitsDocument(bool grid, WordLineSpacingRule rule, int line) {
+    [Theory]
+    [InlineData("points", 30D)]
+    [InlineData("line-units", 18D)]
+    [InlineData("explicit-break", 30D)]
+    [InlineData("automatic-break", 30D)]
+    [InlineData("columns", 18D)]
+    [InlineData("list", 18D)]
+    public void SaveAsPdf_InitialParagraphSpacingIsPreservedAndSuppressedAtLaterPageStarts(string route, double expected) {
+        bool grid = route is "line-units" or "columns" or "list";
+        using WordDocument plain = CreateLineUnitsDocument(grid, WordLineSpacingRule.Auto, 240, route);
+        using WordDocument spaced = CreateLineUnitsDocument(grid, WordLineSpacingRule.Auto, 240, route);
+        if (route == "columns") { plain.Sections[0].ColumnCount = 2; spaced.Sections[0].ColumnCount = 2; }
+        if (route == "automatic-break") {
+            plain.Sections[0]._sectionProperties.GetFirstChild<PageSize>()!.Height = 5000;
+            spaced.Sections[0]._sectionProperties.GetFirstChild<PageSize>()!.Height = 5000;
+        }
+        WordParagraph[] paragraphs = spaced.Paragraphs.ToArray();
+        for (int index = 0; index < paragraphs.Length; index++) {
+            if (grid) paragraphs[index]._paragraph.ParagraphProperties!.SpacingBetweenLines!.BeforeLines = 100;
+            else paragraphs[index].LineSpacingBeforePoints = 30;
+            if (route == "explicit-break" && index > 0) {
+                paragraphs[index]._paragraph.ParagraphProperties!.Append(new PageBreakBefore());
+                plain.Paragraphs[index]._paragraph.ParagraphProperties!.Append(new PageBreakBefore());
+            }
+        }
+        double[] original = ExportGridDocumentBaselines(plain);
+        double[] result = ExportGridDocumentBaselines(spaced);
+        Assert.Equal(expected, original[0] - result[0], 3);
+        if (route == "explicit-break") {
+            Assert.Equal(original[1], result[1], 3);
+            Assert.Equal(original[2], result[2], 3);
+        }
+        if (route == "automatic-break") Assert.Equal(original[0], result[2], 3);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ListItemsRetainIndividualGridSnappingWhenTheirMinimumAdvancesMatch() {
+        using WordDocument snapped = CreateLineUnitsDocument(true, WordLineSpacingRule.AtLeast, 600, "list");
+        using WordDocument mixed = CreateLineUnitsDocument(true, WordLineSpacingRule.AtLeast, 600, "list");
+        mixed.Paragraphs[1]._paragraph.ParagraphProperties!.Append(new SnapToGrid { Val = false });
+        double[] original = ExportGridDocumentBaselines(snapped);
+        double[] result = ExportGridDocumentBaselines(mixed);
+        Assert.Equal(original[0], result[0], 3);
+        Assert.Equal(.75D, original[1] - result[1], 3);
+        Assert.Equal(original[2], result[2], 3);
+    }
+
+    private static WordDocument CreateLineUnitsDocument(bool grid, WordLineSpacingRule rule, int line, string route = "body") {
         WordDocument source = WordDocument.Create();
         if (grid) source.Sections[0]._sectionProperties.Append(new DocGrid { Type = DocGridValues.Lines, LinePitch = 360 });
+        WordList? list = route == "list" ? source.AddCustomList() : null;
+        list?.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         foreach (char text in "ABC") {
-            WordParagraph paragraph = source.AddParagraph(text.ToString());
+            WordParagraph paragraph = list?.AddItem(text.ToString()) ?? source.AddParagraph(text.ToString());
             paragraph.FontSize = 11;
             paragraph.FontFamily = "Arial";
             paragraph.LineSpacing = line; paragraph.LineSpacingRule = rule;
