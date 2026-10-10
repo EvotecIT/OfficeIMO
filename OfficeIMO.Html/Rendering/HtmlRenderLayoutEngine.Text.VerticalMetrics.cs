@@ -81,9 +81,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private HtmlTextFaceMetrics? ResolveTextFaceMetrics(string text, HtmlRenderBoxStyle style) {
-        if (_fonts.TryResolveFaceForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
-            && face?.Program is IOfficeFontBaselineMetrics baseline) {
-            return new HtmlTextFaceMetrics(face.Program.LineHeight(style.Font.Size),
+        IOfficeFontProgram? program = text.Length == 0
+            ? _fonts.ResolveForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out _)
+            : _fonts.TryResolveFaceForText(text, style.Font.FamilyName, style.FontDescriptor, style.Font.Size, out OfficeFontFace? face)
+                ? face?.Program : null;
+        if (program is IOfficeFontBaselineMetrics baseline) {
+            return new HtmlTextFaceMetrics(program.LineHeight(style.Font.Size),
                 baseline.BaselineOffset(style.Font.Size));
         }
         return _options.FallbackTextFaceMetrics?.Invoke(text, style.Font, style.FontDescriptor);

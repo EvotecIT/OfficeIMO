@@ -271,10 +271,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private double _bottom = double.NegativeInfinity;
         private readonly List<InlineFragmentRect> _fragments = new List<InlineFragmentRect>();
         private readonly Dictionary<long, List<int>> _fragmentsByLine = new Dictionary<long, List<int>>();
+        private InlineContainingBounds? _fontDecorationBounds;
+        private bool _retainDecorationFallback;
 
         internal InlineContainingBounds(HtmlRenderLayoutEngine owner) => _owner = owner;
 
         internal IReadOnlyList<InlineFragmentRect> Fragments => _fragments;
+
+        // Font decoration has its own fragments. The descendant extent above is
+        // still the reference box for positioning and paint effects, and anchors
+        // retain their independently collected fragments.
+        internal void IncludeFontDecoration(double x, double y, double width, double height) {
+            if (_retainDecorationFallback) return;
+            _fontDecorationBounds ??= new InlineContainingBounds(_owner);
+            _fontDecorationBounds.Include(x, y, width, height);
+        }
+
+        internal void RetainDecorationFallback() {
+            _retainDecorationFallback = true;
+            _fontDecorationBounds = null;
+        }
 
         internal void Include(double x, double y, double width, double height, bool decorationFragment = true, double relativePaintOffsetY = 0D) {
             _left = Math.Min(_left, x);
@@ -291,6 +307,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             foreach (InlineFragmentRect fragment in other._fragments) {
                 IncludeFragment(fragment.X + offsetX, fragment.Y + offsetY, fragment.Width, fragment.Height, fragment.RelativePaintOffsetY);
+            }
+            if (other._retainDecorationFallback) RetainDecorationFallback();
+            else if (!_retainDecorationFallback && other._fontDecorationBounds != null) {
+                _fontDecorationBounds ??= new InlineContainingBounds(_owner);
+                _fontDecorationBounds.Merge(other._fontDecorationBounds, offsetX, offsetY);
             }
         }
 
@@ -341,7 +362,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double.IsPositiveInfinity(_top) ? 0D : _top,
                 double.IsNegativeInfinity(_right) ? 0.01D : _right - _left,
                 double.IsNegativeInfinity(_bottom) ? 0.01D : _bottom - _top,
-                _fragments.OrderBy(item => item.Y).ThenBy(item => item.X).ToArray(),
+                (_fontDecorationBounds?.Fragments ?? _fragments).OrderBy(item => item.Y).ThenBy(item => item.X).ToArray(),
                 isContinuation);
     }
 
