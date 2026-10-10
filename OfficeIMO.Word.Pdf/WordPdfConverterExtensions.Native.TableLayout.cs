@@ -166,16 +166,12 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            var widths = layout.ColumnWidths.Select(width => (double)width).ToList();
-            double totalWidth = widths.Sum();
-            if (style.MaxWidth.HasValue && totalWidth > style.MaxWidth.Value + 0.001D) {
-                double scale = style.MaxWidth.Value / totalWidth;
-                for (int i = 0; i < widths.Count; i++) {
-                    widths[i] *= scale;
-                }
-            }
-
-            return widths.Select(width => (double?)width).ToList();
+            // Core fits the complete grid once, locking columns at their
+            // physical minimums before redistributing the remaining width.
+            // Pre-scaling here can make a narrow column invalid before that fit.
+            return layout.ColumnWidths.Select((width, column) => (double?)Math.Max(width,
+                style.ColumnMinWidthPoints != null && column < style.ColumnMinWidthPoints.Count
+                    ? style.ColumnMinWidthPoints[column] ?? 0D : 0D)).ToList();
         }
 
         private static void ApplyNativeTableLayoutOptions(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth, NativeTableStyleDefaults tableStyleDefaults) {

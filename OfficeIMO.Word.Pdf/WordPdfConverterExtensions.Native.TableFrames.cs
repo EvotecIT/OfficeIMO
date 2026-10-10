@@ -40,16 +40,16 @@ namespace OfficeIMO.Word.Pdf {
                 Background = table._tableProperties?.GetFirstChild<W.Shading>() is { } shading
                     ? ParseNativeColor(shading.Fill?.Value) : defaults.CellFill
             };
-            ApplyNativeFixedTableSpacingWidth(layout, style);
             ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
         }
 
-        /// <summary>Fixed widths include outer spacing; cells retain a one-point text frame after margins and paint.</summary>
-        private static void ApplyNativeFixedTableSpacingWidth(TableLayout layout, PdfCore.PdfTableStyle style) {
+        /// <summary>Fixed cells retain a one-point text frame after effective margins and border paint.</summary>
+        private static void ApplyNativeFixedTableMinimumWidths(TableLayout layout, PdfCore.PdfTableStyle style) {
             if (style.AutoFitColumns) return;
             var minimums = style.ColumnMinWidthPoints == null
                 ? new List<double?>() : new List<double?>(style.ColumnMinWidthPoints);
             while (minimums.Count < layout.ColumnWidths.Length) minimums.Add(null);
+            var spanningMinimums = new List<(int Column, int Span, double Width)>();
             for (int row = 0; row < layout.Rows.Count; row++) {
                 int column = GetNativeTableRowStartColumn(layout, row);
                 foreach (WordTableCell cell in layout.Rows[row]) {
@@ -58,21 +58,74 @@ namespace OfficeIMO.Word.Pdf {
                     if (!IsNativeVerticalMergeContinuation(cell)) {
                         double width = 1D + GetNativeTableCellHorizontalMargin(style, row, column, right: false) +
                             GetNativeTableCellHorizontalMargin(style, row, column, right: true) +
-                            2D * (GetNativeTableCellBorderInset(style, row, column, right: false) +
-                                GetNativeTableCellBorderInset(style, row, column, right: true));
-                        double perColumn = (width - Math.Max(0, span - 1) * style.CellSpacing) / span;
-                        if (perColumn > 0D)
-                            for (int index = column; index < column + span && index < minimums.Count; index++)
-                                minimums[index] = Math.Max(minimums[index] ?? 0D, perColumn);
+                            (style.BorderFrame == null ? 0D : 2D * (
+                                GetNativeTableCellBorderInset(style, row, column, right: false) +
+                                GetNativeTableCellBorderInset(style, row, column, right: true)));
+                        double minimum = width - Math.Max(0, span - 1) * style.CellSpacing;
+                        if (minimum > 0D) {
+                            if (span == 1 && column < minimums.Count)
+                                minimums[column] = Math.Max(minimums[column] ?? 0D, minimum);
+                            else
+                                spanningMinimums.Add((column, span, minimum));
+                        }
                     }
                     column += span;
                 }
             }
+            foreach (var constraint in spanningMinimums)
+                ApplyNativeSpanMinimum(layout, minimums, constraint.Column, constraint.Span, constraint.Width);
             style.ColumnMinWidthPoints = minimums;
             if (style.AllowWidthBeyondFrame && style.MaxWidth.HasValue) {
                 double minimumWidth = minimums.Sum(width => width ?? 0D) +
                     Math.Max(0, layout.ColumnWidths.Length - 1) * style.CellSpacing;
-                style.MaxWidth = Math.Max(minimumWidth, style.MaxWidth.Value - 2D * style.CellSpacing);
+                style.MaxWidth = Math.Max(minimumWidth, style.MaxWidth.Value -
+                    (style.BorderFrame == null ? 0D : 2D * style.CellSpacing));
+            }
+        }
+
+        /// <summary>Fits a merged minimum to the source proportions while retaining single-cell minimums.</summary>
+        private static void ApplyNativeSpanMinimum(TableLayout layout, List<double?> minimums,
+            int start, int span, double requiredWidth) {
+            int end = Math.Min(minimums.Count, start + span);
+            double currentWidth = 0D;
+            for (int column = start; column < end; column++) currentWidth += minimums[column] ?? 0D;
+            if (currentWidth >= requiredWidth) return;
+            var weights = new double[end - start];
+            double preferredWidth = 0D;
+            for (int column = start; column < end; column++)
+                preferredWidth += Math.Max(layout.ColumnWidths[column], minimums[column] ?? 0D);
+            bool growsBeyondPreferences = requiredWidth > preferredWidth;
+            for (int column = start; column < end; column++) {
+                double preferred = layout.ColumnWidths[column] > 0F ? layout.ColumnWidths[column] : 1D;
+                // Once the complete span outgrows its feasible preferences,
+                // minimum frames also participate in proportional growth.
+                weights[column - start] = growsBeyondPreferences
+                    ? Math.Max(preferred, minimums[column] ?? 0D) + (minimums[column] ?? 0D)
+                    : preferred;
+            }
+            var locked = new bool[end - start];
+            double remaining = requiredWidth;
+            while (true) {
+                double weight = 0D;
+                for (int column = start; column < end; column++)
+                    if (!locked[column - start]) weight += weights[column - start];
+                if (weight <= 0D) return;
+                double scale = remaining / weight;
+                bool lockedMinimum = false;
+                for (int column = start; column < end; column++) {
+                    if (locked[column - start]) continue;
+                    double candidate = scale * weights[column - start];
+                    if (candidate < (minimums[column] ?? 0D)) {
+                        locked[column - start] = true;
+                        remaining -= minimums[column]!.Value;
+                        lockedMinimum = true;
+                    }
+                }
+                if (lockedMinimum) continue;
+                for (int column = start; column < end; column++)
+                    if (!locked[column - start])
+                        minimums[column] = scale * weights[column - start];
+                return;
             }
         }
 

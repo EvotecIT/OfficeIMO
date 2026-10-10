@@ -210,6 +210,7 @@ namespace OfficeIMO.Word.Pdf {
             // Source compatibility geometry applies to the Word-owned style path.
             if (!hasExplicitDefaultTableStyle || ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle) != null)
                 ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
+            ApplyNativeFixedTableMinimumWidths(layout, style);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {

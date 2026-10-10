@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.Pdf {
             float[] widths = new float[columnCount];
             float[] gridWidths = new float[columnCount];
             bool[] explicitCellWidthColumns = new bool[columnCount];
+            var spanningWidths = new List<(int Column, int Span, float Width)>();
 
             List<int> gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
@@ -58,6 +59,14 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     if (width > 0f) {
+                        if (columnSpan > 1) {
+                            // A merged preference constrains the complete span.
+                            // Resolve single-column preferences first so a wide
+                            // merged cell cannot erase an unequal source grid.
+                            spanningWidths.Add((logicalColumn, columnSpan, width));
+                            logicalColumn += columnSpan;
+                            continue;
+                        }
                         float widthPerColumn = width / columnSpan;
                         for (int columnIndex = logicalColumn; columnIndex < logicalColumn + columnSpan && columnIndex < widths.Length; columnIndex++) {
                             if (hasExplicitCellWidth) {
@@ -79,6 +88,30 @@ namespace OfficeIMO.Word.Pdf {
             for (int i = 0; i < widths.Length; i++) {
                 if (widths[i] <= 0f) {
                     widths[i] = gridWidths[i];
+                }
+            }
+
+            foreach (var constraint in spanningWidths) {
+                int end = System.Math.Min(widths.Length, constraint.Column + constraint.Span);
+                float spanWidth = 0F;
+                int missingColumns = 0;
+                for (int column = constraint.Column; column < end; column++) {
+                    spanWidth += widths[column];
+                    if (widths[column] <= 0F) missingColumns++;
+                }
+                if (missingColumns > 0) {
+                    float missingWidth = constraint.Width > spanWidth
+                        ? (constraint.Width - spanWidth) / missingColumns
+                        : constraint.Width / (end - constraint.Column);
+                    for (int column = constraint.Column; column < end; column++)
+                        if (widths[column] <= 0F) widths[column] = missingWidth;
+                    spanWidth += missingWidth * missingColumns;
+                }
+                if (spanWidth >= constraint.Width) continue;
+                for (int column = constraint.Column; column < end; column++) {
+                    widths[column] = spanWidth > 0F
+                        ? widths[column] * constraint.Width / spanWidth
+                        : constraint.Width / (end - constraint.Column);
                 }
             }
 
