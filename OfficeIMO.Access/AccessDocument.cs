@@ -101,17 +101,24 @@ namespace OfficeIMO.Access {
                     if (operation.Operation == "native.create") enabled &= CatalogStatus == AccessCatalogStatus.Modeled;
                     if (operation.Operation == "native.preserve") enabled &= Inspection != null;
                     if (operation.Operation == "application.objects.read") enabled &= Forms.CatalogStatus == AccessCatalogStatus.Decoded;
+                    if (operation.Operation == "application.events.write") enabled &= Inspection != null && AccessMode == DocumentAccessMode.ReadWrite
+                        && CatalogStatus == AccessCatalogStatus.Decoded && Forms.CatalogStatus == AccessCatalogStatus.Decoded
+                        && (Profile == AccessFormatProfile.Ace12 || Profile == AccessFormatProfile.Ace14);
                     if (operation.Operation == "vba.inspect") enabled &= VbaProject.CatalogStatus == AccessCatalogStatus.Decoded;
+                    if (operation.Operation == "vba.edit") enabled &= Inspection != null && AccessMode == DocumentAccessMode.ReadWrite
+                        && CatalogStatus == AccessCatalogStatus.Decoded && VbaProject.CatalogStatus == AccessCatalogStatus.Decoded
+                        && (Profile == AccessFormatProfile.Jet4 || Profile == AccessFormatProfile.Ace12 || Profile == AccessFormatProfile.Ace14);
                     return new AccessOperationCapability(operation.Operation, enabled, operation.Boundary);
                 }).ToArray());
             }
         }
 
         internal void EnsureNotDisposed() { if (_disposed) throw new ObjectDisposedException(nameof(AccessDocument)); }
-        internal void EnsureMutable() {
+        internal void EnsureMutable() => EnsureMutationAllowed(modeledOnly: true);
+        private void EnsureMutationAllowed(bool modeledOnly = false) {
             EnsureNotDisposed();
             if (AccessMode == DocumentAccessMode.ReadOnly) throw new InvalidOperationException("This Access document is read-only.");
-            if (CatalogStatus != AccessCatalogStatus.Modeled) throw new NotSupportedException("Native Access editing is not qualified. Loaded native documents are immutable.");
+            if (modeledOnly && CatalogStatus != AccessCatalogStatus.Modeled) throw new NotSupportedException("Native table and schema editing is not qualified. Use the explicit qualified application editing APIs.");
             if (_readers != 0) throw new InvalidOperationException("Close Access data readers before modifying the document.");
             if (Revision == long.MaxValue) throw new InvalidOperationException("The model revision limit was reached.");
         }
@@ -129,19 +136,21 @@ namespace OfficeIMO.Access {
         internal void ReleaseReader() { _readers--; }
         /// <summary>Begins a model edit scope. Disposal rolls back unless Commit succeeds; database transactions are separate.</summary>
         public AccessUpdateScope BeginUpdate() {
-            EnsureMutable();
+            EnsureMutationAllowed();
+            if (CatalogStatus == AccessCatalogStatus.NotDecoded) throw new NotSupportedException("Native edit scopes require a decoded catalog.");
             if (_update != null) throw new InvalidOperationException("Nested Access update scopes are not supported.");
             return _update = new AccessUpdateScope(this, Revision);
         }
         internal void FinishUpdate(AccessUpdateScope scope, long revision, bool commit) {
             if (_update != scope) throw new InvalidOperationException("This Access update scope is no longer active.");
             if (!commit) { for (int i = _undo.Count - 1; i >= 0; i--) _undo[i](); _changes.RemoveAll(x => x.Revision > revision); Revision = revision; }
-            _undo.Clear(); _update = null;
+            _undo.Clear(); _vbaUndoStates.Clear(); _update = null;
         }
         /// <summary>Discards pending model edits and releases the document. Caller-owned streams remain open.</summary>
         public void Dispose() {
             if (_disposed) return;
-            _update?.Dispose(); _disposed = true; _destination = null; _creationPlan = null; NativeDatabase?.Dispose(); NativeDatabase = null;
+            _update?.Dispose(); _disposed = true; _destination = null; _creationPlan = null;
+            _vbaMutation?.ReadProjection.Dispose(); _vbaMutation = null; _vbaUndoStates.Clear(); NativeDatabase?.Dispose(); NativeDatabase = null;
         }
     }
 

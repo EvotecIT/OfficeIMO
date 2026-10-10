@@ -95,6 +95,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             revision,
             aesCryptographyProvider,
             cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return DecryptAes256NoPadding(key, encryptedFileKey, aesCryptographyProvider);
     }
 
@@ -124,6 +125,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             revision,
             aesCryptographyProvider,
             cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return DecryptAes256NoPadding(key, encryptedFileKey, aesCryptographyProvider);
     }
 
@@ -158,6 +160,7 @@ internal sealed partial class PdfStandardSecurityHandler {
             byte[] aesKey = SliceModern(key, 0, 16);
             byte[] iv = SliceModern(key, 16, 32);
             byte[] encrypted = TransformAesCbcNoPadding(aesKey, iv, repeated, encrypt: true, aesCryptographyProvider);
+            cancellationToken.ThrowIfCancellationRequested();
             int selector = 0;
             for (int i = 0; i < 16; i++) {
                 selector = ((selector << 8) + encrypted[i]) % 3;

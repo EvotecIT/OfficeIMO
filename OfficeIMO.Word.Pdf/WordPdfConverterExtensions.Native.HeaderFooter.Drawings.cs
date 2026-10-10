@@ -93,7 +93,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align, WordToPdfOptions? options, string source) {
-            byte[] bytes = ImageEmbedder.GetImageBytes(image);
+            if (!TryGetNativeBodyImageBytes(image, options, source, out byte[] bytes)) return;
             if (!TryPrepareNativePdfImageBytes(bytes, out byte[] preparedBytes, out string? unsupportedReason)) {
                 if (options != null) {
                     AddNativeExportWarning(

@@ -14,10 +14,17 @@ public sealed class PdfPrintCommandTests {
             var service = new PrinterBoundary();
             using var output = new StringWriter();
             using var error = new StringWriter();
-            int code = await WorkflowPrintCommand.RunAsync(["print", path, "--printer", "Test queue", "--copies", "2", "--duplex", "long", "--dpi", "72"],
+            int code = await WorkflowPrintCommand.RunAsync(["print", path, "--printer", "Test queue", "--copies", "2", "--duplex", "long", "--dpi", "72",
+                "--pages-per-sheet", "9", "--scale", "custom", "--custom-scale", "25", "--alignment", "bottom-right",
+                "--margin-left", "24", "--color", "grayscale"],
                 output, error, CancellationToken.None, service);
             Assert.Equal((int)OfficeImoToolExitCode.Success, code);
             Assert.Single(service.Document!.Sheets);
+            Assert.Equal(PdfPrintColorMode.Grayscale, service.Document.Plan.ColorMode);
+            PdfPrintPlacement placement = Assert.Single(service.Document.Sheets[0].Plan.Placements);
+            Assert.Equal(0.25, placement.Scale);
+            Assert.Equal(24, placement.SlotX);
+            Assert.Equal(placement.SlotX + placement.SlotWidth - placement.Width, placement.X, 6);
             Assert.Equal(2, service.Options!.Copies);
             Assert.Equal(PdfPrintDuplex.LongEdge, service.Options.Duplex);
             Assert.Contains("Physical delivery is unconfirmed", output.ToString());

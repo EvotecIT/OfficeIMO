@@ -117,6 +117,32 @@ public sealed class WorkflowCommandTests {
     }
 
     [Fact]
+    public async Task ExtendedPrintPlanOptionsReachTheCanonicalPlanner() {
+        var output = new StringWriter();
+        var error = new StringWriter();
+        PdfPrintPlanRequest? captured = null;
+        int exit = await WorkflowCommand.RunAsync([
+            "print-plan", "source.pdf", "--pages", "9,8,7,6,5,4,3,2,1", "--pages-per-sheet", "6",
+            "--scale", "custom", "--custom-scale", "25", "--alignment", "bottom-right", "--page-subset", "odd",
+            "--margin", "12", "--margin-left", "20", "--margin-top", "30", "--margin-right", "40", "--margin-bottom", "50", "--color", "grayscale"
+        ], output, error, CancellationToken.None, printPlanner: (request, token) => {
+            captured = request;
+            PdfDocument document = PdfDocument.Create(c => { for (int i = 0; i < 9; i++) c.Page(p => p.Size(100, 120).Margin(0)); });
+            return Task.FromResult(PdfPrintPlanner.Create(document, request, token));
+        });
+        Assert.Equal((int)OfficeImoToolExitCode.Success, exit);
+        Assert.NotNull(captured);
+        Assert.Equal(PdfPrintScaleMode.Custom, captured.ScaleMode);
+        Assert.Equal(25, captured.CustomScalePercent);
+        Assert.Equal(PdfPrintAlignment.BottomRight, captured.Alignment);
+        Assert.Equal(20, captured.MarginLeft); Assert.Equal(30, captured.MarginTop);
+        Assert.Equal(40, captured.MarginRight); Assert.Equal(50, captured.MarginBottom);
+        Assert.Contains("Selected pages: 9,7,5,3,1", output.ToString());
+        Assert.Contains("Color: Grayscale", output.ToString());
+        Assert.Empty(error.ToString());
+    }
+
+    [Fact]
     public async Task InvalidWorkflowOptionsReturnSharedUsageCode() {
         ToolResult result = await RunAsync(["workflow", "assemble", "source.pdf", "--format", "png", "--output", "result.pdf"]);
 
