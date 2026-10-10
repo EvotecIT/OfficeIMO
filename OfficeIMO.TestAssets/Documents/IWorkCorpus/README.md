@@ -26,6 +26,20 @@ python Build/IWork/verify-numbers-creation.py OfficeIMO.TestAssets/Documents/IWo
 
 Native readback and strict saved/reopened OfficeIMO XLSX retain all tables and typed values after B2 changes from 12.5 to 20.75. The populated tables agree with Apple's XLSX export. Apple's empty-grid positioning is B2:D3; the adapter produces a table-relative A1:C2 grid. Exact Excel positioning and appearance, broader authored objects, formulas, formats, comments, other native versions and fonts/scripts remain unqualified.
 
+## Native source preservation
+
+The [native preservation manifest](native-exports/native-preservation-macos.json) records unchanged saves of the Apple-edited Pages body, Numbers scalar tables and Keynote image deck, plus a preservation-aware translation of Keynote image record 154. These newly authored MIT fixtures retain the original resources and unknown content; no external font is redistributed.
+
+The independent verifier compares every file-entry payload for unchanged saves and independently decompresses all IWA archives. For the translation it checks the complete raw archive against the original after replacing only the two fixed32 position values, including exact ArchiveInfo/MessageInfo bytes and auxiliary/sibling payloads. Pinned descriptors additionally check known and unknown protobuf fields. Reproduce the translation comparison with:
+
+```sh
+python Build/IWork/verify-native-preservation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-edited-v15.4.key OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-translated-v15.4.key --descriptor <numbers-descriptor.pb> --image 154 100 130 --out <evidence.json>
+```
+
+Omit `--image` and `--descriptor` to compare a reproduced unchanged encoding. The manifest pins source/output hashes and record/entry counts for all three applications. Byte comparison applies to OfficeIMO output before native opening; Keynote can update application view state during inspection.
+
+Keynote 15.4 reports the requested X100/Y130 frame, accepts a native one-point horizontal edit and retains X101/Y130/W600/H240 after save/close/reopen. All three native PDF pages are inspected, and saved-source resources match the original PNG/JPEG payloads. Unchanged outputs open in Pages 15.4, Numbers 14.5 and Keynote 15.4, retaining the observed two-page body, two-sheet/three-table workbook and three-slide geometry. This is fixture-specific native acceptance; unrefreshed preview/cache behavior, wider native metadata and other producer versions remain unassessed.
+
 ## Native Pages body creation
 
 The [Pages creation manifest](native-exports/pages-created-v15.4.json) pins a template-free OfficeIMO body document, its native Pages 15.4 edit/save/close/reopen, and PDF/DOCX exports. `IWorkPagesWritingTests.Example()` reproduces the frozen 83-paragraph input with Arial and Times New Roman, independent character decorations, explicit plain resets, a blank paragraph, Polish text and a non-BMP emoji. The original graph, native-saved edit, all two PDF pages and reference DOCX are newly authored MIT fixtures; no seed archive or standalone font is distributed.

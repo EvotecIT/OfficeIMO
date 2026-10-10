@@ -76,6 +76,7 @@ Console.WriteLine("PASS | bounded iWork NativeAOT destination conversions | "
 NativeKeynoteWriterSmoke.Run();
 NativePagesWriterSmoke.Run();
 NativeNumbersWriterSmoke.Run();
+NativePreservationSmoke.Run();
 
 static void Require(bool condition, string message) {
     if (!condition) throw new InvalidOperationException(message);

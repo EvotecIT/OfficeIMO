@@ -1,6 +1,6 @@
-# OfficeIMO.IWork - Apple iWork reading and native creation for .NET
+# OfficeIMO.IWork - Apple iWork reading, native creation and preservation for .NET
 
-`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages and creates native Keynote presentations, Pages body documents and Numbers scalar-table spreadsheets without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages, creates native documents and saves captured sources with explicit preservation boundaries, without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
 ## Reference from a source checkout
 
@@ -101,6 +101,37 @@ Each table supports 1–256 positions on either axis, equal positive row/column 
 
 The [Numbers creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5.json) records independent decoding of all 108 objects and native Numbers 14.5 open, numeric edit, save, close/reopen and PDF/XLSX export. Both sheets and both PDF pages are inspected. Strict saved/reopened OfficeIMO XLSX retains all three tables and their typed values, including Polish text, emoji, booleans, literal equals-sign text and a completely empty grid. Apple's empty-table Excel placement differs from the table-relative OfficeIMO output; this reference does not qualify equivalent Excel positioning or appearance. Other versions, fonts, scripts, layouts and runtime architectures require additional qualification.
 
+## Save a captured native source
+
+```csharp
+using OfficeIMO.IWork;
+
+var source = IWorkSourceDocument.Open("source.pages");
+var session = source.BeginEdit(); // separate from the immutable source snapshot
+IWorkNativeSaveReport report = session.Save("preserved.pages");
+// An unchanged save has equal normalized source and output content hashes.
+```
+
+An unchanged save writes all captured file-entry payloads into a native ZIP package. Unknown IWA records, auxiliary payloads, IDs, references, version fields, resources and existing previews remain intact, even when conversion-report source-record preservation is disabled. ZIP compression, timestamps, extra fields, comments, directory entries and filesystem metadata are rewritten or omitted. This is file-entry preservation rather than whole-file byte identity. Directory bundles and nested `Index.zip` sources can be saved unchanged; nested index contents stay inside their original entry.
+
+The supported mutation moves a direct, unlocked, unrotated and unmasked Keynote image within its slide canvas:
+
+```csharp
+var keynote = IWorkSourceDocument.Open("deck.key");
+var image = keynote.ReadKeynote().Slides[0].Images[0];
+var edit = keynote.BeginEdit();
+edit.MoveKeynoteImage(image.SourceIdentity!, leftPoints: 100, topPoints: 130);
+var report = edit.Save("moved.key", options: new IWorkNativeSaveOptions {
+    AllowUnassessedVisualCaches = true
+});
+```
+
+Only the existing position floats change. Image dimensions, payloads, descriptions, IDs, references and all other raw fields remain intact. Missing or ambiguous geometry, unsupported image states, out-of-canvas positions and nested-index mutations are rejected. Repeating the operation uses absolute coordinates; restoring the original coordinates removes that pending edit. Other content and structural edits are unsupported.
+
+Edited saves require `AllowUnassessedVisualCaches` and report `IWORK_NATIVE_VISUAL_CACHES_UNASSESSED` with `Unassessed` fidelity. The operation retains existing native previews and visual caches without regenerating them or assessing wider application metadata. An unchanged save needs no cache acceptance. The [native preservation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/native-preservation-macos.json) records independent raw-entry/envelope comparisons, unchanged native open in all three applications, Keynote 15.4 translation and subsequent native edit/save/reopen, and all-slide PDF inspection. It qualifies those fixtures; other application versions and visual-cache behavior require separate evidence.
+
+`IWorkNativeSaveOptions` independently bounds the sum of input file-entry bytes and encoded ZIP length, combined decompressed bytes of changed archives, and distinct edited records. `SaveBytesResult` returns a defensive package copy through `GetPackageBytes()` and an operation-level report with normalized content hashes, physical entry/record counts and updated identities/entry paths. Counts do not establish semantic fidelity of opaque content. Encoding completes before writing. Stream saves start at the caller's current position, leave the stream open and can leave partial bytes on copying failure or cancellation. Path saves are atomic, require `overwrite: true` for existing files and reject output inside a captured directory source, including directory aliases. Sessions are not thread safe.
+
 ## Read and inspect a source
 
 ```csharp
@@ -188,7 +219,7 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The destination adapters also accept a token after their read and conversion options. Cancellation is cooperative during loading, projection, and destination construction; saving uses the destination owner's separate save API. These APIs do not establish a fixed cancellation latency or memory budget.
 
-The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections, shared Reader extraction, editable DOCX/XLSX/PPTX conversion and native Keynote creation on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10. Hash-pinned fixtures require complete editable reconstruction, save/reopen and selected Numbers recalculation; the native Keynote creator emits the same independently decoded, Apple-accepted package on all six host/runtime combinations. The Pages body and Numbers scalar-table creation extensions have actual .NET 8/10 native execution on macOS arm64. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
+The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections, shared Reader extraction, editable DOCX/XLSX/PPTX conversion and native Keynote creation on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10. Hash-pinned fixtures require complete editable reconstruction, save/reopen and selected Numbers recalculation; the native Keynote creator emits the same independently decoded, Apple-accepted package on all six host/runtime combinations. The Pages body and Numbers scalar-table creation extensions, unchanged native preservation and bounded Keynote image translations have actual .NET 8/10 native execution on macOS arm64. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
 
 ## Opt in to an Office destination adapter
 
@@ -287,10 +318,10 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 1 | 0 | 0 | 0 | 1 | 0 |
+| Create | 2 | 0 | 0 | 0 | 0 | 0 |
 | Read | 1 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 0 | 0 | 0 | 0 | 1 | 0 |
-| Preserve | 0 | 0 | 0 | 0 | 1 | 0 |
+| Edit | 0 | 1 | 0 | 0 | 1 | 0 |
+| Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.IWork` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

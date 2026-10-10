@@ -22,9 +22,14 @@ internal static class IWorkNativePackageWriter {
             cancellationToken.ThrowIfCancellationRequested();
             entries.Add("Data/" + resource.FileName, resource.Bytes);
         }
+        return WriteEntries(entries, maximumBytes, cancellationToken);
+    }
+
+    internal static byte[] WriteEntries(IReadOnlyDictionary<string, byte[]> entries, int maximumBytes,
+        CancellationToken cancellationToken) {
         // Core writes local DOS timestamps. Local midnight keeps bytes independent of the host time zone.
         var timestamp = new DateTimeOffset(new DateTime(1980, 1, 1, 0, 0, 0, DateTimeKind.Local));
-        var zipEntries = entries.Select(entry => new OfficeProvenanceZipWriteEntry(entry.Key, entry.Value.Length,
+        var zipEntries = entries.OrderBy(entry => entry.Key, StringComparer.Ordinal).Select(entry => new OfficeProvenanceZipWriteEntry(entry.Key, entry.Value.Length,
             false, timestamp, 0, 0, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<byte>(),
             () => new MemoryStream(entry.Value, writable: false))).ToArray();
         byte[] output = OfficeProvenanceZipWriter.Write(zipEntries, maximumBytes,

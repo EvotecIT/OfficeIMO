@@ -7878,11 +7878,25 @@
       "capabilityId":"keynote-native-creation",
       "operation":"Create",
       "state":"Supported",
-      "publicApi":"IWorkKeynoteDocument.Create / AddSlide / AddText / SaveBytes / Save",
-      "evidence":"OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json independent decoding and Apple reopen/export/edit evidence::Create",
+      "publicApi":"IWorkKeynoteDocument.Create / AddSlide / AddText / AddRichText / AddImage / AddTable / SaveBytes / Save",
+      "evidence":"OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json and rich-run/image/table references with independent decoding and Apple reopen/export/edit evidence::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key"],
-      "limitation":"Template-free creation supports static slides with opaque sRGB backgrounds and positioned, uniformly styled plain text. Native acceptance is fixture-specific to Keynote 15.4; it does not qualify all fonts, producer versions, rich runs, media, tables, builds, or editing loaded packages."
+      "limitation":"Template-free static slides support positioned rich text, PNG/JPEG images and scalar tables. Broader formatting, crops/masks/rotation, transitions/builds, fonts/scripts and producer versions remain unqualified. Loaded-source preservation and image translations use a separate edit session."
+    },
+    {
+      "id":"native:keynote-native-image-edit:edit",
+      "packageId":"OfficeIMO.IWork",
+      "formatId":"IWork.Keynote",
+      "targetFormatId":"",
+      "capabilityId":"keynote-native-image-edit",
+      "operation":"Edit",
+      "state":"Partial",
+      "publicApi":"IWorkSourceDocument.BeginEdit / IWorkNativeEditSession.MoveKeynoteImage / SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests native preservation contracts; native-exports/native-preservation-macos.json exact position-byte changes, native edit/save/reopen and all-slide PDF evidence::Edit",
+      "sourceCatalog":"OfficeIMO.NativeLifecycle",
+      "extensions":[".key"],
+      "limitation":"Only direct unlocked unrotated unmasked images inside a known canvas can move. Other raw payload/header/resource bytes remain intact. Edited saves require explicit AllowUnassessedVisualCaches and report retained unrefreshed previews/cache metadata as unassessed. Other semantic/structural and nested-index edits are unsupported."
     },
     {
       "id":"native:iwork-native:create",
@@ -7891,12 +7905,12 @@
       "targetFormatId":"",
       "capabilityId":"iwork-native",
       "operation":"Create",
-      "state":"Unsupported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages or Numbers",
-      "evidence":"OfficeIMO.IWork.Tests source inspection and conversion contracts::Create",
+      "state":"Supported",
+      "publicApi":"IWorkPagesDocument.Create / AddParagraph / AddRichParagraph; IWorkNumbersDocument.Create / AddSheet / AddTable / SaveBytes / Save",
+      "evidence":"OfficeIMO.IWork.Tests creation contracts; native-exports/pages-created-v15.4.json and numbers-created-v14.5.json independent decoding and Apple open/edit/save/export evidence::Create",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".numbers",".pages"],
-      "limitation":"Native Pages and Numbers creation is not supported."
+      "limitation":"Template-free Pages body paragraphs and Numbers scalar tables use bounded native models. Lists, broader Pages objects/sections, Numbers formulas/formats/comments/merges and loaded-source semantic editing are unsupported. Native acceptance is fixture-specific to Pages 15.4 and Numbers 14.5."
     },
     {
       "id":"native:iwork-native:read",
@@ -7906,11 +7920,11 @@
       "capabilityId":"iwork-native",
       "operation":"Read",
       "state":"Supported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Read",
+      "publicApi":"IWorkSourceDocument.Open / project / BeginEdit / IWorkNativeEditSession.SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests package/projection and native preservation contracts; native-exports/native-preservation-macos.json independent envelopes and Apple open evidence::Read",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "limitation":"Modern IWA snapshots are immutable. Unchanged native ZIP saves preserve all captured file-entry payloads, including nested Index.zip; ZIP carrier/filesystem metadata is rewritten or omitted. Native acceptance is fixture-specific; opaque preservation does not establish semantic fidelity."
     },
     {
       "id":"native:iwork-native:edit",
@@ -7920,11 +7934,11 @@
       "capabilityId":"iwork-native",
       "operation":"Edit",
       "state":"Unsupported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Edit",
+      "publicApi":"IWorkSourceDocument.Open / project to Pages or Numbers",
+      "evidence":"OfficeIMO.IWork.Tests immutable source and unchanged native preservation contracts::Edit",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
-      "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "extensions":[".numbers",".pages"],
+      "limitation":"Semantic and structural editing of loaded Pages/Numbers sources is unsupported; unchanged native saving uses BeginEdit().Save."
     },
     {
       "id":"native:iwork-native:preserve",
@@ -7933,12 +7947,12 @@
       "targetFormatId":"",
       "capabilityId":"iwork-native",
       "operation":"Preserve",
-      "state":"Unsupported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Preserve",
+      "state":"Supported",
+      "publicApi":"IWorkSourceDocument.Open / project / BeginEdit / IWorkNativeEditSession.SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests package/projection and native preservation contracts; native-exports/native-preservation-macos.json independent envelopes and Apple open evidence::Preserve",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "limitation":"Modern IWA snapshots are immutable. Unchanged native ZIP saves preserve all captured file-entry payloads, including nested Index.zip; ZIP carrier/filesystem metadata is rewritten or omitted. Native acceptance is fixture-specific; opaque preservation does not establish semantic fidelity."
     },
     {
       "id":"native:iwork-native:inspect",
@@ -7948,11 +7962,11 @@
       "capabilityId":"iwork-native",
       "operation":"Inspect",
       "state":"Supported",
-      "publicApi":"IWorkSourceDocument.Open / project to Pages, Numbers, or Keynote",
-      "evidence":"OfficeIMO.IWork.Tests bounded package inspection, typed projection, preview, and conversion-report contracts::Inspect",
+      "publicApi":"IWorkSourceDocument.Open / project / BeginEdit / IWorkNativeEditSession.SaveBytesResult / Save",
+      "evidence":"OfficeIMO.IWork.Tests package/projection and native preservation contracts; native-exports/native-preservation-macos.json independent envelopes and Apple open evidence::Inspect",
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".key",".numbers",".pages"],
-      "limitation":"Loaded modern IWA packages remain read-only sources; projections report unsupported records and visual fallbacks, and loaded packages cannot be edited or rewritten."
+      "limitation":"Modern IWA snapshots are immutable. Unchanged native ZIP saves preserve all captured file-entry payloads, including nested Index.zip; ZIP carrier/filesystem metadata is rewritten or omitted. Native acceptance is fixture-specific; opaque preservation does not establish semantic fidelity."
     },
     {
       "id":"native:latex-native:create",
