@@ -76,6 +76,7 @@ internal sealed partial class PublisherReadProjection {
         string anchor = "publisher-story-" + story.Id.ToString(CultureInfo.InvariantCulture);
         _storyTables.TryGetValue(story.Id, out List<ReaderTable>? tables);
         OfficeDocumentBlock? tableBlock = null;
+        int? chunkPage = null;
         if (tables != null) {
             Item();
             // Correlate the complete story with one native occurrence. Other
@@ -89,6 +90,9 @@ internal sealed partial class PublisherReadProjection {
             foreach (ReaderTable table in tables) {
                 table.Location!.LogicalOrder = location.LogicalOrder;
             }
+            // Shared-story chunks must not supply another occurrence's page
+            // when table traversal fills an unset native citation.
+            chunkPage = tables.All(table => table.Location!.Page == location.Page) ? location.Page : null;
             if (location.Page.HasValue) {
                 uint pageId = _source.Pages[location.Page.Value - 1].Id;
                 if (!_pageTableBlocks.TryGetValue(pageId, out var blocks)) _pageTableBlocks.Add(pageId, blocks = new());
@@ -134,7 +138,7 @@ internal sealed partial class PublisherReadProjection {
                 };
                 chunk.Location.BlockIndex = _chunks.Count;
                 chunk.Location.LogicalOrder = blockLocation.LogicalOrder;
-                chunk.Location.Page = blockLocation.Page;
+                chunk.Location.Page = chunkPage;
                 if (tables != null && index == 0 && part == 0) chunk.Tables = tables.ToArray();
                 ReaderReadScope.Current?.Budget?.AddChunk(chunk);
                 _chunks.Add(chunk);

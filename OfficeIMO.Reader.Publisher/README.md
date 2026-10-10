@@ -69,6 +69,8 @@ Master-owned tables are extracted once without a physical-page citation. Their
 `TableIndex` values are document-wide ordinals, so table export filenames stay
 distinct across master owners. Repeated table objects keep distinct occurrence
 anchors; the complete source-story block correlates with the first mapped table.
+Shared-story chunks carry a page citation only when every mapped occurrence
+agrees on it, preserving master ownership during table extraction.
 Page Markdown and semantic PDF render each structured grid once.
 Unresolved native text mappings retain complete stories and an omission report;
 Reader does not present unknown cell text as an empty dataset. Semantic PDF
