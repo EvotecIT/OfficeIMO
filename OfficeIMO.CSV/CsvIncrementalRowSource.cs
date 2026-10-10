@@ -44,34 +44,32 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
-        try { return await AdvanceCoreAsync(asynchronous, token).ConfigureAwait(false); }
-        catch { _failed = true; throw; }
-    }
-
-    private async ValueTask<bool> AdvanceCoreAsync(bool asynchronous, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-        _options.CancellationToken.ThrowIfCancellationRequested();
-        // The lifetime already observes both tokens used to open the reader. Only a new
-        // per-read token needs another link; aggregation reuses its opening token for every row.
-        using var operation = token.CanBeCanceled && token != _options.CancellationToken &&
-            token != _openingToken && token != _loadToken
-            ? CancellationTokenSource.CreateLinkedTokenSource(token, _options.CancellationToken) : null;
-        var effective = operation?.Token ?? _options.CancellationToken;
-        if (_buffered.Count > 0)
+        try
         {
-            SetCurrent(_buffered.Dequeue());
+            token.ThrowIfCancellationRequested();
+            _options.CancellationToken.ThrowIfCancellationRequested();
+            // The lifetime already observes both tokens used to open the reader. Only a new
+            // per-read token needs another link; aggregation reuses its opening token for every row.
+            using var operation = token.CanBeCanceled && token != _options.CancellationToken &&
+                token != _openingToken && token != _loadToken
+                ? CancellationTokenSource.CreateLinkedTokenSource(token, _options.CancellationToken) : null;
+            var effective = operation?.Token ?? _options.CancellationToken;
+            if (_buffered.Count > 0)
+            {
+                SetCurrent(_buffered.Dequeue());
+                return true;
+            }
+            if (!await _records.ReadAsync(asynchronous, effective, reuseValues: true).ConfigureAwait(false))
+            {
+                _current = Array.Empty<string>();
+                CurrentPhysicalLineNumber = CurrentPhysicalEndLineNumber = null;
+                return false;
+            }
+            effective.ThrowIfCancellationRequested();
+            SetCurrent(new BufferedRecord(_records.Current.Values, _records.StartLine, _records.EndLine));
             return true;
         }
-        if (!await _records.ReadAsync(asynchronous, effective, reuseValues: true).ConfigureAwait(false))
-        {
-            _current = Array.Empty<string>();
-            CurrentPhysicalLineNumber = CurrentPhysicalEndLineNumber = null;
-            return false;
-        }
-        effective.ThrowIfCancellationRequested();
-        SetCurrent(new BufferedRecord(_records.Current.Values, _records.StartLine, _records.EndLine));
-        return true;
+        catch { _failed = true; throw; }
     }
 
     private void SetCurrent(BufferedRecord record)
