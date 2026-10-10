@@ -67,7 +67,8 @@ public sealed class ReaderPublisherTests {
         var result = CreateReader().ReadDocument(stream, "source.pub", new ReaderOptions { ComputeHashes = true });
         Assert.Equal(7, stream.Position); Assert.True(stream.CanRead);
         Assert.Equal(bytes.LongLength, result.Source.LengthBytes);
-        Assert.Equal(Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), result.Source.SourceHash);
+        using var hash = SHA256.Create();
+        Assert.Equal(BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(), result.Source.SourceHash);
         Assert.All(result.Chunks, chunk => { Assert.Equal(result.Source.SourceHash, chunk.SourceHash); Assert.NotNull(chunk.ChunkHash); });
     }
 
