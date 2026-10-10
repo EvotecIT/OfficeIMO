@@ -97,7 +97,7 @@ Custom-path record mutations check coordinate offsets, compact vertices,
 line/cubic command consumption, subpaths, paint controls, malformed arrays,
 guide/command fallback reports and inset picture masks. Shared array decoding
 preserves following complex properties when native lengths exclude their
-six-byte headers. Cumulative limits account for decoded vertices/segments,
+six-byte headers, including empty arrays. Cumulative limits account for decoded vertices/segments,
 expanded commands and copied shape/mask paths. The producer corpus has no custom
 paths; these managed scene and SVG/raster/PDF checks do not establish native
 Publisher winding or mask fidelity.

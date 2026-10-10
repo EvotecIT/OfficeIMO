@@ -194,7 +194,7 @@ public sealed class OfficeClipPath {
                     commands.Add(Commands[i].Scale(scaleX, scaleY));
                 }
 
-                return Path(commands, FillRule);
+                return Path(Width * scaleX, Height * scaleY, commands, FillRule);
             default:
                 return Clone();
         }

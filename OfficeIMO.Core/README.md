@@ -1051,7 +1051,8 @@ if (report.HasIssues) {
 
 `OfficeClipPath.Path(width, height, commands, fillRule)` retains path offsets and
 control points within a declared canvas. Use it for inset masks whose coordinates
-must stay aligned with an image or drawing. The content-sized `Path(commands,
+must stay aligned with an image or drawing. `Scale` scales that canvas and its
+coordinates together. The content-sized `Path(commands,
 fillRule)` overload derives its dimensions from the occupied bounds and moves
 those bounds to the local origin.
 

@@ -31,6 +31,45 @@ public partial class DrawingTests {
         Assert.Equal("After", properties[1].ComplexText);
     }
 
+    [Theory]
+    [InlineData(0x0145, 8)]
+    [InlineData(0x0145, 4)]
+    [InlineData(0x0145, 0xFFF0)]
+    [InlineData(0x0146, 2)]
+    [InlineData(0x0197, 8)]
+    public void OfficeArtPropertyTableReader_EmptyArrayHeaderPreservesTheFollowingProperty(ushort id, ushort elementSize) {
+        byte[] name = Encoding.Unicode.GetBytes("After");
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)(id | 0x8000)); writer.Write(0U);
+        writer.Write((ushort)0x8380); writer.Write((uint)name.Length);
+        writer.Write((ushort)0); writer.Write((ushort)0); writer.Write(elementSize);
+        writer.Write(name);
+
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 2);
+
+        Assert.Equal(0U, properties[0].DeclaredComplexDataLength);
+        Assert.Equal(6, properties[0].AvailableComplexDataLength);
+        Assert.True(properties[0].HasCompleteComplexData);
+        Assert.Equal("After", properties[1].ComplexText);
+        Assert.True(properties[1].HasCompleteComplexData);
+    }
+
+    [Fact]
+    public void OfficeArtPropertyTableReader_AbsentArrayDoesNotConsumeTheNextDeclaredPayload() {
+        byte[] nextData = { 0, 0, 0, 0, 2, 0 };
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x8146); writer.Write(0U);
+        writer.Write((ushort)0x83FE); writer.Write((uint)nextData.Length);
+        writer.Write(nextData);
+
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 2);
+
+        Assert.Equal(0, properties[0].AvailableComplexDataLength);
+        Assert.Null(properties[0].CopyComplexData());
+        Assert.Equal(nextData, properties[1].CopyComplexData());
+        Assert.True(properties[1].HasCompleteComplexData);
+    }
+
     [Fact]
     public void OfficeArtPropertyTableReader_DoesNotGuessArrayHeadersForUnrelatedComplexData() {
         byte[] payload = { 0xFE, 0x83, 8, 0, 0, 0, 2, 0, 2, 0, 4, 0, 7, 0, 9, 0, 0, 0, 0, 0 };
