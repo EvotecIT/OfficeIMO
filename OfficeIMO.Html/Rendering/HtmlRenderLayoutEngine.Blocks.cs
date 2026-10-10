@@ -485,8 +485,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         block = ApplyElementSemantics(block, element, style);
         if (ownsFloatContext) foreach (HtmlRenderVisual visual in block.Visuals) visual.PaintPhase = HtmlRenderPaintPhase.Atomic;
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
-        return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
+        HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
+        completed.KnownNoInFlowLineBoxes = !usesBlockFormatting && inlineLayout?.HasInFlowLineBoxes == false;
+        return completed;
     }
 
     private static HtmlRenderBoxStyle SuppressContinuationStartDecorations(HtmlRenderBoxStyle style) {

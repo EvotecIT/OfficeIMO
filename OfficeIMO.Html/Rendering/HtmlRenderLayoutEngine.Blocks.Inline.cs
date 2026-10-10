@@ -22,13 +22,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         HtmlRenderFlowBlock atomic = LayoutElement(element, outerWidth, blockStyle, parentStyle, depth + 1);
-        runs.Add(new HtmlInlineRun(
+        var run = new HtmlInlineRun(
             atomic,
             inlineStyle,
             link,
             HtmlRenderStyleResolver.DescribeSource(element),
             inheritedPaintOffsetX,
             inheritedPaintOffsetY,
-            element));
+            element);
+        run.HasEmptyInlineBlockBaseline = atomic.KnownNoInFlowLineBoxes
+            && !IsVerticalWritingMode(inlineStyle.WritingMode)
+            && inlineStyle.MarginTop == 0D && inlineStyle.MarginBottom == 0D
+            && inlineStyle.FloatSide == "none" && inlineStyle.Position is "static" or "relative";
+        runs.Add(run);
     }
 }

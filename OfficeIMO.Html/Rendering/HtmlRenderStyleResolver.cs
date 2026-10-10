@@ -882,8 +882,8 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private double ResolveLineHeight(string value, double fontSize) {
         if (string.IsNullOrWhiteSpace(value) || string.Equals(value, "normal", StringComparison.OrdinalIgnoreCase)) return fontSize * _options.DefaultLineHeight;
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier) && multiplier > 0D) return fontSize * multiplier;
-        return TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight) && lineHeight > 0D
+        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double multiplier) && multiplier >= 0D) return fontSize * multiplier;
+        return TryResolveLength(value, fontSize, fontSize, _rootFontSize, out double lineHeight) && lineHeight >= 0D
             ? lineHeight
             : fontSize * _options.DefaultLineHeight;
     }

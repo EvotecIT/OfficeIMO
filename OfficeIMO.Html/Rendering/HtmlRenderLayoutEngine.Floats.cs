@@ -81,7 +81,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var placements = new List<InlineFloatPlacement>();
         var lines = new List<InlineLine>();
         double y = 0D;
-        InlineLine line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight);
+        InlineLine line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight, paragraphStyle);
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
         bool noWrapRangeStartedAfterContent = false;
@@ -134,7 +134,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     InlineFloatBand remainingBand = context.ResolveBand(y, paragraphStyle.LineHeight);
                     line.Place(remainingBand.Left, y, remainingBand.Width);
                 } else {
-                    line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight);
+                    line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight, paragraphStyle);
                 }
                 if (!sharesCurrentLine) previousWasCollapsibleSpace = false;
                 continue;
@@ -197,6 +197,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
+                    line.HasForcedBreak = true;
                     if (noWrapRangeStart >= 0) {
                         FinalizeFloatNoWrapRange(
                             lines,
@@ -334,7 +335,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ? pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight : 0D);
     }
 
-    private static bool FinalizeFloatNoWrapRange(
+    private bool FinalizeFloatNoWrapRange(
         ICollection<InlineLine> lines,
         ref InlineLine line,
         ref double y,
@@ -393,7 +394,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private static void CommitFloatLine(
+    private void CommitFloatLine(
         ICollection<InlineLine> lines,
         ref InlineLine line,
         ref double y,
@@ -403,15 +404,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0 || includeEmpty) {
             lines.Add(line);
-            y = line.Y + line.ResolveLineHeight(defaultLineHeight);
+            double height = line.ResolveLineHeight(defaultLineHeight);
+            if (line.ParagraphStyle != null) TryResolveEmptyInlineBlockLineMetrics(line, line.ParagraphStyle, ref height, out _);
+            y = line.Y + height;
             if (line.HasFlowContent || includeEmpty) context.FirstLineIndent = 0D;
         }
-        line = CreateFloatLine(context, ref y, defaultLineHeight);
+        line = CreateFloatLine(context, ref y, defaultLineHeight, line.ParagraphStyle);
     }
 
-    private static InlineLine CreateFloatLine(InlineFloatContext context, ref double y, double lineHeight) {
+    private static InlineLine CreateFloatLine(InlineFloatContext context, ref double y, double lineHeight, HtmlRenderBoxStyle? paragraphStyle = null) {
         InlineFloatBand band = context.ResolveUsableBand(ref y, lineHeight);
-        var line = new InlineLine();
+        var line = new InlineLine { ParagraphStyle = paragraphStyle };
         line.Place(band.Left, y, band.Width);
         line.Indent(context.FirstLineIndent, context.IndentAtRight);
         return line;
@@ -423,6 +426,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineFloatContext context,
         double lineHeight,
         double requiredWidth) {
+        HtmlRenderBoxStyle? paragraphStyle = line.ParagraphStyle;
         InlineSegment[] runningStringMarkers = line.Segments
             .Where(segment => segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null)
             .ToArray();
@@ -430,7 +434,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         while (next > y + 0.0001D) {
             y = next;
             InlineFloatBand band = context.ResolveUsableBand(ref y, lineHeight);
-            line = new InlineLine();
+            line = new InlineLine { ParagraphStyle = paragraphStyle };
             line.Place(band.Left, y, band.Width);
             line.Indent(context.FirstLineIndent, context.IndentAtRight);
             foreach (InlineSegment marker in runningStringMarkers) line.Add(marker);

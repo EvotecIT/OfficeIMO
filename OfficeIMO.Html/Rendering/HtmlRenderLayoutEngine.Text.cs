@@ -673,7 +673,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool inlineEdgesPrepared = false) {
         AssignLogicalTextOrders(runs);
         if (!inlineEdgesPrepared) PrepareInlineEdgeScopes(runs);
-        if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
+        if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D,
+            hasInFlowLineBoxes: runs.Count == 0 ? false : (bool?)null);
         if (runs.Any(run => run.IsBlockInterruption)) {
             return LayoutInterruptedInlineRuns(runs, width, paragraphStyle, formattingContainer);
         }
@@ -755,6 +756,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
+                    line.HasForcedBreak = true;
                     if (noWrapRangeStart >= 0) {
                         FinalizeNoWrapRange(
                             lines,

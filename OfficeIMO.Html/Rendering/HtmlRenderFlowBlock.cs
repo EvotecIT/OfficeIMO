@@ -158,6 +158,9 @@ internal sealed class HtmlRenderFlowBlock {
     internal double LayoutViewportWidth { get; }
     internal double LayoutViewportHeight { get; }
     internal double LeadingFlowAdjustment { get; }
+    // Stamped on the final ordinary LayoutElement result, for its immediate inline
+    // consumer. Derived/specialized blocks remain unqualified rather than guessed empty.
+    internal bool KnownNoInFlowLineBoxes { get; set; }
 
     internal HtmlRenderFlowBlock WithLayoutViewport(double width, double height) =>
         new HtmlRenderFlowBlock(
@@ -735,6 +738,7 @@ internal sealed class HtmlInlineRun {
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningElementAssignments { get; } = Array.Empty<HtmlCssRunningStringAssignment>();
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
+    internal bool HasEmptyInlineBlockBaseline { get; set; }
     internal bool IsBlockInterruption { get; }
     internal bool IsFlowMarker { get; }
     internal HtmlInlineEdgeBoundary? InlineEdgeBoundary { get; set; }
