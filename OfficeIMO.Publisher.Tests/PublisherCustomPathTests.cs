@@ -102,9 +102,9 @@ public sealed class PublisherCustomPathTests {
     }
 
     [Fact]
-    public void Geometry_guides_and_separate_paint_groups_are_not_guessed() {
+    public void Missing_geometry_guides_and_separate_paint_groups_are_not_guessed() {
         PublisherDocument guide = Load(1, new[] { (unchecked((int)0x8000007F), 5), (85, 5), (35, 55) });
-        Assert.Contains(guide.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_UNSUPPORTED");
+        Assert.Contains(guide.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
         PublisherDocument groups = Load(4, new[] { (10, -20), (110, -20), (10, 80), (110, 80) },
             new ushort[] { 0x4000, 0x0001, 0x8000, 0x4000, 0x0001, 0x8000 });
         Assert.Contains(groups.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_PAINT_GROUPS_UNSUPPORTED");

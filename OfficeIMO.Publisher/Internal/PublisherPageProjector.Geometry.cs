@@ -9,18 +9,25 @@ internal sealed partial class PublisherPageProjector {
         if (OfficeArtCustomPathProjector.TryProject(source.Properties, width, height,
             _context.AccountPathWork, _context.Token, out OfficeArtCustomPathProjection? path, out OfficeArtCustomPathFailure failure)) {
             _context.Add("PUB_CUSTOM_PATH_RENDERING_UNQUALIFIED",
-                "Literal native path coordinates and commands use the shared nonzero path fill and clipping engines; winding, picture masking and Publisher-rendered appearance remain unqualified.",
+                (path!.UsesGuides ? "Native geometry guides use bounded integer formulas; producer rounding remains unqualified. " : "")
+                    + "Native path coordinates and commands use the shared nonzero path fill and clipping engines; winding, picture masking and Publisher-rendered appearance remain unqualified.",
                 OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Id));
             return path;
         }
         string code = failure switch {
-            OfficeArtCustomPathFailure.GuideReference => "PUB_CUSTOM_PATH_GUIDES_UNSUPPORTED",
+            OfficeArtCustomPathFailure.InvalidGuide => "PUB_CUSTOM_PATH_GUIDES_INVALID",
+            OfficeArtCustomPathFailure.GuideFormula => "PUB_CUSTOM_PATH_GUIDE_FORMULA_UNSUPPORTED",
+            OfficeArtCustomPathFailure.GuideParameter => "PUB_CUSTOM_PATH_GUIDE_PARAMETER_UNSUPPORTED",
+            OfficeArtCustomPathFailure.Scaling => "PUB_CUSTOM_PATH_SCALING_UNSUPPORTED",
             OfficeArtCustomPathFailure.Command => "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED",
             OfficeArtCustomPathFailure.PaintGroups => "PUB_CUSTOM_PATH_PAINT_GROUPS_UNSUPPORTED",
             _ => "PUB_CUSTOM_PATH_INVALID"
         };
         string detail = failure switch {
-            OfficeArtCustomPathFailure.GuideReference => "Native custom path coordinates refer to unevaluated geometry guides.",
+            OfficeArtCustomPathFailure.InvalidGuide => "Native custom path geometry guides have an invalid table, reference or arithmetic result.",
+            OfficeArtCustomPathFailure.GuideFormula => "Native custom path geometry guides use an unsupported formula identifier.",
+            OfficeArtCustomPathFailure.GuideParameter => "Native custom path geometry guides refer to a device-pixel or unsupported parameter.",
+            OfficeArtCustomPathFailure.Scaling => "Native custom path geometry requires limousine scaling that this profile does not reconstruct.",
             OfficeArtCustomPathFailure.Command => "The native custom path uses an unassessed escape or client command.",
             OfficeArtCustomPathFailure.PaintGroups => "The native custom path contains separately painted groups that this profile does not reconstruct.",
             OfficeArtCustomPathFailure.InvalidGeometrySpace => "The native custom path has an invalid geometry coordinate space.",

@@ -72,7 +72,7 @@ public partial class DrawingTests {
     public void OfficeArtCustomPath_GuideSentinelsAreNeverInterpretedAsLiteralCoordinates() {
         var properties = CustomPath(new[] { (unchecked((int)0x8000007F), 0), (21600, 21600) });
         Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out var failure));
-        Assert.Null(result); Assert.Equal(OfficeArtCustomPathFailure.GuideReference, failure);
+        Assert.Null(result); Assert.Equal(OfficeArtCustomPathFailure.InvalidGuide, failure);
     }
 
     [Theory]

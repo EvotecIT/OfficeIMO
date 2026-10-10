@@ -2797,6 +2797,7 @@ Warnings: 0
 | fillBackColor | 2 |
 | fillColor | 5 |
 | FillStyleBooleanProperties | 6 |
+| GeometryBooleanProperties | 1 |
 | GroupShapeBooleanProperties | 8 |
 | lineColor | 4 |
 | LineStyleBooleanProperties | 8 |
@@ -2804,7 +2805,6 @@ Warnings: 0
 | pib | 1 |
 | PropertyId:0x0080 | 4 |
 | PropertyId:0x008B | 4 |
-| PropertyId:0x017F | 1 |
 | ProtectionBooleanProperties | 10 |
 | ShadowStyleBooleanProperties | 1 |
 | ShapeBooleanProperties | 1 |
