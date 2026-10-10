@@ -55,17 +55,19 @@ public partial class DrawingTests {
             0xBF, 0x01, 0x10, 0x00, 0x10, 0x00,
             0xC0, 0x01, 0x33, 0x22, 0x11, 0x00,
             0xCB, 0x01, 0x00, 0x7F, 0x00, 0x00,
+            0xCC, 0x01, 0x00, 0x80, 0x03, 0x00,
             0xCE, 0x01, 0x03, 0x00, 0x00, 0x00,
             0xFF, 0x01, 0x08, 0x00, 0x08, 0x00
         };
 
         OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(
-            OfficeArtPropertyTableReader.Read(payload, 7));
+            OfficeArtPropertyTableReader.Read(payload, 8));
 
         Assert.True(style.FillEnabled);
         Assert.Equal(0.5D, style.FillOpacity);
         Assert.True(style.LineEnabled);
         Assert.Equal(32512, style.LineWidthEmus);
+        Assert.Equal(3.5D, style.LineMiterLimit);
         Assert.Equal(3U, style.LineDashing);
         Assert.True(style.FillColor!.Value.TryResolve(
             index => index == 0 ? OfficeColor.FromRgb(0xAA, 0xBB, 0xCC) : null,

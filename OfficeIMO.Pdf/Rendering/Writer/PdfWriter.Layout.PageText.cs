@@ -458,8 +458,13 @@ internal static partial class PdfWriter {
             double shapeBottomY = isHeader
                 ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - shapeBlock.Shape.Height
                 : options.MarginBottom - options.FooterOffsetY;
-            if (TryGetHeaderFooterShapeBounds(shapeBlock.Shape, shapeX, shapeBottomY, out double shapeLeft, out _, out double shapeWidth, out _)) {
+            if (TryGetHeaderFooterShapeBounds(shapeBlock.Shape, shapeX, shapeBottomY, null, isHeader ? "Header" : "Footer", out double shapeLeft, out _, out double shapeWidth, out _)) {
                 IncludeHorizontalBounds(shapeLeft, shapeLeft + shapeWidth, ref visibleLeft, ref visibleRight);
+            }
+            foreach (OfficeShape marker in CreateLineMarkerShapes(shapeBlock.Shape)) {
+                if (TryGetShapePaintBounds(marker, shapeX, shapeBottomY + shapeBlock.Shape.Height - marker.Height,
+                        null, isHeader ? "Header" : "Footer", "marker", out double markerLeft, out _, out double markerWidth, out _))
+                    IncludeHorizontalBounds(markerLeft, markerLeft + markerWidth, ref visibleLeft, ref visibleRight);
             }
             shapeConsumedWidth += headerFooterShape.Width + HeaderFooterInlineGap;
         }

@@ -28,6 +28,7 @@ public sealed class OfficeArtShapeStyle {
         LineOpacity = GetFixedPoint(0x01C1);
         LineType = GetUInt32(0x01C4);
         LineWidthEmus = GetInt32(0x01CB);
+        LineMiterLimit = GetSignedFixedPoint(0x01CC);
         LineStyle = GetUInt32(0x01CD);
         LineDashing = GetUInt32(0x01CE);
         LineStartArrowhead = GetUInt32(0x01D0);
@@ -105,6 +106,9 @@ public sealed class OfficeArtShapeStyle {
 
     /// <summary>Gets the line width in English Metric Units.</summary>
     public int? LineWidthEmus { get; }
+
+    /// <summary>Gets the fixed-point maximum miter length as a multiple of the line width, or null when inherited.</summary>
+    public double? LineMiterLimit { get; }
 
     /// <summary>Gets the MSOLINESTYLE value.</summary>
     public uint? LineStyle { get; }
@@ -185,7 +189,7 @@ public sealed class OfficeArtShapeStyle {
         || FillBackColor.HasValue || FillBackOpacity.HasValue || FillBlipStoreIndex.HasValue
         || FillAngleDegrees.HasValue || FillFocusPercent.HasValue
         || LineEnabled.HasValue || LineColor.HasValue || LineOpacity.HasValue || LineWidthEmus.HasValue
-        || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
+        || LineMiterLimit.HasValue || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
         || LineJoinStyle.HasValue || LineEndCapStyle.HasValue || HasProjectableShadow;
 
     /// <summary>Gets whether an enabled offset shadow can be projected directly.</summary>
