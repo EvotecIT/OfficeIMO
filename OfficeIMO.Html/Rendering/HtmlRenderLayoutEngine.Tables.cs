@@ -167,9 +167,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     contentStyle = cellStyle.Clone();
                     contentStyle.ExplicitHeight = null;
                 }
-                HtmlInlineLayout inline = percentageContent?.Supported == true
-                    ? LayoutHeightDependentTableCellContent(percentageContent, cellContentWidth, contentStyle, depth + 1, style.BorderCollapse != "collapse")
-                    : LayoutTableCellContent(cell, cellContentWidth, contentStyle, depth + 1, style.BorderCollapse != "collapse");
+                HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, contentStyle, depth + 1, style.BorderCollapse != "collapse");
                 if (percentageContent != null) percentageContent.LogicalTextOrderCount = _nextLogicalTextOrder - percentageContent.LogicalTextOrderStart;
                 double cellHeight = ResolveTableCellMinimumHeight(cellStyle, inline);
                 if (rowSpan == 1) rowHeight = Math.Max(rowHeight, cellHeight);

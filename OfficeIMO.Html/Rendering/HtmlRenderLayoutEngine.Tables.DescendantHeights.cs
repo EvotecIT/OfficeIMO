@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<(IElement Element, string Source, string Property)> _reportedTableDescendantHeights = new();
-    private HashSet<IElement>? _transparentCellHeightWrappers;
+    private bool _tableCellHeightBasisActive;
 
     /// <summary>Finds percentage constraints whose containing-height chain reaches the cell, after the effective physical cascade.</summary>
     private TableCellPercentageContent? PrepareTableCellPercentageContent(TableFormattingCell cell, double width,
@@ -15,13 +15,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || cellStyle.ExplicitHeight.HasValue && cellStyle.TablePercentageHeight.Length == 0;
         if (!eligibleBasis) return null;
         var declarations = new List<(IElement Element, string Source, string Property, string Value)>();
-        var wrappers = new HashSet<IElement>();
         string? unsupported = cell.Nodes != null ? "percentage content in an anonymous table cell"
             : rowSpan != 1 ? "percentage content in a rowspan cell"
             : IsVerticalWritingMode(cellStyle.WritingMode) ? "vertical table-cell content" : null;
+        bool initialBasisCompatible = unsupported == null;
         Visit(cell.Element, cellStyle, true, depth);
         if (declarations.Count == 0) return null;
-        return new TableCellPercentageContent(cell, declarations, wrappers, unsupported, _nextLogicalTextOrder,
+        return new TableCellPercentageContent(cell, declarations, unsupported, initialBasisCompatible, _nextLogicalTextOrder,
             ResolveContainingBlockHeight(cellStyle));
 
         void Visit(IElement owner, HtmlRenderBoxStyle parent, bool dependsOnCell, int currentDepth) {
@@ -35,6 +35,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!HasOrdinaryTableCellHeightFormatting(pseudo)
                     || generated.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text)) {
                     unsupported ??= "specialized generated table-cell content";
+                    initialBasisCompatible = false;
                 }
                 if (dependsOnCell && pseudo.Display is not ("inline" or "contents")) {
                     AddDeclarations(owner, DescribePseudoSource(owner, kind), pseudo, _styleResolver.GetBoxCascadeStyle(owner, pseudo, kind));
@@ -48,10 +49,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (ShouldSkipElement(child) || IsClosedDisclosureChild(child)) continue;
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, width, parent);
                 if (childStyle.Display == "none") continue;
-                bool ordinary = HasOrdinaryTableCellHeightFormatting(childStyle)
+                bool ordinaryFormatting = HasOrdinaryTableCellHeightFormatting(childStyle);
+                bool ordinary = ordinaryFormatting
                     && !IsReplacedImageElement(child) && !IsFormControlElement(child.LocalName)
                     && child.LocalName is not ("svg" or "math" or "iframe");
-                if (!ordinary) unsupported ??= "specialized formatting in table-cell content";
+                if (!ordinary) {
+                    unsupported ??= "specialized formatting in table-cell content";
+                    // The existing normal-flow image renderer consumes a definite
+                    // parent basis. Other specialized contexts need their own
+                    // allocation qualification, even when cell heights coincide.
+                    if (!ordinaryFormatting || !IsReplacedImageElement(child)) initialBasisCompatible = false;
+                }
                 HtmlComputedStyle? cascade = _styleResolver.GetBoxCascadeStyle(child, childStyle);
                 string height = cascade?.GetValue("height") ?? string.Empty;
                 bool sizedBox = childStyle.Display is not ("inline" or "contents") || IsReplacedImageElement(child);
@@ -64,7 +72,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && _styleResolver.ResolveTablePercentageHeight(childStyle, 1D, height).HasValue;
                 if (!sizedBox) {
                     childDepends = dependsOnCell;
-                    if (dependsOnCell) wrappers.Add(child);
                 }
                 Visit(child, childStyle, childDepends, currentDepth + 1);
             }
@@ -89,19 +96,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Non-replaced inlines and contents boxes do not establish a height containing block for cell descendants.</summary>
     private HtmlRenderBoxStyle ForwardTableCellHeightBasis(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parent) {
-        if (_transparentCellHeightWrappers?.Contains(element) != true) return style;
+        if (!_tableCellHeightBasisActive || style.Display is not ("inline" or "contents")
+            || !HasOrdinaryTableCellHeightFormatting(style) || IsReplacedImageElement(element)
+            || IsFormControlElement(element.LocalName) || element.LocalName is "svg" or "math" or "iframe") return style;
         HtmlRenderBoxStyle forwarded = style.Clone();
         double? height = ResolveContainingBlockHeight(parent);
         forwarded.ExplicitHeight = height + (forwarded.BorderBox ? forwarded.VerticalInsets : 0D);
         return forwarded;
-    }
-
-    private HtmlInlineLayout LayoutHeightDependentTableCellContent(TableCellPercentageContent content, double width,
-        HtmlRenderBoxStyle style, int depth, bool paintSeparateBorders) {
-        HashSet<IElement>? previous = _transparentCellHeightWrappers;
-        _transparentCellHeightWrappers = content.Wrappers;
-        try { return LayoutTableCellContent(content.Cell, width, style, depth, paintSeparateBorders); }
-        finally { _transparentCellHeightWrappers = previous; }
     }
 
     /// <summary>Resolves eligible cell content once against used height, without another row allocation or text-order advance.</summary>
@@ -114,7 +115,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!content.Supported) {
                     // Keep already-correct absolute-cell percentage content,
                     // including the existing image path, without a false loss.
-                    if (!content.InitialHeight.HasValue || Math.Abs(content.InitialHeight.Value - height) > 0.0001D) Report(content, content.Unsupported!);
+                    if (!content.InitialBasisCompatible || !content.InitialHeight.HasValue
+                        || Math.Abs(content.InitialHeight.Value - height) > 0.0001D) Report(content, content.Unsupported!);
                     continue;
                 }
                 HtmlRenderBoxStyle finalStyle = cell.Style.Clone();
@@ -122,7 +124,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int nextOrder = _nextLogicalTextOrder;
                 _nextLogicalTextOrder = content.LogicalTextOrderStart;
                 try {
-                    HtmlInlineLayout resolved = LayoutHeightDependentTableCellContent(content, Math.Max(1D, cell.Width - cell.Style.HorizontalInsets),
+                    HtmlInlineLayout resolved = LayoutTableCellContent(content.Cell, Math.Max(1D, cell.Width - cell.Style.HorizontalInsets),
                         finalStyle, depth, paintSeparateBorders);
                     if (_nextLogicalTextOrder - content.LogicalTextOrderStart == content.LogicalTextOrderCount) cell.Inline = resolved;
                     else Report(content, "cell relayout changed logical text allocation");
@@ -145,20 +147,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private sealed class TableCellPercentageContent {
         internal TableCellPercentageContent(TableFormattingCell cell,
-            IReadOnlyList<(IElement Element, string Source, string Property, string Value)> declarations, HashSet<IElement> wrappers, string? unsupported,
+            IReadOnlyList<(IElement Element, string Source, string Property, string Value)> declarations, string? unsupported, bool initialBasisCompatible,
             int logicalTextOrderStart, double? initialHeight) {
             Cell = cell;
             Declarations = declarations;
-            Wrappers = wrappers;
             Unsupported = unsupported;
+            InitialBasisCompatible = initialBasisCompatible;
             LogicalTextOrderStart = logicalTextOrderStart;
             InitialHeight = initialHeight;
         }
         internal TableFormattingCell Cell { get; }
         internal IReadOnlyList<(IElement Element, string Source, string Property, string Value)> Declarations { get; }
-        internal HashSet<IElement> Wrappers { get; }
         internal string? Unsupported { get; }
         internal bool Supported => Unsupported == null;
+        internal bool InitialBasisCompatible { get; }
         internal int LogicalTextOrderStart { get; }
         internal int LogicalTextOrderCount { get; set; }
         internal double? InitialHeight { get; }

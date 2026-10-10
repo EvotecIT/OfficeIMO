@@ -86,6 +86,74 @@ public sealed class HtmlTableCellHeightDescendantTests {
         rendered.RequireNoLoss();
     }
 
+    [Theory]
+    [InlineData("inline", "height:20px", HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData("contents", "height:20px", HtmlRenderIntentProfile.PrintPaged)]
+    [InlineData("inline", "height:auto", HtmlRenderIntentProfile.ScreenMediaPaged)]
+    [InlineData("contents", "height:30px;block-size:calc(var(--ignored) + 0px)", HtmlRenderIntentProfile.ScreenSnapshotPaged)]
+    public void WrappedReplacedPercentagesUseTheAbsoluteCellBasisDuringFirstLayout(string display, string wrapperSizing, HtmlRenderIntentProfile profile) {
+        HtmlRenderDocument rendered = Render("<table style='--ignored:20px;--fill:100%'><tr><td style='height:120px'>"
+            + "<span style='display:" + display + ";" + wrapperSizing + "'>"
+            + "<img id='image' style='display:block;height:10px;block-size:var(--fill);width:20px' src='data:image/png;base64," + Pixel + "'>"
+            + "</span></td></tr></table>" + Following, profile);
+
+        Assert.Equal(120D, Assert.Single(Visuals(rendered).OfType<HtmlRenderImage>()).Height, 3);
+        Assert.Equal(120D, Shape(rendered, "div#following").Y, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("inline", "height:120px")]
+    [InlineData("contents", "height:var(--ignored)")]
+    [InlineData("inline", "height:20px;block-size:calc(var(--ignored) + 0px);min-height:240px")]
+    [InlineData("contents", "block-size:120px;height:auto")]
+    public void IgnoredWrapperHeightsDoNotMakeAnAutoHeightCellDefinite(string display, string wrapperSizing) {
+        HtmlRenderDocument rendered = Render("<table style='--ignored:120px;--fill:100%'><tr><td>"
+            + "<span style='display:" + display + ";" + wrapperSizing + "'>"
+            + "<span id='fill' style='display:inline-block;block-size:calc(var(--fill) + 0px);background:lime'>Paid</span>"
+            + "</span></td></tr></table>" + Following);
+
+        Assert.Equal(20D, Shape(rendered, "span#fill").Height, 3);
+        Assert.Equal(20D, Shape(rendered, "div#following").Y, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void AnActualInlineBlockKeepsItsIndependentDefiniteHeightBasis() {
+        HtmlRenderDocument rendered = Render("<table><tr><td style='height:120px'><span style='display:inline-block;height:20px'>"
+            + "<img style='display:block;height:100%;width:20px' src='data:image/png;base64," + Pixel + "'></span></td></tr></table>" + Following);
+
+        Assert.Equal(20D, Assert.Single(Visuals(rendered).OfType<HtmlRenderImage>()).Height, 3);
+        Assert.Equal(120D, Shape(rendered, "div#following").Y, 3);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("position:absolute;display:block")]
+    [InlineData("display:flex")]
+    public void SpecializedPercentageContentCannotUseCellHeightEqualityAsItsQualification(string formatting) {
+        HtmlRenderDocument rendered = Render("<table><tr><td style='height:120px'><span style='height:20px'>"
+            + "<div id='fill' style='" + formatting + ";height:100%;background:lime'>Paid</div></span></td></tr></table>" + Following);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+
+        Assert.Equal("div#fill", diagnostic.Source);
+        Assert.Contains("height=100%", diagnostic.Detail);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
+    [Fact]
+    public void PositionedGeneratedPercentagesInAnAbsoluteCellRetainTheirStrictBoundary() {
+        HtmlRenderDocument rendered = Render("<style>#cell::before{content:'Paid';position:absolute;display:block;height:100%;background:lime}</style>"
+            + "<table><tr><td id='cell' style='height:120px'></td></tr></table>" + Following);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+
+        Assert.Equal("td#cell::before", diagnostic.Source);
+        Assert.Contains("height=100%", diagnostic.Detail);
+        Assert.Contains("generated", diagnostic.Detail);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+    }
+
     [Fact]
     public void OrdinaryGeneratedCellContentUsesTheFinalHeightAndRetainsTextOrder() {
         HtmlRenderDocument rendered = Render("<style>#cell::before{content:'Paid';display:block;height:100%;background:lime}</style>"
@@ -244,7 +312,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
             return Task.FromResult(resource);
         };
         var source = HtmlConversionDocument.Parse(Source("<link rel='stylesheet' href='https://assets.example.test/site.css'>"
-            + "<table style='height:200px'><tr><td style='height:50%'><div id='fill'>Paid</div></td></tr><tr><td style='height:50%'>Due</td></tr></table>" + Following));
+            + "<table style='height:200px'><tr><td style='height:50%'><span style='height:20px'><div id='fill'>Paid</div></span></td></tr><tr><td style='height:50%'>Due</td></tr></table>" + Following));
         HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(source, options);
 
         Assert.Equal(100D, Shape(rendered, "div#fill").Height, 3);
@@ -280,7 +348,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
     [Fact]
     public void RelayoutPreservesLogicalTextOrderCountersAndLinksBesideUnchangedCells() {
         string html = "<style>table{counter-reset:item}.count::before{counter-increment:item;content:counter(item) ': '}</style>"
-            + "<table style='height:200px'><tr><td style='height:50%'><div id='fill' class='count' style='height:100%;background:lime'><a href='https://example.com/paid'>Paid</a></div></td><td>First note</td></tr>"
+            + "<table style='height:200px'><tr><td style='height:50%'><span style='height:20px'><div id='fill' class='count' style='height:100%;background:lime'><a href='https://example.com/paid'>Paid</a></div></span></td><td>First note</td></tr>"
             + "<tr><td style='height:50%'><div class='count'>Due</div></td><td>Second note</td></tr></table>" + Following;
         var result = HtmlConversionDocument.Parse(Source(html)).RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, Options()));
         HtmlRenderDocument rendered = result.RenderResult.Document;
@@ -315,6 +383,7 @@ public sealed class HtmlTableCellHeightDescendantTests {
         result.Output.RequireNoLoss();
     }
 
+    private const string Pixel = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg==";
     private const string Following = "<div id='following' style='height:20px;background:red'>Following</div>";
     private static string Source(string html) => "<!doctype html><style>html,body{margin:0;padding:0;font:16px/20px Arial}table{margin:0;width:240px;border-spacing:0;table-layout:fixed}td{padding:0;vertical-align:top}</style>" + html;
     private static HtmlRenderOptions Options() => new() { ViewportWidth = 600, ViewportHeight = 300, PageSize = new OfficePageSize(600D / 96D, 300D / 96D), Margins = HtmlRenderMargins.All(0), UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser, HonorCssPageRules = false };

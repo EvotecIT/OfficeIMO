@@ -12,6 +12,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         int depth,
         bool paintSeparateBorders) {
+        bool previous = _tableCellHeightBasisActive;
+        _tableCellHeightBasisActive = true;
+        try { return LayoutTableCellContentCore(cell, contentWidth, style, depth, paintSeparateBorders); }
+        finally { _tableCellHeightBasisActive = previous; }
+    }
+
+    private HtmlInlineLayout LayoutTableCellContentCore(
+        TableFormattingCell cell,
+        double contentWidth,
+        HtmlRenderBoxStyle style,
+        int depth,
+        bool paintSeparateBorders) {
         if (cell.Nodes == null && IsSpecializedTableCell(cell.Element)) {
             HtmlRenderBoxStyle boxStyle = style.Clone();
             // Keep border layout insets here; the table retains the original
