@@ -66,14 +66,14 @@ namespace OfficeIMO.Tests {
         private static void AssertNativeDefaultStyle(byte[] workbook) {
             using var styles = new MemoryStream(ReadPackageEntry(workbook, "xl/styles.bin"), writable: false);
             IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(styles);
-            XlsbRecord cellFormats = Assert.Single(records.Where(record => record.Type == 617));
+            XlsbRecord cellFormats = Assert.Single(records, record => record.Type == 617);
             Assert.Equal(new byte[] { 1, 0, 0, 0 }, cellFormats.Data);
             Assert.Contains(records, record => record.Type == 47);
 
             XNamespace relationships = "http://schemas.openxmlformats.org/package/2006/relationships";
             using var relationshipsStream = new MemoryStream(ReadPackageEntry(workbook, "xl/_rels/workbook.bin.rels"), writable: false);
-            XElement link = Assert.Single(XDocument.Load(relationshipsStream).Root!.Elements(relationships + "Relationship")
-                .Where(element => (string?)element.Attribute("Type") == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"));
+            XElement link = Assert.Single(XDocument.Load(relationshipsStream).Root!.Elements(relationships + "Relationship"),
+                element => (string?)element.Attribute("Type") == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles");
             Assert.Equal("styles.bin", (string?)link.Attribute("Target"));
         }
     }
