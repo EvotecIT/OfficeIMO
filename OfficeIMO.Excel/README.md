@@ -318,6 +318,10 @@ replace it with XML count attributes or a partial shared-string table load.
 See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
 for the first-row and full-scan evidence boundaries.
 
+For eligible plain ASCII shared-string tables, string-cache pages are allocated as values are requested.
+After disposal, one cleared offset/length index can remain available for later readers, capped at 2 MiB of entry payload plus fixed object overhead.
+The retained index contains no workbook text or references to package bytes; it trades idle managed memory for lower allocation on repeated opens.
+
 On .NET 8 and later, `TryGetUtf8Text` can borrow plain UTF-8
 worksheet text, normalized shared-string text, and XLSB string cells:
 
