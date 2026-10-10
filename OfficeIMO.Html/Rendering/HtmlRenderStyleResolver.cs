@@ -1561,12 +1561,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : normalized;
     }
 
-    private static double? ResolveDefiniteContentHeight(HtmlRenderBoxStyle? style) {
-        if (style == null || !style.ExplicitHeight.HasValue) return null;
-        return style.BorderBox
-            ? Math.Max(0D, style.ExplicitHeight.Value - style.VerticalInsets)
-            : style.ExplicitHeight.Value;
-    }
+    private static double? ResolveDefiniteContentHeight(HtmlRenderBoxStyle? style) => style?.DefiniteContentHeight;
 
     private static HtmlPageBreakTarget ResolvePageBreakTarget(string value) {
         if (value == "left" || value == "verso") return HtmlPageBreakTarget.Left;

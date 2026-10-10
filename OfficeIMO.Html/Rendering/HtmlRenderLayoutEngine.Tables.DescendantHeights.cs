@@ -4,7 +4,6 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<(IElement Element, string Source, string Property)> _reportedTableDescendantHeights = new();
-    private bool _tableCellHeightBasisActive;
 
     /// <summary>Finds percentage constraints whose containing-height chain reaches the cell, after the effective physical cascade.</summary>
     private TableCellPercentageContent? PrepareTableCellPercentageContent(TableFormattingCell cell, double width,
@@ -32,7 +31,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     || generated.Fragments.Count == 0
                     || !_styleResolver.TryResolvePseudo(owner, kind, width, parent, out HtmlRenderBoxStyle pseudo)
                     || pseudo.Display == "none") continue;
-                if (!HasOrdinaryTableCellHeightFormatting(pseudo)
+                if (!HasOrdinaryContainingHeightFormatting(pseudo)
                     || generated.Fragments.Any(fragment => fragment.Kind != HtmlGeneratedContentFragmentKind.Text)) {
                     unsupported ??= "specialized generated table-cell content";
                     initialBasisCompatible = false;
@@ -49,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (ShouldSkipElement(child) || IsClosedDisclosureChild(child)) continue;
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, width, parent);
                 if (childStyle.Display == "none") continue;
-                bool ordinaryFormatting = HasOrdinaryTableCellHeightFormatting(childStyle);
+                bool ordinaryFormatting = HasOrdinaryContainingHeightFormatting(childStyle);
                 bool ordinary = ordinaryFormatting
                     && !IsReplacedImageElement(child) && !IsFormControlElement(child.LocalName)
                     && child.LocalName is not ("svg" or "math" or "iframe");
@@ -86,23 +85,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
         }
-    }
-
-    private static bool HasOrdinaryTableCellHeightFormatting(HtmlRenderBoxStyle style) =>
-        style.Display is "block" or "inline-block" or "inline" or "contents"
-        && !IsVerticalWritingMode(style.WritingMode)
-        && style.FloatSide == "none" && style.Position is "static" or "relative"
-        && style.ColumnCount == null && style.ColumnWidth == null && style.ContainerType == "normal";
-
-    /// <summary>Non-replaced inlines and contents boxes do not establish a height containing block for cell descendants.</summary>
-    private HtmlRenderBoxStyle ForwardTableCellHeightBasis(IElement element, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parent) {
-        if (!_tableCellHeightBasisActive || style.Display is not ("inline" or "contents")
-            || !HasOrdinaryTableCellHeightFormatting(style) || IsReplacedImageElement(element)
-            || IsFormControlElement(element.LocalName) || element.LocalName is "svg" or "math" or "iframe") return style;
-        HtmlRenderBoxStyle forwarded = style.Clone();
-        double? height = ResolveContainingBlockHeight(parent);
-        forwarded.ExplicitHeight = height + (forwarded.BorderBox ? forwarded.VerticalInsets : 0D);
-        return forwarded;
     }
 
     /// <summary>Resolves eligible cell content once against used height, without another row allocation or text-order advance.</summary>

@@ -269,7 +269,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!(node is IElement element) || ShouldSkipElement(element)) return;
         string tag = element.TagName.ToLowerInvariant();
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
-        style = ForwardTableCellHeightBasis(element, style, inheritedStyle);
+        style = ForwardContainingHeightBasis(element, style, inheritedStyle);
         style = PrepareButtonChildStyle(element, style);
         if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
             // CSS footnote extraction is a paged-media behavior. Continuous output
