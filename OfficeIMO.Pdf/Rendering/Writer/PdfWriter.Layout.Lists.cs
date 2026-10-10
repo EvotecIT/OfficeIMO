@@ -85,22 +85,26 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? markerNamedFont = GetListMarkerNamedFont(style, currentOpts);
 
             var markers = new string[block.RichItems.Count];
-            double estimatedMarkerWidth = style?.MarkerAlignsAtIndent == true ? 0D : EstimateSimpleTextWidthForOptions(
+            // A font used only for explicit markers need not contain the unused
+            // default bullet or numbering glyphs.
+            bool usesDefaultMarker = block.RichItems.Any(item => item.Marker == null);
+            double estimatedMarkerWidth = style?.MarkerAlignsAtIndent == true || !usesDefaultMarker ? 0D : EstimateSimpleTextWidthForOptions(
                 block.GetWidestDefaultMarker(),
                 markerFont,
                 markerNamedFont,
                 markerSize,
-                currentOpts);
+                currentOpts, style?.MarkerFeatureSettings);
             for (int itemIndex = 0; itemIndex < markers.Length; itemIndex++) {
                 string marker = block.GetMarker(itemIndex);
                 markers[itemIndex] = marker;
                 estimatedMarkerWidth = System.Math.Max(
                     estimatedMarkerWidth,
-                    EstimateSimpleTextWidthForOptions(marker, markerFont, markerNamedFont, markerSize, currentOpts));
+                    EstimateSimpleTextWidthForOptions(marker, markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings));
             }
 
             double markerWidth = GetListMarkerWidth(style, estimatedMarkerWidth);
-            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts);
+            double spaceAdvance = style?.MarkerGap.HasValue == true ? 0D :
+                EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings);
             double markerGap = GetListMarkerGap(style, spaceAdvance);
             double listLeftIndent = style?.LeftIndent ?? 0D;
             double rawTextWidth = frameWidth - listLeftIndent - markerWidth - markerGap;
@@ -162,7 +166,7 @@ internal static partial class PdfWriter {
                 return (x, prepared.MarkerWidth, align);
 
             double width = EstimateSimpleTextWidthForOptions(item.Marker, prepared.MarkerFont,
-                prepared.MarkerNamedFont, prepared.MarkerSize, currentOpts);
+                prepared.MarkerNamedFont, prepared.MarkerSize, currentOpts, prepared.Style?.MarkerFeatureSettings);
             x -= align switch {
                 PdfAlign.Right => width,
                 PdfAlign.Center => width / 2D,

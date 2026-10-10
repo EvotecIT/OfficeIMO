@@ -50,8 +50,10 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeTextSpacing ResolveNativeListMarkerTextSpacing(WordDocumentTraversal.ListInfo info, NativeTextSpacing inherited) {
             if (info.MarkerCharacterScale is < 1 or > 600)
                 throw new InvalidOperationException("Word character width must be between 1 and 600 percent.");
+            // Native Word leaves numbering labels unkerned, including labels
+            // whose numbering level or paragraph mark explicitly enables kern.
             return inherited.Merge(new NativeTextSpacing(info.MarkerCharacterScale, info.MarkerCharacterSpacingTwips / 20D,
-                info.MarkerKerningMinimumFontSize)).Resolve();
+                0D)).Resolve();
         }
     }
 }

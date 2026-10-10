@@ -23,6 +23,9 @@ public sealed class PdfListStyle {
     // PDF lists continue to align within their reserved marker column.
     internal bool MarkerAlignsAtIndent { get; set; }
 
+    // Format converters can supply marker shaping separately from body text.
+    internal OfficeIMO.Drawing.OfficeTextFeatureSettings? MarkerFeatureSettings { get; set; }
+
     /// <summary>List font size in points. When null the writer uses the current default font size.</summary>
     public double? FontSize {
         get => _fontSize;
@@ -150,6 +153,7 @@ public sealed class PdfListStyle {
             MarkerGap = MarkerGap,
             MarkerWidth = MarkerWidth,
             MarkerAlignsAtIndent = MarkerAlignsAtIndent,
+            MarkerFeatureSettings = MarkerFeatureSettings,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             ItemSpacing = ItemSpacing,

@@ -31,6 +31,7 @@ internal static partial class PdfWriter {
         public string Marker = string.Empty;
         public PdfStandardFont MarkerFont;
         public PdfNamedFontFace? MarkerNamedFont;
+        public OfficeTextFeatureSettings? MarkerFeatureSettings;
         public double MarkerSize;
         public PdfColor? MarkerColor;
         public double MarkerXOffset;

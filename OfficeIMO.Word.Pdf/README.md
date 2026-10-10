@@ -104,6 +104,8 @@ tracking remains an advance in page points. These saved run settings do not
 implement the separate dynamic table-cell Fit Text policy. Font substitution can
 still change exact line endings and glyph appearance.
 
+Run kerning (`w:kern`) inherits through document, paragraph, character, and table styles. A positive minimum font size enables kerning at that size and above; zero disables it. Numbering labels retain their unkerned advances, including labels with a numbering-level or paragraph-mark kerning setting. Their measurement and rendering use the same feature settings.
+
 ### Preserve fonts from a trusted template
 
 Balanced conversion substitutes standard PDF fonts for document-selected fonts. This can change line breaks, table text width, and baselines. For a trusted template whose fonts are installed on the host, enable document-font embedding:

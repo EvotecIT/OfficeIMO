@@ -102,8 +102,9 @@ namespace OfficeIMO.Word.Pdf {
             // expose a uniform marker font but do not carry width or tracking.
             NativeResolvedTextStyle paragraphTextStyle = ResolveNativeTextRunStyle(paragraph,
                 nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
+            NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(info.Value, paragraphTextStyle.ListMarkerTextSpacing);
             if (HasNativeTextSpacing(paragraphTextStyle.TextSpacing) ||
-                HasNativeTextSpacing(ResolveNativeListMarkerTextSpacing(info.Value, paragraphTextStyle.ListMarkerTextSpacing))) return false;
+                markerSpacing.WidthPercentage != 100D || markerSpacing.CharacterSpacing != 0D) return false;
 
             if (HasNativePageBreakBefore(paragraph) ||
                 paragraph.IsPageBreak ||
@@ -194,6 +195,7 @@ namespace OfficeIMO.Word.Pdf {
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
                 MarkerAlignsAtIndent = true,
+                MarkerFeatureSettings = OfficeTextFeatureSettings.Default.With("kern", 0),
                 MarkerGap = 0D,
                 MarkerWidth = Math.Max(0D, textIndent - markerIndent),
                 MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle),
@@ -381,6 +383,7 @@ namespace OfficeIMO.Word.Pdf {
                    NullableDoubleEquals(left.MarkerGap, right.MarkerGap) &&
                    NullableDoubleEquals(left.MarkerWidth, right.MarkerWidth) &&
                    left.MarkerAlignsAtIndent == right.MarkerAlignsAtIndent &&
+                   Equals(left.MarkerFeatureSettings, right.MarkerFeatureSettings) &&
                    DoubleEquals(left.SpacingBefore, right.SpacingBefore) &&
                    NullableDoubleEquals(left.SpacingAfter, right.SpacingAfter) &&
                    NullableDoubleEquals(left.ItemSpacing, right.ItemSpacing) &&

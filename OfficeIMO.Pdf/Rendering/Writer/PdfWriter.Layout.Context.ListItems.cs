@@ -139,7 +139,8 @@ internal static partial class PdfWriter {
                         applyBaselineTweak: true,
                         structureType: "Lbl",
                         markedContentId: labelMarkedContentId,
-                        namedFont: markerNamedFont);
+                        namedFont: markerNamedFont,
+                        featureSettings: prepared.Style?.MarkerFeatureSettings);
                 }
 
                 RecordFlowPlacement(y);

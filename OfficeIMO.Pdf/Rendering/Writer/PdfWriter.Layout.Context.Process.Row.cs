@@ -416,7 +416,8 @@ internal static partial class PdfWriter {
                                     applyBaselineTweak: true,
                                     structureType: "Lbl",
                                     markedContentId: labelMarkedContentId,
-                                    namedFont: listItem.MarkerNamedFont);
+                                    namedFont: listItem.MarkerNamedFont,
+                                    featureSettings: listItem.MarkerFeatureSettings);
                             }
 
                             int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null
