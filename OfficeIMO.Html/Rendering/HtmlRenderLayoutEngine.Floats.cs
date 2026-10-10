@@ -89,6 +89,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
             if (ProcessInlineEdgeBoundary(run, line)) continue;
+            if (run.IsInlineStrutMarker) {
+                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
+                continue;
+            }
             if (run.FloatingBlock != null) {
                 if (noWrapRangeStart >= 0) {
                     previousWasCollapsibleSpace = FinalizeFloatNoWrapRange(
@@ -134,7 +138,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     InlineFloatBand remainingBand = context.ResolveBand(y, paragraphStyle.LineHeight);
                     line.Place(remainingBand.Left, y, remainingBand.Width);
                 } else {
+                    IReadOnlyList<HtmlRenderBoxStyle> emptyStruts = line.EmptyInlineStrutStyles;
                     line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight, paragraphStyle);
+                    line.RecordEmptyInlineStruts(emptyStruts);
                 }
                 if (!sharesCurrentLine) previousWasCollapsibleSpace = false;
                 continue;

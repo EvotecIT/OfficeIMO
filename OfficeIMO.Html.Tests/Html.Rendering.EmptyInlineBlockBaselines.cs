@@ -8,6 +8,44 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlEmptyInlineBlockBaselineTests {
     [Theory]
+    [InlineData("")]
+    [InlineData(" \n<!-- empty -->")]
+    [InlineData("<span style='line-height:0'></span>")]
+    public void EmptyInlineSiblingRetainsItsStrutOnTheAtomicLine(string children) {
+        var options = Options();
+        HtmlRenderDocument rendered = Render(Source("<div><span style='line-height:100px'>" + children
+            + "</span><span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></div>" + Following), options);
+
+        Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void EmptyInlineStrutWithoutInFlowContentDoesNotCreateALine() {
+        HtmlRenderDocument emptyBlock = Render(Source("<div></div>" + Following), Options());
+        HtmlRenderDocument emptyInline = Render(Source("<div><span style='line-height:100px'></span></div>" + Following), Options());
+
+        Assert.Equal(Shape(emptyBlock, "div#following").Y, Shape(emptyInline, "div#following").Y, 6);
+    }
+
+    [Theory]
+    [InlineData(true, 80D, 0D, 100D)]
+    [InlineData(false, 80D, 0D, 100D)]
+    [InlineData(false, 100D, 120D, 20D)]
+    public void EmptySiblingStrutFollowsFloatLinePlacement(bool precedesFloat, double width, double expectedTop, double lineHeight) {
+        var options = Options();
+        const string strut = "<span style='line-height:100px'></span>";
+        const string floating = "<div style='float:left;width:20px;height:120px'></div>";
+        string fill = "<span id='fill' style='display:inline-block;width:" + width + "px;height:240px;background:lime'></span>";
+        HtmlRenderDocument rendered = Render(Source("<div style='width:110px'>"
+            + (precedesFloat ? strut + floating : floating + strut) + fill + "</div>" + Following), options);
+
+        Assert.Equal(expectedTop, Shape(rendered, "span#fill").Y, 6);
+        Assert.Equal(expectedTop + 240D + StrutDescent(options.Fonts, lineHeight), Shape(rendered, "div#following").Y, 6);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
     [InlineData(0D)]
     [InlineData(1D)]
     public void PlainInlineWrapperContributesItsStrutIndependentlyOfHorizontalPadding(double padding) {

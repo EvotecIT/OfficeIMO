@@ -449,6 +449,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlInlineEdgeScope? inlineEdgeScope = !IsReplacedImageElementTag(tag) && tag != "math"
             ? ResolveInlineEdgeScope(element, style, inheritedStyle, paintOffsetX) : null;
         if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, true, link, paintOffsetX, paintOffsetY));
+        else if (style.Display == "inline" && !IsReplacedImageElementTag(tag) && tag != "math") {
+            targetRuns.Add(new HtmlInlineRun(string.Empty, style, link, HtmlRenderStyleResolver.DescribeSource(element),
+                paintOffsetX, paintOffsetY, element) { IsInlineStrutMarker = true });
+        }
         AddUnicodeBidiBoundaryRun(style, element, opening: true, paintOffsetX, paintOffsetY, targetRuns);
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
@@ -705,6 +709,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
             if (ProcessInlineEdgeBoundary(run, line)) continue;
+            if (run.IsInlineStrutMarker) {
+                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
+                continue;
+            }
             bool runPreventsWrapping = !paragraphStyle.PreventTextWrapping && run.Style.PreventTextWrapping;
             if (!runPreventsWrapping && noWrapRangeStart >= 0) {
                 previousWasCollapsibleSpace = FinalizeNoWrapRange(

@@ -20,6 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else if (!HasSameEmptyAtomicStrutFace(run.Style, paragraphStyle)) return false;
             if (run.InlineStrutStyles.Any(style => !HasSameEmptyAtomicStrutFace(style, paragraphStyle))) return false;
         }
+        if (line.EmptyInlineStrutStyles.Any(style => !HasSameEmptyAtomicStrutFace(style, paragraphStyle))) return false;
 
         double ascent = ResolveEmptyAtomicStrutBaseline(paragraphStyle);
         double descent = Math.Max(0D, paragraphStyle.LineHeight - ascent);
@@ -32,6 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             foreach (HtmlRenderBoxStyle style in run.InlineStrutStyles) AddStrut(style);
         }
+        foreach (HtmlRenderBoxStyle style in line.EmptyInlineStrutStyles) AddStrut(style);
         baseline = ascent;
         lineHeight = Math.Max(lineHeight, ascent + descent);
         return true;
@@ -40,6 +42,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double sourceBaseline = ResolveEmptyAtomicStrutBaseline(style);
             ascent = Math.Max(ascent, sourceBaseline);
             descent = Math.Max(descent, style.LineHeight - sourceBaseline);
+        }
+    }
+
+    private sealed partial class InlineLine {
+        private List<HtmlRenderBoxStyle>? _emptyInlineStrutStyles;
+        internal IReadOnlyList<HtmlRenderBoxStyle> EmptyInlineStrutStyles =>
+            _emptyInlineStrutStyles ?? (IReadOnlyList<HtmlRenderBoxStyle>)Array.Empty<HtmlRenderBoxStyle>();
+
+        // These boxes participate in an existing atomic line without creating
+        // in-flow content, horizontal advances or a line on their own.
+        internal void RecordEmptyInlineStruts(IReadOnlyList<HtmlRenderBoxStyle> styles) {
+            if (styles.Count == 0) return;
+            (_emptyInlineStrutStyles ??= new List<HtmlRenderBoxStyle>()).AddRange(styles);
         }
     }
 

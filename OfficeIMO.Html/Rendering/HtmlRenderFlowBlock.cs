@@ -748,6 +748,7 @@ internal sealed class HtmlInlineRun {
     internal double InlineClosingAdvance { get; set; }
     internal bool InlineTokenEndsRun { get; set; }
     internal bool IsEmptyInlineBox { get; set; }
+    internal bool IsInlineStrutMarker { get; set; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }
@@ -813,6 +814,7 @@ internal sealed class HtmlInlineRun {
             FirstLineHyphen = FirstLineHyphen,
             InlineEdgeScopes = InlineEdgeScopes,
             InlineStrutStyles = InlineStrutStyles,
+            IsInlineStrutMarker = IsInlineStrutMarker,
             InlineClosingAdvance = InlineClosingAdvance,
             InlineTokenEndsRun = InlineTokenEndsRun
         };
