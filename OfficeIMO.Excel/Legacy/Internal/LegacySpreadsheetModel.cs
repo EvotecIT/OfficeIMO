@@ -13,6 +13,7 @@ internal sealed class LegacySpreadsheetModel {
     internal OfficeLegacyImportQuality Quality { get; set; } = OfficeLegacyImportQuality.Salvage;
     internal OfficeLegacyInertContentKind InertContent { get; set; }
     internal int RecoveredCellCount { get; set; }
+    internal bool PreserveSheetNames { get; set; }
 }
 
 internal sealed class LegacySpreadsheetSheet {
