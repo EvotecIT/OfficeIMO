@@ -170,6 +170,13 @@ completed ZIP carrier without raising captured semantic/decompression bounds.
 This extension is qualified on macOS arm64 only; native application and rendering
 evidence remain separate.
 
+The [macOS list-counter NativeAOT evidence](Compatibility/iwork-list-counters-native-aot-macos-arm64-2026-10-10.json)
+records 19 passing smoke checks under each runtime. It adds the native Pages
+continuation reference, strict saved/reopened DOCX counter evaluation and marker
+declarations to the preceding creation and preservation profiles. Native Pages
+and Keynote counter acceptance, composed PDF rendering and exact appearance
+retain their separate evidence boundaries.
+
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
 the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
