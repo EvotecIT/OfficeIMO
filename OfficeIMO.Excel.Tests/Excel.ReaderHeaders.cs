@@ -565,7 +565,8 @@ namespace OfficeIMO.Tests {
                     int sharedIndex = int.Parse(cell.CellValue!.Text);
                     var sharedTable = spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable!;
                     var item = sharedTable.Elements<SharedStringItem>().ElementAt(sharedIndex);
-                    item.InnerXml = "<r><t>Displayed</t></r><rPh sb=\"0\" eb=\"9\"><t>Phonetic</t></rPh>";
+                    item.InnerXml = "<r xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><t>Displayed</t></r>"
+                        + "<rPh xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" sb=\"0\" eb=\"9\"><t>Phonetic</t></rPh>";
                     sharedTable.Save();
                 }
 

@@ -273,6 +273,16 @@ while (reader.Read()) {
 }
 ```
 
+XLSX numeric cells and cached numeric formula results use invariant number notation,
+so `1.5` remains `1.5` when `ExcelReadOptions.Culture` is `de-DE`. The configured
+culture remains the fallback for legacy localized numeric text and controls
+conversions from string cells. `CellValueConverter` receives
+the original decoded text and the configured culture before built-in conversion.
+
+Worksheet rows and cells come from the worksheet's direct `sheetData` content.
+Inline and shared strings include visible text and rich runs. Extension payloads
+and phonetic guidance do not add cells, shift shared-string indexes or append text.
+
 `OpenDataReaderAsync` reads local files and the remaining bytes of a readable stream
 using asynchronous I/O, bounded by `MaxInputBytes`. Workbook validation and worksheet
 discovery then run synchronously. Caller-owned streams stay open, and seekable streams
@@ -340,6 +350,21 @@ First-row latency includes this opening work; the reader exposes no option to
 replace it with XML count attributes or a partial shared-string table load.
 See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
 for the first-row and full-scan evidence boundaries.
+
+The XML streaming fallback completes a row before returning a cell value, so
+scalar and bulk getters agree when cell coordinates recur or arrive out of order.
+`ExcelReadOptions.MaxXmlDataReaderBufferedCharacters` bounds this materialization
+to 32 Mi characters per physical row by default. Out-of-order rows retained
+together share one aggregate allowance. Raw values, formula text, inline text,
+and resolved strings count conservatively, including replaced cell records.
+XML preparation also bounds text read to validate shared-string indices and
+shared-formula followers before returning a reader.
+An over-limit read throws `InvalidDataException`; close that reader before
+opening a new one with a larger limit for trusted input. Indexed UTF-8 and
+SDK worksheet-chunk caches retain their existing limits. This character allowance is
+not a total memory budget: the framework XML parser can buffer an individual
+CDATA or attribute node before it is charged. It also does not bound objects
+created by a custom converter.
 
 For eligible plain ASCII shared-string tables, string-cache pages are allocated as values are requested.
 After disposal, one cleared offset/length index can remain available for later readers, capped at 2 MiB of entry payload plus fixed object overhead.

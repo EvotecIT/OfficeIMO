@@ -317,6 +317,7 @@ namespace OfficeIMO.Excel {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
+            var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
             TypedPropertyBinding<T>?[]? bindings = null;
             bool canTrackMappedColumns = false;
@@ -329,7 +330,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                if (!worksheetRows.IsRowElement(reader)) {
                     continue;
                 }
 
