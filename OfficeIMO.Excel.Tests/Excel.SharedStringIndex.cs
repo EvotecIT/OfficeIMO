@@ -61,6 +61,53 @@ public sealed partial class SharedStringIndexTests {
         Assert.Equal(expected.Length, cache.Count);
     }
 
+    [Fact]
+    public void IndexedTable_LongPlainTextKeepsWhitespaceAndBorrowedValues() {
+        string mixed = new string(' ', 16 * 1024 - 1) + "_tail]]end";
+        string preserved = new string(' ', 16 * 1024 + 1);
+        using OpenXmlPooledPartStream stream = CreateStream(
+            "<si><t>" + mixed + "</t></si><si><t xml:space=\"preserve\">" + preserved + "</t></si>");
+        byte[] buffer = stream.BorrowBuffer(out _);
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+
+        Assert.Equal(2, cache.Count);
+        foreach ((int index, string expected) in new[] { (0, mixed), (1, preserved) }) {
+            Assert.Equal(expected, cache.Get(index));
+            Assert.True(cache.TryGetUtf8(index, out ArraySegment<byte> text));
+            Assert.Same(buffer, text.Array);
+            Assert.Equal(expected, Decode(text));
+        }
+    }
+
+    [Theory]
+    [InlineData('a', "_x0041_")]
+    [InlineData('a', "_X0041_")]
+    [InlineData('a', "\u007f")]
+    [InlineData(' ', " ")]
+    public void IndexedTable_LongTextKeepsCanonicalFallbackAndReleasesBufferedStorage(char prefix, string suffix) {
+        string value = new string(prefix, 16 * 1024 - 1) + suffix;
+        string expected = prefix == ' ' ? string.Empty : value;
+        using OpenXmlPooledPartStream stream = CreateStream("<si><t>" + value + "</t></si>", declaredCount: "1");
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+
+        Assert.Equal(expected, cache.Get(0));
+        Assert.False(stream.CanRead);
+        Assert.True(cache.TryGetUtf8(0, out ArraySegment<byte> text));
+        Assert.Equal(expected, Decode(text));
+    }
+
+    [Theory]
+    [InlineData("]]>")]
+    [InlineData("\u0001")]
+    public void IndexedTable_LongMalformedUnreferencedTailPreventsValueDelivery(string invalidText) {
+        using OpenXmlPooledPartStream stream = CreateStream(
+            "<si><t>ready</t></si><si><t>" + new string('a', 16 * 1024 - 1) + invalidText + "</t></si>");
+        using SharedStringCache cache = SharedStringCache.Build(() => stream, new ExcelReadOptions());
+
+        Assert.Throws<XlsxTabularFastPathNotSupportedException>(() => cache.Get(0));
+        Assert.False(stream.CanRead);
+    }
+
     [Theory]
     [InlineData("Items")]
     [InlineData("ItemCharacters")]
