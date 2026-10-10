@@ -40,8 +40,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Suppress indentation of later anonymous blocks without changing the
         // inheritance context used above by descendant inline-block elements.
         if (!applyTextIndent) parentStyle = WithoutTextIndent(parentStyle);
-        ApplyPendingInlineTextTransforms(runs);
+        ApplyPendingInlineTextTransforms(runs, retainSuppressedText: true);
         ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
+        RemoveSuppressedInlineText(runs);
         ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
 
@@ -1518,7 +1519,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> elements = OfficeTextElements.Split(value);
         if (elements.Count == 0) return measured;
         measured += style.LetterSpacing * elements.Count;
-        measured += style.WordSpacing * elements.Count(IsWhitespaceToken);
+        // Word spacing includes no-break separators independently of collapsing.
+        measured += style.WordSpacing * elements.Count(element => element.All(char.IsWhiteSpace));
         return measured;
     }
 
@@ -1581,7 +1583,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            bool currentWhitespace = char.IsWhiteSpace(current);
+            bool currentWhitespace = IsCollapsibleCssWhitespace(current);
             if (breakSpaces && currentWhitespace) {
                 if (token.Length > 0) {
                     yield return token.ToString();
@@ -1603,7 +1605,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (token.Length > 0) yield return token.ToString();
     }
 
-    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);
+    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(IsCollapsibleCssWhitespace);
 
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {

@@ -7,7 +7,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) =>
         ApplyTextTransformSegments(new[] { text }, style)[0];
 
-    private static void ApplyPendingInlineTextTransforms(IList<HtmlInlineRun> runs) {
+    private static void ApplyPendingInlineTextTransforms(IList<HtmlInlineRun> runs, bool retainSuppressedText = false) {
         int start = 0;
         while (start < runs.Count) {
             HtmlInlineRun first = runs[start];
@@ -36,8 +36,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             start = end;
         }
-        // Remove suppressed logical input before first-letter/first-line styling,
-        // shaping, layout, semantic assignment, or PDF text serialization.
+        if (!retainSuppressedText) RemoveSuppressedInlineText(runs);
+    }
+
+    // A font-changing pseudo-element may restore the selected source fragment.
+    // All other zero-font input must leave before shaping, painting, or extraction.
+    private static void RemoveSuppressedInlineText(IList<HtmlInlineRun> runs) {
         for (int index = runs.Count - 1; index >= 0; index--) {
             if (runs[index].IsTextTransformContextOnly) runs.RemoveAt(index);
         }
