@@ -34,8 +34,10 @@ internal static class OfficeArtCustomPathProjector {
         for (int index = 0; index < points.Length; index++) {
             token.ThrowIfCancellationRequested();
             int offset = 6 + index * pointSize;
-            int x = pointSize == 8 ? I32(vertices, offset) : I16(vertices, offset);
-            int y = pointSize == 8 ? I32(vertices, offset + 4) : I16(vertices, offset + 2);
+            // Compact Publisher vertices hold unsigned low words; full POINT
+            // elements retain signed 32-bit coordinates and guide sentinels.
+            int x = pointSize == 8 ? I32(vertices, offset) : U16(vertices, offset);
+            int y = pointSize == 8 ? I32(vertices, offset + 4) : U16(vertices, offset + 2);
             if (IsGuide(x) || IsGuide(y)) { failure = OfficeArtCustomPathFailure.GuideReference; return false; }
             points[index] = new OfficePoint((x - left) / (right - left) * width, (y - top) / (bottom - top) * height);
         }
@@ -131,7 +133,6 @@ internal static class OfficeArtCustomPathProjector {
         return (flags & (valueBit << 16)) != 0 && (flags & valueBit) == 0;
     }
     private static ushort U16(byte[] bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
-    private static short I16(byte[] bytes, int offset) => unchecked((short)U16(bytes, offset));
     private static int I32(byte[] bytes, int offset) => bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;
 }
 
