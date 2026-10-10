@@ -19,7 +19,7 @@ namespace OfficeIMO.Access {
         internal bool RedactConnection;
         internal string Name = string.Empty;
         internal byte Type, Flags, ExtraFlags, Precision, Scale;
-        internal int Number, VariableIndex, FixedOffset, Size, ComplexId;
+        internal int Number, VariableIndex, FixedOffset, Size, ComplexId, CodePage;
         internal ushort SortOrder;
         internal byte SortVersion;
         internal bool AmbiguousLongMaps;
