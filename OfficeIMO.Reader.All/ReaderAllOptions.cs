@@ -8,6 +8,8 @@ namespace OfficeIMO.Reader.All;
 /// does not change a built reader.
 /// </remarks>
 public sealed class ReaderAllOptions {
+    /// <summary>Compiled help archive reading and HTML topic projection options.</summary>
+    public Chm.ReaderChmOptions? Chm { get; set; }
     /// <summary>Gets or sets native XPS/OpenXPS adapter options.</summary>
     public Xps.ReaderXpsOptions? Xps { get; set; }
     /// <summary>Gets or sets whether the preset registers safe legacy-word handlers. Default: true.</summary>

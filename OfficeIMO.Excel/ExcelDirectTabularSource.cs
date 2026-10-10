@@ -27,9 +27,11 @@ namespace OfficeIMO.Excel {
 
         internal bool Boolean { get; }
 
-        internal static ExcelDirectTabularValue Normalize(object? value) {
+        internal static ExcelDirectTabularValue Normalize(object? value, bool preserveMissingValues = true) {
             if (value == null || value == DBNull.Value) {
-                return new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Empty, null, 0D, false);
+                return preserveMissingValues
+                    ? new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Empty, null, 0D, false)
+                    : new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Text, string.Empty, 0D, false);
             }
 
             switch (value) {
@@ -76,10 +78,12 @@ namespace OfficeIMO.Excel {
         internal ExcelDirectTabularSource(
             string sheetName,
             IExcelSheetTabularRowSource rows,
-            bool includeHeaders) {
+            bool includeHeaders,
+            bool preserveMissingValues) {
             SheetName = sheetName ?? throw new ArgumentNullException(nameof(sheetName));
             Rows = rows ?? throw new ArgumentNullException(nameof(rows));
             IncludeHeaders = includeHeaders;
+            PreserveMissingValues = preserveMissingValues;
         }
 
         internal string SheetName { get; }
@@ -87,5 +91,11 @@ namespace OfficeIMO.Excel {
         internal IExcelSheetTabularRowSource Rows { get; }
 
         internal bool IncludeHeaders { get; }
+
+        /// <summary>
+        /// Keeps imported nulls blank while preserving the explicit CellValue
+        /// null-to-empty-text compatibility contract.
+        /// </summary>
+        internal bool PreserveMissingValues { get; }
     }
 }

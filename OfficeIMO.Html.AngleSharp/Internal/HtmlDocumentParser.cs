@@ -172,6 +172,20 @@ internal static class HtmlDocumentParser {
     internal static string? GetExactAttributeValue(IElement element, string name) =>
         GetExactAttribute(element, name)?.Value;
 
+    internal static string GetQualifiedAttributeName(IAttr attribute) {
+        if (!string.IsNullOrEmpty(attribute.Prefix)) return attribute.Prefix + ":" + attribute.LocalName;
+        if (attribute.Name.IndexOf(':') >= 0) return attribute.Name;
+        // The provider can retain the reserved namespace but expose a null
+        // prefix for parser-adjusted foreign attributes. Recreate that prefix
+        // before HTML serialization, which otherwise drops the namespace.
+        return attribute.NamespaceUri switch {
+            "http://www.w3.org/1999/xlink" => "xlink:" + attribute.LocalName,
+            "http://www.w3.org/XML/1998/namespace" => "xml:" + attribute.LocalName,
+            "http://www.w3.org/2000/xmlns/" when attribute.LocalName != "xmlns" => "xmlns:" + attribute.LocalName,
+            _ => attribute.Name
+        };
+    }
+
     internal static IAttr? GetExactAttribute(IElement element, string name) {
         bool xlink = name.StartsWith("xlink:", StringComparison.OrdinalIgnoreCase);
         string localName = xlink ? name.Substring("xlink:".Length) : name;

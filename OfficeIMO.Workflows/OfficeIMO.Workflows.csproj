@@ -46,6 +46,9 @@
     <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Rtf.Pdf\OfficeIMO.Rtf.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Xps.Pdf\OfficeIMO.Xps.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Chm.Pdf\OfficeIMO.Chm.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Chm.Markdown\OfficeIMO.Chm.Markdown.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Chm.Epub\OfficeIMO.Chm.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument\OfficeIMO.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Ocr\OfficeIMO.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />

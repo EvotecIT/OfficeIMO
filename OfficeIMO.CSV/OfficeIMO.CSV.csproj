@@ -61,6 +61,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\IO\PooledUtf8TextWriter*.cs" Link="SharedSource\IO\%(Filename)%(Extension)" />
+    <Using Include="OfficeIMO.SharedSource.IO" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
 

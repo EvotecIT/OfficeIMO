@@ -37,10 +37,17 @@ public sealed partial class PdfDocument {
         MergeResult(options, (IEnumerable<PdfDocument>)documents);
 
     /// <summary>Merges loaded or generated documents with an explicit structure policy and returns readback evidence.</summary>
-    public static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<PdfDocument> documents) {
+    public static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<PdfDocument> documents) =>
+        MergeResult(options, documents, CancellationToken.None);
+
+    /// <summary>Merges documents with an explicit structure policy and cooperative cancellation, returning readback evidence.</summary>
+    public static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<PdfDocument> documents, CancellationToken cancellationToken) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(documents, nameof(documents));
-        PdfDocument[] sources = documents.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var retained = new List<PdfDocument>();
+        foreach (PdfDocument document in documents) { cancellationToken.ThrowIfCancellationRequested(); retained.Add(document); }
+        PdfDocument[] sources = retained.ToArray();
         if (sources.Length == 0) {
             throw new ArgumentException("At least one PDF document must be supplied.", nameof(documents));
         }
@@ -49,9 +56,9 @@ public sealed partial class PdfDocument {
             throw new ArgumentException("PDF documents cannot contain null entries.", nameof(documents));
         }
 
-        byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
+        byte[][] bytes = sources.Select(document => document.GetBytesForOperation(cancellationToken)).ToArray();
         PdfLoadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
-        return PdfMerger.MergeResult(options, bytes, readOptions);
+        return PdfMerger.MergeResult(options, bytes, readOptions, cancellationToken);
     }
 
     /// <summary>

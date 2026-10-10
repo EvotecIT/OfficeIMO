@@ -1,7 +1,7 @@
 namespace OfficeIMO.Access {
     /// <summary>Inert native catalog inventory. An entry does not certify typed application-object decoding or preservation.</summary>
     public sealed class AccessCatalogEntry : AccessNamedObject {
-        internal AccessCatalogEntry(AccessDocument document, string name, int nativeType, int flags) : base(document, name) { NativeType = nativeType; Flags = flags; }
+        internal AccessCatalogEntry(AccessDocument document, string name, int nativeType, int flags, Guid? identity = null) : base(document, name, identity) { NativeType = nativeType; Flags = flags; }
         /// <summary>Persisted catalog type, including unknown types.</summary>
         public int NativeType { get; }
         /// <summary>Persisted catalog flags. These are inspection evidence, not mutable physical identifiers.</summary>

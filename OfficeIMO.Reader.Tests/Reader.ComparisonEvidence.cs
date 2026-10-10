@@ -557,7 +557,14 @@ public sealed class ReaderComparisonEvidenceTests {
             Assert.All(result.Cases, item => Assert.True(item.Deterministic));
             Assert.All(result.Cases, item => Assert.True(item.AppliedProbes > 0));
             Assert.All(result.Cases, item => Assert.True(item.InputBytes > 0));
-            Assert.All(result.Cases.Where(item => item.CaseId != "malformed"), item => Assert.True(item.OutputBytes > 0));
+            string[] rejectionCases = cases
+                .Where(item => item.Probes.Any(probe => probe.Kind == ReaderComparisonProbeKind.RejectsMalformedInput))
+                .Select(item => item.Id).ToArray();
+            Assert.All(result.Cases.Where(item => !rejectionCases.Contains(item.CaseId, StringComparer.Ordinal)),
+                item => Assert.True(item.OutputBytes > 0));
+            ReaderComparisonCaseResult malformed = Assert.Single(result.Cases, item => item.CaseId == "malformed-pdf");
+            Assert.Equal(0, malformed.OutputBytes);
+            Assert.True(Assert.Single(malformed.Probes, probe => probe.Id == "rejected").Passed);
             ReaderComparisonCaseResult msg = Assert.Single(result.Cases, item => item.CaseId == "msg");
             Assert.True(Assert.Single(msg.Probes, probe => probe.Id == "attachment-content").Passed);
         } finally {

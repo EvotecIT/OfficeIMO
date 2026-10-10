@@ -455,6 +455,7 @@ namespace OfficeIMO.Excel {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
+            EnsureXlsbStringStorageSupported(isXlsbTarget: false, saveOptions);
 
             if (CanUseUnchangedPackageFastPath(saveOptions) && _unchangedPackageBytes != null) {
                 ThrowIfPackageMaterializationExceedsLimit(_unchangedPackageBytes.LongLength, saveOptions);

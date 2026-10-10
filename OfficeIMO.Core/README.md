@@ -157,6 +157,91 @@ The same controls apply to `RowsAs`, `RowsAsAsync` and `RowsAsParallel`.
 Parallel converters must support concurrent calls. Source-value redaction
 continues to follow the reader's mapping-error policy.
 
+## UTF-8 field text
+
+On .NET 8 and later, `OfficeIMO.Data` provides UTF-8 text access for any
+`IDataRecord`. `TryGetUtf8Text` discovers the optional `IDataReaderUtf8TextSource`
+capability and borrows text from provider-owned UTF-8 storage. A provider may
+initialize or update a text cache when a field is requested, including encoding
+decoded strings and allocating UTF-8 storage. Consume the returned span before
+advancing or closing the reader, or copy it when the bytes must survive those
+operations. A provider can decline individual fields; the ordinary getters
+remain available. A `false` result does not identify a null, and an empty text
+field can return `true` with an empty span.
+
+`GetUtf8Bytes` copies text into a buffer that the caller owns. It uses borrowed
+bytes when available and otherwise encodes the provider's `GetString` result
+with standard UTF-8 replacement handling and bounded temporary storage. String
+conversion, null handling and cursor validation follow that provider's contract.
+The existing `IDataRecord.GetBytes` method retains its provider's binary contract.
+
+```csharp
+using OfficeIMO.Data;
+using System.Data;
+using System.IO;
+
+static void WriteFieldText(IDataRecord row, int ordinal, Stream destination) {
+    byte[] buffer = new byte[4096];
+    long offset = 0;
+    while (true) {
+        int copied = (int)row.GetUtf8Bytes(ordinal, offset, buffer, 0, buffer.Length);
+        if (copied == 0) break;
+        destination.Write(buffer, 0, copied);
+        offset += copied;
+    }
+}
+```
+
+Offsets and lengths refer to bytes, so a copied segment can split a multi-byte
+character. Passing a null buffer returns the total encoded byte length. An offset
+at or beyond the end returns zero; negative offsets and lengths, and destination
+segments outside the supplied buffer, are rejected.
+
+### Factory mapping for borrowed models
+
+On .NET 10, `RowsAsBorrowed<T>` projects unread rows through a caller factory,
+including models declared as `ref struct`. Resolve column ordinals once and
+construct the model with the provider's ordinary getters and borrowed-text API:
+
+```csharp
+using OfficeIMO.Data;
+using System;
+using System.Data.Common;
+using System.Threading;
+
+static long SumBorrowedInvoices(DbDataReader reader, CancellationToken cancellationToken) {
+    int name = reader.GetOrdinal("Name"), id = reader.GetOrdinal("Id");
+    long total = 0;
+    foreach (BorrowedInvoice invoice in reader.RowsAsBorrowed<BorrowedInvoice>(row => {
+        if (!row.TryGetUtf8Text(name, out ReadOnlySpan<byte> text))
+            throw new InvalidOperationException("The name field does not offer borrowed UTF-8 text.");
+        return new BorrowedInvoice(text, row.GetInt32(id));
+    }, cancellationToken)) {
+        total += invoice.Id + invoice.Name.Length;
+    }
+    return total;
+}
+
+public readonly ref struct BorrowedInvoice {
+    public BorrowedInvoice(ReadOnlySpan<byte> name, int id) { Name = name; Id = id; }
+    public ReadOnlySpan<byte> Name { get; }
+    public int Id { get; }
+}
+```
+
+The factory runs once per successful advance; repeated `Current` access returns
+the cached model. Borrowed fields remain valid only until the reader advances,
+changes results, closes, or is disposed. Consume them within the loop or copy
+the fields that need to survive it. The caller retains ownership of the reader
+after completion, early exit, cancellation, or factory failure. Cancellation is
+observed between rows and before factory invocation; a running synchronous read
+or factory cannot be interrupted. Getter and factory exceptions propagate
+unchanged, and schema conversion follows the getters used by the factory.
+
+This synchronous pattern enumeration has no asynchronous, parallel, or
+materialization contract. Automatic ref-struct property or constructor mapping
+is unsupported; ordinary models continue to use `RowsAs<T>` and `RowMapper<T>`.
+
 ## Image export density
 
 `OfficeImageExportOptions.UseQuality(...)` and fluent `WithQuality(...)` select shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. They retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly; fluent `WithScale(...)` clears it automatically. Each document adapter defines its logical units per inch.

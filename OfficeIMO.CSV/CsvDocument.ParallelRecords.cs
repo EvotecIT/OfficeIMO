@@ -76,15 +76,23 @@ public sealed class CsvRecordHeader
 }
 
 /// <summary>A transient, span-backed CSV record passed to a projection callback.</summary>
+/// <remarks>
+/// GetString and GetSpan retain original source text, including a configured null marker.
+/// Check IsNull and IsMissing before non-nullable primitive access. Primitive parsing rejects
+/// null fields with InvalidCastException; configured schema conversion and defaults retain
+/// the canonical reader behavior.
+/// </remarks>
 public readonly ref struct CsvRecord
 {
     private readonly CsvParser.CsvTextDataReaderBatch? _batch;
+    private readonly CsvRecordTextBatch? _detachedBatch;
     private readonly CsvParser.CsvTextDataReaderRowSource? _source;
     private readonly CsvDataReader? _reader;
 
     internal CsvRecord(CsvParser.CsvTextDataReaderBatch batch)
     {
         _batch = batch;
+        _detachedBatch = null;
         _source = null;
         _reader = null;
     }
@@ -92,6 +100,7 @@ public readonly ref struct CsvRecord
     internal CsvRecord(CsvParser.CsvTextDataReaderRowSource source)
     {
         _batch = null;
+        _detachedBatch = null;
         _source = source;
         _reader = null;
     }
@@ -99,17 +108,31 @@ public readonly ref struct CsvRecord
     internal CsvRecord(CsvDataReader reader)
     {
         _batch = null;
+        _detachedBatch = null;
         _source = null;
         _reader = reader;
     }
 
-    /// <summary>Gets the number of source fields.</summary>
-    public int FieldCount => _batch?.SourceColumnCount ?? _source?.SourceColumnCount ?? _reader!.FieldCount;
+    internal CsvRecord(CsvRecordTextBatch batch)
+    {
+        _batch = null;
+        _detachedBatch = batch;
+        _source = null;
+        _reader = null;
+    }
+
+    private CultureInfo RecordCulture => _batch?.Culture ?? _detachedBatch?.Culture ?? _source!.Options.Culture;
+    private IReadOnlyList<string>? RecordDateTimeFormats => _batch is not null ? _batch.DateTimeFormats
+        : _detachedBatch is not null ? _detachedBatch.DateTimeFormats : _source!.Options.DateTimeFormats;
+
+    /// <summary>Gets the number of resolved fields, including configured static columns.</summary>
+    public int FieldCount => _batch?.SourceColumnCount ?? _detachedBatch?.FieldCount ?? _source?.SourceColumnCount ?? _reader!.FieldCount;
 
     /// <summary>Gets a transient unescaped field span.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<char> GetSpan(int ordinal) => _batch is not null
         ? _batch.GetSpan(ordinal)
+        : _detachedBatch is not null ? _detachedBatch.GetSpan(ordinal)
         : _source is not null
             ? _source.GetSpan(ordinal)
             : _reader!.GetCurrentSourceString(ordinal).AsSpan();
@@ -118,6 +141,7 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string GetString(int ordinal) => _batch is not null
         ? _batch.MaterializeString(ordinal)
+        : _detachedBatch is not null ? _detachedBatch.GetString(ordinal)
         : _source is not null
             ? _source.GetString(ordinal)
             : _reader!.GetCurrentSourceString(ordinal);
@@ -126,15 +150,21 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsMissing(int ordinal) => _batch is not null
         ? _batch.IsMissing(ordinal)
+        : _detachedBatch is not null ? _detachedBatch.IsMissing(ordinal)
         : _source is not null
             ? _source.IsMissing(ordinal)
             : _reader!.IsCurrentFieldMissing(ordinal);
 
-    /// <summary>Returns whether the field matches the configured CSV null marker.</summary>
-    /// <remarks>A missing field is not a configured null field; use <see cref="IsMissing"/> to distinguish it.</remarks>
+    /// <summary>Returns whether a present field is null under the current reader contract.</summary>
+    /// <remarks>
+    /// Without a schema, this identifies the configured CSV null marker. Schema converters and
+    /// defaults follow the canonical reader's IsDBNull result. A missing field returns false;
+    /// use <see cref="IsMissing"/> to distinguish it.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsNull(int ordinal) => !IsMissing(ordinal) && (_batch is not null
         ? _batch.IsConfiguredNull(ordinal)
+        : _detachedBatch is not null ? _detachedBatch.IsConfiguredNull(ordinal)
         : _source is not null
             ? _source.IsNull(ordinal, _source.Options.NullValue)
             : _reader!.IsDBNull(ordinal));
@@ -147,7 +177,7 @@ public readonly ref struct CsvRecord
         {
             return _reader.GetBoolean(ordinal);
         }
-        ReadOnlySpan<char> value = GetSpan(ordinal);
+        ReadOnlySpan<char> value = GetNonNullSpan(ordinal);
         if (bool.TryParse(value, out bool result))
         {
             return result;
@@ -167,8 +197,8 @@ public readonly ref struct CsvRecord
         {
             return _reader.GetInt32(ordinal);
         }
-        ReadOnlySpan<char> value = GetSpan(ordinal);
-        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
+        ReadOnlySpan<char> value = GetNonNullSpan(ordinal);
+        CultureInfo culture = RecordCulture;
         if (ReferenceEquals(culture, CultureInfo.InvariantCulture) &&
             CsvDataProjectionConverter.TryParseInvariantInt32(value, out int result))
         {
@@ -189,8 +219,8 @@ public readonly ref struct CsvRecord
         {
             return _reader.GetInt64(ordinal);
         }
-        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
-        if (long.TryParse(GetSpan(ordinal), NumberStyles.Any, culture, out long result))
+        CultureInfo culture = RecordCulture;
+        if (long.TryParse(GetNonNullSpan(ordinal), NumberStyles.Any, culture, out long result))
         {
             return result;
         }
@@ -205,8 +235,8 @@ public readonly ref struct CsvRecord
         {
             return _reader.GetDecimal(ordinal);
         }
-        ReadOnlySpan<char> value = GetSpan(ordinal);
-        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
+        ReadOnlySpan<char> value = GetNonNullSpan(ordinal);
+        CultureInfo culture = RecordCulture;
         if (ReferenceEquals(culture, CultureInfo.InvariantCulture) &&
             CsvDataProjectionConverter.TryParseInvariantDecimal(value, out decimal result))
         {
@@ -227,8 +257,8 @@ public readonly ref struct CsvRecord
         {
             return _reader.GetDouble(ordinal);
         }
-        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
-        if (double.TryParse(GetSpan(ordinal), NumberStyles.Any, culture, out double result))
+        CultureInfo culture = RecordCulture;
+        if (double.TryParse(GetNonNullSpan(ordinal), NumberStyles.Any, culture, out double result))
         {
             return result;
         }
@@ -243,10 +273,10 @@ public readonly ref struct CsvRecord
         {
             return _reader.GetDateTime(ordinal);
         }
-        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
-        IReadOnlyList<string>? dateTimeFormats = _batch?.DateTimeFormats ?? _source!.Options.DateTimeFormats;
+        CultureInfo culture = RecordCulture;
+        IReadOnlyList<string>? dateTimeFormats = RecordDateTimeFormats;
         if (CsvDataProjectionConverter.TryParseDateTime(
-                GetSpan(ordinal),
+                GetNonNullSpan(ordinal),
                 culture,
                 dateTimeFormats,
                 out DateTime result))
@@ -264,11 +294,18 @@ public readonly ref struct CsvRecord
         {
             return _reader.GetGuid(ordinal);
         }
-        if (Guid.TryParse(GetSpan(ordinal), out Guid result))
+        if (Guid.TryParse(GetNonNullSpan(ordinal), out Guid result))
         {
             return result;
         }
         throw CreateFormatException(ordinal, "Guid");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ReadOnlySpan<char> GetNonNullSpan(int ordinal)
+    {
+        if (IsNull(ordinal)) throw new InvalidCastException($"CSV field {ordinal} is null.");
+        return GetSpan(ordinal);
     }
 
     private FormatException CreateFormatException(int ordinal, string destinationType) =>

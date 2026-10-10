@@ -14,6 +14,8 @@ public sealed partial class OfficeWorkflowRunner {
         PdfDocument source = PdfDocument.Load(input, request.PdfLoadOptions);
         int pageCount = source.Inspect(request.PdfLoadOptions, token).PageCount;
         var preparation = settings.Preparation;
+        if (settings.PageSelector is not null)
+            preparation.ReadOptions = ResolveOcrReadSelection(preparation.ReadOptions, settings.PageSelector, pageCount, preparation.MaxPages);
         int[] pages = preparation.GetSelectedPages(pageCount);
         if (pages.Length == 0 || pages.Length > preparation.MaxPages) throw new InvalidOperationException("Scan page selection exceeds its page limit.");
         var documents = new List<PdfDocument>();

@@ -85,9 +85,12 @@ public sealed partial class OfficeRasterCanvas {
     private bool IsPixelInsideClip(int x, int y) =>
         _clipRegion == null || _clipRegion.Contains(x, y);
 
-    /// <summary>Conservatively tests a complete affine surface against the physical canvas and current clip.</summary>
-    internal bool IntersectsVisibleSurface(OfficeTransform transform, double width, double height) =>
-        IntersectsVisibleBounds(ScaleCoordinates(transform).TransformRectangleBounds(0D, 0D, width, height));
+    /// <summary>
+    /// Conservatively tests a complete affine surface against the physical canvas and current clip.
+    /// Antialiased image boundaries retain pixels with partial area coverage; periodic tiles use pixel centres.
+    /// </summary>
+    internal bool IntersectsVisibleSurface(OfficeTransform transform, double width, double height, bool includePartialCoverage = true) =>
+        IntersectsVisibleImageBounds(ScaleCoordinates(transform).TransformRectangleBounds(0D, 0D, width, height), includePartialCoverage);
 
     /// <summary>Tests current clip bounds against the canvas pixel centres; overlapping bounds remain inconclusive.</summary>
     internal bool HasVisibleClipBounds => IntersectsVisibleBounds((0D, 0D, Width, Height));

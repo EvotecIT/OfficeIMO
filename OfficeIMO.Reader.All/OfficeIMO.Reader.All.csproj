@@ -27,6 +27,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Reader.Chm\OfficeIMO.Reader.Chm.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.AsciiDoc\OfficeIMO.Reader.AsciiDoc.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Csv\OfficeIMO.Reader.Csv.csproj" />

@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 69,
-    "operationCount": 1385
+    "packageCount": 73,
+    "operationCount": 1398
   },
   "fidelityStates": [
     {
@@ -1954,6 +1954,149 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm",
+      "slug": "chm",
+      "capabilityCount": 5,
+      "formats": [
+        "Chm.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Inspect",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Supported",
+              "label": "Supported",
+              "description": "Implemented and backed by named evidence.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm.Epub",
+      "slug": "chm-epub",
+      "capabilityCount": 1,
+      "formats": [
+        "Compiled HTML Help",
+        "EPUB"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm.Markdown",
+      "slug": "chm-markdown",
+      "capabilityCount": 1,
+      "formats": [
+        "Compiled HTML Help",
+        "Markdown"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Chm.Pdf",
+      "slug": "chm-pdf",
+      "capabilityCount": 1,
+      "formats": [
+        "Compiled HTML Help",
+        "PDF"
+      ],
+      "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog"
+      ],
+      "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
               "count": 1
             }
           ]
@@ -4901,8 +5044,11 @@
     {
       "id": "OfficeIMO.Visio",
       "slug": "visio",
-      "capabilityCount": 20,
+      "capabilityCount": 24,
       "formats": [
+        "Binary Visio",
+        "Binary Visio stencil",
+        "Binary Visio template",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
         "JPEG",
         "PNG",
@@ -4911,6 +5057,9 @@
         "Visio",
         "Visio Open XML",
         "Visio.OpenXml",
+        "VSDX",
+        "VSSX",
+        "VSTX",
         "WebP"
       ],
       "sourceCatalogs": [
@@ -4920,6 +5069,17 @@
         "OfficeIMO.Provenance"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 3
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -4956,6 +5116,12 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 5
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         },
@@ -5025,8 +5191,9 @@
     {
       "id": "OfficeIMO.Visio.Pdf",
       "slug": "visio-pdf",
-      "capabilityCount": 1,
+      "capabilityCount": 2,
       "formats": [
+        "Binary Visio",
         "PDF",
         "Visio"
       ],
@@ -5041,7 +5208,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
+              "count": 2
             }
           ]
         }

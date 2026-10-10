@@ -322,7 +322,8 @@ public sealed partial class PdfReadDocument {
                 richValue: richValue,
                 richValuePlainText: richValuePlainText,
                 richValueOwnerKey: richValueOwnerKey,
-                hasRichValueEntry: hasRichValueEntry));
+                hasRichValueEntry: hasRichValueEntry,
+                actions: isWidget ? null : ReadWidgetActions(field, actionBudget, cancellationToken)));
         }
 
         if (fieldKids.Count == 0) {

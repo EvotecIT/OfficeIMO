@@ -52,6 +52,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Email" />
   </ItemGroup>
 </Project>

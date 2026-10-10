@@ -140,6 +140,8 @@
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OCRRuntime}" FontWeight="SemiBold" />
               <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}" IsVisible="{Binding OcrWorkbench.IsRecognitionAvailable}"
                          Classes="muted" FontSize="12" TextWrapping="Wrap" />
+              <Button Classes="tool" Content="{loc:Loc OcrSetup.OpenSettings}" Command="{Binding ShowSettingsCommand}"
+                      IsVisible="{Binding OcrWorkbench.IsRecognitionAvailable}" HorizontalAlignment="Left" />
             </StackPanel>
           </Border>
 

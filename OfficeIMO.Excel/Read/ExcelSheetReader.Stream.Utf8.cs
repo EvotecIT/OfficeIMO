@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
                 for (int rowOffset = 0; rowOffset < currentRowCount; rowOffset++) {
                     var rowValues = new object?[width];
                     int rowIndex = startRow + rowOffset;
-                    if (source.SelectRow(rowIndex)) {
+                    if (source.SelectRow(rowIndex, ct, ct)) {
                         for (int columnOffset = 0; columnOffset < width; columnOffset++) {
                             source.ReadValue(
                                 columnOffset,

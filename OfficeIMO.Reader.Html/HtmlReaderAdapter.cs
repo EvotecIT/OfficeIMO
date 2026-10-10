@@ -88,8 +88,9 @@ internal static partial class HtmlReaderAdapter {
         HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
             effectiveHtmlOptions,
-            effectiveHtmlOptions.HtmlToMarkdownOptions?.BaseUri);
-        string markdown = conversionDocument.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions);
+            effectiveHtmlOptions.HtmlToMarkdownOptions?.BaseUri,
+            cancellationToken);
+        string markdown = conversionDocument.ToMarkdown(effectiveHtmlOptions.HtmlToMarkdownOptions, cancellationToken);
 
         return ChunkMarkdown(markdown, source, effective, effectiveHtmlOptions, cancellationToken);
     }
@@ -154,9 +155,9 @@ internal static partial class HtmlReaderAdapter {
         return conversionOptions;
     }
 
-    private static HtmlConversionDocument ParseConversionDocument(string html, ReaderHtmlOptions options, Uri? projectionBaseUri) {
+    private static HtmlConversionDocument ParseConversionDocument(string html, ReaderHtmlOptions options, Uri? projectionBaseUri, CancellationToken cancellationToken) {
         try {
-            return HtmlConversionDocument.Parse(html, CreateConversionOptions(options, projectionBaseUri));
+            return HtmlConversionDocument.Parse(html, CreateConversionOptions(options, projectionBaseUri), cancellationToken);
         } catch (HtmlDomLimitException exception) when (
             exception.Code == HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded
             && options.HtmlToMarkdownOptions?.MaxInputCharacters.HasValue == true) {
