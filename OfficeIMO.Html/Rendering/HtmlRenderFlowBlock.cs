@@ -759,6 +759,8 @@ internal sealed class HtmlInlineRun {
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
     internal bool TextTransformPending { get; private set; }
+    // Suppressed text still participates in casing, then leaves the rendering pipeline.
+    internal bool IsTextTransformContextOnly { get; set; }
     internal string? LeaderPattern { get; }
     internal bool IsFirstLetter { get; private set; }
     // A pseudo-element split retains the whole word's break decisions and logical text.
