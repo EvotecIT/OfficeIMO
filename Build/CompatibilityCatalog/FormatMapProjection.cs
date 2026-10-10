@@ -88,8 +88,8 @@ internal static class FormatMapProjection {
             StringComparer.OrdinalIgnoreCase);
         var routes = new Dictionary<string, PowerShellRoute>(StringComparer.Ordinal);
         foreach (PowerShellRoute route in listed) {
-            if (string.IsNullOrWhiteSpace(route.Route) || string.IsNullOrWhiteSpace(route.Cmdlet) || string.IsNullOrWhiteSpace(route.Example)) {
-                throw new InvalidOperationException($"{PowerShellRoutesFile} has an entry without a route, cmdlet and example: {route.Route}");
+            if (string.IsNullOrWhiteSpace(route.Route) || string.IsNullOrWhiteSpace(route.Cmdlet) || string.IsNullOrWhiteSpace(route.Example) || string.IsNullOrWhiteSpace(route.Evidence)) {
+                throw new InvalidOperationException($"{PowerShellRoutesFile} has an entry without a route, cmdlet, example or source evidence: {route.Route}");
             }
             if (!commands.Contains(route.Cmdlet)) {
                 throw new InvalidOperationException($"{PowerShellRoutesFile}: route '{route.Route}' uses '{route.Cmdlet}', which is not in {PowerShellSnapshot}.");

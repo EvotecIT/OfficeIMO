@@ -692,7 +692,7 @@
         "powershell"
       ],
       "cmdlet": "Get-OfficeConfluencePage",
-      "example": "Get-OfficeConfluencePage -Session $session -PageId 12345 -AsHtml"
+      "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsHtml -FailOnLoss).Value | Set-Content -LiteralPath ./out.html -Encoding utf8"
     },
     {
       "id": "confluence-markdown",
@@ -707,7 +707,7 @@
         "powershell"
       ],
       "cmdlet": "Get-OfficeConfluencePage",
-      "example": "Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown"
+      "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8"
     },
     {
       "id": "csv-xlsx",
@@ -807,7 +807,7 @@
         "powershell"
       ],
       "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.jpg -Format Jpeg"
+      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Jpeg -AllPages"
     },
     {
       "id": "docx-markdown",
@@ -870,7 +870,7 @@
         "powershell"
       ],
       "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.png -Format Png"
+      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Png -AllPages"
     },
     {
       "id": "docx-rtf",
@@ -900,7 +900,7 @@
         "powershell"
       ],
       "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.svg -Format Svg"
+      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Svg -AllPages"
     },
     {
       "id": "docx-tiff",
@@ -915,7 +915,7 @@
         "powershell"
       ],
       "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.tiff -Format Tiff"
+      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Tiff -AllPages"
     },
     {
       "id": "docx-webp",
@@ -930,7 +930,7 @@
         "powershell"
       ],
       "cmdlet": "Export-OfficeWordImage",
-      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.webp -Format Webp"
+      "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Webp -AllPages"
     },
     {
       "id": "email-eml-msg",
@@ -1293,7 +1293,7 @@
         "powershell"
       ],
       "cmdlet": "Publish-OfficeConfluencePage",
-      "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content $html -ContentFormat Html -PlanOnly"
+      "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.html -Raw) -ContentFormat Html -PlanOnly"
     },
     {
       "id": "html-docx",
@@ -1331,11 +1331,8 @@
       "fidelity": "FixedLayout",
       "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
       "surfaces": [
-        "dotnet",
-        "powershell"
-      ],
-      "cmdlet": "Export-OfficeHtmlImage",
-      "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.jpg -Format Jpeg"
+        "dotnet"
+      ]
     },
     {
       "id": "html-markdown",
@@ -1392,11 +1389,8 @@
       "fidelity": "FixedLayout",
       "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
       "surfaces": [
-        "dotnet",
-        "powershell"
-      ],
-      "cmdlet": "Export-OfficeHtmlImage",
-      "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.png -Format Png"
+        "dotnet"
+      ]
     },
     {
       "id": "html-pptx",
@@ -1434,11 +1428,8 @@
       "fidelity": "FixedLayout",
       "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
       "surfaces": [
-        "dotnet",
-        "powershell"
-      ],
-      "cmdlet": "Export-OfficeHtmlImage",
-      "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.svg -Format Svg"
+        "dotnet"
+      ]
     },
     {
       "id": "html-tiff",
@@ -1449,11 +1440,8 @@
       "fidelity": "FixedLayout",
       "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
       "surfaces": [
-        "dotnet",
-        "powershell"
-      ],
-      "cmdlet": "Export-OfficeHtmlImage",
-      "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.tiff -Format Tiff"
+        "dotnet"
+      ]
     },
     {
       "id": "html-webp",
@@ -1464,11 +1452,8 @@
       "fidelity": "FixedLayout",
       "api": "HtmlConversionDocument.Parse(html).ExportImages(format, options)",
       "surfaces": [
-        "dotnet",
-        "powershell"
-      ],
-      "cmdlet": "Export-OfficeHtmlImage",
-      "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.webp -Format Webp"
+        "dotnet"
+      ]
     },
     {
       "id": "html-xlsx",
@@ -1566,7 +1551,7 @@
         "powershell"
       ],
       "cmdlet": "Publish-OfficeConfluencePage",
-      "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content $markdown -ContentFormat Markdown -PlanOnly"
+      "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.md -Raw) -ContentFormat Markdown -PlanOnly"
     },
     {
       "id": "markdown-docx",
@@ -2572,8 +2557,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeVisioPng",
-      "example": "ConvertTo-OfficeVisioPng -Path ./in.vsdx -OutputPath ./out.png"
+      "cmdlet": "Export-OfficeVisioImage",
+      "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Png"
     },
     {
       "id": "visio-svg",
@@ -2587,8 +2572,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeVisioSvg",
-      "example": "ConvertTo-OfficeVisioSvg -Path ./in.vsdx -OutputPath ./out.svg"
+      "cmdlet": "Export-OfficeVisioImage",
+      "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Svg"
     },
     {
       "id": "visio-tiff",

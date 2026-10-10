@@ -8,13 +8,13 @@
   {
     "route": "confluence-html",
     "cmdlet": "Get-OfficeConfluencePage",
-    "example": "Get-OfficeConfluencePage -Session $session -PageId 12345 -AsHtml",
+    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsHtml -FailOnLoss).Value | Set-Content -LiteralPath ./out.html -Encoding utf8",
     "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs L64 (-AsHtml); L141 (ConfluenceContentConverter.ToHtml(page)). Reads the page from Confluence Cloud (live session required) and projects it with the route API."
   },
   {
     "route": "confluence-markdown",
     "cmdlet": "Get-OfficeConfluencePage",
-    "example": "Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown",
+    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8",
     "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs L60 (-AsMarkdown); L135 (ConfluenceContentConverter.ToMarkdown(page)). Reads the page from Confluence Cloud (live session required) and projects it with the route API."
   },
   {
@@ -38,8 +38,8 @@
   {
     "route": "docx-jpeg",
     "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.jpg -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs L41 (-Format); L94 (document.ExportImage(Format, effectiveOptions)). Exports one page by default; add -AllPages to export every page into a folder."
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Jpeg -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
   },
   {
     "route": "docx-markdown",
@@ -62,8 +62,8 @@
   {
     "route": "docx-png",
     "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.png -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs L41 (-Format); L94 (document.ExportImage(Format, effectiveOptions)). Exports one page by default; add -AllPages to export every page into a folder."
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Png -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
   },
   {
     "route": "docx-rtf",
@@ -74,20 +74,20 @@
   {
     "route": "docx-svg",
     "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.svg -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs L41 (-Format); L94 (document.ExportImage(Format, effectiveOptions)). Exports one page by default; add -AllPages to export every page into a folder."
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Svg -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
   },
   {
     "route": "docx-tiff",
     "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.tiff -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs L41 (-Format); L94 (document.ExportImage(Format, effectiveOptions)). Exports one page by default; add -AllPages to export every page into a folder."
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Tiff -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
   },
   {
     "route": "docx-webp",
     "cmdlet": "Export-OfficeWordImage",
-    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./out.webp -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs L41 (-Format); L94 (document.ExportImage(Format, effectiveOptions)). Exports one page by default; add -AllPages to export every page into a folder."
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Webp -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
   },
   {
     "route": "email-eml-msg",
@@ -164,7 +164,7 @@
   {
     "route": "html-confluence",
     "cmdlet": "Publish-OfficeConfluencePage",
-    "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content $html -ContentFormat Html -PlanOnly",
+    "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.html -Raw) -ContentFormat Html -PlanOnly",
     "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs L70 (-ContentFormat Html); L161 (ConfluenceContentConverter.FromHtml(content, BodyFormat)). -PlanOnly returns the Confluence request plan (converted body included) without a network call; add -Session and drop -PlanOnly to publish."
   },
   {
@@ -172,12 +172,6 @@
     "cmdlet": "ConvertFrom-OfficeWordHtml",
     "example": "ConvertFrom-OfficeWordHtml -Path ./in.html -OutputPath ./out.docx",
     "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertFromOfficeWordHtmlCommand.cs L44 (-OutputPath); L157 (HtmlConversionDocument.Parse(html).ToWordDocument(options))"
-  },
-  {
-    "route": "html-jpeg",
-    "cmdlet": "Export-OfficeHtmlImage",
-    "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.jpg -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Html/ExportOfficeHtmlImageCommand.cs L43 (-Format); L100 (document.ExportImage(Format, RenderOptions, PageIndex)). Renders one page (-PageIndex) to the destination file."
   },
   {
     "route": "html-markdown",
@@ -192,34 +186,10 @@
     "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertFromOfficePdfHtmlCommand.cs L36 (-Path (HTML file)); L137 (document.SaveAsPdf(outputPath, options))"
   },
   {
-    "route": "html-png",
-    "cmdlet": "Export-OfficeHtmlImage",
-    "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.png -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Html/ExportOfficeHtmlImageCommand.cs L43 (-Format); L100 (document.ExportImage(Format, RenderOptions, PageIndex)). Renders one page (-PageIndex) to the destination file."
-  },
-  {
     "route": "html-rtf",
     "cmdlet": "ConvertTo-OfficeRtf",
     "example": "ConvertTo-OfficeRtf -HtmlPath ./in.html -OutputPath ./out.rtf",
     "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L72 (-HtmlPath); L186 (HtmlConversionDocument.Parse(html).ToWordDocument(). Implemented as HTML to Word to RTF, not through the OfficeIMO.Html.Rtf API named by the route."
-  },
-  {
-    "route": "html-svg",
-    "cmdlet": "Export-OfficeHtmlImage",
-    "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.svg -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Html/ExportOfficeHtmlImageCommand.cs L43 (-Format); L100 (document.ExportImage(Format, RenderOptions, PageIndex)). Renders one page (-PageIndex) to the destination file."
-  },
-  {
-    "route": "html-tiff",
-    "cmdlet": "Export-OfficeHtmlImage",
-    "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.tiff -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Html/ExportOfficeHtmlImageCommand.cs L43 (-Format); L100 (document.ExportImage(Format, RenderOptions, PageIndex)). Renders one page (-PageIndex) to the destination file."
-  },
-  {
-    "route": "html-webp",
-    "cmdlet": "Export-OfficeHtmlImage",
-    "example": "Export-OfficeHtmlImage -Path ./in.html -OutputPath ./out.webp -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Html/ExportOfficeHtmlImageCommand.cs L43 (-Format); L100 (document.ExportImage(Format, RenderOptions, PageIndex)). Renders one page (-PageIndex) to the destination file."
   },
   {
     "route": "keynote-pptx",
@@ -242,7 +212,7 @@
   {
     "route": "markdown-confluence",
     "cmdlet": "Publish-OfficeConfluencePage",
-    "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content $markdown -ContentFormat Markdown -PlanOnly",
+    "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.md -Raw) -ContentFormat Markdown -PlanOnly",
     "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs L70 (-ContentFormat Markdown); L155 (ConfluenceContentConverter.FromMarkdown(content, BodyFormat)). -PlanOnly returns the Confluence request plan (converted body included) without a network call; add -Session and drop -PlanOnly to publish."
   },
   {
@@ -463,15 +433,15 @@
   },
   {
     "route": "visio-png",
-    "cmdlet": "ConvertTo-OfficeVisioPng",
-    "example": "ConvertTo-OfficeVisioPng -Path ./in.vsdx -OutputPath ./out.png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioPngCommand.cs L37 (-OutputPath); L125 (document.ExportImage(OfficeImageExportFormat.Png, options)). Exports one page (-PageIndex). Export-OfficeVisioImage -Format Png exports every page."
+    "cmdlet": "Export-OfficeVisioImage",
+    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs: document.SaveAsImages(output, Format, Options) exports every page to the destination folder."
   },
   {
     "route": "visio-svg",
-    "cmdlet": "ConvertTo-OfficeVisioSvg",
-    "example": "ConvertTo-OfficeVisioSvg -Path ./in.vsdx -OutputPath ./out.svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioSvgCommand.cs L38 (-OutputPath); L114 (document.ExportImage(OfficeImageExportFormat.Svg, options)). Exports one page (-PageIndex). Export-OfficeVisioImage -Format Svg exports every page."
+    "cmdlet": "Export-OfficeVisioImage",
+    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs: document.SaveAsImages(output, Format, Options) exports every page to the destination folder."
   },
   {
     "route": "visio-tiff",
