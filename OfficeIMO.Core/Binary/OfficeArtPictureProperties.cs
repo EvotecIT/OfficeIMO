@@ -20,6 +20,7 @@ public sealed class OfficeArtPictureProperties {
         RecolorColor = GetColor(0x011A);
         Grayscale = GetBoolean(0x013F, 1U << 18, 1U << 2);
         BiLevel = GetBoolean(0x013F, 1U << 17, 1U << 1);
+        PreserveGrays = GetBoolean(0x013F, 1U << 22, 1U << 6);
     }
 
     /// <summary>Decodes picture-frame properties from an OfficeArt property table.</summary>
@@ -80,6 +81,9 @@ public sealed class OfficeArtPictureProperties {
 
     /// <summary>Gets explicit two-color black-and-white display state, or null when inherited.</summary>
     public bool? BiLevel { get; }
+
+    /// <summary>Gets whether native color modifications leave source gray values unchanged, or null when inherited.</summary>
+    public bool? PreserveGrays { get; }
 
     /// <summary>Gets the top crop as a fraction of image height.</summary>
     public double? CropFromTop => ToFraction(CropFromTopRaw);

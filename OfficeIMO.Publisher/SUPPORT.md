@@ -31,7 +31,8 @@ they are not produced by an OfficeIMO writer.
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; decorations on unsupported open geometry are omitted |
 | Groups | Native child coordinate spaces, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
-| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder; recoloring and other picture effects are unassessed |
+| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder |
+| Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
@@ -103,6 +104,16 @@ frames report approximation. Other gradient, pattern, texture and background
 fill modes retain their current approximation boundary. The five supported
 producer fixtures contain no declared non-solid fills, so these record checks
 and managed SVG/raster/PDF outputs do not establish native gradient fidelity.
+Picture-control mutations exercise transparency keys before tone changes,
+brightness endpoints, contrast, preserve-grays, grayscale and two-color
+precedence. Controlled raster output in original native picture frames is
+checked through SVG, raster and reopened PDF output; original embedded payloads
+remain unchanged. Invalid or unqualified controls retain their diagnostics when
+other valid controls apply. Per-image and cumulative pixel ceilings account for
+inspected GIF frames and repeated references; cumulative encoded-byte checks
+reject repeated large-payload decoding, and codec cancellation aborts the read. These are managed
+record and artifact checks; the supported producer fixtures contain no enabled
+visible picture controls, so native Publisher pixel equivalence remains open.
 The brochure and newsletter also verify referenced style defaults, direct
 formatting precedence, native bullet labels and tab-array positions. Those
 checks compare decoded values with the native records, not Publisher-rendered
@@ -120,7 +131,15 @@ The default resource limits are 64 MiB input, 4 million source/projected text
 characters, 1 million inspected records, 250,000 source/projected items,
 512 compound streams, 1,024 document/master pages, nesting depth 64,
 16 MiB per extracted/projected image and 64 MiB aggregate image accounting.
-Application raster codec output is limited to 8 million pixels. Limits are
+Decoded picture-effect rasters and application codec output are limited to
+8 million pixels per image. Cumulative picture-effect work is limited to
+64 million pixels, charging the selected raster once for decoding and once for
+filtering, plus each inspected GIF, WebP or icon frame across all references.
+Image extraction and each actual picture decode also charge their encoded bytes
+against `Limits.MaxInputBytes`. Effect decoding fails the read when the image or
+selected codec cannot produce a raster within those bounds.
+Multi-frame effect sources use their first frame and report omitted frames;
+`Images` retains the complete payload. Limits are
 caller-configurable, reject oversized input and also account for repeated
 projection work. The input byte ceiling also bounds cumulative encoded image
 processing, and unavailable image-store entries consume the item ceiling.

@@ -128,6 +128,21 @@ public sealed class OfficeRasterDecodeOptions {
 public sealed class OfficeRasterDecodeInfo {
     internal bool UsedCallerCodec { get; set; }
 
+    // These container inventories bound every frame before selecting one. Owned
+    // consumers account their frame pixels separately from decode/filter work.
+    internal static bool CountsFrameInspectionPixels(OfficeImageFormat format) =>
+        format is OfficeImageFormat.Gif or OfficeImageFormat.Webp or OfficeImageFormat.Icon;
+
+    internal long InspectedFramePixels {
+        get {
+            if (!CountsFrameInspectionPixels(Format) || Container == null) return 0;
+            long pixels = 0;
+            foreach (OfficeRasterFrameInfo frame in Container.Frames)
+                pixels = checked(pixels + (long)frame.Width * frame.Height);
+            return pixels;
+        }
+    }
+
     internal OfficeRasterDecodeInfo(OfficeImageFormat format, int frameCount, int selectedFrameIndex, bool succeeded, string? diagnostic, OfficeRasterContainerInfo? container = null) {
         Format = format;
         FrameCount = frameCount;
