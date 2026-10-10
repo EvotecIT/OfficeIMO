@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.Pdf {
                    nextAlign == align &&
                    nextColor.Equals(color) &&
                    NativeListStylesEquivalent(nextStyle, style) &&
+                   NativeListContextualSpacingEquivalent(firstParagraph, paragraph) &&
                    (!ordered || nextNumber == expectedNumber)) {
                 items.Add(nextItem!);
                 paragraphs.Add(paragraph);
@@ -46,6 +47,15 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             style = ApplyNativeListContextualItemSpacing(style, paragraphs);
+            bool suppressBefore = ShouldSuppressNativeContextualSpacingBefore(firstParagraph);
+            bool suppressAfter = ShouldSuppressNativeContextualSpacingAfter(paragraphs[paragraphs.Count - 1],
+                nextIndex < elements.Count ? elements[nextIndex] as WordParagraph : null);
+            double? declaredSpacingAfter = style?.SpacingAfter;
+            if (style != null && (suppressBefore || suppressAfter)) {
+                style = style.Clone();
+                if (suppressBefore) style.SpacingBefore = 0D;
+                if (suppressAfter) style.SpacingAfter = 0D;
+            }
             if (style != null && RenderNativeDocumentStartSpacing(pdf, firstParagraph, style.SpacingBefore)) {
                 style = style.Clone();
                 style.SpacingBefore = 0D;
@@ -55,6 +65,8 @@ namespace OfficeIMO.Word.Pdf {
             } else {
                 pdf.RichBullets(items, align, color, style);
             }
+            if (suppressAfter && pdf is NativeSpacingCollapseFlow collapseFlow)
+                collapseFlow.RetainSuppressedSpacingAfter(declaredSpacingAfter);
 
             index = nextIndex - 1;
             return true;
@@ -247,8 +259,10 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
             }
 
-            if (itemSpacingDeclared) {
-                style.ItemSpacing = style.SpacingAfter;
+            if (itemSpacingDeclared || style.SpacingBefore > 0D) {
+                // Each item is a Word paragraph. Its before/after spacing collapses
+                // to the larger gap even when several paragraphs share a PDF list.
+                style.ItemSpacing = Math.Max(style.SpacingBefore, style.SpacingAfter ?? 0D);
             }
 
             style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
@@ -270,6 +284,12 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfListStyle contextualStyle = style.Clone();
             contextualStyle.ItemSpacing = 0D;
             return contextualStyle;
+        }
+
+        private static bool NativeListContextualSpacingEquivalent(WordParagraph first, WordParagraph next) {
+            bool contextual = UsesNativeContextualSpacing(first);
+            return contextual == UsesNativeContextualSpacing(next) && (!contextual ||
+                string.Equals(GetNativeParagraphStyleIdentity(first), GetNativeParagraphStyleIdentity(next), StringComparison.Ordinal));
         }
 
         private static double? GetNativeStyleHangingIndent(NativeParagraphStyleDefaults styleDefaults) =>

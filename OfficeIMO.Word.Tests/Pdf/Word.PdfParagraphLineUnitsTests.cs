@@ -112,11 +112,66 @@ public partial class Word {
         Assert.Equal(original[2], result[2], 3);
     }
 
+    [Theory]
+    [InlineData(true, 100, 0, false, 36D)]
+    [InlineData(true, 100, 50, false, 36D)]
+    [InlineData(true, 50, 100, false, 36D)]
+    [InlineData(false, 100, 0, false, 28.5D)]
+    [InlineData(true, 100, 50, true, 18D)]
+    [InlineData(false, 100, 50, true, 16.5D)]
+    public void SaveAsPdf_ListParagraphLineUnitsPreserveCollapsedItemSpacing(
+        bool grid, int before, int after, bool contextual, double expected) {
+        using WordDocument source = CreateLineUnitsDocument(grid, WordLineSpacingRule.Auto, 240, "list");
+        foreach (WordParagraph paragraph in source.Paragraphs) {
+            SpacingBetweenLines spacing = paragraph._paragraph.ParagraphProperties!.SpacingBetweenLines!;
+            spacing.BeforeLines = before;
+            spacing.AfterLines = after;
+            paragraph._paragraph.ParagraphProperties.Append(new ContextualSpacing { Val = contextual });
+        }
+        double[] baselines = ExportGridDocumentBaselines(source);
+        Assert.Equal(expected, baselines[0] - baselines[1], 3);
+        Assert.Equal(expected, baselines[1] - baselines[2], 3);
+    }
+
+    [Theory]
+    [InlineData("list", "010", 27D, 27D)]
+    [InlineData("list", "101", 27D, 27D)]
+    [InlineData("inline", "010", 27D, 27D)]
+    [InlineData("inline", "101", 27D, 27D)]
+    [InlineData("body", "010", 27D, 27D)]
+    [InlineData("body", "101", 27D, 27D)]
+    [InlineData("table", "010", 25.5D, 25.5D)]
+    [InlineData("table", "101", 25.5D, 25.5D)]
+    public void SaveAsPdf_ParagraphLineUnitsHonorEachItemsContextualSpacing(
+        string route, string flags, double firstAdvance, double secondAdvance) {
+        using WordDocument source = CreateLineUnitsDocument(true, WordLineSpacingRule.Auto, 240, route);
+        WordParagraph[] paragraphs = source.Paragraphs.ToArray();
+        for (int i = 0; i < paragraphs.Length; i++) {
+            ParagraphProperties properties = paragraphs[i]._paragraph.ParagraphProperties!;
+            properties.SpacingBetweenLines!.BeforeLines = 100;
+            properties.SpacingBetweenLines.AfterLines = 50;
+            properties.Append(new ContextualSpacing { Val = flags[i] == '1' });
+        }
+        if (route == "table") {
+            TableCell cell = source.AddTable(1, 1).Rows[0].Cells[0]._tableCell;
+            cell.RemoveAllChildren<Paragraph>();
+            foreach (WordParagraph paragraph in paragraphs) {
+                paragraph._paragraph.Remove();
+                cell.Append(paragraph._paragraph);
+            }
+        }
+        double[] baselines = ExportGridDocumentBaselines(source);
+        Assert.Equal(firstAdvance, baselines[0] - baselines[1], 3);
+        Assert.Equal(secondAdvance, baselines[1] - baselines[2], 3);
+    }
+
     private static WordDocument CreateLineUnitsDocument(bool grid, WordLineSpacingRule rule, int line, string route = "body") {
         WordDocument source = WordDocument.Create();
         if (grid) source.Sections[0]._sectionProperties.Append(new DocGrid { Type = DocGridValues.Lines, LinePitch = 360 });
-        WordList? list = route == "list" ? source.AddCustomList() : null;
-        list?.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+        WordList? list = route is "list" or "inline" ? source.AddCustomList() : null;
+        list?.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot) {
+            LevelSuffix = route == "inline" ? WordListLevelSuffix.Space : WordListLevelSuffix.Tab
+        });
         foreach (char text in "ABC") {
             WordParagraph paragraph = list?.AddItem(text.ToString()) ?? source.AddParagraph(text.ToString());
             paragraph.FontSize = 11;

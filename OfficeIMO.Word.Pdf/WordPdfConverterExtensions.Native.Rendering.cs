@@ -17,6 +17,9 @@ namespace OfficeIMO.Word.Pdf {
             switch (element) {
                 case WordParagraph paragraph:
                     RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), getMarker, footnoteNumbers, footnoteNumbersById, options, headingDestinations, nativeDefaults, nativeFontMap, nextElement as WordParagraph);
+                    if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextElement as WordParagraph) &&
+                        pdf is NativeSpacingCollapseFlow collapseFlow)
+                        collapseFlow.RetainSuppressedSpacingAfter(CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap).SpacingAfter);
                     break;
                 case WordTableOfContent tableOfContent:
                     RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth);
@@ -135,6 +138,7 @@ namespace OfficeIMO.Word.Pdf {
             if (ShouldSuppressNativeContextualSpacingAfter(paragraph, nextParagraph)) {
                 style.SpacingAfter = 0D;
             }
+            if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) style.SpacingBefore = 0D;
             WordShape? currentShape = runs.Where(run => ReferenceEquals(run._run, paragraph._run))
                 .Select(run => run.Shape).FirstOrDefault(shape => shape != null);
             bool objectOnly = !hasRenderableRuns && string.IsNullOrEmpty(renderContent) &&

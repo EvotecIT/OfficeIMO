@@ -13,6 +13,12 @@ namespace OfficeIMO.Word.Pdf {
                 _inner = inner;
             }
 
+            // Contextual spacing removes the rendered trailing space, but Word
+            // still subtracts that declared value from the next paragraph's
+            // before spacing when collapsing their shared boundary.
+            internal void RetainSuppressedSpacingAfter(double? declaredSpacingAfter) =>
+                _pendingSpacingAfter = declaredSpacingAfter;
+
             public PdfCore.PageSize PageSize => _inner.PageSize;
 
             public void PageBreak(bool preserveEmptyPage = false) {

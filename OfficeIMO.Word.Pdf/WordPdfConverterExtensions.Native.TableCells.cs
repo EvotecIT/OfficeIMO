@@ -307,6 +307,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults,
                     tableStyleDefaults,
                     nativeFontMap);
+                if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) spacingBefore = 0D;
                 if (pendingSpacingAfter.HasValue) {
                     spacingBefore = Math.Max(0D, spacingBefore - pendingSpacingAfter.Value);
                 }
@@ -316,6 +317,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults,
                     tableStyleDefaults,
                     nativeFontMap);
+                double declaredSpacingAfter = spacingAfter;
                 if (ShouldSuppressNativeContextualSpacingAfter(finalParagraph, GetNextNativeRenderableCellParagraph(cellElements, paragraphRunsByElement, lastIndex))) {
                     spacingAfter = 0D;
                 }
@@ -360,7 +362,7 @@ namespace OfficeIMO.Word.Pdf {
                     tabStops,
                     paragraphFontSize,
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false));
-                pendingSpacingAfter = spacingAfter;
+                pendingSpacingAfter = declaredSpacingAfter;
                 i = lastIndex;
             }
 

@@ -33,6 +33,7 @@ public static partial class WordPdfConverterExtensions {
         WordParagraph last = paragraphs[paragraphs.Count - 1];
         PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(first, nativeDefaults, nativeFontMap);
         PdfCore.PdfParagraphStyle finalStyle = CreateNativeParagraphStyle(last, nativeDefaults, nativeFontMap);
+        if (ShouldSuppressNativeContextualSpacingBefore(first)) style.SpacingBefore = 0D;
         // Seed rich line measurement with the smallest visible source font, just
         // as an ordinary rich paragraph does. Hidden marks and preceding large
         // runs must not enlarge later wrapped or explicitly broken lines.
@@ -62,6 +63,8 @@ public static partial class WordPdfConverterExtensions {
                 IsNativeRenderableTextRun(run, paragraph) ||
                 (IsNativeTextWrappingBreak(run) && !IsNativeHiddenTextRun(run, paragraph))))) {
             RenderNativeEmptyParagraph(pdf, last, style, nativeDefaults, nativeFontMap);
+            if (style.SpacingAfter == 0D && pdf is NativeSpacingCollapseFlow emptyCollapse)
+                emptyCollapse.RetainSuppressedSpacingAfter(finalStyle.SpacingAfter);
             index = lastIndex;
             return true;
         }
@@ -78,6 +81,8 @@ public static partial class WordPdfConverterExtensions {
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap);
             }
         }, ResolveNativeParagraphAlign(first), ResolveNativeParagraphDefaultColor(first), style);
+        if (style.SpacingAfter == 0D && pdf is NativeSpacingCollapseFlow collapseFlow)
+            collapseFlow.RetainSuppressedSpacingAfter(finalStyle.SpacingAfter);
         index = lastIndex;
         return true;
     }

@@ -121,13 +121,24 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            bool contextualSpacing = ReadNativeDirectParagraphOnOff<W.ContextualSpacing>(paragraph) ?? styleDefaults.ContextualSpacing ?? false;
-            return contextualSpacing &&
+            return UsesNativeContextualSpacing(paragraph) &&
                    string.Equals(
                        GetNativeParagraphStyleIdentity(paragraph),
                        GetNativeParagraphStyleIdentity(nextParagraph),
                        StringComparison.Ordinal);
+        }
+
+        private static bool UsesNativeContextualSpacing(WordParagraph paragraph) =>
+            ReadNativeDirectParagraphOnOff<W.ContextualSpacing>(paragraph) ??
+            GetNativeParagraphStyleDefaults(paragraph).ContextualSpacing ?? false;
+
+        private static bool ShouldSuppressNativeContextualSpacingBefore(WordParagraph paragraph) {
+            if (HasNativePageBreakBefore(paragraph) || paragraph.IsPageBreak ||
+                paragraph._paragraph?.PreviousSibling() is not W.Paragraph previous ||
+                !UsesNativeContextualSpacing(paragraph)) return false;
+            var previousParagraph = new WordParagraph(paragraph._document, previous);
+            return !previousParagraph.IsPageBreak && string.Equals(
+                GetNativeParagraphStyleIdentity(paragraph), GetNativeParagraphStyleIdentity(previousParagraph), StringComparison.Ordinal);
         }
 
         private static string GetNativeParagraphStyleIdentity(WordParagraph paragraph) {
