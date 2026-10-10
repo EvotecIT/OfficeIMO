@@ -106,6 +106,28 @@ public sealed class HtmlContainingHeightTests {
     }
 
     [Theory]
+    [InlineData("inline-flex", false, false)]
+    [InlineData("inline-flex", true, false)]
+    [InlineData("inline-grid", false, false)]
+    [InlineData("inline-grid", true, false)]
+    [InlineData("inline-flex", false, true)]
+    [InlineData("inline-grid", false, true)]
+    public void BlockifiedItemsKeepTheirHeightBasisDuringIntrinsicMeasurement(string display, bool throughContents,
+        bool ordinaryWrapperInsideItem) {
+        string content = SquareImage("100%");
+        if (ordinaryWrapperInsideItem) content = "<span style='height:90px'>" + content + "</span>";
+        string item = "<span style='height:20px;align-self:flex-start'>" + content + "</span>";
+        if (throughContents) {
+            item = "<span style='display:contents;height:70px'><span style='display:contents;height:90px'>"
+                + item + "</span></span>";
+        }
+        HtmlRenderDocument rendered = Render(ShrinkToFit("",
+            "<span style='display:" + display + ";height:120px;vertical-align:top'>" + item + "</span>"));
+
+        AssertReplacedContribution(rendered, 20D, 20D);
+    }
+
+    [Theory]
     [InlineData("inline-block", "100%")]
     [InlineData("inline", "20px")]
     public void IntrinsicMeasurementRetainsRealBoxAndAbsoluteImageBoundaries(string display, string imageHeight) {
