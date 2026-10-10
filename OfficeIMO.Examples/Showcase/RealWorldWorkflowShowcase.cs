@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.OpenDocument;
@@ -27,33 +28,36 @@ internal static class RealWorldWorkflowShowcase {
 
     private static void CreateWordDeliverySummary(string output) {
         string sourcePath = Path.Combine(output, "customer-delivery-summary.docx");
+        #region Excerpt:customer-delivery-summary
         using WordDocument document = WordDocument.Create(sourcePath);
+        document.Settings.FontFamily = "Carlito";
+        document.Settings.FontSize = 11;
         document.BuiltinDocumentProperties.Title = "Customer delivery summary";
-        document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+        document.AddHeadersAndFooters();
+        document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = 9;
+        document.FooterDefaultOrCreate.AddPageNumber(includeTotalPages: true);
 
-        document.AddParagraph("Customer delivery summary").Style = WordParagraphStyles.Heading1;
-        document.AddParagraph("A concise handover report generated from structured project data.");
+        AddTitleBlock(document, "NORTHWIND OPERATIONS / QUARTERLY SERVICE REVIEW", "Customer delivery summary",
+            "Ready for acceptance. Illustrative figures from structured project data.");
+        AddKpiStrip(document, ("12 of 12", "milestones accepted"), ("99.7%", "service availability"),
+            ("−38%", "incidents vs. last quarter"), ("4.7 / 5", "customer rating"));
 
-        document.AddParagraph("Engagement overview").Style = WordParagraphStyles.Heading2;
-        WordTable overview = document.AddTable(5, 2, WordTableStyle.TableGrid);
-        SetWordRow(overview, 0, "Field", "Value");
-        SetWordRow(overview, 1, "Customer", "Northwind Operations");
-        SetWordRow(overview, 2, "Workstream", "Quarterly service review");
-        SetWordRow(overview, 3, "Delivery status", "Ready for acceptance");
-        SetWordRow(overview, 4, "Owner", "Customer Success");
+        AddHeading(document, "Delivered outcomes");
+        AddStatusTable(document, DeliveredOutcomes, 34, 30, 18, 18);
 
-        document.AddParagraph("Delivered outcomes").Style = WordParagraphStyles.Heading2;
-        WordList outcomes = document.AddList(WordListStyle.Bulleted);
-        outcomes.AddItem("Validated the production rollout and recovery path.");
-        outcomes.AddItem("Documented ownership, support contacts, and acceptance criteria.");
-        outcomes.AddItem("Prepared the next-quarter improvement backlog.");
+        AddHeading(document, "Incidents per week");
+        document.AddChart(OfficeChartKind.ColumnClustered, WeeklyIncidents, width: 790, height: 200);
 
-        document.AddParagraph("Next steps").Style = WordParagraphStyles.Heading2;
-        WordTable actions = document.AddTable(4, 3, WordTableStyle.TableGrid);
-        SetWordRow(actions, 0, "Action", "Owner", "Status");
-        SetWordRow(actions, 1, "Approve delivery notes", "Customer", "Pending");
-        SetWordRow(actions, 2, "Publish runbook", "Delivery team", "Complete");
-        SetWordRow(actions, 3, "Schedule health review", "Service owner", "Planned");
+        AddHeading(document, "Next steps");
+        AddStatusTable(document, NextSteps, 40, 24, 18, 18);
+
+        WordParagraph decision = document.AddParagraph("Decision requested: approve the delivery notes so the improvement backlog can start next sprint.");
+        decision.ShadingFillColorHex = "EAF1FB";
+        decision.LineSpacingBeforePoints = 8;
+        decision.Borders.LeftStyle = WordBorderStyle.Single;
+        decision.Borders.LeftColorHex = "235FB4";
+        decision.Borders.LeftSize = 24;
+        #endregion
 
         document.Save();
         PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(
@@ -63,44 +67,166 @@ internal static class RealWorldWorkflowShowcase {
             Path.Combine(output, "customer-delivery-summary.pdf"));
     }
 
+    // Sample data for the delivery summary.
+    private static readonly string[][] DeliveredOutcomes = {
+        new[] { "Outcome", "Evidence", "Owner", "Status" },
+        new[] { "Production rollout validated", "Recovery path rehearsed twice", "Delivery", "Accepted" },
+        new[] { "Ownership and contacts documented", "Runbook published", "Support", "Accepted" },
+        new[] { "Next-quarter backlog prepared", "Twelve items ranked", "Product", "In review" }
+    };
+
+    private static readonly string[][] NextSteps = {
+        new[] { "Action", "Owner", "Due", "Status" },
+        new[] { "Approve delivery notes", "Customer", "28 June", "Pending" },
+        new[] { "Publish runbook", "Delivery team", "Done", "Complete" },
+        new[] { "Schedule health review", "Service owner", "12 July", "Planned" }
+    };
+
+    private static readonly OfficeChartData WeeklyIncidents = new(
+        new[] { "Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6" },
+        new[] {
+            new OfficeChartSeries("Last quarter", new double[] { 14, 13, 16, 12, 13, 14 }),
+            new OfficeChartSeries("This quarter", new double[] { 11, 9, 8, 7, 6, 5 })
+        });
+
+    // Small layout helpers for the delivery summary; every call inside them is the public OfficeIMO.Word API.
+    private static WordParagraph AddHeading(WordDocument document, string text, int size = 14, int before = 8) {
+        WordParagraph heading = document.AddParagraph(text);
+        heading.Style = size > 20 ? WordParagraphStyles.Heading1 : WordParagraphStyles.Heading2;
+        heading.FontSize = size;
+        heading.Bold = true;
+        heading.SetColorHex("17365D");
+        heading.LineSpacingBeforePoints = before;
+        heading.LineSpacingAfterPoints = 5;
+        return heading;
+    }
+
+    private static void AddTitleBlock(WordDocument document, string eyebrow, string title, string subtitle) {
+        WordParagraph label = document.AddParagraph(eyebrow);
+        label.FontSize = 9;
+        label.Bold = true;
+        label.SetColorHex("235FB4");
+        AddHeading(document, title, 28, 4);
+        document.AddParagraph(subtitle).SetColorHex("526179");
+    }
+
+    private static void AddKpiStrip(WordDocument document, params (string Value, string Label)[] kpis) {
+        WordTable strip = document.AddTable(1, kpis.Length, WordTableStyle.TableNormal);
+        strip.SetWidthPercentage(100);
+        for (int i = 0; i < kpis.Length; i++) {
+            WordTableCell cell = strip.Rows[0].Cells[i];
+            cell.ShadingFillColorHex = "EAF1FB";
+            cell.MarginTopCentimeters = 0.1;
+            cell.MarginBottomCentimeters = 0.1;
+            cell.Paragraphs[0].Text = kpis[i].Value;
+            cell.Paragraphs[0].FontSize = 22;
+            cell.Paragraphs[0].Bold = true;
+            cell.Paragraphs[0].SetColorHex("17365D");
+            WordParagraph label = cell.AddParagraph(kpis[i].Label);
+            label.FontSize = 9;
+            label.SetColorHex("526179");
+        }
+    }
+
+    private static WordTable AddStatusTable(WordDocument document, string[][] rows, params int[] widths) {
+        WordTable grid = document.AddTable(rows.Length, widths.Length, WordTableStyle.TableGrid);
+        for (int row = 0; row < rows.Length; row++) {
+            for (int column = 0; column < widths.Length; column++) {
+                WordTableCell cell = grid.Rows[row].Cells[column];
+                cell.MarginTopCentimeters = 0.12;
+                cell.MarginBottomCentimeters = 0.12;
+                cell.Paragraphs[0].Text = rows[row][column];
+                if (row == 0) {
+                    cell.ShadingFillColorHex = "17365D";
+                    cell.Paragraphs[0].Bold = true;
+                    cell.Paragraphs[0].SetColorHex("FFFFFF");
+                } else if (column == widths.Length - 1) {
+                    cell.ShadingFillColorHex = rows[row][column] is "Accepted" or "Complete" ? "E7F6ED" : "FFF4CC";
+                    cell.Paragraphs[0].Bold = true;
+                } else if (row % 2 == 0) {
+                    cell.ShadingFillColorHex = "F5F8FC";
+                }
+            }
+        }
+        grid.SetWidthPercentage(100);
+        grid.SetColumnWidthsPercentage(widths);
+        return grid;
+    }
     private static void CreateRtfChangeApproval(string output) {
         string sourcePath = Path.Combine(output, "change-approval-memo.rtf");
+
+        #region Excerpt:change-approval-memo
         RtfDocument document = RtfDocument.Create();
         document.Info.Title = "Change approval memo";
-        document.Info.Author = "OfficeIMO";
+        document.Info.Author = "Platform operations";
 
         int accent = document.AddColor(35, 95, 180);
         int headerFill = document.AddColor(226, 236, 250);
+        int doneFill = document.AddColor(222, 244, 230);
+        int pendingFill = document.AddColor(255, 240, 207);
+        int calloutFill = document.AddColor(240, 245, 252);
+        int muted = document.AddColor(90, 104, 122);
+
         RtfStyle title = document.AddStyle(1, "Title");
         title.Bold = true;
-        title.FontSize = 20;
+        title.FontSize = 22;
         title.ForegroundColorIndex = accent;
-        title.SpaceAfterTwips = 180;
+        title.SpaceAfterTwips = 60;
         RtfStyle heading = document.AddStyle(2, "Heading 1");
         heading.Bold = true;
         heading.FontSize = 14;
         heading.ForegroundColorIndex = accent;
-        heading.SpaceBeforeTwips = 180;
+        heading.SpaceBeforeTwips = 240;
         heading.SpaceAfterTwips = 80;
 
-        document.AddParagraph("Change approval memo").SetStyle(1);
-        document.AddParagraph("Production maintenance window · Standard change · Ready for approval");
-        document.AddParagraph("Decision summary").SetStyle(2);
-        document.AddParagraph(
-            "Approve a controlled configuration rollout with a tested rollback path and named validation owners.");
+        // Footer with a live page number.
+        RtfParagraph footer = document.AddFooter().AddParagraph("Change approval memo - CHG-2041 - page ");
+        footer.AddPageNumber("1");
 
-        RtfTable controls = document.AddTable(4, 3);
-        controls.Rows[0].RepeatHeader = true;
-        controls.Rows[0].SetBackgroundColor(headerFill);
-        SetRtfRow(controls, 0, "Control", "Owner", "State");
-        SetRtfRow(controls, 1, "Backup verified", "Operations", "Complete");
-        SetRtfRow(controls, 2, "Rollback tested", "Engineering", "Complete");
-        SetRtfRow(controls, 3, "Business approval", "Service owner", "Pending");
+        document.AddParagraph("Change approval memo").SetStyle(1);
+        RtfParagraph subtitle = document.AddParagraph();
+        subtitle.AddText("CHG-2041 · Rotate the payment gateway TLS certificates · ").SetForegroundColor(muted);
+        subtitle.AddText("Ready for approval").SetBold().SetForegroundColor(accent);
+
+        // A one-cell shaded table carries the decision.
+        RtfTableCell callout = document.AddTable(1, 1).Rows[0].Cells[0];
+        callout.SetBackgroundColor(calloutFill).SetPadding(120, 160, 120, 160);
+        callout.AddParagraph("Decision requested: approve the certificate rotation for Saturday 02:00-04:00 UTC. " +
+            "Backup and rollback are already verified; only the business approval is open.");
+        document.AddParagraph("Change details").SetStyle(2);
+        foreach ((string label, string value) in new[] {
+            ("Window", "Saturday 02:00-04:00 UTC, expected downtime none"),
+            ("Risk", "Low - certificates are replaced behind the load balancer"),
+            ("Rollback", "Restore the previous certificate bundle, about 10 minutes") }) {
+            RtfParagraph line = document.AddParagraph();
+            line.AddText(label + ": ").SetBold();
+            line.AddText(value);
+        }
+
+        document.AddParagraph("Approval controls").SetStyle(2);
+        string[][] controls = {
+            new[] { "Control", "Owner", "State" },
+            new[] { "Backup verified", "Operations", "Complete" },
+            new[] { "Rollback tested", "Engineering", "Complete" },
+            new[] { "Monitoring and alert ownership", "Operations", "Complete" },
+            new[] { "Customer notice sent", "Support", "Complete" },
+            new[] { "Business approval", "Service owner", "Pending" }
+        };
+        RtfTable table = document.AddTable(controls.Length, 3);
+        table.Rows[0].RepeatHeader = true;
+        table.Rows[0].SetBackgroundColor(headerFill);
+        for (int row = 0; row < controls.Length; row++) {
+            for (int column = 0; column < 3; column++) {
+                table.Rows[row].Cells[column].AddParagraph(controls[row][column]);
+            }
+            if (row > 0) table.Rows[row].Cells[2].SetBackgroundColor(controls[row][2] == "Complete" ? doneFill : pendingFill);
+        }
 
         document.AddParagraph("Execution checklist").SetStyle(2);
         AddRtfBullet(document, "Confirm monitoring and alert ownership.");
         AddRtfBullet(document, "Apply the change during the approved window.");
         AddRtfBullet(document, "Record validation results and close the change.");
+        #endregion
 
         File.WriteAllText(sourcePath, document.ToRtf(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
@@ -108,29 +234,39 @@ internal static class RealWorldWorkflowShowcase {
             conversion,
             Path.Combine(output, "change-approval-memo.pdf"));
     }
-
     private static void CreateMarkdownReleaseReadiness(string output) {
         string sourcePath = Path.Combine(output, "release-readiness-report.md");
         MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
             .WithColorScheme(MarkdownColorSchemeKind.Blue);
+
+        #region Excerpt:release-readiness-report
         MarkdownDoc document = MarkdownDoc.Create()
             .H1("Release readiness report")
-            .P("A portable release decision record generated from pipeline and owner data.")
+            .P(p => p.Bold("Release 4.2.0").Text(" · candidate ").Code("4.2.0-rc.3").Text(" · decision due Friday"))
             .H2("Readiness summary")
             .Table(table => table
-                .Headers("Gate", "Owner", "Result")
-                .Row("Automated checks", "Engineering", "Passed")
-                .Row("Package inspection", "Release manager", "Passed")
-                .Row("Production approval", "Service owner", "Pending"))
+                .Headers("Gate", "Owner", "Result", "Evidence")
+                .Row("Automated checks", "Engineering", "Passed", "1,284 tests, 0 failures")
+                .Row("Package inspection", "Release manager", "Passed", "Contents and metadata match")
+                .Row("Upgrade rehearsal", "Platform", "Passed", "4.1.x to 4.2.0 on staging")
+                .Row("Security review", "Security", "Passed", "No open findings")
+                .Row("Production approval", "Service owner", "Pending", "Awaiting sign-off"))
             .H2("Release checklist")
             .Ul(list => list
-                .Item("Versioned artifacts are reproducible.")
-                .Item("Upgrade and rollback notes are published.")
-                .Item("Monitoring ownership is confirmed."))
+                .ItemTask("Versioned artifacts are reproducible.", done: true)
+                .ItemTask("Upgrade and rollback notes are published.", done: true)
+                .ItemTask("Monitoring ownership is confirmed.", done: true)
+                .ItemTask("Service owner records the approval.", done: false))
+            .H2("Rollout")
+            .Dl(list => list
+                .Item("Window", "Tuesday 06:00-08:00 UTC")
+                .Item("Rollback", "Redeploy 4.1.8, about 15 minutes")
+                .Item("Owner", "Release manager, on call until noon"))
             .Callout(
                 "warning",
                 "Decision required",
                 "Production publication starts only after the service owner records approval.");
+        #endregion
 
         File.WriteAllText(sourcePath, document.ToMarkdown(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         MarkdownToPdfOptions options = new MarkdownToPdfOptions {
@@ -141,24 +277,64 @@ internal static class RealWorldWorkflowShowcase {
             conversion,
             Path.Combine(output, "release-readiness-report.pdf"));
     }
-
     private static void CreateOpenDocumentHandover(string output) {
         string sourcePath = Path.Combine(output, "project-handover-brief.odt");
+
+        #region Excerpt:portable-project-handover
+        OdfColor accent = new(35, 95, 180);
+        OdfColor muted = new(90, 104, 122);
         OdtDocument document = OdtDocument.Create();
-        document.AddHeading("Project handover brief", 1);
-        document.AddParagraph(
-            "A vendor-neutral handover document for teams that standardize on OpenDocument.");
-        document.AddHeading("Delivery package", 2);
-        OdtTable package = document.AddTable(4, 3, "DeliveryPackage");
-        SetOdtRow(package, 0, "Deliverable", "Owner", "Status");
-        SetOdtRow(package, 1, "Operational runbook", "Operations", "Complete");
-        SetOdtRow(package, 2, "Support contacts", "Service owner", "Complete");
-        SetOdtRow(package, 3, "Follow-up backlog", "Product team", "Accepted");
-        document.AddHeading("Handover notes", 2);
+
+        // Footer with a live page number.
+        OdtParagraph footer = document.PageLayout.Footer.AddParagraph("Project handover brief - page ");
+        footer.AddField(OdtFieldKind.PageNumber, "1");
+
+        OdtParagraph title = document.AddHeading("Project handover brief", 1);
+        title.Color = accent;
+        title.FontSize = OdfLength.Points(24);
+        OdtParagraph subtitle = document.AddParagraph(
+            "Billing platform migration · handover to Service Operations · accepted 14 March");
+        subtitle.Color = muted;
+
+        // A shaded paragraph carries the headline.
+        OdtParagraph summary = document.AddParagraph(
+            "All four deliverables are accepted. Service Operations owns production monitoring from acceptance; " +
+            "the delivery team stays available for four weeks.");
+        summary.BackgroundColor = new OdfColor(240, 245, 252);
+
+        document.AddHeading("Delivery package", 2).Color = accent;
+        string[][] package = {
+            new[] { "Deliverable", "Owner", "Status" },
+            new[] { "Operational runbook", "Operations", "Complete" },
+            new[] { "Support contacts", "Service owner", "Complete" },
+            new[] { "Monitoring dashboards", "Platform", "Complete" },
+            new[] { "Follow-up backlog", "Product team", "Accepted" }
+        };
+        OdtTable table = document.AddTable(package.Length, 3, "DeliveryPackage");
+        for (int row = 0; row < package.Length; row++) {
+            for (int column = 0; column < 3; column++) {
+                table.Cell(row, column).Text = package[row][column];
+                OdtParagraph cell = table.Cell(row, column).Paragraphs[0];
+                if (row == 0) {
+                    cell.Bold = true;
+                } else if (column == 2) {
+                    cell.Color = new OdfColor(22, 101, 52);
+                }
+            }
+        }
+
+        document.AddHeading("Open items after handover", 2).Color = accent;
+        OdtList items = document.AddList();
+        items.AddItem("Confirm service health at the two-week review.");
+        items.AddItem("Close the three low-priority backlog items.");
+        items.AddItem("Retire the migration runbook once the first month closes cleanly.");
+
+        document.AddHeading("Handover notes", 2).Color = accent;
         document.AddParagraph(
             "The receiving team owns production monitoring from acceptance. The delivery team remains available for the agreed transition period.");
         document.AddParagraph(
             "Next review: confirm service health, unresolved risks, and the first backlog milestone.");
+        #endregion
         document.Save(sourcePath);
 
         PdfDocumentConversionResult conversion = document.ToPdfDocumentResult();
@@ -172,27 +348,9 @@ internal static class RealWorldWorkflowShowcase {
         Console.WriteLine($"✓ PDF: {pdfPath}");
     }
 
-    private static void SetWordRow(WordTable table, int row, params string[] values) {
-        for (int column = 0; column < values.Length; column++) {
-            table.Rows[row].Cells[column].Paragraphs[0].Text = values[column];
-        }
-    }
-
-    private static void SetRtfRow(RtfTable table, int row, params string[] values) {
-        for (int column = 0; column < values.Length; column++) {
-            table.Rows[row].Cells[column].AddParagraph(values[column]);
-        }
-    }
-
     private static void AddRtfBullet(RtfDocument document, string text) {
         document.AddParagraph(text)
             .SetList(kind: RtfListKind.Bullet)
             .SetIndentation(leftTwips: 720, firstLineTwips: -360);
-    }
-
-    private static void SetOdtRow(OdtTable table, int row, params string[] values) {
-        for (int column = 0; column < values.Length; column++) {
-            table.Cell(row, column).Text = values[column];
-        }
     }
 }

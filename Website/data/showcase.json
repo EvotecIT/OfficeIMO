@@ -681,7 +681,7 @@
       "image_height": 1123,
       "image_alt": "Generated Word example: A concise policy brief",
       "title": "A concise policy brief",
-      "description": "Author a Word policy brief in C# with document metadata, styled headings, and practical bullet lists. Download the source, editable file, and PDF.",
+      "description": "Author a Word policy brief in C# with document metadata, styled headings, a rules table, a shaded reminder, and practical bullet lists. Download the source, editable file, and PDF.",
       "input": "Working agreements and review ownership",
       "output": "DOCX + PDF",
       "proof": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
@@ -742,7 +742,7 @@
           "markdown-incident-runbook"
         ]
       },
-      "search_text": "A concise policy brief Author a Word policy brief in C# with document metadata, styled headings, and practical bullet lists. Download the source, editable file, and PDF. Word .NET C# walkthrough code sample Working agreements and review ownership"
+      "search_text": "A concise policy brief Author a Word policy brief in C# with document metadata, styled headings, a rules table, a shaded reminder, and practical bullet lists. Download the source, editable file, and PDF. Word .NET C# walkthrough code sample Working agreements and review ownership"
     },
     {
       "id": "word-decision-record",
@@ -1080,15 +1080,15 @@
       ],
       "preview_kind": "image",
       "image": "/downloads/showcase/workflows/excel-object-export/preview.png",
-      "image_width": 692,
-      "image_height": 160,
+      "image_width": 786,
+      "image_height": 220,
       "image_alt": "Generated Excel example: Export application records to Excel",
       "title": "Export application records to Excel",
       "description": "Turn typed C# asset records into a filterable Excel table with the fluent API. Download the generated XLSX, rendered range, and complete source.",
       "input": "An array of typed asset records",
       "output": "XLSX",
       "proof": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range.",
-      "limit": "The sample uses five flat records. It is not a benchmark or a demonstration of streaming a large database result.",
+      "limit": "The sample uses ten flat records with dates, numbers and text. It is not a benchmark or a demonstration of streaming a large database result.",
       "artifact_url": "/downloads/showcase/workflows/excel-object-export/example.xlsx",
       "artifact_label": "Download XLSX",
       "evidence_url": "/downloads/showcase/workflows/excel-object-export/preview.png",
@@ -1879,6 +1879,55 @@
       "search_text": "Design-guided presentation deck Create an editable presentation from a design brief with a consistent visual theme. PowerPoint dotnet powershell create validate powerpoint .NET C# design guided presentation deck pptx slides presentations"
     },
     {
+      "id": "pswriteoffice-patch-report",
+      "format": "Word",
+      "tags": "powershell create convert word",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Independent render of the generated patch compliance report: a headline compliance figure, a per-site table with watch rows highlighted, a bar chart and numbered next steps",
+      "title": "Patch compliance report from PowerShell",
+      "description": "Turn a list of PowerShell objects into a Word report with a headline figure, a conditionally highlighted table, a chart, numbered steps and a numbered footer, then export a PDF.",
+      "input": "PowerShell objects",
+      "output": "DOCX + PDF",
+      "proof": "The downloadable DOCX and PDF come from the PowerShell script shown beside them, run against the PSWriteOffice version the command catalog documents. The preview is an independent Poppler render of that PDF.",
+      "limit": "The inventory in the script is sample data. The report uses the PSWriteOffice Word cmdlets and its built-in table style; the PDF is the first-party OfficeIMO conversion of the DOCX, so pagination can differ from Microsoft Word.",
+      "artifact_url": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
+      "evidence_label": "Download patch compliance PDF",
+      "source_url": "/downloads/showcase/source/PowerShell/PatchComplianceReport.ps1.txt",
+      "guide_url": "/docs/pswriteoffice/",
+      "api_url": "/api/powershell/",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "source_path": "OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1",
+      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
+      "downloads": [
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png"
+        }
+      ],
+      "operation_tags": "create convert",
+      "search_text": "Patch compliance report from PowerShell Turn a list of PowerShell objects into a Word report with a headline figure, a conditionally highlighted table, a chart, numbered steps and a numbered footer, then export a PDF. Word powershell create convert word PSWriteOffice docx report automation"
+    },    {
       "id": "executive-pdf-dashboard",
       "format": "PDF",
       "tags": "dotnet powershell create validate pdf",
@@ -1888,15 +1937,15 @@
       ],
       "preview_kind": "image",
       "image": "/downloads/showcase/pdf/showcase-dashboard-page1.png",
-      "image_width": 842,
-      "image_height": 595,
-      "image_alt": "First page of the generated OfficeIMO PDF dashboard",
+      "image_width": 1123,
+      "image_height": 794,
+      "image_alt": "Independent render of the generated quarterly operations dashboard: four KPI panels, a labelled monthly bar chart with a target line, a service-line table, a summary and a decisions table",
       "title": "Executive PDF dashboard",
       "preview_description": "A complete PDF report with charts, summary metrics, and tables.",
-      "description": "Build a PDF report with charts, summary metrics, tables, and page-aware layout.",
-      "input": "Application data",
+      "description": "Build a landscape operations dashboard directly as a PDF: KPI panels, a vector chart with labels, styled tables, bullets and page numbers.",
+      "input": "Metrics, monthly volumes and service-line rows",
       "output": "PDF",
-      "proof": "The PDF is generated by OfficeIMO.Examples. The page image is its committed Poppler visual baseline, used to catch rendering regressions.",
+      "proof": "The PDF is generated by one runnable example and the page image is an independent Poppler render of that same file.",
       "limit": "Standard PDF fonts are portable but intentionally narrower than arbitrary installed-font typography and full browser layout.",
       "artifact_url": "/downloads/showcase/pdf/showcase-dashboard.pdf",
       "artifact_label": "Download PDF",
@@ -1924,7 +1973,7 @@
         }
       ],
       "operation_tags": "create validate",
-      "search_text": "Executive PDF dashboard Build a PDF report with charts, summary metrics, tables, and page-aware layout. PDF dotnet powershell create validate pdf .NET C# executive pdf dashboard "
+      "search_text": "Executive PDF dashboard Build a landscape operations dashboard directly as a PDF: KPI panels, a vector chart with labels, styled tables, bullets and page numbers. PDF dotnet powershell create validate pdf .NET C# executive pdf dashboard "
     },
     {
       "id": "color-and-gradients",
@@ -1989,12 +2038,12 @@
       ],
       "preview_kind": "image",
       "image": "/downloads/showcase/excel/report-workflow.png",
-      "image_width": 640,
-      "image_height": 400,
-      "image_alt": "Dependency-free rendered range from the generated Excel report workflow",
+      "image_width": 975,
+      "image_height": 466,
+      "image_alt": "Dependency-free render of the generated workbook: a styled title band, a twelve-row revenue table with margin formulas and a total row, a colour scale on margin percent, and a regional column chart",
       "title": "Operational Excel report",
-      "description": "Combine formulas, a chart, and a pivot table in an editable reporting workbook.",
-      "input": "Objects or tabular data",
+      "description": "Build an editable regional revenue workbook: formulas and totals, number formats, a table with a colour scale, a SUMIF summary, a chart and a pivot table.",
+      "input": "Typed sales rows + a title object",
       "output": "XLSX + PNG",
       "proof": "The XLSX and PNG come from the same runnable example. The workbook is saved even when a downstream conversion preflight blocks an unsafe claim.",
       "limit": "The bundled diagnostic shows the real boundary: first-party PDF export is blocked while pivot output exists only as pivot metadata instead of materialized cells.",
@@ -2028,7 +2077,7 @@
         }
       ],
       "operation_tags": "create validate",
-      "search_text": "Operational Excel report Combine formulas, a chart, and a pivot table in an editable reporting workbook. Excel dotnet powershell create validate excel .NET C# operational excel report spreadsheet spreadsheets xlsx workbooks"
+      "search_text": "Operational Excel report Build an editable regional revenue workbook: formulas and totals, number formats, a table with a colour scale, a SUMIF summary, a chart and a pivot table. Excel dotnet powershell create validate excel .NET C# operational excel report spreadsheet spreadsheets xlsx workbooks"
     },
     {
       "id": "customer-delivery-summary",
@@ -2042,9 +2091,9 @@
       "image": "/downloads/showcase/word/customer-delivery-summary-page1.png",
       "image_width": 868,
       "image_height": 1123,
-      "image_alt": "Independent first-page render of the generated customer delivery summary PDF",
+      "image_alt": "Independent render of the generated customer delivery summary: a KPI strip, a status-coloured outcomes table, a column chart, a next-steps table and a decision callout",
       "title": "Customer delivery summary",
-      "description": "Create an editable Word handover with headings, lists, and tables, then export a PDF.",
+      "description": "Create an editable one-page client report from structured data: KPI strip, status-coloured tables, a native chart, a callout and a numbered footer, then export a PDF.",
       "input": "Project data + decisions",
       "output": "DOCX → PDF",
       "proof": "The downloadable DOCX and PDF are generated from one runnable Word example. The preview is an independent Poppler render of the first-party PDF result.",
@@ -2080,7 +2129,7 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Customer delivery summary Create an editable Word handover with headings, lists, and tables, then export a PDF. Word dotnet powershell create convert validate word .NET C# customer delivery summary docx documents"
+      "search_text": "Customer delivery summary Create an editable one-page client report from structured data: KPI strip, status-coloured tables, a native chart, a callout and a numbered footer, then export a PDF. Word dotnet powershell create convert validate word .NET C# customer delivery summary docx documents"
     },
     {
       "id": "cloud-architecture-diagram",
@@ -2254,13 +2303,13 @@
       "image": "/downloads/showcase/rtf/change-approval-memo-page1.png",
       "image_width": 868,
       "image_height": 1123,
-      "image_alt": "Independent first-page render of the generated RTF change approval memo PDF",
+      "image_alt": "Independent first-page render of the generated RTF change approval memo: a decision callout, change details, a controls table with green and amber states, and a checklist",
       "title": "Change approval memo",
-      "description": "Write a structured RTF memo with tables and a checklist, then export a review copy.",
+      "description": "Write a structured RTF memo with a shaded decision callout, a status-coloured controls table, a checklist and a page-numbered footer, then export a review copy.",
       "input": "Change record",
       "output": "RTF → PDF",
       "proof": "The downloadable RTF and PDF come from the same OfficeIMO.Rtf model. The preview independently renders the first-party conversion result.",
-      "limit": "The RTF model targets documented, portable structures. Desktop-specific RTF extensions, legacy drawing objects, and arbitrary embedded resources remain bounded conversion cases.",
+      "limit": "The memo content is sample data. The RTF model targets documented, portable structures. Desktop-specific RTF extensions, legacy drawing objects, and arbitrary embedded resources remain bounded conversion cases.",
       "artifact_url": "/downloads/showcase/rtf/change-approval-memo.rtf",
       "artifact_label": "Download source RTF",
       "evidence_url": "/downloads/showcase/rtf/change-approval-memo.pdf",
@@ -2293,7 +2342,7 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Change approval memo Write a structured RTF memo with tables and a checklist, then export a review copy. RTF dotnet powershell create convert validate rtf .NET C# change approval memo "
+      "search_text": "Change approval memo Write a structured RTF memo with a shaded decision callout, a status-coloured controls table, a checklist and a page-numbered footer, then export a review copy. RTF dotnet powershell create convert validate rtf .NET C# change approval memo "
     },
     {
       "id": "release-readiness-report",
@@ -2307,13 +2356,13 @@
       "image": "/downloads/showcase/markdown/release-readiness-report-page1.png",
       "image_width": 868,
       "image_height": 1123,
-      "image_alt": "Independent first-page render of the generated Markdown release readiness PDF",
+      "image_alt": "Independent first-page render of the generated Markdown release readiness PDF: an evidence table, a checked task list, rollout details and a decision callout",
       "title": "Release readiness report",
-      "description": "Build a Markdown decision record with tables, checklists, and a themed PDF.",
+      "description": "Build a Markdown decision record with an evidence table, task checklist, rollout details and a callout, then export a themed PDF.",
       "input": "Release evidence",
       "output": "Markdown → PDF",
       "proof": "The Markdown source and themed PDF are generated from one document model. The preview is an independent render of the first-party PDF.",
-      "limit": "The PDF path supports OfficeIMO's documented Markdown blocks and themes. Raw browser HTML, arbitrary scripts, and unsupported extensions require an explicit conversion policy.",
+      "limit": "The release data is sample content. The PDF path supports OfficeIMO's documented Markdown blocks and themes. Raw browser HTML, arbitrary scripts, and unsupported extensions require an explicit conversion policy.",
       "artifact_url": "/downloads/showcase/markdown/release-readiness-report.md",
       "artifact_label": "Download source Markdown",
       "evidence_url": "/downloads/showcase/markdown/release-readiness-report.pdf",
@@ -2345,7 +2394,7 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Release readiness report Build a Markdown decision record with tables, checklists, and a themed PDF. Markdown dotnet powershell create convert validate markdown .NET C# release readiness report md"
+      "search_text": "Release readiness report Build a Markdown decision record with an evidence table, task checklist, rollout details and a callout, then export a themed PDF. Markdown dotnet powershell create convert validate markdown .NET C# release readiness report md"
     },
     {
       "id": "portable-project-handover",
@@ -2359,13 +2408,13 @@
       "image": "/downloads/showcase/open-document/project-handover-brief-page1.png",
       "image_width": 795,
       "image_height": 1123,
-      "image_alt": "Independent first-page render of the generated OpenDocument project handover PDF",
+      "image_alt": "Independent first-page render of the generated OpenDocument project handover: a styled title, a shaded summary, a delivery table with green status text and a bulleted list",
       "title": "Portable project handover",
-      "description": "Create a portable OpenDocument handover and export the same content as PDF.",
+      "description": "Create a portable OpenDocument handover with a styled title, a delivery table, an open-items list and a page-numbered footer, then export the same content as PDF.",
       "input": "Handover model",
       "output": "ODT → PDF",
       "proof": "The ODT and PDF are generated by the same runnable example. The preview independently renders the first page of the first-party OpenDocument conversion.",
-      "limit": "The converter maps the supported OpenDocument text model into the shared Word/PDF layout path. Advanced LibreOffice-only layout and macro behavior are outside this proof.",
+      "limit": "The handover content is sample data. The converter maps the supported OpenDocument text model into the shared Word/PDF layout path. Advanced LibreOffice-only layout and macro behavior are outside this proof.",
       "artifact_url": "/downloads/showcase/open-document/project-handover-brief.odt",
       "artifact_label": "Download source ODT",
       "evidence_url": "/downloads/showcase/open-document/project-handover-brief.pdf",
@@ -2397,7 +2446,7 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Portable project handover Create a portable OpenDocument handover and export the same content as PDF. OpenDocument dotnet powershell create convert validate opendocument .NET C# portable project handover odt odf"
+      "search_text": "Portable project handover Create a portable OpenDocument handover with a styled title, a delivery table, an open-items list and a page-numbered footer, then export the same content as PDF. OpenDocument dotnet powershell create convert validate opendocument .NET C# portable project handover odt odf"
     },
     {
       "id": "multi-format-extraction-result",
@@ -5830,11 +5879,13 @@
     },
     {
       "id": "pdf-preview",
-      "sourceRoot": "repository",
-      "source": "OfficeIMO.Pdf.Tests/Pdf/VisualBaselines/officeimo-pdf-showcase-dashboard.page1.poppler.png",
+      "sourceRoot": "documents",
+      "source": "Pdf.Showcase.Dashboard.png",
       "destination": "pdf/showcase-dashboard-page1.png",
-      "generator": "OfficeIMO.Pdf visual baseline rendered with Poppler",
-      "evidence": "Approved page-one visual baseline for the generated dashboard."
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the downloadable dashboard PDF.",
+      "previewSource": "Pdf.Showcase.Dashboard.pdf",
+      "previewPage": 1
     },
     {
       "id": "html-pdf-output",
@@ -5997,6 +6048,39 @@
       "previewPage": 1
     },
     {
+      "id": "pswriteoffice-output",
+      "sourceRoot": "documents",
+      "source": "PowerShell/PatchComplianceReport.docx",
+      "destination": "pswriteoffice/patch-compliance-report.docx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
+      "evidence": "DOCX created from PowerShell objects by PSWriteOffice."
+    },
+    {
+      "id": "pswriteoffice-pdf",
+      "sourceRoot": "documents",
+      "source": "PowerShell/PatchComplianceReport.pdf",
+      "destination": "pswriteoffice/patch-compliance-report.pdf",
+      "generator": "PSWriteOffice Export-OfficeDocumentPdf",
+      "evidence": "First-party Word-to-PDF conversion of the generated DOCX."
+    },
+    {
+      "id": "pswriteoffice-preview",
+      "sourceRoot": "documents",
+      "source": "PowerShell/PatchComplianceReport.png",
+      "destination": "pswriteoffice/patch-compliance-report-page1.png",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result.",
+      "previewSource": "PowerShell/PatchComplianceReport.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "source-officeimo-examples-powershell-patchcompliancereport-ps1",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1",
+      "destination": "source/PowerShell/PatchComplianceReport.ps1.txt",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "PowerShell source for the runnable example."
+    },    {
       "id": "excel-output",
       "sourceRoot": "documents",
       "source": "ExcelReportWorkflow.xlsx",
