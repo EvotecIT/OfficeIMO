@@ -504,6 +504,9 @@ internal static partial class PdfWriter {
                             if (!preformattedWhitespace && CurrentMaxWidth() <= 0.001D) break;
                             StartNewLine();
                             PrepareLineFrame(RunLineHeight(runFontSize));
+                            // Flow separators that overflow a completed line do
+                            // not become indentation on its continuation.
+                            if (!preformattedWhitespace) break;
                             available = CurrentMaxWidth();
                             if (available <= 0.001D) {
                                 if (!preformattedWhitespace) break;
