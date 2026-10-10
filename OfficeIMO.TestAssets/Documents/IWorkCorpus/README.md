@@ -479,3 +479,38 @@ Reproduce with the pinned numbers-parser 4.19.0 environment:
 ```sh
 python Build/IWork/extract-integer-function-boundaries.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/integer-function-boundaries.json
 ```
+
+### Complete native-content PDF references
+
+`native-exports/iwork-composed-pdf-portable.json` pins the Apple-edited Pages body,
+Numbers scalar workbook and Keynote table deck, all three composed PDFs, nine
+composed page rasters and their native comparison exports. The fresh Keynote PDF
+includes the edited numeric/text cells and text entered into the formerly empty
+table. `keynote-created-tables-pdf-export-v15.4.key` separately retains the
+metadata/resource normalization performed by Keynote during that export; its
+composed pages match the original edited fixture. Original source fixtures remain
+unchanged. These authored documents use
+the repository MIT license; the registered and embedded fallback fonts retain
+their recorded SIL OFL 1.1 licenses.
+
+The workflow uses the public shared rendering profile with four Carlito style
+faces, Noto Emoji and the Noto Sans JP common subset, under the portable
+deterministic PDF resource policy. It discovers no installed fonts. The manifest
+records font checksums, producer versions, selected-unit coverage and both
+stages' fidelity diagnostics. Independent Poppler text extraction verifies all
+80 numbered Pages paragraphs in order, every populated Numbers scalar/literal
+value and all Keynote text and native edits. Every composed and comparison page
+is visually inspected; the completely unset Numbers grid retains its drawn
+page. The workflow tests exercise this contract on .NET 8 and 10.
+
+The composed exports have two Pages pages, four Numbers pages and three Keynote
+pages. They retain complete selected content with visible font, text-inset,
+monochrome-emoji and invariant/localized display differences. Pages breaks its
+body after paragraph 42 instead of Apple's 41. Numbers follows the XLSX
+table-per-worksheet projection and splits the wide first table by columns;
+Apple's positioned-sheet export has two pages. Opaque source-record fidelity,
+native typography/pagination equivalence, additional scripts/producers and
+composed-PDF NativeAOT/platform acceptance remain separate qualification work.
+Use the [workflow font example](../../../OfficeIMO.Workflows.IWork/README.md) and
+the manifest's routes and reproduction commands to regenerate and inspect the
+outputs.

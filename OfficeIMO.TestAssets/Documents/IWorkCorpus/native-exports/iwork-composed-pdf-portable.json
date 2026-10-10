@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-10T01:14:26.224325+00:00",
+  "sourceRevision": "5481eb1364830669b27031d0a5b4276eab471254",
+  "license": "Repository MIT for authored documents; embedded fallback fonts retain their SIL OFL 1.1 licensing. No standalone font files added.",
+  "host": {
+    "os": "27.0.1",
+    "build": "26A434",
+    "architecture": "arm64",
+    "sdk": "10.0.112"
+  },
+  "execution": {
+    "runtime": ".NET 10.0.12",
+    "nativeAot": false,
+    "sourceOnly": true,
+    "nativeKeynoteExport": {
+      "ownedKeynoteDocumentClosed": true,
+      "closingObservation": "noWindowsAvailable",
+      "preExistingKeynoteProcessRetained": true,
+      "originalFixtureSha256": "71f6ef56918b9c30c459436f6f1da581a4d28ef46045932b7604a9dafd584d62",
+      "originalFixtureUnchanged": true,
+      "nativeExportSha256": "e1fff9e7d6c0eea08ad0ffedfc65d7de269e1180d5a790502785d2e0bca006c7",
+      "nativeExportBytes": 102915,
+      "pages": 3,
+      "recordedUtc": "2026-10-10T01:08:07.696382+00:00",
+      "sourceAfterExport": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-pdf-export-v15.4.key",
+        "bytes": 177649,
+        "sha256": "124cb78b9fb0448de21eccf3b5b8db3ecdf1f9dcc0f7f6df1a2d459de4049faa"
+      },
+      "applicationNormalization": "Opening/exporting the copied fixture rewrote document/view/calculation metadata and a generated JPEG resource. This exact resulting package is retained separately; the original corpus fixture remains unchanged.",
+      "normalizedSourceConversion": {
+        "succeeded": true,
+        "pages": 3,
+        "packageContentSha256": "ec3ed086b9ef5589e81817a5b9cf3499de5dac591631ae60fef7bb35cbe0c703",
+        "reconstructedSourceUnitCount": 13,
+        "omittedSourceUnitCount": 0,
+        "allPageRastersEqualOriginalComposedSource": true,
+        "independentEditedTextChecks": true
+      }
+    }
+  },
+  "fontProfile": {
+    "name": "iwork-native-portable-evidence",
+    "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic()",
+    "installedFontDiscovery": false,
+    "fallbackOrder": [
+      "Noto Emoji",
+      "Noto JP Common",
+      "Carlito"
+    ],
+    "inputFiles": [
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+        "bytes": 628032,
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+        "license": "SIL Open Font License 1.1",
+        "licenseFile": {
+          "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt",
+          "bytes": 4423,
+          "sha256": "ecd848e05cf9ac95f4565491833b06c9fff3b17f396f8d8df06f77f432a793ac"
+        }
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+        "bytes": 682468,
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db",
+        "license": "SIL Open Font License 1.1",
+        "licenseFile": {
+          "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt",
+          "bytes": 4423,
+          "sha256": "ecd848e05cf9ac95f4565491833b06c9fff3b17f396f8d8df06f77f432a793ac"
+        }
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+        "bytes": 615236,
+        "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c",
+        "license": "SIL Open Font License 1.1",
+        "licenseFile": {
+          "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt",
+          "bytes": 4423,
+          "sha256": "ecd848e05cf9ac95f4565491833b06c9fff3b17f396f8d8df06f77f432a793ac"
+        }
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+        "bytes": 808508,
+        "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517",
+        "license": "SIL Open Font License 1.1",
+        "licenseFile": {
+          "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-Carlito.txt",
+          "bytes": 4423,
+          "sha256": "ecd848e05cf9ac95f4565491833b06c9fff3b17f396f8d8df06f77f432a793ac"
+        }
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/TestAssets/NotoEmoji-VariableFont_wght.ttf",
+        "bytes": 1989588,
+        "sha256": "dbd8394b0ee513b356b5a101fb0f64628ce9508294523e051a0efb1679bb34e3",
+        "license": "SIL Open Font License 1.1",
+        "licenseFile": {
+          "path": "OfficeIMO.Drawing.Tests/TestAssets/OFL-1.1.txt",
+          "bytes": 4008,
+          "sha256": "7db284eb1d846b0ebcf4ae7c878d230767b2c8526515804633eeacff607d1690"
+        }
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansJP-OfficeIMO-Common.ttf",
+        "bytes": 1012872,
+        "sha256": "4777e0ac6a42d1bab96f53bd9f87d5d003bf9852cea1a8358463696d9ed42337",
+        "license": "SIL Open Font License 1.1",
+        "licenseFile": {
+          "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/OFL-NotoCJK.txt",
+          "bytes": 4387,
+          "sha256": "301625f665e80c61d57b4322f658b02be7a59873d8a1c7b292b6d573c3554ba9"
+        }
+      }
+    ]
+  },
+  "independentTools": {
+    "poppler": "pdftoppm version 26.09.0",
+    "textExtraction": "pdftotext -layout; complete content checks in addition to OfficeIMO PDF reader",
+    "rendering": "pdftoppm -r 96 -png; all nine composed and seven native comparison pages inspected"
+  },
+  "documents": [
+    {
+      "kind": "pages",
+      "route": "pages-pdf",
+      "source": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-edited-v15.4.pages",
+        "bytes": 298435,
+        "sha256": "dc07fa4028ac9f261fdb7cb23f8b409cd80e092cdf8a8ed938adc420b37ad6b4"
+      },
+      "sourceProducer": "OfficeIMO.IWork, M15.4-7051.0.79-2",
+      "packageContentSha256": "54f02382f6b13759c60fe4ec771806305df7508a09fa5f1f3b5da32affdc86a8",
+      "composedPdf": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-pages-portable.pdf",
+        "bytes": 25759,
+        "sha256": "e2e370638aa11294cd33d26e56b8415588c1ccc6fe641ee77b42d076b7bf1717"
+      },
+      "composedPages": [
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-pages-portable-page1.png",
+          "bytes": 266829,
+          "sha256": "e6af0e52781180529d10f6a4d312b3e22013dfed7c6e2cc44542c8adb2fd937d"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-pages-portable-page2.png",
+          "bytes": 231403,
+          "sha256": "4471d4dec706ac8c2511e595a174adde96c9b4e413123e7b5f91221b6fd2c21f"
+        }
+      ],
+      "nativePdf": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.pdf",
+        "bytes": 91992,
+        "sha256": "aabd3a2c95d892c90a15356ada4079cf1fe2d998329287baa0939c8b44c6fe6c"
+      },
+      "nativePages": [
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4-page1.png",
+          "bytes": 225894,
+          "sha256": "adfe93866dd87a6e48d5802d09e0b1aa7e2f98e1b3b2d7e727c8896d0a6a66cf"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4-page2.png",
+          "bytes": 202826,
+          "sha256": "86a508477edc19fc3fbb5793f4edd4f1d3c6d8c8595b3507941882cabba554f1"
+        }
+      ],
+      "allPagesVisuallyInspected": true,
+      "independentTextChecks": [
+        "all 80 numbered paragraphs in order exactly once",
+        "title and full edited rich-text line",
+        "two complete rendered pages"
+      ],
+      "selectedSourceUnitCount": 8,
+      "reconstructedSourceUnitCount": 8,
+      "omittedSourceUnitCount": 0,
+      "unassessedSourceUnitCount": 0,
+      "unassessedRecordCount": 248,
+      "conversionStages": "iwork-editable,pdf",
+      "fidelityDiagnostics": [
+        {
+          "code": "IWORK_SOURCE_READ",
+          "lossKind": 0,
+          "message": "Read 248 IWA payload records from 13 package entries."
+        },
+        {
+          "code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+          "lossKind": 4,
+          "message": "248 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content."
+        },
+        {
+          "code": "NativeFontFamilySubstituted",
+          "lossKind": 1,
+          "message": "The source font family 'Arial' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Noto Emoji', 'Noto JP Common', 'Carlito'."
+        },
+        {
+          "code": "NativeFontFamilySubstituted",
+          "lossKind": 1,
+          "message": "The source font family 'Times New Roman' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family TimesRoman. Glyphs outside that family may use the embedded fallback families 'Noto Emoji', 'Noto JP Common', 'Carlito'."
+        }
+      ],
+      "comparison": "Native and composed exports have two pages. Native first page ends at paragraph 41; composed first page ends at paragraph 42. Fonts, emoji appearance and text metrics differ."
+    },
+    {
+      "kind": "numbers",
+      "route": "numbers-pdf",
+      "source": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-edited-v14.5.numbers",
+        "bytes": 86050,
+        "sha256": "c907c567584786ce9c5183a376f61d813f3bf56757de531cbdbfb1fefb4fcfd6"
+      },
+      "sourceProducer": "OfficeIMO.IWork, M14.5-7045.0.17-4",
+      "packageContentSha256": "fdc480ba8f0e22da7ec3c45cd86cd0c42bda72241f981f7274d28ab7bb52d49f",
+      "composedPdf": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-numbers-portable.pdf",
+        "bytes": 26407,
+        "sha256": "5dc96a22ab27fe64824fc9a1e9ca7b4385574dda02bb411a64dbc717b3056c77"
+      },
+      "composedPages": [
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-numbers-portable-page1.png",
+          "bytes": 18867,
+          "sha256": "c20a9acd6ae603b600ce130e4d9d7e97e1e1f4451c33f98b559c0588ab1f05f2"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-numbers-portable-page2.png",
+          "bytes": 8881,
+          "sha256": "084132423c7aceeb6bc1ca32ccdce2ca12b0e441714947fb5dc46b0b16128853"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-numbers-portable-page3.png",
+          "bytes": 6786,
+          "sha256": "fdf6c2222d8a87ed4fb12fd7a39471551c84b3bf47fdf846cef5d13b7064953c"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-numbers-portable-page4.png",
+          "bytes": 4120,
+          "sha256": "2b3926fb5b0af879667edd76e89badfba85dfeb93fc3498ebdb64cc2e4e1b375"
+        }
+      ],
+      "nativePdf": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5.pdf",
+        "bytes": 74668,
+        "sha256": "4fbc275c790251fa8b2856488ee7c10221546df97c6401bb888ab25c25aec377"
+      },
+      "nativePages": [
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5-page1.png",
+          "bytes": 29073,
+          "sha256": "bdef28bb769f2c421e5c8156e675ca0089e2e8320a0a8d78e2115f3742500108"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5-page2.png",
+          "bytes": 3803,
+          "sha256": "284ee661f984fff0f307151974ea5b15fa012e5d44e437148a2b280ed626ea0d"
+        }
+      ],
+      "allPagesVisuallyInspected": true,
+      "independentTextChecks": [
+        "every populated scalar and literal text value",
+        "complete multiline/Polish/emoji text",
+        "all three tables represented; empty 2-by-3 table drawn on fourth page"
+      ],
+      "selectedSourceUnitCount": 6,
+      "reconstructedSourceUnitCount": 6,
+      "omittedSourceUnitCount": 0,
+      "unassessedSourceUnitCount": 0,
+      "unassessedRecordCount": 316,
+      "conversionStages": "iwork-editable,pdf",
+      "fidelityDiagnostics": [
+        {
+          "code": "IWORK_SOURCE_READ",
+          "lossKind": 0,
+          "message": "Read 316 IWA payload records from 103 package entries."
+        },
+        {
+          "code": "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED",
+          "lossKind": 1,
+          "message": "Numbers automatic decimal formats use up to fifteen optional fractional places in XLSX; scientific formats apply them to the mantissa. Significant-digit selection, rounding and exponent presentation can differ; numeric values and formula caches are unchanged."
+        },
+        {
+          "code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+          "lossKind": 4,
+          "message": "316 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content."
+        },
+        {
+          "code": "WorksheetFontFamilySubstituted",
+          "lossKind": 1,
+          "message": "The source font family 'Arial' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Noto Emoji', 'Noto JP Common', 'Carlito'."
+        }
+      ],
+      "comparison": "Apple positions two tables on the first sheet page and the empty table on the second. Composed PDF follows table-per-worksheet projection; wide Data columns split into two pages, then Totals and Empty retain one page each. Invariant numbers/booleans and monochrome emoji differ from localized Apple display."
+    },
+    {
+      "kind": "keynote",
+      "route": "keynote-pdf",
+      "source": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-edited-v15.4.key",
+        "bytes": 176379,
+        "sha256": "71f6ef56918b9c30c459436f6f1da581a4d28ef46045932b7604a9dafd584d62"
+      },
+      "sourceProducer": "OfficeIMO.IWork, M15.4-7051.0.79-2",
+      "packageContentSha256": "68ccf9412ff427de9ee111cfb815cc52d1a5ffbb5fa4282208b3796dca9f41b4",
+      "composedPdf": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-keynote-portable.pdf",
+        "bytes": 26613,
+        "sha256": "f19396185c4b5c6fc98252f03762d5debe7b20e7af72f744d4122af528de61e3"
+      },
+      "composedPages": [
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-keynote-portable-page1.png",
+          "bytes": 52353,
+          "sha256": "c685830b703170ba0145334a1a4697c020b244e12ee609505e3ebca90c5957af"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-keynote-portable-page2.png",
+          "bytes": 29073,
+          "sha256": "0c27ede9fe62bb270cc61d9e213422ee2b91dd6c69b8201fa2185fff4c3a21e9"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-keynote-portable-page3.png",
+          "bytes": 16363,
+          "sha256": "c2828df658ef30f216bc542153536b45c87892daba2d7206e19dcca9416f9b26"
+        }
+      ],
+      "nativePdf": {
+        "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-edited-v15.4.pdf",
+        "bytes": 102915,
+        "sha256": "e1fff9e7d6c0eea08ad0ffedfc65d7de269e1180d5a790502785d2e0bca006c7"
+      },
+      "nativePages": [
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-edited-v15.4-page1.png",
+          "bytes": 57991,
+          "sha256": "21f439392627aa8721dc8b294e8add41c4c4e3ec16ed2a8ee1c533fee5665a23"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-edited-v15.4-page2.png",
+          "bytes": 31341,
+          "sha256": "f7c2bee7e90cd5008c7d1fd5f42ebe2b91d49009efeb1767ae9b85f9fccd6fc0"
+        },
+        {
+          "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-edited-v15.4-page3.png",
+          "bytes": 16427,
+          "sha256": "7ac4615cbbdf1a6be6e1d2a8ec1aadfb491fefd6b20b7f7503903de1d950b000"
+        }
+      ],
+      "allPagesVisuallyInspected": true,
+      "independentTextChecks": [
+        "all three slide titles and visible text",
+        "every populated scalar/literal cell including native edits",
+        "two REPEATED cells",
+        "table/image frames, stacking and empty-grid layout visually inspected"
+      ],
+      "selectedSourceUnitCount": 13,
+      "reconstructedSourceUnitCount": 13,
+      "omittedSourceUnitCount": 0,
+      "unassessedSourceUnitCount": 0,
+      "unassessedRecordCount": 382,
+      "conversionStages": "iwork-editable,pdf",
+      "fidelityDiagnostics": [
+        {
+          "code": "IWORK_SOURCE_READ",
+          "lossKind": 0,
+          "message": "Read 382 IWA payload records from 112 package entries."
+        },
+        {
+          "code": "IWORK_KEYNOTE_NUMBER_FORMAT_APPROXIMATED",
+          "lossKind": 1,
+          "message": "PPTX table cells retain supported invariant numeric, date/time and fixed day-only or hour/minute duration display as editable text. Automatic precision, currency symbols and locale placement, fraction spacing, duration unit spacing or fractional-day rounding, date localization and full source appearance can differ. Raw values, formula caches and formats remain available on the source projection."
+        },
+        {
+          "code": "IWORK_RECORD_FIDELITY_UNASSESSED",
+          "lossKind": 4,
+          "message": "382 source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content."
+        },
+        {
+          "code": "font-family-substitution",
+          "lossKind": 1,
+          "message": "The source font family 'Arial' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Noto Emoji', 'Noto JP Common', 'Carlito'."
+        },
+        {
+          "code": "font-family-substitution",
+          "lossKind": 1,
+          "message": "The source font family 'Times New Roman' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family TimesRoman. Glyphs outside that family may use the embedded fallback families 'Noto Emoji', 'Noto JP Common', 'Carlito'."
+        }
+      ],
+      "comparison": "Both exports retain three slides, positioned table frames and image stacking. Fonts and text insets, monochrome/color emoji and invariant/localized numeric and boolean display visibly differ."
+    }
+  ],
+  "reproduction": [
+    "Use the public OfficeRenderingProfile example in OfficeIMO.Workflows.IWork/README.md with the pinned fonts and listed native sources.",
+    "Execute the three listed routes with IWorkWorkflow.CreateRunner; retain ConversionEvidence, reopen each output and independently compare all text and rendered pages.",
+    "dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj -c Release -f <net8.0|net10.0> --filter FullyQualifiedName~Native_content_pdf_routes_retain_every_page_with_caller_fonts",
+    "Native edited Keynote comparison: open a copy of the pinned edited source in Keynote 15.4; export PDF, best quality, skipped slides included, notes/build stages/comments/password disabled; close the owned document.",
+    "pdftotext -layout <output.pdf> <text.txt>; pdftoppm -r 96 -png <output.pdf> <page-prefix>"
+  ],
+  "limitations": [
+    "Complete selected editable content is distinct from opaque-record fidelity and Apple rendering equivalence.",
+    "Fixture-specific managed macOS arm64 evidence; additional producers, scripts, hosts, architectures and actual composed-PDF NativeAOT execution remain separately qualified.",
+    "Registered Noto JP common subset does not establish Japanese or broader CJK qualification; these sources exercise Latin/Polish characters and emoji.",
+    "Native Pages/Numbers exports are retained from their earlier same-content acceptance; fresh Keynote export includes all native table edits.",
+    "Font substitution, monochrome emoji, text metrics/insets, Pages paragraph breaks, Numbers table-per-worksheet pagination and localized display equivalence remain open."
+  ],
+  "managedCorrectness": {
+    "net8.0": "90 passed; 0 failed; 0 skipped",
+    "net10.0": "90 passed; 0 failed; 0 skipped",
+    "nativeContentCasesPerRuntime": 4,
+    "build": "0 warnings; 0 errors"
+  }
+}
