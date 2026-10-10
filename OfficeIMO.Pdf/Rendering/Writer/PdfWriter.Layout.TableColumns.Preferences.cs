@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Shrinks imported preferences through their available flexibility after reserving each content minimum.</summary>
     private static bool TryDistributeImportedPreferredColumns(PdfTableStyle style, double[] widths,
-        bool[] fixedColumns, double?[] minimums, double?[] maximums, double[]? preferences, double availableWidth) {
+        bool[] fixedColumns, double?[] minimums, double?[] maximums, double[]? preferences,
+        double[]? paddingWidths, double availableWidth) {
         if (style.AutoFitColumnPreferredWidthPoints == null || preferences == null ||
             fixedColumns.Any(value => value) || style.ColumnWidthWeights?.Count > 0) return false;
 
@@ -19,8 +20,24 @@ internal static partial class PdfWriter {
                 authoredMinimum += minimums[column] ?? 0D;
             } else automaticMinimum += minimums[column] ?? 0D;
         }
+        // Compress text after reserving padding when unbreakable content cannot
+        // fit the frame. Scaling the padding changes the character wrap budget.
+        double minimumTotal = authoredMinimum + automaticMinimum;
+        if (minimumTotal > availableWidth + .001D) {
+            if (!style.AutoFitWidthUsesContentMinimum || paddingWidths == null) return false;
+            double reserved = 0D;
+            for (int column = 0; column < widths.Length; column++)
+                reserved += Math.Min(minimums[column] ?? 0D, paddingWidths[column]);
+            if (reserved >= availableWidth - .001D) return false;
+            double scale = (availableWidth - reserved) / (minimumTotal - reserved);
+            for (int column = 0; column < widths.Length; column++) {
+                double minimum = minimums[column] ?? 0D;
+                double padding = Math.Min(minimum, paddingWidths[column]);
+                widths[column] = padding + (minimum - padding) * scale;
+            }
+            return true;
+        }
         if (authoredCount > 0 && authoredCount < widths.Length) {
-            if (authoredMinimum + automaticMinimum > availableWidth + .001D) return false;
             // Automatic columns absorb remaining space after the absolute
             // preferences fit. They reserve only their minimum while those
             // authored preferences are being compressed.

@@ -16,6 +16,16 @@ namespace OfficeIMO.Word.Pdf {
             if (sourceWidth?.Type?.Value != W.TableWidthUnitValues.Pct) return;
             double? percent = GetNativeTablePreferredWidthPercent(sourceWidth);
             if (!percent.HasValue) return;
+            var (left, right) = GetNativeTableOuterBorderInsets(layout, style);
+            double width = (contentWidth.Value - left - right) * percent.Value;
+            if (width > 0D) style.MaxWidth = width;
+        }
+
+        private static (double Left, double Right) GetNativeTableOuterBorderInsets(TableLayout layout, PdfCore.PdfTableStyle style) {
+            if (style.BorderFrame?.Border is { } perimeter) {
+                return ((GetNativeFrameSide(perimeter, top: null)?.PaintThickness ?? 0D) / 2D,
+                    (GetNativeFrameSide(perimeter, top: null, right: true)?.PaintThickness ?? 0D) / 2D);
+            }
             double left = 0D, right = 0D;
             int columns = GetNativeTableColumnCount(layout);
             for (int row = 0; row < layout.Rows.Count; row++) {
@@ -28,8 +38,16 @@ namespace OfficeIMO.Word.Pdf {
                     column += span;
                 }
             }
-            double width = (contentWidth.Value - left - right) * percent.Value;
-            if (width > 0D) style.MaxWidth = width;
+            return (left, right);
+        }
+
+        private static void ApplyNativeAutomaticTableFrameWidth(TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
+            if (!style.AutoFitColumns || !style.AutoFitUnspecifiedWidthToContent || style.PreferredWidth.HasValue ||
+                style.AutoFitColumnPreferredWidthPoints == null || !contentWidth.HasValue) return;
+            var (left, right) = GetNativeTableOuterBorderInsets(layout, style);
+            double width = contentWidth.Value - style.LeftIndent - left - right -
+                (style.BorderFrame == null ? 0D : 2D * style.CellSpacing);
+            if (width > .001D) style.MaxWidth = Math.Min(style.MaxWidth ?? width, width);
         }
 
         private static void ApplyNativeColumnWidths(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, double? contentWidth) {
@@ -220,6 +238,12 @@ namespace OfficeIMO.Word.Pdf {
                 style.AutoFitWidthUsesContentMinimum = true;
                 style.AutoFitUnspecifiedWidthToContent = true;
                 style.PreserveWidth = true;
+                if (!EnumerateNativeTableCells(layout).Any(cell => GetNativeTableCellPreferredWidthPercent(cell.Cell).HasValue)) {
+                    // An automatic frame derives its width from cell preferences
+                    // and content, independently of the stored grid extent.
+                    if (preferredWidth.HasValue) style.PreferredWidth = null;
+                    style.AutoFitColumnPreferredWidthPoints = CreateNativeAutoFitColumnPreferences(layout);
+                }
             }
 
             // tblInd applies only to left-aligned tables. A floating coordinate

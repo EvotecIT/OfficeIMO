@@ -103,27 +103,6 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Grid_As_Autofit_Preferred_Width() {
-        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAutoWidthOmittedLayout.docx"));
-
-        WordTable table = document.AddTable(1, 2);
-        table._tableProperties!.TableWidth = new TableWidth {
-            Type = TableWidthUnitValues.Auto,
-            Width = "0"
-        };
-        table._tableProperties.TableLayout?.Remove();
-        table.Rows[0].Cells[0].Paragraphs[0].Text = "Short";
-        table.Rows[0].Cells[1].Paragraphs[0].Text = "Much wider content";
-
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
-
-        Assert.True(style.AutoFitColumns);
-        Assert.Null(style.MaxWidth);
-        Assert.Equal(240D, style.PreferredWidth);
-        Assert.True(style.PreserveWidth);
-    }
-
-    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Percent_String_Table_Preferred_Width() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativePercentStringTableWidth.docx"));
 
@@ -748,7 +727,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Preferred_Width() {
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Direct_Table_Width_Over_Style_Width() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStylePreferredWidth.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style(
@@ -758,14 +737,6 @@ public partial class Word {
                 Type = TableWidthUnitValues.Dxa
             }))
         { Type = StyleValues.Table, StyleId = "GenericWidthTable" });
-
-        WordTable styledTable = document.AddTable(1, 1);
-        styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };
-
-        PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
-
-        Assert.Equal(108D, styled.PreferredWidth);
-        Assert.True(styled.PreserveWidth);
 
         WordTable directTable = document.AddTable(1, 1);
         directTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };

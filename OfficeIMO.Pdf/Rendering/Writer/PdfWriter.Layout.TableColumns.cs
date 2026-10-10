@@ -296,7 +296,7 @@ internal static partial class PdfWriter {
         }
 
         if (!TryDistributeImportedPreferredColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
-            autoFitWeights, remainingWidth))
+            autoFitWeights, autoFit?.PaddingWidths, remainingWidth))
             DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
         if (!style.PreserveWidth) {
             tableWidth = Math.Min(tableWidth, columnWidths.Sum() + (columns - 1) * columnGap);

@@ -212,6 +212,7 @@ namespace OfficeIMO.Word.Pdf {
                 ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
             ApplyNativeFixedTableMinimumWidths(layout, style);
             ApplyNativeZeroSpacingCellMargins(layout, style);
+            ApplyNativeAutomaticTableFrameWidth(layout, style, contentWidth);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {
