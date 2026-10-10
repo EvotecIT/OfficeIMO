@@ -83,7 +83,7 @@ internal sealed class PublisherEscherReader {
             if (count * 6 > property.Length) throw new InvalidDataException("Truncated Publisher OfficeArt property table.");
             var decoded = OfficeArtPropertyTableReader.Read(_data.Bytes, property.Offset, property.Length, (ushort)count);
             foreach (OfficeArtProperty value in decoded) {
-                if (value.IsComplex && value.AvailableComplexDataLength != value.Value)
+                if (value.IsComplex && !value.HasCompleteComplexData)
                     throw new InvalidDataException("Truncated Publisher OfficeArt complex property.");
                 result.Add(value);
             }

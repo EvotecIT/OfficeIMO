@@ -42,7 +42,7 @@ internal sealed partial class PublisherPageProjector {
             OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id));
         if (kind == OfficeLineMarkerKind.None) return null;
         if (shape.Kind != OfficeShapeKind.Line) {
-            _context.Add("PUB_LINE_MARKER_GEOMETRY_UNSUPPORTED", "A native line decoration requires open geometry that this object does not reconstruct.",
+            _context.Add("PUB_LINE_MARKER_GEOMETRY_UNSUPPORTED", "Native line decorations on this geometry remain unassessed and were omitted.",
                 OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id));
             return null;
         }

@@ -17,7 +17,7 @@ internal static partial class LegacyDocPictureReader {
                 flags = unchecked((uint)LegacyDocFib.ReadInt32(data, payload + 4));
             } else if (type is 0xF00B or 0xF121 or 0xF122) {
                 var table = OfficeArtPropertyTableReader.Read(data, payload, recordLength, instance);
-                if (table.Count != instance || table.Any(property => property.IsComplex && property.AvailableComplexDataLength != property.Value)) return false;
+                if (table.Count != instance || table.Any(property => property.IsComplex && !property.HasCompleteComplexData)) return false;
                 properties.AddRange(table);
             }
             offset = checked(payload + recordLength);

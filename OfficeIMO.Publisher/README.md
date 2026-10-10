@@ -55,6 +55,15 @@ limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulativ
 decode/filter work and inspected GIF, WebP or icon frame pixels across picture
 references.
 
+Native custom paths retain their declared frame canvas, including inset and
+negative coordinates. Literal vertices, open or closed line and cubic paths,
+subpaths, and no-fill/no-line controls use the shared drawing model. Custom
+picture paths clip the processed image without changing its original asset.
+Geometry guides, advanced commands and separately painted path groups use a
+reported geometry fallback. Native winding and picture-mask appearance remain
+unqualified against Publisher output. `Limits.MaxItems` bounds cumulative native
+path decoding and copied shape/mask commands as well as drawing elements.
+
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
 column settings and wrap-object references. Linked stories follow their native
 links across frames and pages. Columns and rectangular wrap exclusions use the

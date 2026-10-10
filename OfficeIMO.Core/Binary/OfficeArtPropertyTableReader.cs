@@ -23,6 +23,12 @@ public static class OfficeArtPropertyTableReader {
 
         int endOffset = checked(offset + length);
         int complexOffset = checked(offset + fixedLength);
+        ulong followingDeclaredLength = 0;
+        for (int index = 0; index < propertyCount; index++) {
+            int propertyOffset = offset + index * 6;
+            if ((ReadUInt16(payload, propertyOffset) & 0x8000) != 0)
+                followingDeclaredLength += ReadUInt32(payload, propertyOffset + 2);
+        }
         var properties = new List<OfficeArtProperty>(propertyCount);
         for (int index = 0; index < propertyCount; index++) {
             int propertyOffset = checked(offset + index * 6);
@@ -33,11 +39,13 @@ public static class OfficeArtPropertyTableReader {
             byte[]? complexData = null;
             string? complexText = null;
             if (isComplex) {
-                availableLength = GetAvailableComplexDataLength(value, complexOffset, endOffset);
+                followingDeclaredLength -= value;
+                ushort propertyId = checked((ushort)(rawOperationId & 0x3fff));
+                availableLength = GetAvailableComplexDataLength(payload, propertyId, value, complexOffset, endOffset,
+                    followingDeclaredLength);
                 if (availableLength.Value > 0) {
                     complexData = new byte[availableLength.Value];
                     Buffer.BlockCopy(payload, complexOffset, complexData, 0, complexData.Length);
-                    ushort propertyId = checked((ushort)(rawOperationId & 0x3fff));
                     complexText = TryReadComplexText(complexData, propertyId);
                 }
                 complexOffset = checked(complexOffset + availableLength.Value);
@@ -64,9 +72,28 @@ public static class OfficeArtPropertyTableReader {
         | payload[offset + 2] << 16
         | payload[offset + 3] << 24));
 
-    private static int GetAvailableComplexDataLength(uint declaredLength, int offset, int endOffset) {
+    private static int GetAvailableComplexDataLength(byte[] payload, ushort propertyId,
+        uint declaredLength, int offset, int endOffset, ulong followingDeclaredLength) {
         if (declaredLength > int.MaxValue || offset >= endOffset) return 0;
-        return Math.Min((int)declaredLength, endOffset - offset);
+        uint length = ExpectedComplexDataLength(propertyId, declaredLength, payload, offset, endOffset - offset);
+        // A zero-length array can be genuinely absent. Recover its header only
+        // when doing so leaves room for the following declared complex payloads.
+        if (declaredLength == 0 && (ulong)(endOffset - offset) < length + followingDeclaredLength) return 0;
+        return (int)Math.Min(length, (uint)(endOffset - offset));
+    }
+
+    internal static uint ExpectedComplexDataLength(ushort propertyId, uint declaredLength,
+        byte[]? payload, int offset, int remaining) {
+        // These native geometry/color arrays can declare only element bytes.
+        // Recognize their exact header layout without guessing for arbitrary complex properties.
+        if (payload != null && remaining >= 6 && propertyId is 0x0145 or 0x0146 or 0x0197) {
+            int count = ReadUInt16(payload, offset), allocated = ReadUInt16(payload, offset + 2);
+            int size = ReadUInt16(payload, offset + 4);
+            if (propertyId == 0x0145 && size == 0xFFF0) size = 4;
+            bool knownSize = propertyId switch { 0x0145 => size is 4 or 8, 0x0146 => size == 2, _ => size == 8 };
+            if (knownSize && count <= allocated && count * size == declaredLength) return declaredLength + 6;
+        }
+        return declaredLength;
     }
 
     private static string? TryReadComplexText(byte[] data, ushort propertyId) {

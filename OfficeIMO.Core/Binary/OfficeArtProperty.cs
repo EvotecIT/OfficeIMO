@@ -60,7 +60,7 @@ public sealed class OfficeArtProperty {
     /// <summary>Gets the declared complex-data length.</summary>
     public uint? DeclaredComplexDataLength => IsComplex ? Value : null;
 
-    /// <summary>Gets the number of complex-data bytes available in the containing record.</summary>
+    /// <summary>Gets the number of complex-data bytes available in the containing record, including a recovered array header when its raw length excludes that header.</summary>
     public int? AvailableComplexDataLength { get; }
 
     /// <summary>Gets decoded text for a text-bearing complex property.</summary>
@@ -68,6 +68,12 @@ public sealed class OfficeArtProperty {
 
     /// <summary>Returns a defensive copy of the complex-data payload, when present.</summary>
     public byte[]? CopyComplexData() => _complexData == null ? null : (byte[])_complexData.Clone();
+
+    // The raw length of a native array may exclude its header. Keep completeness
+    // checks on the same length contract as the property-table reader.
+    internal bool HasCompleteComplexData => IsComplex && AvailableComplexDataLength.HasValue
+        && unchecked((uint)AvailableComplexDataLength.Value) == OfficeArtPropertyTableReader.ExpectedComplexDataLength(
+            PropertyId, Value, _complexData, 0, _complexData?.Length ?? 0);
 
     private static string GetPropertyName(ushort propertyId) => propertyId switch {
         0x0004 => "rotation",
@@ -90,6 +96,13 @@ public sealed class OfficeArtProperty {
         0x0109 => "pictureBrightness",
         0x011A => "pictureRecolor",
         0x013F => "BlipBooleanProperties",
+        0x0140 => "geoLeft",
+        0x0141 => "geoTop",
+        0x0142 => "geoRight",
+        0x0143 => "geoBottom",
+        0x0144 => "shapePath",
+        0x0145 => "pVertices",
+        0x0146 => "pSegmentInfo",
         0x0147 => "adjustValue",
         0x0148 => "adjust2Value",
         0x0149 => "adjust3Value",
@@ -98,6 +111,7 @@ public sealed class OfficeArtProperty {
         0x014C => "adjust6Value",
         0x014D => "adjust7Value",
         0x014E => "adjust8Value",
+        0x017F => "GeometryBooleanProperties",
         0x0180 => "fillType",
         0x0181 => "fillColor",
         0x0182 => "fillOpacity",
