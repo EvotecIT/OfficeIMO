@@ -62,7 +62,13 @@
       "Normalized padded block max-height cases retain240px child/following242px; padded inline-block min-height cases retain120px child/following122px.",
       "Height/min-height:200% cases retain240px overflowing child and following120px."
     ],
-    "appearanceBoundary": "Unnormalized browser UA defaults and parent atomic baselines produce following-content differences. These controls qualify the stated target heights; they do not establish general UA-default or baseline parity. Sixteen actual PDF/report/strict-loss records and browser receipts were hash-checked. Representative rendered scenes were inspected."
+    "appearanceBoundary": "Unnormalized browser UA defaults and parent atomic baselines produce following-content differences. These controls qualify the stated target heights; they do not establish general UA-default or baseline parity. Sixteen actual PDF/report/strict-loss records and browser receipts were hash-checked. Representative rendered scenes were inspected.",
+    "standardsControlsProducer": {
+      "actualHtmlDllSha256": "67920d085263bb94998cbf3e63bf3ac8272d70df496556fec9ee79f02d6db626",
+      "actualHtmlInformationalVersion": "3.4.4+f4a64bbc13f50357cf9632ec6a3d82f4e72fc601",
+      "equivalentRuntimeCandidate": "b091c4b8c5c3617c7e83accbce753f28dfbecfaa",
+      "boundary": "The sixteen browser-mode controls retain their original development producer identity and source equivalence; they are not relabelled as1d binaries. Fresh1d qualification separately replays34 cell scenes/104 exports and executes the corrected geometry contracts in both full HTML framework suites."
+    }
   },
   "frameworks": {
     "htmlTests": [
