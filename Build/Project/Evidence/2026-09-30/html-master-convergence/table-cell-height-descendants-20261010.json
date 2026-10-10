@@ -514,62 +514,175 @@
     "acceptance": "Failed:third warm iteration and peak working set. Cold elapsed, managed allocations, output size/determinism and cancellation passed. This shared-host run does not establish a causal performance change."
   },
   "platformBoundary": {
-    "currentSourceThreePlatformQualification": "Not established by this local proof.",
-    "priorSource": "8580a4acecdf8429d28dc6cdb87cc5022efd761d",
-    "controlSource": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
-    "runId": 38008178307,
-    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/38008178307",
-    "correctness": "HTML5751 per .NET8/10, PDF10049 on .NET10, font15 and math1 per .NET8/10 passed on all three platforms.",
-    "packageConsumers": "CI steps passed on all three; package archives were not independently downloaded or inspected in this receipt.",
+    "qualifiedSource": "1d629987d5a6c98c206241dd9277de729ce465b6",
+    "controlSource": "8580a4acecdf8429d28dc6cdb87cc5022efd761d",
+    "runId": 38015903612,
+    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/38015903612",
+    "correctness": "All21 TRX reports pass without skipped cases: HTML5810 per .NET8/10, PDF10049 on .NET10, font15 and math1 per .NET8/10 on Windows, macOS and Linux.",
+    "packageConsumers": "Packed public consumer steps pass on all three hosts. The Windows package lane includes native .NET Framework consumption; exact4.7.2 runtime execution is not independently established. Package-origin archives were not downloaded or independently inspected in this receipt.",
     "performance": [
-      {
-        "os": "ubuntu-latest",
-        "candidateFailures": [],
-        "controlFailures": [],
-        "candidateColdMs": 11038.2942,
-        "candidateWarmMs": [
-          4560.4606,
-          4515.6646,
-          4356.4781
-        ]
-      },
       {
         "os": "windows-latest",
         "candidateFailures": [],
-        "controlFailures": [
-          "warm iteration 2 elapsed milliseconds 4013.1 exceeded ceiling 4000.0."
-        ],
-        "candidateColdMs": 11094.3439,
+        "controlFailures": [],
+        "candidateColdMs": 9364.5164,
         "candidateWarmMs": [
-          3847.3275,
-          3964.3118,
-          3555.8762
-        ]
+          2601.9855,
+          2651.0843,
+          2664.0185
+        ],
+        "candidatePeakWorkingSetBytes": 1427697664,
+        "controlColdMs": 8661.1024,
+        "controlWarmMs": [
+          2596.802,
+          2667.9213,
+          2512.9469
+        ],
+        "controlPeakWorkingSetBytes": 1425551360,
+        "ceiling": {
+          "osFamily": "Windows",
+          "coldProcessElapsedMilliseconds": 12000,
+          "warmIterationElapsedMilliseconds": 4000,
+          "coldManagedAllocatedBytes": 2500000000,
+          "warmManagedAllocatedBytes": 1200000000,
+          "peakWorkingSetBytes": 1500000000,
+          "outputBytesPerIteration": 3000000,
+          "cancellationElapsedMilliseconds": 250
+        }
       },
       {
         "os": "macos-latest",
         "candidateFailures": [
-          "cold process elapsed milliseconds 23786.4 exceeded ceiling 8000.0.",
-          "warm iteration 1 elapsed milliseconds 9906.4 exceeded ceiling 3000.0.",
-          "warm iteration 2 elapsed milliseconds 4285.9 exceeded ceiling 3000.0.",
-          "warm iteration 3 elapsed milliseconds 4373.3 exceeded ceiling 3000.0."
+          "cold process elapsed milliseconds 14747.2 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 3933.2 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 3731.6 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 3812.1 exceeded ceiling 3000.0."
         ],
         "controlFailures": [
-          "cold process elapsed milliseconds 13337.0 exceeded ceiling 8000.0.",
-          "warm iteration 1 elapsed milliseconds 4290.1 exceeded ceiling 3000.0.",
-          "warm iteration 2 elapsed milliseconds 4224.2 exceeded ceiling 3000.0.",
-          "warm iteration 3 elapsed milliseconds 3965.9 exceeded ceiling 3000.0.",
-          "peak working-set bytes 718110720.0 exceeded ceiling 700000000.0."
+          "cold process elapsed milliseconds 13935.4 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 4103.1 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 3853.5 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 3823.7 exceeded ceiling 3000.0."
         ],
-        "candidateColdMs": 23786.3518,
+        "candidateColdMs": 14747.1889,
         "candidateWarmMs": [
-          9906.4481,
-          4285.8829,
-          4373.3353
-        ]
+          3933.2126,
+          3731.6361,
+          3812.1139
+        ],
+        "candidatePeakWorkingSetBytes": 618332160,
+        "controlColdMs": 13935.3696,
+        "controlWarmMs": [
+          4103.0528,
+          3853.5362,
+          3823.6803
+        ],
+        "controlPeakWorkingSetBytes": 668008448,
+        "ceiling": {
+          "osFamily": "macOS",
+          "coldProcessElapsedMilliseconds": 8000,
+          "warmIterationElapsedMilliseconds": 3000,
+          "coldManagedAllocatedBytes": 1250000000,
+          "warmManagedAllocatedBytes": 1100000000,
+          "peakWorkingSetBytes": 700000000,
+          "outputBytesPerIteration": 3000000,
+          "cancellationElapsedMilliseconds": 250
+        }
+      },
+      {
+        "os": "ubuntu-latest",
+        "candidateFailures": [
+          "cold process elapsed milliseconds 13088.0 exceeded ceiling 12000.0.",
+          "warm iteration 1 elapsed milliseconds 5225.1 exceeded ceiling 5000.0."
+        ],
+        "controlFailures": [
+          "cold process elapsed milliseconds 13277.3 exceeded ceiling 12000.0."
+        ],
+        "candidateColdMs": 13087.9851,
+        "candidateWarmMs": [
+          5225.1373,
+          4631.7255,
+          4548.8216
+        ],
+        "candidatePeakWorkingSetBytes": 330514432,
+        "controlColdMs": 13277.2696,
+        "controlWarmMs": [
+          4632.1142,
+          4383.649,
+          4342.6463
+        ],
+        "controlPeakWorkingSetBytes": 339968000,
+        "ceiling": {
+          "osFamily": "Linux",
+          "coldProcessElapsedMilliseconds": 12000,
+          "warmIterationElapsedMilliseconds": 5000,
+          "coldManagedAllocatedBytes": 1100000000,
+          "warmManagedAllocatedBytes": 1000000000,
+          "peakWorkingSetBytes": 500000000,
+          "outputBytesPerIteration": 3000000,
+          "cancellationElapsedMilliseconds": 250
+        }
       }
     ],
-    "boundary": "The prior858 run does not qualify later1d table-cell changes. Linux and Windows candidate ceilings passed; macOS elapsed ceilings remain open. Windows job failure came from the prior control, not candidate correctness or candidate ceilings."
+    "boundary": "The exact1d table-cell source passes correctness and packed consumer checks on all three hosts. Windows candidate/control ceilings pass; macOS candidate/control elapsed ceilings fail; Linux candidate cold and first warm time plus control cold time fail. Ordered candidate/control observations do not attribute a performance change to code. Later baseline, containing-height and inline font-decoration source requires separate qualification.",
+    "priorSourceQualification": {
+      "currentSourceThreePlatformQualification": "This prior-source record qualifies8580a4ac only; exact1d qualification is recorded separately below.",
+      "priorSource": "8580a4acecdf8429d28dc6cdb87cc5022efd761d",
+      "controlSource": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+      "runId": 38008178307,
+      "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/38008178307",
+      "correctness": "HTML5751 per .NET8/10, PDF10049 on .NET10, font15 and math1 per .NET8/10 passed on all three platforms.",
+      "packageConsumers": "CI steps passed on all three; package archives were not independently downloaded or inspected in this receipt.",
+      "performance": [
+        {
+          "os": "ubuntu-latest",
+          "candidateFailures": [],
+          "controlFailures": [],
+          "candidateColdMs": 11038.2942,
+          "candidateWarmMs": [
+            4560.4606,
+            4515.6646,
+            4356.4781
+          ]
+        },
+        {
+          "os": "windows-latest",
+          "candidateFailures": [],
+          "controlFailures": [
+            "warm iteration 2 elapsed milliseconds 4013.1 exceeded ceiling 4000.0."
+          ],
+          "candidateColdMs": 11094.3439,
+          "candidateWarmMs": [
+            3847.3275,
+            3964.3118,
+            3555.8762
+          ]
+        },
+        {
+          "os": "macos-latest",
+          "candidateFailures": [
+            "cold process elapsed milliseconds 23786.4 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 9906.4 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 4285.9 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 4373.3 exceeded ceiling 3000.0."
+          ],
+          "controlFailures": [
+            "cold process elapsed milliseconds 13337.0 exceeded ceiling 8000.0.",
+            "warm iteration 1 elapsed milliseconds 4290.1 exceeded ceiling 3000.0.",
+            "warm iteration 2 elapsed milliseconds 4224.2 exceeded ceiling 3000.0.",
+            "warm iteration 3 elapsed milliseconds 3965.9 exceeded ceiling 3000.0.",
+            "peak working-set bytes 718110720.0 exceeded ceiling 700000000.0."
+          ],
+          "candidateColdMs": 23786.3518,
+          "candidateWarmMs": [
+            9906.4481,
+            4285.8829,
+            4373.3353
+          ]
+        }
+      ],
+      "boundary": "The prior858 run does not qualify later1d table-cell changes. Linux and Windows candidate ceilings passed; macOS elapsed ceilings remain open. Windows job failure came from the prior control, not candidate correctness or candidate ceilings."
+    }
   },
   "remainingContracts": [
     "Percentage height allocation in row groups and specialized, anonymous or rowspan cell-descendant contexts.",
@@ -658,6 +771,11 @@
       "receipt": "table-height-descendants-next/integration_validation.py",
       "bytes": 21611,
       "sha256": "1fd61077f71c7f77461cbb27e90345788c1e3f1a65b69fc70f241f5a56c6fa17"
+    },
+    {
+      "receipt": "combined-inline-sizing-next/platform-1d-reports/platform-qualified-receipt.json",
+      "bytes": 79068,
+      "sha256": "5b91529a615f024b945a6e9b9f619b7a121f34a47f051afce0b641101b6f6539"
     }
   ]
 }
