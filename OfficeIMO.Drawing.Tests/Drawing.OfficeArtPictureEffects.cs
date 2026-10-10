@@ -75,6 +75,8 @@ public partial class DrawingTests {
     [InlineData(0x0109, 32769U, (int)OfficeArtPictureEffectLimit.InvalidBrightness)]
     [InlineData(0x011A, 0x00030201U, (int)OfficeArtPictureEffectLimit.UnqualifiedRecolor)]
     [InlineData(0x011B, 0U, (int)OfficeArtPictureEffectLimit.ExtendedColor)]
+    [InlineData(0x0117, 0x20000001U, (int)OfficeArtPictureEffectLimit.ExtendedColor)]
+    [InlineData(0x011D, 0x20000001U, (int)OfficeArtPictureEffectLimit.ExtendedColor)]
     public void OfficeArtPictureEffects_RetainPreciseLimitsInsteadOfGuessing(ushort property, uint value, int limit) {
         OfficeArtPictureEffectProjector effects = PictureEffects((property, value));
         Assert.False(effects.HasProjection);
@@ -94,6 +96,14 @@ public partial class DrawingTests {
     [InlineData(0x0108, 65536U)]
     [InlineData(0x0109, 0U)]
     [InlineData(0x013F, 6U)]
+    [InlineData(0x0115, 0xFFFFFFFFU)]
+    [InlineData(0x011B, 0xFFFFFFFFU)]
+    [InlineData(0x0117, 0x20000000U)]
+    [InlineData(0x011D, 0x20000000U)]
+    [InlineData(0x0116, 0xFFFFFFFFU)]
+    [InlineData(0x011C, 0xFFFFFFFFU)]
+    [InlineData(0x0116, 0U)]
+    [InlineData(0x011C, 0U)]
     public void OfficeArtPictureEffects_DefaultOrUnusedControlsDoNotRequireRasterization(ushort property, uint value) {
         OfficeArtPictureEffectProjector effects = PictureEffects((property, value));
         Assert.False(effects.HasProjection);

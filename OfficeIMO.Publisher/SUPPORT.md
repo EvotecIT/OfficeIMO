@@ -110,7 +110,8 @@ precedence. Controlled raster output in original native picture frames is
 checked through SVG, raster and reopened PDF output; original embedded payloads
 remain unchanged. Invalid or unqualified controls retain their diagnostics when
 other valid controls apply. Per-image and cumulative pixel ceilings account for
-repeated references, and codec cancellation aborts the read. These are managed
+inspected GIF frames and repeated references; cumulative encoded-byte checks
+reject repeated large-payload decoding, and codec cancellation aborts the read. These are managed
 record and artifact checks; the supported producer fixtures contain no enabled
 visible picture controls, so native Publisher pixel equivalence remains open.
 The brochure and newsletter also verify referenced style defaults, direct
@@ -131,10 +132,12 @@ characters, 1 million inspected records, 250,000 source/projected items,
 512 compound streams, 1,024 document/master pages, nesting depth 64,
 16 MiB per extracted/projected image and 64 MiB aggregate image accounting.
 Decoded picture-effect rasters and application codec output are limited to
-8 million pixels per image. Cumulative picture-effect decode/filter work is
-limited to 64 million pixels, charging each source pixel once for decoding and
-once for filtering across all references. Effect decoding fails the read when
-the image or selected codec cannot produce a raster within those bounds.
+8 million pixels per image. Cumulative picture-effect work is limited to
+64 million pixels, charging the selected raster once for decoding and once for
+filtering, plus each inspected GIF, WebP or icon frame across all references.
+Image extraction and each actual picture decode also charge their encoded bytes
+against `Limits.MaxInputBytes`. Effect decoding fails the read when the image or
+selected codec cannot produce a raster within those bounds.
 Multi-frame effect sources use their first frame and report omitted frames;
 `Images` retains the complete payload. Limits are
 caller-configurable, reject oversized input and also account for repeated

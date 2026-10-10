@@ -62,6 +62,24 @@ public sealed class PublisherPictureEffectTests {
         Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == diagnostic);
     }
 
+    [Theory]
+    [InlineData(0x0117, 0x20000001U, true)]
+    [InlineData(0x011D, 0x20000001U, true)]
+    [InlineData(0x0115, 0xFFFFFFFFU, false)]
+    [InlineData(0x011B, 0xFFFFFFFFU, false)]
+    [InlineData(0x0117, 0x20000000U, false)]
+    [InlineData(0x011D, 0x20000000U, false)]
+    [InlineData(0x0116, 0xFFFFFFFFU, false)]
+    [InlineData(0x011C, 0xFFFFFFFFU, false)]
+    public void Native_extended_controls_ignore_reserved_and_inactive_values(ushort property, uint value, bool reported) {
+        PublisherDocument document = PublisherDocument.Load(PictureInput(new Dictionary<ushort, uint> {
+            [property] = value, [0x013F] = 0x00040004
+        }), new PublisherReadOptions { ImageCodec = new PictureCodec() });
+        Assert.Equal(reported, document.ReadReport.FidelityDiagnostics.Any(item => item.Code == "PUB_PICTURE_RECOLOR_UNASSESSED"
+            && item.Location == "Contents/object/362"));
+        Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 362).GetPixel(0, 0));
+    }
+
     [Fact]
     public void Picture_effect_pixels_obey_per_image_and_cumulative_bounds() {
         byte[] input = PictureInput(new Dictionary<ushort, uint> { [0x013F] = 0x00040004 });

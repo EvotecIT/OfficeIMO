@@ -32,6 +32,7 @@ internal sealed class PublisherParseContext {
         if (++_imageStoreEntries > Options.Limits.MaxItems) throw new InvalidDataException("Publisher image store entry limit exceeded.");
     }
     internal void AccountImageProcessing(int bytes) {
+        Token.ThrowIfCancellationRequested();
         if (bytes > Options.Limits.MaxInputBytes - _imageProcessingBytes) throw new InvalidDataException("Publisher image processing byte limit exceeded.");
         _imageProcessingBytes += bytes;
     }

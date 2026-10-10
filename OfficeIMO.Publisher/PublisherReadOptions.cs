@@ -16,7 +16,7 @@ public sealed class PublisherReadOptions {
     public OfficeIMO.Drawing.IOfficeRasterImageCodec? ImageCodec { get; set; }
     /// <summary>Maximum decoded pixels for one projected picture, including application codec output and picture-effect decoding.</summary>
     public long MaximumRasterPixels { get; set; } = 8_000_000;
-    /// <summary>Maximum cumulative decoded and filtered picture pixels. Each picture-effect projection charges its source pixels once for decoding and once for filtering.</summary>
+    /// <summary>Maximum cumulative picture-effect work in pixels. Charges the selected raster once for decoding and once for filtering, plus each inspected GIF, WebP or icon frame.</summary>
     public long MaximumImageProcessingPixels { get; set; } = 64_000_000;
 
     /// <summary>Creates a validated independent options copy. A supplied application image codec remains shared.</summary>

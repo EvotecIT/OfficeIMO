@@ -52,7 +52,8 @@ assets remain in `Images`. The read report identifies the managed color-space
 and threshold approximations; recoloring and extended color controls remain
 unassessed. Picture effects require bounded raster decoding. `MaximumRasterPixels`
 limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulative
-decode/filter work across picture references.
+decode/filter work and inspected GIF, WebP or icon frame pixels across picture
+references.
 
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
 column settings and wrap-object references. Linked stories follow their native

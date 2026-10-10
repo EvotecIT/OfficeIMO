@@ -26,6 +26,7 @@ internal sealed partial class PublisherPageProjector {
         OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
         bool metafile = format is OfficeImageFormat.Wmf or OfficeImageFormat.Emf;
         if (!effects.HasProjection && !metafile) return image.Bytes;
+        _context.AccountImageProcessing(image.ByteCount);
         long maximumPixels = _context.Options.MaximumRasterPixels;
         if (effects.HasProjection) {
             maximumPixels = Math.Min(maximumPixels, _context.RemainingImageProcessingPixels / 2);
@@ -45,14 +46,24 @@ internal sealed partial class PublisherPageProjector {
     }
 
     private OfficeRasterImage DecodeEffectRaster(PublisherImage image, uint objectId, long maximumPixels) {
+        long inspectionPixels = Math.Min(_context.RemainingImageProcessingPixels, 50_000_000);
+        if (OfficeImageReader.TryIdentifyByContent(image.Bytes, null, _context.Token, out OfficeImageInfo identified) &&
+            OfficeRasterDecodeInfo.CountsFrameInspectionPixels(identified.Format)) {
+            inspectionPixels = Math.Min(50_000_000,
+                _context.RemainingImageProcessingPixels - checked((long)identified.Width * identified.Height * 2));
+            if (inspectionPixels < 1)
+                throw new InvalidDataException("Publisher image processing pixel limit exceeded before frame inspection.");
+        }
         var options = new OfficeRasterDecodeOptions {
             MaximumDecodedPixels = Math.Min(maximumPixels, 50_000_000),
+            MaximumInspectionWorkPixels = Math.Max(1, inspectionPixels),
             MaximumEncodedBytes = Math.Min(_context.Options.MaximumImageBytes, 128 * 1024 * 1024),
             ImageCodec = _context.Options.ImageCodec, CancellationToken = _context.Token
         };
         if (!OfficeRasterImageDecoder.TryDecode(image.Bytes, options, out OfficeRasterImage? raster, out OfficeRasterDecodeInfo info)
             || raster == null)
             throw new InvalidDataException("Publisher picture effects require a valid raster within the configured pixel and codec bounds. " + info.Diagnostic);
+        _context.AccountImageProcessingPixels(info.InspectedFramePixels);
         string location = PublisherEscherReader.ShapeLocation(objectId);
         if (info.FramesOrPagesDiscarded)
             _context.Add(OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected,
