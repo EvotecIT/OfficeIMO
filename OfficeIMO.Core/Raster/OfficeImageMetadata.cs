@@ -62,6 +62,8 @@ public sealed partial class OfficeImageMetadata {
     }
     /// <summary>XMP XML packet, excluding container framing. Profile arrays are copied.</summary>
     public byte[]? XmpProfile { get => Copy(_xmp); set => _xmp = BoundedCopy(value); }
+    // Borrowed by container writers for validation and copying; never modified by them.
+    internal byte[]? XmpProfileData => _xmp;
     /// <summary>ICC profile bytes. Profile arrays are copied.</summary>
     public byte[]? IccProfile { get => Copy(_icc); set => _icc = BoundedCopy(value); }
     /// <summary>IPTC IIM data, excluding Photoshop resource framing. Profile arrays are copied.</summary>

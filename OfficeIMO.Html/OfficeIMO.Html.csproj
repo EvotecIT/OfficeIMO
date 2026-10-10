@@ -65,6 +65,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml" />
+    <InternalsVisibleTo Include="OfficeIMO.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Email.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Email.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" />

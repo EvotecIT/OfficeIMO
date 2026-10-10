@@ -3,11 +3,15 @@ using static OfficeIMO.Access.AccessNativeBinary;
 
 namespace OfficeIMO.Access {
     internal sealed partial class AccessNativeDatabase {
+        private OfficeCompoundFile? _jetApplicationCompound;
+        private readonly List<OfficeCompoundFileEntry> _applicationEntries = new List<OfficeCompoundFileEntry>();
+        private Dictionary<string, AccessStorageStream> _applicationStreams = new Dictionary<string, AccessStorageStream>(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, AccessStorageStream> ReadApplicationStorage(CancellationToken cancellation) {
             Dictionary<string, AccessStorageStream> streams = new Dictionary<string, AccessStorageStream>(StringComparer.OrdinalIgnoreCase);
             if (_tables.TryGetValue("MSysAccessStorage", out AccessNativeTable? storage)) ReadAceStorage(storage, streams, cancellation);
             else if (_tables.TryGetValue("MSysAccessObjects", out AccessNativeTable? objects)) ReadJetStorage(objects, streams, cancellation);
             _document.ApplicationStreams = Array.AsReadOnly(streams.Values.ToArray());
+            _applicationStreams = streams;
             return streams;
         }
 
@@ -22,20 +26,12 @@ namespace OfficeIMO.Access {
                 if (records.ContainsKey(id)) throw new InvalidDataException("Native application storage repeats a row identity.");
                 records.Add(id, record);
             }
-            foreach (StorageRecord? record in records.Values.Where(x => x.Type == 2)) {
+            Dictionary<string, int> paths = ReadAceStoragePaths(records, cancellation);
+            foreach (KeyValuePair<string, int> path in paths.Where(x => x.Key.Length != 0 && x.Key != "MSysAccessStorage_SCRATCH")) {
                 cancellation.ThrowIfCancellationRequested();
-                List<string> parts = new List<string> { record.Name }; HashSet<int> visited = new HashSet<int> { record.Id }; int parentId = record.ParentId;
-                while (true) {
-                    if (visited.Count > MaxChainLength || !records.TryGetValue(parentId, out StorageRecord? parent) || parent.Type != 1)
-                        throw new InvalidDataException("Native application storage has a missing or invalid parent.");
-                    if (parent.ParentId == parent.Id) {
-                        if (parent.Name != "MSysAccessStorage_ROOT") throw new InvalidDataException("Native application stream does not reach its root.");
-                        break;
-                    }
-                    if (!visited.Add(parent.Id)) throw new InvalidDataException("Native application storage has a parent cycle.");
-                    parts.Insert(0, parent.Name); parentId = parent.ParentId;
-                }
-                AddStorage(streams, string.Join("/", parts), record.Bytes ?? Array.Empty<byte>(), record.Id);
+                StorageRecord record = records[path.Value];
+                _applicationEntries.Add(new OfficeCompoundFileEntry(record.Name, path.Key, checked((byte)record.Type), record.Bytes?.Length ?? 0));
+                if (record.Type == 2) AddStorage(streams, path.Key, record.Bytes ?? Array.Empty<byte>(), record.Id);
             }
         }
 
@@ -59,6 +55,8 @@ namespace OfficeIMO.Access {
                 AddApplicationDiagnostic("access.application.carrier-opaque", "The Jet application carrier is outside the qualified compound layout; its whole-file snapshot remains preserve-only.");
                 return;
             }
+            _jetApplicationCompound = compound;
+            _applicationEntries.AddRange(compound.Entries);
             foreach (KeyValuePair<string, byte[]> pair in compound.Streams) AddStorage(streams, pair.Key, pair.Value, null);
         }
 

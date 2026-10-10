@@ -31,6 +31,7 @@
     <ProjectReference Include="..\OfficeIMO.Mhtml\OfficeIMO.Mhtml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Mhtml.Pdf\OfficeIMO.Mhtml.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Ocr\OfficeIMO.Ocr.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Ocr.Tesseract\OfficeIMO.Ocr.Tesseract.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
@@ -39,6 +40,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="../OfficeIMO.DjVu.Tests/Fixtures/Authored/unicode.djvu" Link="Fixtures/DjVu/unicode.djvu" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.DjVu.Tests/Fixtures/Authored/noise-small.djvu" Link="Fixtures/DjVu/noise-small.djvu" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
     <None Include="../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf" Link="Fixtures/SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs"

@@ -86,6 +86,13 @@ public partial class MarkdownDoc {
     public byte[] ToBytes(MarkdownWriteOptions? options = null, Encoding? encoding = null) =>
         (encoding ?? Utf8WithoutBom).GetBytes(ToMarkdown(options));
 
+    /// <summary>Encodes Markdown with cooperative cancellation during serialization.</summary>
+    public byte[] ToBytes(MarkdownWriteOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
+        byte[] bytes = (encoding ?? Utf8WithoutBom).GetBytes(ToMarkdown(options, cancellationToken));
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
     /// <summary>Encodes this document in a new writable stream positioned at the beginning.</summary>
     public MemoryStream ToStream(MarkdownWriteOptions? options = null, Encoding? encoding = null) =>
         new MemoryStream(ToBytes(options, encoding));
@@ -110,7 +117,7 @@ public partial class MarkdownDoc {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         await OfficeFileCommit.WriteAllBytesAsync(
             path,
-            ToBytes(options, encoding),
+            ToBytes(options, encoding, cancellationToken),
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
@@ -120,7 +127,7 @@ public partial class MarkdownDoc {
         MarkdownWriteOptions? options = null,
         Encoding? encoding = null,
         CancellationToken cancellationToken = default) {
-        await OfficeStreamWriter.WriteAllBytesAsync(stream, ToBytes(options, encoding), cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, ToBytes(options, encoding, cancellationToken), cancellationToken).ConfigureAwait(false);
     }
 
     private static string DecodeText(byte[] bytes, Encoding encoding) {

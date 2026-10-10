@@ -15,7 +15,7 @@ internal static class OfficePdfCommand {
 OfficeIMO.Tool - Office to PDF
 
 Usage:
-  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx|input.odg|input.fodg> [output.pdf] [--output <file.pdf>] [--force]
+  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx|input.odg|input.fodg|input.djvu|input.djv> [output.pdf] [--output <file.pdf>] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
                     [--text-encoding <name>] [--tab-size 1..32] [--allow-legacy-loss]
@@ -23,7 +23,8 @@ Usage:
 
 The command uses the first-party OfficeIMO format adapters.
 Draw conversion keeps source page dimensions and uses print-visible layers by default.
-Diagram --require-no-loss rejects source and PDF-stage fidelity losses before publishing.
+DjVu conversion preserves scan pixels, page sizes and existing searchable text.
+Diagram and DjVu --require-no-loss reject source and PDF-stage fidelity losses before publishing.
 Package structure, Open XML part size, and PDF output are bounded by default.
 Conversion diagnostics are written to standard error.
 """;
@@ -46,8 +47,8 @@ Conversion diagnostics are written to standard error.
             if (!File.Exists(inputPath)) throw new FileNotFoundException("Input document was not found.", inputPath);
             if (!parsed.Force && File.Exists(outputPath)) throw new OfficePdfOutputExistsException(outputPath);
 
-            if (parsed.IsDrawInput) {
-                return await DrawPdfCommand.RunAsync(
+            if (parsed.IsDrawInput || parsed.IsDjVuInput) {
+                return await FixedLayoutPdfCommand.RunAsync(
                     parsed, inputPath, outputPath, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
             }
 

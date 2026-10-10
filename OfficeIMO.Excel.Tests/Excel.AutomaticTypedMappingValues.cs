@@ -303,6 +303,42 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         } finally { File.Delete(path); }
     }
 
+    [Theory]
+    [InlineData(ExcelDateSystem.NineteenHundred)]
+    [InlineData(ExcelDateSystem.NineteenFour)]
+    public void MappedDateKeepsTheOriginalSerialForSubsequentGetters(ExcelDateSystem dateSystem) {
+        string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>1.25</v></c></row>",
+            new[] { "Date" }, 2, dateSystem: dateSystem);
+        try {
+            DateTime expected;
+            using (var oracle = ExcelDocument.OpenDataReader(path)) {
+                Assert.True(oracle.Read());
+                expected = oracle.GetDateTime(0);
+            }
+            using var reader = ExcelDocument.OpenDataReader(path);
+            using IEnumerator<DateRow> rows = reader.RowsAs<DateRow>().GetEnumerator();
+            Assert.True(rows.MoveNext());
+            Assert.Equal(expected, rows.Current.Date);
+            Assert.Equal(1.25, reader.GetDouble(0));
+            Assert.Equal(expected, reader.GetDateTime(0));
+            Assert.Equal(expected, Assert.IsType<DateTime>(reader.GetValue(0)));
+            Assert.Equal(1.25, reader.GetDouble(0));
+            Assert.False(rows.MoveNext());
+        } finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void MalformedDateStyledNumericTokenKeepsTextRoundTripKind() {
+        string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\" s=\"1\"><v>2024-01-02T03:04:05Z</v></c></row>",
+            new[] { "Date" }, 2);
+        try {
+            using var reader = ExcelDocument.OpenDataReader(path);
+            DateTime date = Assert.Single(reader.RowsAs<DateRow>()).Date;
+            Assert.Equal(DateTime.Parse("2024-01-02T03:04:05Z", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), date);
+            Assert.Equal(DateTimeKind.Utc, date.Kind);
+        } finally { File.Delete(path); }
+    }
+
     [Fact]
     public void NativeMappingDoesNotRetryOrWrapAPropertySetterFailure() {
         string path = CreateWorkbook("<row r=\"2\"><c r=\"A2\"><v>42</v></c></row>", new[] { "Value" }, 2);
@@ -357,9 +393,11 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         Assert.Equal(index == 1 ? 1.125 : index == 2 ? -2.25 : 77, value);
     }
 
-    private static string CreateWorkbook(string rows, string[] headers, int lastRow, bool utf16 = false) {
+    private static string CreateWorkbook(string rows, string[] headers, int lastRow, bool utf16 = false,
+        ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.TypedMapping.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
+            document.DateSystem = dateSystem;
             document.AddWorksheet("Data").CellValue(1, 1, "Value");
             document.Save();
         }

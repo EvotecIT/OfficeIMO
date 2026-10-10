@@ -24,10 +24,10 @@ public sealed partial class PrintPreviewViewModel {
     private IReadOnlyList<PrintDuplexChoice>? _duplexChoices;
     public IReadOnlyList<int> PrintDpiChoices { get; } = [150, 300];
     public IReadOnlyList<PrintDuplexChoice> DuplexChoices => _duplexChoices ??= [
-        new(PdfPrintDuplex.PrinterDefault, T("Duplex.Default", "Printer default")),
-        new(PdfPrintDuplex.SingleSided, T("Duplex.Single", "Single-sided")),
-        new(PdfPrintDuplex.LongEdge, T("Duplex.Long", "Double-sided, long edge")),
-        new(PdfPrintDuplex.ShortEdge, T("Duplex.Short", "Double-sided, short edge"))
+        new(PdfPrintDuplex.PrinterDefault, T("Duplex.Default")),
+        new(PdfPrintDuplex.SingleSided, T("Duplex.Single")),
+        new(PdfPrintDuplex.LongEdge, T("Duplex.Long")),
+        new(PdfPrintDuplex.ShortEdge, T("Duplex.Short"))
     ];
     public bool RequiresPrintOutput => SelectedPrinter?.RequiresOutputFile == true;
     public bool HasPrinterDiscoveryError => !string.IsNullOrWhiteSpace(PrinterDiscoveryError);
@@ -38,7 +38,9 @@ public sealed partial class PrintPreviewViewModel {
     protected override void OnPropertyChanged(PropertyChangedEventArgs e) {
         base.OnPropertyChanged(e);
         if (e.PropertyName is nameof(InputPath) or nameof(Pages) or nameof(SelectedPaper) or nameof(SelectedOrientation)
-            or nameof(SelectedScale) or nameof(SelectedPagesPerSheet) or nameof(PrintDpi)) InvalidatePreparedSheets();
+            or nameof(SelectedScale) or nameof(SelectedPagesPerSheet) or nameof(PrintDpi)
+            or nameof(CustomScalePercent) or nameof(SelectedAlignment) or nameof(SelectedPageSubset) or nameof(SelectedColor)
+            or nameof(MarginLeft) or nameof(MarginTop) or nameof(MarginRight) or nameof(MarginBottom)) InvalidatePreparedSheets();
         if (e.PropertyName is nameof(IsBusy) or nameof(SelectedPrinter) or nameof(PrintOutputPath) or nameof(HasPreview) or nameof(IsDiscoveringPaperSources) or nameof(IsDiscoveringPrinters)) {
             OnPropertyChanged(nameof(CanChangePrintSettings));
             OnPropertyChanged(nameof(CanPrint));
@@ -76,7 +78,7 @@ public sealed partial class PrintPreviewViewModel {
             if (Equals(selected, SelectedPrinter)) PaperSourceDiscovery = RefreshPaperSourcesAsync(selected);
             else SelectedPrinter = selected;
             await PaperSourceDiscovery.ConfigureAwait(true);
-            if (printers.Count == 0) PrinterDiscoveryError = T("NoPrinters", "No printer queues are installed.");
+            if (printers.Count == 0) PrinterDiscoveryError = T("NoPrinters");
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
         catch (Exception error) { if (!_disposed) PrinterDiscoveryError = Infrastructure.StudioMessages.Describe(error); }
         finally {
@@ -107,11 +109,11 @@ public sealed partial class PrintPreviewViewModel {
                 PaperSourceId = SelectedPaperSource?.Id,
                 OutputFilePath = printer.RequiresOutputFile ? PrintOutputPath : null
             };
-            job = _jobHistory?.Start(T("JobTitle", "Print reviewed sheets"), InputName, printer.Name, operation.Cancel);
+            job = _jobHistory?.Start(T("JobTitle"), InputName, printer.Name, operation.Cancel);
             using IDisposable? permit = _jobHistory is null ? null : await _jobHistory.EnterAsync(operation.Token).ConfigureAwait(true);
-            Status = T("Sending", "Sending the reviewed sheets to the printer…");
+            Status = T("Sending");
             PdfPrintSubmission receipt = await _printers.SubmitAsync(prepared, options, operation.Token).ConfigureAwait(true);
-            Status = _localizer.FormatOrDefault("PrintPreview.Accepted", "Printer accepted job {0}: {1} sheet(s), {2} copy/copies. Check the printer for completion.",
+            Status = _localizer.Format("PrintPreview.Accepted",
                 receipt.JobId, receipt.SheetCount, receipt.Copies);
             if (!string.IsNullOrWhiteSpace(receipt.CleanupWarning)) Status += " " + receipt.CleanupWarning;
             job?.Complete(OfficeWorkflowStatus.Completed, null, Status);
@@ -119,7 +121,7 @@ public sealed partial class PrintPreviewViewModel {
             Status = Infrastructure.StudioMessages.Describe(error);
             job?.Complete(OfficeWorkflowStatus.Unconfirmed, null, Status);
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
-            Status = T("DeliveryCancelled", "Printing cancelled before submission.");
+            Status = T("DeliveryCancelled");
             job?.Complete(OfficeWorkflowStatus.Cancelled, null, Status);
         } catch (Exception error) {
             Status = Infrastructure.StudioMessages.Describe(error);

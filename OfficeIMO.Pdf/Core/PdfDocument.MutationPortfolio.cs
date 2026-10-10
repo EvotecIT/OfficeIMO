@@ -52,17 +52,15 @@ public sealed partial class PdfDocument {
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = GetReadSnapshot(options, cancellationToken);
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(
-            snapshot.Bytes, snapshot.Options, () => snapshot.Document, cancellationToken);
+        var snapshot = GetPreflightSnapshot(options, cancellationToken);
         var plans = new PdfMutationPlan[requested.Length];
         for (int index = 0; index < requested.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             plans[index] = PdfMutationPlanner.Plan(
-                preflight, snapshot.Bytes, requested[index], requestedFieldNames,
+                snapshot.Preflight, snapshot.Bytes, requested[index], requestedFieldNames,
                 executionPreference, snapshot.Options);
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new PdfMutationPortfolioReport(preflight, Array.AsReadOnly(plans));
+        return new PdfMutationPortfolioReport(snapshot.Preflight, Array.AsReadOnly(plans));
     }
 }

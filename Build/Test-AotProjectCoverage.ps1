@@ -49,6 +49,31 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Chm'
+        classification = 'managed-cross-platform'
+        evidence = 'Bounded CHM archive reading is qualified through managed .NET 8 and 10 contracts and independent entry extraction; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Chm.Markdown'
+        classification = 'managed-cross-platform'
+        evidence = 'The CHM Markdown adapter is qualified through managed .NET 8 and 10 conversion contracts; no complete-adapter NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Chm.Epub'
+        classification = 'managed-cross-platform'
+        evidence = 'The CHM EPUB adapter is qualified through managed conversion contracts, reopened publications and EPUBCheck; no complete-adapter NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Chm.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The CHM PDF adapter is qualified through managed conversion and reopened artifact tests; the PDF owner NativeAOT host does not qualify the complete adapter.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.Chm'
+        classification = 'managed-cross-platform'
+        evidence = 'The modular CHM Reader adapter is qualified through managed extraction and registration contracts; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.OpenDocument.Odg.Pdf'
         classification = 'managed-cross-platform'
         evidence = 'The Draw PDF bridge is qualified through managed conversion tests and packed .NET consumers; no complete-bridge NativeAOT qualification is claimed.'
@@ -57,6 +82,21 @@ $nonNativeValidated = @(
         name = 'OfficeIMO.Access'
         classification = 'managed-cross-platform'
         evidence = 'Native MDB/ACCDB reading, inert application inspection, unchanged preservation and Jet 4/ACE 12 creation are qualified through managed .NET tests and independent Access/DAO evidence; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.DjVu'
+        classification = 'managed-cross-platform'
+        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.DjVu.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.DjVu'
+        classification = 'managed-cross-platform'
+        evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
     }
     [ordered]@{
         name = 'OfficeIMO.Xps'

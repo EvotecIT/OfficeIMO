@@ -1,5 +1,16 @@
 # Upgrading OfficeIMO
 
+## PDF form value assessment
+
+`PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
+precision and range checks from the supported inert field/widget action profile.
+Unsupported script constraints produce assessment errors without executing code.
+Applications that previously displayed only length and choice errors must also
+display these errors and block acceptance until the assessment succeeds. Correct
+numeric values to the recovered rules; use a qualified form application for
+unsupported script constraints.
+The [form review contract](OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+defines the supported helper calls; the policy does not emulate Acrobat formatting.
 ## Shared raster workflow contracts
 
 `OfficeRasterEncodingOptions` uses an explicit nullable `Resolution` override in place of the shared `DpiX` and `DpiY` setters. Replace an explicit 300 DPI override with `Resolution = new OfficeImageResolution(300, 300)`. Null keeps a plain encoder's selected codec settings in control; metadata-aware encoding takes density from the supplied `OfficeImageMetadata` when the override is null. Format-specific density settings remain available on the PNG, JPEG, TIFF, and WebP option objects.
@@ -7,6 +18,12 @@
 Use `OfficeRasterDecodeOptions.FrameLossPolicy` and `OfficeRasterFrameLossPolicy` in place of `AnimationPolicy` and `OfficeRasterAnimationPolicy`. The policy describes discarded TIFF pages and icon entries as well as animation frames. `DecodeFrames` returns complete supported sequences; `Decode` selects one frame or page. Throwing and best-effort entry points share the same decoder and limits.
 
 Raster text effects move from the long positional `OfficeRasterText.Draw` overload to `OfficeRasterTextOptions`. Pass the same options to `Measure` and `Draw` for consistent font, style, language, shaping, and wrapping. The short plain-text primitives retain their distinct convenience role.
+
+`OfficeRasterText.Draw` places the complete layout measured by `Measure`, including fractional line spacing. Rectangle height no longer removes lines. `Clip` controls glyph and effect clipping at the rectangle edges; `Wrap = false` preserves authored line breaks without adding soft wraps.
+
+Common raster decoding interpolates subsampled JPEG chroma by default. Set `OfficeRasterDecodeOptions.JpegHighQualityChroma = false` to select nearest-sample chroma reconstruction, including when reproducing pixels decoded with the earlier common default. This setting does not change EXIF orientation or acceptance of truncated input.
+
+Rotated and affine canvas images use fractional coverage at their outer boundaries. Edge pixels can therefore have partial alpha where the earlier renderer selected fully opaque pixels by their centers. Identity placement keeps the source pixels unchanged. Periodic image and vector fills assign shared tile boundaries by pixel center while retaining interpolation within each tile, avoiding seams between opaque tiles.
 
 The raster constructor now enforces the existing 50-million-pixel limit before allocation. `GetPixels` applies the same source-plus-copy managed-storage limit as `Clone`; applications retaining a large decoded image may need a smaller result before making another complete copy. Pixel setters retain clipping behavior. Canvas drawing onto its own image samples a guarded snapshot of the original pixels.
 
@@ -47,6 +64,15 @@ Replace `pdf.AssessMutations(default)` with
 `pdf.AssessMutations(operations: default)`. The cancellation-token overload makes
 the positional `default` literal ambiguous. Parameterless calls and calls with
 an explicit operation collection retain their existing behavior.
+
+## PDF inputs without readable objects
+
+Lenient typed reading throws `PdfParseException` with code `NoIndirectObjects`
+when an input contains no recoverable indirect objects. Reject these inputs
+instead of treating their former empty page collection as an opened PDF.
+`PdfDocument.Load` still captures the source lazily; call `Read`, `Inspect`, or
+`InspectForViewing` to require a typed read. `Preflight` retains read blockers,
+and zero-page catalogs and recoverable object fragments keep their existing behavior.
 
 ## EPUB XHTML image export
 
@@ -142,9 +168,31 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## DjVu Reader identity and transport
+
+Register `.AddDjVuHandler()` from `OfficeIMO.Reader.DjVu` for `.djvu` and `.djv`,
+or use the all-adapters preset. Results use `ReaderInputKind.DjVu` (`28`) and
+transport schema v12. Update exhaustive input-kind switches and transport bindings
+to accept the new value and version. Historical schemas remain readable; v11 and
+earlier cannot carry DjVu input kinds. Schema v11 and `ReaderInputKind.Chm` (`27`)
+retain their existing CHM contract. Obtain the current artifact through
+`OfficeDocumentReadResultSchema.GetJsonSchema()`. Native source page numbers remain
+stable when selected pages are reordered. Page images and new OCR are explicit
+options; corrupt stored text is a parsing diagnostic.
+
 `XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.
+
+## CHM Reader identity
+
+Register `.AddChmHandler()` from `OfficeIMO.Reader.Chm` to ingest compiled HTML Help,
+or use the all-adapters preset. Results use `ReaderInputKind.Chm` (`27`) and document
+transport schema version 11. Update exhaustive kind switches and transport bindings
+to accept this value and version. Versions 5 through 10 remain readable; they cannot
+carry CHM input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the
+current artifact. CHM citations identify archive/topic paths rather than physical
+page numbers, and source hashes cover the original archive bytes.
 
 ## XPS PDF reading order
 

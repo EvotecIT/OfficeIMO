@@ -128,13 +128,6 @@ public sealed partial class StudioMobileApplicationTests {
     }
 
     private static async Task WaitForCommandButtonAsync(Window window, Button button) {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-        // Overlay navigation animates into place; wait for its actual hit target before clicking.
-        while (true) {
-            Layout(window);
-            var point = button.TranslatePoint(new Avalonia.Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
-            if (window.InputHitTest(point) is Avalonia.Visual hit && hit.GetSelfAndVisualAncestors().Contains(button)) return;
-            await Task.Delay(10, timeout.Token);
-        }
+        await StudioHeadlessInput.WaitForTargetAsync(window, button, () => Layout(window));
     }
 }

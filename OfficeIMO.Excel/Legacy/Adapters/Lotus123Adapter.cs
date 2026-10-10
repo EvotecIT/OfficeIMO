@@ -6,11 +6,15 @@ internal sealed class Lotus123Adapter : WkRecordSpreadsheetAdapterBase {
     public override string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x06, 0x04)
-            ? "lotus-1-2-3-wk1-records" : "lotus-1-2-3-later-salvage";
+            ? "lotus-1-2-3-wk1-records" : LaterRecordSpreadsheetReader.IsLotus(data) ? "lotus-1-2-3-later-records" : "lotus-1-2-3-later-salvage";
     }
 
     public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
+        if (LaterRecordSpreadsheetReader.IsLotus(data)) {
+            reason = "Lotus WK3/WK4/123 generation-specific BOF payload.";
+            return 100;
+        }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x1A, 0x00)) {
             if (ExtensionIs(sourceName, ".wk3", ".wk4", ".123")) {
                 reason = "Later Lotus 1-2-3 BOF record envelope with a corroborating Lotus family extension.";
@@ -34,6 +38,7 @@ internal sealed class Lotus123Adapter : WkRecordSpreadsheetAdapterBase {
     }
 
     public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
+        if (LaterRecordSpreadsheetReader.IsLotus(data)) return LaterRecordSpreadsheetReader.Read(data, limits, cancellationToken, LaterSpreadsheetProfile.Lotus);
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x06, 0x04)) return ParseWkRecords(data, limits, "Lotus WK1", 0x06, 0x04, cancellationToken);
         return ParseDelimitedSalvage(data, limits,
             "Later Lotus workbook text was salvaged; sheet structure, formulas, formatting, names, comments, and charts require a profile-specific decoder and are reported as loss.", cancellationToken);

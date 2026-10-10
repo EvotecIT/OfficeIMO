@@ -298,6 +298,16 @@ declarations from the caller and independent validation.
 chapters at heading level 1 by default, retains nested heading navigation, and rewrites
 internal links across chapter files. Lists, tables, code, notes, image alternatives,
 SVG namespaces and source styles remain semantic content rather than page snapshots.
+HTML 4 named anchors remain link destinations. Supported legacy table, alignment,
+dimension and list attributes become CSS or accessibility metadata; term-only
+definition lists become unordered lists and trailing terms receive empty descriptions.
+These translations report approximations,
+and unsupported legacy values report omissions.
+
+XHTML and MathML `xml:id` destinations become `id` attributes before chapter planning.
+SVG destinations receive matching `id` attributes for fragment links.
+An XML identifier that conflicts with an existing ID reports a failure and
+keeps the existing destination.
 
 ```csharp
 using OfficeIMO.Epub;

@@ -35,6 +35,58 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  chm-contracts:
+    name: 'CHM archive and conversion contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        framework: [net8.0, net10.0]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test compiled archives, conversions, and rich Reader projection
+        run: dotnet test OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=chm.trx' --results-directory TestResults/Chm
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: chm-tests-${{ matrix.os }}-${{ matrix.framework }}
+          path: TestResults/Chm
+          if-no-files-found: ignore
+          retention-days: 7
+
+  legacy-imports:
+    name: 'Legacy imports / ${{ matrix.os }} / ${{ matrix.framework }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        framework: [net8.0, net10.0]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test bounded legacy import and conversion contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=legacy-imports.trx' --results-directory TestResults/LegacyImports
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: legacy-import-tests-${{ matrix.os }}-${{ matrix.framework }}
+          path: TestResults/LegacyImports
+
   browser-exports:
     name: 'Browser exports / Chromium, Firefox and WebKit'
     runs-on: windows-latest
@@ -188,7 +240,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 -p:OfficeIMOStudioDistribution=MacAppStore --filter 'FullyQualifiedName~StudioDistributionPolicyTests|FullyQualifiedName~InvoiceWorkbenchVisualTests' --logger 'trx;LogFileName=studio-store.trx' --results-directory TestResults/Studio/Store
+          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 -p:OfficeIMOStudioDistribution=MacAppStore --filter 'FullyQualifiedName~StudioDistributionPolicyTests|FullyQualifiedName~InvoiceWorkbenchVisualTests|FullyQualifiedName~StudioFormOcrProviderAvailabilityTests' --logger 'trx;LogFileName=studio-store.trx' --results-directory TestResults/Studio/Store
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
@@ -785,6 +837,8 @@ jobs:
             project: OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
           - name: ChartForgeX-Markdown
             project: OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj
+          - name: Chm
+            project: OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj
           - name: Confluence
             project: OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj
           - name: Drawing
@@ -809,6 +863,8 @@ jobs:
             project: OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
           - name: Xps
             project: OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
+          - name: DjVu
+            project: OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj
           - name: OpenDocument
             project: OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj
           - name: OpenDocument-Converters
@@ -1215,6 +1271,9 @@ jobs:
           if [[ "${{ matrix.partition }}" == excel-* ]]; then
             dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
           fi
+          if [ "${{ matrix.partition }}" = "excel-legacy-reader" ]; then
+            dotnet restore OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj
+          fi
           if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
             dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
           fi
@@ -1238,6 +1297,7 @@ jobs:
             dotnet restore OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj
             dotnet restore OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
             dotnet restore OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj
+            dotnet restore OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
             dotnet restore OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj
@@ -1269,6 +1329,9 @@ jobs:
           if [[ "${{ matrix.partition }}" == excel-* ]]; then
             dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
+          if [ "${{ matrix.partition }}" = "excel-legacy-reader" ]; then
+            dotnet build OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
           if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
             dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
@@ -1292,6 +1355,7 @@ jobs:
             dotnet build OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1513,6 +1577,7 @@ jobs:
               run_excel_tests "excel-closedxml-gap" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Test_ClosedXmlGap'
               ;;
             excel-legacy-reader)
+              dotnet test OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_excel_tests "excel-legacy-xls" 'FullyQualifiedName~OfficeIMO.Tests.Excel.LegacyXls'
               run_excel_tests "excel-performance" 'FullyQualifiedName~OfficeIMO.Tests.Excel.PerformanceReview'
               run_excel_tests "excel-reader" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Reader|FullyQualifiedName~OfficeIMO.Tests.Excel.ReadRows|FullyQualifiedName~OfficeIMO.Tests.Excel.ExcelHttp'
@@ -1541,6 +1606,7 @@ jobs:
               dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_markup_tests
               dotnet test OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_opendocument_tests
               dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_powerpoint_tests

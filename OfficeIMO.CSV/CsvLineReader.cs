@@ -8,7 +8,8 @@ namespace OfficeIMO.CSV;
 
 internal sealed partial class CsvLineReader : IDisposable
 {
-    private const int DefaultBufferSize = 32 * 1024;
+    /// <summary>Default buffer size for streaming CSV text transport and record parsing.</summary>
+    internal const int DefaultBufferSize = 32 * 1024;
     private const int MaximumReadRequestSize = 256 * 1024;
 #if NET8_0_OR_GREATER
     private const int UnquotedDelimiterIndexCapacity = 64;
