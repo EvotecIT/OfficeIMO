@@ -279,6 +279,7 @@
       panel.appendChild(el('span', 'imo-fmap__label', outs.length ? 'Converts to ' + plural(outs.length, 'format') + where() : 'No mapped conversion from ' + focus + where() + ' yet'));
       var list = el('ul', 'imo-fmap__list imo-fmap__outs');
       outs.forEach(function (r) { list.appendChild(row(r, r.target)); });
+      if (view === 'list') list.addEventListener('scroll', relayout);
       panel.appendChild(list);
       if (ins.length) {
         panel.appendChild(el('span', 'imo-fmap__label', 'Made from ' + plural(ins.length, 'format') + where()));
@@ -350,6 +351,9 @@
       while (wires.firstChild) wires.removeChild(wires.firstChild);
       var chip = state.from && root.querySelector('.imo-fmap__chip.is-active');
       var rows = Array.prototype.slice.call(panel.querySelectorAll('.imo-fmap__outs .imo-fmap__row'));
+      // The list scrolls when it is long: only draw to the rows that are in view.
+      var outsBox = panel.querySelector('.imo-fmap__outs'), clip = outsBox && outsBox.getBoundingClientRect();
+      if (clip) rows = rows.filter(function (li) { var r = li.getBoundingClientRect(); return r.top >= clip.top - 2 && r.bottom <= clip.bottom + 2; });
       if (!chip || !rows.length || getComputedStyle(wires).display === 'none') return;
       // Leave from the end of the chip's row, so curves don't cut through its neighbours.
       var box = wires.getBoundingClientRect(), start = chip.getBoundingClientRect(), rowEnd = start.right;
@@ -782,8 +786,39 @@
       if (window.ResizeObserver) new window.ResizeObserver(relayout).observe(root.querySelector('.imo-fmap__board'));
     }
 
+    // Choosing a format must not move what is below the map. Where the answer panel is not pinned to the height of the circle
+    // (the list view, and the stacked layouts), reserve the height of the tallest answer, measured once per layout.
+    var reserveTimer = 0;
+    function reservePanelHeight() {
+      if (!side) return;
+      side.style.minHeight = '';
+      if (/size/.test(getComputedStyle(side).contain || '')) return;
+      var keep = { from: state.from, to: state.to, hover: state.hover, focus: state.focus, surface: state.surface, top: side.scrollTop };
+      var tallest = 0;
+      state.hover = state.focus = state.to = null;
+      state.surface = 'all';
+      order.forEach(function (n) {
+        if (!outOf(n).length) return;
+        state.from = n;
+        buildPanel();
+        tallest = Math.max(tallest, side.offsetHeight);
+      });
+      state.from = keep.from; state.to = keep.to; state.hover = keep.hover; state.focus = keep.focus; state.surface = keep.surface;
+      buildPanel();
+      side.scrollTop = keep.top;
+      if (tallest) side.style.minHeight = tallest + 'px';
+      drawWires();
+    }
+    function scheduleReserve() {
+      window.clearTimeout(reserveTimer);
+      reserveTimer = window.setTimeout(reservePanelHeight, 150);
+    }
+    window.addEventListener('resize', scheduleReserve);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleReserve);
+
     if (view === 'list') state.from = 'DOCX';
     update(true);
+    scheduleReserve();
     // The tour starts by itself as soon as the circle is in view, unless the visitor got there first (hovered or picked
     // something) or asked for no tour (?tour=0). Reduced motion keeps the button only.
     if (svg && view === 'radial' && !still && query.tour !== '0') {

@@ -229,6 +229,13 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
 .imo-fmap__wires .imo-fmap__edge { opacity: .7; stroke: color-mix(in srgb, var(--imo-text-secondary) 60%, transparent); stroke-width: 1.4; }
 .imo-fmap__wires .imo-fmap__edge.is-hl { stroke: var(--fmap-hl); stroke-width: 2; opacity: 1; }
 
+/* Long answers scroll inside their own list wherever the panel is not pinned to the height of the circle, so the height reserved
+   for the tallest answer (format-map.js) stays modest. */
+.imo-fmap--list .imo-fmap__outs { max-height: 26rem; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; }
+@media (max-width: 1100px) {
+  .imo-fmap--radial .imo-fmap__outs { max-height: 26rem; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; }
+}
+
 /* ---- Medium screens: side by side the circle would shrink until its labels are unreadable (8px at 900px wide),
    so the panel moves below it and the circle keeps the full width. ---- */
 @media (min-width: 861px) and (max-width: 1100px) {
@@ -245,7 +252,6 @@ button.imo-fmap__surface:hover { border-color: var(--s); }
   .imo-fmap--radial .imo-fmap__side { border-left: 0; border-top: 1px solid var(--imo-border); }
   .imo-fmap--list .imo-fmap__side { border-top: 1px solid var(--imo-border); }
   .imo-fmap__formats, .imo-fmap__side { padding: 16px; }
-  .imo-fmap--radial .imo-fmap__outs { max-height: none; overflow: visible; }
 }
 @media (max-width: 520px) {
   .imo-fmap__row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding: 7px 10px; }
