@@ -22,7 +22,7 @@ public sealed class ReaderPublisherTableTests {
         Assert.Single(result.Tables); Assert.Single(result.Pages[1].Tables);
         Assert.Single(result.Chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()));
         OfficeDocumentBlock block = Assert.Single(result.Blocks, item => item.Kind == "table");
-        Assert.Equal(table.Location.BlockAnchor, block.Id);
+        Assert.Equal(table.Location.BlockAnchor, block.Location.BlockAnchor);
         Assert.Equal(2, block.Location.Page);
         Assert.Equal(block.Text, string.Concat(result.Chunks.Where(chunk => chunk.Location.LogicalOrder == block.Location.LogicalOrder).Select(chunk => chunk.Text)));
         string csv = table.ToCsv();
@@ -43,6 +43,28 @@ public sealed class ReaderPublisherTableTests {
         }).ToBytes()).ExtractText();
         foreach (string cell in new[] { "Table on page 2", "Top right", "P2 table left", "P2 table right", "Bottom Left", "Bottom Right" })
             Assert.Single(Regex.Matches(text, Regex.Escape(cell)));
+    }
+
+    [Theory]
+    [InlineData(false, 3)]
+    [InlineData(true, 3)]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    public void PageMarkdownRendersStructuredRowsOnceAndRetainsTheReportedRowLimit(bool transport, int maximumRows) {
+        OfficeDocumentReadResult result = Read(Fixture(), new ReaderOptions { MaxTableRows = maximumRows });
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        foreach (string markdown in new[] { result.GetPageMarkdown()[1].Markdown, result.ToPageMarkedMarkdown() }) {
+            Assert.Single(Regex.Matches(markdown, "Table on page 2"));
+            Assert.Single(Regex.Matches(markdown, "Top right"));
+            if (maximumRows == 3) {
+                Assert.Single(Regex.Matches(markdown, "Bottom Left"));
+                Assert.Single(Regex.Matches(markdown, "Bottom Right"));
+            } else {
+                Assert.DoesNotContain("Bottom Left", markdown);
+                Assert.DoesNotContain("Bottom Right", markdown);
+            }
+        }
+        Assert.Contains("Bottom Right", result.Markdown);
     }
 
     [Theory]

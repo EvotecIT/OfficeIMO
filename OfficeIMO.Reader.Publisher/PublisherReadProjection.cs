@@ -84,7 +84,7 @@ internal sealed partial class PublisherReadProjection {
             tableBlock = new OfficeDocumentBlock { Id = anchor + "-table", Kind = "table", Text = story.Text, Location = location };
             _blocks.Add(tableBlock);
             foreach (ReaderTable table in tables) {
-                table.Location!.BlockAnchor = tableBlock.Id;
+                table.Location!.BlockAnchor = location.BlockAnchor;
                 table.Location.LogicalOrder = location.LogicalOrder;
             }
             if (location.Page.HasValue) {
