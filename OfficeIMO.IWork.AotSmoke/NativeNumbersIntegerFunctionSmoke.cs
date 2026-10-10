@@ -41,9 +41,14 @@ internal static class NativeNumbersIntegerFunctionSmoke {
         guard.CellValue(1, 4, 42d); guard.CellFormula(1, 4, "IFERROR(LCM(1E20,OFFSET(A1,-1,0)),99)");
         guard.CellValue(2, 4, 42d); guard.CellFormula(2, 4, "GCD(A1:A100000,B1)");
         guard.CellFormula(3, 4, "IFERROR(SUM(OFFSET(A1,-1,0)),99)");
-        Require(bounds.Calculate() == 1 && guard.TryGetCachedFormulaValue(1, 4, out string? unsupported) && unsupported == "42"
+        guard.CellValue(4, 4, 42d); guard.CellFormula(4, 4, "IFERROR(COUNTIFS(OFFSET(A1,-1,0),UNKNOWN()+1),99)");
+        guard.CellValue(1, 1, 1d); guard.CellValue(1, 2, 10d);
+        guard.CellFormula(5, 4, "IFNA(XLOOKUP(2,A1:A1,B1:B1,,0,-1),99)");
+        Require(bounds.Calculate() == 2 && guard.TryGetCachedFormulaValue(1, 4, out string? unsupported) && unsupported == "42"
             && guard.TryGetCachedFormulaValue(2, 4, out string? overBudget) && overBudget == "42"
-            && guard.TryGetCachedFormulaValue(3, 4, out string? referenceError) && referenceError == "99",
+            && guard.TryGetCachedFormulaValue(3, 4, out string? referenceError) && referenceError == "99"
+            && guard.TryGetCachedFormulaValue(4, 4, out string? criterion) && criterion == "42"
+            && guard.TryGetCachedFormulaValue(5, 4, out string? notFound) && notFound == "99",
             "Shared reference qualification or aggregate cell budget failed.");
         Require(Hash(source) == sourceHash && Hash(nativeXlsx) == xlsxHash, "Integer conversion changed native input.");
         Console.WriteLine("PASS | native Numbers integer functions | " + sourceHash

@@ -990,6 +990,13 @@ Unsupported inputs and resource limits remain unevaluated inside `IFERROR`,
 `IFNA` and error predicates, preserving existing caches. Completed supported
 lookup searches return typed `#N/A` when no match exists.
 
+`XLOOKUP` retains empty optional argument positions: an empty fallback uses
+`#N/A`, an empty match mode uses exact matching, and an empty search mode scans
+from the first item. The [fresh Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)
+records no-match, explicit-fallback and reverse-search cases. Conditional
+aggregates resolve unquoted criteria as formula arguments; unsupported criterion
+expressions preserve existing caches. Quoted criteria remain literal text.
+
 Named references can resolve to A1 ranges or numeric, text, Boolean, and error
 constants, including bounded aliases and worksheet-local scope. Arbitrary
 formulas stored in defined names remain outside this calculation subset.

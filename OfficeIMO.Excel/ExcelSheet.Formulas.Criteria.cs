@@ -254,16 +254,13 @@ namespace OfficeIMO.Excel {
         private bool TryParseCriteria(string token, out FormulaCriteria criteria) {
             string value = token.Trim();
 
-            bool resolved = TryResolveFormulaArgument(value, out FormulaArgumentValue criteriaValue);
-            if (criteriaValue.IsUnresolvedFormula
-                || (!resolved && ExcelFormulaExpressionParser.TryParseFunctionCall(value, out _))) {
+            if (!TryResolveFormulaArgument(value, out FormulaArgumentValue criteriaValue)
+                || criteriaValue.IsUnresolvedFormula) {
                 criteria = default;
                 return false;
             }
-            if (resolved && criteriaValue.HasValue) {
+            if (criteriaValue.HasValue) {
                 value = FormulaValueToText(criteriaValue);
-            } else if (value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"') {
-                value = value.Substring(1, value.Length - 2);
             }
 
             string op = "=";

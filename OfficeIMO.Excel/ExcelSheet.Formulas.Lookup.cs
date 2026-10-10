@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
             }
 
             int matchMode = 0;
-            if (tokens.Count >= 5 && !TryGetWholeNumberArgument(tokens[4], out matchMode)) {
+            if (tokens.Count >= 5 && tokens[4].Length > 0 && !TryGetWholeNumberArgument(tokens[4], out matchMode)) {
                 return false;
             }
 
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
             }
 
             int searchMode = 1;
-            if (tokens.Count >= 6
+            if (tokens.Count >= 6 && tokens[5].Length > 0
                 && (!TryGetWholeNumberArgument(tokens[5], out searchMode) || (searchMode != 1 && searchMode != -1))) {
                 return false;
             }
@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel {
 
             if (searchFailure.IsUnresolvedFormula) return false;
             if (searchFailure.IsError) { result = searchFailure; return true; }
-            if (tokens.Count >= 4) {
+            if (tokens.Count >= 4 && tokens[3].Length > 0) {
                 if (!TryResolveFormulaArgument(tokens[3], out result) || result.IsUnresolvedFormula || !result.HasValue) return false;
                 return true;
             }

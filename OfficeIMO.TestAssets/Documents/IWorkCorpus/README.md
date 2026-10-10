@@ -539,6 +539,13 @@ Reproduce the controlled fixture decode with the pinned oracle:
 python Build/IWork/extract-numbers-integer-functions.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-excel-v16.113.3.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5-decode.json
 ```
 
+The [Excel optional-lookup reference](native-exports/excel-xlookup-optional-v16.113.3.json)
+records seven XLOOKUP cases after explicit native recalculation from an intake
+without formula caches. Empty fallback, match-mode and search-mode positions
+retain their native defaults; reverse search and explicit fallback have separate
+controls. The original intake, saved Excel 16.113.3 workbook and inspected app
+screenshot are hash-pinned. This qualifies these optional-argument cases only.
+
 ### Complete native-content PDF references
 
 The [paragraph-layout creation reference](native-exports/pages-created-layout-v15.4.json)

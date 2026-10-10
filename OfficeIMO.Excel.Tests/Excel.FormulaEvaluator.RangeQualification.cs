@@ -19,6 +19,14 @@ namespace OfficeIMO.Tests {
         [InlineData("PERCENTILE.INC(OFFSET(A1,-1,0),UNKNOWN())")]
         [InlineData("CORREL(OFFSET(A1,-1,0),UNKNOWN())")]
         [InlineData("COUNTIFS(OFFSET(A1,-1,0),UNKNOWN())")]
+        [InlineData("COUNTIF(OFFSET(A1,-1,0),UNKNOWN()+1)")]
+        [InlineData("SUMIF(OFFSET(A1,-1,0),UNKNOWN()+1)")]
+        [InlineData("AVERAGEIF(OFFSET(A1,-1,0),UNKNOWN()+1)")]
+        [InlineData("COUNTIFS(OFFSET(A1,-1,0),UNKNOWN()+1)")]
+        [InlineData("SUMIFS(B1,OFFSET(A1,-1,0),UNKNOWN()+1)")]
+        [InlineData("AVERAGEIFS(B1,OFFSET(A1,-1,0),UNKNOWN()+1)")]
+        [InlineData("MINIFS(B1,OFFSET(A1,-1,0),UNKNOWN()+1)")]
+        [InlineData("MAXIFS(B1,OFFSET(A1,-1,0),UNKNOWN()+1)")]
         public void Unsupported_inputs_are_not_masked_by_reference_errors(string expression) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Qualification");
@@ -60,15 +68,40 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void Omitted_lookup_fallback_keeps_explicit_match_and_reverse_search_positions() {
+        [Theory]
+        [InlineData("XLOOKUP(2,A1:A1,B1:B1)", "#N/A")]
+        [InlineData("XLOOKUP(2,A1:A1,B1:B1,,0,-1)", "#N/A")]
+        [InlineData("XLOOKUP(2,A1:A1,B1:B1,99,0,-1)", "99")]
+        [InlineData("XLOOKUP(1,A1:A2,B1:B2,,0,-1)", "20")]
+        [InlineData("XLOOKUP(2,A1:A1,B1:B1,,0)", "#N/A")]
+        [InlineData("XLOOKUP(2,A1:A1,B1:B1,99,,-1)", "99")]
+        [InlineData("XLOOKUP(2,A1:A1,B1:B1,99,0,)", "99")]
+        public void Optional_lookup_positions_follow_fresh_native_Excel_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Lookup positions");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 1d);
             sheet.CellValue(1, 2, 10d); sheet.CellValue(2, 2, 20d);
-            sheet.CellFormula(1, 4, "XLOOKUP(1,A1:A2,B1:B2,,0,-1)");
+            sheet.CellFormula(1, 4, formula);
             Assert.Equal(1, document.Calculate());
-            Assert.True(sheet.TryGetCachedFormulaValue(1, 4, out string? cache)); Assert.Equal("20", cache);
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 4, out string? cache)); Assert.Equal(expected, cache);
+        }
+
+        [Fact]
+        public void Criteria_keep_quoted_expression_text_and_resolved_arithmetic() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Criteria qualification");
+            sheet.CellValue(1, 1, "UNKNOWN()+1"); sheet.CellValue(2, 1, 2d);
+            sheet.CellValue(1, 2, 7d); sheet.CellValue(2, 2, 11d);
+            sheet.CellFormula(1, 4, "COUNTIF(A1:A2,\"UNKNOWN()+1\")");
+            sheet.CellFormula(2, 4, "SUMIF(A1:A2,\"UNKNOWN()+1\",B1:B2)");
+            sheet.CellFormula(3, 4, "IFERROR(COUNTIFS(OFFSET(A1,-1,0),\"UNKNOWN()+1\"),99)");
+            sheet.CellFormula(4, 4, "COUNTIF(A1:A2,1+1)");
+            Assert.Equal(4, document.Calculate());
+            string[] expected = { "1", "7", "99", "1" };
+            for (int row = 1; row <= expected.Length; row++) {
+                Assert.True(sheet.TryGetCachedFormulaValue(row, 4, out string? cache));
+                Assert.Equal(expected[row - 1], cache);
+            }
         }
 
         [Theory]
