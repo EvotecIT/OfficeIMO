@@ -611,10 +611,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle, tableStyleDefaults.UseConfiguredTypography));
             }
 
-            PdfCore.PdfTextRun? finalContentRun = result.LastOrDefault(run =>
-                run.InlineElement != null || !IsNativeTrailingSpacingOnly(run.Text));
-            if ((finalContentRun != null && finalContentRun.InlineElement == null && EndsWithNativeLineBreak(finalContentRun.Text)) ||
-                (finalContentRun == null && WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true)) {
+            if (NeedsNativeParagraphMarkStrut(result, WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true)) {
                 result.Add(CreateNativeParagraphMarkStrut(paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
             }
             return result;

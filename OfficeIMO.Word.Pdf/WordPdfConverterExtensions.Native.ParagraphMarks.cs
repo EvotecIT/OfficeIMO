@@ -11,6 +11,13 @@ namespace OfficeIMO.Word.Pdf {
         private static bool EndsWithNativeLineBreak(string text) =>
             text.TrimEnd(' ', '\t').EndsWith("\n", StringComparison.Ordinal);
 
+        private static bool NeedsNativeParagraphMarkStrut(System.Collections.Generic.IEnumerable<PdfCore.PdfTextRun> runs, bool numbered) {
+            PdfCore.PdfTextRun? finalContent = runs.LastOrDefault(run =>
+                run.InlineElement != null || !IsNativeTrailingSpacingOnly(run.Text));
+            return finalContent == null ? numbered :
+                finalContent.InlineElement == null && EndsWithNativeLineBreak(finalContent.Text);
+        }
+
         private static PdfCore.PdfTextRun CreateNativeParagraphMarkStrut(WordParagraph paragraph,
             NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
             // Resolve a detached view of the mark through the ordinary typography

@@ -224,6 +224,23 @@ public partial class Word {
         Assert.Equal(grid ? 54D : 45D, emptyMarkers[0].StartBaseLine.Y - brokenMarkers[0].StartBaseLine.Y, 3);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_TrailingInlineImageDoesNotReplaceVisibleBodyMetricsWithTheMark(bool grid, bool table) {
+        using WordDocument source = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid, false, table);
+        Paragraph first = source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Paragraph>().First();
+        var paragraph = new WordParagraph(source, first, first.Elements<Run>().First());
+        using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
+        paragraph.AddText(string.Empty).AddImage(image, "inline.png", 10, 10);
+        (first.ParagraphProperties!.ParagraphMarkRunProperties ??= new ParagraphMarkRunProperties()).Append(new FontSize { Val = "80" });
+        var letters = ReadNumberingMetricLetters(source);
+        Assert.Equal(grid ? 36D : 25.5D, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 3);
+        Assert.Equal(grid ? 36D : 25.5D, letters[1].StartBaseLine.Y - letters[2].StartBaseLine.Y, 3);
+    }
+
     private static WordDocument CreateNumberingMetricDocument(double markerSize, WordListLevelSuffix suffix,
         bool grid, bool wrapped, bool table = false) {
         WordDocument source = WordDocument.Create();
