@@ -1,5 +1,6 @@
 using System.Threading;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Word.IWork;
 
@@ -176,15 +177,10 @@ public static partial class WordIWorkConverter {
     }
 
     private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph) {
-        if (paragraph.ListLayout is not { } layout || !paragraph.ListNumber.HasValue
-            || paragraph.ListLevel != 0 || layout.MarkerScale != 1 || layout.MarkerIndentPoints != 0
-            || paragraph.Style.FirstLineIndentPoints.GetValueOrDefault() != 0
-            || paragraph.Style.LeftIndentPoints.GetValueOrDefault() != 0
-            || paragraph.Style.RightIndentPoints.GetValueOrDefault() != 0
-            || paragraph.Style.TextStyle.FontSizePoints is not double size
-            || !IsFinite(size) || size <= 0 || size != Math.Round(size)
-            || paragraph.Runs.Any(run => run.Style.FontSizePoints is double runSize && runSize != size)) return false;
-        return FitsSignedTwips(layout.TextIndentEm * size, allowRounding: true);
+        return IWorkDecimalListLayout.TryResolve(paragraph, out double markerSize, out double textOffset)
+            && markerSize <= int.MaxValue / 2d
+            && FitsSignedTwips(textOffset, allowRounding: true)
+            && FitsSignedTwips(paragraph.ListLayout!.MarkerIndentPoints + textOffset, allowRounding: true);
     }
 
     private static IEnumerable<double> PaddingPoints(IWorkCellPadding padding) {

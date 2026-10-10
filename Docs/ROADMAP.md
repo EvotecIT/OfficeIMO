@@ -136,7 +136,7 @@ Owners: `OfficeIMO.IWork` for decoding; Word/Drawing for Pages layout; Excel and
 
 #### Pages
 
-- [ ] Extend native list numbering beyond the [qualified initial marker kinds and level-zero decimal starts/restarts](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md#pages-list-style-declarations) to other levels, continuation across non-list text, tiered numbering and additional numbering scripts. Qualify native exports and rendered behavior in additional text containers and producer versions.
+- [ ] Extend native list numbering beyond the [qualified non-tiered decimal levels 0 and 1](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-list-continuation-v15.4.json) to deeper levels, tiered numbering, additional scripts and continuation through other numbered or bullet styles. Qualify native exports and rendered behavior in additional text containers and producer versions. Resolve the recorded Pages DOCX reimport marker-size difference: the 11-point declaration renders at 12 points while counters and text/marker starts remain exact.
 - [ ] Extend Pages attachments beyond the [qualified zero-offset body images and standalone tables](officeimo.iwork-support-matrix.md#pages-inline-attachments), including additional placement modes and text containers; deepen banding and cell styling beyond [qualified role fills and Numbers body-row banding](officeimo.iwork-support-matrix.md#table-fill-defaults-and-banding), [selected fills/layout and table text styles](officeimo.iwork-support-matrix.md#table-text-defaults-and-selected-styles), floating tables, wrapping, section layout, and page-layout documents through the existing Word/Drawing owners.
 
 #### Numbers

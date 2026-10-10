@@ -11,6 +11,8 @@ public static partial class WordIWorkConverter {
         private readonly WordDocument _document;
         private readonly HashSet<int> _observedLevels = new();
         private WordList? _current;
+        private string? _markerFontName;
+        private int? _markerFontSize;
 
         internal IWorkNativeListCatalog(WordDocument document) {
             _document = document;
@@ -20,10 +22,17 @@ public static partial class WordIWorkConverter {
 
         internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName,
             IWorkListMarkerKind markerKind, bool startsNewList, int? qualifiedNumber,
-            int? qualifiedTextOffset) {
-            if (startsNewList || _current == null) {
+            int? qualifiedLeftOffset, int? qualifiedHangingOffset, int? qualifiedMarkerFontSize) {
+            // Numbering run properties apply to every level of one WordList. Start
+            // a new list rather than changing earlier markers when that profile changes.
+            bool markerProfileChanged = qualifiedMarkerFontSize.HasValue
+                && (_markerFontSize != qualifiedMarkerFontSize
+                    || !string.Equals(_markerFontName, fontName, StringComparison.Ordinal));
+            if (startsNewList || _current == null || markerProfileChanged) {
                 _current = WordList.AddCustomList(_document);
                 _observedLevels.Clear();
+                _markerFontName = fontName;
+                _markerFontSize = qualifiedMarkerFontSize;
             }
             WordList list = _current;
             WordListLevelKind levelKind = markerKind == IWorkListMarkerKind.Number
@@ -51,10 +60,11 @@ public static partial class WordIWorkConverter {
                     + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
             }
             if (firstObservation && fontName != null) list.FontName = fontName;
-            if (qualifiedTextOffset.HasValue) {
+            if (firstObservation && qualifiedMarkerFontSize.HasValue) list.FontSize = qualifiedMarkerFontSize;
+            if (qualifiedLeftOffset.HasValue && qualifiedHangingOffset.HasValue) {
                 WordListLevel numberingLevel = list.Numbering.Levels[level];
-                numberingLevel.IndentationLeft = qualifiedTextOffset.Value;
-                numberingLevel.IndentationHanging = qualifiedTextOffset.Value;
+                numberingLevel.IndentationLeft = qualifiedLeftOffset.Value;
+                numberingLevel.IndentationHanging = qualifiedHangingOffset.Value;
                 numberingLevel.LevelSuffix = WordListLevelSuffix.Tab;
             }
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties

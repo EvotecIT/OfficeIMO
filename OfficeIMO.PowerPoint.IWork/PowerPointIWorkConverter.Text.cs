@@ -1,6 +1,7 @@
 using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.PowerPoint.IWork;
 
@@ -86,7 +87,10 @@ public static partial class PowerPointIWorkConverter {
                 paragraph.LeftMarginPoints = source.Style.LeftIndentPoints.GetValueOrDefault()
                     + layout.MarkerIndentPoints + textOffset;
                 paragraph.IndentPoints = source.Style.FirstLineIndentPoints.GetValueOrDefault() - textOffset;
-                paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
+                if (IWorkDecimalListLayout.TryResolve(source, out double markerSize, out _)) {
+                    paragraph.BulletSizePoints = checked((int)markerSize);
+                    paragraph.BulletFontName = IWorkDecimalListLayout.MarkerFontName(source);
+                } else paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
             }
         }
     }

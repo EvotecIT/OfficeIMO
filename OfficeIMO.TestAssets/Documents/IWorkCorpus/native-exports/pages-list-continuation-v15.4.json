@@ -1,0 +1,382 @@
+{
+  "source": "native-exports/pages-list-continuation-v15.4.pages",
+  "sourceSha256": "4696ff27d21db00e93d7a7985aba09c22f5f483bf714ce97c680e1a5528a4d53",
+  "producer": "Apple Pages",
+  "producerVersion": "15.4",
+  "producerBuild": "7051.0.79",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "capturedUtc": "2026-10-10T03:35:33.208398+00:00",
+  "sourceModified": false,
+  "sourceProvenance": "Apple Pages imports an OfficeIMO-owned synthetic DOCX recipe, saves the modern native package, closes/reopens it, and exports DOCX and PDF. All content is synthetic. The retained DOCX recipe may be regenerated with different package timestamps; native package and exports below are the evidence boundary.",
+  "inputRecipe": {
+    "paragraphs": [
+      "Native decimal list continuation",
+      "Initial seven",
+      "Initial eight",
+      "Non-list interruption",
+      "Continued nine",
+      "Nested first",
+      "Nested second",
+      "Parent ten",
+      "Nested after parent",
+      "Nested restart five",
+      "Nested restart six",
+      "Nested non-list interruption",
+      "Nested continued seven",
+      "Original parent eleven",
+      "Parent restart three",
+      "Parent restart four"
+    ],
+    "bodyFont": "Arial 12pt",
+    "rootStart": 7,
+    "nestedStart": 1,
+    "nestedRestart": 5,
+    "rootRestart": 3,
+    "continuation": "Original numbering scope crosses ordinary text at both levels; a parent item resets its child counter."
+  },
+  "artifacts": [
+    {
+      "path": "native-exports/pages-list-continuation-v15.4.pages",
+      "bytes": 687478,
+      "sha256": "4696ff27d21db00e93d7a7985aba09c22f5f483bf714ce97c680e1a5528a4d53"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-v15.4.docx",
+      "bytes": 8959,
+      "sha256": "7c0b0df4d159d39d45bbedd43ff66b332a0f45da7c132b3eead5fcdcfdbb830a"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-v15.4.pdf",
+      "bytes": 34615,
+      "sha256": "2ee759014f749aa40f7a7c7b681cb5811391787e2940d463001d9d617c5e809f"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-officeimo-v15.4.docx",
+      "bytes": 20517,
+      "sha256": "fd35372f12997fcaf351c25a1399c89f0de849d68776117092fbc5c6767864db"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-officeimo-native-v15.4.pdf",
+      "bytes": 34619,
+      "sha256": "91b080df2ae557639b75d1987e784263a67072eb005256bb33e3aaefeb0eb7a4"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-native-v15.4.png",
+      "bytes": 51569,
+      "sha256": "6e08f2e02c04ceb6b53b668c2f65b2f39305bf2ee9c67a960aac805c3036c180"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-officeimo-native-v15.4.png",
+      "bytes": 51968,
+      "sha256": "206590501d1d916fde6a1cce09bf87680caad4c7431429ff71eec7a0a3fca711"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-native-decode-v15.4.json",
+      "bytes": 22069,
+      "sha256": "c0e22659b166e0cbd3b75bc5056f42a5b6bec01c303c45c643fd046594422df1"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-native-geometry-v15.4.json",
+      "bytes": 42967,
+      "sha256": "83f5c9a0667ddbaaa1259eeb10b7d51475ade920b73bc6082b4074fa4e072ad8"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-composed-v15.4.pdf",
+      "bytes": 1279,
+      "sha256": "a1610b0bad560c7009767ef942e645429c4d337d3b2a22b95a9e1b6f75458b82"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-composed-v15.4.json",
+      "bytes": 8789,
+      "sha256": "2407a0dcdea50f0bb78f1f0c08f282d523adb923dcc16b7f59c9f71482902dbe"
+    },
+    {
+      "path": "native-exports/pages-list-continuation-composed-v15.4.png",
+      "bytes": 51288,
+      "sha256": "ca39d346170f9384d3daf1372fa0fc04dff4cb727d68fdc884f8ffac05e8c2b5"
+    }
+  ],
+  "license": "OfficeIMO-owned synthetic content and Apple-generated native exports. No third-party document or standalone font files are included.",
+  "exportOptions": {
+    "office": "DOCX, no password",
+    "pdf": "Best image quality; comments, annotations and password disabled"
+  },
+  "fontProvenance": "Installed Calibri 11-point native markers and ArialMT 12-point body text; native marker scaling is 0.9166667. Apple DOCX uses Arial Unicode MS marker font. Font metrics and import behavior are qualified separately.",
+  "independentDecode": {
+    "provider": "numbers-parser 4.19.0 IWA decompression / protobuf schemas",
+    "schemaRepository": "https://github.com/orcastor/iwork-converter",
+    "schemaRevision": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "storageIdentifier": 1732641,
+    "offsetUnit": "UTF-16 code units",
+    "paragraphData": {
+      "entries": [
+        {
+          "characterIndex": 0,
+          "first": 0,
+          "second": 0
+        },
+        {
+          "characterIndex": 33,
+          "first": 0,
+          "second": 1
+        },
+        {
+          "characterIndex": 47,
+          "first": 0,
+          "second": 0
+        },
+        {
+          "characterIndex": 98,
+          "first": 1,
+          "second": 0
+        },
+        {
+          "characterIndex": 125,
+          "first": 0,
+          "second": 0
+        },
+        {
+          "characterIndex": 136,
+          "first": 1,
+          "second": 0
+        },
+        {
+          "characterIndex": 156,
+          "first": 1,
+          "second": 1
+        },
+        {
+          "characterIndex": 176,
+          "first": 1,
+          "second": 0
+        },
+        {
+          "characterIndex": 195,
+          "first": 0,
+          "second": 0
+        },
+        {
+          "characterIndex": 224,
+          "first": 1,
+          "second": 0
+        },
+        {
+          "characterIndex": 247,
+          "first": 0,
+          "second": 1
+        },
+        {
+          "characterIndex": 291,
+          "first": 0,
+          "second": 0
+        }
+      ]
+    },
+    "paragraphStarts": {
+      "entries": [
+        {
+          "characterIndex": 0,
+          "first": 0,
+          "second": 0
+        },
+        {
+          "characterIndex": 33,
+          "first": 7,
+          "second": 0
+        },
+        {
+          "characterIndex": 47,
+          "first": 0,
+          "second": 0
+        },
+        {
+          "characterIndex": 156,
+          "first": 5,
+          "second": 0
+        },
+        {
+          "characterIndex": 176,
+          "first": 0,
+          "second": 0
+        },
+        {
+          "characterIndex": 247,
+          "first": 11,
+          "second": 0
+        },
+        {
+          "characterIndex": 270,
+          "first": 3,
+          "second": 0
+        },
+        {
+          "characterIndex": 291,
+          "first": 0,
+          "second": 0
+        }
+      ]
+    },
+    "listStyles": {
+      "entries": [
+        {
+          "characterIndex": 0,
+          "object": {
+            "identifier": "1731481"
+          }
+        },
+        {
+          "characterIndex": 33,
+          "object": {
+            "identifier": "1732808"
+          }
+        },
+        {
+          "characterIndex": 61,
+          "object": {
+            "identifier": "1731481"
+          }
+        },
+        {
+          "characterIndex": 83,
+          "object": {
+            "identifier": "1732808"
+          }
+        },
+        {
+          "characterIndex": 156,
+          "object": {
+            "identifier": "1732811"
+          }
+        },
+        {
+          "characterIndex": 195,
+          "object": {
+            "identifier": "1731481"
+          }
+        },
+        {
+          "characterIndex": 224,
+          "object": {
+            "identifier": "1732811"
+          }
+        },
+        {
+          "characterIndex": 247,
+          "object": {
+            "identifier": "1732808"
+          }
+        },
+        {
+          "characterIndex": 270,
+          "object": {
+            "identifier": "1732814"
+          }
+        }
+      ]
+    },
+    "schemaOriginalRepository": "https://github.com/obriensp/iwork-converter",
+    "artifact": "native-exports/pages-list-continuation-native-decode-v15.4.json",
+    "schemaLicense": "MIT, Steve Dunham"
+  },
+  "expected": {
+    "counters": [
+      null,
+      7,
+      8,
+      null,
+      9,
+      1,
+      2,
+      10,
+      1,
+      5,
+      6,
+      null,
+      7,
+      11,
+      3,
+      4
+    ],
+    "explicitStarts": [
+      null,
+      7,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      5,
+      null,
+      null,
+      null,
+      11,
+      3,
+      null
+    ],
+    "levels": [
+      -1,
+      0,
+      0,
+      -1,
+      0,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      -1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "markerSizePoints": 11,
+    "bodySizePoints": 12,
+    "textIndentEm": 1.5,
+    "rootLeftTwips": 330,
+    "nestedLeftTwips": 690,
+    "hangingTwips": 330
+  },
+  "nativeQualification": {
+    "opened": true,
+    "saved": true,
+    "closedAndReopened": true,
+    "pdfPages": 1,
+    "allPagesVisuallyInspected": true,
+    "repairWarningObserved": false,
+    "fontWarningObserved": false,
+    "docxReimport": {
+      "opened": true,
+      "repairWarningObserved": false,
+      "fontWarningObserved": false,
+      "pdfPages": 1,
+      "allPagesVisuallyInspected": true,
+      "extractedWords": 55,
+      "allCountersRetained": true,
+      "allTextAndMarkerStartsMatch": true,
+      "sourceMarkerPoints": 11,
+      "reimportMarkerPoints": 12,
+      "maximumWordBoundDifferencePoints": 1.2656,
+      "geometryReceipt": "native-exports/pages-list-continuation-native-geometry-v15.4.json"
+    }
+  },
+  "limits": "Levels zero and one, non-tiered decimal counters and one Pages producer version. Deeper/tiered/script counters and continuation through other numbered or bullet styles remain unassessed. Native Pages reimport of reconstructed DOCX retains all counters and text/marker starts but scales the declared 11-point marker to 12 points; exact native marker-size roundtrip remains open.",
+  "composedPdfQualification": {
+    "succeeded": true,
+    "pdfPages": 1,
+    "allPagesVisuallyInspected": true,
+    "sourceUnits": 2,
+    "reconstructedSourceUnits": 2,
+    "omittedSourceUnits": 0,
+    "unassessedSourceUnits": 0,
+    "reconstructedParagraphs": 16,
+    "markerPoints": 11,
+    "bodyPoints": 12,
+    "fontSubstitutionsReported": true,
+    "receipt": "native-exports/pages-list-continuation-composed-v15.4.json"
+  }
+}

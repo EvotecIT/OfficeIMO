@@ -377,10 +377,14 @@ public static partial class WordIWorkConverter {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier
                     || sourceParagraph.ListStartNumber.HasValue;
+                bool qualifiedLayout = CanApplyQualifiedListLayout(sourceParagraph);
                 nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
-                    sourceParagraph.ListLabel, sourceParagraph.ListFontName,
+                    sourceParagraph.ListLabel, qualifiedLayout
+                        ? IWorkDecimalListLayout.MarkerFontName(sourceParagraph) : sourceParagraph.ListFontName,
                     sourceParagraph.ListMarkerKind, startsNewList, sourceParagraph.ListNumber,
-                    CanApplyQualifiedListLayout(sourceParagraph) ? paragraph.IndentationBefore : null);
+                    qualifiedLayout ? paragraph.IndentationBefore : null,
+                    qualifiedLayout ? paragraph.IndentationHanging : null,
+                    qualifiedLayout ? checked((int)sourceParagraph.Style.TextStyle.FontSizePoints!.Value) : null);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
                 hasPreviousListParagraph = true;
             } else {
@@ -427,7 +431,9 @@ public static partial class WordIWorkConverter {
             double offset = Math.Round(source.ListLayout!.TextIndentEm
                 * source.Style.TextStyle.FontSizePoints!.Value * 20d,
                 MidpointRounding.AwayFromZero) / 20d;
-            paragraph.IndentationBeforePoints = offset;
+            paragraph.IndentationBeforePoints = Math.Round((source.ListLayout.MarkerIndentPoints
+                + source.ListLayout.TextIndentEm * source.Style.TextStyle.FontSizePoints!.Value) * 20d,
+                MidpointRounding.AwayFromZero) / 20d;
             paragraph.IndentationFirstLine = null;
             paragraph.IndentationHangingPoints = offset;
         }

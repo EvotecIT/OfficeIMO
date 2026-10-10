@@ -507,6 +507,11 @@ public static partial class PowerPointIWorkConverter {
 
     private static bool CanApplyListLayout(IWorkTextParagraph paragraph) {
         if (paragraph.ListLayout is not { } layout) return true;
+        if (IWorkDecimalListLayout.TryResolve(paragraph, out double markerSize, out double decimalOffset)) {
+            return markerSize <= 4000d
+                && FitsTextCoordinate(layout.MarkerIndentPoints + decimalOffset)
+                && FitsTextCoordinate(-decimalOffset);
+        }
         if (paragraph.Style.TextStyle.FontSizePoints is not double fontSize || !IsFinite(fontSize)
             || fontSize <= 0 || paragraph.Runs.Any(run => run.Style.FontSizePoints is double size
                 && Math.Abs(size - fontSize) > 0.00001d)) return false;

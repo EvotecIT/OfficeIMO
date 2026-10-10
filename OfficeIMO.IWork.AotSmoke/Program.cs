@@ -76,6 +76,7 @@ Console.WriteLine("PASS | bounded iWork NativeAOT destination conversions | "
 NativeKeynoteWriterSmoke.Run();
 NativePagesWriterSmoke.Run();
 NativePagesParagraphWriterSmoke.Run();
+NativePagesListCounterSmoke.Run();
 NativeNumbersWriterSmoke.Run();
 NativePreservationSmoke.Run();
 

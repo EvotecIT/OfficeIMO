@@ -34,9 +34,13 @@ internal static partial class IWorkTextReader {
         IReadOnlyList<AttributeBoundary> listStarts = ReadParagraphDataTable(message, 14, text.Length,
             storage, projectionBudget, references, ref countersComplete);
         ValidateListStartBoundaries(listStarts, text, storage, references, ref countersComplete);
+        ValidateListRestartBoundaries(listLevels, listStarts, text, storage, references,
+            ref levelsComplete);
         complete &= levelsComplete && (!message.HasField(14) || countersComplete);
+        bool listStylesComplete = true;
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
-            storage, projectionBudget, references, ref complete, static type => type == ListStyleArchive);
+            storage, projectionBudget, references, ref listStylesComplete, static type => type == ListStyleArchive);
+        complete &= listStylesComplete;
         IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, text.Length,
             storage, projectionBudget, references, ref complete, static type => type is CharacterStyleArchive or ParagraphStyleArchive);
         IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, text.Length,
@@ -62,11 +66,20 @@ internal static partial class IWorkTextReader {
                 paragraphStyle.LeftIndentPoints,
                 explicitListLevel,
                 projectionBudget, listStyleCache, decodedListStyleCache, tolerateStyleDepth, references, ref complete);
-            bool qualifiedCounterProfile = levelsComplete && countersComplete && explicitListLevel == 0
+            bool qualifiedCounterProfile = levelsComplete && countersComplete && listStylesComplete
+                && explicitListLevel is >= 0 and <= 1
                 && listStyleId.HasValue && decodedListStyleCache.TryGetValue(listStyleId.Value, out Cached<ListStyleData> counterStyle)
                 && counterStyle.IsComplete && HasQualifiedDecimalProfile(counterStyle.Value, listLevel);
-            (int? listNumber, int? listStartNumber) = listCounter.Resolve(listStarts, paragraph.Start,
-                listStyleId, listMarkerKind, qualifiedCounterProfile, storage, references, ref complete);
+            int plainLevel = explicitListLevel ?? 0;
+            bool qualifiedPlainProfile = levelsComplete && listStylesComplete
+                && listMarkerKind == IWorkListMarkerKind.None
+                && (!listStyleId.HasValue || decodedListStyleCache.TryGetValue(listStyleId.Value,
+                    out Cached<ListStyleData> plainStyle) && plainStyle.IsComplete
+                    && plainLevel >= 0 && plainLevel < plainStyle.Value.LabelTypes.Count
+                    && plainStyle.Value.LabelTypes[plainLevel] == 0);
+            (int? listNumber, int? listStartNumber) = listCounter.Resolve(listStarts, listLevels,
+                paragraph.Start, listStyleId, listLevel, listMarkerKind, qualifiedCounterProfile, qualifiedPlainProfile,
+                storage, references, ref complete);
             if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
             if (listFontName != null) projectionBudget.AddTextCharacters(listFontName.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };

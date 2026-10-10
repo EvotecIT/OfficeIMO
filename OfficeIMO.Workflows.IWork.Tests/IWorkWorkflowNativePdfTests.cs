@@ -10,6 +10,7 @@ public sealed partial class IWorkWorkflowTests {
     [Theory]
     [InlineData("pages-created-edited-v15.4.pages", "pages-pdf", 2, "8")]
     [InlineData("pages-created-layout-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-list-continuation-v15.4.pages", "pages-pdf", 1, "2")]
     [InlineData("numbers-created-edited-v14.5.numbers", "numbers-pdf", 4, "6")]
     [InlineData("keynote-created-tables-edited-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
@@ -49,6 +50,7 @@ public sealed partial class IWorkWorkflowTests {
         switch (route) {
             case "pages-pdf":
                 if (fixture == "pages-created-layout-edited-v15.4.pages") AssertNativePagesLayoutText(pages);
+                else if (fixture == "pages-list-continuation-v15.4.pages") AssertNativePagesListText(pages);
                 else AssertNativePagesText(pages);
                 break;
             case "numbers-pdf": AssertNativeNumbersText(pages); break;
@@ -104,6 +106,19 @@ public sealed partial class IWorkWorkflowTests {
         }) {
             int at = text.IndexOf(expected, StringComparison.Ordinal);
             Assert.True(at > previous, "Missing or reordered content: " + expected);
+            previous = at;
+        }
+    }
+
+    private static void AssertNativePagesListText(IReadOnlyList<string> pages) {
+        string text = string.Join("\n", pages);
+        int previous = -1;
+        foreach (string expected in new[] { "Native decimal list continuation", "7. Initial seven", "8. Initial eight",
+            "Non-list interruption", "9. Continued nine", "1. Nested first", "2. Nested second", "10.Parent ten",
+            "1. Nested after parent", "5. Nested restart five", "6. Nested restart six", "Nested non-list interruption",
+            "7. Nested continued seven", "11.Original parent eleven", "3. Parent restart three", "4. Parent restart four" }) {
+            int at = text.IndexOf(expected, StringComparison.Ordinal);
+            Assert.True(at > previous, "Missing or reordered numbered content: " + expected);
             previous = at;
         }
     }
