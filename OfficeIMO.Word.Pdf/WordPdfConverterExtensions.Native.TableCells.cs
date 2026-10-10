@@ -611,11 +611,11 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle, tableStyleDefaults.UseConfiguredTypography));
             }
 
-            if (result.Count == 0 && WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true) {
-                PdfCore.PdfTextRun strut = CreateNativeCellTextRun(string.Empty, paragraph,
-                    tableStyleDefaults, nativeDefaults, nativeFontMap);
-                strut.IsLineBoxStrut = true;
-                result.Add(strut);
+            PdfCore.PdfTextRun? finalContentRun = result.LastOrDefault(run =>
+                run.InlineElement != null || !IsNativeTrailingSpacingOnly(run.Text));
+            if ((finalContentRun != null && finalContentRun.InlineElement == null && EndsWithNativeLineBreak(finalContentRun.Text)) ||
+                (finalContentRun == null && WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true)) {
+                result.Add(CreateNativeParagraphMarkStrut(paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
             }
             return result;
         }

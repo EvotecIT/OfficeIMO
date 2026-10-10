@@ -102,14 +102,29 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(false, false, 25.5D)]
-    [InlineData(true, false, 36D)]
-    [InlineData(false, true, 25.5D)]
-    [InlineData(true, true, 36D)]
-    public void SaveAsPdf_EmptyNumberedItemRetainsItsParagraphMarkMetrics(bool grid, bool table, double expected) {
+    [InlineData(false, false, "", 25.5D)]
+    [InlineData(true, false, "", 36D)]
+    [InlineData(false, true, "", 25.5D)]
+    [InlineData(true, true, "", 36D)]
+    [InlineData(false, false, "   ", 25.5D)]
+    [InlineData(true, false, "   ", 36D)]
+    [InlineData(false, true, "   ", 25.5D)]
+    [InlineData(true, true, "   ", 36D)]
+    [InlineData(false, false, "\t", 25.5D)]
+    [InlineData(true, false, "\t", 36D)]
+    [InlineData(false, true, "\t", 25.5D)]
+    [InlineData(true, true, "\t", 36D)]
+    public void SaveAsPdf_EmptyNumberedItemRetainsItsParagraphMarkMetrics(bool grid, bool table, string whitespace, double expected) {
         using WordDocument source = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid, wrapped: false, table);
         var main = source._wordprocessingDocument.MainDocumentPart!;
-        main.Document.Descendants<Text>().First().Text = string.Empty;
+        Text firstText = main.Document.Descendants<Text>().First();
+        if (whitespace == "\t") {
+            firstText.Parent!.Append(new TabChar());
+            firstText.Remove();
+        } else {
+            firstText.Text = whitespace;
+            firstText.Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve;
+        }
         string original = main.Document.OuterXml;
         using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = NumberingMetricPdfOptions()
@@ -119,6 +134,94 @@ public partial class Word {
         Assert.Equal(3, markers.Length);
         Assert.Equal(expected, markers[0].StartBaseLine.Y - markers[1].StartBaseLine.Y, 3);
         Assert.Equal(expected, markers[1].StartBaseLine.Y - markers[2].StartBaseLine.Y, 3);
+    }
+
+    [Theory]
+    [InlineData(false, false, 4D, 10.5D)]
+    [InlineData(false, true, 4D, 10.5D)]
+    [InlineData(true, false, -1.25D, 0D)]
+    [InlineData(true, true, -1.25D, 0D)]
+    public void SaveAsPdf_EmptyNumberedItemUsesExplicitMarkSize(bool grid, bool table, double firstShift, double nextShift) {
+        using WordDocument normal = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid, false, table);
+        using WordDocument marked = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid, false, table);
+        foreach (WordDocument source in new[] { normal, marked })
+            source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Text>().First().Text = string.Empty;
+        Paragraph paragraph = marked._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Paragraph>().First();
+        (paragraph.ParagraphProperties!.ParagraphMarkRunProperties ??= new ParagraphMarkRunProperties()).Append(new FontSize { Val = "48" });
+        var normalMarkers = ReadEmptyNumberingMarkers(normal, NumberingMetricPdfOptions());
+        var markedMarkers = ReadEmptyNumberingMarkers(marked, NumberingMetricPdfOptions());
+        Assert.Equal(firstShift, normalMarkers[0].StartBaseLine.Y - markedMarkers[0].StartBaseLine.Y, 3);
+        Assert.Equal(nextShift, normalMarkers[1].StartBaseLine.Y - markedMarkers[1].StartBaseLine.Y, 3);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_EmptyNumberedItemUsesExplicitMarkFont(bool table) {
+        using WordDocument source = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, false, false, table);
+        Text firstText = source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Text>().First();
+        firstText.Text = string.Empty;
+        Paragraph paragraph = firstText.Ancestors<Paragraph>().First();
+        (paragraph.ParagraphProperties!.ParagraphMarkRunProperties ??= new ParagraphMarkRunProperties()).Append(
+            new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman" });
+        var options = NumberingMetricPdfOptions();
+        options.EmbedStandardFont(PdfStandardFont.TimesRoman, ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(
+            1000, -1000, 0, 1000, Enumerable.Range(32, 95).ToArray()), "OfficeIMO-Mark-DeepDescent");
+        var markers = ReadEmptyNumberingMarkers(source, options);
+        Assert.Equal(31D, markers[0].StartBaseLine.Y - markers[1].StartBaseLine.Y, 3);
+        Assert.Equal(25.5D, markers[1].StartBaseLine.Y - markers[2].StartBaseLine.Y, 3);
+    }
+
+    private static UglyToad.PdfPig.Content.Letter[] ReadEmptyNumberingMarkers(WordDocument source, PdfOptions options, int count = 3) {
+        string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+        using var pdf = PdfPigDocument.Open(source.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
+        }));
+        Assert.Equal(original, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+        var markers = pdf.GetPages().SelectMany(page => page.Letters).Where(letter => letter.Value == "g").ToArray();
+        Assert.Equal(count, markers.Length);
+        return markers;
+    }
+
+    [Theory]
+    [InlineData(false, false, 51.5D)]
+    [InlineData(false, true, 51.5D)]
+    [InlineData(true, false, 62.75D)]
+    [InlineData(true, true, 62.75D)]
+    public void SaveAsPdf_TrailingNumberedLineBreakRetainsTheMarkLine(bool grid, bool table, double expected) {
+        using WordDocument source = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid, false, table);
+        Text firstText = source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Text>().First();
+        Run firstRun = (Run)firstText.Parent!;
+        firstRun.RunProperties!.FontSize = new FontSize { Val = "60" };
+        firstRun.Append(new Break());
+        firstText.Remove();
+        var markers = ReadEmptyNumberingMarkers(source, NumberingMetricPdfOptions());
+        Assert.Equal(expected, markers[0].StartBaseLine.Y - markers[1].StartBaseLine.Y, 3);
+        Assert.Equal(grid ? 36D : 25.5D, markers[1].StartBaseLine.Y - markers[2].StartBaseLine.Y, 3);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_TrailingOrdinaryLineBreakRetainsTheMarkLine(bool grid, bool table) {
+        using WordDocument empty = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid, false, table);
+        using WordDocument broken = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid, false, table);
+        foreach (WordDocument source in new[] { empty, broken }) {
+            Text firstText = source._wordprocessingDocument.MainDocumentPart!.Document.Descendants<Text>().First();
+            firstText.Ancestors<Paragraph>().First().ParagraphProperties!.RemoveAllChildren<NumberingProperties>();
+            firstText.Text = string.Empty;
+            if (source == broken) {
+                Run run = (Run)firstText.Parent!;
+                run.RunProperties!.FontSize = new FontSize { Val = "60" };
+                run.Append(new Break());
+                firstText.Remove();
+            }
+        }
+        var emptyMarkers = ReadEmptyNumberingMarkers(empty, NumberingMetricPdfOptions(), 2);
+        var brokenMarkers = ReadEmptyNumberingMarkers(broken, NumberingMetricPdfOptions(), 2);
+        Assert.Equal(grid ? 54D : 45D, emptyMarkers[0].StartBaseLine.Y - brokenMarkers[0].StartBaseLine.Y, 3);
     }
 
     private static WordDocument CreateNumberingMetricDocument(double markerSize, WordListLevelSuffix suffix,

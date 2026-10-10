@@ -656,14 +656,19 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             bool hasEquationContent = !projectedContentOnly && WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            // A paragraph wrapper can expose only its first run's text. Track
+            // the rendered tail so an earlier break does not alter the last line.
+            string finalContentText = hasRenderableRuns ? string.Empty : content;
             if (hasRenderableRuns && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (IsNativeHiddenTextRun(run, paragraph)) continue;
                     if (run.IsImage && run.Image != null) {
                         if (inlineImages != null) {
                             foreach (WordImage image in run.EnumerateImages())
-                                if (image._Image != null && inlineImages.TryGetValue(image._Image, out PdfCore.PdfTextRun? inline))
+                                if (image._Image != null && inlineImages.TryGetValue(image._Image, out PdfCore.PdfTextRun? inline)) {
                                     builder.Runs(new[] { inline });
+                                    finalContentText = string.Empty;
+                                }
                         }
                         continue;
                     }
@@ -674,15 +679,18 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (IsNativeTextWrappingBreak(run) && string.IsNullOrEmpty(run.Text)) {
                         AddNativeRun(builder, "\n", run, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
+                        finalContentText = "\n";
                         continue;
                     }
 
                     AddNativeRun(builder, run, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
+                    if (!IsNativeTrailingSpacingOnly(run.Text)) finalContentText = run.Text;
                 }
 
                 string? supplementalText = GetNativeSupplementalTextAfterRuns(content, runs);
                 if (!string.IsNullOrEmpty(supplementalText)) {
                     AddNativeText(builder, supplementalText!, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
+                    if (!IsNativeTrailingSpacingOnly(supplementalText!)) finalContentText = supplementalText!;
                 }
             } else if (hasEquationContent) {
                 AddNativeEquationContent(builder, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
@@ -695,11 +703,10 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeText(builder, content, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
             }
 
-            if (marker != null && !hasRenderableRuns && string.IsNullOrEmpty(content) && !hasEquationContent) {
-                PdfCore.PdfTextRun strut = CreateNativeCellTextRun(string.Empty, paragraph,
-                    NativeTableStyleDefaults.Empty, nativeDefaults, nativeFontMap);
-                strut.IsLineBoxStrut = true;
-                builder.Runs(new[] { strut });
+            if (!hasEquationContent && (EndsWithNativeLineBreak(finalContentText) ||
+                (marker != null && IsNativeTrailingSpacingOnly(finalContentText)))) {
+                builder.Runs(new[] { CreateNativeParagraphMarkStrut(paragraph,
+                    NativeTableStyleDefaults.Empty, nativeDefaults, nativeFontMap) });
             }
             builder.Runs(CreateNativeNoteReferenceRuns(paragraph, paragraphFootnoteNumbers, footnoteNumbersById,
                 nativeDefaults, nativeFontMap));
