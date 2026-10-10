@@ -46,4 +46,17 @@ public sealed class OcrEngineExecution {
         if (captureLimits == null) throw new ArgumentNullException(nameof(captureLimits));
         return OcrEngineRunner.RecognizeAsync(this, request, timeout, cancellationToken, captureLimits);
     }
+
+    /// <summary>Recognizes a bounded payload while keeping the caller attached to provider cleanup.</summary>
+    /// <remarks>Cancellation and the deadline request that work stop. Completion waits for every started provider
+    /// call and its cancellation callbacks to settle, including after an error. A provider that ignores cancellation
+    /// can delay completion indefinitely. Use this route when the host must retain admission or resource ownership
+    /// until actual cleanup; ordinary <see cref="RecognizeAsync(OcrRequest, TimeSpan, CancellationToken)"/> retains
+    /// its prompt cancellation and timeout behavior.</remarks>
+    public Task<OcrResult> RecognizeAttachedAsync(OcrRequest request, TimeSpan timeout,
+        OcrResultCaptureLimits captureLimits, CancellationToken cancellationToken = default) {
+        if (captureLimits == null) throw new ArgumentNullException(nameof(captureLimits));
+        return OcrEngineRunner.RecognizeAsync(this, request, timeout, cancellationToken, captureLimits,
+            awaitProviderSettlement: true);
+    }
 }

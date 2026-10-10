@@ -7,14 +7,16 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] input = ReadInput(request.InputPath, request.Limits, token);
         token.ThrowIfCancellationRequested();
         var document = PdfDocument.Load(input, request.PdfLoadOptions);
-        var extracted = document.Pages.Extract(request.PageNumbers!, request.Limits.MaximumOutputBytes);
+        int[] pages = request.PageSelector?.Resolve(document.Inspect(request.PdfLoadOptions, token).PageCount, request.MaximumExtractedPages).ToArray()
+            ?? request.PageNumbers!;
+        var extracted = document.Pages.Extract(pages, request.Limits.MaximumOutputBytes);
         token.ThrowIfCancellationRequested();
         using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
         extracted.SaveAsync(output, token).GetAwaiter().GetResult();
         token.ThrowIfCancellationRequested();
         byte[] bytes = output.ToArray();
-        if (PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Inspect().PageCount != request.PageNumbers!.Length)
+        if (PdfDocument.Load(bytes, request.OutputPdfLoadOptions).Inspect().PageCount != pages.Length)
             throw new InvalidDataException("The saved extraction does not contain the requested number of pages.");
-        return new OperationArtifact(bytes, $"Extracted {request.PageNumbers.Length:N0} pages into a separate PDF.", null);
+        return new OperationArtifact(bytes, $"Extracted {pages.Length:N0} pages into a separate PDF.", null);
     }
 }

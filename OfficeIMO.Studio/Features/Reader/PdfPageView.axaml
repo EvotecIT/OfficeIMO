@@ -63,6 +63,7 @@
                               ActiveSearchHighlights="{Binding ActiveSearchHighlights}"
                               EditorTool="{Binding EditorTool}"
                               SelectedObject="{Binding SelectedObject}"
+                              SelectedAnnotations="{Binding SelectedAnnotations}"
                               CommentAnchorObjectNumber="{Binding CommentAnchorObjectNumber}"
                               FormAnchorFieldName="{Binding FormAnchorFieldName}"
                               FormAnchorObjectNumber="{Binding FormAnchorObjectNumber}"
@@ -125,15 +126,16 @@
       </Grid>
     </Border>
 
-    <Grid Classes="pageCaption" ColumnDefinitions="*,Auto,*" MinHeight="22">
-      <TextBlock Grid.Column="1"
+    <Grid Classes="pageCaption" ColumnDefinitions="Auto,Auto" HorizontalAlignment="Center" MinHeight="22">
+      <TextBlock
                  Text="{Binding PageLabel}"
                  Foreground="{DynamicResource StudioMutedTextBrush}"
                  FontSize="12" />
-      <Button Grid.Column="2" Classes="ghost" IsVisible="{Binding HasDiagnostics}"
+      <Button Grid.Column="1" Classes="ghost" IsVisible="{Binding HasDiagnostics}"
               Background="{DynamicResource StudioAccentSoftBrush}" Foreground="{DynamicResource StudioAccentBrush}"
               CornerRadius="6" Padding="8,2" Margin="8,0,0,0" HorizontalAlignment="Left"
-              Content="{loc:Loc PdfPage.RenderingNotes}" AutomationProperties.Name="{loc:Loc PdfPage.RenderingNotes}">
+              ToolTip.Tip="{loc:Loc PdfPage.RenderingNotes}" AutomationProperties.Name="{loc:Loc PdfPage.RenderingNotes}">
+        <PathIcon Data="{StaticResource IconInfo}" Width="12" Height="12" />
         <Button.Flyout>
           <Flyout>
             <ScrollViewer MaxHeight="280" MaxWidth="420" VerticalScrollBarVisibility="Auto">

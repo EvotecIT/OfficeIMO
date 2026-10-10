@@ -106,12 +106,9 @@ public sealed class StudioInfrastructureTests {
     public void CultureCatalogKeepsUnreviewedPacksOutOfThePicker() {
         Assert.Contains(StudioCultureCatalog.Available, culture => culture.Name == "en");
         Assert.Contains(StudioCultureCatalog.Available, culture => culture.Name == StudioCultureCatalog.PseudoCulture);
-        Assert.DoesNotContain(StudioCultureCatalog.Available, culture => culture.Name == "pl");
-        Assert.True(StudioCultureCatalog.Planned.Count >= 15);
-        Assert.Contains(StudioCultureCatalog.Planned, culture => culture.Name == "pl");
-        Assert.Contains(StudioCultureCatalog.Planned, culture => culture.Name == "de");
-        Assert.Contains(StudioCultureCatalog.Planned, culture => culture.Name == "fr");
-        Assert.Contains(StudioCultureCatalog.Planned, culture => culture.Name == "it");
+        Assert.All(StudioCultureCatalog.Available, culture => Assert.True(culture.HasReviewedTranslation));
+        foreach (var pending in StudioCultureCatalog.Planned.Where(c => !c.HasReviewedTranslation))
+            Assert.DoesNotContain(StudioCultureCatalog.Available, available => available.Name == pending.Name);
     }
 
     [Fact]

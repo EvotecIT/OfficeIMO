@@ -11,7 +11,7 @@ namespace OfficeIMO.Access {
                 foreach (AccessColumn column in model.Columns) ValidateName(column.Name);
                 foreach (AccessIndex index in model.Indexes) ValidateName(index.Name);
                 if (model.Name.StartsWith("MSys", StringComparison.OrdinalIgnoreCase)) throw new NotSupportedException("Names beginning with MSys are reserved for native system tables.");
-                TextKey(model.Name); // Catalog keys require a qualified collation even without user indexes.
+                TextKeyLength(model.Name); // Catalog keys require a qualified collation even without user indexes.
                 if (model.Columns.Count == 0) throw new NotSupportedException("A native table requires at least one column.");
                 if (model.Columns.Count(x => x.DataType == AccessDataType.AutoNumber) > 1) throw new NotSupportedException("Only one sequential AutoNumber column per table is supported.");
                 Column[] columns = model.Columns.Select(CreateColumn).ToArray();
@@ -50,7 +50,7 @@ namespace OfficeIMO.Access {
             foreach (AccessRelationship relationship in document.Relationships) {
                 ValidateName(relationship.Name);
                 if (relationship.Fields.Count != 1 || relationship.NativeFlags != 0) throw new NotSupportedException("Native creation currently qualifies enforced single-field relationships without cascades.");
-                TextKey(relationship.Name);
+                TextKeyLength(relationship.Name);
                 Table parent = users[document.Tables.Items.IndexOf(relationship.Parent.Table)], child = users[document.Tables.Items.IndexOf(relationship.Child.Table)];
                 int pc = relationship.Parent.Table.Columns.Items.IndexOf(relationship.Parent), cc = relationship.Child.Table.Columns.Items.IndexOf(relationship.Child);
                 Index? unique = parent.Indexes.FirstOrDefault(i => (i.Flags & 1) != 0 && i.Columns.SequenceEqual(new[] { pc }));

@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell" xmlns:workspace="using:OfficeIMO.Studio.Features.Workspace"
+             x:Class="OfficeIMO.Studio.Features.Workspace.IndependentDocumentPanesView" x:DataType="shell:StudioDocumentPanes">
+  <Grid RowDefinitions="Auto,*" Background="{DynamicResource StudioCanvasBrush}">
+    <Border Background="{DynamicResource StudioPanelMutedBrush}" Padding="8,4">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBlock Text="{Binding HelpLabel}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" />
+        <Button x:Name="SwitchPaneButton" Grid.Column="1" Classes="tool" Click="OnSwitchClick" Content="{Binding SwitchLabel}" />
+      </Grid>
+    </Border>
+    <Grid x:Name="PaneGrid" Grid.Row="1" ColumnDefinitions="*,6,*">
+      <workspace:IndependentDocumentPaneView x:Name="LeftPane" DataContext="{Binding Left}" />
+      <GridSplitter x:Name="PaneSplitter" Grid.Column="1" ResizeDirection="Columns" Background="{DynamicResource StudioBorderBrush}" />
+      <workspace:IndependentDocumentPaneView x:Name="RightPane" Grid.Column="2" DataContext="{Binding Right}" />
+    </Grid>
+  </Grid>
+</UserControl>

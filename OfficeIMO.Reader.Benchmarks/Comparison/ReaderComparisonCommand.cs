@@ -253,7 +253,7 @@ internal static class ReaderComparisonCommand {
             document = reader.ReadDocument(item.Bytes, item.SourceName, ComparisonReaderOptions());
             markdown = ToMarkdown(document);
             rejected = HasErrorDiagnostic(document);
-        } catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or FormatException) {
+        } catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or FormatException or OfficeIMO.Pdf.PdfParseException) {
             error = ex.Message;
             rejected = true;
         }
