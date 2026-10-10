@@ -142,6 +142,15 @@ internal sealed class HtmlRenderBoxStyle {
     internal double? ExplicitWidth;
     internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
+    // Non-replaced inline/contents boxes carry their enclosing basis without
+    // turning it into an authored dimension used by decoration or box layout.
+    internal bool HasForwardedContainingHeight;
+    internal double? ForwardedContainingHeight;
+    internal double? DefiniteContentHeight => HasForwardedContainingHeight
+        ? ForwardedContainingHeight
+        : ExplicitHeight.HasValue
+            ? BorderBox ? Math.Max(0D, ExplicitHeight.Value - VerticalInsets) : ExplicitHeight.Value
+            : null;
     // Table tracks resolve percentages after the grid's content minimum is known.
     internal string TablePercentageHeight = string.Empty;
     // Flex/grid stretching supplies a used height without changing the authored auto-height contract.

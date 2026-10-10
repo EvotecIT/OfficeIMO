@@ -178,10 +178,5 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool IsAutoInset(string value) =>
         string.IsNullOrWhiteSpace(value) || string.Equals(value, "auto", StringComparison.OrdinalIgnoreCase);
 
-    private static double? ResolveContainingBlockHeight(HtmlRenderBoxStyle style) {
-        if (!style.ExplicitHeight.HasValue) return null;
-        return style.BorderBox
-            ? Math.Max(0D, style.ExplicitHeight.Value - style.VerticalInsets)
-            : style.ExplicitHeight.Value;
-    }
+    private static double? ResolveContainingBlockHeight(HtmlRenderBoxStyle style) => style.DefiniteContentHeight;
 }
