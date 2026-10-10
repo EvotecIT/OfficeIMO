@@ -293,14 +293,14 @@ internal static partial class PdfWriter {
                             var adjusted = segment;
                             if (segment.LeadingTabStop != null) {
                                 double spaceWidth = MeasureRichText(" ", segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, currentOpts, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing);
-                                adjusted = segment.WithLeadingAdvance(CalculateTabAdvance(lineWidth, segment.MeasuredWidth, spaceWidth,
+                                adjusted = segment.WithLeadingAdvance(CalculateTabAdvance(lineWidth, GetRichSegmentWidth(segment), spaceWidth,
                                     segment.LeadingTabStop.Alignment, GetParagraphTabStopWidth(paragraphStyle), segment.Text, segment.Font,
                                     segment.FontSize, segment.Baseline, currentOpts, textFrame.Width, segment.LeadingTabStop,
                                     followingNamedFont: segment.NamedFont, featureSettings: segment.FeatureSettings,
                                     horizontalTextScaling: segment.HorizontalTextScaling, characterSpacing: segment.CharacterSpacing));
                                 lines[index][segmentIndex] = adjusted;
                             }
-                            lineWidth += adjusted.MeasuredWidth + adjusted.LeadingAdvance;
+                            lineWidth += GetRichSegmentWidth(adjusted) + adjusted.LeadingAdvance;
                         }
                     }
                 }

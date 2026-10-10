@@ -96,11 +96,11 @@ internal static partial class ManagedTextShapingTestAssets {
             glyphCount: baseGlyphCount + 1, colr: colr, cpal: CreateCpalV1());
     }
 
-    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar) {
+    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar, bool includeSpace = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Positioning test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
-            glyphCount: 3,
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, includeSpace ? 32 : null, 3),
+            glyphCount: includeSpace ? 4 : 3,
             gpos: CreatePairPositioningGpos());
     }
 
