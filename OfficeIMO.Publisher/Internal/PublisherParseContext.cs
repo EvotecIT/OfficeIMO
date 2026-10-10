@@ -14,6 +14,7 @@ internal sealed class PublisherParseContext {
     private long _imageProcessingPixels;
     private long _textLayoutCharacters;
     private int _imageStoreEntries;
+    private long _tableModelItems, _tableModelCharacters;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
     internal void Record() {
         Token.ThrowIfCancellationRequested();
@@ -48,6 +49,18 @@ internal sealed class PublisherParseContext {
         if (characters > Options.Limits.MaxTextCharacters - _textLayoutCharacters)
             throw new InvalidDataException("Publisher text layout character work limit exceeded.");
         _textLayoutCharacters += characters;
+    }
+    internal void AccountTableModel(int items) {
+        Token.ThrowIfCancellationRequested();
+        if (items > Options.Limits.MaxItems - _tableModelItems)
+            throw new InvalidDataException("Publisher table model item limit exceeded.");
+        _tableModelItems += items;
+    }
+    internal void AccountTableText(long characters) {
+        Token.ThrowIfCancellationRequested();
+        if (characters > Options.Limits.MaxTextCharacters - _tableModelCharacters)
+            throw new InvalidDataException("Publisher table model text limit exceeded.");
+        _tableModelCharacters += characters;
     }
     internal void AccountPathWork(int items) {
         Token.ThrowIfCancellationRequested();
