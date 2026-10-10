@@ -1,4 +1,4 @@
-"""Opt-in fixed-second duration evidence from unchanged Numbers and Apple XLSX files.
+"""Opt-in fixed second/millisecond duration evidence from unchanged Numbers and Apple XLSX files.
 
 Run with the isolated numbers-parser 4.19.0 oracle. This script is not a product
 runtime dependency and does not assess PDF appearance or native Excel rendering.

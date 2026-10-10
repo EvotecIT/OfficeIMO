@@ -10,6 +10,11 @@ public sealed partial class IWorkNumberFormat {
             (IWorkDurationUnit.Hour, IWorkDurationUnit.Second) => "[h]\"h\" m\"m\" s\"s\"",
             (IWorkDurationUnit.Minute, IWorkDurationUnit.Second) => "[m]\"m\" s\"s\"",
             (IWorkDurationUnit.Second, IWorkDurationUnit.Second) => "[s]\"s\"",
+            // Preserve the fixed three-digit precision and terminal spacing in
+            // Numbers' native XLSX export. Separate ms labels remain a display approximation.
+            (IWorkDurationUnit.Hour, IWorkDurationUnit.Millisecond) => "[h]\"h\" m\"m\" s.000\"s\" ",
+            (IWorkDurationUnit.Minute, IWorkDurationUnit.Millisecond) => "[m]\"m\" s.000\"s\" ",
+            (IWorkDurationUnit.Second, IWorkDurationUnit.Millisecond) => "[s].000\"s\" ",
             _ => throw new InvalidDataException("The duration unit range is not supported.")
         };
         if (Kind == IWorkNumberFormatKind.Fraction) {

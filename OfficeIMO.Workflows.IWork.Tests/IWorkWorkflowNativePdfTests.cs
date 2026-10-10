@@ -13,6 +13,7 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("pages-list-continuation-v15.4.pages", "pages-pdf", 1, "2")]
     [InlineData("numbers-created-edited-v14.5.numbers", "numbers-pdf", 4, "6")]
     [InlineData("numbers-duration-seconds-v14.5.numbers", "numbers-pdf", 6, "7")]
+    [InlineData("numbers-duration-milliseconds-v14.5.numbers", "numbers-pdf", 6, "7")]
     [InlineData("keynote-created-tables-edited-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
     public async Task Native_content_pdf_routes_retain_every_page_with_caller_fonts(
@@ -55,8 +56,8 @@ public sealed partial class IWorkWorkflowTests {
                 else AssertNativePagesText(pages);
                 break;
             case "numbers-pdf":
-                if (fixture == "numbers-duration-seconds-v14.5.numbers") {
-                    AssertNativeSecondDurationText(pages);
+                if (fixture is "numbers-duration-seconds-v14.5.numbers" or "numbers-duration-milliseconds-v14.5.numbers") {
+                    AssertNativeFixedDurationText(pages, fixture == "numbers-duration-milliseconds-v14.5.numbers");
                     Assert.Contains(evidence.FidelityDiagnostics, item => item.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED"
                         && item.LossKind == OfficeConversionLossKind.Approximation);
                 } else AssertNativeNumbersText(pages);
@@ -139,9 +140,13 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(string.Empty, pages[3].Trim()); // The completely unset 2-by-3 table retains a drawn page.
     }
 
-    private static void AssertNativeSecondDurationText(IReadOnlyList<string> pages) {
-        var singles = new[] { "36h 1m 1s", "2161m 1s", "129661s" };
-        var doubles = new[] { "72h 2m 2s", "4322m 2s", "259322s" };
+    private static void AssertNativeFixedDurationText(IReadOnlyList<string> pages, bool milliseconds) {
+        var singles = milliseconds
+            ? new[] { "36h 1m 1.000s", "2161m 1.000s", "129661.000s" }
+            : new[] { "36h 1m 1s", "2161m 1s", "129661s" };
+        var doubles = milliseconds
+            ? new[] { "72h 2m 2.000s", "4322m 2.000s", "259322.000s" }
+            : new[] { "72h 2m 2s", "4322m 2s", "259322s" };
         for (int profile = 0; profile < 3; profile++) {
             string input = pages[profile * 2], formulas = pages[profile * 2 + 1];
             int previous = -1;
@@ -160,6 +165,26 @@ public sealed partial class IWorkWorkflowTests {
             // Width pagination places the formula column on a second page.
             // Native Numbers uses three positioned-sheet pages instead.
             Assert.Equal(8, formulas.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+            if (milliseconds) AssertMillisecondDurationRows(profile, input, formulas);
+        }
+    }
+
+    private static void AssertMillisecondDurationRows(int profile, string input, string formulas) {
+        string[][] values = [
+            ["0h 0m 0.000s", "0h 1m 1.000s", "1h 1m 1.000s", "36h 1m 1.000s", "-1h 1m 1.000s", "1h 1m 1.750s", "-0h 0m 0.750s"],
+            ["0m 0.000s", "1m 1.000s", "61m 1.000s", "2161m 1.000s", "-61m 1.000s", "61m 1.750s", "-0m 0.750s"],
+            ["0.000s", "61.000s", "3661.000s", "129661.000s", "-3661.000s", "3661.750s", "-0.750s"]
+        ];
+        string[][] doubled = [
+            ["0h 0m 0.000s", "0h 2m 2.000s", "2h 2m 2.000s", "72h 2m 2.000s", "-2h 2m 2.000s", "2h 2m 3.500s", "-0h 0m 1.500s"],
+            ["0m 0.000s", "2m 2.000s", "122m 2.000s", "4322m 2.000s", "-122m 2.000s", "122m 3.500s", "-0m 1.500s"],
+            ["0.000s", "122.000s", "7322.000s", "259322.000s", "-7322.000s", "7323.500s", "-1.500s"]
+        ];
+        string[] inputLines = input.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] formulaLines = formulas.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        for (int row = 0; row < 7; row++) {
+            Assert.EndsWith(values[profile][row], inputLines[row + 1].TrimEnd());
+            Assert.Equal(doubled[profile][row], formulaLines[row + 1].Trim());
         }
     }
 

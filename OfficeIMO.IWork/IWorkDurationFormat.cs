@@ -27,11 +27,13 @@ public enum IWorkDurationUnit {
     /// <summary>Total elapsed minutes when largest, or minutes within the elapsed hour.</summary>
     Minute = 8,
     /// <summary>Total elapsed seconds when largest, or seconds within the elapsed minute.</summary>
-    Second = 16
+    Second = 16,
+    /// <summary>Millisecond precision within the elapsed second. Destination elapsed formats display three fractional-second digits.</summary>
+    Millisecond = 32
 }
 
 /// <summary>Qualified native duration labels.</summary>
 public enum IWorkDurationStyle {
-    /// <summary>Abbreviated unit labels such as h, m and s.</summary>
+    /// <summary>Abbreviated source unit labels such as h, m, s and ms.</summary>
     Abbreviated = 1
 }

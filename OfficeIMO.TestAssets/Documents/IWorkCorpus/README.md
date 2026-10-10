@@ -441,6 +441,18 @@ Regenerate the decode with the pinned opt-in oracle; PDF tables, screenshots and
 python Build/IWork/extract-duration-seconds.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5-decode.json
 ```
 
+## Native Numbers fixed millisecond ranges
+
+[`native-exports/numbers-duration-milliseconds-v14.5.json`](native-exports/numbers-duration-milliseconds-v14.5.json) records a task-owned copy of the preceding Numbers 14.5 reference with milliseconds enabled on all three C2:D8 ranges. The saved local source, Apple XLSX/PDF exports, three UI screenshots and three native PDF pages retain the same MIT contributor provenance. Independent decoding pairs all 42 raw-second values, 21 native formulas and five-field selected formats with Apple XLSX day serials and codes. The native PDF embeds host Calibri; OfficeIMO does not bundle it.
+
+Numbers displays separate millisecond labels, such as `1h 1m 1s 750ms`. Its XLSX export uses fractional-second codes, including a terminal literal space; the shared formatter displays `1h 1m 1.750s `. The manifest records native PDF display and independently calculated shared display separately. Saved/reopened conversion preserves numeric caches and codes, edited operands recalculate, and the complete PDF route retains every populated row and all 21 formula results across six inspected pages. Native Excel appearance, millisecond-only totals, other label styles and automatic units remain unqualified. PDF text extraction misreads some label ligatures; visual inspection verifies the labels.
+
+Regenerate the decode with the same isolated oracle:
+
+```sh
+python Build/IWork/extract-duration-seconds.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5-decode.json
+```
+
 ## Keynote slide background evidence
 
 `keynote-backgrounds.json` records slide-style chains and background declarations from four unchanged pinned native Keynote packages and `native-exports/keynote-colors-v15.4.key`. It includes inactive templates; conversion tests compare only selected slides. Opaque RGB/sRGB colors qualify the additional fixed32 field `13` only at value `1`. Its meaning remains unspecified; other values and Display P3 remain unsupported. Existing fixture licenses and provenance above apply. Reproduce the manifest with numbers-parser 4.19.0:

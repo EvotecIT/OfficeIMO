@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData(4UL, 32UL)] // Milliseconds have not been qualified.
+    [InlineData(32UL, 32UL)] // Total milliseconds are a separate native profile.
     [InlineData(8UL, 8UL)] // Minute-only declarations are a separate native profile.
     [InlineData(16UL, 4UL)] // Reversed unit range.
     [InlineData(1UL, 16UL)] // Weeks have no elapsed XLSX unit.
