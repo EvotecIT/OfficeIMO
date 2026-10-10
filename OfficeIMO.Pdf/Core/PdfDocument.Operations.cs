@@ -118,12 +118,22 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Reports read and rewrite capabilities for this PDF.
     /// </summary>
-    public PdfDocumentPreflight Preflight(PdfLoadOptions? options = null) {
-        var snapshot = GetReadSnapshot(options);
-        return PdfInspector.Preflight(
-            snapshot.Bytes,
-            snapshot.Options,
-            () => snapshot.Document);
+    public PdfDocumentPreflight Preflight(PdfLoadOptions? options = null) =>
+        GetPreflightSnapshot(options, CancellationToken.None).Preflight;
+
+    /// <summary>Captures one byte snapshot while keeping parser failures inside diagnostic preflight.</summary>
+    private (byte[] Bytes, PdfLoadOptions Options, PdfDocumentPreflight Preflight) GetPreflightSnapshot(
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
+        byte[] bytes = GetBytesForOperation(cancellationToken);
+        Func<PdfReadDocument>? readDocumentFactory = GetOpenedReadDocumentFactory(effectiveOptions, cancellationToken);
+        PdfDocumentPreflight preflight = readDocumentFactory is null
+            ? PdfInspector.Preflight(bytes, effectiveOptions, cancellationToken)
+            : PdfInspector.Preflight(bytes, effectiveOptions, readDocumentFactory, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return (bytes, effectiveOptions, preflight);
     }
 
     /// <summary>Chooses a full-rewrite, append-only, or blocked path for an existing-document mutation.</summary>
@@ -152,15 +162,8 @@ public sealed partial class PdfDocument {
         PdfMutationExecutionPreference executionPreference,
         PdfSignatureProfile? signatureProfile,
         CancellationToken cancellationToken) {
-        var snapshot = GetReadSnapshot(options, cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(
-            snapshot.Bytes,
-            snapshot.Options,
-            () => snapshot.Document,
-            cancellationToken);
-        cancellationToken.ThrowIfCancellationRequested();
-        return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile);
+        var snapshot = GetPreflightSnapshot(options, cancellationToken);
+        return PdfMutationPlanner.Plan(snapshot.Preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options, signatureProfile);
     }
 
     /// <summary>
