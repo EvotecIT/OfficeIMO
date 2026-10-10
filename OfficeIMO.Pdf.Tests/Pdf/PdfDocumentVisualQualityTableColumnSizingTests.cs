@@ -88,6 +88,34 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(secondColumnWidth > 170, $"Expected the row-column unfixed middle table column to consume remaining width. Second gap: {secondColumnWidth:0.##}.");
     }
 
+    [Theory]
+    [InlineData(false, 150D, 75D)]
+    [InlineData(true, 50D, 125D)]
+    public void Table_RecomputesRemainingWeightsBeforeApplyingNeighborBounds(bool maximumFirst, double firstWidth, double secondWidth) {
+        var options = new PdfOptions {
+            PageWidth = 360, PageHeight = 240,
+            MarginLeft = 30, MarginRight = 30, MarginTop = 30, MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 9
+        };
+        var style = TableStyles.Minimal();
+        style.AutoFitColumns = false;
+        style.ColumnWidthWeights = maximumFirst ? new List<double> { 1, 1, 1 } : new List<double> { 4, 3, 3 };
+        style.ColumnMinWidthPoints = maximumFirst
+            ? new List<double?> { null, 90, null }
+            : new List<double?> { 150, 60, null };
+        if (maximumFirst) style.ColumnMaxWidthPoints = new List<double?> { 50, null, null };
+        byte[] bytes = PdfDocument.Create(options)
+            .Table(new[] { new[] { "ID", "Description", "Score" } }, style: style)
+            .ToBytes();
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        double idX = FindWordStartX(page, "ID");
+        double descriptionX = FindWordStartX(page, "Description");
+        double scoreX = FindWordStartX(page, "Score");
+        Assert.Equal(firstWidth, descriptionX - idX, 3);
+        Assert.Equal(secondWidth, scoreX - descriptionX, 3);
+    }
+
     [Fact]
     public void Table_UsesMinimumColumnWidthPointsForWeightedColumns() {
         var options = new PdfOptions {

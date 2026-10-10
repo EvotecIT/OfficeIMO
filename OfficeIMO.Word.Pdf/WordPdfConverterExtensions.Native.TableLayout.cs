@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
                 if (layout.ColumnWidths.Length > 0 &&
                     layout.ColumnWidths.All(width => width > 0) &&
+                    (!IsNativeTableAutoFitToContents(table._tableProperties) || HasNativeTableCellWidthPreferences(layout)) &&
                     layout.ColumnWidths.Skip(1).Any(width => Math.Abs(width - layout.ColumnWidths[0]) > 0.01F)) {
                     style.ColumnWidthWeights = layout.ColumnWidths.Select(width => (double)width).ToList();
                 }
@@ -173,7 +174,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            if (style.AutoFitColumns && style.CellSpacing <= 0D && IsNativeTableAutoFitToContents(properties)) {
+            if (style.AutoFitColumns && IsNativeTableAutoFitToContents(properties)) {
                 // A valid automatic grid can contain only zero/automatic widths.
                 // Its physical content minimum still determines the table frame.
                 style.AutoFitWidthUsesContentMinimum = true;
@@ -197,9 +198,7 @@ namespace OfficeIMO.Word.Pdf {
             if (!IsNativeTableAutoFitToContents(properties) ||
                 layout.ColumnWidths.Length == 0 ||
                 !layout.ColumnWidths.All(width => width > 0F) ||
-                !EnumerateNativeTableCells(layout).Any(cell =>
-                    cell.Cell.Width.GetValueOrDefault() > 0 &&
-                    (cell.Cell.WidthType == WordTableWidthUnit.Dxa || cell.Cell.WidthType == WordTableWidthUnit.Pct))) {
+                !HasNativeTableCellWidthPreferences(layout)) {
                 return null;
             }
 
@@ -213,6 +212,11 @@ namespace OfficeIMO.Word.Pdf {
                 ? Math.Min(gridWidth, contentWidth.Value)
                 : gridWidth;
         }
+
+        private static bool HasNativeTableCellWidthPreferences(TableLayout layout) =>
+            EnumerateNativeTableCells(layout).Any(cell =>
+                cell.Cell.Width.GetValueOrDefault() > 0 &&
+                (cell.Cell.WidthType == WordTableWidthUnit.Dxa || cell.Cell.WidthType == WordTableWidthUnit.Pct));
 
         private static bool ShouldUseNativeAutoFitTableLayout(W.TableProperties? properties, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableLayoutValues? effectiveLayout = properties?.TableLayout?.Type?.Value ?? tableStyleDefaults.Layout;

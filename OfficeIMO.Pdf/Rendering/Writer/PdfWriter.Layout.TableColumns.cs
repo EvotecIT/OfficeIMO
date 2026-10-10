@@ -53,8 +53,8 @@ internal static partial class PdfWriter {
             return availableWidth;
         }
 
-        // An imported automatic grid with no authored width grows from its
-        // content minimum. Generic PDF tables retain their page-width default.
+        // Imported automatic tables grow from their measured content. Generic
+        // PDF tables retain their page-width default.
         double preferredWidth = style.PreferredWidth.HasValue ? Math.Min(availableWidth, style.PreferredWidth.Value) : 0D;
         double measuredContentWidth = 0D;
         // A content-sized imported table without an authored frame uses its
@@ -62,7 +62,13 @@ internal static partial class PdfWriter {
         bool useContentPreferences = !style.AutoFitWidthUsesContentMinimum ||
             (style.AutoFitUnspecifiedWidthToContent && !style.PreferredWidth.HasValue);
         if (useContentPreferences && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
-            measuredContentWidth = Math.Max(measuredContentWidth, autoFitPreferredWidths.Sum());
+            // Reserve each column's larger minimum before allocation. A wide
+            // unbreakable word must not borrow from its neighbor's preferred line.
+            for (int column = 0; column < autoFitPreferredWidths.Length; column++) {
+                double minimum = autoFitMinimumWidths != null && column < autoFitMinimumWidths.Length
+                    ? autoFitMinimumWidths[column] : 0D;
+                measuredContentWidth += Math.Max(autoFitPreferredWidths[column], minimum);
+            }
         }
 
         if (autoFitMinimumWidths != null && autoFitMinimumWidths.Length > 0) {
@@ -376,12 +382,16 @@ internal static partial class PdfWriter {
                     active[i] = false;
                     activeCount--;
                     constrained = true;
+                    // Recompute the active weight sum before constraining a
+                    // neighbor against the reduced remaining width.
+                    break;
                 } else if (maxWidths[i].HasValue && proposed > maxWidths[i]!.Value) {
                     widths[i] = maxWidths[i]!.Value;
                     remaining -= widths[i];
                     active[i] = false;
                     activeCount--;
                     constrained = true;
+                    break;
                 }
             }
 
