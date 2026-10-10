@@ -13,7 +13,11 @@ public enum LegacySpreadsheetFormat {
     /// <summary>Selected Microsoft Multiplan DOS profiles.</summary>
     Multiplan,
     /// <summary>Selected Microsoft Works spreadsheet profiles.</summary>
-    MicrosoftWorks
+    MicrosoftWorks,
+    /// <summary>SYLK text interchange with bounded values and inert formulas.</summary>
+    Sylk,
+    /// <summary>DIF text interchange with bounded rows and values.</summary>
+    Dif
 }
 
 /// <summary>Describes one bounded legacy-spreadsheet source profile match.</summary>
@@ -44,6 +48,8 @@ public sealed class LegacySpreadsheetImportOptions {
     public string? SourceName { get; set; }
     /// <summary>Gets or sets whether salvage-quality output must be rejected.</summary>
     public bool RequireStructured { get; set; }
+    /// <summary>Gets or sets the encoding of SYLK/DIF input without a BOM. Null selects Windows-1252. A Unicode BOM takes precedence; invalid byte sequences are rejected.</summary>
+    public System.Text.Encoding? TextEncoding { get; set; }
 }
 
 /// <summary>Recovered legacy chart metadata that was not converted into a misleading live chart.</summary>
