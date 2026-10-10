@@ -67,6 +67,16 @@
 - Keep upstream integration deliberate and regular. Inspect all worktrees before branch operations, use one coordinator for integration history, preserve unrelated work and avoid history rewrites on shared branches. Do not leave a giant unvalidated merge until the end of the program.
 - Keep test references and optional provider comparisons outside default runtime dependencies. Store bulky corpus outputs in a named task-owned location, retain compact manifests and decisive evidence, and remove superseded output before repeated runs.
 
+## Format map recordings
+
+`Build/FormatMapMedia/index.html` is a purpose-built diagram of the format map for video and social media; `Build/FormatMapRecorder` renders it into clips. Nothing in a clip is hand-made, so re-record from the data whenever the catalog, the PowerShell mapping or the design changes. The website's own format map (`Website/themes/officeimo/partials/sections/format-map.html`, `Website/static/js/format-map.js`) is separate and is not used for recordings.
+
+- Re-record with `./Build/Record-FormatMap.ps1`. It regenerates `Website/data/format_map.json` and renders every cut in `Build/FormatMapMedia/cuts.json` into `Artefacts/FormatMapVideos` (ignored). Useful switches: `-Cut <name>`, `-Scale 2` (true 3840x2160), `-Formats mp4,h265,mov,gif,...`, `-SkipCatalog`, `-Still 2000,8000` (PNG stills of those moments, for design work), `-List`. It needs ffmpeg and the shared Playwright browsers (HtmlTinkerX); it restores generated files that differ only in line endings. No website build is involved.
+- The diagram draws everything as a pure function of time (`window.imoMedia.render(t)`), so the recorder steps it frame by frame at any frame rate and resolution. Keep it free of timers, transitions and hover state, and keep it vector so `-Scale 2` stays sharp. It reads only `Website/data/format_map.json`, `surfaces.json` and the site font; presentation-only short labels (CHM, MEDLINE, XPS) live in its `ALIAS` table and the data names are untouched.
+- It has compositions for 16:9, 1:1, 4:5 and 9:16; surface pills light only for the surfaces that really run what is shown.
+- Cuts name formats and surfaces with the site tour's grammar (`intro`, `spot:DOCX`, `path:Markdown>DOCX`, `surface:powershell`, `@powershell`, `outro`). The recorder fails with the unmatched scenes when a format is renamed or loses its routes; update `cuts.json`, do not weaken the check.
+- PowerShell routes come from `Build/CompatibilityCatalog/powershell-routes.json`, a reviewed route-to-cmdlet list with source evidence. Add an entry only after reading the PSWriteOffice cmdlet that performs exactly that conversion. The generator rejects unknown routes and cmdlets missing from `Website/data/apidocs/powershell/command-metadata.json`.
+- Do not commit rendered clips or frames. Render frames go under `EVOTEC_SCRATCH_ROOT` and are removed after a successful encode (and after a failed cut); remove superseded clips before repeating a large run. Keep the recorder outside the normal solution.
 ## Agent plugin and MCP Registry maintenance
 
 
