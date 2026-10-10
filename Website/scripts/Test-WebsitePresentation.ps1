@@ -72,7 +72,16 @@ function Assert-ContainsPattern {
     }
 }
 
-foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
+$presentationRoutes = @('', 'downloads', 'studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')
+# Parse actual head elements, excluding comments, script text and inert fallbacks.
+# Python's standard HTML parser also accepts the production optimizer's markup.
+$pythonCommand = Get-Command python3, python -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $pythonCommand) { throw 'Python is required to verify first-paint styles.' }
+$presentationFiles = @($presentationRoutes | ForEach-Object { Join-Path $siteRootPath "$_/index.html" })
+& $pythonCommand.Source (Join-Path $PSScriptRoot 'Test-FirstPaintStyles.py') @presentationFiles
+if ($LASTEXITCODE -ne 0) { throw 'First-paint stylesheet verification failed.' }
+
+foreach ($route in $presentationRoutes) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
     # The logo supplies Home; the main-menu-only verifier warning is baselined.
     if ($routeHtml -notmatch '<a\b(?=[^>]*\sclass=(?:"(?:[^"]*\s)?imo-header__logo(?:\s[^"]*)?"|''(?:[^'']*\s)?imo-header__logo(?:\s[^'']*)?''|imo-header__logo(?=\s|>)))(?=[^>]*\shref=["'']?/["'']?(?=\s|>))[^>]*>') {
