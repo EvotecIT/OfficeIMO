@@ -4,6 +4,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    // Adding and then subtracting cell padding can differ from the measured
+    // glyph sum by a few floating-point bits. Preserve an exact-width fit.
+    private const double RichTextWidthTolerance = 0.0000001D;
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
         if (line.Count == 0) {
             return;

@@ -57,7 +57,11 @@ internal static partial class PdfWriter {
         // content minimum. Generic PDF tables retain their page-width default.
         double preferredWidth = style.PreferredWidth.HasValue ? Math.Min(availableWidth, style.PreferredWidth.Value) : 0D;
         double measuredContentWidth = 0D;
-        if (!style.AutoFitWidthUsesContentMinimum && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
+        // A content-sized imported table without an authored frame uses its
+        // unwrapped content preferences. Cached grid columns do not constrain it.
+        bool useContentPreferences = !style.AutoFitWidthUsesContentMinimum ||
+            (style.AutoFitUnspecifiedWidthToContent && !style.PreferredWidth.HasValue);
+        if (useContentPreferences && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
             measuredContentWidth = Math.Max(measuredContentWidth, autoFitPreferredWidths.Sum());
         }
 

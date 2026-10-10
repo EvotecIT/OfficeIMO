@@ -493,7 +493,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
-                if (tokenW > currentMaxWidth) {
+                if (tokenW > currentMaxWidth + RichTextWidthTolerance) {
                     if (lastLine.Count > 0) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     ResetPendingLeading();
                     if (TryAppendSoftLineBreakLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
@@ -604,14 +604,14 @@ internal static partial class PdfWriter {
                 }
                 // Formatting boundaries do not introduce a word-break opportunity.
                 // Reserve the rest of a word spanning runs when it fits a fresh line.
-                oversizedWordContinuation |= wordWidth > Math.Min(currentMaxWidth, maxWidthPts);
-                double wrappingWidth = !oversizedWordContinuation && wordWidth <= Math.Min(currentMaxWidth, maxWidthPts) ? wordWidth : tokenW;
+                oversizedWordContinuation |= wordWidth > Math.Min(currentMaxWidth, maxWidthPts) + RichTextWidthTolerance;
+                double wrappingWidth = !oversizedWordContinuation && wordWidth <= Math.Min(currentMaxWidth, maxWidthPts) + RichTextWidthTolerance ? wordWidth : tokenW;
                 double boundaryAdvance = !pendingLeadingSeparator && lastLine.Count > 0
                     ? runKerning.MeasureBoundary(lastLine, tokenProbe) : 0D;
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab || preserveWhitespace ? pendingLeadingAdvance + wrappingWidth : wrappingWidth)
                     : pendingLeadingAdvance + wrappingWidth;
-                if (lineWidth + needed + boundaryAdvance > currentMaxWidth && lastLine.Count > 0
+                if (lineWidth + needed + boundaryAdvance > currentMaxWidth + RichTextWidthTolerance && lastLine.Count > 0
                     && (token.Length > 0 || whitespaceMode != PdfTextWhitespaceMode.Preserve)) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(lastLine);

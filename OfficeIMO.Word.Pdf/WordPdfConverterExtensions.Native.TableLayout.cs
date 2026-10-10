@@ -196,7 +196,10 @@ namespace OfficeIMO.Word.Pdf {
         private static double? GetNativeAutoFitGridPreferredWidth(W.TableProperties? properties, TableLayout layout, double? contentWidth, double cellSpacing) {
             if (!IsNativeTableAutoFitToContents(properties) ||
                 layout.ColumnWidths.Length == 0 ||
-                !layout.ColumnWidths.All(width => width > 0F)) {
+                !layout.ColumnWidths.All(width => width > 0F) ||
+                !EnumerateNativeTableCells(layout).Any(cell =>
+                    cell.Cell.Width.GetValueOrDefault() > 0 &&
+                    (cell.Cell.WidthType == WordTableWidthUnit.Dxa || cell.Cell.WidthType == WordTableWidthUnit.Pct))) {
                 return null;
             }
 
