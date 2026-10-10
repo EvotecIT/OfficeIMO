@@ -42,7 +42,8 @@ internal static partial class PdfWriter {
             PdfTabAlignment leadingTabAlignment = PdfTabAlignment.Left,
             double horizontalTextScaling = 100D,
             double characterSpacing = 0D, double fontMetricScale = 1D,
-            int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0) {
+            int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0,
+            bool contributesLineBoxDescent = true, bool isLineBoxStrut = false) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -87,6 +88,8 @@ internal static partial class PdfWriter {
             HorizontalTextScaling = horizontalTextScaling;
             CharacterSpacing = characterSpacing;
             FontMetricScale = fontMetricScale;
+            ContributesLineBoxDescent = contributesLineBoxDescent;
+            IsLineBoxStrut = isLineBoxStrut;
         }
 
         public string Text { get; }
@@ -129,6 +132,8 @@ internal static partial class PdfWriter {
         private RichSeg CopyKerningFrom(RichSeg source) {
             KerningCommand = source.KerningCommand;
             KerningAdvance = source.KerningAdvance;
+            ContributesLineBoxDescent = source.ContributesLineBoxDescent;
+            IsLineBoxStrut = source.IsLineBoxStrut;
             return this;
         }
 
@@ -169,6 +174,8 @@ internal static partial class PdfWriter {
         public double HorizontalTextScaling { get; }
 
         public double CharacterSpacing { get; }
+        public bool ContributesLineBoxDescent { get; private set; }
+        public bool IsLineBoxStrut { get; private set; }
 
         public RichSeg WithEndsWithHardBreak() =>
             new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise, LeadingIsTab, LeadingTabAlignment, HorizontalTextScaling, CharacterSpacing, FontMetricScale, LeadingSpaceCount, LeadingSpaceRemainder, LeadingSpaceUnitAdvance).CopyKerningFrom(this);

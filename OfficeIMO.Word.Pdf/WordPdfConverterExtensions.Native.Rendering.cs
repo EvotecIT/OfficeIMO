@@ -639,21 +639,8 @@ namespace OfficeIMO.Word.Pdf {
                         useAlignedMarkerColumn = true;
                         AddNativeInlineListMarkerSpacer(builder, leadingMarkerOffset);
                     }
-                    ApplyNativeTextStyle(builder, textStyle);
-                    NativeTextSpacing resolvedMarkerSpacing = ResolveNativeListMarkerTextSpacing(markerInfo.Value, textStyle.ListMarkerTextSpacing);
-                    builder.HorizontalTextScaling(resolvedMarkerSpacing.WidthPercentage ?? 100D);
-                    builder.CharacterSpacing(resolvedMarkerSpacing.CharacterSpacing ?? 0D);
-                    builder.FeatureSettings(measuredMarker.FeatureSettings);
-                    builder.Bold(markerInfo.Value.MarkerBold ?? textStyle.Bold);
-                    builder.Italic(markerInfo.Value.MarkerItalic ?? textStyle.Italic);
-                    if (markerInfo.Value.MarkerFontSize.HasValue) builder.FontSize(markerInfo.Value.MarkerFontSize.Value);
-                    if (ParseNativeColor(markerInfo.Value.MarkerColorHex) is { } markerColor) builder.Color(markerColor);
-                    string? markerFontFamily = ResolveNativeListMarkerFontFamily(markerInfo.Value, marker.Value.Marker, textStyle, nativeFontMap);
-                    if (!string.IsNullOrWhiteSpace(markerFontFamily)) builder.FontFamily(markerFontFamily!);
-                    else if (ResolveNativeListMarkerFont(markerInfo.Value, marker.Value.Marker, textStyle) is { } markerFont) builder.Font(markerFont);
-                }
-                builder.Text(marker.Value.Marker);
-                if (markerInfo.HasValue) ResetNativeTextStyle(builder);
+                    builder.Runs(new[] { measuredMarker });
+                } else builder.Text(marker.Value.Marker);
                 if (useAlignedMarkerColumn) {
                     if (markerInfo?.LevelSuffix == WordListLevelSuffix.Space) {
                         // Keep the real numbering space in extracted text as
@@ -708,6 +695,12 @@ namespace OfficeIMO.Word.Pdf {
                 AddNativeText(builder, content, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
             }
 
+            if (marker != null && !hasRenderableRuns && string.IsNullOrEmpty(content) && !hasEquationContent) {
+                PdfCore.PdfTextRun strut = CreateNativeCellTextRun(string.Empty, paragraph,
+                    NativeTableStyleDefaults.Empty, nativeDefaults, nativeFontMap);
+                strut.IsLineBoxStrut = true;
+                builder.Runs(new[] { strut });
+            }
             builder.Runs(CreateNativeNoteReferenceRuns(paragraph, paragraphFootnoteNumbers, footnoteNumbersById,
                 nativeDefaults, nativeFontMap));
         }

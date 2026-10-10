@@ -611,6 +611,12 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle, tableStyleDefaults.UseConfiguredTypography));
             }
 
+            if (result.Count == 0 && WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true) {
+                PdfCore.PdfTextRun strut = CreateNativeCellTextRun(string.Empty, paragraph,
+                    tableStyleDefaults, nativeDefaults, nativeFontMap);
+                strut.IsLineBoxStrut = true;
+                result.Add(strut);
+            }
             return result;
         }
 

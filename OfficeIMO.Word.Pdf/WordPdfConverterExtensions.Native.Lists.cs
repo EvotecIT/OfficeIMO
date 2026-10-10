@@ -122,6 +122,16 @@ namespace OfficeIMO.Word.Pdf {
             if (HasNativeTextSpacing(paragraphTextStyle.TextSpacing) ||
                 markerSpacing.WidthPercentage != 100D || markerSpacing.CharacterSpacing != 0D) return false;
 
+            // A differently sized or styled label changes only the first line's
+            // metrics. Paragraph runs retain that boundary across wrapped lines.
+            if (!DoubleEquals(info.Value.MarkerFontSize ?? paragraphTextStyle.EffectiveFontSize,
+                    paragraphTextStyle.EffectiveFontSize) ||
+                ResolveNativeListMarkerFont(info.Value, marker.Marker, paragraphTextStyle, nativeFontMap) != paragraphTextStyle.Font ||
+                !string.Equals(ResolveNativeListMarkerFontFamily(info.Value, marker.Marker, paragraphTextStyle, nativeFontMap),
+                    paragraphTextStyle.FontFamily, StringComparison.OrdinalIgnoreCase) ||
+                (info.Value.MarkerBold ?? paragraphTextStyle.Bold) != paragraphTextStyle.Bold ||
+                (info.Value.MarkerItalic ?? paragraphTextStyle.Italic) != paragraphTextStyle.Italic) return false;
+
             if (HasNativePageBreakBefore(paragraph) ||
                 paragraph.IsPageBreak ||
                 paragraph.Shape != null ||
@@ -214,7 +224,7 @@ namespace OfficeIMO.Word.Pdf {
                 MarkerFeatureSettings = OfficeTextFeatureSettings.Default.With("kern", 0),
                 MarkerGap = 0D,
                 MarkerWidth = Math.Max(0D, textIndent - markerIndent),
-                MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle),
+                MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontFamily = ResolveNativeListMarkerFontFamily(info, marker, markerTextStyle, nativeFontMap),
                 MarkerFontSize = info.MarkerFontSize ?? ResolveNativeParagraphFontSize(paragraph, nativeDefaults, styleDefaults),
                 MarkerColor = ParseNativeColor(info.MarkerColorHex),
@@ -366,11 +376,12 @@ namespace OfficeIMO.Word.Pdf {
                 bold: info.Value.MarkerBold ?? textStyle.Bold,
                 color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
                 italic: info.Value.MarkerItalic ?? textStyle.Italic,
+                strike: textStyle.Strike,
                 fontSize: info.Value.MarkerFontSize ?? textStyle.FontSize,
-                font: ResolveNativeListMarkerFont(info.Value, marker, textStyle),
+                font: ResolveNativeListMarkerFont(info.Value, marker, textStyle, nativeFontMap),
                 fontFamily: nativeFontMap != null
                     ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
-                    : textStyle.FontFamily), textStyle.EffectiveFontSize);
+                    : textStyle.FontFamily, strikeStyle: textStyle.StrikeStyle) { ContributesLineBoxDescent = false }, textStyle.EffectiveFontSize);
         }
 
         private static double EstimateNativeListMarkerWidth(string marker, double fontSize, NativeTextSpacing textSpacing = default) {
@@ -448,12 +459,12 @@ namespace OfficeIMO.Word.Pdf {
         private static bool DoubleEquals(double left, double right) =>
             Math.Abs(left - right) < 0.001D;
 
-        private static PdfCore.PdfStandardFont? ResolveNativeListMarkerFont(WordDocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle) {
+        private static PdfCore.PdfStandardFont? ResolveNativeListMarkerFont(WordDocumentTraversal.ListInfo info, string marker, NativeResolvedTextStyle markerTextStyle, NativeFontMap? nativeFontMap) {
             if (ShouldUseNativeListTextFontForNormalizedMarker(info, marker)) {
                 return markerTextStyle.Font;
             }
 
-            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(info.MarkerFontFamily, out PdfCore.PdfStandardFont markerFont)
+            return TryResolveNativeMappedFont(info.MarkerFontFamily, nativeFontMap, out PdfCore.PdfStandardFont markerFont)
                 ? markerFont
                 : markerTextStyle.Font;
         }
@@ -466,6 +477,8 @@ namespace OfficeIMO.Word.Pdf {
             if (nativeFontMap.TryGetNamedFontFamily(info.MarkerFontFamily, out string? markerFamily)) {
                 return markerFamily;
             }
+
+            if (nativeFontMap.TryGetFontSlot(info.MarkerFontFamily, out _)) return null;
 
             return markerTextStyle.FontFamily;
         }

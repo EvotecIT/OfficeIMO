@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
                     }
 
                     string text = segment.Text;
-                    if (text.Length == 0) {
+                    if (text.Length == 0 && !segment.IsLineBoxStrut) {
                         continue;
                     }
 
@@ -66,6 +66,8 @@ internal static partial class PdfWriter {
                 run = run.WithFeatureSettings(segment.FeatureSettings);
             if (segment.TextDirection != OfficeIMO.Drawing.OfficeTextDirection.Auto)
                 run = run.WithTextDirection(segment.TextDirection);
+            run.ContributesLineBoxDescent = segment.ContributesLineBoxDescent;
+            run.IsLineBoxStrut = segment.IsLineBoxStrut;
             return run;
         }
 
