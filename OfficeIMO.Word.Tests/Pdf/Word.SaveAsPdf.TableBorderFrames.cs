@@ -245,7 +245,8 @@ public partial class Word {
     private static WordTable CreateBorderFrameControl(WordDocument document, int rows, int columns, short spacing) {
         WordTable table = CreateAutomaticWidthControl(document, Enumerable.Repeat(2400, columns).ToArray());
         while (table.Rows.Count < rows) table.AddRow();
-        table.StyleDetails!.CellSpacing = spacing;
+        // Plain controls omit spacing; an absolute zero selects separate borders.
+        table.StyleDetails!.CellSpacing = spacing == 0 ? null : spacing;
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];

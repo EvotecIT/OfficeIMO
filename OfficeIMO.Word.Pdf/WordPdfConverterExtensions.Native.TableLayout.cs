@@ -372,6 +372,16 @@ namespace OfficeIMO.Word.Pdf {
             return ConvertNativeTwipsToPoints(spacing.Width?.Value);
         }
 
+        /// <summary>An absolute spacing declaration selects separate border geometry even when its value is zero.</summary>
+        private static bool UsesNativeSeparateTableCellBorders(WordTable table, PdfCore.PdfTableStyle style,
+            NativeTableStyleDefaults defaults) {
+            if (style.CellSpacing > 0D) return true;
+            W.TableCellSpacing? spacing = table._tableProperties?.TableCellSpacing;
+            return GetNativeTableCellSpacing(spacing).HasValue
+                ? spacing!.Type?.Value == W.TableWidthUnitValues.Dxa
+                : defaults.SeparateCellBorders == true;
+        }
+
         private static void ApplyNativeTableDefaultCellMargins(WordTable table, PdfCore.PdfTableStyle style, bool preserveConfiguredFallbackPadding, NativeTableStyleDefaults tableStyleDefaults) {
             if (!preserveConfiguredFallbackPadding) {
                 // Standard Word cell margins apply to each missing side. A

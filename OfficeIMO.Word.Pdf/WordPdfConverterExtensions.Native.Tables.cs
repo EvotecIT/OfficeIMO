@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeDirectCellBorders(style, layout, directCellBorders);
-            if (style.CellBorders != null && style.CellSpacing <= 0D) {
+            if (style.CellBorders != null && !UsesNativeSeparateTableCellBorders(table, style, tableStyleDefaults)) {
                 ReconcileNativeHiddenSharedBorders(table, layout, tableStyleDefaults, style.HeaderRowCount, style.CellBorders, directCellBorders);
             }
 
@@ -211,6 +211,7 @@ namespace OfficeIMO.Word.Pdf {
             if (!hasExplicitDefaultTableStyle || ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle) != null)
                 ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
             ApplyNativeFixedTableMinimumWidths(layout, style);
+            ApplyNativeZeroSpacingCellMargins(layout, style);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {

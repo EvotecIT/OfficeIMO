@@ -9,6 +9,86 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(8, 0, false, 2D)]
+    [InlineData(8, 0, true, 3D)]
+    [InlineData(8, 10, true, 4D)]
+    [InlineData(16, 0, false, 3D)]
+    [InlineData(16, 0, true, 5D)]
+    [InlineData(16, 20, true, 7D)]
+    [InlineData(8, 108, false, 11.8D)]
+    [InlineData(8, 108, true, 13.8D)]
+    [InlineData(16, 108, false, 11.8D)]
+    [InlineData(16, 108, true, 15.8D)]
+    public void SaveAsPdf_FixedColumnMinimumDistinguishesCollapsedAndSeparateBorders(
+        int border, short margin, bool separate, double expectedGap) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
+        table.Width = 60;
+        if (!separate) table._tableProperties.TableCellSpacing = null;
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.Drawing.OfficeColor.Black);
+        foreach (WordTableCell cell in table.Rows[0].Cells)
+            cell.MarginLeftWidth = cell.MarginRightWidth = margin;
+        string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        var letters = pdf.GetPage(1).Letters;
+        double left = Assert.Single(letters, letter => letter.Value == "L").StartBaseLine.X;
+        double right = Assert.Single(letters, letter => letter.Value == "R").StartBaseLine.X;
+        Assert.Equal(expectedGap, right - left, 3);
+        double borderPoints = border / 8D, marginPoints = margin / 20D;
+        double padding = separate ? Math.Max(borderPoints, marginPoints + borderPoints / 2D)
+            : Math.Max(marginPoints, borderPoints / 2D);
+        Assert.Equal(72D + borderPoints / 2D + padding, left, 3);
+        Assert.Equal(xml, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+    }
+
+    [Theory]
+    [InlineData(8)]
+    [InlineData(16)]
+    public void SaveAsPdf_AbsoluteZeroSpacingRetainsTheSeparateBorderBaseline(int border) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, (uint)border, OfficeIMO.Drawing.OfficeColor.Black);
+        using var separate = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        double separateBaseline = Assert.Single(separate.GetPage(1).Letters, letter => letter.Value == "L").StartBaseLine.Y;
+        table._tableProperties.TableCellSpacing = null;
+        using var collapsed = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        double collapsedBaseline = Assert.Single(collapsed.GetPage(1).Letters, letter => letter.Value == "L").StartBaseLine.Y;
+        Assert.Equal(border / 8D, collapsedBaseline - separateBaseline, 3);
+    }
+
+    [Theory]
+    [InlineData("dxa", false, 3D, 1.5D)]
+    [InlineData("dxa", true, 3D, 1.5D)]
+    [InlineData("auto", false, 2D, 1D)]
+    [InlineData("auto", true, 2D, 1D)]
+    [InlineData("pct", false, 2D, 1D)]
+    [InlineData("pct", true, 2D, 1D)]
+    public void SaveAsPdf_ZeroSpacingUnitsAndStyleInheritanceRetainTheirBorderGeometry(
+        string unit, bool inherited, double expectedGap, double expectedInset) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateUnequalFixedMinimumControl(document, 1, 2250, 0);
+        table.Width = 60;
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 8U, OfficeIMO.Drawing.OfficeColor.Black);
+        W.TableWidthUnitValues spacingUnit = unit == "dxa" ? W.TableWidthUnitValues.Dxa
+            : unit == "auto" ? W.TableWidthUnitValues.Auto : W.TableWidthUnitValues.Pct;
+        var spacing = new W.TableCellSpacing { Type = spacingUnit, Width = "0" };
+        if (inherited) {
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new W.Style(new W.StyleTableProperties(spacing)) { StyleId = "ZeroSpacing", Type = W.StyleValues.Table });
+            table._tableProperties.TableStyle = new W.TableStyle { Val = "ZeroSpacing" };
+            table._tableProperties.TableCellSpacing = null;
+        } else {
+            table._tableProperties.TableCellSpacing = spacing;
+        }
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(UnequalFixedMinimumOptions()));
+        var letters = pdf.GetPage(1).Letters;
+        double left = Assert.Single(letters, letter => letter.Value == "L").StartBaseLine.X;
+        double right = Assert.Single(letters, letter => letter.Value == "R").StartBaseLine.X;
+        Assert.Equal(72D + expectedInset, left, 3);
+        Assert.Equal(expectedGap, right - left, 3);
+    }
+
+    [Theory]
     [InlineData(0, 0, 600, 84D, 13D)]
     [InlineData(0, 0, 960, 84D, 13D)]
     [InlineData(8, 0, 600, 85.5D, 15D)]

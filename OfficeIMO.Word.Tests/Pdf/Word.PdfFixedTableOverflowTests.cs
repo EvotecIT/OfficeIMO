@@ -168,7 +168,7 @@ public partial class Word {
         table.WidthType = WordTableWidthUnit.Pct;
         table.Width = percent;
         table.GridColumnWidth = new List<int> { 2250, 2250 };
-        table.StyleDetails!.CellSpacing = (short)spacingTwips;
+        table.StyleDetails!.CellSpacing = spacingTwips == 0 ? null : (short)spacingTwips;
         uint size = (uint)(cellOverride ? 8 : borderSize);
         W.BorderValues value = size == 0 ? W.BorderValues.Nil : W.BorderValues.Single;
         table._tableProperties.TableBorders = new W.TableBorders(

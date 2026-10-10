@@ -41,17 +41,18 @@ internal static partial class PdfWriter {
             var alignments = SliceTableCellLineAlignments(layout, 0, count);
             var offsets = SliceTableCellLineXOffsets(layout, 0, count);
             var widths = SliceTableCellLineWidths(layout, 0, count, width);
-            double clipX = clockwise ? frame.Top - cellTop : cellTop - cellHeight - frame.Top + frame.Height;
-            double clipBottom = clockwise ? cellX - frame.Left : frame.Left + frame.Width - cellX - cellWidth;
+            TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, row, column, cellX, cellTop, cellWidth, cellHeight);
+            double clipX = clockwise ? frame.Top - inkClip.Top : inkClip.Top - inkClip.Height - frame.Top + frame.Height;
+            double clipBottom = clockwise ? inkClip.Left - frame.Left : frame.Left + frame.Width - inkClip.Left - inkClip.Width;
             OmitInvisibleTableCellViewportLines(lines, heights, alignments, offsets, widths,
-                paragraph.Align, firstBaseline, left, width, clipX, clipBottom, cellHeight, cellWidth,
+                paragraph.Align, firstBaseline, left, width, clipX, clipBottom, inkClip.Height, inkClip.Width,
                 leading, fontSize, currentOpts, font);
             OfficeTransform transform = clockwise
                 ? new OfficeTransform(0D, -1D, 1D, 0D, frame.Left, frame.Top)
                 : new OfficeTransform(0D, 1D, -1D, 0D, frame.Left + frame.Width, frame.Top - frame.Height);
 
             // Physical clipping happens outside the turn, including full-cell viewports.
-            new ContentStreamBuilder(sb).SaveState().Rectangle(cellX, cellTop - cellHeight, cellWidth, cellHeight).ClipPath().EndPath();
+            new ContentStreamBuilder(sb).SaveState().Rectangle(inkClip.Left, inkClip.Top - inkClip.Height, inkClip.Width, inkClip.Height).ClipPath().EndPath();
             try {
                 RenderOpaqueEffectGroupInline(transform, () => {
                     WriteClippedRichParagraph(sb, paragraph, lines, heights, currentOpts, firstBaseline, fontSize, leading,

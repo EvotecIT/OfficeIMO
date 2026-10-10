@@ -8,6 +8,7 @@ namespace OfficeIMO.Word.Pdf {
         private readonly record struct NativeTableStyleDefaults(PdfCore.PdfCellPadding? CellPadding, PdfCore.PdfColor? CellFill, PdfCore.PdfCellVerticalAlign? CellVerticalAlignment, (PdfCore.PdfColor Color, double Width)? TableBorder, W.TableBorders? Borders, W.TableWidth? PreferredWidth, W.TableLayoutValues? Layout, double? LeftIndent, double? CellSpacing, W.TableRowAlignmentValues? Alignment, double? ParagraphLineHeight, double? ParagraphLineSpacingPoints, W.LineSpacingRuleValues? ParagraphLineSpacingRule, double? ParagraphSpacingBefore, double? ParagraphSpacingAfter, W.JustificationValues? ParagraphAlignment, double? ParagraphLeftIndent, double? ParagraphRightIndent, double? ParagraphFirstLineIndent, NativeTableRunStyleDefaults RunStyle, NativeTableConditionalStyleDefaults FirstRowStyle, NativeTableConditionalStyleDefaults LastRowStyle, NativeTableConditionalStyleDefaults FirstColumnStyle, NativeTableConditionalStyleDefaults LastColumnStyle, NativeTableConditionalStyleDefaults Band1HorizontalStyle, NativeTableConditionalStyleDefaults Band1VerticalStyle) {
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeParagraphSpacing ParagraphSpacing { get; init; }
+            public bool? SeparateCellBorders { get; init; }
             // An explicit PDF default supplies missing cell typography while
             // authored run, paragraph and named table styles retain precedence.
             public bool UseConfiguredTypography { get; init; }
@@ -54,6 +55,7 @@ namespace OfficeIMO.Word.Pdf {
             W.TableLayoutValues? layout = null;
             double? leftIndent = null;
             double? cellSpacing = null;
+            bool? separateCellBorders = null;
             W.TableRowAlignmentValues? alignment = null;
             double? paragraphLineHeight = null;
             double? paragraphLineSpacingPoints = null;
@@ -107,7 +109,11 @@ namespace OfficeIMO.Word.Pdf {
                 preferredWidth = tableProperties?.GetFirstChild<W.TableWidth>() ?? preferredWidth;
                 layout = tableProperties?.GetFirstChild<W.TableLayout>()?.Type?.Value ?? layout;
                 leftIndent = GetNativeTableLeftIndent(tableProperties?.GetFirstChild<W.TableIndentation>()) ?? leftIndent;
-                cellSpacing = GetNativeTableCellSpacing(tableProperties?.GetFirstChild<W.TableCellSpacing>()) ?? cellSpacing;
+                W.TableCellSpacing? spacingDeclaration = tableProperties?.GetFirstChild<W.TableCellSpacing>();
+                if (GetNativeTableCellSpacing(spacingDeclaration) is { } resolvedCellSpacing) {
+                    cellSpacing = resolvedCellSpacing;
+                    separateCellBorders = spacingDeclaration!.Type?.Value == W.TableWidthUnitValues.Dxa;
+                }
                 alignment = tableProperties?.GetFirstChild<W.TableJustification>()?.Val?.Value ?? alignment;
 
                 W.TableCellMarginDefault? margins = tableProperties?.GetFirstChild<W.TableCellMarginDefault>();
@@ -244,7 +250,8 @@ namespace OfficeIMO.Word.Pdf {
                 firstColumnStyle,
                 lastColumnStyle,
                 band1HorizontalStyle,
-                band1VerticalStyle) { LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing, ParagraphPagination = paragraphPagination };
+                band1VerticalStyle) { LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing,
+                    ParagraphPagination = paragraphPagination, SeparateCellBorders = separateCellBorders };
         }
 
         private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(

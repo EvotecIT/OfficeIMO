@@ -70,6 +70,8 @@ public partial class PdfTableStyle {
     /// of the border paint instead of the cell's grid boundary.
     /// </summary>
     internal bool CellVerticalPaddingFromBorderInterior { get; set; }
+    /// <summary>Prepared inside-frame cells retain the vertical margin clip after their border insets are resolved.</summary>
+    internal bool CellTextClipIncludesVerticalPadding { get; set; }
 
     /// <summary>Document adapters can retain a perimeter independent of the cell borders.</summary>
     internal PdfTableBorderFrame? BorderFrame { get; set; }
@@ -697,6 +699,7 @@ public partial class PdfTableStyle {
             CellPaddingTop = CellPaddingTop,
             CellPaddingBottom = CellPaddingBottom,
             CellVerticalPaddingFromBorderInterior = CellVerticalPaddingFromBorderInterior,
+            CellTextClipIncludesVerticalPadding = CellTextClipIncludesVerticalPadding,
             BorderFrame = BorderFrame?.Clone(),
             CellSpacing = CellSpacing,
             MinRowHeight = MinRowHeight,
