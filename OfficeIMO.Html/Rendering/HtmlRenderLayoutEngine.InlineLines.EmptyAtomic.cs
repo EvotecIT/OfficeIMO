@@ -15,6 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
+            if (run.IsFlowMarker) continue;
             if (run.AtomicBlock != null) {
                 if (!run.HasEmptyInlineBlockBaseline || run.Style.TableVerticalAlignment is not ("baseline" or "top")) return false;
             } else if (!HasSameEmptyAtomicStrutFace(run.Style, paragraphStyle)) return false;
@@ -26,9 +27,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double descent = Math.Max(0D, paragraphStyle.LineHeight - ascent);
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
+            if (run.IsFlowMarker) continue;
             if (run.AtomicBlock != null) {
                 if (run.Style.TableVerticalAlignment == "baseline") ascent = Math.Max(ascent, run.AtomicBlock.Height);
-            } else if (!run.IsFlowMarker && run.RunningStringElement == null && run.RunningElementAssignment == null) {
+            } else if (run.RunningStringElement == null && run.RunningElementAssignment == null) {
                 AddStrut(run.Style);
             }
             foreach (HtmlRenderBoxStyle style in run.InlineStrutStyles) AddStrut(style);
@@ -55,6 +57,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal void RecordEmptyInlineStruts(IReadOnlyList<HtmlRenderBoxStyle> styles) {
             if (styles.Count == 0) return;
             (_emptyInlineStrutStyles ??= new List<HtmlRenderBoxStyle>()).AddRange(styles);
+        }
+
+        // A nowrap suffix carries its zero-width inline boxes to the same line
+        // as its content; remove them before calculating the preceding line.
+        internal IReadOnlyList<HtmlRenderBoxStyle> TakeEmptyInlineStruts(int start) {
+            if (_emptyInlineStrutStyles == null || start >= _emptyInlineStrutStyles.Count) {
+                return Array.Empty<HtmlRenderBoxStyle>();
+            }
+            HtmlRenderBoxStyle[] styles = _emptyInlineStrutStyles.Skip(start).ToArray();
+            _emptyInlineStrutStyles.RemoveRange(start, _emptyInlineStrutStyles.Count - start);
+            return styles;
         }
     }
 

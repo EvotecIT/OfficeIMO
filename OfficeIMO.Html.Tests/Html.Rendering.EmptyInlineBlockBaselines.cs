@@ -7,6 +7,74 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlEmptyInlineBlockBaselineTests {
+    [Fact]
+    public void NoWrapGroupRetainsItsEmptySiblingStrutWhenPlacedBelowAFloat() {
+        var options = Options();
+        HtmlRenderDocument rendered = Render(Source("<div style='width:110px'>"
+            + "<i style='float:left;width:20px;height:120px'></i><span style='white-space:nowrap'>"
+            + "<span style='line-height:100px'></span><span id='fill' style='display:inline-block;"
+            + "width:100px;height:240px;background:lime'></span></span></div>" + Following), options);
+
+        Assert.Equal(120D, Shape(rendered, "span#fill").Y, 6);
+        Assert.Equal(360D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NoWrapGroupMovesItsEmptySiblingStrutWithItsAtomicContent(bool floated) {
+        var options = Options();
+        string floating = floated ? "<i style='float:left;width:20px;height:600px'></i>" : "";
+        string content = "<div style='width:" + (floated ? "120" : "100") + "px'>" + floating
+            + "<span id='first' style='display:inline-block;width:80px;height:240px;background:lime'></span>"
+            + "<span style='white-space:nowrap'><span style='line-height:100px'></span>"
+            + "<span id='second' style='display:inline-block;width:80px;height:240px;background:lime'></span></span></div>" + Following;
+        HtmlRenderDocument rendered = Render(Source(content), options);
+
+        Assert.Equal(0D, Shape(rendered, "span#first").Y, 6);
+        Assert.Equal(240D + StrutDescent(options.Fonts, 20D), Shape(rendered, "span#second").Y, 6);
+        Assert.Equal(480D + StrutDescent(options.Fonts, 20D) + StrutDescent(options.Fonts, 100D),
+            Shape(rendered, "div#following").Y, 6);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FragmentDestinationMarkerDoesNotChangeTheParticipatingLineStruts(bool floated) {
+        var options = Options();
+        string floating = floated ? "<i style='float:left;width:20px;height:600px'></i>" : "";
+        string content = "<div>" + floating + "<span id='anchor' style='line-height:100px'></span>"
+            + "<span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></div>"
+            + Following + "<div><a href='#anchor'>Jump</a></div>";
+        HtmlRenderDocument rendered = Render(Source(content), options);
+
+        Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
+        Assert.Single(rendered.Pages.SelectMany(page => Enumerate(page.Scene)).OfType<HtmlRenderNamedDestination>(),
+            destination => destination.Name == "anchor");
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("inline-block")]
+    [InlineData("inline-flex")]
+    [InlineData("inline-grid")]
+    [InlineData("inline-table")]
+    public void ReferencedInlineAtomicBoxOwnsOnePdfDestination(string display) {
+        string html = Source("<div><span id='target' style='display:" + display
+            + ";width:40px;height:240px;background:lime'></span></div>" + Following
+            + "<div><a href='#target'>Jump</a></div>");
+        HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(html).RenderToPdfResult(
+            HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options: Options()));
+
+        Assert.Single(result.RenderResult.Document.Pages.SelectMany(page => Enumerate(page.Scene))
+            .OfType<HtmlRenderNamedDestination>(), destination => destination.Name == "target");
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(result.ToBytes());
+        Assert.Single(info.NamedDestinations, destination => destination.Name == "html-fragment:target");
+        Assert.Contains("html-fragment:target", info.LinkDestinationNames);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData(" \n<!-- empty -->")]

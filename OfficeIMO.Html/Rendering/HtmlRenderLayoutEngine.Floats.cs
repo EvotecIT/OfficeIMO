@@ -84,15 +84,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineLine line = CreateFloatLine(context, ref y, paragraphStyle.LineHeight, paragraphStyle);
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
+        int noWrapStrutStart = 0;
         bool noWrapRangeStartedAfterContent = false;
 
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
             if (ProcessInlineEdgeBoundary(run, line)) continue;
-            if (run.IsInlineStrutMarker) {
-                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
-                continue;
-            }
             if (run.FloatingBlock != null) {
                 if (noWrapRangeStart >= 0) {
                     previousWasCollapsibleSpace = FinalizeFloatNoWrapRange(
@@ -102,6 +99,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         context,
                         paragraphStyle.LineHeight,
                         noWrapRangeStart,
+                        noWrapStrutStart,
                         noWrapRangeStartedAfterContent);
                     noWrapRangeStart = -1;
                     noWrapRangeStartedAfterContent = false;
@@ -154,12 +152,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     context,
                     paragraphStyle.LineHeight,
                     noWrapRangeStart,
+                    noWrapStrutStart,
                     noWrapRangeStartedAfterContent);
                 noWrapRangeStart = -1;
                 noWrapRangeStartedAfterContent = false;
             } else if (runPreventsWrapping && noWrapRangeStart < 0) {
                 noWrapRangeStart = line.Segments.Count;
+                noWrapStrutStart = line.EmptyInlineStrutStyles.Count;
                 noWrapRangeStartedAfterContent = line.HasFlowContent;
+            }
+            if (run.IsInlineStrutMarker) {
+                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
+                continue;
             }
             if (run.RunningStringElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
@@ -189,7 +193,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
                 }
                 if (!line.HasFlowContent && line.PreviewAdvance(run, atomicWidth) > line.AvailableWidth + 0.0001D) {
+                    IReadOnlyList<HtmlRenderBoxStyle> noWrapStruts = paragraphStyle.PreventTextWrapping
+                        ? line.TakeEmptyInlineStruts(0)
+                        : runPreventsWrapping ? line.TakeEmptyInlineStruts(noWrapStrutStart)
+                            : Array.Empty<HtmlRenderBoxStyle>();
                     MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, line.PreviewAdvance(run, atomicWidth));
+                    line.RecordEmptyInlineStruts(noWrapStruts);
                 }
                 line.Add(new InlineSegment(string.Empty, atomicWidth, run));
                 continue;
@@ -212,11 +221,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             context,
                             paragraphStyle.LineHeight,
                             noWrapRangeStart,
+                            noWrapStrutStart,
                             noWrapRangeStartedAfterContent);
                     }
                     CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight, includeEmpty: true);
                     previousWasCollapsibleSpace = false;
                     noWrapRangeStart = runPreventsWrapping ? 0 : -1;
+                    noWrapStrutStart = 0;
                     noWrapRangeStartedAfterContent = false;
                     continue;
                 }
@@ -319,6 +330,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 context,
                 paragraphStyle.LineHeight,
                 noWrapRangeStart,
+                noWrapStrutStart,
                 noWrapRangeStartedAfterContent);
         }
 
@@ -348,17 +360,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InlineFloatContext context,
         double lineHeight,
         int rangeStart,
+        int strutRangeStart,
         bool startedAfterContent) {
         if (rangeStart < line.Segments.Count && line.Width > line.AvailableWidth + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
             double rangeWidth = range.Sum(static segment => segment.Advance);
             bool canClearObstruction = context.NextBottomAfter(y) > y + 0.0001D;
             if (startedAfterContent || canClearObstruction) {
+                IReadOnlyList<HtmlRenderBoxStyle> rangeStruts = line.TakeEmptyInlineStruts(strutRangeStart);
                 while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
                 CommitFloatLine(lines, ref line, ref y, context, lineHeight);
                 if (rangeWidth > line.AvailableWidth + 0.0001D) {
                     MoveFloatLineBelowObstruction(ref line, ref y, context, lineHeight, rangeWidth);
                 }
+                line.RecordEmptyInlineStruts(rangeStruts);
                 foreach (InlineSegment segment in range) {
                     if (!line.HasFlowContent
                         && segment.Run.RunningStringElement == null

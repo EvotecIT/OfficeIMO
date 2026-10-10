@@ -290,7 +290,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         bool isPageFloat = TryGetPageFloatSide(element, style, out _);
         bool isColumnFloat = TryGetColumnEdgeFloatSide(element, style, out _, out _);
-        if (!isBlock && !isPageFloat && !isColumnFloat) {
+        // These boxes run LayoutElement, which owns their destination at the
+        // laid-out box. An additional zero-flow marker would duplicate it.
+        bool ownsAtomicDestination = !IsReplacedImageElementTag(tag) && tag is not ("math" or "ruby")
+            && (!IsFormControlElement(tag) || UsesButtonChildLayout(element))
+            && style.Display is "inline-block" or "inline-flex" or "inline-grid" or "inline-table";
+        if (!isBlock && !isPageFloat && !isColumnFloat && !ownsAtomicDestination) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (!isPageFloat && !isColumnFloat) ReportUnsupportedFloatValues(element, style);
@@ -335,7 +340,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         // Extracted figures own their destination at the moved box. A
         // rejected extraction retains the ordinary inline target in source flow.
-        if ((isPageFloat || isColumnFloat) && !isBlock) {
+        if ((isPageFloat || isColumnFloat) && !isBlock && !ownsAtomicDestination) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (style.FloatSide != "none") {
@@ -705,27 +710,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (skipLogicalCharacters == 0) line.Indent(paragraphStyle.TextIndent?.Resolve(width) ?? 0D, paragraphStyle.Direction == "rtl");
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
+        int noWrapStrutStart = 0;
         bool noWrapRangeStartedAfterContent = false;
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
             if (ProcessInlineEdgeBoundary(run, line)) continue;
-            if (run.IsInlineStrutMarker) {
-                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
-                continue;
-            }
             bool runPreventsWrapping = !paragraphStyle.PreventTextWrapping && run.Style.PreventTextWrapping;
             if (!runPreventsWrapping && noWrapRangeStart >= 0) {
                 previousWasCollapsibleSpace = FinalizeNoWrapRange(
                     lines,
                     ref line,
                     noWrapRangeStart,
+                    noWrapStrutStart,
                     noWrapRangeStartedAfterContent,
                     width);
                 noWrapRangeStart = -1;
                 noWrapRangeStartedAfterContent = false;
             } else if (runPreventsWrapping && noWrapRangeStart < 0) {
                 noWrapRangeStart = line.Segments.Count;
+                noWrapStrutStart = line.EmptyInlineStrutStyles.Count;
                 noWrapRangeStartedAfterContent = line.HasFlowContent;
+            }
+            if (run.IsInlineStrutMarker) {
+                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
+                continue;
             }
             if (run.RunningStringElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
@@ -774,6 +782,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             lines,
                             ref line,
                             noWrapRangeStart,
+                            noWrapStrutStart,
                             noWrapRangeStartedAfterContent,
                             width);
                     }
@@ -781,6 +790,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     line = new InlineLine();
                     previousWasCollapsibleSpace = false;
                     noWrapRangeStart = runPreventsWrapping ? 0 : -1;
+                    noWrapStrutStart = 0;
                     noWrapRangeStartedAfterContent = false;
                     continue;
                 }
@@ -910,6 +920,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 lines,
                 ref line,
                 noWrapRangeStart,
+                noWrapStrutStart,
                 noWrapRangeStartedAfterContent,
                 width);
         }
@@ -1668,14 +1679,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<InlineLine> lines,
         ref InlineLine line,
         int rangeStart,
+        int strutRangeStart,
         bool startedAfterContent,
         double width) {
         if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > line.ResolveAvailableWidth(width) + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
+            IReadOnlyList<HtmlRenderBoxStyle> rangeStruts = line.TakeEmptyInlineStruts(strutRangeStart);
             while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
             TrimTrailingWhitespace(line);
             if (line.Segments.Count > 0) lines.Add(line);
             line = new InlineLine();
+            line.RecordEmptyInlineStruts(rangeStruts);
             foreach (InlineSegment segment in range) {
                 if (!line.HasFlowContent
                     && segment.Run.RunningStringElement == null
