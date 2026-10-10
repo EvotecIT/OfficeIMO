@@ -168,6 +168,18 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## DjVu Reader identity and transport
+
+Register `.AddDjVuHandler()` from `OfficeIMO.Reader.DjVu` for `.djvu` and `.djv`,
+or use the all-adapters preset. Results use `ReaderInputKind.DjVu` (`28`) and
+transport schema v12. Update exhaustive input-kind switches and transport bindings
+to accept the new value and version. Historical schemas remain readable; v11 and
+earlier cannot carry DjVu input kinds. Schema v11 and `ReaderInputKind.Chm` (`27`)
+retain their existing CHM contract. Obtain the current artifact through
+`OfficeDocumentReadResultSchema.GetJsonSchema()`. Native source page numbers remain
+stable when selected pages are reordered. Page images and new OCR are explicit
+options; corrupt stored text is a parsing diagnostic.
+
 `XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.
