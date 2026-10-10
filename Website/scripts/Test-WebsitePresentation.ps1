@@ -44,23 +44,39 @@ function Assert-ContainsLiteral {
 
 $siteRootPath = (Resolve-Path -LiteralPath $SiteRoot).Path
 $sourceRootPath = (Resolve-Path -LiteralPath $SourceRoot).Path
+
+function Assert-ContainsAttribute {
+    param(
+        [Parameter(Mandatory)] [string] $Text,
+        [Parameter(Mandatory)] [string] $Name,
+        [Parameter(Mandatory)] [string] $Value,
+        [Parameter(Mandatory)] [string] $Contract
+    )
+
+    $escapedValue = [regex]::Escape($Value)
+    $pattern = '\s' + [regex]::Escape($Name) + '\s*=\s*(?:"' + $escapedValue + '"|''' + $escapedValue + '''|' + $escapedValue + '(?=\s|/?>))'
+    if ($Text -notmatch $pattern) {
+        throw "Presentation contract '$Contract' is missing attribute '$Name=$Value'."
+    }
+}
+
 foreach ($route in @('studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
     # The logo supplies Home; the main-menu-only verifier warning is baselined.
-    if ($routeHtml -notmatch '<a\b[^>]*class="[^"]*\bimo-header__logo\b[^"]*"[^>]*href="/"') {
+    if ($routeHtml -notmatch '<a\b(?=[^>]*\sclass=(?:"(?:[^"]*\s)?imo-header__logo(?:\s[^"]*)?"|''(?:[^'']*\s)?imo-header__logo(?:\s[^'']*)?''|imo-header__logo(?=\s|>)))(?=[^>]*\shref=["'']?/["'']?(?=\s|>))[^>]*>') {
         throw "Route '/$route/' must expose Home through the linked site logo."
     }
-    $navigationCount = [regex]::Matches($routeHtml, '<nav\b[^>]*\bid="main-navigation"').Count
+    $navigationCount = [regex]::Matches($routeHtml, '<nav\b[^>]*\sid=["'']?main-navigation["'']?(?=\s|>)').Count
     if ($navigationCount -ne 1) {
         throw "Route '/$route/' must render one global navigation menu; found $navigationCount."
     }
     foreach ($destination in @('/studio/', '/convert/', '/tool/', '/libraries/', '/docs/', '/downloads/')) {
-        Assert-ContainsLiteral -Text $routeHtml -Expected "href=`"$destination`"" -Contract "global navigation on /$route/"
+        Assert-ContainsAttribute -Text $routeHtml -Name 'href' -Value $destination -Contract "global navigation on /$route/"
     }
 }
 foreach ($route in @('docs', 'api/word', 'convert/guides', 'convert/doc-docx', 'pdf', 'pdf/merge')) {
     $routeHtml = Get-RequiredText -Path (Join-Path $siteRootPath "$route/index.html")
-    Assert-ContainsLiteral -Text $routeHtml -Expected 'id="documentation-navigation"' -Contract "documentation navigation on /$route/"
+    Assert-ContainsAttribute -Text $routeHtml -Name 'id' -Value 'documentation-navigation' -Contract "documentation navigation on /$route/"
     Assert-ContainsLiteral -Text $routeHtml -Expected 'imo-documentation-toolbar' -Contract "documentation toolbar on /$route/"
 }
 

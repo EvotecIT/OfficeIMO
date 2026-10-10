@@ -2878,4 +2878,28 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>The display label matches several choices. Enter the exact export value.</value></data>
   <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Unmatched current selection</value></data>
   <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Unmatched comparison selection</value></data>
+  <data name="Provenance.NotRecorded" xml:space="preserve"><value>Not recorded</value></data>
+  <data name="Provenance.SoftwareNotRecorded" xml:space="preserve"><value>Software not recorded</value></data>
+  <data name="Provenance.TimeNotRecorded" xml:space="preserve"><value>Time not recorded</value></data>
+  <data name="Provenance.RecordedTime" xml:space="preserve"><value>Recorded time: {0}</value></data>
+  <data name="Provenance.CertificateSubjectFormat" xml:space="preserve"><value>Certificate subject (unverified): {0}</value></data>
+  <data name="Provenance.CertificateIssuerFormat" xml:space="preserve"><value>Certificate issuer (unverified): {0}</value></data>
+  <data name="Provenance.SourceAssetFormat" xml:space="preserve"><value>Source asset: {0}</value></data>
+  <data name="Provenance.ManifestCountFormat" xml:space="preserve"><value>Manifests in the store: {0}</value></data>
+  <data name="Provenance.ActionCreated" xml:space="preserve"><value>Created</value></data>
+  <data name="Provenance.ActionOpened" xml:space="preserve"><value>Opened</value></data>
+  <data name="Provenance.ActionEdited" xml:space="preserve"><value>Edited</value></data>
+  <data name="Provenance.ActionConverted" xml:space="preserve"><value>Converted</value></data>
+  <data name="Provenance.ActionCropped" xml:space="preserve"><value>Cropped</value></data>
+  <data name="Provenance.ActionResized" xml:space="preserve"><value>Resized</value></data>
+  <data name="Provenance.ActionPlaced" xml:space="preserve"><value>Placed other content</value></data>
+  <data name="Provenance.ActionPublished" xml:space="preserve"><value>Published</value></data>
+  <data name="Provenance.ActionWatermarked" xml:space="preserve"><value>Added a watermark to the content</value></data>
+  <data name="Provenance.SourceGenerativeAi" xml:space="preserve"><value>Generative AI declared</value></data>
+  <data name="Provenance.SourceCompositeAi" xml:space="preserve"><value>Mix of AI-generated and other content declared</value></data>
+  <data name="Provenance.SourceAlgorithmic" xml:space="preserve"><value>Software-generated content declared</value></data>
+  <data name="Provenance.SourceDigitalCapture" xml:space="preserve"><value>Camera or scanner capture declared</value></data>
+  <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Composite of captured media declared</value></data>
+  <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Recorded source type: {0}</value></data>
+  <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Source type not recorded</value></data>
 </root>

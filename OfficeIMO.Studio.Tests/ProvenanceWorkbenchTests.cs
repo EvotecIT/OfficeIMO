@@ -4,7 +4,10 @@ using Avalonia.Headless;
 using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workflows;
+using OfficeIMO.Studio.Infrastructure;
+using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Studio.Infrastructure.Preferences;
+using System.Globalization;
 using System.Text.Json;
 using Xunit;
 
@@ -12,48 +15,64 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class ProvenanceWorkbenchTests {
     [Theory]
-    [InlineData(840, 600)]
-    [InlineData(1280, 800)]
-    public async Task CredentialPanelShowsRecordedActionsAndClearsForTheNextInput(int width, int height) {
+    [InlineData("en", 840, 600)]
+    [InlineData("en", 1280, 800)]
+    [InlineData("pl", 840, 600)]
+    [InlineData("de", 840, 600)]
+    [InlineData("fr", 840, 600)]
+    public async Task CredentialPanelShowsRecordedActionsAndClearsForTheNextInput(string culture, int width, int height) {
         using var app = TestAppBuilder.StartSession();
         await app.Dispatch(async () => {
-            var services = ((App)Application.Current!).Services;
-            services.Preferences.Update(current => current with { Theme = width >= 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light });
-            Directory.CreateDirectory(services.Paths.Root);
-            string source = Path.Combine(services.Paths.Root, "credential.png");
-            File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "unsigned-credential-12-actions.png"), source);
-            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
-            model.ShowProvenanceCommand.Execute(null);
-            var workspace = model.ProvenanceWorkbench;
-            workspace.InputPath = source;
-            workspace.OutputFolder = services.Paths.Root;
-            await workspace.AssessCommand.ExecuteAsync(null);
-            var credential = Assert.Single(workspace.Credentials);
-            Assert.True(workspace.HasCredentials, workspace.Status);
-            Assert.Equal(12, credential.Actions.Count);
-            Assert.Equal("Generator", credential.Generator);
-            Assert.Equal("Unverified subject", credential.CertificateSubject);
-            Assert.Equal("Time not recorded", credential.Actions[1].Time);
-            Assert.True(credential.Actions[1].HasWatermark);
-            Assert.Contains("Verification: NotConfigured", workspace.Checks);
-            var view = new ProvenanceWorkbenchView { DataContext = model };
-            var window = new Window { Width = width, Height = height, Content = view };
+            IStudioLocalizer previous = StudioLocalization.Current;
+            var previousTheme = Application.Current!.RequestedThemeVariant;
+            CultureInfo previousCulture = CultureInfo.CurrentCulture, previousUi = CultureInfo.CurrentUICulture;
+            CultureInfo? previousDefault = CultureInfo.DefaultThreadCurrentCulture, previousDefaultUi = CultureInfo.DefaultThreadCurrentUICulture;
+            Window? window = null;
             try {
+                var paths = ((App)Application.Current!).Services.Paths;
+                new JsonStudioPreferencesStore(paths.PreferencesPath).Save(new StudioPreferences {
+                    UiCulture = culture, Theme = width >= 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light
+                });
+                var services = StudioApplicationServices.Create(paths);
+                StudioLocalization.Configure(services.Localizer);
+                Application.Current.RequestedThemeVariant = width >= 1000 ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
+                IStudioLocalizer localizer = services.Localizer;
+                Directory.CreateDirectory(services.Paths.Root);
+                string source = Path.Combine(services.Paths.Root, "credential.png");
+                File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "unsigned-credential-12-actions.png"), source);
+                using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+                model.ShowProvenanceCommand.Execute(null);
+                var workspace = model.ProvenanceWorkbench;
+                workspace.InputPath = source;
+                workspace.OutputFolder = services.Paths.Root;
+                await workspace.AssessCommand.ExecuteAsync(null);
+                var credential = Assert.Single(workspace.Credentials);
+                Assert.True(workspace.HasCredentials, workspace.Status);
+                Assert.Equal(12, credential.Actions.Count);
+                Assert.Equal("Generator", credential.Generator);
+                Assert.Equal("Unverified subject", credential.CertificateSubject);
+                Assert.Equal(localizer.Get("Provenance.TimeNotRecorded"), credential.Actions[1].Time);
+                Assert.Equal(localizer.Get("Provenance.ActionWatermarked"), credential.Actions[1].Action);
+                Assert.True(credential.Actions[1].HasWatermark);
+                Assert.Contains("Verification: NotConfigured", workspace.Checks);
+                var view = new ProvenanceWorkbenchView { DataContext = model };
+                window = new Window { Width = width, Height = height, Content = view };
                 window.Show(); window.UpdateLayout();
-                TextBlock subject = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text?.StartsWith("Certificate subject (unverified):") == true);
+                Assert.Contains(view.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == localizer.Get("Provenance.Timeline"));
+                TextBlock subject = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == localizer.Format("Provenance.CertificateSubjectFormat", "Unverified subject"));
                 subject.BringIntoView(); window.UpdateLayout();
                 Assert.True(subject.IsEffectivelyVisible);
-                Capture(window, "provenance-credentials-" + width);
-                TextBlock watermark = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.IsVisible && text.Text?.StartsWith("The record claims a watermark") == true);
+                Capture(window, culture + "-provenance-credentials-" + width);
+                TextBlock watermark = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.IsVisible && text.Text == localizer.Get("Provenance.WatermarkHint"));
                 watermark.BringIntoView(); window.UpdateLayout();
-                Capture(window, "provenance-timeline-" + width);
+                Capture(window, culture + "-provenance-timeline-" + width);
                 TextBlock finalAction = view.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == "Editor 11");
                 finalAction.BringIntoView(); window.UpdateLayout();
                 AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                 var finalPosition = finalAction.TranslatePoint(new Point(0, 0), window);
                 Assert.NotNull(finalPosition);
                 Assert.InRange(finalPosition.Value.Y, 0, height - finalAction.Bounds.Height);
-                Capture(window, "provenance-timeline-last-" + width);
+                Capture(window, culture + "-provenance-timeline-last-" + width);
                 await workspace.ExportReportCommand.ExecuteAsync(null);
                 using var report = JsonDocument.Parse(await File.ReadAllTextAsync(workspace.ReportPath));
                 Assert.Equal(12, report.RootElement.GetProperty("assessment").GetProperty("structural").GetProperty("evidence")[0].GetProperty("manifest").GetProperty("actions").GetArrayLength());
@@ -65,7 +84,13 @@ public sealed class ProvenanceWorkbenchTests {
                 Assert.Empty(workspace.Credentials);
                 Assert.False(workspace.CanExportReport);
                 Assert.False(workspace.CanCreateCopy);
-            } finally { window.Close(); }
+            } finally {
+                window?.Close();
+                Application.Current!.RequestedThemeVariant = previousTheme;
+                StudioLocalization.Configure(previous);
+                CultureInfo.CurrentCulture = previousCulture; CultureInfo.CurrentUICulture = previousUi;
+                CultureInfo.DefaultThreadCurrentCulture = previousDefault; CultureInfo.DefaultThreadCurrentUICulture = previousDefaultUi;
+            }
             return true;
         }, CancellationToken.None);
     }

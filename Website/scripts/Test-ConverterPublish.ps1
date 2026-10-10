@@ -90,8 +90,8 @@ if ($provenanceGuide -notmatch '<h1(?:\s[^>]*)?>Check and remove file provenance
     $provenanceGuide -notmatch 'href=["'']?https://www\.nuget\.org/packages/OfficeIMO\.Workflows["'']?(?:\s|/?>)' -or
     $provenanceGuide -notmatch 'Content Credentials' -or
     $provenanceGuide -notmatch 'does not remove visible or invisible watermarks' -or
-    $provenanceGuide -notmatch 'href="/browser/file-origin/"' -or
-    $provenanceGuide -notmatch 'href="/browser/hidden-characters/"' -or
+    $provenanceGuide -notmatch 'href=["'']?/browser/file-origin/["'']?(?:\s|/?>)' -or
+    $provenanceGuide -notmatch 'href=["'']?/browser/hidden-characters/["'']?(?:\s|/?>)' -or
     $provenanceGuide -notmatch 'href=["'']?https://github\.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo\.provenance-support-matrix\.md["'']?(?:\s|/?>)') {
     throw 'The /provenance/ route does not explain the supported file-origin workflow and its limits.'
 }
@@ -126,7 +126,7 @@ if ($runtimeWasm -notmatch 'hb_blob_create') {
 }
 
 $index = Get-Content -LiteralPath $indexPath -Raw
-if ($index -notmatch "location\.replace\('/convert/' \+ location\.search\)" -or $index -match '_framework/blazor') {
+if ($index -notmatch 'location\.replace\(\s*["'']/convert/["'']\s*\+\s*location\.search\s*\)' -or $index -match '_framework/blazor') {
     throw 'The engine folder index must only forward older app links to the /convert/ directory.'
 }
 

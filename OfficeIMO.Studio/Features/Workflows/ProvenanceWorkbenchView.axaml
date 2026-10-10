@@ -38,8 +38,8 @@
       <Border Classes="card" Margin="0,0,0,10"><StackPanel Spacing="8">
        <TextBlock Text="{Binding Generator}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
        <TextBlock Text="{Binding Asset}" TextWrapping="Wrap" />
-       <TextBlock Text="{Binding CertificateSubject, StringFormat='Certificate subject (unverified): {0}'}" TextWrapping="Wrap" />
-       <TextBlock Text="{Binding CertificateIssuer, StringFormat='Certificate issuer (unverified): {0}'}" Classes="muted" TextWrapping="Wrap" />
+       <TextBlock Text="{Binding CertificateSubjectDescription}" TextWrapping="Wrap" />
+       <TextBlock Text="{Binding CertificateIssuerDescription}" Classes="muted" TextWrapping="Wrap" />
        <TextBlock Text="{loc:Loc Provenance.Timeline}" FontWeight="SemiBold" Margin="0,6,0,0" />
        <TextBlock Text="{loc:Loc Provenance.TimelineHint}" Classes="muted" TextWrapping="Wrap" />
        <ItemsControl ItemsSource="{Binding Actions}"><ItemsControl.ItemTemplate>
@@ -56,11 +56,11 @@
          </Grid>
         </DataTemplate>
        </ItemsControl.ItemTemplate></ItemsControl>
-       <ItemsControl ItemsSource="{Binding Ingredients}"><ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding, StringFormat='Source asset: {0}'}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate>
+       <ItemsControl ItemsSource="{Binding IngredientDescriptions}"><ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate>
        </ItemsControl.ItemTemplate></ItemsControl>
        <Expander Header="{loc:Loc Provenance.RecordDetails}"><StackPanel Spacing="5" Margin="8">
-        <TextBlock Text="{Binding ManifestCount, StringFormat='Manifests in the store: {0}'}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding ManifestCountDescription}" TextWrapping="Wrap" />
         <TextBlock Text="{Binding Label}" Classes="muted" TextWrapping="Wrap" />
         <TextBlock Text="{Binding Location}" Classes="muted" TextWrapping="Wrap" />
        </StackPanel></Expander>
