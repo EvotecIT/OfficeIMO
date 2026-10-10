@@ -12,6 +12,7 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("pages-created-layout-edited-v15.4.pages", "pages-pdf", 1, "8")]
     [InlineData("pages-list-continuation-v15.4.pages", "pages-pdf", 1, "2")]
     [InlineData("numbers-created-edited-v14.5.numbers", "numbers-pdf", 4, "6")]
+    [InlineData("numbers-duration-seconds-v14.5.numbers", "numbers-pdf", 6, "7")]
     [InlineData("keynote-created-tables-edited-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
     public async Task Native_content_pdf_routes_retain_every_page_with_caller_fonts(
@@ -53,7 +54,13 @@ public sealed partial class IWorkWorkflowTests {
                 else if (fixture == "pages-list-continuation-v15.4.pages") AssertNativePagesListText(pages);
                 else AssertNativePagesText(pages);
                 break;
-            case "numbers-pdf": AssertNativeNumbersText(pages); break;
+            case "numbers-pdf":
+                if (fixture == "numbers-duration-seconds-v14.5.numbers") {
+                    AssertNativeSecondDurationText(pages);
+                    Assert.Contains(evidence.FidelityDiagnostics, item => item.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED"
+                        && item.LossKind == OfficeConversionLossKind.Approximation);
+                } else AssertNativeNumbersText(pages);
+                break;
             case "keynote-pdf": AssertNativeKeynoteText(pages); break;
         }
     }
@@ -130,6 +137,30 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Contains("Totals 99", pages[2]);
         Assert.Contains("FALSE", pages[2]);
         Assert.Equal(string.Empty, pages[3].Trim()); // The completely unset 2-by-3 table retains a drawn page.
+    }
+
+    private static void AssertNativeSecondDurationText(IReadOnlyList<string> pages) {
+        var singles = new[] { "36h 1m 1s", "2161m 1s", "129661s" };
+        var doubles = new[] { "72h 2m 2s", "4322m 2s", "259322s" };
+        for (int profile = 0; profile < 3; profile++) {
+            string input = pages[profile * 2], formulas = pages[profile * 2 + 1];
+            int previous = -1;
+            foreach (string label in new[] { "Zero", "Minute plus one", "Hour plus minute", "Beyond one day", "Negative",
+                "Fractional positive", "Fractional negative" }) {
+                int at = input.IndexOf(label, StringComparison.Ordinal);
+                Assert.True(at > previous, "Missing or reordered duration row: " + label);
+                previous = at;
+            }
+            Assert.Contains(singles[profile], input);
+            Assert.Contains(doubles[profile], formulas);
+            Assert.Contains("-3661", input);
+            Assert.Contains("3661.75", input);
+            Assert.Contains("-0.75", input);
+            Assert.Contains("Formula double", formulas);
+            // Width pagination places the formula column on a second page.
+            // Native Numbers uses three positioned-sheet pages instead.
+            Assert.Equal(8, formulas.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        }
     }
 
     private static void AssertNativeKeynoteText(IReadOnlyList<string> pages) {

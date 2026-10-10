@@ -8,7 +8,7 @@ public sealed class IWorkDurationFormat {
         SmallestUnit = smallestUnit;
     }
 
-    /// <summary>Gets the largest displayed unit, retaining total elapsed days or hours rather than calendar or clock components.</summary>
+    /// <summary>Gets the largest displayed unit, retaining total elapsed days, hours, minutes or seconds rather than calendar or clock components.</summary>
     public IWorkDurationUnit LargestUnit { get; }
     /// <summary>Gets the smallest displayed unit. Raw source seconds remain unchanged even when the display omits smaller units.</summary>
     public IWorkDurationUnit SmallestUnit { get; }
@@ -22,14 +22,16 @@ public sealed class IWorkDurationFormat {
 public enum IWorkDurationUnit {
     /// <summary>Total elapsed days.</summary>
     Day = 2,
-    /// <summary>Elapsed hours.</summary>
+    /// <summary>Total elapsed hours.</summary>
     Hour = 4,
-    /// <summary>Minutes within the elapsed hour.</summary>
-    Minute = 8
+    /// <summary>Total elapsed minutes when largest, or minutes within the elapsed hour.</summary>
+    Minute = 8,
+    /// <summary>Total elapsed seconds when largest, or seconds within the elapsed minute.</summary>
+    Second = 16
 }
 
 /// <summary>Qualified native duration labels.</summary>
 public enum IWorkDurationStyle {
-    /// <summary>Abbreviated unit labels such as h and m.</summary>
+    /// <summary>Abbreviated unit labels such as h, m and s.</summary>
     Abbreviated = 1
 }

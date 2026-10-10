@@ -429,6 +429,18 @@ python Build/IWork/extract-date-formats.py OfficeIMO.TestAssets/Documents/IWorkC
 ```sh
 python Build/IWork/extract-duration-ranges.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/duration-ranges.json
 ```
+## Native Numbers fixed second ranges
+
+[`native-exports/numbers-duration-seconds-v14.5.json`](native-exports/numbers-duration-seconds-v14.5.json) records a controlled Numbers 14.5 workbook, its Apple XLSX/PDF exports, three inspected PDF pages, and native Excel 16.113.3 observations on macOS 27.0.1. The OfficeIMO-authored intake is imported into Numbers; each C2:D8 range is explicitly set to fixed abbreviated hour/second, minute/second or second-only units, and D2:D8 contains native `C+C` formulas. Sources and exports are MIT-licensed OfficeIMO contributor fixtures. The native PDF embeds the host's Calibri font; OfficeIMO does not bundle it.
+
+The generated decode retains all 42 selected declarations, raw seconds, 21 typed formula caches and matching native XLSX formats/day serials. Saved/reopened OfficeIMO XLSX matches those codes and caches; edited duration operands recalculate. Thirty integral display cases match the Numbers PDF. Fractional-second display remains approximated: Numbers rounds, the shared elapsed formatter can truncate, and native Excel differs by range, including hashes for the recorded negative hour/second and minute/second cells. The manifest records these limits instead of treating matching values or codes as proof of appearance. The default complete PDF workflow retains all populated rows and 21 formula results across six inspected pages with caller fonts and reported font/display approximation. Apple exports three positioned-sheet pages; the composed route splits the formula column onto each second page. Synthetic Pages/Keynote and blank-cell tests qualify adapter behavior; their native rendering remains separate.
+
+Regenerate the decode with the pinned opt-in oracle; PDF tables, screenshots and native application observations are separate evidence:
+
+```sh
+python Build/IWork/extract-duration-seconds.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5-decode.json
+```
+
 ## Keynote slide background evidence
 
 `keynote-backgrounds.json` records slide-style chains and background declarations from four unchanged pinned native Keynote packages and `native-exports/keynote-colors-v15.4.key`. It includes inactive templates; conversion tests compare only selected slides. Opaque RGB/sRGB colors qualify the additional fixed32 field `13` only at value `1`. Its meaning remains unspecified; other values and Display P3 remain unsupported. Existing fixture licenses and provenance above apply. Reproduce the manifest with numbers-parser 4.19.0:

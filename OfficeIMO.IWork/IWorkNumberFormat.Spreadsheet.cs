@@ -4,8 +4,14 @@ public sealed partial class IWorkNumberFormat {
     internal string ToSpreadsheetFormatCode() {
         if (Kind == IWorkNumberFormatKind.Text) return "@";
         if (Kind == IWorkNumberFormatKind.DateTime) return DateTimeFormat!.SpreadsheetFormatCode;
-        if (Kind == IWorkNumberFormatKind.Duration) return DurationFormat!.LargestUnit == IWorkDurationUnit.Day
-            ? "0\"d\"" : "[h]\"h\" m\"m\"";
+        if (Kind == IWorkNumberFormatKind.Duration) return (DurationFormat!.LargestUnit, DurationFormat.SmallestUnit) switch {
+            (IWorkDurationUnit.Day, IWorkDurationUnit.Day) => "0\"d\"",
+            (IWorkDurationUnit.Hour, IWorkDurationUnit.Minute) => "[h]\"h\" m\"m\"",
+            (IWorkDurationUnit.Hour, IWorkDurationUnit.Second) => "[h]\"h\" m\"m\" s\"s\"",
+            (IWorkDurationUnit.Minute, IWorkDurationUnit.Second) => "[m]\"m\" s\"s\"",
+            (IWorkDurationUnit.Second, IWorkDurationUnit.Second) => "[s]\"s\"",
+            _ => throw new InvalidDataException("The duration unit range is not supported.")
+        };
         if (Kind == IWorkNumberFormatKind.Fraction) {
             string fraction = FractionAccuracy switch {
                 IWorkFractionAccuracy.OneDigitDenominator => "# ?/?",

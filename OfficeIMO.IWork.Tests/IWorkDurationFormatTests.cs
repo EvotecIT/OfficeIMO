@@ -167,7 +167,7 @@ public sealed partial class IWorkBoundaryTests {
     private static byte[] DurationFormat(ulong style = 1, ulong largest = 4, ulong smallest = 8, ulong automatic = 0) =>
         Message(VarintField(1, 268), VarintField(7, style), VarintField(15, largest), VarintField(16, smallest), VarintField(40, automatic));
 
-    private static MemoryStream EmptyDurationFormatPackage(IWorkDocumentKind kind, int columns = 1) {
+    private static MemoryStream EmptyDurationFormatPackage(IWorkDocumentKind kind, int columns = 1, byte[]? format = null) {
         byte[] cell = new byte[20]; cell[0] = 5;
         WriteUInt32(cell, 8, (1u << 12) | (1u << 16)); WriteUInt32(cell, 12, 4); WriteUInt32(cell, 16, 1);
         byte[] offsets = new byte[columns * 2];
@@ -175,7 +175,7 @@ public sealed partial class IWorkBoundaryTests {
         return TableDependencyPackage(kind, ReferenceField(22, 13), columns: (ulong)columns,
             tilePayload: BytesField(5, Message(VarintField(1, 0),
                 BytesField(6, Message(Enumerable.Repeat(cell, columns).ToArray())), BytesField(7, offsets))),
-            additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(DurationFormat())))));
+            additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(format ?? DurationFormat())))));
     }
 
     private static MemoryStream DurationFormatPackage(IWorkDocumentKind kind, double seconds, byte[]? format = null) {
