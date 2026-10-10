@@ -134,6 +134,12 @@ executables emit the Apple-qualified bytes and check rich Unicode paragraph orde
 plain resets, page settings, caller-owned streams, strict saved/reopened DOCX and
 paragraph bounds. This extension is qualified on macOS arm64 only.
 
+The [macOS Numbers NativeAOT evidence](Compatibility/iwork-numbers-creation-native-aot-macos-arm64-2026-10-10.json)
+adds the 22,090-byte two-sheet/three-table package under .NET 8.0.31 and .NET 10.0.12.
+Both native executables emit the Apple-qualified bytes and check typed Decimal128
+numbers, booleans, Unicode, a completely empty grid, caller streams, dense-cell
+bounds and strict saved/reopened XLSX. This extension is qualified on macOS arm64 only.
+
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
 the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
