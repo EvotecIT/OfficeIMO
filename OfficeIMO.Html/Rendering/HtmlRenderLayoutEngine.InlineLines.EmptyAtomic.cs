@@ -18,7 +18,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.AtomicBlock != null) {
                 if (!run.HasEmptyInlineBlockBaseline || run.Style.TableVerticalAlignment is not ("baseline" or "top")) return false;
             } else if (!HasSameEmptyAtomicStrutFace(run.Style, paragraphStyle)) return false;
-            if (run.InlineEdgeScopes.Any(scope => !HasSameEmptyAtomicStrutFace(scope.Style, paragraphStyle))) return false;
+            if (run.InlineStrutStyles.Any(style => !HasSameEmptyAtomicStrutFace(style, paragraphStyle))) return false;
         }
 
         double ascent = ResolveEmptyAtomicStrutBaseline(paragraphStyle);
@@ -30,7 +30,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             } else if (!run.IsFlowMarker && run.RunningStringElement == null && run.RunningElementAssignment == null) {
                 AddStrut(run.Style);
             }
-            foreach (HtmlInlineEdgeScope scope in run.InlineEdgeScopes) AddStrut(scope.Style);
+            foreach (HtmlRenderBoxStyle style in run.InlineStrutStyles) AddStrut(style);
         }
         baseline = ascent;
         lineHeight = Math.Max(lineHeight, ascent + descent);
@@ -40,6 +40,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double sourceBaseline = ResolveEmptyAtomicStrutBaseline(style);
             ascent = Math.Max(ascent, sourceBaseline);
             descent = Math.Max(descent, style.LineHeight - sourceBaseline);
+        }
+    }
+
+    private static void CaptureInlineStrutStyles(IList<HtmlInlineRun> runs, int firstInlineRun, HtmlRenderBoxStyle style) {
+        for (int index = firstInlineRun; index < runs.Count; index++) {
+            HtmlInlineRun run = runs[index];
+            run.InlineStrutStyles = run.InlineStrutStyles.Count == 0
+                ? new[] { style }
+                : run.InlineStrutStyles.Concat(new[] { style }).ToArray();
         }
     }
 

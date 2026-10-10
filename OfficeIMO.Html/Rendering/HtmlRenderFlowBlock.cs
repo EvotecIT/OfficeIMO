@@ -743,6 +743,8 @@ internal sealed class HtmlInlineRun {
     internal bool IsFlowMarker { get; }
     internal HtmlInlineEdgeBoundary? InlineEdgeBoundary { get; set; }
     internal IReadOnlyList<HtmlInlineEdgeScope> InlineEdgeScopes { get; set; } = Array.Empty<HtmlInlineEdgeScope>();
+    // Inline line-box metrics also belong to wrappers without decoration edges.
+    internal IReadOnlyList<HtmlRenderBoxStyle> InlineStrutStyles { get; set; } = Array.Empty<HtmlRenderBoxStyle>();
     internal double InlineClosingAdvance { get; set; }
     internal bool InlineTokenEndsRun { get; set; }
     internal bool IsEmptyInlineBox { get; set; }
@@ -810,6 +812,7 @@ internal sealed class HtmlInlineRun {
             EndsFirstLine = EndsFirstLine,
             FirstLineHyphen = FirstLineHyphen,
             InlineEdgeScopes = InlineEdgeScopes,
+            InlineStrutStyles = InlineStrutStyles,
             InlineClosingAdvance = InlineClosingAdvance,
             InlineTokenEndsRun = InlineTokenEndsRun
         };

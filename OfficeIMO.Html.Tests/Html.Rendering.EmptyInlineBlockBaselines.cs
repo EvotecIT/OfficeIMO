@@ -8,6 +8,60 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlEmptyInlineBlockBaselineTests {
     [Theory]
+    [InlineData(0D)]
+    [InlineData(1D)]
+    public void PlainInlineWrapperContributesItsStrutIndependentlyOfHorizontalPadding(double padding) {
+        var options = Options();
+        string html = Source("<div><span style='line-height:100px;padding-left:" + padding
+            + "px'><span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></span></div>" + Following);
+        HtmlRenderDocument rendered = Render(html, options);
+
+        Assert.Equal(240D, Shape(rendered, "span#fill").Height, 6);
+        Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
+        rendered.RequireNoLoss();
+    }
+
+    [Fact]
+    public void OuterInlineWrapperStrutSurvivesANestedShorterLineHeight() {
+        var options = Options();
+        string html = Source("<div><span style='line-height:100px'><span style='line-height:0'>"
+            + "<span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></span></span></div>" + Following);
+        HtmlRenderDocument rendered = Render(html, options);
+
+        Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "div#following").Y, 6);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData(0D)]
+    [InlineData(1D)]
+    public void WrappedAtomicLinesBesideAFloatRetainThePlainWrapperStrut(double padding) {
+        var options = Options();
+        string html = Source("<div style='width:110px'><div style='float:left;width:20px;height:600px'></div>"
+            + "<span style='line-height:100px;padding-left:" + padding + "px'>"
+            + "<span id='first' style='display:inline-block;width:80px;height:240px;background:lime'></span> "
+            + "<span id='second' style='display:inline-block;width:80px;height:240px;background:blue'></span></span></div>");
+        HtmlRenderDocument rendered = Render(html, options);
+
+        Assert.Equal(240D + StrutDescent(options.Fonts, 100D), Shape(rendered, "span#second").Y, 6);
+        rendered.RequireNoLoss();
+    }
+
+    [Theory]
+    [InlineData("font-size:20px")]
+    [InlineData("vertical-align:super")]
+    public void UnqualifiedWrapperMetricsRetainTheSameRouteWithOrWithoutDecoration(string metrics) {
+        HtmlRenderDocument Plain(bool padded) => Render(Source("<div><span style='" + metrics
+            + (padded ? ";padding-left:1px" : "")
+            + "'><span id='fill' style='display:inline-block;width:40px;height:240px;background:lime'></span></span></div>" + Following), Options());
+        HtmlRenderDocument plain = Plain(false);
+        HtmlRenderDocument padded = Plain(true);
+
+        Assert.Equal(240D, Shape(plain, "span#fill").Height, 6);
+        Assert.Equal(Shape(padded, "div#following").Y, Shape(plain, "div#following").Y, 6);
+    }
+
+    [Theory]
     [InlineData("<br>")]
     [InlineData("<span style='visibility:hidden'>X</span>")]
     public void UnpaintedInFlowLinesRetainTheirContentDerivedBaselineRoute(string children) {

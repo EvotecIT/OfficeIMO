@@ -191,7 +191,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     run.PaintOffsetY,
                     run.OwnerElement,
                     run.PositionedMarkerElement,
-                    fallback.Text);
+                    fallback.Text) {
+                    InlineStrutStyles = run.InlineStrutStyles
+                };
                 resolvedRun.PreparedHyphenation = run.PreparedHyphenation?.SliceSource(fallbackOffset, fallback.Text.Length);
                 fallbackOffset += fallback.Text.Length;
                 resolvedRun.EndsFirstLine = run.EndsFirstLine && fallbackOffset == run.Text.Length;
@@ -236,7 +238,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
-        ICollection<HtmlInlineRun> runs, bool flattenInternalTableBoxes = false) {
+        IList<HtmlInlineRun> runs, bool flattenInternalTableBoxes = false) {
         CheckCancellation();
         ChargeLayoutOperation("inline node traversal");
         if (IsClosedDisclosureChild(node)) return;
@@ -442,7 +444,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<HtmlInlineRun>? semanticRuns = ShouldCollectSemanticInlineRuns(style)
             ? new List<HtmlInlineRun>()
             : null;
-        ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        IList<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        int firstInlineRun = targetRuns.Count;
         HtmlInlineEdgeScope? inlineEdgeScope = !IsReplacedImageElementTag(tag) && tag != "math"
             ? ResolveInlineEdgeScope(element, style, inheritedStyle, paintOffsetX) : null;
         if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, true, link, paintOffsetX, paintOffsetY));
@@ -472,6 +475,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
         AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
         if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, false, link, paintOffsetX, paintOffsetY));
+        if (style.Display == "inline") CaptureInlineStrutStyles(targetRuns, firstInlineRun, style);
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
     }
 
