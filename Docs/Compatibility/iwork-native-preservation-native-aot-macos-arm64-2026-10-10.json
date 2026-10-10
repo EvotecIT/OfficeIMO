@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "recordedUtc": "2026-10-10T00:42:18.322509+00:00",
-  "sourceRevision": "bbf08434772a951e60da22055a8aa90d409abac4",
+  "recordedUtc": "2026-10-10T01:01:41.713584+00:00",
+  "sourceRevision": "6ea5bad88202439f8f5eb6963723512a1d47fcc8",
   "sourceOnly": true,
   "host": {
     "os": "macOS 27.0.1 (26A434)",
@@ -14,7 +14,7 @@
       "targetFramework": "net8.0",
       "runtimeVersion": "8.0.31",
       "runtimeIdentifier": "osx-arm64",
-      "executableSha256": "3e1fd3801b66288eaf399340e98054676b1a26fbfd5a09b3ed094e7c00b1d8fc",
+      "executableSha256": "afc5f8804a1c0a9316dc19bd21836a18efef45f26a8fcb0a3460960cc18f0603",
       "executableBytes": 89482040,
       "publishExitCode": 0,
       "nativeExitCode": 0,
@@ -34,14 +34,16 @@
         "PASS | native unchanged Pages save | DC07FA4028AC9F261FDB7CB23F8B409CD80E092CDF8A8ED938ADC420B37AD6B4 | 248 records | complete file-entry identity and caller stream",
         "PASS | native unchanged Numbers save | C907C567584786CE9C5183A376F61D813F3BF56757DE531CBDBFB1FEFB4FCFD6 | 316 records | complete file-entry identity and caller stream",
         "PASS | native unchanged Keynote save | C0BC70026C2C977FDE0879F37849C14CD819DC055A3CD7F95E97CAC789828A17 | 205 records | complete file-entry identity and caller stream",
-        "PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation"
-      ]
+        "PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation",
+        "PASS | native preservation tight source bounds | unchanged/translated saves, expanded carrier and aggregate entries, retained 32KiB decompression and 205-record limits"
+      ],
+      "passCount": 17
     },
     {
       "targetFramework": "net10.0",
       "runtimeVersion": "10.0.12",
       "runtimeIdentifier": "osx-arm64",
-      "executableSha256": "f94e4c65d8e42836add04b9fd52e435d410ef19e27d0db31c4184370d029a088",
+      "executableSha256": "441264cb257742de335460673a1e556af5e04b6f90390f10d08fac8cabf04d9f",
       "executableBytes": 52014072,
       "publishExitCode": 0,
       "nativeExitCode": 0,
@@ -61,8 +63,10 @@
         "PASS | native unchanged Pages save | DC07FA4028AC9F261FDB7CB23F8B409CD80E092CDF8A8ED938ADC420B37AD6B4 | 248 records | complete file-entry identity and caller stream",
         "PASS | native unchanged Numbers save | C907C567584786CE9C5183A376F61D813F3BF56757DE531CBDBFB1FEFB4FCFD6 | 316 records | complete file-entry identity and caller stream",
         "PASS | native unchanged Keynote save | C0BC70026C2C977FDE0879F37849C14CD819DC055A3CD7F95E97CAC789828A17 | 205 records | complete file-entry identity and caller stream",
-        "PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation"
-      ]
+        "PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation",
+        "PASS | native preservation tight source bounds | unchanged/translated saves, expanded carrier and aggregate entries, retained 32KiB decompression and 205-record limits"
+      ],
+      "passCount": 17
     }
   ],
   "acceptance": {
@@ -70,12 +74,13 @@
     "keynoteImageTranslation": "Only the existing position floats changed; exact 96,452-byte Apple-opened output SHA-256 is d9f69dd9c3511cc34aa9b9766061308f29dc7871db8f8f1fa23036a8122a800f. Resources, immutable source and strict saved/reopened PPTX retained.",
     "policy": "Edited saves reject implicit acceptance of retained unrefreshed visual caches. Pre-cancelled stream saving preserves destination bytes.",
     "managedCorrectness": {
-      "net8.0": "2616 passed; 0 failed",
-      "net10.0": "2616 passed; 0 failed",
+      "net8.0": "2618 passed; 0 failed; preservation contracts 29 passed",
+      "net10.0": "2618 passed; 0 failed; preservation contracts 29 passed",
       "netstandard2.0": "build succeeded; 0 warnings; 0 errors",
       "operationCatalogEachRuntime": "149 passed; 0 failed; all 18 generated outputs and 70 package README projections verified"
     },
-    "nativeApplicationEvidence": "../../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/native-preservation-macos.json"
+    "nativeApplicationEvidence": "../../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/native-preservation-macos.json",
+    "tightSourceReadLimits": "Unchanged and translated saves reopen with 92,000-byte captured entry/aggregate allowances, 32 KiB per-archive decompression and Snappy limits, 50,000-byte total decompression and 205 records. Verification derives carrier and entry bounds from the completed package while retaining captured semantic/decompression bounds."
   },
   "commands": [
     "dotnet publish OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj -c Release -f <net8.0|net10.0> -r osx-arm64 --artifacts-path <scratch>/source-preservation/aot-build-<net8|net10> -o <scratch>/source-preservation/aot-<net8|net10> -p:UserAotValidation=true",

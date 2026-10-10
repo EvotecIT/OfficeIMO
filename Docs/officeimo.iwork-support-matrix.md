@@ -156,8 +156,11 @@ The [macOS native-preservation NativeAOT evidence](Compatibility/iwork-native-pr
 adds unchanged Pages/Numbers/Keynote file-entry saves and the exact 96,452-byte
 Keynote image translation under .NET 8.0.31 and .NET 10.0.12. Both native executables
 check content identity, resource preservation, explicit cache acceptance, caller
-streams, cancellation and strict saved/reopened PPTX. This extension is qualified
-on macOS arm64 only; native application and rendering evidence remain separate.
+streams, cancellation, strict saved/reopened PPTX and saves opened under tighter
+captured entry, decompression and record limits. Verification accounts for the
+completed ZIP carrier without raising captured semantic/decompression bounds.
+This extension is qualified on macOS arm64 only; native application and rendering
+evidence remain separate.
 
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
