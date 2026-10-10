@@ -706,6 +706,7 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
 - [ ] Add HWP binary and HWPX readers with safe text, structure, metadata, embedded-resource, and security inspection plus DOCX, ODT, HTML, Markdown, PDF, and plain-text conversion. Keep binary HWP read/convert-only; consider bounded HWPX authoring later only when schema-version and producer-interoperability evidence justify it.
 - [ ] Add unencrypted MOBI and AZW-family inspection and conversion only for versions with a legally and technically supportable fixture corpus. Extract metadata, navigation, text, and safe resources into the shared ebook/Reader model; report unsupported layouts and encryption; and do not implement DRM removal or source-format writing.
 - [ ] Integrate DBF/xBase through a thin `OfficeIMO.Reader.Dbf` adapter and conversion routes only after the canonical codec and tabular streaming contracts exist in DbaClientX. OfficeIMO may map rows to CSV, Excel, HTML, PDF, and Reader results, but must not own another DBF parser, memo codec, code-page engine, or database writer.
+- [ ] Broaden the [CHM read-and-convert profile](../OfficeIMO.Chm/SUPPORT.md) with additional independently compiled multilingual archives and rendered-output qualification; improve CSS scope and identifier rebasing for reflowable exports, and add preserved tagged structure and cross-topic destinations through the shared PDF owner before extending multi-topic PDF guarantees.
 
 ### Future integration decisions
 

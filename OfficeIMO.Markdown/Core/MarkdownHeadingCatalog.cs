@@ -48,11 +48,13 @@ internal sealed class MarkdownHeadingCatalog {
     internal static MarkdownHeadingCatalog Create(
         IReadOnlyList<IMarkdownBlock> blocks,
         Dictionary<string, int>? slugRegistry = null,
-        MarkdownHeadingIdentifierStyle style = MarkdownHeadingIdentifierStyle.OfficeIMO) {
+        MarkdownHeadingIdentifierStyle style = MarkdownHeadingIdentifierStyle.OfficeIMO,
+        System.Threading.CancellationToken cancellationToken = default) {
         var headings = new List<HeadingEntry>();
         var slugs = new Dictionary<IHeadingMarkdownBlock, string>();
 
         for (int idx = 0; idx < blocks.Count; idx++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (blocks[idx] is not IHeadingMarkdownBlock heading) {
                 continue;
             }
@@ -62,6 +64,7 @@ internal sealed class MarkdownHeadingCatalog {
             slugs[heading] = slug;
             headings.Add(new HeadingEntry(idx, heading, slug));
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new MarkdownHeadingCatalog(headings, slugs, style);
     }

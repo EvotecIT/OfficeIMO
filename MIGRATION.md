@@ -166,6 +166,16 @@ page citations remain separate. Null order values retain existing container orde
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.
 
+## CHM Reader identity
+
+Register `.AddChmHandler()` from `OfficeIMO.Reader.Chm` to ingest compiled HTML Help,
+or use the all-adapters preset. Results use `ReaderInputKind.Chm` (`27`) and document
+transport schema version 11. Update exhaustive kind switches and transport bindings
+to accept this value and version. Versions 5 through 10 remain readable; they cannot
+carry CHM input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the
+current artifact. CHM citations identify archive/topic paths rather than physical
+page numbers, and source hashes cover the original archive bytes.
+
 ## XPS PDF reading order
 
 `XpsDocument.ToPdf()` maps authored native logical structure by default. Its search

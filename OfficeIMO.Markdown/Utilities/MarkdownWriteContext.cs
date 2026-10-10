@@ -8,11 +8,12 @@ public sealed class MarkdownWriteContext {
         MarkdownDoc document,
         IReadOnlyList<IMarkdownBlock> blocks,
         MarkdownWriteOptions options,
-        MarkdownHeadingCatalog headingCatalog) {
+        MarkdownHeadingCatalog headingCatalog, System.Threading.CancellationToken cancellationToken = default) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         Blocks = blocks;
         Options = options;
         HeadingCatalog = headingCatalog;
+        CancellationToken = cancellationToken;
     }
 
     /// <summary>
@@ -29,6 +30,9 @@ public sealed class MarkdownWriteContext {
     /// Active markdown writer options.
     /// </summary>
     public MarkdownWriteOptions Options { get; }
+
+    /// <summary>Cancellation requested by the caller of the active Markdown serialization operation.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; }
 
     internal MarkdownHeadingCatalog HeadingCatalog { get; }
 

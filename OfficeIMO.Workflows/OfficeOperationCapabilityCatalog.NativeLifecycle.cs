@@ -56,6 +56,13 @@ public static partial class OfficeOperationCapabilityCatalog {
             limitedSupported: new[] { OfficeOperationKind.Edit },
             partial: new[] { OfficeOperationKind.Preserve },
             limitation: "Unedited source can be retained; semantic edits serialize normalized HTML rather than promising byte identity.");
+        AddNativeLifecycle(rows, "chm-native", "OfficeIMO.Chm", "Chm.Native",
+            "ChmDocument.Load / Topics / Resources / TableOfContents / Index; ChmEntry.GetBytes / OpenRead",
+            "OfficeIMO.Chm.Tests Microsoft-compiled fixture, independent entry hashes, bounded reads, navigation and conversion contracts",
+            new[] { ".chm" }, Array.Empty<OfficeOperationKind>(),
+            limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect },
+            unsupported: new[] { OfficeOperationKind.Create, OfficeOperationKind.Edit, OfficeOperationKind.Preserve },
+            limitation: "Read-only ITSF 2/3 archives with uncompressed or standard LZX storage. Raw entries remain exact; no CHM writer, Windows help viewer, ActiveX, script execution, merged-book loading or compiled full-text search is provided.");
         AddNativeLifecycle(rows, "pdf-native", "OfficeIMO.Pdf", "Pdf.Native",
             "PdfDocument.Create / Load / Save / Inspect",
             "OfficeIMO.Pdf.Tests authoritative interoperability read, render, diagnostics, and mutation contracts",
