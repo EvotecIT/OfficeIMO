@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
@@ -7,9 +6,16 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Examples.Excel {
     /// <summary>
-    /// Demonstrates a template-to-report workflow with formulas, charts, pivots, and an honest PDF preflight decision.
+    /// Demonstrates a template-to-report workflow with formulas, number formats, a chart, a pivot, and an honest PDF preflight decision.
     /// </summary>
     public static class ReportWorkflow {
+        private static readonly (string Region, string Product, double Revenue, double Cost)[] Sales = {
+            ("North", "Platform", 482000, 301000), ("North", "Services", 236000, 171000), ("North", "Support", 118000, 64000),
+            ("South", "Platform", 391000, 262000), ("South", "Services", 204000, 158000), ("South", "Support", 97000, 58000),
+            ("East", "Platform", 538000, 322000), ("East", "Services", 289000, 201000), ("East", "Support", 141000, 73000),
+            ("West", "Platform", 455000, 296000), ("West", "Services", 262000, 189000), ("West", "Support", 126000, 70000)
+        };
+
         public static void Example(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Report workflow");
             string workbookPath = Path.Combine(folderPath, "ExcelReportWorkflow.xlsx");
@@ -19,37 +25,63 @@ namespace OfficeIMO.Examples.Excel {
 
             using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
                 ExcelSheet sheet = document.Sheets[0];
-                sheet.Cell(1, 1, "{{ReportTitle}}");
-                sheet.Cell(2, 1, "Region");
-                sheet.Cell(2, 2, "Revenue");
-                sheet.Cell(2, 3, "Cost");
-                sheet.Cell(2, 4, "Margin");
-                sheet.Cell(3, 1, "East");
-                sheet.Cell(3, 2, 120);
-                sheet.Cell(3, 3, 50);
-                sheet.CellFormula(3, 4, "B3-C3");
-                sheet.Cell(4, 1, "West");
-                sheet.Cell(4, 2, 90);
-                sheet.Cell(4, 3, 40);
-                sheet.CellFormula(4, 4, "B4-C4");
 
-                document.ApplyTemplate(new {
-                    ReportTitle = "Executive revenue report"
-                });
-                document.Calculate();
+                WriteTitleBand(sheet);
 
-                sheet.AddTable("A2:D4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4);
-                sheet.AddChartFromRange("A2:D4", row: 6, column: 1, widthPixels: 420, heightPixels: 240,
-                    type: ExcelChartType.ColumnClustered, title: "Revenue and Margin");
+                #region Excerpt:operational-excel-report
+                // Typed values with number formats; margin and margin % are formulas.
+                for (int index = 0; index < Sales.Length; index++) {
+                    int row = 5 + index;
+                    sheet.Cell(row, 1, Sales[index].Region);
+                    sheet.Cell(row, 2, Sales[index].Product);
+                    sheet.Cell(row, 3, Sales[index].Revenue, numberFormat: "#,##0");
+                    sheet.Cell(row, 4, Sales[index].Cost, numberFormat: "#,##0");
+                    sheet.CellFormula(row, 5, $"C{row}-D{row}");
+                    sheet.CellFormula(row, 6, $"E{row}/C{row}");
+                    sheet.FormatCell(row, 5, "#,##0");
+                    sheet.FormatCell(row, 6, "0.0%");
+                }
+                int lastRow = 4 + Sales.Length, totalRow = lastRow + 1;
+                sheet.Cell(totalRow, 1, "Total");
+                foreach ((int column, string letter) in new[] { (3, "C"), (4, "D"), (5, "E") }) {
+                    sheet.CellFormula(totalRow, column, $"SUM({letter}5:{letter}{lastRow})");
+                    sheet.FormatCell(totalRow, column, "#,##0");
+                }
+                sheet.CellFormula(totalRow, 6, $"E{totalRow}/C{totalRow}");
+                sheet.FormatCell(totalRow, 6, "0.0%");
+
+                // Table style, a colour scale on margin %, and a frozen header.
+                sheet.AddTable($"A4:F{lastRow}", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
+                sheet.AddConditionalColorScale($"F5:F{lastRow}", "F8D7DA", "C9ECD3");
+                sheet.Freeze(topRows: 4);
+
+                // A SUMIF summary by region feeds the chart; the pivot reads the same table.
+                string[] regions = { "North", "South", "East", "West" };
+                sheet.Cell(4, 8, "Region"); sheet.Cell(4, 9, "Revenue"); sheet.Cell(4, 10, "Margin");
+                for (int index = 0; index < regions.Length; index++) {
+                    int row = 5 + index;
+                    sheet.Cell(row, 8, regions[index]);
+                    sheet.CellFormula(row, 9, $"SUMIF($A$5:$A${lastRow},H{row},$C$5:$C${lastRow})");
+                    sheet.CellFormula(row, 10, $"SUMIF($A$5:$A${lastRow},H{row},$E$5:$E${lastRow})");
+                }
+                sheet.AddChartFromRange("H4:J8", row: 10, column: 8, widthPixels: 350, heightPixels: 235,
+                    type: ExcelChartType.ColumnClustered, title: "Revenue and margin by region");
                 sheet.AddPivotTable(
-                    sourceRange: "A2:D4",
-                    destinationCell: "F2",
+                    sourceRange: $"A4:F{lastRow}",
+                    destinationCell: $"A{totalRow + 3}",
                     name: "RevenuePivot",
                     rowFields: new[] { "Region" },
                     dataFields: new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") },
                     pivotStyleName: "PivotStyleMedium9");
 
-                OfficeImageExportResult preview = sheet.Range("A1:J20").ExportImage(OfficeImageExportFormat.Png);
+                // Fill the {{ReportTitle}} placeholder from an object, then calculate every formula.
+                document.ApplyTemplate(new { ReportTitle = "Regional revenue report" });
+                document.Calculate();
+                #endregion
+
+                StyleLayout(sheet, totalRow);
+
+                OfficeImageExportResult preview = sheet.Range("A1:K22").ExportImage(OfficeImageExportFormat.Png);
                 File.WriteAllBytes(previewPath, preview.Bytes);
 
                 ExcelFeatureReport report = document.InspectFeatures();
@@ -77,6 +109,35 @@ namespace OfficeIMO.Examples.Excel {
                 if (openExcel) {
                     document.OpenInApplication(workbookPath);
                 }
+            }
+        }
+
+        private static void WriteTitleBand(ExcelSheet sheet) {
+            sheet.MergeRange("A1:F1");
+            sheet.Cell(1, 1, "{{ReportTitle}}");
+            sheet.CellFontSize(1, 1, 20);
+            sheet.CellBold(1, 1, true);
+            sheet.CellFontColor(1, 1, "FFFFFF");
+            for (int column = 1; column <= 6; column++) sheet.CellBackground(1, column, "17365D");
+            sheet.SetRowHeight(1, 34);
+            sheet.MergeRange("A2:F2");
+            sheet.Cell(2, 1, "Revenue, cost and margin by region and product line. Margin columns are formulas.");
+            sheet.CellFontColor(2, 1, "5B6B7F");
+            string[] headers = { "Region", "Product", "Revenue", "Cost", "Margin", "Margin %" };
+            for (int column = 0; column < headers.Length; column++) sheet.Cell(4, column + 1, headers[column]);
+        }
+
+        private static void StyleLayout(ExcelSheet sheet, int totalRow) {
+            for (int column = 1; column <= 6; column++) {
+                sheet.CellBold(totalRow, column, true);
+                sheet.CellBackground(totalRow, column, "E8EEF7");
+            }
+            for (int row = 5; row <= 8; row++) {
+                sheet.FormatCell(row, 9, "#,##0");
+                sheet.FormatCell(row, 10, "#,##0");
+            }
+            foreach ((int column, double width) in new[] { (1, 12d), (2, 14d), (3, 14d), (4, 14d), (5, 14d), (6, 12d), (7, 3d), (8, 12d), (9, 14d), (10, 14d) }) {
+                sheet.SetColumnWidth(column, width);
             }
         }
     }

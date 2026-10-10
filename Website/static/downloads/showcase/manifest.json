@@ -21,18 +21,18 @@
     {
       "id": "pdf-output",
       "path": "/downloads/showcase/pdf/showcase-dashboard.pdf",
-      "bytes": 19852,
-      "sha256": "d763aa7289b528df6fb3896b2363c9106f1392a8e44fd55b318e940166b48f22",
+      "bytes": 20416,
+      "sha256": "55881a65ce8490286cfa78b9f7a1c916b166adce3bbae8a540204cb5a1b947cc",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --pdf-showcase",
       "evidence": "First-party PDF dashboard output."
     },
     {
       "id": "pdf-preview",
       "path": "/downloads/showcase/pdf/showcase-dashboard-page1.png",
-      "bytes": 77071,
-      "sha256": "302da0600dfc6a0239e8ff95e98be4c41d1be505216b30a5b97ef63392c273b6",
-      "generator": "OfficeIMO.Pdf visual baseline rendered with Poppler",
-      "evidence": "Approved page-one visual baseline for the generated dashboard."
+      "bytes": 114308,
+      "sha256": "f2ca5226283d5d5b05a318071973645d38eb6a8386043038a3b60a28a8379f78",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the downloadable dashboard PDF."
     },
     {
       "id": "html-pdf-output",
@@ -93,112 +93,144 @@
     {
       "id": "word-workflow-source",
       "path": "/downloads/showcase/word/customer-delivery-summary.docx",
-      "bytes": 20886,
-      "sha256": "fcac335e144e80b969d374ae8a627ca26d5226af52441c1d79313bfb29d4a6e9",
+      "bytes": 24595,
+      "sha256": "ebccee09b0872c2c671ef1ae42c1a873d023c251a42a49de2b76d1edc52c4862",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "Editable DOCX generated from the same Word model as the PDF conversion."
     },
     {
       "id": "word-workflow-pdf",
       "path": "/downloads/showcase/word/customer-delivery-summary.pdf",
-      "bytes": 3093,
-      "sha256": "53796de32d1d8d1b7584a9360d37d96bac5f5d39ce9d0ada9139eb8462e1571c",
+      "bytes": 529234,
+      "sha256": "9f4cf37572faf490f4c4d5dd838445c7990569c2af6437db798ae626b7cb8146",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "First-party Word-to-PDF conversion of the downloadable DOCX."
     },
     {
       "id": "word-workflow-preview",
       "path": "/downloads/showcase/word/customer-delivery-summary-page1.png",
-      "bytes": 75188,
-      "sha256": "06e63b07ad7bb8a8aa0955c1e9bc793386b08c8f74747d854bb1b2e89d69ccc8",
+      "bytes": 125646,
+      "sha256": "197c450c27475b321163bebc62a529b073fbd4e83fdf8f8ee594e72f940ba5d3",
       "generator": "Poppler pdftocairo page-one render of the generated Word PDF",
       "evidence": "Independent page-one render of the first-party Word-to-PDF result."
     },
     {
       "id": "rtf-workflow-source",
       "path": "/downloads/showcase/rtf/change-approval-memo.rtf",
-      "bytes": 1752,
-      "sha256": "33fed5d86ed690e6f86205fdd2b44be50273dfcc4c254715387f4a0338c41cdb",
+      "bytes": 2863,
+      "sha256": "ad0d6413e798d1926544d975a3045734e704538a57ffa9488ab28a2059ef0af3",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "RTF memo generated from the same model as the PDF conversion."
     },
     {
       "id": "rtf-workflow-pdf",
       "path": "/downloads/showcase/rtf/change-approval-memo.pdf",
-      "bytes": 1822,
-      "sha256": "fb8c8952306a3ca66693ac80a84d10189280d3021fddc874d0a86ca4689ae8b0",
+      "bytes": 2468,
+      "sha256": "690d2832513d5b1ae56e0e05c603a52e9bf56c02a91becdf690953b470fc80e9",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "First-party RTF-to-PDF conversion of the downloadable memo."
     },
     {
       "id": "rtf-workflow-preview",
       "path": "/downloads/showcase/rtf/change-approval-memo-page1.png",
-      "bytes": 59530,
-      "sha256": "247ba82553a039e1da49760428eba4c7cf9c670ed73ea09a2dfa90010342fb75",
+      "bytes": 115076,
+      "sha256": "9ac91d29fce661032619da77cf8727697d513116fab46a3ef6228acd05e80699",
       "generator": "Poppler pdftocairo page-one render of the generated RTF PDF",
       "evidence": "Independent page-one render of the first-party RTF-to-PDF result."
     },
     {
       "id": "markdown-workflow-source",
       "path": "/downloads/showcase/markdown/release-readiness-report.md",
-      "bytes": 587,
-      "sha256": "67d284044dba2925da6bf0561fe2d42760c50a009556693272b04b71305858e3",
+      "bytes": 994,
+      "sha256": "e2feeceacff4daeb9eb10a9872019a2fc561f6134969c012c3c2037cda9256e8",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "Portable Markdown source generated from the same document model as the PDF."
     },
     {
       "id": "markdown-workflow-pdf",
       "path": "/downloads/showcase/markdown/release-readiness-report.pdf",
-      "bytes": 3639,
-      "sha256": "99587e84889683c17fd9b959f63eec8c5c054c6dd19300c0840e6224480a936e",
+      "bytes": 4796,
+      "sha256": "e46622755df98ec5110d1b2b41abbadf98c620b5c1b0441dcbd63728868f4fe9",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "Themed first-party Markdown-to-PDF conversion."
     },
     {
       "id": "markdown-workflow-preview",
       "path": "/downloads/showcase/markdown/release-readiness-report-page1.png",
-      "bytes": 72095,
-      "sha256": "7d709d2c3568f071bb943620cf1b70560e2e9e8df6f4004f20a02b730b28935a",
+      "bytes": 108133,
+      "sha256": "02554b7e0bd82724343352e4b66ac281bda8a5166035198bc848d83ff811426c",
       "generator": "Poppler pdftocairo page-one render of the generated Markdown PDF",
       "evidence": "Independent page-one render of the themed Markdown PDF."
     },
     {
       "id": "opendocument-workflow-source",
       "path": "/downloads/showcase/open-document/project-handover-brief.odt",
-      "bytes": 2586,
-      "sha256": "8ad148bfe35728b066321dc86975a4ecdce2273d74fab3213e9ddb2418db86f3",
+      "bytes": 3267,
+      "sha256": "f1689132ef5f7b0bea109bff0e6c676093f978a8367829383b3ae1fc174ef5fb",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "Vendor-neutral ODT source generated from the OpenDocument model."
     },
     {
       "id": "opendocument-workflow-pdf",
       "path": "/downloads/showcase/open-document/project-handover-brief.pdf",
-      "bytes": 2523,
-      "sha256": "c6798543f5d1b3830fcb04537f6f9c8a3c15211f598ff50bd775d32680feceeb",
+      "bytes": 3335,
+      "sha256": "d6f2669e1c34e6d53c733be395f129c29fe77675ae532c4b82a863485e597119",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-real-world",
       "evidence": "First-party OpenDocument-to-PDF conversion of the downloadable ODT."
     },
     {
       "id": "opendocument-workflow-preview",
       "path": "/downloads/showcase/open-document/project-handover-brief-page1.png",
-      "bytes": 53292,
-      "sha256": "2970702819ebab5d96f30806068f5b1addd709a1ef9f2230ed0209e4b838e8c1",
+      "bytes": 99759,
+      "sha256": "a776a434be3caa60e069a73465707a2de644ff6654402eb86d94384bcd97d8e4",
       "generator": "Poppler pdftocairo page-one render of the generated OpenDocument PDF",
       "evidence": "Independent page-one render of the first-party OpenDocument-to-PDF result."
     },
     {
+      "id": "pswriteoffice-output",
+      "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
+      "bytes": 22038,
+      "sha256": "44fdea75f4d371e13932b7fffa03a59608454b66ad8f40f945d9120d3e512c89",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
+      "evidence": "DOCX created from PowerShell objects by PSWriteOffice."
+    },
+    {
+      "id": "pswriteoffice-pdf",
+      "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
+      "bytes": 72437,
+      "sha256": "015e446e66c4bf9cbe5cccdb97c969b9d64a2ff7b4cd1de1c3d20bb2f89459d8",
+      "generator": "PSWriteOffice Export-OfficeDocumentPdf",
+      "evidence": "First-party Word-to-PDF conversion of the generated DOCX."
+    },
+    {
+      "id": "pswriteoffice-preview",
+      "path": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
+      "bytes": 87275,
+      "sha256": "703ffefa9dbbc2290fcec034684c752aae9d00363b378331e5f57b42da88d633",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result."
+    },
+    {
+      "id": "source-officeimo-examples-powershell-patchcompliancereport-ps1",
+      "path": "/downloads/showcase/source/PowerShell/PatchComplianceReport.ps1.txt",
+      "bytes": 3223,
+      "sha256": "6cfd1d59c8b57ca1b3feb79418fb4af2fa1d238ffd90884613376791893ed4f3",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "PowerShell source for the runnable example."
+    },
+    {
       "id": "excel-output",
       "path": "/downloads/showcase/excel/report-workflow.xlsx",
-      "bytes": 11775,
-      "sha256": "2448571caaf12d8e89a70bf6c69a9efb73e587c9f0d4e7ffc269199dbabd5886",
+      "bytes": 14220,
+      "sha256": "ee11fccafaddd47d1ce62793ceb5373081d99c83847be612c5e42fee4f6affdd",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --excel-report-workflow",
       "evidence": "Editable XLSX with formulas, chart, table, and pivot metadata."
     },
     {
       "id": "excel-preview",
       "path": "/downloads/showcase/excel/report-workflow.png",
-      "bytes": 11409,
-      "sha256": "64a14caa57125f49cef5abe17a0f72beccea1ed2f06cdd0417b562ba7d3b6ef9",
+      "bytes": 71535,
+      "sha256": "8f81365b29bd8e062dffc5790823740845996900665e67ca17fe7ef313fcd973",
       "generator": "OfficeIMO.Excel range ExportImage",
       "evidence": "Dependency-free rendered worksheet range."
     },
@@ -477,8 +509,8 @@
     {
       "id": "source-officeimo-examples-pdf-pdf-showcasedashboard-cs",
       "path": "/downloads/showcase/source/Pdf/Pdf.ShowcaseDashboard.cs.txt",
-      "bytes": 10989,
-      "sha256": "1af621eb45d622d90b3ee000345b3f5f787ab38c8a6247c5e403915ea4a38dbe",
+      "bytes": 11833,
+      "sha256": "56e9d4ca4685303cddf489d0568f4e005be8d9cff072878a8b492c91c0b2a9a9",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -501,16 +533,16 @@
     {
       "id": "source-officeimo-examples-showcase-realworldworkflowshowcase-cs",
       "path": "/downloads/showcase/source/Showcase/RealWorldWorkflowShowcase.cs.txt",
-      "bytes": 9859,
-      "sha256": "de023b95ff121374bbefd1f5a52a1edd7b99d5b833e6bb3e3bfb1ee390c0f754",
+      "bytes": 17996,
+      "sha256": "b22431e6c3da203a68eeff01ec5d5a38a5d96935f59f220e91fbf7c3522acd6c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
     {
       "id": "source-officeimo-examples-excel-reportworkflow-cs",
       "path": "/downloads/showcase/source/Excel/ReportWorkflow.cs.txt",
-      "bytes": 4147,
-      "sha256": "05b036fd813f8e715b602f83a6d16641e0225bca493c179bf25693866e592fff",
+      "bytes": 8174,
+      "sha256": "61c40648cd7e02744fd62c63e62821fe704bfda6c0818bb5b1230efec6c16c07",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1325,32 +1357,32 @@
     {
       "id": "word-policy-brief-example.docx",
       "path": "/downloads/showcase/workflows/word-policy-brief/example.docx",
-      "bytes": 20908,
-      "sha256": "257e8b89c064dc46c07feed773f3753d73439e747c3121d375786fb61f67163f",
+      "bytes": 21253,
+      "sha256": "8df5b2a047418fcefc0c718448f06b70c294dd20bf7bf3e7e6a30a05b0e587a2",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-policy-brief",
       "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
     },
     {
       "id": "word-policy-brief-preview.pdf",
       "path": "/downloads/showcase/workflows/word-policy-brief/preview.pdf",
-      "bytes": 3222,
-      "sha256": "2ae0fa9b2506801699b43001925ffa69d6d83814f23e2df81bbc2684ec84a274",
+      "bytes": 4295,
+      "sha256": "882846a7c12a60eb44315fc4e98c62136745e8858135d891fc0a01e03104f34f",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example word-policy-brief",
       "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
     },
     {
       "id": "word-policy-brief-preview.png",
       "path": "/downloads/showcase/workflows/word-policy-brief/preview.png",
-      "bytes": 94660,
-      "sha256": "db62497421a9997c7157540cfa1f34f81ce2d2a6bdc3c0e96c586786551c7b2e",
+      "bytes": 129861,
+      "sha256": "e41b7181fae47e619fe4dc23049c481fc26dad388a004eb7f652dbc24bdde51f",
       "generator": "Poppler pdftocairo page 1 render of the generated PDF",
       "evidence": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF."
     },
     {
       "id": "word-policy-brief-source",
       "path": "/downloads/showcase/workflows/word-policy-brief/PolicyBrief.cs.txt",
-      "bytes": 2758,
-      "sha256": "cc6d3bba721ff888a4de8ab988cb7b57c69a4c3fbe9718ff25cf501b9a3969ed",
+      "bytes": 4297,
+      "sha256": "c952ed903b20f77dc253c8cfd45d46304630af4b8bcc5f9c9efaaa44260b6a69",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1485,24 +1517,24 @@
     {
       "id": "excel-object-export-example.xlsx",
       "path": "/downloads/showcase/workflows/excel-object-export/example.xlsx",
-      "bytes": 4932,
-      "sha256": "547316eec832d4d9cef9d1420515f0a32715edd34e28a634e29fe798277a70ff",
+      "bytes": 5405,
+      "sha256": "fb773d2ecb990a3bc24272757269c01d83216401eeb191073d3e1d2e5f275c57",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-object-export",
       "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
     },
     {
       "id": "excel-object-export-preview.png",
       "path": "/downloads/showcase/workflows/excel-object-export/preview.png",
-      "bytes": 9703,
-      "sha256": "6dbe46b120c7552e9458a5a29aebd31dc218bc07cea8c4d4f150241d107e630d",
+      "bytes": 42958,
+      "sha256": "454d441fc4971ebc9b2597e0cd9c394f87d43536d511b8dcfeeedda629f17bda",
       "generator": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example excel-object-export",
       "evidence": "The linked C# example generates this file. The runner reopens and validates the XLSX. The image is a native rendering of the specified worksheet range."
     },
     {
       "id": "excel-object-export-source",
       "path": "/downloads/showcase/workflows/excel-object-export/ObjectExport.cs.txt",
-      "bytes": 2008,
-      "sha256": "dc277fcd275038a97cce6caef61d31ea86ba2b9ef5a362704708983d348923f7",
+      "bytes": 3412,
+      "sha256": "8c37a38206f93b94b88dd79fe2c35bad1d9cec33f8293138a62fdd9ab82acc77",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
