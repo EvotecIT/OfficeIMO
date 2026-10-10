@@ -32,9 +32,13 @@ internal static class PdfTool {
     }
 
     private static ToolResultDocument Execute(ToolSession session, PdfToolDefinition tool, ToolOptions options) {
-        if (tool.Kind == PdfToolKind.Redact && (session.LastReview is not RedactionReview review ||
-            !ReferenceEquals(review.File, session.Input()) || review.Text != options.Text("text").Trim())) {
-            throw new InvalidOperationException("The input or phrase changed. Find and review the matches again before removing text.");
+        string redactionText = options.Text("text");
+        if (tool.Kind == PdfToolKind.Redact) {
+            if (session.LastReview is not RedactionReview review ||
+                !ReferenceEquals(review.File, session.Input()) || review.Text != redactionText.Trim()) {
+                throw new InvalidOperationException("The input or phrase changed. Find and review the matches again before removing text.");
+            }
+            redactionText = review.Text;
         }
         PdfToolResult result = session.PdfTools.Execute(new PdfToolRequest(
             tool,
@@ -45,7 +49,7 @@ internal static class PdfTool {
             Enum.TryParse(options.Text("profile"), ignoreCase: true, out PdfOptimizationProfile profile) ? profile : PdfOptimizationProfile.Balanced,
             options.Text("userPassword"),
             options.Text("ownerPassword"),
-            options.Text("text"),
+            redactionText,
             options.Flag("confirm")));
 
         // An inspection's answer is the fact sheet itself; its JSON is an extra download, not the result.

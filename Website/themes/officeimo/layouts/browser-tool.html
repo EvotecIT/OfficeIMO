@@ -59,6 +59,10 @@
       </ol>
 
       <section class="bt-tool" aria-label="{{ tool.title | html.escape }}"
+        data-webmcp-page-tool
+        data-webmcp-tool-name="convert_selected_document"
+        data-webmcp-tool-description="Run the open OfficeIMO browser tool on the file already chosen on the page, with the settings shown. Processing stays in the browser."
+        data-webmcp-read-only="false"
         data-browser-tool="{{ tool.id }}"
         data-engine-base="{{ catalog.engineBase }}"
         data-kind="{{ tool.engine.kind }}"
@@ -96,7 +100,7 @@
                   <button type="button" class="bt-link" data-bt-reset-text>Use the example</button>
                 </span>
               </div>
-              <textarea id="bt-text" class="bt-textarea" spellcheck="false" maxlength="{{ if input.maxCharacters }}{{ input.maxCharacters }}{{ else }}500000{{ end }}" data-bt-text data-sample="{{ input.sampleText | html.escape }}">{{ input.sampleText | html.escape }}</textarea>
+              <textarea id="bt-text" class="bt-textarea" spellcheck="false" data-max-characters="{{ if input.maxCharacters }}{{ input.maxCharacters }}{{ else }}500000{{ end }}" data-bt-text data-sample="{{ input.sampleText | html.escape }}">{{ input.sampleText | html.escape }}</textarea>
               <p class="bt-hint">{{ if input.live }}The result updates as you type.{{ else }}Example text is filled in. Replace it with your own.{{ end }}</p>
             </div>
 {{~ else ~}}
@@ -177,7 +181,7 @@
 
       <ul class="bt-next-source" data-bt-next hidden>
 {{~ for next_id in tool.next ~}}{{~ for candidate in catalog.tools ~}}{{~ if candidate.id == next_id ~}}
-        <li><a href="/browser/{{ candidate.id }}/" data-accept="{{ candidate.input.accept }}" data-input="{{ candidate.input.kind }}">{{ candidate.title | html.escape }}</a></li>
+        <li><a href="/browser/{{ candidate.id }}/" data-accept="{{ candidate.input.accept }}" data-input="{{ candidate.input.kind }}" data-engine-kind="{{ candidate.engine.kind }}" data-max-characters="{{ if candidate.input.maxCharacters }}{{ candidate.input.maxCharacters }}{{ else }}500000{{ end }}">{{ candidate.title | html.escape }}</a></li>
 {{~ end ~}}{{~ end ~}}{{~ end ~}}
       </ul>
 
@@ -208,5 +212,6 @@
   {{ include "footer" }}
   {{ assets.js_html }}
   {{ extra_scripts_html }}
+  <script src="/js/browser-tool.js" data-powerforge-webmcp data-webmcp-tool-name="convert_selected_document" defer></script>
 </body>
 </html>

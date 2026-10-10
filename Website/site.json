@@ -331,7 +331,7 @@
       },
       {
         "Name": "convert_selected_document",
-        "Route": "/browser/",
+        "Route": "/browser/word-to-pdf/",
         "Description": "Run the open OfficeIMO browser tool on the file already chosen on the page, with the settings shown. Processing stays in the browser.",
         "Kind": "page-tool",
         "ReadOnly": false
@@ -443,8 +443,7 @@
           "/css/browser-tool.css"
         ],
         "Js": [
-          "/js/browser-pages.js",
-          "/js/browser-tool.js"
+          "/js/browser-pages.js"
         ]
       }
     ],

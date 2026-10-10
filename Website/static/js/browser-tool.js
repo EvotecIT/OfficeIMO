@@ -424,12 +424,11 @@
 
   // ---------------------------------------------------------------- input: text
   function textProblem(value) {
-    var limit = ui.text && ui.text.maxLength;
+    var limit = ui.text && parseInt(ui.text.getAttribute('data-max-characters'), 10);
     return limit > 0 && value.length > limit ? 'Text input is limited to ' + limit.toLocaleString('en-US') + ' characters here. The current input was kept.' : '';
   }
   function setText(value, fromFile) {
     var problem = textProblem(value);
-    if (problem) { setHint(problem, 'bad'); return problem; }
     ++state.intakeGeneration;
     ++state.replacementGeneration;
     state.readingIntakes = [];
@@ -439,6 +438,7 @@
     state.textFromFile = !!fromFile;
     if (ui.text && ui.text.value !== value) ui.text.value = value;
     afterInputChanged();
+    if (problem) { setHint(problem, 'bad'); return problem; }
     if (cfg.live && inputComplete()) liveRun();
   }
 
@@ -625,7 +625,9 @@
     ui.output.classList.remove('is-updating', 'is-stale');
     clearResult();
     updateRunButton();
-    if (inputComplete()) setHint('The input or settings changed. Run the tool again.', 'warn');
+    var problem = collectOptions().problem;
+    if (problem) setHint(problem, 'warn');
+    else if (inputComplete() && !state.readingIntakes.length && !passwordBlocked()) setHint('The input or settings changed. Run the tool again.', 'warn');
     if ((cfg.live || cfg.auto) && inputComplete()) liveRun();
   }
 
@@ -1102,10 +1104,17 @@
     var file = primary ? { name: primary.info.fileName, type: primary.blob.type, buffer: primary.buffer } :
       state.result && state.result.ok && state.files.length === 1 ? state.files[0] : null;
     if (!file) return [];
+    if (file.buffer.byteLength > MAX_FILE_BYTES) return [];
     var generation = state.generation;
     var ext = extOf(file.name);
+    var textCharacters = null;
     return Array.prototype.slice.call(ui.next.querySelectorAll('a')).filter(function (a) {
-      return split(a.getAttribute('data-accept') || '', ',').indexOf(ext) >= 0;
+      if (split(a.getAttribute('data-accept') || '', ',').indexOf(ext) < 0) return false;
+      if (a.getAttribute('data-input') !== 'text') return true;
+      if (file.buffer.byteLength > 1024 * 1024) return false;
+      if (a.getAttribute('data-engine-kind') === 'text') return true;
+      if (textCharacters === null) textCharacters = new TextDecoder('utf-8').decode(file.buffer).length;
+      return textCharacters <= parseInt(a.getAttribute('data-max-characters'), 10);
     }).map(function (source) {
       var link = el('a', 'bt-chip bt-chip--next', source.textContent);
       link.href = source.getAttribute('href');
@@ -1167,7 +1176,7 @@
     try {
       Promise.resolve(context.registerTool({
         name: 'convert_selected_document',
-        description: 'Run the open OfficeIMO browser tool (' + bounded(document.title, 120) + ') on the file already chosen on the page, with the settings shown. Processing stays in the browser.',
+        description: root.getAttribute('data-webmcp-tool-description') + ' Open tool: ' + bounded(document.title, 120) + '.',
         inputSchema: { type: 'object', properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false, untrustedContentHint: true },
         execute: function (input, callContext) {

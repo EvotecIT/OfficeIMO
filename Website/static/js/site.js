@@ -458,6 +458,10 @@
     var countLabel = search.querySelector('[data-tool-count]');
     var cards = Array.from(directory.querySelectorAll('.imo-browser-tools__card'));
     var pendingFile = null;
+    var selectionGeneration = 0;
+    var textCharacters = null;
+    var textReading = false;
+    var textReadError = '';
     search.hidden = false;
 
     // Links from the previous single-page workspace (/convert/?route=docx-pdf) open the tool's own page.
@@ -478,7 +482,17 @@
 
     function acceptsPendingFile(card) {
       if (!pendingFile) return true;
-      return (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0;
+      return (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0 && !pendingFileProblem(card);
+    }
+
+    function pendingFileProblem(card) {
+      if (!pendingFile || card.getAttribute('data-input') !== 'text') return '';
+      if (pendingFile.size > 1024 * 1024) return 'Text tools accept files up to 1 MiB. Choose a smaller text file.';
+      if (card.getAttribute('data-engine-kind') === 'text') return '';
+      if (textReading) return 'Checking text input…';
+      if (textReadError) return textReadError;
+      var limit = parseInt(card.getAttribute('data-max-characters'), 10);
+      return textCharacters > limit ? 'Text conversion is limited to ' + limit.toLocaleString('en-US') + ' characters. The hidden-character tool accepts longer text files up to 1 MiB.' : '';
     }
 
     function filterTools() {
@@ -515,8 +529,15 @@
       }
 
       function choose(file) {
+        var generation = ++selectionGeneration;
         var oversized = file && file.size > 25 * 1024 * 1024;
         pendingFile = oversized ? null : file || null;
+        textCharacters = null;
+        textReadError = '';
+        textReading = !!pendingFile && pendingFile.size <= 1024 * 1024 && cards.some(function (card) {
+          return card.getAttribute('data-input') === 'text' && card.getAttribute('data-engine-kind') !== 'text' &&
+            (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0;
+        });
         fileInput.value = '';
         input.value = '';
         var matches = filterTools();
@@ -532,9 +553,31 @@
         }
         drop.querySelector('[data-browser-drop-name]').textContent = pendingFile.name;
         drop.querySelector('[data-browser-drop-size]').textContent = formatSize(pendingFile.size);
-        status.textContent = matches === 0
-          ? 'No browser tool opens this file type yet.'
-          : matches === 1 ? 'Open the tool below to continue.' : 'Pick one of the ' + matches + ' tools below.';
+        describeSelection(matches);
+        if (textReading) {
+          pendingFile.text().then(function (text) {
+            if (generation !== selectionGeneration) return;
+            textCharacters = text.length;
+            textReading = false;
+            describeSelection(filterTools());
+          }).catch(function () {
+            if (generation !== selectionGeneration) return;
+            textReading = false;
+            textReadError = 'That text file could not be read. Choose it again.';
+            describeSelection(filterTools());
+          });
+        }
+      }
+
+      function describeSelection(matches) {
+        var problem = '';
+        cards.some(function (card) {
+          if ((card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) < 0) return false;
+          problem = pendingFileProblem(card);
+          return !!problem;
+        });
+        var continuation = matches === 0 ? '' : matches === 1 ? 'Open the tool below to continue.' : 'Pick one of the ' + matches + ' tools below.';
+        status.textContent = problem ? problem + (continuation ? ' ' + continuation : '') : continuation || 'No browser tool opens this file type yet.';
         status.hidden = false;
       }
 
@@ -577,11 +620,14 @@
         card.addEventListener('click', function (event) {
           if (!pendingFile || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
+          var problem = pendingFileProblem(card);
+          if (problem) { status.textContent = problem; status.hidden = false; return; }
           var destination = card.href;
           var file = pendingFile;
+          var generation = selectionGeneration;
           window.OfficeIMOBrowserHandoff.send(destination, function () {
             return file.arrayBuffer().then(function (buffer) { return { name: file.name, type: file.type, buffer: buffer }; });
-          }).catch(function (error) { status.textContent = error.message; });
+          }).catch(function (error) { if (generation === selectionGeneration) { status.textContent = error.message; status.hidden = false; } });
         });
       });
     }

@@ -182,11 +182,14 @@ public sealed class EngineToolTests {
         Assert.Contains("PDF", result.Verdict.Title, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void RedactFindsMatchesBeforeRemovingAnything() {
+    [Theory]
+    [InlineData("Critical blockers", "Critical blockers")]
+    [InlineData("  Critical blockers  ", "  Critical blockers  ")]
+    [InlineData("\tCritical blockers\n", "Critical blockers")]
+    public void RedactFindsMatchesBeforeRemovingAnything(string findText, string executeText) {
         var session = new ToolSession();
         session.Stage(0, Sample("showcase-dashboard.pdf"), "showcase.pdf");
-        ToolResultDocument found = PdfTool.Run(session, "redact", "find", Options(("text", "Critical blockers")));
+        ToolResultDocument found = PdfTool.Run(session, "redact", "find", Options(("text", findText)));
         Assert.True(found.Ok);
         Assert.Empty(found.Artifacts);
         Assert.NotEmpty(found.Items);
@@ -196,9 +199,13 @@ public sealed class EngineToolTests {
         Assert.StartsWith("No matches", none.Verdict.Title, StringComparison.Ordinal);
 
         Assert.Throws<InvalidOperationException>(() => PdfTool.Run(session, "redact", "run", Options(("text", "Critical blockers"), ("confirm", "true"))));
-        PdfTool.Run(session, "redact", "find", Options(("text", "Critical blockers")));
+        PdfTool.Run(session, "redact", "find", Options(("text", findText)));
+        Assert.Throws<InvalidOperationException>(() => PdfTool.Run(session, "redact", "run", Options(("text", "different phrase"), ("confirm", "true"))));
+        session.Stage(0, Sample("showcase-dashboard.pdf"), "replacement.pdf");
+        Assert.Throws<InvalidOperationException>(() => PdfTool.Run(session, "redact", "run", Options(("text", executeText), ("confirm", "true"))));
+        PdfTool.Run(session, "redact", "find", Options(("text", findText)));
 
-        ToolResultDocument applied = PdfTool.Run(session, "redact", "run", Options(("text", "Critical blockers"), ("confirm", "true")));
+        ToolResultDocument applied = PdfTool.Run(session, "redact", "run", Options(("text", executeText), ("confirm", "true")));
         Assert.True(applied.Ok);
         Assert.Equal("Text removed and checked", applied.Verdict.Title);
     }

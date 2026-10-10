@@ -45,7 +45,7 @@
 {{~ for tool in catalog.tools ~}}
 {{~ if tool.group == group.id ~}}
 {{~ input_kind = tool.input.kind ~}}{{~ if input_kind != "text" ~}}{{~ input_kind = "file" ~}}{{~ end ~}}
-      <a class="imo-browser-tools__card" data-tool="{{ tool.id }}" data-accept="{{ tool.input.accept | html.escape }}" data-input="{{ input_kind }}" data-legacy="{{ tool.legacy | array.join " " | html.escape }}" href="/browser/{{ tool.id }}/">
+      <a class="imo-browser-tools__card" data-tool="{{ tool.id }}" data-accept="{{ tool.input.accept | html.escape }}" data-input="{{ input_kind }}" data-engine-kind="{{ tool.engine.kind }}" data-max-characters="{{ if tool.input.maxCharacters }}{{ tool.input.maxCharacters }}{{ else }}500000{{ end }}" data-legacy="{{ tool.legacy | array.join " " | html.escape }}" href="/browser/{{ tool.id }}/">
 {{~ if tool.from ~}}
         <span class="imo-browser-tools__formats"><span class="imo-format-chip" data-format="{{ tool.from | string.downcase | html.escape }}">{{ tool.from | html.escape }}</span><span class="imo-browser-tools__arrow" aria-hidden="true">→</span><span class="imo-format-chip" data-format="{{ tool.to | string.downcase | html.escape }}">{{ tool.to | html.escape }}</span></span>
 {{~ else ~}}
