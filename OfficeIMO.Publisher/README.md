@@ -46,6 +46,14 @@ Dynamic field markers and cached
 display text remain unevaluated. `Images` retains original embedded payloads;
 `GetBytes()` returns an independent copy.
 
+Native transparent-color keys, brightness/contrast controls, grayscale and
+two-color picture modes produce a processed PNG in the page scene. Original
+assets remain in `Images`. The read report identifies the managed color-space
+and threshold approximations; recoloring and extended color controls remain
+unassessed. Picture effects require bounded raster decoding. `MaximumRasterPixels`
+limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulative
+decode/filter work across picture references.
+
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
 column settings and wrap-object references. Linked stories follow their native
 links across frames and pages. Columns and rectangular wrap exclusions use the

@@ -43,28 +43,9 @@ internal sealed partial class PublisherPageProjector {
         if (!crop.HasVisibleSourceArea) {
             _context.Add("PUB_IMAGE_CROP_INVALID", "The native crop removes the entire image; its picture is omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id)); return;
         }
-        byte[] projectedBytes = ProjectImage(image, source.Id, out string projectedContentType);
+        OfficeArtPictureEffectProjector effects = PictureEffects(picture, source.Id);
+        byte[] projectedBytes = ProjectImage(image, source.Id, effects, out string projectedContentType);
         drawing.AddImage(projectedBytes, projectedContentType, new OfficeImageProjection(new OfficeImagePlacement(0, 0, drawing.Width, drawing.Height), crop));
-        if (picture.HasPictureEffect) _context.Add("PUB_PICTURE_EFFECT_UNASSESSED", "Native picture recoloring, brightness, contrast, or transparency effects require additional projection.",
-            OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Id));
-    }
-    private byte[] ProjectImage(PublisherImage image, uint objectId, out string contentType) {
-        contentType = image.ContentType;
-        OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
-        if (format is not (OfficeImageFormat.Wmf or OfficeImageFormat.Emf)) return image.Bytes;
-        var diagnostics = new List<OfficeImageExportDiagnostic>();
-        var codec = new OfficeRasterImageFallbackCodec(_context.Options.ImageCodec, diagnostics, PublisherEscherReader.ShapeLocation(objectId));
-        _context.Token.ThrowIfCancellationRequested();
-        codec.TryDecode(image.Bytes, contentType, out OfficeRasterImage? raster);
-        _context.Token.ThrowIfCancellationRequested();
-        if (raster == null || (long)raster.Width * raster.Height > _context.Options.MaximumRasterPixels)
-            throw new InvalidDataException("Publisher application image codec exceeded the pixel limit or returned no image.");
-        foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) _context.Add(diagnostic.Code, diagnostic.Message, diagnostic.LossKind, diagnostic.Source);
-        if (!diagnostics.Any(item => item.LossKind == OfficeConversionLossKind.Omission))
-            _context.Add("PUB_METAFILE_RASTERIZED", "A WMF/EMF picture was rasterized by the application codec. Images retains the original native payload.",
-                OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(objectId));
-        contentType = "image/png";
-        return OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, null, _context.Options.MaximumImageBytes, _context.Token);
     }
     private OfficeShape Geometry(PublisherEscherShape source, double width, double height) {
         switch (source.Type) {

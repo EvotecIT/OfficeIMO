@@ -7,8 +7,12 @@ namespace OfficeIMO.Publisher.Tests;
 // codec contract; they are not independently produced Publisher documents.
 internal static class PublisherDrawingFixture {
     internal static byte[] Mutate(Dictionary<ushort, uint> values, int shapeType,
-        Dictionary<ushort, byte[]>? complexValues = null, string fixture = "Simple.pub", uint objectId = 293) {
-        Assert.True(OfficeCompoundFileReader.TryRead(File.ReadAllBytes(PublisherNativeTests.Fixture(fixture)),
+        Dictionary<ushort, byte[]>? complexValues = null, string fixture = "Simple.pub", uint objectId = 293) =>
+        Mutate(File.ReadAllBytes(PublisherNativeTests.Fixture(fixture)), values, shapeType, complexValues, objectId);
+
+    internal static byte[] Mutate(byte[] publication, Dictionary<ushort, uint> values, int shapeType,
+        Dictionary<ushort, byte[]>? complexValues = null, uint objectId = 293) {
+        Assert.True(OfficeCompoundFileReader.TryRead(publication,
             out OfficeCompoundFile? source, out string? error), error);
         bool found = false;
         byte[] Rewrite(byte[] bytes, int start, int end) {

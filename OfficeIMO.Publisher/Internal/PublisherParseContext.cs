@@ -10,6 +10,7 @@ internal sealed class PublisherParseContext {
     internal long ImageBytes { get; private set; }
     private long _projectedElements, _projectedCharacters, _projectedGradientStops;
     private long _imageProcessingBytes;
+    private long _imageProcessingPixels;
     private long _textLayoutCharacters;
     private int _imageStoreEntries;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
@@ -33,6 +34,12 @@ internal sealed class PublisherParseContext {
     internal void AccountImageProcessing(int bytes) {
         if (bytes > Options.Limits.MaxInputBytes - _imageProcessingBytes) throw new InvalidDataException("Publisher image processing byte limit exceeded.");
         _imageProcessingBytes += bytes;
+    }
+    internal long RemainingImageProcessingPixels => Options.MaximumImageProcessingPixels - _imageProcessingPixels;
+    internal void AccountImageProcessingPixels(long pixels) {
+        Token.ThrowIfCancellationRequested();
+        if (pixels > RemainingImageProcessingPixels) throw new InvalidDataException("Publisher image processing pixel limit exceeded.");
+        _imageProcessingPixels += pixels;
     }
     internal void AccountTextLayout(int characters) {
         Token.ThrowIfCancellationRequested();
