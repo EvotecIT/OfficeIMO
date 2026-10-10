@@ -681,7 +681,7 @@
       "image_height": 1123,
       "image_alt": "Generated Word example: A concise policy brief",
       "title": "A concise policy brief",
-      "description": "Author a Word policy brief in C# with document metadata, styled headings, a rules table, a shaded reminder, and practical bullet lists. Download the source, editable file, and PDF.",
+      "description": "Create a Word policy brief in C# with styled headings, a rules table, a shaded reminder, and bullet lists. Download the source, DOCX, and PDF.",
       "input": "Working agreements and review ownership",
       "output": "DOCX + PDF",
       "proof": "The linked C# example generates this file. The runner reopens and validates the DOCX, exports a PDF, and the preview renders that PDF.",
@@ -742,7 +742,7 @@
           "markdown-incident-runbook"
         ]
       },
-      "search_text": "A concise policy brief Author a Word policy brief in C# with document metadata, styled headings, a rules table, a shaded reminder, and practical bullet lists. Download the source, editable file, and PDF. Word .NET C# walkthrough code sample Working agreements and review ownership"
+      "search_text": "A concise policy brief Create a Word policy brief in C# with styled headings, a rules table, a shaded reminder, and bullet lists. Download the source, DOCX, and PDF. Word .NET C# walkthrough code sample Working agreements and review ownership"
     },
     {
       "id": "word-decision-record",
