@@ -794,6 +794,11 @@
       // Touching the map ends the tour.
       root.addEventListener('click', function (e) { if (e.target !== tour.button && !tour.button.contains(e.target)) { tour.touched = true; stopTour(true); } }, true);
       root.addEventListener('change', function () { tour.touched = true; stopTour(true); }, true);
+      root.addEventListener('focusin', function (e) {
+        if (e.target === tour.button || tour.button.contains(e.target)) return;
+        tour.touched = true;
+        stopTour(true);
+      });
       root.addEventListener('keydown', function (e) { if (e.target !== tour.button && e.key !== 'Tab') { tour.touched = true; stopTour(true); } }, true);
     }
 
@@ -808,12 +813,19 @@
     }
 
     // Choosing a format must not move what is below the map. Where the answer panel is not pinned to the height of the circle
-    // (the list view, and the stacked layouts), reserve the height of the tallest answer, measured once per layout.
+    // (the list view, and the stacked layouts), reserve a format answer's height and scroll longer paths inside it.
+    // Measure a hidden copy so a resize or font load cannot replace the visitor's focused control or link.
     var reserveTimer = 0;
     function reservePanelHeight() {
       if (!side) return;
       side.style.minHeight = '';
+      side.style.maxHeight = '';
+      side.style.overflowY = '';
       if (/size/.test(getComputedStyle(side).contain || '')) return;
+      var measurement = side.cloneNode(true), livePanel = panel;
+      measurement.style.cssText = 'position:absolute;visibility:hidden;pointer-events:none;contain:none;height:auto;min-height:0;max-height:none;width:' + side.offsetWidth + 'px;';
+      side.parentNode.appendChild(measurement);
+      panel = measurement.querySelector('.imo-fmap__panel');
       var keep = { from: state.from, to: state.to, hover: state.hover, focus: state.focus, surface: state.surface, top: side.scrollTop };
       var tallest = 0;
       state.hover = state.focus = state.to = null;
@@ -822,12 +834,16 @@
         if (!outOf(n).length) return;
         state.from = n;
         buildPanel();
-        tallest = Math.max(tallest, side.offsetHeight);
+        tallest = Math.max(tallest, measurement.offsetHeight);
       });
       state.from = keep.from; state.to = keep.to; state.hover = keep.hover; state.focus = keep.focus; state.surface = keep.surface;
-      buildPanel();
+      panel = livePanel;
+      measurement.parentNode.removeChild(measurement);
       side.scrollTop = keep.top;
-      if (tallest) side.style.minHeight = tallest + 'px';
+      if (tallest) {
+        side.style.minHeight = side.style.maxHeight = tallest + 'px';
+        side.style.overflowY = 'auto';
+      }
       drawWires();
     }
     function scheduleReserve() {
