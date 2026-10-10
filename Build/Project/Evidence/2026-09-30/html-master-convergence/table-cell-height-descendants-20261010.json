@@ -1,0 +1,657 @@
+{
+  "schema": "officeimo.html.table-cell-descendant-qualification/v1",
+  "recordedUtc": "2026-10-10T01:53:42.383958+00:00",
+  "sourceCommit": "1d629987d5a6c98c206241dd9277de729ce465b6",
+  "integration": {
+    "runtimeCandidate": "b091c4b8c5c3617c7e83accbce753f28dfbecfaa",
+    "integrationCommit": "4096e7cb48ceb2d2f662fd4efcf8c45cbe93d370",
+    "masterCandidate": "d16d3e6763315b88216977b19bafb9972d439455",
+    "baseline": "8580a4acecdf8429d28dc6cdb87cc5022efd761d",
+    "sourceTrees": {
+      "OfficeIMO.Core": "96d9085d24062d4eedc416745a9723e7a22795e4",
+      "OfficeIMO.Html.Core": "baf0be1a0677df835667dcdb5db343492b89d5c2",
+      "OfficeIMO.Html.AngleSharp": "7e1f46c329df040d2c2bd0c559e7b938bf80e26a",
+      "OfficeIMO.Html": "b4893705abc566eeafe32efc0fc4e774dc4de9e0",
+      "OfficeIMO.Pdf": "867291ba4ed31a002f71835b3e05bfb920fa3c48",
+      "OfficeIMO.Rtf": "6ab98277e958ae5907acfaec2cad4763040882c1",
+      "OfficeIMO.Email": "a19fec8d829fc7eb7ab07bf127841f5678bcdf02",
+      "OfficeIMO.Mhtml": "50a4a1d06360614bfad22cd705418a397675dbfc",
+      "OfficeIMO.Html.Pdf": "7e1525a23592fbb2bce795970737547d43c2cdcf",
+      "OfficeIMO.Mhtml.Pdf": "f260be4c80b287db7a53ff92c52ffcdcebfdb664"
+    },
+    "boundary": "Tests and migration guidance changed after4096; all ten runtime owner trees are identical. Branch backup is separate from milestone and release acceptance."
+  },
+  "contract": {
+    "owner": "OfficeIMO.Html",
+    "currentContract": "OfficeIMO.Html/README.md",
+    "qualifiedSubset": "Ordinary horizontal single-row nonanonymous table cells: percentage height/min-height/max-height on normal block and inline-block descendants use the final used cell content height. Effective cascade, logical properties, CSS variables, valid math, box sizing and padding retain the same owner.",
+    "intrinsicPass": "Percentage descendants initially have an indefinite percentage basis; definite cell height and absolute minima retain their normal contribution. Final used-cell resolution does not perform a second row-share allocation.",
+    "wrappers": "Inline and display:contents wrappers forward the nearest real containing-height basis; their authored height does not create a new containing block. Auto-height cells retain the indefinite initial basis. Real inline-block descendants establish their own basis.",
+    "heightMinimum": "A table cell height is a minimum. A height:240px child with max-height:100% can grow a height:120px cell to240px; capping it at120px was a stale test assertion. Standards-mode Chromium 153 independently confirms240px.",
+    "rejectedAlternative": "A trial absolute-cell basis during intrinsic sizing wrongly reduced max-height100% growth and enlarged above100percent cases. It is not in the qualified runtime.",
+    "operationLimits": "Cell replay preserves cumulative operation limits and logical order; temporary table-cell state is restored. Changed operation allocation is reported as loss."
+  },
+  "apiAndOwnership": {
+    "newPublicApi": false,
+    "newProductionDependencies": false,
+    "testOnlyProductionHooks": false,
+    "consumers": "Existing HTML/PDF/MHTML public paths and packed consumers use the canonical HTML layout owner.",
+    "productAssessment": "Resolves authored ordinary document geometry without adding a separate conversion engine or surface-specific workaround."
+  },
+  "review": {
+    "scope": "One independent read-only table-cell review plus one targeted confirmation of its fixes, before final source integration.",
+    "validatedFindingsFixed": [
+      "Inline/contents authored height incorrectly replaced a definite table-cell basis for a descendant image.",
+      "Inline/contents authored height incorrectly made an auto-height cell definite for a nested ordinary inline-block."
+    ],
+    "remainingBoundary": "The inline-image line expansion is still a typed approximation and strict-loss rejection. Final test-only corrections have independent rendered height evidence; they do not change runtime layout."
+  },
+  "controlledQualification": {
+    "ordinaryAndWrapperScenes": 34,
+    "ordinaryAndWrapperInputs": 32,
+    "actualPdfSvgPngExports": 104,
+    "exportsByteIdenticalToDevelopmentCandidate": true,
+    "otherControlledScenes": 33,
+    "ratioScenes": 14,
+    "ratioScenesLossFree": true,
+    "standardsAndModeControls": 16,
+    "browser": "Chromium 153.0.8010.12 via HtmlTinkerX",
+    "browserObservations": 32,
+    "boundedAssertions": [
+      "Standard-mode target child heights120px / 240px independently matched.",
+      "Normalized padded block max-height cases retain240px child/following242px; padded inline-block min-height cases retain120px child/following122px.",
+      "Height/min-height:200% cases retain240px overflowing child and following120px."
+    ],
+    "appearanceBoundary": "Unnormalized browser UA defaults and parent atomic baselines produce following-content differences. These controls qualify the stated target heights; they do not establish general UA-default or baseline parity. Sixteen actual PDF/report/strict-loss records and browser receipts were hash-checked. Representative rendered scenes were inspected."
+  },
+  "frameworks": {
+    "htmlTests": [
+      {
+        "framework": "html-net8",
+        "passed": 5810,
+        "failed": 0,
+        "skipped": 0,
+        "trxSha256": "88568bdbd8b6653d56706248e3ea4cb3a641f679fc700ff92cb9792f38a51a2a"
+      },
+      {
+        "framework": "html-net10",
+        "passed": 5810,
+        "failed": 0,
+        "skipped": 0,
+        "trxSha256": "c98b7f5fc04f02cc99e27108e77b9fc74760fae8cb40791293cecf6c9cc8bf18"
+      }
+    ],
+    "pdfSuiteReuse": {
+      "sourceCommit": "8580a4acecdf8429d28dc6cdb87cc5022efd761d",
+      "passed": 10049,
+      "ownerTreesEqual": [
+        "OfficeIMO.Pdf",
+        "OfficeIMO.Core"
+      ],
+      "boundary": "Full PDF suite retained by exact unchanged PDF/Core owner trees; changed HTML-to-PDF paths freshly qualified by public scenes, frozen outputs and packed consumers."
+    },
+    "scope": "Category=Performance excluded from correctness suites; deterministic resource limits remain checked."
+  },
+  "privatePackages": {
+    "count": 19,
+    "privateVersion": "3.3.0",
+    "sourceVersion": "3.4.4",
+    "unsigned": true,
+    "frameworks": [
+      "netstandard2.0",
+      "net472",
+      "net8.0",
+      "net10.0"
+    ],
+    "executedConsumers": 4,
+    "privateOriginsVerified": 19,
+    "actualConsumerBinaryMatches": 42,
+    "packages": [
+      {
+        "name": "OfficeIMO.Core.3.3.0.nupkg",
+        "sha256": "03ae35e3bef794b257c9cb9cbfc68e416868afa9f84233a3ee49cbf98be76183",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Email.3.3.0.nupkg",
+        "sha256": "0e9a9ac2911ee83f021444231f6d68f4eaf1231aaf1173012e06e543ff77d1a9",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Excel.3.3.0.nupkg",
+        "sha256": "a41dd07b9b2b8cb759e7c488e070fe02e5e0791eba506632976f20814a0fe8d6",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Excel.Html.3.3.0.nupkg",
+        "sha256": "e8f617fce41d203381bb45db0428c8c63389a2f28de2ae700660d4e0bf9b27f8",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Html.3.3.0.nupkg",
+        "sha256": "42a329190b2a8311a43eaec48dcfe319f75f2294742b82eaeb5c63524ce4788c",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.3.3.0.nupkg",
+        "sha256": "3e35e8ae95410c90017e56c78c8d6baaa1de71a29723ec17cc7431abc38ff199",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Html.Core.3.3.0.nupkg",
+        "sha256": "37226296ee20d6f8845c5820de7c0d1bfd45b89712976321e100f3b52df9a174",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Html.Pdf.3.3.0.nupkg",
+        "sha256": "3d40e0d27b574dabf1234f7af9444963b7f1861dc20561ead37124e2133dfd29",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Html.Rtf.3.3.0.nupkg",
+        "sha256": "b3a8db541c0a41bf18dcfcbbc5f26a30cae6c17b851ac9a5eff3e03c2111a439",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Markdown.3.3.0.nupkg",
+        "sha256": "e43f98a7470576739204caef9ed01890741f2fe00409090cc85b081dca741b4e",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Markdown.Html.3.3.0.nupkg",
+        "sha256": "583f2aa0b55166523809173101e64f1f3b850780dd7df828e79bf509daffba3f",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.3.3.0.nupkg",
+        "sha256": "2067d555f7ff9f62126680dfdece75adeff782b6c3af103b068e14718146966f",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.Pdf.3.3.0.nupkg",
+        "sha256": "3d1ffbcda9691b4880da5af398f2518240a0596514359b764f626758f4eaf30a",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Pdf.3.3.0.nupkg",
+        "sha256": "3785859ae160ff4e5e152810f97a9004f39ccaeba17550af0ea4cc0ecae26463",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.3.3.0.nupkg",
+        "sha256": "c9c64bdd780e3c971bfe5384cc40116a24ddc4765f9f944aca24c5d7c5d18fbd",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.Html.3.3.0.nupkg",
+        "sha256": "3d33279b0bc0a4984fcca70c2f58207fe2e18f21beaa1c8be46f5237aa173e6e",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Rtf.3.3.0.nupkg",
+        "sha256": "c5dd32d2c7c5075d02771468214d9f2073827b737d094d94122fe6d34239c56d",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Word.3.3.0.nupkg",
+        "sha256": "564408fe9053bbfbdf4bb5afea645f0fc788f40f0a82628b41bf721ec2aad7c5",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      },
+      {
+        "name": "OfficeIMO.Word.Html.3.3.0.nupkg",
+        "sha256": "dc81dce16269ca7c3fe8867d7385b1524c5bd6c0bb4e7f76fe7c2e72803c61eb",
+        "repositoryCommit": "1d629987d5a6c98c206241dd9277de729ce465b6"
+      }
+    ],
+    "boundary": "Private-feed compile/execute proof; no NuGet publication or release signing. macOS does not execute .NET Framework472."
+  },
+  "producer": {
+    "files": 26,
+    "logicalBytes": 24833038,
+    "fileManifest": [
+      {
+        "name": "AngleSharp.Css.dll",
+        "bytes": 616448,
+        "sha256": "b1e9ff7d55daf35c2605dbc7add1b8d5440631184a1d51fad75dee2faeaa23a5"
+      },
+      {
+        "name": "AngleSharp.dll",
+        "bytes": 1083904,
+        "sha256": "ed9ebe8f1f6a8537f52a5aa607225d929de55f202bd6c1fa198e10bf82db2911"
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "bytes": 4662272,
+        "sha256": "e6b3d854f33747060fc0c4e04ae023a47cbd54169c9990048b3065e2c220979c"
+      },
+      {
+        "name": "OfficeIMO.Core.pdb",
+        "bytes": 1425316,
+        "sha256": "8a70c89d3b1368b69760bc5ce157ab32829f775082d6cc004f7ef496e43c41f4"
+      },
+      {
+        "name": "OfficeIMO.Email.dll",
+        "bytes": 1779200,
+        "sha256": "0b5f7e84e6fc580ac1da1cbf7dcf00fa562fcd4a7bbe62da1a9b41c212a861d1"
+      },
+      {
+        "name": "OfficeIMO.Email.pdb",
+        "bytes": 538536,
+        "sha256": "d83824676a6fc99af6cbe5c637487b79da8dd6fcdd7ebfff99a05f9145536d0a"
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.dll",
+        "bytes": 48128,
+        "sha256": "a6093f38ad5714074997809357dffb279b3773fd735e75aaca54ac6349c2196a"
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.pdb",
+        "bytes": 25636,
+        "sha256": "ed304566b50f7e99b91b3479ee3bda4b5510fb27408227bdf5ff40466bd688a8"
+      },
+      {
+        "name": "OfficeIMO.Html.Core.dll",
+        "bytes": 150016,
+        "sha256": "c450ee2cdb7aeb986fdf3222c027966f7b1dd7dc6d70bf0c9d01891b9421119d"
+      },
+      {
+        "name": "OfficeIMO.Html.Core.pdb",
+        "bytes": 61660,
+        "sha256": "79c6177f7f47b64e510419fef80e0d895191274cebceaa397741f434f0b80f9c"
+      },
+      {
+        "name": "OfficeIMO.Html.Pdf.dll",
+        "bytes": 292352,
+        "sha256": "059caf2b7c6d3ca335051e89faeec42f96ef576a3e8f1fc5c4972b2d9391fe81"
+      },
+      {
+        "name": "OfficeIMO.Html.Pdf.pdb",
+        "bytes": 82064,
+        "sha256": "ee3b52b58dbb8e13d20179309545b80934fcd28c9af142ca3262360027c76076"
+      },
+      {
+        "name": "OfficeIMO.Html.dll",
+        "bytes": 2425856,
+        "sha256": "b0900ad4fd3140c8274660bcd6734a9980927783a9242cb9e2f4a7d059f3c9c1"
+      },
+      {
+        "name": "OfficeIMO.Html.pdb",
+        "bytes": 678000,
+        "sha256": "19af0c457923ec74d1a59bf5081492692305c1ed13883b40fcc572c0b4c9225f"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.Pdf.dll",
+        "bytes": 17408,
+        "sha256": "6c149d7bbccc06e8f425ac3651e72b98ef971101a0a7658d73f3e897ea6a0aed"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.Pdf.pdb",
+        "bytes": 14620,
+        "sha256": "da099a2a73b72518af2e491c37bbb4f912df7f905b583f18b81d1c05baaa8daf"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.dll",
+        "bytes": 50688,
+        "sha256": "b72a483daa3264e3cfb5c60993f4894b8621830b43e49dedaf71a55cce7cb28c"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.pdb",
+        "bytes": 21772,
+        "sha256": "44d1b21890b22c0809e454cd1f556040c646ef219f7d41bbad62acdca01b12ff"
+      },
+      {
+        "name": "OfficeIMO.Pdf.dll",
+        "bytes": 7954944,
+        "sha256": "a9ce80c11debe35680da12ec7c87e9e625fc6704174f5d171a2689345144e8bc"
+      },
+      {
+        "name": "OfficeIMO.Pdf.pdb",
+        "bytes": 2077236,
+        "sha256": "a893751285390b19477193e207786e4effe3a68254bdca2ca8ffb015a22b2007"
+      },
+      {
+        "name": "OfficeIMO.Rtf.dll",
+        "bytes": 576512,
+        "sha256": "3cad71f2a066ab64fb7bdf2e2d81abacd278d8374e3d408b7aa3c3310680f030"
+      },
+      {
+        "name": "OfficeIMO.Rtf.pdb",
+        "bytes": 210648,
+        "sha256": "e84f83f784ed155fe2be5ca2b913ea8d557d391b6d7f850c0e92429c25f34768"
+      },
+      {
+        "name": "PageProbe.deps.json",
+        "bytes": 5752,
+        "sha256": "e65a8d4e8390754d75df5171d85589b2183988537b7ad43335738cb2f64d34b6"
+      },
+      {
+        "name": "PageProbe.dll",
+        "bytes": 20992,
+        "sha256": "1a9b9e1bb65ad3f639fd590771872c8440b1112b0d4a91be3906c60afa97197c"
+      },
+      {
+        "name": "PageProbe.pdb",
+        "bytes": 12748,
+        "sha256": "d3f384f286be8162ba48a3d37ff657855050fa183943b61ee4ce52fb419cf337"
+      },
+      {
+        "name": "PageProbe.runtimeconfig.json",
+        "bytes": 330,
+        "sha256": "9950d4583cfc9a106857c0d5b8a75b53e8774852b57b80bc3823a74d44a4d87f"
+      }
+    ],
+    "sourceCommit": "1d629987d5a6c98c206241dd9277de729ce465b6",
+    "pageProbeMetadata": "The existing typed census remains; an actual-loaded census additionally records observed assembly location, informational version and SHA256. It does not load unused packages to inflate coverage."
+  },
+  "h4": {
+    "cases": 8,
+    "exports": 76,
+    "actualExportsVerified": 76,
+    "outputBytes": 2599906,
+    "fingerprintSha256": "92b077d1e966e4a4d5ea929878cea7201c164eb0404767249093bd8615dce1bf",
+    "changed": [],
+    "nativePagesReused": 22,
+    "boundary": "All 76 actual bytes and ordered metadata match previously inspected native evidence. Private worker timing is diagnostic; canonical budgets remain separate."
+  },
+  "sevenFrozenSources": {
+    "sourceCount": 7,
+    "developmentSources": 6,
+    "heldOutSources": 1,
+    "observations": 23,
+    "successfulPdfs": 20,
+    "pages": 151,
+    "completeReportsAndFailuresUnchanged": true,
+    "actualPdfBytesUnchanged": true,
+    "knownPortableFontFailures": 3,
+    "knownFailedCodePoint": "U+2212",
+    "actualOwnersObserved": [
+      "AngleSharp",
+      "AngleSharp.Css",
+      "OfficeIMO.Core",
+      "OfficeIMO.Email",
+      "OfficeIMO.Html",
+      "OfficeIMO.Html.AngleSharp",
+      "OfficeIMO.Html.Core",
+      "OfficeIMO.Html.Pdf",
+      "OfficeIMO.Mhtml",
+      "OfficeIMO.Mhtml.Pdf",
+      "OfficeIMO.Pdf"
+    ],
+    "officeImoOwnersObserved": 9,
+    "actualLocationsVersionsHashesMatched": true,
+    "notLoaded": "OfficeIMO.Rtf",
+    "nativePagesReused": 151,
+    "newNativePagesViewed": 0,
+    "boundary": "The three portable-font NIST failures remain failures. Six development sources plus one held-out source are not seven held-out cases."
+  },
+  "cdc": {
+    "sourceSha256": "879b46d271aaec2625e837fbaef1d900b317806fad268a661f731ffdcd4798c9",
+    "profiles": [
+      {
+        "profile": "PrintPaged",
+        "pages": 2,
+        "pdfSha256": "0a8c8298c46ac8440ca0cd39ad8fe19d280e356bff85cffa523c529cdf5f2569",
+        "completeReportsAndBytesUnchanged": true
+      },
+      {
+        "profile": "ScreenMediaPaged",
+        "pages": 4,
+        "pdfSha256": "23ef74c9d361830923b4738659134eb26dd94f94b29f26406d9fe7dc9c351a22",
+        "completeReportsAndBytesUnchanged": true
+      },
+      {
+        "profile": "ScreenSnapshotPaged",
+        "pages": 5,
+        "pdfSha256": "816df070759ee6431b1ce7a618e3f2d2273b2e702a6640ff3c0c9733508a556b",
+        "completeReportsAndBytesUnchanged": true
+      }
+    ],
+    "paintedTargetsReused": 72,
+    "rawTargetsOncePerProfile": 24,
+    "nativePagesReused": 11,
+    "containedBorderBandsUnchanged": 6,
+    "loadedCensusBoundary": "Existing CDC census verifies actual versions and hashes; it does not emit locations.",
+    "lowDpiSeparatorAcceptance": "Open:72/96dpi pale separators. High-DPI or alternate rasterizer evidence does not close this criterion."
+  },
+  "localPerformance": {
+    "reportSha256": "a6d0969da921e168f9623b1e41f669546c6732bb6f9eed9495fdfba1e22b5473",
+    "source": {
+      "commit": "1d629987d5a6c98c206241dd9277de729ce465b6",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.1",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "failures": [
+      "warm iteration 3 elapsed milliseconds 3322.5 exceeded ceiling 3000.0.",
+      "peak working-set bytes 855949312.0 exceeded ceiling 700000000.0."
+    ],
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 7124.8757,
+      "peakWorkingSetBytes": 506183680,
+      "memorySampleCount": 210,
+      "deterministic": true
+    },
+    "coldIterations": [
+      {
+        "number": 1,
+        "elapsedMilliseconds": 7042.706,
+        "managedAllocatedBytes": 1113759968,
+        "outputBytes": 2599906,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "92b077d1e966e4a4d5ea929878cea7201c164eb0404767249093bd8615dce1bf"
+      }
+    ],
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 15521.8051,
+      "peakWorkingSetBytes": 855949312,
+      "memorySampleCount": 436,
+      "deterministic": true
+    },
+    "warmIterations": [
+      {
+        "number": 1,
+        "elapsedMilliseconds": 2240.2675,
+        "managedAllocatedBytes": 875700680,
+        "outputBytes": 2599906,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "92b077d1e966e4a4d5ea929878cea7201c164eb0404767249093bd8615dce1bf"
+      },
+      {
+        "number": 2,
+        "elapsedMilliseconds": 2253.7219,
+        "managedAllocatedBytes": 875438872,
+        "outputBytes": 2599906,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "92b077d1e966e4a4d5ea929878cea7201c164eb0404767249093bd8615dce1bf"
+      },
+      {
+        "number": 3,
+        "elapsedMilliseconds": 3322.485,
+        "managedAllocatedBytes": 875403616,
+        "outputBytes": 2599906,
+        "caseCount": 8,
+        "outputCount": 76,
+        "fingerprintSha256": "92b077d1e966e4a4d5ea929878cea7201c164eb0404767249093bd8615dce1bf"
+      }
+    ],
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 4.4162,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "acceptance": "Failed:third warm iteration and peak working set. Cold elapsed, managed allocations, output size/determinism and cancellation passed. This shared-host run does not establish a causal performance change."
+  },
+  "platformBoundary": {
+    "currentSourceThreePlatformQualification": "Not established by this local proof.",
+    "priorSource": "8580a4acecdf8429d28dc6cdb87cc5022efd761d",
+    "controlSource": "0e9bdc8ba54e40ca26f30e0832d3d8eb1da95903",
+    "runId": 38008178307,
+    "runUrl": "https://github.com/EvotecIT/OfficeIMO/actions/runs/38008178307",
+    "correctness": "HTML5751 per .NET8/10, PDF10049 on .NET10, font15 and math1 per .NET8/10 passed on all three platforms.",
+    "packageConsumers": "CI steps passed on all three; package archives were not independently downloaded or inspected in this receipt.",
+    "performance": [
+      {
+        "os": "ubuntu-latest",
+        "candidateFailures": [],
+        "controlFailures": [],
+        "candidateColdMs": 11038.2942,
+        "candidateWarmMs": [
+          4560.4606,
+          4515.6646,
+          4356.4781
+        ]
+      },
+      {
+        "os": "windows-latest",
+        "candidateFailures": [],
+        "controlFailures": [
+          "warm iteration 2 elapsed milliseconds 4013.1 exceeded ceiling 4000.0."
+        ],
+        "candidateColdMs": 11094.3439,
+        "candidateWarmMs": [
+          3847.3275,
+          3964.3118,
+          3555.8762
+        ]
+      },
+      {
+        "os": "macos-latest",
+        "candidateFailures": [
+          "cold process elapsed milliseconds 23786.4 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 9906.4 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 4285.9 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 4373.3 exceeded ceiling 3000.0."
+        ],
+        "controlFailures": [
+          "cold process elapsed milliseconds 13337.0 exceeded ceiling 8000.0.",
+          "warm iteration 1 elapsed milliseconds 4290.1 exceeded ceiling 3000.0.",
+          "warm iteration 2 elapsed milliseconds 4224.2 exceeded ceiling 3000.0.",
+          "warm iteration 3 elapsed milliseconds 3965.9 exceeded ceiling 3000.0.",
+          "peak working-set bytes 718110720.0 exceeded ceiling 700000000.0."
+        ],
+        "candidateColdMs": 23786.3518,
+        "candidateWarmMs": [
+          9906.4481,
+          4285.8829,
+          4373.3353
+        ]
+      }
+    ],
+    "boundary": "The prior858 run does not qualify later1d table-cell changes. Linux and Windows candidate ceilings passed; macOS elapsed ceilings remain open. Windows job failure came from the prior control, not candidate correctness or candidate ceilings."
+  },
+  "remainingContracts": [
+    "Percentage height allocation in row groups and specialized, anonymous or rowspan cell-descendant contexts.",
+    "General shared baselines across fonts, content-derived atomic baselines and vertical writing. Empty ordinary inline-block parent-strut spacing is a separately reproduced active slice.",
+    "General row compression, percentage/tall-rowspan algorithms and fragmented collapsed borders.",
+    "Low-DPI CDC separators, portable-font NIST minus glyphs, broader held-out source acceptance and platform budgets.",
+    "Trimming/AOT/WASM and manual accessibility retain their independent gates."
+  ],
+  "receiptBindings": [
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/producer-freeze-receipt.json",
+      "bytes": 5750,
+      "sha256": "a05e8c5db1086a1ee6b444986f8ec7c7949ad1f1af52cea9c7bd26c0550aa7bf"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/framework-qualification.json",
+      "bytes": 2254,
+      "sha256": "1853f3dfdcf650a74bc2401698c5c2196c87295e1e4757f7e2eb24906d35e767"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/packages/qualification.json",
+      "bytes": 7757,
+      "sha256": "ac8f97cb435d74fde4230707252fa9277d1e15fef6da0ee413641a77df0e2967"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/packages/qualification-assets.json",
+      "bytes": 16909,
+      "sha256": "dd43dcf1de2935d432508d516c56a28a6547569474168560f49d7f5b99ad82a5"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/controlled-scenes/combined-rebind.json",
+      "bytes": 12341,
+      "sha256": "864f0bae1475a7549fc24dc4888fff2fd402488e9166ab190ef1ce10f554f6e6"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/ratio-scenes/combined-rebind.json",
+      "bytes": 4934,
+      "sha256": "b8b4b4f14538a470e9bcceff42dff7b0e86192bdeb6a30b30136196785b8e29d"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/cell-scenes/qualification.json",
+      "bytes": 36071,
+      "sha256": "a0eb28dbc5d4162dd7285a16fb8789fec3544b68a0bfc657c9fd0c36731bf848"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/h4-artifacts/output-comparison.json",
+      "bytes": 4437,
+      "sha256": "1f8e0db15b34b568f3228d2749a943616220c3e6243a2e722f65b61a15f71c70"
+    },
+    {
+      "receipt": "table-height-next/combined-seven-preparation/table-cell-descendant-next/table-cell-descendant-1d629987/final-qualification.json",
+      "bytes": 21699,
+      "sha256": "e63d8b28dd88cc9fd16df1cdb10d10b1d9f86f7323fea1fa09d856167dcbae6a"
+    },
+    {
+      "receipt": "table-height-next/combined-seven-preparation/table-cell-descendant-next/table-cell-descendant-1d629987/root-qualification-acceptance.json",
+      "bytes": 1823,
+      "sha256": "bfa154f16f02c8734cd1a4bbdfe9b5e6c5f208e529521fdf6e0e781b156ab993"
+    },
+    {
+      "receipt": "table-height-descendants-next/absolute-max-height-regression/final-geometry-mode-loss.json",
+      "bytes": 81118,
+      "sha256": "a3c29bf66d2325638dedbfa17fcdc98b06e9aafb55442354f9fe72ee98f22ed0"
+    },
+    {
+      "receipt": "table-height-descendants-next/absolute-max-height-regression/root-final-controls-inspection.json",
+      "bytes": 2456,
+      "sha256": "f3af8767d2f16bc3073b090fb77a3c4bf9c594718935f1f8e4fbb2b8374280f1"
+    },
+    {
+      "receipt": "table-height-descendants-next/absolute-max-height-regression/root-reclassification.json",
+      "bytes": 1630,
+      "sha256": "5331d73f39663b2ba85d894b0106c5487d79889ee88d28707d653a01c3afc592"
+    },
+    {
+      "receipt": "table-height-descendants-next/combined-1d629987/h4-budget/html-static-budget.json",
+      "bytes": 97604,
+      "sha256": "a6d0969da921e168f9623b1e41f669546c6732bb6f9eed9495fdfba1e22b5473"
+    },
+    {
+      "receipt": "table-height-next/combined-8580a4ac/platform-final-reports/three-platform-qualification.json",
+      "bytes": 34323,
+      "sha256": "1f5516f5d8e9c41d89e81ae7c1c10f37eea8a9e5a72f95fc76473bdbbb8fc838"
+    },
+    {
+      "receipt": "table-height-descendants-next/integration_validation.py",
+      "bytes": 21611,
+      "sha256": "1fd61077f71c7f77461cbb27e90345788c1e3f1a65b69fc70f241f5a56c6fa17"
+    }
+  ]
+}
