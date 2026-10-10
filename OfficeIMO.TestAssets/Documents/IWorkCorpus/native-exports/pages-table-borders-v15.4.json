@@ -1,0 +1,263 @@
+{
+  "schemaVersion": 1,
+  "source": "pages-table-borders-v15.4.pages",
+  "decode": "pages-table-borders-v15.4-decode.json",
+  "nativeProducer": "Pages 15.4 (7051.0.79)",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "license": "MIT, OfficeIMO contributors",
+  "intake": "pages-table-borders-intake.docx",
+  "recipe": "Import the controlled 4x4 DOCX in Pages, disable banding and automatic row height, set one header column and one footer row with one existing header row. Save locally, export DOCX and PDF, then close/reopen and inspect the native source.",
+  "rows": 4,
+  "columns": 4,
+  "headerRows": 1,
+  "headerColumns": 1,
+  "footerRows": 1,
+  "cellEdges": 64,
+  "nativePdfPages": 1,
+  "nativePdfPagesInspected": 1,
+  "nativeAppScreenshotsInspected": true,
+  "ownedAppsClosed": true,
+  "independentDecode": {
+    "tool": "Build/IWork/extract-pages-table-borders.py",
+    "numbersParserVersion": "4.19.0",
+    "descriptorSha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917",
+    "descriptorSource": "https://github.com/orcastor/iwork-converter/tree/be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "descriptorLicense": "MIT",
+    "qualifiedValues": 16,
+    "qualifiedEdges": 64,
+    "nativeDocxEdgesAgree": true
+  },
+  "limits": [
+    "Controlled imported-and-natively-edited Pages source; arbitrary templates and other producer versions require separate evidence.",
+    "Every rectangular grid segment has an explicit edit; this fixture does not independently qualify inherited border rendering.",
+    "One- and two-point solid strokes and one hidden shared edge; merged borders and other stroke kinds remain separate.",
+    "Inactive inherited rounded defaults are outside the visible-edge qualification; this source explicitly replaces all 40 physical grid segments with supported solid or invisible strokes.",
+    "The explicit partial DOCX policy retains all source values and qualified edges but rounds fractional dimensions and maps positioned geometry to a flowing table. It reports IWORK_PAGES_DOCX_PRECISION and IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED. Complete iWork PDF conversion rejects this source, including when partial editable acceptance is requested.",
+    "The separate Word PDF appearance probe substitutes source fonts under the portable resource policy. It retains bold font selection but its table is taller and starts lower than the native source. These outputs qualify visible edge recovery, not complete layout or typography equivalence."
+  ],
+  "artifacts": [
+    {
+      "path": "pages-table-borders-intake.docx",
+      "bytes": 1394,
+      "sha256": "96c58644b26245b21e8431a674ecea156e73ccaba158b1555e1ba586756e8db0"
+    },
+    {
+      "path": "pages-table-borders-v15.4.pages",
+      "bytes": 666745,
+      "sha256": "d6fefca93e07ab4c2f8557f91ad6dd34bca5864c0372733751d74db992fcc65d"
+    },
+    {
+      "path": "pages-table-borders-v15.4.docx",
+      "bytes": 8291,
+      "sha256": "0899227e1a4bb3b33106b005b8c7570a1492e410fe4c3b56c6c4563028d60ab8"
+    },
+    {
+      "path": "pages-table-borders-v15.4.pdf",
+      "bytes": 29996,
+      "sha256": "f1a172da06024bbea6365363feb36155753e967527a0ca766f0d34a9f63bef2b"
+    },
+    {
+      "path": "pages-table-borders-v15.4-decode.json",
+      "bytes": 14378,
+      "sha256": "ae4cd80592f286002e658f4859090ae11d6d12a592c23b9d1f7bc9614ef3f965"
+    },
+    {
+      "path": "pages-table-borders-v15.4-native.png",
+      "bytes": 65242,
+      "sha256": "ee47a1c53d6c13d5a528e4ab0a73f5152c4ac52dc5e07771935ed767013ff0fb"
+    },
+    {
+      "path": "pages-table-borders-v15.4-reopened.png",
+      "bytes": 64388,
+      "sha256": "9dfac9c06bf99c112941206cf848ead5141896d0de34b34f02b8f272fb6517c6"
+    },
+    {
+      "path": "pages-table-borders-v15.4-page1.png",
+      "bytes": 19651,
+      "sha256": "ed50d628c6980faf0d9597b0dd0415c68648e176590052cafccb01d9c361d4b8"
+    },
+    {
+      "path": "pages-table-borders-officeimo.docx",
+      "bytes": 19730,
+      "sha256": "13ef11968bc98c626abcfc0efe81e302338981d9589446c0b86f2b950989e1e6"
+    },
+    {
+      "path": "pages-table-borders-officeimo-reimport.pages",
+      "bytes": 692220,
+      "sha256": "d715d76a1f9e89acd62ad959fa8d2bc0e3067f4bb39cf5004a1b24adfcdd248a"
+    },
+    {
+      "path": "pages-table-borders-officeimo-reimport.docx",
+      "bytes": 8365,
+      "sha256": "6687dedf3d0c04098318ddaf33e71dc40d7aa50ddd19f702dadafadfae0ce6b4"
+    },
+    {
+      "path": "pages-table-borders-officeimo-reimport.pdf",
+      "bytes": 30016,
+      "sha256": "675d4120ac74ebe6c15a1a6aee444fd7ecabcae1c9c08f5c3bf8375fe9032592"
+    },
+    {
+      "path": "pages-table-borders-officeimo-native.png",
+      "bytes": 65777,
+      "sha256": "5c5906dd6221dc2d0c6eac25ea9381b1e0159d0f8cb937b2d1cf85ffcf9a9718"
+    },
+    {
+      "path": "pages-table-borders-officeimo-reopened.png",
+      "bytes": 65558,
+      "sha256": "a0fc1cbae30cc89900c9bb74fc948acf1b4d70cd46207d158f4b66a80240cf78"
+    },
+    {
+      "path": "pages-table-borders-officeimo-native-page1.png",
+      "bytes": 19886,
+      "sha256": "298f9d0f413f882767bc6a0a1cefa8946a037b7b9db59bb38aa5328500cef77d"
+    },
+    {
+      "path": "pages-table-borders-officeimo-rendered.pdf",
+      "bytes": 1579,
+      "sha256": "e347743806d0e7d9f315a0718ff9da0f9cabd379bf9951f61524b68352415485"
+    },
+    {
+      "path": "pages-table-borders-officeimo-rendered-page1.png",
+      "bytes": 18447,
+      "sha256": "0119ac0d8112db257758e5607a1798e493a48eff5bd7fedcbef100c37bd9dc90"
+    },
+    {
+      "path": "pages-table-borders-native-docx-rendered.pdf",
+      "bytes": 1635,
+      "sha256": "1dc0c549e86266069dbcfe23d38545b2859d039a0f50ee07cc5a5a64d636c599"
+    },
+    {
+      "path": "pages-table-borders-native-docx-rendered-page1.png",
+      "bytes": 18826,
+      "sha256": "3887d3070136f0f30183d3f0b707fa6c6280bcaef733a213ccc997884c74a834"
+    },
+    {
+      "path": "pages-table-borders-docx-readback.json",
+      "bytes": 935,
+      "sha256": "03ce6a43f3af5749693ef9b812d4037aba69a397239c7565b4c163f113f48900"
+    },
+    {
+      "path": "pages-table-borders-pdf-text-readback.json",
+      "bytes": 1533,
+      "sha256": "f86bd90eafdf0564071cf3cf756fb99ba7909cd22b9f1cb53de32623de9ab2d1"
+    }
+  ],
+  "fontProvenance": {
+    "declarations": "Controlled Arial 14-point text, bold header/footer roles. Pages uses installed native font faces.",
+    "redistribution": "Font files are not added to the corpus. Native PDF contains producer-subset font resources.",
+    "appearanceBoundary": "Destination rendering requires separately recorded caller font inputs and actual rendered checks."
+  },
+  "destinationAcceptance": {
+    "sourceBaseRevision": "f6a18b359a54c93726bada30f0b7167ef3bc6abb",
+    "productionSourceFiles": [
+      {
+        "path": "OfficeIMO.IWork/Internal/IWorkTableBorderReader.cs",
+        "sha256": "22f0ba3a5895a207616b3000a8489270e13ff6295cae60b153a0494dee5e2e53"
+      },
+      {
+        "path": "OfficeIMO.IWork/Internal/IWorkTableBorderOverrides.cs",
+        "sha256": "80919df1854c2197f47a759e3bdb104407cc918969b0e7ca7c65a62149d4c717"
+      }
+    ],
+    "loadedAssemblies": [
+      {
+        "name": "OfficeIMO.IWork.dll",
+        "sha256": "eb3a9b2a2fc29a9f116265454fc1eebea01e603766c1818b7ca40693086c985a"
+      },
+      {
+        "name": "OfficeIMO.Word.dll",
+        "sha256": "ff849f52a4ef88f5e783d7ef5c54a24dc1dc611c4ef127f7ed1c30e26b1df06d"
+      },
+      {
+        "name": "OfficeIMO.Workflows.IWork.dll",
+        "sha256": "d9ac231261a1ad2e88203061438827007c668f155f387e58fc09b5154f28f62f"
+      }
+    ],
+    "explicitPartialEditable": true,
+    "visualFallback": false,
+    "partialDiagnostics": [
+      "IWORK_PAGES_DOCX_PRECISION",
+      "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED"
+    ],
+    "completePdfRejectedUnderBothPartialSettings": true,
+    "managedDocx": "pages-table-borders-officeimo.docx",
+    "nativeApplication": "Pages 15.4 (7051.0.79)",
+    "nativeReimport": "pages-table-borders-officeimo-reimport.pages",
+    "nativeReexport": "pages-table-borders-officeimo-reimport.docx",
+    "openedWithoutRepair": true,
+    "savedLocally": true,
+    "closedAndReopened": true,
+    "nativeReimportPdfPages": 1,
+    "nativeReimportPdfPagesInspected": 1,
+    "readback": {
+      "script": "Build/IWork/verify-pages-table-borders.py",
+      "scriptSha256": "e3fa8be55751676d3d69ab8c2c78fb65461bc9b62ef012b6291be0e99ec7a54f",
+      "receipt": "pages-table-borders-docx-readback.json",
+      "method": "Python stdlib ZIP/XML; no OfficeIMO loads",
+      "documents": 3,
+      "valuesEach": 16,
+      "edgesEach": 64,
+      "boldCellsEach": 10,
+      "emptyD3": true
+    },
+    "rendering": {
+      "resourcePolicy": "PdfResourcePolicy.CreatePortableDeterministic",
+      "callerFallback": "SIL OFL Carlito Regular/Bold/Italic/BoldItalic from repository assets",
+      "substitution": "Source Arial/PostScript families are mapped to PDF Standard 14 under this resource policy; Carlito supplies fallback glyphs.",
+      "managedDocxPdfPages": 1,
+      "nativeDocxPdfPages": 1,
+      "bothPagesInspected": true,
+      "nativeProducerPdfCompared": true,
+      "scope": "Visible edges and content with bold font selection; font substitution, placement and row heights differ.",
+      "stageDiagnostics": {
+        "pages-table-borders-officeimo.docx": [
+          {
+            "Code": "NativeFontFamilySubstituted",
+            "Message": "The source font family 'TimesNewRomanPSMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+            "LossKind": 1,
+            "Source": "OfficeIMO.Word.Pdf",
+            "Location": "word:font[TimesNewRomanPSMT]"
+          },
+          {
+            "Code": "NativeFontFamilySubstituted",
+            "Message": "The source font family 'Arial-BoldMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+            "LossKind": 1,
+            "Source": "OfficeIMO.Word.Pdf",
+            "Location": "word:font[Arial-BoldMT]"
+          },
+          {
+            "Code": "NativeFontFamilySubstituted",
+            "Message": "The source font family 'ArialMT' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+            "LossKind": 1,
+            "Source": "OfficeIMO.Word.Pdf",
+            "Location": "word:font[ArialMT]"
+          }
+        ],
+        "pages-table-borders-v15.4.docx": [
+          {
+            "Code": "NativeFontFamilySubstituted",
+            "Message": "The source font family 'Arial' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+            "LossKind": 1,
+            "Source": "OfficeIMO.Word.Pdf",
+            "Location": "word:font[Arial]"
+          },
+          {
+            "Code": "NativeFontFamilySubstituted",
+            "Message": "The source font family 'Times New Roman' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family TimesRoman. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+            "LossKind": 1,
+            "Source": "OfficeIMO.Word.Pdf",
+            "Location": "word:font[Times New Roman]"
+          },
+          {
+            "Code": "NativeFontFamilySubstituted",
+            "Message": "The source font family 'Helvetica Neue' was substituted because the resource policy disables embedding source fonts; generated text uses the mapped PDF family Helvetica. Glyphs outside that family may use the embedded fallback families 'Carlito'.",
+            "LossKind": 1,
+            "Source": "OfficeIMO.Word.Pdf",
+            "Location": "word:font[Helvetica Neue]"
+          }
+        ]
+      },
+      "textAndBoldReadback": "pages-table-borders-pdf-text-readback.json"
+    }
+  }
+}

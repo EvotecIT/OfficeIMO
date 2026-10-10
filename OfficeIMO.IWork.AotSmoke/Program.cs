@@ -77,6 +77,7 @@ NativeKeynoteWriterSmoke.Run();
 NativePagesWriterSmoke.Run();
 NativePagesParagraphWriterSmoke.Run();
 NativePagesListCounterSmoke.Run();
+NativePagesBorderSmoke.Run();
 NativeNumbersFixedDurationSmoke.Run();
 NativeNumbersIntegerFunctionSmoke.Run();
 NativeNumbersBorderSmoke.Run();
