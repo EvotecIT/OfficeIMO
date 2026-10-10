@@ -2119,6 +2119,7 @@ Warnings: 0
 | fillFocus | 2 |
 | fillOpacity | 2 |
 | fillShadeColors | 2 |
+| fillShadeType | 2 |
 | FillStyleBooleanProperties | 2 |
 | fillType | 2 |
 | PropertyId:0x0185 | 2 |
@@ -2140,7 +2141,6 @@ Warnings: 0
 | PropertyId:0x0199 | 2 |
 | PropertyId:0x019A | 2 |
 | PropertyId:0x019B | 2 |
-| PropertyId:0x019C | 2 |
 
 ## Chart GelFrame Shape Properties By Group
 
