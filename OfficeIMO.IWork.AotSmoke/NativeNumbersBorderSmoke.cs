@@ -24,6 +24,8 @@ internal static class NativeNumbersBorderSmoke {
         using var reopened = ExcelDocument.Load(saved);
         using var native = ExcelDocument.Load(reference);
         var sheet = reopened.Sheets.Single();
+        Require(table.GetCell(3, 4)!.Kind == IWorkCellKind.Empty
+            && !sheet.TryGetCellValueSnapshot(3, 4, out _), "Styled empty cell became text.");
         int edges = 0;
         foreach (var cell in expected.RootElement.GetProperty("cells").EnumerateArray()) {
             int row = cell.GetProperty("row").GetInt32(), column = cell.GetProperty("column").GetInt32();

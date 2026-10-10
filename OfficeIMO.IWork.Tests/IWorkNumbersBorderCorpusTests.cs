@@ -25,6 +25,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(table.HasBorderDeclarations);
         Assert.Equal(4, table.RowCount); Assert.Equal(4, table.ColumnCount);
         Assert.Equal(1, table.HeaderRowCount); Assert.Equal(1, table.HeaderColumnCount); Assert.Equal(1, table.FooterRowCount);
+        Assert.Equal(IWorkCellKind.Empty, table.GetCell(3, 4)!.Kind);
+        Assert.False(result.Value.Sheets[0].TryGetCellValueSnapshot(3, 4, out _));
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code is "IWORK_TABLE_BORDERS_UNSUPPORTED" or "IWORK_TABLE_CELL_FEATURES_UNASSESSED");
 
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -63,6 +65,8 @@ public sealed partial class IWorkBoundaryTests {
             }
         }
         Assert.Equal(64, edges);
+        Assert.False(nativeSheet.TryGetCellValueSnapshot(3, 4, out _));
+        Assert.False(output.TryGetCellValueSnapshot(3, 4, out _));
         Assert.NotNull(output.GetCellStyle(3, 4).Border); // Empty D3 retains its four styled edges.
         Assert.Empty(reopened.ValidateOpenXml());
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
