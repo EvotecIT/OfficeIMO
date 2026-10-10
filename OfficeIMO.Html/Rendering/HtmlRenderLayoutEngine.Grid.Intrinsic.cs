@@ -130,6 +130,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             EnsureDepth(depth, child);
             if (IsClosedDisclosureChild(child) || ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
+            childStyle = ForwardContainingHeightBasis(child, childStyle, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             double contribution;
             if (IsReplacedImageElement(child)) {
