@@ -111,64 +111,11 @@ public sealed class PublisherLineStyleTests {
         .OfType<OfficeDrawingShape>().Single(item => item.SourceElementIds?.Contains("publisher-object-293") == true).Shape;
 
     internal static byte[] Mutate(Dictionary<ushort, uint> values, int shapeType = 20) {
-        Assert.True(OfficeCompoundFileReader.TryRead(File.ReadAllBytes(PublisherNativeTests.Fixture("Simple.pub")), out OfficeCompoundFile? source, out string? error), error);
         var properties = new Dictionary<ushort, uint>(values) {
             [0x0181] = 0, [0x01BF] = 0x00100000, [0x01C0] = 0x004020CC,
             [0x01CB] = 127000
         };
         if (!properties.ContainsKey(0x01FF)) properties[0x01FF] = 0x00080008;
-        bool found = false;
-        byte[] Rewrite(byte[] bytes, int start, int end) {
-            using var output = new MemoryStream(); using var writer = new BinaryWriter(output);
-            for (int offset = start; offset < end;) {
-                ushort initial = BitConverter.ToUInt16(bytes, offset), kind = BitConverter.ToUInt16(bytes, offset + 2);
-                int content = offset + 8, boundary = content + checked((int)BitConverter.ToUInt32(bytes, offset + 4));
-                byte[] body = bytes.Skip(content).Take(boundary - content).ToArray();
-                if (kind == 0xF004) {
-                    int client = content;
-                    while (client < boundary) {
-                        int length = checked((int)BitConverter.ToUInt32(bytes, client + 4));
-                        if (BitConverter.ToUInt16(bytes, client + 2) == 0xF011 && length == 10 && BitConverter.ToUInt32(bytes, client + 14) == 293) {
-                            found = true; body = RewriteShape(bytes, content, boundary, properties, shapeType); break;
-                        }
-                        client += 8 + length;
-                    }
-                } else if ((initial & 15) == 15) body = Rewrite(bytes, content, boundary);
-                writer.Write(initial); writer.Write(kind); writer.Write(body.Length); writer.Write(body);
-                offset = boundary;
-                if (kind is 0xF000 or 0xF002 && boundary < end) { writer.Write(bytes, boundary, 4); offset += 4; }
-            }
-            return output.ToArray();
-        }
-        byte[] escher = source!.Streams["Escher/EscherStm"];
-        byte[] replacement = Rewrite(escher, 0, escher.Length);
-        Assert.True(found);
-        return OfficeCompoundFileWriter.Rewrite(source, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = replacement });
-    }
-
-    private static byte[] RewriteShape(byte[] bytes, int start, int end, Dictionary<ushort, uint> values, int shapeType) {
-        using var output = new MemoryStream(); using var writer = new BinaryWriter(output);
-        for (int offset = start; offset < end;) {
-            ushort initial = BitConverter.ToUInt16(bytes, offset), kind = BitConverter.ToUInt16(bytes, offset + 2);
-            int content = offset + 8, length = checked((int)BitConverter.ToUInt32(bytes, offset + 4));
-            byte[] body = bytes.Skip(content).Take(length).ToArray();
-            if (kind == 0xF00A) initial = (ushort)((shapeType << 4) | (initial & 15));
-            if (kind is 0xF00B or 0xF122) {
-                int count = initial >> 4;
-                var entries = new List<(ushort Op, uint Value)>();
-                for (int i = 0; i < count; i++) {
-                    ushort op = BitConverter.ToUInt16(body, i * 6);
-                    if (!values.ContainsKey((ushort)(op & 0x3FFF))) entries.Add((op, BitConverter.ToUInt32(body, i * 6 + 2)));
-                }
-                entries.AddRange(values.Select(item => (item.Key, item.Value)));
-                using var data = new MemoryStream(); using var properties = new BinaryWriter(data);
-                foreach (var entry in entries.OrderBy(item => item.Op & 0x3FFF)) { properties.Write(entry.Op); properties.Write(entry.Value); }
-                properties.Write(body, count * 6, body.Length - count * 6);
-                body = data.ToArray(); initial = (ushort)((entries.Count << 4) | (initial & 15));
-            }
-            writer.Write(initial); writer.Write(kind); writer.Write(body.Length); writer.Write(body);
-            offset = content + length;
-        }
-        return output.ToArray();
+        return PublisherDrawingFixture.Mutate(properties, shapeType);
     }
 }

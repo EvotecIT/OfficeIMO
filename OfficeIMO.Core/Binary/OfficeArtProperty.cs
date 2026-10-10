@@ -107,6 +107,7 @@ public sealed class OfficeArtProperty {
         0x018B => "fillAngle",
         0x018C => "fillFocus",
         0x0197 => "fillShadeColors",
+        0x019C => "fillShadeType",
         0x01BF => "FillStyleBooleanProperties",
         0x01C0 => "lineColor",
         0x01CB => "lineWidth",

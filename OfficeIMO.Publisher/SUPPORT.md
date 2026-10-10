@@ -26,7 +26,8 @@ they are not produced by an OfficeIMO writer.
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
-| Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and non-solid fills report approximation; compound and non-solid strokes remain unassessed |
+| Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
+| Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; decorations on unsupported open geometry are omitted |
 | Groups | Native child coordinate spaces, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
@@ -90,6 +91,18 @@ dash order and spacing, all five supported marker kinds, disabled strokes,
 unknown values and scene copying. SVG, raster and PDF retain open arrows as
 outlines and other markers as filled geometry. Marker dimensions and native dash
 rendering remain unqualified against Publisher-produced output.
+Native linear-fill mutations check physical and aspect-scaled angles, positive
+and negative focus, reversed ramps, duplicate color positions, transparency,
+fill-use masks and picture layering. Foreground/background opacity uses a
+common shape opacity and relative stop alpha; ratios requiring RGBA rounding
+report loss. Multi-color fills retain foreground opacity and report distinct
+background opacity as an approximation. Native shading corrections use reported
+sRGB interpolation. Custom fill rectangles and view-origin anchors retain their
+primary color with a mapping diagnostic; non-rotating fills on transformed
+frames report approximation. Other gradient, pattern, texture and background
+fill modes retain their current approximation boundary. The five supported
+producer fixtures contain no declared non-solid fills, so these record checks
+and managed SVG/raster/PDF outputs do not establish native gradient fidelity.
 The brochure and newsletter also verify referenced style defaults, direct
 formatting precedence, native bullet labels and tab-array positions. Those
 checks compare decoded values with the native records, not Publisher-rendered
@@ -111,6 +124,10 @@ Application raster codec output is limited to 8 million pixels. Limits are
 caller-configurable, reject oversized input and also account for repeated
 projection work. The input byte ceiling also bounds cumulative encoded image
 processing, and unavailable image-store entries consume the item ceiling.
+The item ceiling also bounds cumulative projected gradient-stop work, including
+focus expansion and repeated master-page projection. A native color-stop table
+supports at most 256 entries; malformed or larger tables retain primary paint
+with an invalid-gradient diagnostic.
 Delayed decoding is cached and cancellation is checked between image entries.
 The text ceiling also bounds cumulative continuation measurement, and the record
 ceiling bounds exclusion-region inspection. Native frames support at most

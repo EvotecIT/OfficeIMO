@@ -111,7 +111,10 @@ snapshotted for each operation. Cancellation applies to input reading, native
 records, and page projection. Exceeding a configured limit rejects the operation
 instead of returning a truncated document. Item and text limits also bound
 projected content, including repeated master use. `MaxItems` bounds image-store
-entries even when their payload cannot be recovered. `MaxInputBytes` also bounds
+entries even when their payload cannot be recovered and cumulative projected
+gradient stops, including focus expansion. Native linear fills preserve colors,
+angle, focus and transparency in the shared drawing model; inspect the conversion
+report for unsupported shading, anchors and opacity ratios. `MaxInputBytes` also bounds
 cumulative encoded image-payload processing, including repeated delayed
 references; delayed decoding results are reused within the operation.
 `MaxTextCharacters` also bounds cumulative text measured while continuing stories;

@@ -5,6 +5,19 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(0x00360036U, true)]
+    [InlineData(0x00000036U, null)]
+    public void OfficeArtShapeStyle_DecodesFillMappingOnlyWhenItsUseBitsAreSet(uint flags, bool? expected) {
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x01BF, flags), new OfficeArtProperty(1, 0x019C, 0x40000003U)
+        });
+        Assert.Equal(expected, style.FillRotatesWithShape);
+        Assert.Equal(expected, style.FillAlignedWithShape);
+        Assert.Equal(expected, style.FillUsesCustomRectangle);
+        Assert.Equal(0x40000003U, style.FillShadeType);
+    }
+
     [Fact]
     public void OfficeArtShapeStyle_RejectsOversizedGradientStopTables() {
         const int stopCount = 257;
