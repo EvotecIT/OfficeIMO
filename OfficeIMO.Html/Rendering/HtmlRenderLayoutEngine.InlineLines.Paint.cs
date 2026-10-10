@@ -119,11 +119,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (segment.Run.PositionedMarkerElement != null) {
                     RecordInlineStaticMarker(segment.Run, formattingContainer, x, lineY, lineHeight, inlineBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
-                } else if (segment.Run.LeaderPattern != null && segment.Width > 0.0001D) {
+                } else if (segment.Run.LeaderPattern != null) {
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, lineY, segment.Width, lineHeight, inlineBounds);
                     RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY,
                         segment.Width, lineHeight, anchorBounds);
-                    if (segment.Run.Style.PaintVisible && segment.Run.LeaderPattern != " ") {
+                    EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
+                    if (segment.Width > 0.0001D && segment.Run.Style.PaintVisible && segment.Run.LeaderPattern != " ") {
                         HtmlRenderVisual leaderVisual = CreateLeaderVisual(segment.Run, x, lineY, segment.Width, lineHeight, visuals.Count);
                         AddInlineOwnedVisual(
                             visuals,
@@ -135,6 +136,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (segment.Run.IsEmptyInlineBox) {
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, lineY, 0D, lineHeight, inlineBounds);
                     RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY, 0D, lineHeight, anchorBounds);
+                    EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Run.AtomicBlock != null) {
                     HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
                     double atomicBaseline = segment.Run.AtomicBaseline ?? atomic.Height;
@@ -148,6 +150,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     foreach (HtmlCssRunningStringAssignment assignment in atomic.RunningStringAssignments) {
                         runningStringAssignments.Add(assignment.Translate(atomicY));
                     }
+                    EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                     if (segment.Run.Style.PaintVisible) {
                         foreach (HtmlRenderVisual visual in atomic.Visuals) {
                             HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
@@ -210,6 +213,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             segment.Width, anchorHeight, anchorBounds);
                     }
                     if (!segment.Run.Style.PaintVisible) {
+                        // Hidden content still supplies the geometry of visible inline ancestors.
+                        EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                         cursor += rightToLeftLine ? -segment.Advance : segment.Advance;
                         continue;
                     }
@@ -291,6 +296,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 cursor += rightToLeftLine ? -segment.Advance : segment.Advance;
             }
+
+            RecordInlineFontDecorationGeometry(current, paragraphStyle, formattingContainer,
+                lineStart, lineY, lineHeight, baseline, emptyAtomicBaseline, lineBidiResolved, inlineBounds);
 
             if (lineBidiResolved && visuals.Count > lineVisualStart) {
                 List<HtmlRenderVisual> lineVisuals = visuals.GetRange(lineVisualStart, visuals.Count - lineVisualStart);

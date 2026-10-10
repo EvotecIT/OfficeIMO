@@ -87,11 +87,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && style.BaselineScale == 1D && style.BaselineOffset == 0D;
 
     private double ResolveEmptyAtomicStrutBaseline(HtmlRenderBoxStyle style) {
-        IOfficeFontProgram? program = _fonts.ResolveForText(string.Empty, style.Font.FamilyName,
-            style.FontDescriptor, style.Font.Size, out _);
-        HtmlTextFaceMetrics? face = program is IOfficeFontBaselineMetrics metrics
-            ? new HtmlTextFaceMetrics(program.LineHeight(style.Font.Size), metrics.BaselineOffset(style.Font.Size))
-            : _options.FallbackTextFaceMetrics?.Invoke(string.Empty, style.Font, style.FontDescriptor);
+        HtmlTextFaceMetrics? face = ResolveTextFaceMetrics(string.Empty, style);
         if (face.HasValue && face.Value.Height > 0D && !double.IsNaN(face.Value.Height) && !double.IsInfinity(face.Value.Height)
             && !double.IsNaN(face.Value.BaselineOffset) && !double.IsInfinity(face.Value.BaselineOffset)
             && face.Value.BaselineOffset >= 0D && face.Value.BaselineOffset <= face.Value.Height) {
