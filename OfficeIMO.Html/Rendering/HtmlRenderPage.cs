@@ -152,7 +152,7 @@ public sealed partial class HtmlRenderPage {
                     text.Font,
                     text.Color,
                     text.Alignment,
-                    text.LineHeight,
+                    text.PaintLineHeight,
                     textAdvanceWidth: text.TextPaintWidth ?? (text.TextAdvanceWidth.Value > 0D ? text.TextAdvanceWidth.Value : text.Width),
                     underlineStyle: text.UnderlineStyle,
                     strikethroughStyle: text.StrikethroughStyle,
@@ -177,7 +177,7 @@ public sealed partial class HtmlRenderPage {
                     text.Font,
                     text.Color,
                     text.Alignment,
-                    text.LineHeight,
+                    text.PaintLineHeight,
                     OfficeTextVerticalAlignment.Top,
                     0D,
                     null,
@@ -199,7 +199,7 @@ public sealed partial class HtmlRenderPage {
                     text.FeatureSettings,
                     text.FontPalette);
             } else {
-                drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.LineHeight);
+                drawing.AddText(drawingText, text.X, text.Y, text.Width, text.Height, text.Font, text.Color, text.Alignment, text.PaintLineHeight);
             }
         } else if (visual is HtmlRenderImage image) {
             if (image.X >= surfaceWidth || image.X + image.Width <= 0D

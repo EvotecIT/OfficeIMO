@@ -146,7 +146,7 @@ internal static partial class HtmlPdfRenderedConverter {
             PdfCore.PdfColor.FromOfficeColorOrNull(visual.Color),
             MapAlignment(visual.Alignment),
             baselineFontSize.Value * PointsPerCssPixel,
-            visual.LineHeight * PointsPerCssPixel,
+            visual.PaintLineHeight * PointsPerCssPixel,
             (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel,
             visual.PaintTopOverflow * PointsPerCssPixel,
             fontMetricScale: PointsPerCssPixel);
