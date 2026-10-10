@@ -64,11 +64,15 @@ public sealed class PdfPageExtractionSessionTests {
 
     [Fact]
     public void WarmSourceStillEnforcesExplicitParserLimitsForPageOperations() {
-        PdfDocument source = PdfDocument.Load(PdfDocument.Create().Paragraph(p => p.Text("Readable")).ToBytes());
+        byte[] bytes = PdfDocument.Create().Paragraph(p => p.Text("Readable")).ToBytes();
+        PdfDocument source = PdfDocument.Load(bytes);
         Assert.Contains("Readable", source.Reader.Text());
-        var restricted = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 1 } };
-        Assert.Throws<PdfReadLimitException>(() => source.Pages.ExtractResult(PdfPageSelection.From(1), restricted));
-        Assert.Throws<PdfReadLimitException>(() => source.Pages.SplitResult(options: restricted));
+        PdfLoadOptions restricted = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 1 } };
+        AssertBlocked(source.Pages.ExtractResult(PdfPageSelection.From(1), restricted),
+            PdfReadBlockerKind.ParserUnsupported, "maximum 1");
+        AssertBlocked(source.Pages.SplitResult(options: restricted),
+            PdfReadBlockerKind.ParserUnsupported, "maximum 1");
+        Assert.Equal(bytes, source.ToBytes());
         Assert.Contains("Readable", source.Pages.Extract(1).Reader.Text());
     }
 
@@ -78,9 +82,22 @@ public sealed class PdfPageExtractionSessionTests {
             .Paragraph(p => p.Text("SecretPage")).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "owner" });
         Assert.Contains("SecretPage", source.Reader.Text());
-        var incorrect = new PdfLoadOptions { Password = "incorrect" };
-        Assert.Throws<PdfInvalidPasswordException>(() => source.Pages.ExtractResult(PdfPageSelection.From(1), incorrect));
-        Assert.Throws<PdfInvalidPasswordException>(() => source.Pages.SplitResult(options: incorrect));
+        PdfLoadOptions incorrect = new PdfLoadOptions { Password = "incorrect" };
+        AssertBlocked(source.Pages.ExtractResult(PdfPageSelection.From(1), incorrect),
+            PdfReadBlockerKind.Encryption, "password is invalid");
+        AssertBlocked(source.Pages.SplitResult(options: incorrect),
+            PdfReadBlockerKind.Encryption, "password is invalid");
+        Assert.Equal(bytes, source.ToBytes());
         Assert.Contains("SecretPage", source.Pages.Extract(1).Reader.Text());
+    }
+
+    private static void AssertBlocked<T>(PdfOperationResult<T> result, PdfReadBlockerKind blocker, string diagnostic)
+        where T : class {
+        Assert.False(result.CanAttempt);
+        Assert.False(result.Succeeded);
+        Assert.Null(result.Value);
+        Assert.Null(result.Exception);
+        Assert.True(result.Preflight.HasReadBlocker(blocker));
+        Assert.Contains(result.Diagnostics, message => message.IndexOf(diagnostic, StringComparison.Ordinal) >= 0);
     }
 }

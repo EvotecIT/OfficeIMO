@@ -73,6 +73,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             _position = offset;
         }
 
+        internal void WriteSharedStringCell(int recordType, int zeroBasedColumn, int index) {
+            byte[] buffer = EnsureAvailable(18);
+            int offset = _position;
+            offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 12, buffer, offset);
+            offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
+            offset = AppendUInt32(buffer, offset, 0U);
+            offset = AppendUInt32(buffer, offset, checked((uint)index));
+            _position = offset;
+        }
+
         internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value) {
             byte[] buffer = EnsureAvailable(22);
             int offset = _position;
@@ -99,7 +109,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             _position = AppendUInt32(buffer, _position, value);
         }
 
-        private void WriteWideString(string value) {
+        internal void WriteByte(byte value) {
+            byte[] buffer = EnsureAvailable(1);
+            buffer[_position++] = value;
+        }
+
+        internal void WriteWideString(string value) {
             if (value == null) throw new ArgumentNullException(nameof(value));
             WriteUInt32(checked((uint)value.Length));
 

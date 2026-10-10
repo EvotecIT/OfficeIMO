@@ -1,6 +1,6 @@
 namespace OfficeIMO.Access {
     /// <summary>Inert native form, report or action-macro definition. Unknown properties and designer bytes remain preserve-only.</summary>
-    public sealed class AccessApplicationObject : AccessNamedObject {
+    public sealed partial class AccessApplicationObject : AccessNamedObject {
         internal AccessApplicationObject(AccessDocument document, string name, AccessCatalogEntry catalog, string? storagePath) : base(document, name) {
             CatalogEntry = catalog; StoragePath = storagePath;
         }
@@ -33,9 +33,13 @@ namespace OfficeIMO.Access {
             NativeKind = kind; Properties = Array.AsReadOnly(properties); Children = Array.AsReadOnly(children);
             string? click = properties.FirstOrDefault(x => x.NativeCode == 126)?.Value as string;
             AccessDesignerProperty? embedded = properties.FirstOrDefault(x => x.NativeCode == 491 && x.NativeType == 17);
-            EventBindings = click == null ? Array.AsReadOnly(Array.Empty<AccessDesignerEvent>())
-                : Array.AsReadOnly(new[] { new AccessDesignerEvent("Click", click, embedded?.Payload,
-                    embedded == null ? null : AccessNativeActionMacro.Read(embedded.Payload.GetBytes())) });
+            var events = new List<AccessDesignerEvent>();
+            if (click != null) events.Add(new AccessDesignerEvent("Click", click, embedded?.Payload,
+                embedded == null ? null : AccessNativeActionMacro.Read(embedded.Payload.GetBytes())));
+            foreach (var known in new[] { new { Code = (ushort)77, Name = "Open" }, new { Code = (ushort)86, Name = "AfterUpdate" } })
+                if (properties.FirstOrDefault(x => x.NativeCode == known.Code)?.Value is string expression)
+                    events.Add(new AccessDesignerEvent(known.Name, expression, null, null));
+            EventBindings = Array.AsReadOnly(events.ToArray());
         }
         /// <summary>Native object/control kind, including unrecognized values.</summary>
         public ushort NativeKind { get; }
@@ -43,7 +47,7 @@ namespace OfficeIMO.Access {
         public IReadOnlyList<AccessDesignerProperty> Properties { get; }
         /// <summary>Nested sections and controls in native order.</summary>
         public IReadOnlyList<AccessDesignerNode> Children { get; }
-        /// <summary>Qualified Click event binding and its available embedded action definition. Other event codes remain native properties.</summary>
+        /// <summary>Qualified Open, Click and AfterUpdate bindings, with available embedded Click actions. Other event codes remain native properties.</summary>
         public IReadOnlyList<AccessDesignerEvent> EventBindings { get; }
         /// <summary>Qualified Name property when present in this payload.</summary>
         public string? Name => Properties.FirstOrDefault(x => x.NativeCode == 20)?.Value as string;

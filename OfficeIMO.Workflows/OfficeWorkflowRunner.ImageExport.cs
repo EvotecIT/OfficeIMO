@@ -19,6 +19,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedImageExportRequest? validated = null;
         var inputs = new WorkflowInputSnapshots();
+        var stagingGuard = request.PublicationGuard as IOfficeWorkflowStagingGuard;
 
         try {
             validated = ValidateImageExportRequest(request);
@@ -33,15 +34,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 .LoadAsync(validated.InputPath, validated.LoadOptions, cancellationToken)
                 .ConfigureAwait(false);
             PdfDocumentInfo info = document.Inspect(validated.LoadOptions, cancellationToken);
-            int[] pageNumbers = ResolvePageNumbers(validated.PageSelector, info.PageCount);
-            if (pageNumbers.Length > validated.MaximumPages) {
-                throw new InvalidOperationException(
-                    $"The selection contains {pageNumbers.Length:N0} pages, above the configured {validated.MaximumPages:N0}-page limit.");
-            }
+            int[] pageNumbers = ResolvePageNumbers(validated.PageSelector, info.PageCount, validated.MaximumPages);
 
             string parent = validated.DirectoryOutput is null ? Path.GetDirectoryName(validated.OutputDirectory)! : Path.GetTempPath();
             failureStage = WorkflowFailureStage.Output;
+            if (validated.DirectoryOutput is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(parent, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(parent);
+            if (validated.DirectoryOutput is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(parent, cancellationToken).ConfigureAwait(false);
             stagingDirectory = validated.DirectoryOutput is null
                 ? Path.Combine(parent, ".officeimo-images." + Guid.NewGuid().ToString("N") + ".tmp")
                 : OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-images-");
@@ -227,13 +228,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             request.PublicationGuard, request.InputStream, request.DirectoryOutput);
     }
 
-    private static int[] ResolvePageNumbers(PdfPageSelector? selector, int pageCount) {
+    private static int[] ResolvePageNumbers(PdfPageSelector? selector, int pageCount, int maximumPages) {
         if (pageCount < 1) throw new InvalidOperationException("The source PDF has no pages.");
-        if (selector == null) return Enumerable.Range(1, pageCount).ToArray();
-        return selector.ResolveSelection(pageCount)
-            .Ranges
-            .SelectMany(static range => Enumerable.Range(range.FirstPage, range.PageCount))
-            .ToArray();
+        if (selector is not null) return selector.Resolve(pageCount, maximumPages).ToArray();
+        if (pageCount > maximumPages) throw new InvalidOperationException("Page selection exceeds the configured page limit.");
+        return Enumerable.Range(1, pageCount).ToArray();
     }
 
     private static void AddImageDiagnostics(

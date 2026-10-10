@@ -143,6 +143,7 @@ namespace OfficeIMO.Access.Tests {
             Assert.True(document.Tables["Contacts"].RowCount > 0);
             using MemoryStream output = new MemoryStream(); document.Save(output);
             Assert.Equal(bytes, output.ToArray());
+            AssertUnrelatedApplicationEdits(document, bytes, name.EndsWith("accdb"));
         }
 
         [Theory]
@@ -165,6 +166,33 @@ namespace OfficeIMO.Access.Tests {
             Assert.NotNull(document.Reports["BoundReport"].StoragePath); Assert.Single(document.Macros["AutoExec"].ActionMacro!.Actions, "StopMacro");
             Assert.Contains("Zażółć", Assert.Single(document.VbaProject.Modules).Source);
             using MemoryStream output = new MemoryStream(); document.Save(output); Assert.Equal(bytes, output.ToArray());
+            AssertUnrelatedApplicationEdits(document, bytes, name.EndsWith("accdb"));
+        }
+
+        private static void AssertUnrelatedApplicationEdits(AccessDocument document, byte[] original, bool events) {
+            var forms = document.Forms.ToArray(); var directory = document.ApplicationStreams.Single(x => x.Path == "Forms/\u0003DirData").Payload.GetBytes();
+            Assert.Throws<NotSupportedException>(() => forms[0].SetCodeBehind("Public Const Rejected As Long = 1\r\n"));
+            using (MemoryStream unchanged = new MemoryStream()) { document.Save(unchanged); Assert.Equal(original, unchanged.ToArray()); }
+            OfficeVbaProject project = document.GetVbaProject(); project.AddModule("PreservedEdit", "Public Const Inert As Long = 77\r\n");
+            var report = document.Reports["BoundReport"]; var reportStreams = report.Streams; var reportDefinition = report.Definition;
+            using (document.BeginUpdate()) {
+                document.SetVbaProject(project); report.SetCodeBehind("Public Const RolledBack As Long = 1\r\n");
+                if (events) report.SetEventBinding(AccessEventKind.Open, "=Len(\"rollback\")");
+            }
+            using (MemoryStream unchanged = new MemoryStream()) { document.Save(unchanged); Assert.Equal(original, unchanged.ToArray()); }
+            Assert.Same(reportStreams, report.Streams); Assert.Same(reportDefinition, report.Definition); Assert.False(document.IsModified);
+            document.SetVbaProject(project);
+            project.SetModuleSource("PreservedEdit", "Public Const Inert As Long = 78\r\n"); document.SetVbaProject(project);
+            document.Reports["BoundReport"].SetCodeBehind("Public Const InertReport As Long = 79\r\n");
+            if (events) document.Reports["BoundReport"].SetEventBinding(AccessEventKind.Open, "=Len(\"inert\")");
+            Assert.Equal(forms, document.Forms.ToArray());
+            Assert.All(forms, form => { Assert.Null(form.StoragePath); Assert.Null(form.Definition); Assert.Empty(form.Streams); Assert.All(form.Diagnostics, x => Assert.Equal(form.Id, x.ObjectId)); });
+            Assert.Equal(directory, document.ApplicationStreams.Single(x => x.Path == "Forms/\u0003DirData").Payload.GetBytes());
+            using MemoryStream saved = new MemoryStream(); document.Save(saved);
+            using AccessDocument reopened = AccessDocument.Load(new MemoryStream(saved.ToArray()));
+            Assert.Contains("Inert As Long = 78", reopened.GetVbaProject().GetModule("PreservedEdit").Source);
+            Assert.Contains("InertReport", reopened.GetVbaProject().GetModule("Report_BoundReport").Source);
+            Assert.Equal(directory, reopened.ApplicationStreams.Single(x => x.Path == "Forms/\u0003DirData").Payload.GetBytes());
         }
         [Fact]
         public void DesignerParsingConsumesTheAggregateMetadataAllowance() {

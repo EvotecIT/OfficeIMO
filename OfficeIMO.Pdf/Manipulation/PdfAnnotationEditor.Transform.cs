@@ -39,6 +39,16 @@ internal static partial class PdfAnnotationEditor {
         if (annotation.ObjectNumber is not int objectNumber) {
             throw new NotSupportedException("Direct annotation dictionaries cannot be transformed safely.");
         }
+        var options = CreateTransformOptions(annotation, target,
+            string.Equals(annotation.Subtype, "Line", StringComparison.OrdinalIgnoreCase)
+                ? ReadLineAuxiliaryGeometry(pdf, objectNumber, readOptions) : default);
+        return UpdateAnnotation(pdf, objectNumber, options, mutationPlan, readOptions);
+    }
+
+    private static PdfAnnotationUpdateOptions CreateTransformOptions(
+        PdfAnnotation annotation,
+        PdfPageRectangle target,
+        LineAuxiliaryGeometry lineAuxiliary = default) {
         if (annotation.CalloutLine.Count > 0) {
             throw new NotSupportedException("Free-text callout geometry cannot yet be transformed safely.");
         }
@@ -55,13 +65,10 @@ internal static partial class PdfAnnotationEditor {
         bool canGenerateMissingAppearance =
             !preserveAuthoredAppearance &&
             PdfAnnotationFlattener.IsSupportedVisualAnnotation(annotation.Subtype);
-        LineAuxiliaryGeometry lineAuxiliary = string.Equals(annotation.Subtype, "Line", StringComparison.OrdinalIgnoreCase)
-            ? ReadLineAuxiliaryGeometry(pdf, objectNumber, readOptions)
-            : default;
         double lineNormalScale = lineAuxiliary == default
             ? 1D
             : GetLineNormalScale(annotation.LineCoordinates, scaleX, scaleY);
-        var options = new PdfAnnotationUpdateOptions {
+        return new PdfAnnotationUpdateOptions {
             Rectangle = new[] { target.Left, target.Bottom, target.Right, target.Top },
             RectangleDifferences = TransformRectangleDifferences(annotation.RectangleDifferences, scaleX, scaleY),
             QuadPoints = TransformPairs(annotation.QuadPoints, annotation, target, scaleX, scaleY),
@@ -87,7 +94,6 @@ internal static partial class PdfAnnotationEditor {
             PreserveAppearance = preserveAuthoredAppearance || !canGenerateMissingAppearance,
             AllowResidualDataInAppendOnly = true
         };
-        return UpdateAnnotation(pdf, objectNumber, options, mutationPlan, readOptions);
     }
 
     private static double[]? TransformRectangleDifferences(
@@ -174,6 +180,10 @@ internal static partial class PdfAnnotationEditor {
         int objectNumber,
         PdfLoadOptions? readOptions) {
         var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+        return ReadLineAuxiliaryGeometry(objects, objectNumber);
+    }
+
+    private static LineAuxiliaryGeometry ReadLineAuxiliaryGeometry(Dictionary<int, PdfIndirectObject> objects, int objectNumber) {
         if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
             indirect.Value is not PdfDictionary dictionary) {
             return default;

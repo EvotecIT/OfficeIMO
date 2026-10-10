@@ -94,13 +94,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 for (int c = 0; c < getters.Length; c++) {
-                    cells[cellIndex++] = (row, c + 1, getters[c](item) ?? string.Empty);
+                    cells[cellIndex++] = (row, c + 1, getters[c](item)!);
                 }
 
                 row++;
             }
 
-            CellValues(cells);
+            CellValuesCore(cells, mode: null, CancellationToken.None, preserveMissingValues: true);
             return true;
         }
 

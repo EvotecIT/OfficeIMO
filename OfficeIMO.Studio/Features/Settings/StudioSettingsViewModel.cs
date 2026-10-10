@@ -26,13 +26,16 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
         IStudioLocalizer localizer,
         IStudioDiagnostics diagnostics,
         PdfWorkspaceRecoveryStore recovery,
-        StudioDocumentHistory history) {
+        StudioDocumentHistory history,
+        Func<CancellationToken, Task<string?>>? pickOcrExecutable = null,
+        Infrastructure.StudioOcrRuntime? ocrRuntime = null) {
         _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
         _localizer = localizer ?? throw new ArgumentNullException(nameof(localizer));
         ArgumentNullException.ThrowIfNull(diagnostics);
         _diagnostics = diagnostics;
         _recovery = recovery ?? throw new ArgumentNullException(nameof(recovery));
         _history = history ?? throw new ArgumentNullException(nameof(history));
+        OcrSetup = new(preferences, localizer, diagnostics, pickOcrExecutable, ocrRuntime);
 
         Cultures = StudioCultureCatalog.Available
             .Select(culture => new StudioCultureChoice(
@@ -63,6 +66,8 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
     }
 
     internal IReadOnlyList<StudioCultureChoice> Cultures { get; }
+
+    public StudioOcrSetupViewModel OcrSetup { get; }
 
     internal IReadOnlyList<StudioThemeChoice> Themes { get; }
 
@@ -122,7 +127,10 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
         _preferences.Update(current => current with { Density = value.Value });
     }
 
-    public void Dispose() => _preferences.Changed -= OnPreferencesChanged;
+    public void Dispose() {
+        _preferences.Changed -= OnPreferencesChanged;
+        OcrSetup.Dispose();
+    }
 
     private void OnPreferencesChanged(object? sender, EventArgs eventArgs) => SynchronizeFromPreferences();
 

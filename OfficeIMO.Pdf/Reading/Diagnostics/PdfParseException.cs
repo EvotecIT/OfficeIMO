@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Strict-mode failure for a structurally defective PDF.</summary>
+/// <summary>Failure for a structurally defective or unreadable PDF.</summary>
 public sealed class PdfParseException : IOException {
     internal PdfParseException(string code, string message, int? objectNumber)
         : base(message) {

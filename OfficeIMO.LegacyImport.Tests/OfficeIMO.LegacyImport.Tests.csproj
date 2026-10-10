@@ -35,6 +35,6 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="Fixtures\TextSpreadsheets\*.slk;Fixtures\TextSpreadsheets\*.dif" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

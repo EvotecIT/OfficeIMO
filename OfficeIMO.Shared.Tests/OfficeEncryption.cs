@@ -7,6 +7,7 @@ using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
+using OpenMcdf;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests {
@@ -231,9 +232,18 @@ namespace OfficeIMO.Shared.Tests {
                 document.SaveEncrypted(path, Password);
             }
 
-            byte[] bytes = File.ReadAllBytes(path);
-            bytes[512 + 100] ^= 0xff;
-            File.WriteAllBytes(path, bytes);
+            // Locate the ciphertext by its compound stream name; its sector
+            // position changes with mini-stream and directory layout choices.
+            using (var encrypted = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
+                using RootStorage root = RootStorage.Open(encrypted, StorageModeFlags.LeaveOpen);
+                using CfbStream payload = root.OpenStream("EncryptedPackage");
+                payload.Position = 9;
+                int value = payload.ReadByte();
+                Assert.NotEqual(-1, value);
+                payload.Position = 9;
+                payload.WriteByte((byte)(value ^ 0xff));
+                root.Flush();
+            }
 
             Assert.Throws<CryptographicException>(() => ExcelDocument.LoadEncrypted(path, Password));
         }
