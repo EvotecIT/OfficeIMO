@@ -20,7 +20,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj" />
-    <PackageReference Include="DBAClientX.Dbf" Version="1.0.0" />
+    <PackageReference Include="DBAClientX.Dbf" Version="1.0.11" />
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>
