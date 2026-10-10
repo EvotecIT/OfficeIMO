@@ -184,6 +184,13 @@ formulas, saved/reopened recalculation and positive/negative integral-second
 display boundaries. Fractional display, composed PDF and additional native
 application versions retain their separate qualification limits.
 
+The [macOS millisecond-duration NativeAOT evidence](Compatibility/iwork-duration-milliseconds-native-aot-macos-arm64-2026-10-10.json)
+records 21 passing smoke checks under each runtime. It adds native Numbers fixed
+hour/millisecond, minute/millisecond and second/millisecond formats, 42 typed
+caches, 21 formulas and saved/reopened recalculation. Native Numbers displays
+separate millisecond components; destination text follows the native XLSX code
+with three fractional-second digits. That display difference remains reported.
+
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
 the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
