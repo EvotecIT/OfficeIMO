@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Publisher;
 
 /// <summary>
@@ -7,11 +9,12 @@ namespace OfficeIMO.Publisher;
 public sealed class PublisherTextFrame {
     internal PublisherTextFrame(uint id, uint storyId, uint pageId, uint? previous, uint? next, uint order,
         double x, double y, double width, double height, int columns, double columnSpacing,
-        int? textStart, int? textLength, bool hasOverflow, IReadOnlyList<uint> wrapObjects) {
+        int? textStart, int? textLength, bool hasOverflow, IReadOnlyList<uint> wrapObjects, OfficeTransform pageTransform) {
         Id = id; StoryId = storyId; PageId = pageId; PreviousFrameId = previous; NextFrameId = next;
         Order = order; X = x; Y = y; Width = width; Height = height; ColumnCount = columns;
         ColumnSpacing = columnSpacing; TextStart = textStart; TextLength = textLength; HasOverflow = hasOverflow;
         WrapObjectIds = Array.AsReadOnly(wrapObjects.ToArray());
+        PageTransform = pageTransform;
     }
     /// <summary>Native publication object identifier.</summary>
     public uint Id { get; }
@@ -25,14 +28,16 @@ public sealed class PublisherTextFrame {
     public uint? NextFrameId { get; }
     /// <summary>Zero-based native order within the linked story.</summary>
     public uint Order { get; }
-    /// <summary>Left edge in page-local points, before the object's rotation or reflection.</summary>
+    /// <summary>Left edge in page-local points, before object and enclosing-group rotation or reflection.</summary>
     public double X { get; }
-    /// <summary>Top edge in page-local points, before the object's rotation or reflection.</summary>
+    /// <summary>Top edge in page-local points, before object and enclosing-group rotation or reflection.</summary>
     public double Y { get; }
     /// <summary>Frame width in points.</summary>
     public double Width { get; }
     /// <summary>Frame height in points.</summary>
     public double Height { get; }
+    /// <summary>Maps frame-local points into page-local points, including object and enclosing-group rotation/reflection.</summary>
+    public OfficeTransform PageTransform { get; }
     /// <summary>Native number of equal-width text columns.</summary>
     public int ColumnCount { get; }
     /// <summary>Gap between text columns in points.</summary>

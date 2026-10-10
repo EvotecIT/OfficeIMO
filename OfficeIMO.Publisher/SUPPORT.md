@@ -27,7 +27,7 @@ they are not produced by an OfficeIMO writer.
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and non-solid fills report approximation; compound strokes and arrowheads remain unassessed |
-| Groups | Native child coordinate spaces and nested placement | Group rotation/mirroring reports approximation when present |
+| Groups | Native child coordinate spaces, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder; recoloring and other picture effects are unassessed |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
@@ -55,7 +55,12 @@ from managed measurement, not claimed as native cached break positions. Later
 empty frames have zero-length ranges. Native chains are checked for reciprocal
 links, matching story ownership, consecutive ordinals, cycles and disconnected
 frames. Ambiguous unlinked roots report omission instead of guessed ordering.
-A missing printable frame stops subsequent assignment for that story.
+A missing printable frame stops subsequent assignment for that story. Frame
+`X`, `Y`, `Width` and `Height` describe its unrotated rectangle; `PageTransform`
+maps frame-local points into page-local points after object and ancestor-group
+rotation/reflection. The same transforms reach artwork and rectangular wrap
+exclusions. Hidden group descendants retain their source stories and assets but
+do not paint or exclude printable text.
 
 ## Qualification and limits
 
@@ -73,6 +78,12 @@ cancellation and caller stream ownership. The native newsletter exercises ten
 linked stories, including chains whose object order differs from story order,
 and declared picture exclusions. Multi-column property and malformed-link
 mutations protect the native codec boundary; they are synthetic evidence.
+Group rotation/reflection mutations verify text-frame corners, picture placement,
+hidden-child wrapping and scene copying. A reflected picture starting above the
+page retains its pixels through the group transform and final page clip.
+Constructed nested native records check
+composition about distinct centres, quarter-turn anchor dimensions and the
+projected-item ceiling. These tests do not establish Publisher-rendered fidelity.
 The brochure and newsletter also verify referenced style defaults, direct
 formatting precedence, native bullet labels and tab-array positions. Those
 checks compare decoded values with the native records, not Publisher-rendered

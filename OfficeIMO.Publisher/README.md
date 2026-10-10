@@ -55,11 +55,20 @@ including paragraph separators. These ranges describe recovered layout, rather
 than stored native break positions. A null range means placement is unresolved;
 `HasOverflow` identifies remaining story content after the final frame.
 
+Frame `X`, `Y`, `Width` and `Height` describe the unrotated rectangle in points.
+`PageTransform` maps frame-local points into the page, including the frame's own
+rotation/reflection and enclosing group transforms. Use it when placing an
+annotation or inspecting the visible frame corners.
+
 ```csharp
 foreach (var page in publication.Pages)
     foreach (var frame in page.TextFrames)
         Console.WriteLine($"Frame {frame.Id}, story {frame.StoryId}, " +
             $"range {frame.TextStart}+{frame.TextLength}, overflow {frame.HasOverflow}");
+
+var firstFrame = publication.Pages[0].TextFrames[0];
+var corner = firstFrame.PageTransform.TransformPoint(new OfficeIMO.Drawing.OfficePoint(0, 0));
+Console.WriteLine($"Transformed top-left: {corner.X}, {corner.Y}");
 ```
 
 ## Export a page as SVG

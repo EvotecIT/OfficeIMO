@@ -116,6 +116,7 @@ public sealed class PublisherNativeTests {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             yield return element;
             if (element is OfficeDrawingGroup group) foreach (OfficeDrawingElement child in Elements(group.InnerDrawing)) yield return child;
+            if (element is OfficeDrawingEffectGroup transformed) foreach (OfficeDrawingElement child in Elements(transformed.InnerDrawing)) yield return child;
         }
     }
     internal static string Text(OfficeDrawingRichText frame) => string.Join("\n", frame.Paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
