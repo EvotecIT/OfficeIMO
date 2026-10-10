@@ -99,6 +99,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
+                childStyle = ForwardTableCellHeightBasis(element, childStyle, parentStyle);
                 if (childStyle.Display == "none") {
                     continue;
                 }

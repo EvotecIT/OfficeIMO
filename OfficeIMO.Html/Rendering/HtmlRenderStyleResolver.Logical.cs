@@ -1,10 +1,11 @@
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
-    // Default control chrome must inspect the same physical cascade that
-    // supplied its resolved box values, including authored logical zeroes.
-    internal HtmlComputedStyle? GetBoxCascadeStyle(AngleSharp.Dom.IElement element, HtmlRenderBoxStyle style) =>
-        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
+    // Dimension and control owners inspect the same physical cascade that
+    // supplied the resolved box values, including authored logical zeroes.
+    internal HtmlComputedStyle? GetBoxCascadeStyle(AngleSharp.Dom.IElement element, HtmlRenderBoxStyle style, HtmlPseudoElementKind? kind = null) =>
+        (kind.HasValue ? _computedStyles.TryGetPseudoStyle(element, kind.Value, out HtmlComputedStyle? computed)
+            : _computedStyles.Elements.TryGetValue(element, out computed))
             ? PhysicalizeLogicalProperties(computed, style.WritingMode, style.Direction)
             : null;
 

@@ -38,6 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var bodyRows = new List<TableFormattingRow>();
         var footerRows = new List<TableFormattingRow>();
         foreach (TableFormattingRow row in sourceRows) {
+            ReportTableRowGroupPercentageHeight(row, style);
             if (row.GroupElement != null && ReferenceEquals(row.GroupElement, formatting.HeaderGroup)) {
                 headerRows.Add(row);
                 headerRowSet.Add(row);
@@ -158,10 +159,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
-                HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, cellStyle, depth + 1, style.BorderCollapse != "collapse");
+                TableCellPercentageContent? percentageContent = PrepareTableCellPercentageContent(cell, cellContentWidth, cellStyle, style, rowSpan, depth + 1);
+                HtmlRenderBoxStyle contentStyle = cellStyle;
+                if (percentageContent?.Supported == true) {
+                    // Percentage content does not feed its final cell-height
+                    // basis back into the row's intrinsic minimum.
+                    contentStyle = cellStyle.Clone();
+                    contentStyle.ExplicitHeight = null;
+                }
+                HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, contentStyle, depth + 1, style.BorderCollapse != "collapse");
+                if (percentageContent != null) percentageContent.LogicalTextOrderCount = _nextLogicalTextOrder - percentageContent.LogicalTextOrderStart;
                 double cellHeight = ResolveTableCellMinimumHeight(cellStyle, inline);
                 if (rowSpan == 1) rowHeight = Math.Max(rowHeight, cellHeight);
-                cellLayouts.Add(new TableCellLayout(cell.Element, cellStyle, inline, column, columnSpan, rowSpan, cellOuterWidth, cellHeight, cell.Nodes != null, cell.StructureKey));
+                cellLayouts.Add(new TableCellLayout(cell.Element, cellStyle, inline, column, columnSpan, rowSpan, cellOuterWidth, cellHeight, cell.Nodes != null, cell.StructureKey, percentageContent));
                 for (int occupiedColumn = column; occupiedColumn < column + columnSpan; occupiedColumn++) {
                     occupiedColumns[occupiedColumn] = Math.Max(occupiedColumns[occupiedColumn], rowSpan);
                 }
@@ -185,6 +195,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ResolveTableBaselines(rowLayouts);
         ResolveSpanningRowHeights(rowLayouts, verticalSpacing);
         ApplyTableMinimumHeight(rowLayouts, style, verticalSpacing);
+        ResolveTableCellPercentageContent(rowLayouts, verticalSpacing, depth + 1, style.BorderCollapse != "collapse");
         ResolveTableCellContentOffsets(rowLayouts, verticalSpacing);
         if (skippedBodyRows > 0) rowLayouts.RemoveRange(headerRows.Count, skippedBodyRows);
 

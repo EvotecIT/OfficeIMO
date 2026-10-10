@@ -10,14 +10,14 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private static void CaptureTablePercentageHeight(string cssHeight, string? attributeHeight, HtmlRenderBoxStyle style) {
-        if (style.Display is not ("table-row" or "table-cell")) return;
+        if (style.Display is not ("table-row" or "table-cell" or "table-row-group" or "table-header-group" or "table-footer-group")) return;
         string height = cssHeight.Length > 0 ? cssHeight : NormalizeHtmlDimensionAttribute(attributeHeight);
         if (height.IndexOf('%') >= 0) style.TablePercentageHeight = height;
     }
 
     /// <summary>Uses the shared computed-length resolver with the table owner's final percentage basis.</summary>
-    internal double? ResolveTablePercentageHeight(HtmlRenderBoxStyle style, double reference) {
-        if (!HtmlRenderCssValues.TryLength(style.TablePercentageHeight, reference, style.Font.Size, _rootFontSize,
+    internal double? ResolveTablePercentageHeight(HtmlRenderBoxStyle style, double reference, string? effectiveValue = null) {
+        if (!HtmlRenderCssValues.TryLength(effectiveValue ?? style.TablePercentageHeight, reference, style.Font.Size, _rootFontSize,
                 _viewportWidth, _viewportHeight, style.ContainerUnitWidth ?? double.NaN, style.ContainerUnitHeight ?? double.NaN,
                 out double height, out bool calculated, style.CharacterAdvance,
                 (style.WritingMode is "vertical-rl" or "vertical-lr") && style.TextOrientation == "upright")) return null;
