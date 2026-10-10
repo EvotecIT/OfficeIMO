@@ -326,6 +326,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(child));
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             childStyle = PrepareButtonChildStyle(child, childStyle);
+            childStyle = ForwardContainingHeightBasis(child, childStyle, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             if (includeDescendantInsets && !IsReplacedImageElement(child) && !IsFormControlElement(child.LocalName)) {
                 childStyle = _styleResolver.ResolveIntrinsicMeasurementStyle(child, childStyle);
