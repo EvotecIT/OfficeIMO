@@ -43,6 +43,15 @@ public sealed partial class ConversionJobViewModel {
     partial void OnStateChanged(ConversionJobState value) => OnPropertyChanged(nameof(CanEditOptions));
 
     internal OfficeWorkflowConversionOptions CreateConversionOptions() => new() {
+        Word = Route.Route.Id is "docx-pdf" or "doc-pdf"
+            ? new WordToPdfOptions { ResourcePolicy = CreateLocalDocumentFontPolicy() }.UseProfile(PdfProfile)
+            : null,
+        Excel = IsWorksheetExport
+            ? new ExcelToPdfOptions { ResourcePolicy = CreateLocalDocumentFontPolicy() }.UseProfile(PdfProfile)
+            : null,
+        PowerPoint = Route.Route.Id == "pptx-pdf"
+            ? new PowerPointToPdfOptions { ResourcePolicy = CreateLocalDocumentFontPolicy() }.UseProfile(PdfProfile)
+            : null,
         PageRanges = SupportsPageSelection ? PageRanges : null,
         WordMode = IsWordImport ? WordMode : null,
         PowerPointMode = IsPowerPointImport ? PowerPointMode : null,
@@ -53,4 +62,20 @@ public sealed partial class ConversionJobViewModel {
         LegacyDocLossPolicy = IsLegacyWordExport && AllowLegacyImportLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
         PlainText = IsPlainTextExport ? new PdfPlainTextOptions { EncodingName = string.IsNullOrWhiteSpace(TextEncoding) ? null : TextEncoding, TabSize = (int)TabSize } : null
     };
+
+    private PdfExportProfile PdfProfile => OutputProfile switch {
+        OfficeWorkflowOutputProfile.Faithful => PdfExportProfile.Faithful,
+        OfficeWorkflowOutputProfile.Lightweight => PdfExportProfile.Lightweight,
+        OfficeWorkflowOutputProfile.PrintReady => PdfExportProfile.PrintReady,
+        OfficeWorkflowOutputProfile.TextOnly => PdfExportProfile.TextOnly,
+        _ => throw new ArgumentOutOfRangeException(nameof(OutputProfile), OutputProfile, "Unsupported PDF export profile.")
+    };
+
+    private static PdfResourcePolicy CreateLocalDocumentFontPolicy() {
+        // These jobs originate from files the user selects in the local app.
+        // Preserve their installed fonts without enabling unrelated resources.
+        PdfResourcePolicy policy = PdfResourcePolicy.CreateDefault();
+        policy.AllowDocumentFontEmbedding = true;
+        return policy;
+    }
 }
