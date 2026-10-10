@@ -48,6 +48,30 @@ internal static class PublisherTableFixture {
             });
         });
 
+    internal static byte[] CopyToObject(byte[] publication, uint objectId) => Rewrite(publication, streams => {
+        byte[] contents = streams["Contents"];
+        int original = ChunkOffset(contents, 299);
+        byte[] table = contents.Skip(original).Take(checked((int)BitConverter.ToUInt32(contents, original))).ToArray();
+        int trailer = checked((int)BitConverter.ToUInt32(contents, 0x1A));
+        Block directory = Chunk(contents, trailer).Single(field => field.Type == 0x90);
+        Block slot = Children(contents, directory)[checked((int)objectId)];
+        WriteScalar(contents, Children(contents, slot).Single(field => field.Id == 2), 0x10);
+        streams["Contents"] = RebuildContents(contents, new Dictionary<uint, byte[]> { [objectId] = table });
+    });
+
+    internal static byte[] NamePage(byte[] publication, uint pageId, string name) => Rewrite(publication, streams => {
+        byte[] contents = streams["Contents"];
+        Block[] fields = Chunk(contents, ChunkOffset(contents, pageId));
+        using var output = new MemoryStream(); using var writer = new BinaryWriter(output);
+        writer.Write(0);
+        foreach (Block field in fields.Where(field => field.Id != 0x0E))
+            writer.Write(contents, field.Offset - 2, field.Length + 2);
+        byte[] text = Encoding.Unicode.GetBytes(name + '\0');
+        writer.Write((byte)0x0E); writer.Write((byte)0xC0); writer.Write(4 + text.Length); writer.Write(text);
+        byte[] page = output.ToArray(); Write(page, 0, checked((uint)page.Length));
+        streams["Contents"] = RebuildContents(contents, new Dictionary<uint, byte[]> { [pageId] = page });
+    });
+
     private static byte[] RewriteShapeList(byte[] bytes, uint pageId, byte[] reference, bool remove) {
         Block[] fields = Chunk(bytes, ChunkOffset(bytes, pageId));
         Block? list = fields.Where(field => field.Id == 2).Select(field => (Block?)field).SingleOrDefault();

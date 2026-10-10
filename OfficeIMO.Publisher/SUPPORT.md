@@ -48,7 +48,9 @@ Ordinary stories use paragraph blocks; mapped table stories use one complete
 table block alongside their structured rows and native page citation. Generic
 column names preserve the first row as data. Merged spans flatten to one anchor
 value with approximation evidence; row limits retain total counts and omission
-reports. Master tables are extracted once without a physical-page citation.
+reports. Master tables are extracted once without a physical-page citation and
+use document-wide export ordinals. Repeated objects sharing a story retain
+distinct table anchors; the complete story correlates with its first mapped table.
 Unresolved cell text remains in complete stories rather than an empty dataset.
 Native losses survive Reader transport and semantic PDF projection, which
 correlates table blocks and rows to avoid repeated text. Typography, page artwork

@@ -78,14 +78,16 @@ internal sealed partial class PublisherReadProjection {
         OfficeDocumentBlock? tableBlock = null;
         if (tables != null) {
             Item();
+            // Correlate the complete story with one native occurrence. Other
+            // placements retain their own object anchors and structured grids.
             ReaderLocation location = Location("publisher-story-table", anchor, 0);
             location.LogicalOrder = _blocks.Count;
             location.Page = tables[0].Location!.Page;
             tableBlock = new OfficeDocumentBlock { Id = anchor + "-table", Kind = "table", Text = story.Text, Location = location };
             _blocks.Add(tableBlock);
+            tables[0].Location!.BlockAnchor = location.BlockAnchor;
             foreach (ReaderTable table in tables) {
-                table.Location!.BlockAnchor = location.BlockAnchor;
-                table.Location.LogicalOrder = location.LogicalOrder;
+                table.Location!.LogicalOrder = location.LogicalOrder;
             }
             if (location.Page.HasValue) {
                 uint pageId = _source.Pages[location.Page.Value - 1].Id;
