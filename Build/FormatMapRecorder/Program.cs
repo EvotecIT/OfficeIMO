@@ -78,6 +78,16 @@ internal static class Program {
         }).ToArray();
         foreach (Cut cut in cuts) ValidateCut(cut);
         double[] stills = ParseStills(Option(args, "--still"));
+        if (stills.Length == 0) {
+            foreach (Cut cut in cuts) {
+                foreach (string format in cut.Formats.Select(static f => f.ToLowerInvariant())) {
+                    if ((format is "mp4" or "h265" or "av1") && (cut.Width % 2 != 0 || cut.Height % 2 != 0))
+                        throw new ArgumentException($"Cut '{cut.Name}' needs even width and height for {format} (YUV 4:2:0).");
+                    if (format == "h265" && (cut.Width < 16 || cut.Height < 16))
+                        throw new ArgumentException($"Cut '{cut.Name}' needs width and height of at least 16 pixels for h265.");
+                }
+            }
+        }
 
         string? ffmpeg = stills.Length == 0 ? FindFfmpeg(Option(args, "--ffmpeg")) : null;
         if (stills.Length == 0 && ffmpeg is null) {
@@ -172,7 +182,8 @@ internal static class Program {
             if (stills.Length > 0) {
                 foreach (double at in stills) {
                     await page.EvaluateAsync("(t) => window.imoMedia.render(t)", Math.Min(at, duration)).ConfigureAwait(false);
-                    string still = Path.Combine(output, $"{cut.Name}-t{(int)at}.png");
+                    string still = Path.Combine(output, $"{cut.Name}-t{at.ToString("R", CultureInfo.InvariantCulture)}.png");
+
                     await page.ScreenshotAsync(new() { Type = ScreenshotType.Png, Path = still }).ConfigureAwait(false);
                     Report(still);
                 }

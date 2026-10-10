@@ -186,6 +186,7 @@
     spec.split(',').forEach(raw => {
       let token = raw.trim(), surface = 'all', before = out.length;
       if (!token) return;
+      if (token.indexOf('@') !== token.lastIndexOf('@')) { skipped.push(token); return; }
       const at = token.lastIndexOf('@');
       if (at > 0) {
         const id = token.slice(at + 1).trim().toLowerCase();
@@ -196,14 +197,24 @@
       const colon = token.indexOf(':');
       const kind = (colon < 0 ? token : token.slice(0, colon)).replace(/\s+/g, '').toLowerCase();
       const arg = colon < 0 ? '' : token.slice(colon + 1).trim();
+      if ((at >= 0 && !['spot', 'path', 'spots', 'paths'].includes(kind)) ||
+          (['intro', 'outro', 'spots', 'paths', 'surfaces'].includes(kind) && colon >= 0)) {
+        skipped.push(raw.trim()); return;
+      }
       const add = s => { if (s) out.push(s); };
       if (kind === 'intro') add(introScene());
       else if (kind === 'outro') add(outroScene());
       else if (kind === 'spots') defaultSpots(surface).forEach(add);
       else if (kind === 'paths') defaultPaths(surface).forEach(add);
       else if (kind === 'surfaces') defaultSurfaces().forEach(add);
-      else if (kind === 'spot') { const f = findFormat(arg); if (f) add(spotScene(f, surface)); }
-      else if (kind === 'path') { const [x, y] = arg.split(/>|~|→/); const a = findFormat(x || ''), b = findFormat(y || ''); if (a && b) add(pathScene(a, b, surface)); }
+      else if (kind === 'spot') { const f = /[:>@~→]/.test(arg) ? null : findFormat(arg); if (f) add(spotScene(f, surface)); }
+      else if (kind === 'path') {
+        const endpoints = arg.split(/>|~|→/);
+        if (endpoints.length === 2 && endpoints.every(x => x.trim() && !/[:@]/.test(x))) {
+          const a = findFormat(endpoints[0]), b = findFormat(endpoints[1]);
+          if (a && b) add(pathScene(a, b, surface));
+        }
+      }
       else if (kind === 'surface') { const id = arg.toLowerCase(); if (SURFACE_ORDER.includes(id)) add(surfaceScene(id)); }
       if (out.length === before) skipped.push(raw.trim());
     });
