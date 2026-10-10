@@ -156,7 +156,7 @@ internal static class Program {
     /// </summary>
     private static async Task RecordAsync(string baseUrl, Cut cut, string output, string frames, string ffmpeg, double[] stills) {
         var query = new List<string> { "ratio=" + cut.Ratio };
-        if (!string.IsNullOrWhiteSpace(cut.Scenes)) query.Add("scenes=" + Uri.EscapeDataString(cut.Scenes));
+        if (cut.Scenes is not null) query.Add("scenes=" + Uri.EscapeDataString(cut.Scenes));
         if (Math.Abs(cut.Speed - 1) > 0.001) query.Add("speed=" + cut.Speed.ToString("0.##", CultureInfo.InvariantCulture));
         string url = $"{baseUrl}/index.html?{string.Join('&', query)}";
         Console.WriteLine($"[{cut.Name}] rendering media {cut.Width}x{cut.Height} at {cut.Fps} fps ({cut.Scale}x) {url}");

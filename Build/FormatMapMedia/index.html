@@ -185,7 +185,7 @@
     const out = [];
     spec.split(',').forEach(raw => {
       let token = raw.trim(), surface = 'all', before = out.length;
-      if (!token) return;
+      if (!token) { skipped.push('<empty scene>'); return; }
       if (token.indexOf('@') !== token.lastIndexOf('@')) { skipped.push(token); return; }
       const at = token.lastIndexOf('@');
       if (at > 0) {
@@ -245,7 +245,11 @@
         mark(r.target, 1);
         r.surfaces.forEach(s => pills.add(s));
       });
-      i.forEach(r => { edges.push({ r, delay: 200, dur: 700, width: 1.6, alpha: .38, stops: stops(r), dashed: true }); mark(r.source, .55); });
+      i.forEach(r => {
+        edges.push({ r, delay: 200, dur: 700, width: 1.6, alpha: .38, stops: stops(r), dashed: true });
+        mark(r.source, .55);
+        r.surfaces.forEach(s => pills.add(s));
+      });
       if (scene.surface !== 'all') { pills.clear(); pills.add(scene.surface); }
     } else if (scene.type === 'path') {
       baseDim = .3;
@@ -447,8 +451,9 @@
     buildStatic(info);
     buildHtml();
     const spec = query.get('scenes');
-    const chosen = spec ? parseScenes(spec) : [];
-    scenes = chosen.length ? chosen : [introScene(), ...defaultSpots('all'), ...defaultPaths('all'), ...defaultSurfaces(), outroScene()];
+    const chosen = spec !== null ? parseScenes(spec) : [];
+    if (spec !== null && (skipped.length || !chosen.length)) throw new Error('The page has nothing to show for: ' + skipped.join(', '));
+    scenes = spec !== null ? chosen : [introScene(), ...defaultSpots('all'), ...defaultPaths('all'), ...defaultSurfaces(), outroScene()];
     let at = 0;
     starts = scenes.map(s => { const s0 = at; at += s.dwell; return s0; });
     total = at;
