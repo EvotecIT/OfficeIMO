@@ -26,6 +26,15 @@ internal static class Program {
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
 
     private static async Task<int> Main(string[] args) {
+        try {
+            return await RecordCutsAsync(args).ConfigureAwait(false);
+        } catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or JsonException or OverflowException) {
+            Console.Error.WriteLine(ex.Message);
+            return 2;
+        }
+    }
+
+    private static async Task<int> RecordCutsAsync(string[] args) {
         string root = Directory.GetCurrentDirectory();
         string output = Path.GetFullPath(Option(args, "--output") ?? Path.Combine(root, "Artefacts", "FormatMapVideos"));
         string mediaDir = Path.GetFullPath(Option(args, "--media-dir") ?? Path.Combine(root, "Build", "FormatMapMedia"));
@@ -37,6 +46,12 @@ internal static class Program {
             return 2;
         }
         Cut[] all = JsonSerializer.Deserialize<CutFile>(File.ReadAllText(cutsPath), JsonOptions)?.Cuts ?? [];
+        if (all.Length == 0) throw new ArgumentException("The cut file must contain at least one cut.");
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (Cut cut in all) {
+            ValidateCut(cut);
+            if (!names.Add(cut.Name)) throw new ArgumentException($"Duplicate cut name: {cut.Name}");
+        }
 
         if (args.Contains("--list", StringComparer.OrdinalIgnoreCase)) {
             foreach (Cut cut in all) Console.WriteLine($"{cut.Name,-24} {cut.Width}x{cut.Height}  {string.Join('+', cut.Formats)}  {cut.Scenes ?? "(all scenes)"}");
@@ -51,32 +66,34 @@ internal static class Program {
         }
         Cut[] cuts = wanted.Length == 0 ? all : all.Where(cut => wanted.Contains(cut.Name, StringComparer.OrdinalIgnoreCase)).ToArray();
         // --scale=2 renders the same layout at twice the pixels (1920x1080 becomes 3840x2160); --formats replaces each cut's formats.
-        int scale = int.TryParse(Option(args, "--scale"), out int parsedScale) ? Math.Clamp(parsedScale, 1, 4) : 1;
-        int? fps = int.TryParse(Option(args, "--fps"), out int parsedFps) ? Math.Clamp(parsedFps, 10, 120) : null;
+        int scale = ParseIntegerOption(args, "--scale", 1, 4) ?? 1;
+        int? fps = ParseIntegerOption(args, "--fps", 10, 120);
         string[]? formats = Option(args, "--formats")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (formats is { Length: 0 }) throw new ArgumentException("--formats requires at least one output format.");
         cuts = cuts.Select(cut => cut with {
             Name = scale > 1 ? $"{cut.Name}-{scale}x" : cut.Name,
-            Width = cut.Width * scale, Height = cut.Height * scale, Scale = cut.Scale * scale,
+            Width = checked(cut.Width * scale), Height = checked(cut.Height * scale), Scale = checked(cut.Scale * scale),
             Fps = fps ?? cut.Fps,
             Formats = formats is { Length: > 0 } ? formats : cut.Formats
         }).ToArray();
-        double[] stills = (Option(args, "--still") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(static s => double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out double ms) ? ms : -1).Where(static ms => ms >= 0).ToArray();
+        foreach (Cut cut in cuts) ValidateCut(cut);
+        double[] stills = ParseStills(Option(args, "--still"));
 
-        string? ffmpeg = FindFfmpeg(Option(args, "--ffmpeg"));
-        if (ffmpeg is null) {
+        string? ffmpeg = stills.Length == 0 ? FindFfmpeg(Option(args, "--ffmpeg")) : null;
+        if (stills.Length == 0 && ffmpeg is null) {
             Console.Error.WriteLine("ffmpeg not found. It encodes the rendered frames: install it (winget install Gyan.FFmpeg) or pass --ffmpeg=<path>.");
             return 2;
         }
-        Console.WriteLine("ffmpeg: " + ffmpeg);
+        if (ffmpeg is not null) Console.WriteLine("ffmpeg: " + ffmpeg);
 
         Directory.CreateDirectory(output);
-        string scratch = Path.Combine(Environment.GetEnvironmentVariable("EVOTEC_SCRATCH_ROOT") is { Length: > 0 } scratchRoot ? scratchRoot : Path.Combine(output, ".frames"), "format-map-recorder");
+        // Own a unique invocation directory; never remove a previous run's or another recorder's frames.
+        string scratch = Path.Combine(Environment.GetEnvironmentVariable("EVOTEC_SCRATCH_ROOT") is { Length: > 0 } scratchRoot ? scratchRoot : Path.Combine(output, ".frames"), "format-map-recorder-" + Guid.NewGuid().ToString("N"));
         using var server = new StaticSite(("/data/", dataDir), ("/fonts/", fontDir), ("/", mediaDir));
         int failures = 0;
         foreach (Cut cut in cuts) {
             try {
-                await RecordAsync(server.BaseUrl, cut, output, Path.Combine(scratch, cut.Name), ffmpeg, stills).ConfigureAwait(false);
+                await RecordAsync(server.BaseUrl, cut, output, Path.Combine(scratch, cut.Name), ffmpeg ?? "", stills).ConfigureAwait(false);
             } catch (Exception ex) {
                 failures++;
                 Console.Error.WriteLine($"[{cut.Name}] failed: {ex.Message}");
@@ -89,6 +106,40 @@ internal static class Program {
         if (Directory.Exists(scratch) && !Directory.EnumerateFileSystemEntries(scratch).Any()) Directory.Delete(scratch);
         return failures == 0 ? 0 : 1;
     }
+
+    private static int? ParseIntegerOption(string[] args, string name, int minimum, int maximum) {
+        string? value = Option(args, name);
+        if (value is null) return null;
+        if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) || number < minimum || number > maximum)
+            throw new ArgumentException($"{name} must be an integer from {minimum} to {maximum}.");
+        return number;
+    }
+
+    private static double[] ParseStills(string? value) {
+        if (value is null) return [];
+        string[] tokens = value.Split(',', StringSplitOptions.TrimEntries);
+        return tokens.Select(token => {
+            if (!double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out double ms) || !double.IsFinite(ms) || ms < 0 || ms > int.MaxValue)
+                throw new ArgumentException("--still requires comma-separated finite nonnegative timestamps in milliseconds.");
+            return ms;
+        }).Distinct().ToArray();
+    }
+
+    private static void ValidateCut(Cut cut) {
+        if (string.IsNullOrWhiteSpace(cut.Name) || !System.Text.RegularExpressions.Regex.IsMatch(cut.Name, @"\A[a-zA-Z0-9][a-zA-Z0-9_-]*\z"))
+            throw new ArgumentException("Cut names must be a single filename stem containing only letters, digits, underscores or hyphens.");
+        (int width, int height) = cut.Ratio switch {
+            "16x9" => (16, 9), "1x1" => (1, 1), "4x5" => (4, 5), "9x16" => (9, 16),
+            _ => throw new ArgumentException($"Invalid ratio for cut '{cut.Name}': use 16x9, 1x1, 4x5 or 9x16.")
+        };
+        if (cut.Width < 2 || cut.Height < 2 || (long)cut.Width * height != (long)cut.Height * width || cut.Scale < 1 || cut.Width % cut.Scale != 0 || cut.Height % cut.Scale != 0 || cut.Fps < 10 || cut.Fps > 120 || cut.GifWidth < 2 || cut.GifFps < 1 || cut.GifFps > 120 || !double.IsFinite(cut.Speed) || cut.Speed < .4 || cut.Speed > 3)
+            throw new ArgumentException($"Cut '{cut.Name}' has invalid dimensions, scale, frame rate or speed.");
+        if (cut.Formats is not { Length: > 0 }) throw new ArgumentException($"Cut '{cut.Name}' needs an output format.");
+        foreach (string format in cut.Formats) {
+            if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException($"Cut '{cut.Name}' has an empty output format.");
+            _ = Encoding(format.ToLowerInvariant(), cut);
+        }
+    }
     /// <summary>
     /// The media page (Build/FormatMapMedia/index.html) draws the diagram as a pure function of time, so nothing has to be frozen or stepped:
     /// each frame is imoMedia.render(t) followed by a screenshot.
@@ -100,7 +151,8 @@ internal static class Program {
         string url = $"{baseUrl}/index.html?{string.Join('&', query)}";
         Console.WriteLine($"[{cut.Name}] rendering media {cut.Width}x{cut.Height} at {cut.Fps} fps ({cut.Scale}x) {url}");
 
-        if (Directory.Exists(frames)) Directory.Delete(frames, recursive: true);
+        if (Directory.Exists(frames)) throw new InvalidOperationException("The frame directory already exists: " + frames);
+
         Directory.CreateDirectory(frames);
         var options = new HtmlBrowserLaunchOptions {
             Headless = true, Timeout = 120000, ViewportWidth = cut.Width / cut.Scale, ViewportHeight = cut.Height / cut.Scale, DeviceScaleFactor = cut.Scale

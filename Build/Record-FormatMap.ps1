@@ -50,6 +50,7 @@ param(
     [string[]] $Formats,
     [string] $Output,
     [switch] $SkipCatalog,
+    [ValidateRange(0, [int]::MaxValue)]
     [int[]] $Still,
     [switch] $List
 )
@@ -65,19 +66,6 @@ function Invoke-Step {
     if ($LASTEXITCODE -ne 0) { throw "$Name failed (exit code $LASTEXITCODE)." }
 }
 
-# The catalog tool writes LF files, so git lists every generated file as modified on a CRLF checkout even when nothing changed.
-# Restore the ones whose only difference is line endings; real changes (format_map.json, a changed catalog) are left alone.
-function Restore-LineEndingOnlyChanges {
-    $changed = @(git diff --name-only 2>$null)
-    $restored = 0
-    foreach ($file in $changed) {
-        git diff --ignore-cr-at-eol --quiet -- $file 2>$null
-        if ($LASTEXITCODE -eq 0) { git checkout -- $file 2>$null; $restored++ }
-    }
-    $global:LASTEXITCODE = 0
-    if ($restored -gt 0) { Write-Host "Restored $restored generated files that differed only in line endings." }
-}
-
 Push-Location $repository
 try {
     if ($List) {
@@ -89,11 +77,13 @@ try {
         Invoke-Step 'Regenerate catalog data' {
             dotnet run --project (Join-Path $repository 'Build/CompatibilityCatalog/OfficeIMO.CompatibilityCatalog.Tool.csproj') -c Release -f net10.0
         }
-        Restore-LineEndingOnlyChanges
     }
 
     $arguments = @()
-    if ($Still) { $arguments += "--still=$($Still -join ',')" }
+    if ($PSBoundParameters.ContainsKey('Still')) {
+        if ($Still.Count -eq 0) { throw 'Still requires at least one timestamp.' }
+        $arguments += "--still=$($Still -join ',')"
+    }
     if ($Cut) { $arguments += "--cut=$($Cut -join ',')" }
     if ($Scale -gt 1) { $arguments += "--scale=$Scale" }
     if ($PSBoundParameters.ContainsKey('Fps')) { $arguments += "--fps=$Fps" }

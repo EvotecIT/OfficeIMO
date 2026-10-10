@@ -22,6 +22,8 @@
   #title { margin: 0; font-weight: 800; letter-spacing: -.035em; line-height: 1.02; }
   #title .num { display: block; font-variant-numeric: tabular-nums; line-height: .95; }
   #title .unit { display: block; font-weight: 700; color: #c4d1ea; letter-spacing: -.02em; }
+  body[data-layout="1x1"] #title .num, body[data-layout="4x5"] #title .num { display: inline-block; margin-right: .15em; }
+  body[data-layout="1x1"] #title .unit, body[data-layout="4x5"] #title .unit { display: inline; }
   #note { font-weight: 550; color: #93a5c7; line-height: 1.35; }
   #pills { display: flex; flex-wrap: wrap; gap: 10px; }
   .pill { display: inline-flex; align-items: center; gap: 9px; padding: .42em .95em; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); font-weight: 700; color: #7f90b0; white-space: nowrap; }
@@ -80,10 +82,11 @@
     return a > 1.3 ? '16x9' : a < .7 ? '9x16' : a < .9 ? '4x5' : '1x1';
   }
   const layout = pickLayout();
+  document.body.dataset.layout = layout;
   const COMP = {
     '16x9': { cx: W * .65, cy: H * .5, R: H * .292, brand: [W * .05, H * .065], cap: [W * .05, H * .3, W * .335], title: 84, note: 28, kick: 22, pill: 19, brandSize: 44 },
     '9x16': { cx: W * .5, cy: H * .385, R: W * .30, brand: [W * .08, H * .04], cap: [W * .08, H * .685, W * .84], title: 96, note: 34, kick: 26, pill: 23, brandSize: 46 },
-    '1x1': { cx: W * .5, cy: H * .425, R: W * .255, brand: [W * .06, H * .04], cap: [W * .07, H * .775, W * .86], title: 62, note: 26, kick: 20, pill: 19, brandSize: 38 },
+    '1x1': { cx: W * .5, cy: H * .40, R: W * .235, brand: [W * .06, H * .04], cap: [W * .07, H * .735, W * .86], title: 62, note: 26, kick: 20, pill: 19, brandSize: 38 },
     '4x5': { cx: W * .5, cy: H * .415, R: W * .295, brand: [W * .06, H * .035], cap: [W * .07, H * .76, W * .86], title: 74, note: 30, kick: 22, pill: 22, brandSize: 42 }
   }[layout];
   const { cx, cy, R } = COMP;
@@ -184,7 +187,12 @@
       let token = raw.trim(), surface = 'all', before = out.length;
       if (!token) return;
       const at = token.lastIndexOf('@');
-      if (at > 0) { const id = token.slice(at + 1).trim().toLowerCase(); if (counts[id]) surface = id; token = token.slice(0, at); }
+      if (at > 0) {
+        const id = token.slice(at + 1).trim().toLowerCase();
+        if (!SURFACE_ORDER.includes(id) || !counts[id]) { skipped.push(raw.trim()); return; }
+        surface = id;
+        token = token.slice(0, at);
+      }
       const colon = token.indexOf(':');
       const kind = (colon < 0 ? token : token.slice(0, colon)).replace(/\s+/g, '').toLowerCase();
       const arg = colon < 0 ? '' : token.slice(colon + 1).trim();
@@ -403,16 +411,26 @@
     }
     noteEl.textContent = scene.note;
     pillsEl.querySelectorAll('.pill').forEach(p => {
-      const lit = state.pills.has(p.dataset.surface);
-      p.style.color = lit ? SURFACE_COLOR[p.dataset.surface] : '';
-      p.style.borderColor = lit ? SURFACE_COLOR[p.dataset.surface] + '88' : '';
+      const id = p.dataset.surface;
+      // Match the routes still visible from the outgoing scene as well as the incoming scene.
+      const lit = state.pills.has(id) || (prev && b < 1 && prev.pills.has(id));
+      p.style.color = lit ? SURFACE_COLOR[id] : '';
+      p.style.borderColor = lit ? SURFACE_COLOR[id] + '88' : '';
       p.style.opacity = lit ? 1 : .5;
     });
   }
 
   // ---------------------------------------------------------------- start
   const ready = (async () => {
-    const [data, surfaceData] = await Promise.all([fetch('/data/format_map.json').then(r => r.json()), fetch('/data/surfaces.json').then(r => r.json()).catch(() => ({ items: [] }))]);
+    const load = async url => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Could not load ${url}: HTTP ${response.status}`);
+      return response.json();
+    };
+    const [data, surfaceData] = await Promise.all([load('/data/format_map.json'), load('/data/surfaces.json')]);
+    if (!Array.isArray(surfaceData.items) || SURFACE_ORDER.some(id => !surfaceData.items.some(s => s.id === id && s.name && s.description))) {
+      throw new Error('Surface metadata must describe every supported surface.');
+    }
     build(data, surfaceData);
     const info = layoutRing();
     buildStatic(info);
