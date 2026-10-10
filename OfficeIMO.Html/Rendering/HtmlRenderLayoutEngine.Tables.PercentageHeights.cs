@@ -5,6 +5,14 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _reportedTablePercentageHeights = new HashSet<IElement>();
 
+    /// <summary>Reports effective, consequential group percentages without inventing a row-group allocation algorithm.</summary>
+    private void ReportTableRowGroupPercentageHeight(TableFormattingRow row, HtmlRenderBoxStyle tableStyle) {
+        if (!tableStyle.ExplicitHeight.HasValue || row.GroupElement == null || row.GroupStyle == null
+            || row.GroupStyle.TablePercentageHeight.Length == 0) return;
+        double? requested = _styleResolver.ResolveTablePercentageHeight(row.GroupStyle, tableStyle.ExplicitHeight.Value);
+        if (requested > 0D) ReportTablePercentageHeightFallback(row.GroupElement, row.GroupStyle, "percentage row-group height");
+    }
+
     /// <summary>Measures percentage tracks as auto before the definite table grid distributes its height.</summary>
     private HtmlRenderBoxStyle PrepareTablePercentageHeight(HtmlRenderBoxStyle style, HtmlRenderBoxStyle tableStyle) {
         if (!tableStyle.ExplicitHeight.HasValue || style.TablePercentageHeight.Length == 0) return style;
@@ -81,7 +89,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportTablePercentageHeightFallback(IElement element, HtmlRenderBoxStyle style, string reason) {
         if (!_reportedTablePercentageHeights.Add(element)) return;
         _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TableValueUnsupported,
-            "A table height used an allocation outside the qualified percentage row and cell subset.",
+            "A table height used an allocation outside the qualified table-height subset.",
             HtmlDiagnosticSeverity.Warning, HtmlRenderStyleResolver.DescribeSource(element),
             "height=" + style.TablePercentageHeight + ";" + reason, OfficeConversionLossKind.Approximation);
     }

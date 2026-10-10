@@ -53,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class TableCellLayout {
-        internal TableCellLayout(IElement element, HtmlRenderBoxStyle style, HtmlInlineLayout inline, int column, int span, int rowSpan, double width, double minimumHeight, bool anonymous, string? structureKey) {
+        internal TableCellLayout(IElement element, HtmlRenderBoxStyle style, HtmlInlineLayout inline, int column, int span, int rowSpan, double width, double minimumHeight, bool anonymous, string? structureKey, TableCellPercentageContent? percentageContent) {
             Element = element;
             Style = style;
             Inline = inline;
@@ -64,11 +64,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             MinimumHeight = minimumHeight;
             Anonymous = anonymous;
             StructureKey = structureKey;
+            PercentageContent = percentageContent;
         }
 
         internal IElement Element { get; }
         internal HtmlRenderBoxStyle Style { get; }
-        internal HtmlInlineLayout Inline { get; }
+        internal HtmlInlineLayout Inline { get; set; }
+        internal TableCellPercentageContent? PercentageContent { get; }
         internal int Column { get; }
         internal int Span { get; }
         internal int RowSpan { get; }
