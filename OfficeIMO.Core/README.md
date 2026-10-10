@@ -1049,6 +1049,12 @@ if (report.HasIssues) {
 }
 ```
 
+`OfficeClipPath.Path(width, height, commands, fillRule)` retains path offsets and
+control points within a declared canvas. Use it for inset masks whose coordinates
+must stay aligned with an image or drawing. The content-sized `Path(commands,
+fillRule)` overload derives its dimensions from the occupied bounds and moves
+those bounds to the local origin.
+
 ### Render paragraphs with independent formatting
 
 `AddRichTextParagraphs` keeps paragraph alignment, margins, indentation and line spacing in one text frame. SVG, raster and PDF measure the paragraphs at render time with the drawing's configured fonts.

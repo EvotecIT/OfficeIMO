@@ -134,7 +134,7 @@ internal sealed partial class PublisherPageProjector {
                     OfficeConversionLossKind.Approximation, "Quill");
             } else _context.Add("PUB_TEXT_REFERENCE_UNRESOLVED", "A text frame refers to an unavailable story.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
         }
-        foreach (OfficeDrawingElement element in local.Elements) element.SourceElementIds = new[] { "publisher-object-" + shape.Id };
+        TagSourceElements(local, new[] { "publisher-object-" + shape.Id });
         var transform = new OfficeImageFrameTransform(rotation, x + width / 2, y + height / 2, shape.Transform.FlipHorizontal, shape.Transform.FlipVertical);
         _context.AccountProjection(local);
         if (shape.GroupTransform == OfficeTransform.Identity) page.AddDrawingForClippedRendering(local, x, y, transform);
@@ -154,6 +154,13 @@ internal sealed partial class PublisherPageProjector {
             page.AddEffectDrawing(retained, OfficeTransform.Translate(left, top).Then(groupTransform));
         }
         if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id)) _projected.Add(shape.Id);
+    }
+    private static void TagSourceElements(OfficeDrawing drawing, IReadOnlyList<string> ids) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            element.SourceElementIds = ids;
+            if (element is OfficeDrawingGroup group) TagSourceElements(group.InnerDrawing, ids);
+            if (element is OfficeDrawingEffectGroup transformed) TagSourceElements(transformed.InnerDrawing, ids);
+        }
     }
     private OfficeTextPadding TextPadding(PublisherEscherShape shape) => new(
         (shape.Property(0x81) ?? 36576) / 12700D, (shape.Property(0x82) ?? 36576) / 12700D,

@@ -27,11 +27,12 @@ they are not produced by an OfficeIMO writer.
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
+| Custom paths | Literal eight-byte and compact signed vertices in declared geometry space; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Guide references, advanced commands and separate paint groups retain an explicit fallback; shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; decorations on unsupported open geometry are omitted |
 | Groups | Native child coordinate spaces, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
-| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder |
+| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
@@ -92,6 +93,14 @@ dash order and spacing, all five supported marker kinds, disabled strokes,
 unknown values and scene copying. SVG, raster and PDF retain open arrows as
 outlines and other markers as filled geometry. Marker dimensions and native dash
 rendering remain unqualified against Publisher-produced output.
+Custom-path record mutations check coordinate offsets, compact vertices,
+line/cubic command consumption, subpaths, paint controls, malformed arrays,
+guide/command fallback reports and inset picture masks. Shared array decoding
+preserves following complex properties when native lengths exclude their
+six-byte headers. Cumulative limits account for decoded vertices/segments,
+expanded commands and copied shape/mask paths. The producer corpus has no custom
+paths; these managed scene and SVG/raster/PDF checks do not establish native
+Publisher winding or mask fidelity.
 Native linear-fill mutations check physical and aspect-scaled angles, positive
 and negative focus, reversed ramps, duplicate color positions, transparency,
 fill-use masks and picture layering. Foreground/background opacity uses a

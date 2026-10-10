@@ -74,7 +74,22 @@ public sealed class OfficeClipPath {
     public static OfficeClipPath Path(IEnumerable<OfficePathCommand> commands) => Path(commands, OfficeFillRule.EvenOdd);
 
     /// <summary>Creates a freeform clipping path from commands in local top-left coordinates.</summary>
-    public static OfficeClipPath Path(IEnumerable<OfficePathCommand> commands, OfficeFillRule fillRule) {
+    public static OfficeClipPath Path(IEnumerable<OfficePathCommand> commands, OfficeFillRule fillRule) =>
+        CreatePath(commands, fillRule, null, null);
+
+    /// <summary>Creates a clipping path while retaining its coordinates within a declared local canvas.</summary>
+    /// <remarks>Unlike the content-sized overload, this overload retains offsets and control points without normalization.</remarks>
+    public static OfficeClipPath Path(double width, double height, IEnumerable<OfficePathCommand> commands,
+        OfficeFillRule fillRule = OfficeFillRule.EvenOdd) {
+        if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D)
+            throw new ArgumentOutOfRangeException(nameof(width), "Path canvas width must be finite and positive.");
+        if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D)
+            throw new ArgumentOutOfRangeException(nameof(height), "Path canvas height must be finite and positive.");
+        return CreatePath(commands, fillRule, width, height);
+    }
+
+    private static OfficeClipPath CreatePath(IEnumerable<OfficePathCommand> commands, OfficeFillRule fillRule,
+        double? canvasWidth, double? canvasHeight) {
         if (commands is null) {
             throw new ArgumentNullException(nameof(commands));
         }
@@ -126,19 +141,18 @@ public sealed class OfficeClipPath {
 
         double width = maxX - minX;
         double height = maxY - minY;
-        if (width <= 0 || height <= 0) {
+        if (!canvasWidth.HasValue && (width <= 0 || height <= 0)) {
             throw new ArgumentException("Clip path commands must describe a non-empty two-dimensional area.", nameof(commands));
         }
 
         var normalized = new List<OfficePathCommand>(source.Count);
-        for (int i = 0; i < source.Count; i++) {
-            normalized.Add(source[i].Translate(minX, minY));
-        }
+        for (int i = 0; i < source.Count; i++)
+            normalized.Add(canvasWidth.HasValue ? source[i] : source[i].Translate(minX, minY));
 
         return new OfficeClipPath {
             Kind = OfficeClipPathKind.Path,
-            Width = width,
-            Height = height,
+            Width = canvasWidth ?? width,
+            Height = canvasHeight ?? height,
             FillRule = fillRule,
             Commands = new ReadOnlyCollection<OfficePathCommand>(normalized)
         };

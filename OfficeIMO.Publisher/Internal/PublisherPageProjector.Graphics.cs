@@ -5,13 +5,14 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPageProjector {
     private void ProjectGraphic(PublisherEscherShape source, OfficeDrawing drawing, double geometryWidth, double geometryHeight) {
-        OfficeShape shape = Geometry(source, geometryWidth, geometryHeight);
+        OfficeArtCustomPathProjection? custom = CustomPath(source, geometryWidth, geometryHeight);
+        OfficeShape shape = custom?.Shape ?? Geometry(source, geometryWidth, geometryHeight);
         OfficeArtShapeStyle style = source.Style;
-        shape.FillColor = style.FillEnabled != false ? Resolve(style.FillColor, source.Id) : null;
-        shape.StrokeColor = style.LineEnabled != false ? Resolve(style.LineColor, source.Id) : null;
+        shape.FillColor = style.FillEnabled != false && custom?.NoFill != true ? Resolve(style.FillColor, source.Id) : null;
+        shape.StrokeColor = style.LineEnabled != false && custom?.NoLine != true ? Resolve(style.LineColor, source.Id) : null;
         shape.StrokeWidth = Math.Max(0, (style.LineWidthEmus ?? 9525) / 12700D);
         shape.FillOpacity = style.FillOpacity; shape.StrokeOpacity = style.LineOpacity;
-        ProjectFill(source, shape, geometryWidth, geometryHeight);
+        if (custom?.NoFill != true) ProjectFill(source, shape, geometryWidth, geometryHeight);
         ProjectLineDetails(source, shape);
         if (style.HasProjectableShadow) {
             shape.Shadow = new OfficeShadow(Resolve(style.ShadowColor, source.Id) ?? OfficeColor.Black, style.ShadowOpacity ?? 1,
@@ -27,13 +28,13 @@ internal sealed partial class PublisherPageProjector {
         OfficeShape background = shape.Clone();
         background.StrokeColor = null;
         if (HasFill(background) || background.Shadow != null) drawing.AddShape(background, 0, 0);
-        ProjectPicture(source, drawing, imageId.Value);
+        ProjectPicture(source, drawing, imageId.Value, custom?.Shape);
         OfficeShape outline = shape.Clone();
         outline.FillColor = null; outline.FillGradient = null; outline.FillRadialGradient = null; outline.Shadow = null;
         if (outline.StrokeColor.HasValue) drawing.AddShape(outline, 0, 0);
     }
     private static bool HasFill(OfficeShape shape) => shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null;
-    private void ProjectPicture(PublisherEscherShape source, OfficeDrawing drawing, uint imageId) {
+    private void ProjectPicture(PublisherEscherShape source, OfficeDrawing drawing, uint imageId, OfficeShape? clipShape) {
         if (imageId > int.MaxValue || !_escher.Images.TryGetValue((int)imageId, out PublisherImage? image)) {
             _context.Add("PUB_IMAGE_REFERENCE_UNRESOLVED", "A native picture refers to an unavailable embedded image.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id)); return;
         }
@@ -45,7 +46,10 @@ internal sealed partial class PublisherPageProjector {
         }
         OfficeArtPictureEffectProjector effects = PictureEffects(picture, source.Id);
         byte[] projectedBytes = ProjectImage(image, source.Id, effects, out string projectedContentType);
-        drawing.AddImage(projectedBytes, projectedContentType, new OfficeImageProjection(new OfficeImagePlacement(0, 0, drawing.Width, drawing.Height), crop));
+        var projection = new OfficeImageProjection(new OfficeImagePlacement(0, 0, drawing.Width, drawing.Height), crop);
+        if (clipShape == null) drawing.AddImage(projectedBytes, projectedContentType, projection);
+        else drawing.AddClippedImage(projectedBytes, projectedContentType, projection, 0, 0,
+            OfficeClipPath.Path(drawing.Width, drawing.Height, clipShape.PathCommands, clipShape.FillRule));
     }
     private OfficeShape Geometry(PublisherEscherShape source, double width, double height) {
         switch (source.Type) {
