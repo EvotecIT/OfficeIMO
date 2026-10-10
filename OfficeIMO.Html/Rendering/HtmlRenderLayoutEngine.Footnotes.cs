@@ -97,14 +97,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || _generatedContent.Suppresses(element, HtmlPseudoElementKind.FootnoteCall)) {
             return;
         }
-        if (!hasCallStyle || !_styleResolver.IsPseudoPropertySpecified(element, HtmlPseudoElementKind.FootnoteCall, "font-size")) {
+        if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "font-size")) {
             callStyle.Font = callStyle.Font.WithSize(Math.Max(1D, parentStyle.Font.Size * 0.7D));
         }
-        if (!hasCallStyle || !_styleResolver.IsPseudoPropertySpecified(element, HtmlPseudoElementKind.FootnoteCall, "vertical-align")) {
+        if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "vertical-align")) {
             callStyle.Baseline = OfficeTextBaseline.Superscript;
             callStyle.BaselineLevel = Math.Max(1, parentStyle.BaselineLevel + 1);
-            callStyle.BaselineScale = 0.7D;
-            callStyle.BaselineOffset = Math.Max(parentStyle.BaselineOffset, parentStyle.Font.Size * 0.3D);
+            callStyle.BaselineScale = 1D;
+            callStyle.BaselineOffset = parentStyle.BaselineOffset - parentStyle.Font.Size * 0.3D;
         }
         string? link = "#" + FootnoteNoteDestination(number);
         if (_generatedContent.TryGetContent(element, HtmlPseudoElementKind.FootnoteCall, out HtmlGeneratedContent authoredCall)) {

@@ -70,8 +70,10 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(1, first.BaselineLevel);
         Assert.Equal(OfficeTextBaseline.Superscript, second.Baseline);
         Assert.Equal(1, second.BaselineLevel);
-        Assert.Equal(0.65D * 0.65D, first.BaselineScale, 6);
-        Assert.Equal(0.65D * 0.65D, second.BaselineScale, 6);
+        Assert.Equal(16D / 1.2D / 1.2D, first.Font.Size, 6);
+        Assert.Equal(16D / 1.2D / 1.2D, second.Font.Size, 6);
+        Assert.Equal(1D, first.BaselineScale);
+        Assert.Equal(1D, second.BaselineScale);
         Assert.True(first.BaselineOffset < 0D);
         Assert.True(second.BaselineOffset < 0D);
         Assert.Equal(OfficeTextBaseline.Superscript, raised.Baseline);

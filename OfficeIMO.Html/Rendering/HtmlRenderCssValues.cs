@@ -20,7 +20,7 @@ internal static class HtmlRenderCssValues {
             "x-large" => mediumFontSize * 1.5D,
             "xx-large" => mediumFontSize * 2D,
             "xxx-large" => mediumFontSize * 3D,
-            "smaller" => inheritedFontSize * 0.8D,
+            "smaller" => inheritedFontSize / 1.2D,
             "larger" => inheritedFontSize * 1.2D,
             _ => 0D
         };
