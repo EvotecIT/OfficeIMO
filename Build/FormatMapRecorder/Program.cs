@@ -261,8 +261,13 @@ internal sealed class StaticSite : IDisposable {
         try {
             string relative = Uri.UnescapeDataString(context.Request.Url?.AbsolutePath ?? "/").TrimStart('/');
             string file = Path.GetFullPath(Path.Combine(_root, relative));
+            // The resolved path must stay inside the served folder before anything touches the file system.
+            if (!file.StartsWith(_root, StringComparison.OrdinalIgnoreCase)) {
+                context.Response.StatusCode = 404;
+                return;
+            }
             if (Directory.Exists(file)) file = Path.Combine(file, "index.html");
-            if (!file.StartsWith(_root, StringComparison.OrdinalIgnoreCase) || !File.Exists(file)) {
+            if (!File.Exists(file)) {
                 context.Response.StatusCode = 404;
             } else {
                 byte[] bytes = await File.ReadAllBytesAsync(file).ConfigureAwait(false);
