@@ -6,6 +6,7 @@ internal static partial class PdfWriter {
     // including paragraphs whose fallback size differs from the cell size.
     private sealed class RichLine : List<RichSeg> {
         internal double BaselineOffset { get; set; }
+        internal double? FrameFitHeight { get; set; }
     }
 
     private static double ResolveRichLineBaselineOffset(

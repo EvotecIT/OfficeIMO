@@ -123,7 +123,8 @@ internal static partial class PdfWriter {
 
             double height = spacingBefore;
             for (int i = 0; i < linesToReserve; i++) {
-                height += GetRichLineHeight(wrap.LineHeights, i, leading);
+                double advance = GetRichLineHeight(wrap.LineHeights, i, leading);
+                height += i == linesToReserve - 1 ? GetRichLineFrameFitHeight(wrap.Lines[i], advance) : advance;
             }
 
             return height;
@@ -367,6 +368,12 @@ internal static partial class PdfWriter {
                 double spacingBefore = y < GetCurrentFramePageStartY() - 0.001D || headingStyle?.ApplySpacingBeforeAtTop == true
                     ? headingStyle?.SpacingBefore ?? 0D
                     : 0D;
+                if (headingStyle?.LineSpacing?.FontLineBoxMultiplier != null && headingStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
+                    var runs = CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle.Color);
+                    var wrap = WrapRichRunsWithSpacing(runs, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont),
+                        headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle.LineSpacing);
+                    return spacingBefore + (wrap.Lines.Count == 0 ? 0D : GetRichLineFrameFitHeight(wrap.Lines[0], wrap.LineHeights[0]));
+                }
                 return spacingBefore + headingLeading;
             }
 
@@ -384,6 +391,12 @@ internal static partial class PdfWriter {
                     return listStyle?.SpacingBefore ?? 0D;
                 }
 
+                if (listStyle?.LineSpacing?.FontLineBoxMultiplier != null && listStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
+                    PreparedListLayout prepared = PrepareListLayout(list, frameWidth, fontSize, topLevelSpacing: true);
+                    TableCellTextLayout first = prepared.Items[0].TextLayout;
+                    return listStyle.SpacingBefore + (first.LineCount == 0 ? 0D
+                        : GetRichLineFrameFitHeight(first.Lines[0], GetRichLineHeight(first.LineHeights, 0, leading)));
+                }
                 return (listStyle?.SpacingBefore ?? 0D) + leading;
             }
 

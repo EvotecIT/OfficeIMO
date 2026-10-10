@@ -16,11 +16,12 @@ internal static partial class PdfWriter {
             double listHeight = MeasurePreparedListHeight(prepared);
             if (prepared.Style?.KeepTogether == true) {
                 double availableHeight = GetMaximumBlockContinuationHeight();
-                if (listHeight > availableHeight + 0.001D) {
+                double fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
+                if (fitHeight > availableHeight + 0.001D) {
                     throw new ArgumentException("List height exceeds the available page content height.");
                 }
 
-                while (ShouldAdvanceForBlockHeight(listHeight)) {
+                while (ShouldAdvanceForBlockHeight(fitHeight)) {
                     NewBlockFrame();
                     if (Math.Abs(preparedWidth - width) > .001D) {
                         prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
@@ -28,7 +29,8 @@ internal static partial class PdfWriter {
                     }
                     prepared.SpacingBefore = 0D;
                     listHeight = MeasurePreparedListHeight(prepared);
-                    if (listHeight > GetMaximumBlockContinuationHeight() + .001D)
+                    fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
+                    if (fitHeight > GetMaximumBlockContinuationHeight() + .001D)
                         throw new ArgumentException("List height exceeds the available page content height.");
                 }
             }

@@ -169,12 +169,14 @@ internal static partial class PdfWriter {
             return (x, width, PdfAlign.Left);
         }
 
-        private static double MeasurePreparedListHeight(PreparedListLayout prepared) {
+        private static double MeasurePreparedListHeight(PreparedListLayout prepared, bool frameFit = false) {
             double total = 0D;
             for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
                 TableCellTextLayout textLayout = prepared.Items[itemIndex].TextLayout;
                 total += itemIndex == 0 ? prepared.SpacingBefore : 0D;
-                total += MeasureRichLinesHeight(textLayout.LineHeights, textLayout.LineCount, prepared.Leading);
+                total += frameFit && itemIndex == prepared.Items.Count - 1
+                    ? MeasureRichLinesFrameFitHeight(textLayout.Lines, textLayout.LineHeights, prepared.Leading)
+                    : MeasureRichLinesHeight(textLayout.LineHeights, textLayout.LineCount, prepared.Leading);
                 total += itemIndex == prepared.Items.Count - 1 ? prepared.SpacingAfter : prepared.ItemSpacing;
             }
 

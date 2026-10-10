@@ -7,12 +7,19 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class PdfFloatingTableLayoutTests {
-    [Fact]
-    public void FloatingTableKeepWithNextTransfersFullWidthFloatAndClearedLineTogether() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FloatingTableKeepWithNextTransfersFullWidthFloatAndClearedLineTogether(bool importedMultipleSpacing) {
         var style = Floating(320, 70); style.KeepWithNext = true;
+        var paragraphStyle = importedMultipleSpacing
+            ? new PdfParagraphStyle { FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D,
+                LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D) }
+            : new PdfParagraphStyle { SpacingAfter = 0D };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", 40, 10, 100, 20)).Spacer(80)
             .Table(new[] { new[] { "floating" } }, style: style)
-            .Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { SpacingAfter = 0 }).ToBytes());
+            .Paragraph(p => p.Text("below"), style: paragraphStyle).ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "floating");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "floating");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "below");

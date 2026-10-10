@@ -61,8 +61,6 @@ internal static partial class PdfWriter {
             ? lineSpacing?.GetAdvance(size) ?? size * lineHeightRatio : 0D;
         double completedHeight = 0;
         double currentContentHeight = lineHeight;
-        var currentFrame = lineLayout?.Invoke(0, completedHeight, lineHeight, 0);
-        double currentLineHeight = Math.Max(lineHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
         double currentMinimumWidth = 0;
         PdfNamedFontFace? currentRunNamedFont = null;
         double currentRunAscent = 0;
@@ -81,6 +79,8 @@ internal static partial class PdfWriter {
         PdfColor? currentRunUnderlineColor = null;
         double currentRunDecorationFontSize = 0;
         double currentRunDecorationTextRise = 0;
+        var currentFrame = lineLayout?.Invoke(0, completedHeight, CurrentFrameFitHeight(lineHeight, includeCurrentRun: false), 0);
+        double currentLineHeight = Math.Max(lineHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
         double CurrentMaxWidth() => currentFrame?.Width ?? (lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts);
         double CurrentLineOriginOffset() => currentFrame?.Origin ?? (lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D);
         void RegisterLineHeight(double runFontSize) {
@@ -118,7 +118,7 @@ internal static partial class PdfWriter {
             currentLineInlineDescent = 0;
             currentLineHasInline = false;
             currentContentHeight = lineHeight;
-            currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, currentContentHeight, 0);
+            currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, CurrentFrameFitHeight(currentContentHeight, includeCurrentRun: false), 0);
             currentLineHeight = Math.Max(currentContentHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
             currentMinimumWidth = 0;
             nextExplicitTabStopIndex = 0;
@@ -134,15 +134,15 @@ internal static partial class PdfWriter {
             var oldFrame = currentFrame;
             double height = lines[lines.Count - 1].Count == 0 ? currentContentHeight : Math.Max(oldHeight, contentHeight);
             double requiredWidth = Math.Max(currentMinimumWidth, minimumWidth);
-            var frame = lineLayout(lines.Count - 1, completedHeight, height, requiredWidth);
+            var frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height), requiredWidth);
             if (lines[lines.Count - 1].Count > 0 &&
                 (lineWidth > frame.Width + 0.001 || minimumWidth > 0 && frame.Gap > (oldFrame?.Gap ?? 0) + 0.001)) {
-                lineLayout(lines.Count - 1, completedHeight, oldHeight, currentMinimumWidth);
+                lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(oldHeight, includeCurrentRun: false), currentMinimumWidth);
                 currentFrame = oldFrame;
                 StartNewLine();
                 height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight));
                 requiredWidth = minimumWidth;
-                frame = lineLayout(lines.Count - 1, completedHeight, height, requiredWidth);
+                frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height), requiredWidth);
             }
             currentFrame = frame;
             currentMinimumWidth = requiredWidth;
@@ -183,6 +183,28 @@ internal static partial class PdfWriter {
             // beyond the text line box; a spacer inside it adds no height.
             return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
                 ? Math.Max(contentHeight, combined) : contentHeight;
+        }
+
+        // Exclusions need the line's occupied box; completedHeight still carries
+        // its full advance so subsequent baselines retain the authored spacing.
+        double CurrentFrameFitHeight(double advance, bool includeCurrentRun = true) {
+            if (lineSpacing?.FontLineBoxMultiplier is not double natural || lineSpacing.Rule != PdfLineSpacingRule.Multiple)
+                return advance;
+            double textAscent = Math.Max(currentLineTextAscent, includeCurrentRun && !currentRunIsInline ? currentRunAscent : 0D);
+            double bodyAscent = Math.Max(currentLineBodyTextAscent,
+                includeCurrentRun && !currentRunIsInline && currentRunContributesDescent ? currentRunAscent : 0D);
+            double textDescent = Math.Max(currentLineTextDescent, includeCurrentRun && !currentRunIsInline ? currentRunDescent : 0D);
+            double inlineAscent = Math.Max(currentLineInlineAscent, includeCurrentRun && currentRunIsInline ? currentRunAscent : 0D);
+            double inlineDescent = Math.Max(currentLineInlineDescent, includeCurrentRun && currentRunIsInline ? currentRunDescent : 0D);
+            double ascent = Math.Max(textAscent, inlineAscent), descent = Math.Max(textDescent, inlineDescent);
+            if (ascent == 0D && descent == 0D) {
+                GetRichRunLineMetrics(baseFont, null, fontSize, PdfTextBaseline.Normal, options, lineSpacing, out ascent, out descent);
+                bodyAscent = ascent;
+            }
+            if (lineSpacing.LineGridPitch.HasValue)
+                ascent += lineSpacing.GetGridBaselineExpansion(ascent + descent);
+            else ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, lineSpacing.Value / natural)));
+            return Math.Min(advance, Math.Max(0D, ascent + descent));
         }
 
         PdfTabStop? ResolveNextExplicitTabStop() {
@@ -693,6 +715,8 @@ internal static partial class PdfWriter {
         foreach (RichLine line in lines) {
             runKerning.Apply(line);
             line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, lineSpacing);
+            if (lineSpacing?.FontLineBoxMultiplier != null && lineSpacing.Rule == PdfLineSpacingRule.Multiple)
+                line.FrameFitHeight = ResolveImportedLineFrameFitHeight(line, baseFont, fontSize, options, lineSpacing);
         }
         return (lines, heights);
 
