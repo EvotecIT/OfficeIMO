@@ -181,6 +181,9 @@ SYLK and DIF use the same file, byte-array, and caller-owned stream overloads. D
 Text without a BOM uses Windows-1252. Set `TextEncoding` explicitly for a different source encoding; a Unicode BOM takes precedence, and invalid encoded text fails instead of being silently replaced. Quoted formula-looking text remains literal in the returned workbook. Numeric date values remain numbers because source formatting is omitted.
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Excel.Legacy;
+
 using var imported = LegacySpreadsheetImporter.Import("archive.slk", new LegacySpreadsheetImportOptions {
     RequireStructured = true,
     TextEncoding = System.Text.Encoding.UTF8,
