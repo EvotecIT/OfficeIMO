@@ -557,8 +557,8 @@
     {
       "id": "source-officeimo-tool-commands-reader-readercommand-cs",
       "path": "/downloads/showcase/source/OfficeIMO.Tool/Commands/Reader/ReaderCommand.cs.txt",
-      "bytes": 8471,
-      "sha256": "d69c0adf6f6bd24a628ae89204cbadec7606f9817a21ad90f08e6269ac841372",
+      "bytes": 9029,
+      "sha256": "0cd783ef046bbe06edac333f3c7f8cbeceaca489bc233e1d8b0ce6e6d266c733",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
