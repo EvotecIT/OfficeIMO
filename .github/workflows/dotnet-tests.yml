@@ -1373,6 +1373,10 @@ jobs:
           fi
 
       - name: Run tests
+        env:
+          TEST_FRAMEWORK: ${{ matrix.framework }}
+          TEST_PARTITION: ${{ matrix.partition }}
+          COLLECT_COVERAGE: ${{ matrix.collectCoverage }}
         run: |
           # Keep the heavy Excel image visual gate on its dedicated script path; run test projects
           # explicitly so Ubuntu does not spend the job budget walking every solution project.
@@ -1384,12 +1388,12 @@ jobs:
             # Keep PR test partitions focused on contract proof. Coverage collection is
             # intentionally disabled for the matrix because it turns data-heavy Markdown
             # and PDF slices into long-running hosted-runner jobs.
-            if [ "${{ matrix.collectCoverage }}" = "true" ] && [ "${collect_coverage}" = "true" ]; then
+            if [ "${COLLECT_COVERAGE}" = "true" ] && [ "${collect_coverage}" = "true" ]; then
               coverage_args=(--collect "XPlat Code Coverage")
             fi
             echo ""
             echo "== OfficeIMO.Shared.Tests: ${name} =="
-            dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${coverage_args[@]}"
+            dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx "${coverage_args[@]}"
           }
 
           run_excel_tests() {
@@ -1397,7 +1401,7 @@ jobs:
             local filter="$2"
             echo ""
             echo "== OfficeIMO.Excel.Tests: ${name} =="
-            dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_word_tests() {
@@ -1405,7 +1409,7 @@ jobs:
             local filter="$2"
             echo ""
             echo "== OfficeIMO.Word.Tests: ${name} =="
-            dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_markdown_tests() {
@@ -1413,47 +1417,47 @@ jobs:
             local filter="$2"
             echo ""
             echo "== OfficeIMO.Markdown.Tests: ${name} =="
-            dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_powerpoint_tests() {
             echo ""
             echo "== OfficeIMO.PowerPoint.Tests =="
-            dotnet test OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_visio_tests() {
             echo ""
             echo "== OfficeIMO.Visio.Tests =="
-            dotnet test OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${test_filter})&Category!=Performance" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "(${test_filter})&Category!=Performance" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_access_tests() {
-            dotnet test OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Access.Tests/OfficeIMO.Access.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_rtf_tests() {
             echo ""
             echo "== OfficeIMO.Rtf.Tests =="
-            dotnet test OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_html_tests() {
             echo ""
             echo "== OfficeIMO.Html.Tests =="
-            dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_reader_tests() {
             echo ""
             echo "== OfficeIMO.Reader.Tests =="
-            dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_email_tests() {
             echo ""
             echo "== OfficeIMO.Email.Tests =="
-            dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "Category!=Performance" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "Category!=Performance" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_pdf_tests() {
@@ -1461,31 +1465,31 @@ jobs:
             local filter="$2"
             echo ""
             echo "== OfficeIMO.Pdf.Tests: ${name} =="
-            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_drawing_tests() {
             echo ""
             echo "== OfficeIMO.Drawing.Tests =="
-            dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_googleworkspace_tests() {
             echo ""
             echo "== OfficeIMO.GoogleWorkspace.Tests =="
-            dotnet test OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_markup_tests() {
             echo ""
             echo "== OfficeIMO.Markup.Tests =="
-            dotnet test OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_opendocument_tests() {
             echo ""
             echo "== OfficeIMO.OpenDocument.Tests =="
-            dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.OpenDocument.Tests/OfficeIMO.OpenDocument.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           audit_retired_aggregate_tests() {
@@ -1506,7 +1510,7 @@ jobs:
             list_file="$(mktemp)"
             echo ""
             echo "== OfficeIMO.Markdown.Tests: partition coverage audit =="
-            dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity quiet --framework ${{ matrix.framework }} --list-tests --filter "${test_filter}" > "${list_file}"
+            dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity quiet --framework ${TEST_FRAMEWORK} --list-tests --filter "${test_filter}" > "${list_file}"
             python3 - "${list_file}" <<'PY'
           import sys
 
@@ -1546,11 +1550,11 @@ jobs:
             rm -f "${list_file}"
           }
 
-          if [ "${{ matrix.framework }}" = "net8.0" ] && [ "${{ matrix.partition }}" = "markdown-large" ]; then
+          if [ "${TEST_FRAMEWORK}" = "net8.0" ] && [ "${TEST_PARTITION}" = "markdown-large" ]; then
             audit_markdown_test_partitions
           fi
 
-          case "${{ matrix.partition }}" in
+          case "${TEST_PARTITION}" in
             markdown-large)
               run_word_tests "word-markdown-roundtrip" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownMoreCasesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownRoundTripTests'
               run_markdown_tests "markdown-root" 'FullyQualifiedName~OfficeIMO.Tests.Markdown.'
@@ -1577,7 +1581,7 @@ jobs:
               run_excel_tests "excel-closedxml-gap" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Test_ClosedXmlGap'
               ;;
             excel-legacy-reader)
-              dotnet test OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --no-restore --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --no-restore --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               run_excel_tests "excel-legacy-xls" 'FullyQualifiedName~OfficeIMO.Tests.Excel.LegacyXls'
               run_excel_tests "excel-performance" 'FullyQualifiedName~OfficeIMO.Tests.Excel.PerformanceReview'
               run_excel_tests "excel-reader" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Reader|FullyQualifiedName~OfficeIMO.Tests.Excel.ReadRows|FullyQualifiedName~OfficeIMO.Tests.Excel.ExcelHttp'
@@ -1597,38 +1601,38 @@ jobs:
               ;;
             other-projects)
               audit_retired_aggregate_tests
-              dotnet test OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.Adf.Tests/OfficeIMO.Adf.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.DocBook.Tests/OfficeIMO.DocBook.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.Confluence.Tests/OfficeIMO.Confluence.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               run_drawing_tests
-              dotnet test OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               run_googleworkspace_tests
-              dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               run_markup_tests
-              dotnet test OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.Xps.Tests/OfficeIMO.Xps.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.DjVu.Tests/OfficeIMO.DjVu.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               run_opendocument_tests
-              dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               run_powerpoint_tests
               run_visio_tests
               run_access_tests
               run_reader_tests
-              dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.OneNote.Tests/OfficeIMO.OneNote.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               run_shared_tests "shared-contracts"
-              dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-              dotnet test OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.ChartForgeX.Markdown.Tests/OfficeIMO.ChartForgeX.Markdown.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.Latex.Tests/OfficeIMO.Latex.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
+              dotnet test OfficeIMO.Latex.Markdown.Tests/OfficeIMO.Latex.Markdown.Tests.csproj --configuration ${BUILD_CONFIGURATION} --no-build --verbosity ${TEST_VERBOSITY} --framework ${TEST_FRAMEWORK} --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
               ;;
             *)
-              echo "Unknown partition: ${{ matrix.partition }}"
+              echo "Unknown partition: ${TEST_PARTITION}"
               exit 1
               ;;
           esac
