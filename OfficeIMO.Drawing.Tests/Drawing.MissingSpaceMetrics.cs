@@ -206,7 +206,12 @@ public sealed class DrawingMissingSpaceMetricsTests {
             if (tag == "glyf" || tag == "loca") continue;
             int offset = checked((int)BinaryPrimitives.ReadUInt32BigEndian(trueType.AsSpan(record + 8)));
             int length = checked((int)BinaryPrimitives.ReadUInt32BigEndian(trueType.AsSpan(record + 12)));
-            tables.Add((tag, trueType.AsSpan(offset, length).ToArray()));
+            byte[] table = trueType.AsSpan(offset, length).ToArray();
+            // The compact TrueType fixture omits its final zero LSB; the shared
+            // OpenType reader used by CFF requires the complete hmtx record.
+            if (tag == "hmtx") Array.Resize(ref table, 6);
+            if (tag == "maxp") BinaryPrimitives.WriteUInt32BigEndian(table, 0x00005000);
+            tables.Add((tag, table));
         }
         tables.Add(("CFF ", cff));
         int dataOffset = 12 + tables.Count * 16;
