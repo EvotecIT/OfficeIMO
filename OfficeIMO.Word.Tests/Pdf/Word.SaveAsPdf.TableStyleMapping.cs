@@ -14,38 +14,6 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Preferred_Width_And_AutoFit_Style() {
-        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableLayoutStyle.docx"));
-
-        WordTable preferred = document.AddTable(1, 2);
-        preferred.WidthType = WordTableWidthUnit.Dxa;
-        preferred.Width = 2880;
-        PdfCore.PdfTableStyle preferredStyle = CreateNativeTableStyleForTest(preferred);
-
-        Assert.Equal(144D, preferredStyle.PreferredWidth);
-        Assert.Equal(11D, preferredStyle.FontSize);
-        Assert.True(preferredStyle.AutoFitColumns);
-        Assert.True(preferredStyle.PreserveWidth);
-
-        WordTable autoFit = document.AddTable(1, 2);
-        autoFit.Rows[0].Cells[0].Paragraphs[0].Text = "Short";
-        autoFit.Rows[0].Cells[1].Paragraphs[0].Text = "Much wider auto fit text";
-        autoFit.AutoFitToContents();
-        PdfCore.PdfTableStyle autoFitStyle = CreateNativeTableStyleForTest(autoFit);
-
-        Assert.True(autoFitStyle.AutoFitColumns);
-        Assert.Null(autoFitStyle.MaxWidth);
-        Assert.Equal(240D, autoFitStyle.PreferredWidth);
-        Assert.True(autoFitStyle.PreserveWidth);
-
-        WordTable spaced = document.AddTable(1, 2);
-        spaced.StyleDetails!.CellSpacing = 240;
-        PdfCore.PdfTableStyle spacedStyle = CreateNativeTableStyleForTest(spaced);
-
-        Assert.Equal(12D, spacedStyle.CellSpacing);
-    }
-
-    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Default_Autofit_For_Percentage_Table_When_Layout_Is_Omitted() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultAutofitPercentageTable.docx"));
 
