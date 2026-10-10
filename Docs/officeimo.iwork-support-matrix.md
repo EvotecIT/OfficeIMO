@@ -191,6 +191,13 @@ caches, 21 formulas and saved/reopened recalculation. Native Numbers displays
 separate millisecond components; destination text follows the native XLSX code
 with three fractional-second digits. That display difference remains reported.
 
+The [combined integer and native-table NativeAOT receipt](Compatibility/iwork-integer-and-native-tables-aot-macos-arm64-2026-10-10.json)
+records 24 passing smoke checks under each runtime. It adds bounded Numbers
+`GCD`/`LCM`, native Numbers indexed-palette borders and blank-cell preservation,
+and the fully selected Pages border grid with effective sizing. Native Numbers
+cell-padding omission and Pages positioned-table approximation remain explicit;
+neither fixture qualifies complete composed PDF conversion.
+
 The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
 records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
 the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
