@@ -11,10 +11,11 @@ public partial class DrawingTests {
             new OfficeArtProperty(0, 0x033F, 0x02000200U)
         };
         OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(1U << 6, properties);
-        Assert.False(transform.FlipHorizontal);
+        Assert.True(transform.FlipHorizontal);
         Assert.True(transform.FlipVertical);
         transform = OfficeArtShapeTransform.Decode(1U << 6, properties.Concat(new[] {
-            new OfficeArtProperty(0, 0x033F, 0x02000000U)
+            new OfficeArtProperty(0, 0x033F, 0x00000200U),
+            new OfficeArtProperty(0, 0x033F, 0x00000100U)
         }).ToArray());
         Assert.False(transform.FlipHorizontal);
         Assert.False(transform.FlipVertical);

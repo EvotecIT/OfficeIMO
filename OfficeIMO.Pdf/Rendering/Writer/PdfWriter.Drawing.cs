@@ -566,6 +566,7 @@ internal static partial class PdfWriter {
     private static bool RequiresExactStrokeWriter(OfficeIMO.Drawing.OfficeShape shape) =>
         shape.StrokeDashArray.Count > 0
         || Math.Abs(shape.StrokeDashOffset) > 0.000000000001D
+        || shape.StrokeLineJoin == OfficeIMO.Drawing.OfficeStrokeLineJoin.Miter
         || Math.Abs(shape.StrokeMiterLimit - 4D) > 0.000000000001D;
 
     private static void AppendShapeClipPath(StringBuilder sb, OfficeIMO.Drawing.OfficeShape shape, double x, double y) {
@@ -751,26 +752,10 @@ internal static partial class PdfWriter {
     }
 
     private static void ApplyStrokeDashStyle(ContentStreamBuilder content, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double strokeWidth, bool hasExplicitLineCap) {
-        double unit = Math.Max(0.1, strokeWidth);
-        switch (dashStyle) {
-            case OfficeIMO.Drawing.OfficeStrokeDashStyle.Dash:
-                content.StrokeDash(unit * 3, unit * 1.5);
-                break;
-            case OfficeIMO.Drawing.OfficeStrokeDashStyle.Dot:
-                if (!hasExplicitLineCap) {
-                    content.LineCap(1);
-                }
-
-                content.StrokeDash(unit, unit * 1.5);
-                break;
-            case OfficeIMO.Drawing.OfficeStrokeDashStyle.DashDot:
-                if (!hasExplicitLineCap) {
-                    content.LineCap(1);
-                }
-
-                content.StrokeDash(unit * 3, unit * 1.5, unit, unit * 1.5);
-                break;
-        }
+        if (!hasExplicitLineCap && PdfPresetLineCap(dashStyle) == OfficeIMO.Drawing.OfficeStrokeLineCap.Round)
+            content.LineCap(1);
+        var pattern = PdfPresetDashPattern(dashStyle, strokeWidth);
+        if (pattern != null) content.StrokeDash(pattern, 0D);
     }
 
     private static int LineCapValue(OfficeIMO.Drawing.OfficeStrokeLineCap lineCap) {
