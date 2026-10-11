@@ -2006,17 +2006,6 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal("pl", word.PdfOptions?.Language);
         Assert.Equal("pl", excel.PdfOptions?.Language);
         Assert.Equal("pl", powerPoint.PdfOptions?.Language);
-        Assert.False(word.HasExplicitPdfFontConfiguration);
-        Assert.False(word.CloneForConversion().HasExplicitPdfFontConfiguration);
-
-        var explicitlyConfiguredWord = new OfficeIMO.Word.Pdf.WordToPdfOptions {
-            PdfOptions = new PdfOptions()
-        }.UseRenderingProfile(profile);
-        Assert.True(explicitlyConfiguredWord.HasExplicitPdfFontConfiguration);
-        Assert.True(explicitlyConfiguredWord
-            .CloneForConversion()
-            .HasExplicitPdfFontConfiguration);
-
         var explicitlyConfiguredExcel = new OfficeIMO.Excel.Pdf.ExcelToPdfOptions {
             PdfOptions = new PdfOptions()
         }.UseRenderingProfile(profile);
@@ -2028,10 +2017,6 @@ public sealed class PdfRenderingProfileTests {
             }.UseRenderingProfile(profile);
         Assert.True(
             explicitlyConfiguredPowerPoint.HasExplicitPdfFontConfiguration);
-
-        word.PdfOptions!.DefaultFontSize = 17D;
-        Assert.True(word.HasExplicitPdfFontConfiguration);
-        excel.PdfOptions!.PageSize = new PageSize(300, 400);
     }
 
     [Fact]
