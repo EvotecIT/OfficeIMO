@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
         double columnGap) {
         double availableWidth = ResolveTableAvailableWidth(style, containerWidth);
         if (TryResolveImportedPercentageFrameWidth(style, autoFitPreferredWidths, autoFitMinimumWidths,
-            columnCount, columnGap, out double importedWidth))
+            columnCount, columnGap, availableWidth, out double importedWidth))
             return style.AllowWidthBeyondFrame
                 ? style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value, importedWidth) : importedWidth
                 : Math.Min(availableWidth, importedWidth);

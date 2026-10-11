@@ -32,6 +32,17 @@ public sealed class WordPdfLigatureTests {
         AssertLigature(Render("body", inherited, direct, "15", "1"), expectedLigature);
 
     [Theory]
+    [InlineData("run", false)]
+    [InlineData("run", true)]
+    [InlineData("style", false)]
+    [InlineData("style", true)]
+    [InlineData("defaults", false)]
+    [InlineData("defaults", true)]
+    public void MissingLigatureValuePreservesInheritedTypography(string route, bool otherNamespace) =>
+        AssertLigature(Render("body", "standard", null, "15", "1", malformedRoute: route,
+            otherNamespace: otherNamespace), route != "defaults");
+
+    [Theory]
     [InlineData(null, null, false)]
     [InlineData("14", null, false)]
     [InlineData("15", null, true)]
@@ -58,7 +69,8 @@ public sealed class WordPdfLigatureTests {
         Assert.Equal(enabled ? 5D : 10D, letters.Sum(letter => letter.Width), 3);
     }
 
-    private static byte[] Render(string story, string? inherited, string? direct, string? mode, string? enabled, string feature = "liga") {
+    private static byte[] Render(string story, string? inherited, string? direct, string? mode, string? enabled, string feature = "liga",
+        string? malformedRoute = null, bool otherNamespace = false) {
         using WordDocument document = WordDocument.Create();
         var part = document._wordprocessingDocument.MainDocumentPart!;
         var defaults = new W.RunPropertiesBaseStyle(new W.RunFonts {
@@ -94,6 +106,19 @@ public sealed class WordPdfLigatureTests {
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         paragraph.FontSize = 10;
         if (direct != null) paragraph._paragraph.Descendants<W.Run>().Last(run => run.InnerText == "fi").RunProperties!.Append(Ligatures(direct));
+        if (malformedRoute != null) {
+            var element = new OpenXmlUnknownElement("w14", "ligatures", "http://schemas.microsoft.com/office/word/2010/wordml");
+            if (otherNamespace) element.SetAttribute(new OpenXmlAttribute("x", "val", "urn:other", "none"));
+            if (malformedRoute == "run") paragraph._paragraph.Descendants<W.Run>().Last().RunProperties!.Append(element);
+            else if (malformedRoute == "style") {
+                part.StyleDefinitionsPart!.Styles!.Append(new W.Style(new W.StyleName { Val = "Missing ligature value" },
+                    new W.StyleRunProperties(element)) { Type = W.StyleValues.Paragraph, StyleId = "MissingLigatureValue" });
+                (paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties()).ParagraphStyleId = new W.ParagraphStyleId { Val = "MissingLigatureValue" };
+            } else {
+                foreach (var existing in defaults.ChildElements.Where(x => x.LocalName == "ligatures").ToArray()) existing.Remove();
+                defaults.Append(element);
+            }
+        }
         var options = new PdfOptions { DefaultFontSize = 10D };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: feature, scriptTag: "latn")));
