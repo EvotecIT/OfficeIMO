@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
                 return deferredResult;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
 
             if (TryInsertDataReaderByAppendingRows(
                     reader,
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (autoFit) {
-                    AutoFitContiguousColumns(startColumn, headers.Length);
+                    AutoFitContiguousColumns(startColumn, headers.Length, ct: ct);
                 }
 
                 RegisterDirectDataReaderSaveCandidateIfPossible(
@@ -219,7 +219,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (autoFit) {
-                AutoFitContiguousColumns(startColumn, headers.Length);
+                AutoFitContiguousColumns(startColumn, headers.Length, ct: ct);
             }
 
             RegisterDirectDataReaderSaveCandidateIfPossible(
@@ -319,7 +319,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
             string? actualTableName = InsertBufferedDataReaderRows(
                 headers,
                 fieldTypes,
@@ -332,7 +332,8 @@ namespace OfficeIMO.Excel {
                 includeAutoFilter,
                 createTable,
                 autoFit,
-                range);
+                range,
+                ct);
             result = new ExcelDataReaderInsertResult(Name, actualTableName, range, rows.Count, columnCount);
             return true;
         }
@@ -349,7 +350,8 @@ namespace OfficeIMO.Excel {
             bool includeAutoFilter,
             bool createTable,
             bool autoFit,
-            string range) {
+            string range,
+            CancellationToken ct) {
             string? actualTableName = null;
             int row = startRow;
             if (includeHeaders) {
@@ -383,7 +385,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (autoFit) {
-                AutoFitContiguousColumns(startColumn, headers.Count);
+                AutoFitContiguousColumns(startColumn, headers.Count, ct: ct);
             }
 
             return actualTableName;
