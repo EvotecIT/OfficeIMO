@@ -3,8 +3,9 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Fits each percentage preference before the fractions become normalized allocation weights.</summary>
     private static bool TryResolveImportedPercentageFrameWidth(PdfTableStyle style, double[]? preferredWidths,
-        double[]? minimumWidths, int columns, double gap, out double width) {
+        double[]? minimumWidths, int columns, double gap, double availableWidth, out double width) {
         width = 0D;
+        double gapWidth = Math.Max(0, columns - 1) * gap;
         var fractions = style.ImportedColumnWidthFractions;
         if (!style.AutoFitUnspecifiedWidthToContent || style.PreferredWidth.HasValue ||
             fractions == null || fractions.Count != columns) return false;
@@ -31,11 +32,13 @@ internal static partial class PdfWriter {
             width = Math.Max(width, Math.Max(preferred, minimum) / fraction);
         }
         if (hasRemainingColumns)
-            width = fractionTotal < 1D ? Math.Max(width, remainingPreference / (1D - fractionTotal)) : double.MaxValue;
+            // No finite content-derived frame can satisfy a remaining column
+            // once percentages consume the frame. Use its real available extent.
+            width = fractionTotal < 1D ? Math.Max(width, remainingPreference / (1D - fractionTotal)) : availableWidth - gapWidth;
         // Absolute preferences from other rows still provide the minimum
         // preferred extent of a fixed automatic table, even on percentage columns.
         if (!style.AutoFitColumns) width = Math.Max(width, preferredTotal);
-        width = Math.Max(width, minimumTotal) + Math.Max(0, columns - 1) * gap;
+        width = Math.Max(width, minimumTotal) + gapWidth;
         // Fixed automatic frames retain source twips. A fractional frame
         // below that boundary can split a word that fits in the source cell.
         if (!style.AutoFitColumns && width < double.MaxValue / 20D)

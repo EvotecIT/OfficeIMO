@@ -6,6 +6,35 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfImportedMixedPercentageTests {
     [Theory]
+    [InlineData(1D, false)]
+    [InlineData(1.5D, false)]
+    [InlineData(1D, true)]
+    [InlineData(1.5D, true)]
+    public void AutomaticFramesWithOvercommittedMixedPercentagesRemainFinite(double fraction, bool autoFit) {
+        var style = MixedStyle(6.4D);
+        style.PreferredWidth = null;
+        style.AllowWidthBeyondFrame = true;
+        style.AutoFitUnspecifiedWidthToContent = true;
+        style.AutoFitColumns = autoFit;
+        style.ImportedColumnWidthFractions = new List<double?> { fraction, null, null };
+        var (first, second) = RenderWidths(style);
+        Assert.InRange(first, 280D, 288D);
+        Assert.InRange(second, 6.39D, 10D);
+    }
+
+    [Fact]
+    public void OvercommittedAutomaticFramesReserveGapsWithinTheirAvailableExtent() {
+        var style = MixedStyle(6.4D);
+        style.PreferredWidth = null;
+        style.AllowWidthBeyondFrame = true;
+        style.AutoFitUnspecifiedWidthToContent = true;
+        style.CellSpacing = 10D;
+        style.ImportedColumnWidthFractions = new List<double?> { 1D, null, null };
+        var (first, second) = RenderWidths(style);
+        Assert.InRange(first + second, 290D, 294D);
+    }
+
+    [Theory]
     [InlineData(.25D, 50.35D, 75D, 75D)]
     [InlineData(.5D, 50.35D, 150D, 59.6D)]
     [InlineData(.75D, 50.35D, 199.3D, 50.35D)]

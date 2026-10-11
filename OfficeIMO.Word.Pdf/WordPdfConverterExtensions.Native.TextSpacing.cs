@@ -50,8 +50,10 @@ namespace OfficeIMO.Word.Pdf {
             const string word2010 = "http://schemas.microsoft.com/office/word/2010/wordml";
             // The SDK retains this extension as an unknown element in some
             // run-property containers, including loaded document defaults.
-            return properties?.ChildElements.LastOrDefault(child => child.LocalName == "ligatures" && child.NamespaceUri == word2010)
-                ?.GetAttribute("val", word2010).Value;
+            OpenXmlElement? ligatures = properties?.ChildElements
+                .LastOrDefault(child => child.LocalName == "ligatures" && child.NamespaceUri == word2010);
+            return ligatures?.GetAttributes()
+                .FirstOrDefault(attribute => attribute.LocalName == "val" && attribute.NamespaceUri == word2010).Value;
         }
 
         private static double? ReadNativeCharacterScale(W.CharacterScale? scale) {
