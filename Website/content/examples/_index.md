@@ -11,6 +11,7 @@ For complete business scenarios, use the [repository example library](https://gi
 ## Examples
 
 - [Create a Word report](./create-word-report/)
+- [Space tables and charts in a Word report](./spaced-word-report/)
 - [Create an Excel workbook](./create-excel-workbook/)
 - [Create a PowerPoint deck](./create-powerpoint-deck/)
 - [Review Office documents as HTML](./review-office-documents-as-html/)

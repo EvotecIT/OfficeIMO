@@ -1,6 +1,6 @@
 # PSWriteOffice example library
 
-These 62 recipes are complete PowerShell scripts that create, read, update, combine, or convert real files. Start with the workflow you need, then move to the larger showcase scripts when you want to see several features working together.
+These recipes create, read, update, combine, or convert real files. Start with the workflow you need, then move to the larger showcase scripts when you want to see several features working together.
 
 ```powershell
 Install-Module PSWriteOffice -Scope CurrentUser
@@ -19,6 +19,7 @@ Saved DSL constructors are quiet by default. Add `-PassThru` only when the next 
 | Export rows or query results | Pipeline | [Excel quick export](Excel/Recipe-Excel-QuickExport.ps1) |
 | Add content from loops and conditions | Document objects | [Word](Word/Recipe-Word-ObjectComposition.ps1), [Excel](Excel/Recipe-Excel-ObjectComposition.ps1), [PowerPoint](PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1), [Markdown](Markdown/Recipe-Markdown-ObjectComposition.ps1) |
 | Author the complete artifact in one block | DSL | [Project status report](Word/Recipe-Word-ProjectStatus.ps1), [service invoice](Pdf/Recipe-Pdf-ServiceInvoice.ps1) |
+| Produce a report with a table and chart | DSL with paragraph spacing and cell padding | [Patch compliance report](Word/Recipe-Word-PatchCompliance.ps1) |
 | Change a supplied file | Open, target, save, close | [Word update](Word/Recipe-Word-UpdateExisting.ps1), [Excel update](Excel/Recipe-Excel-UpdateExisting.ps1), [PowerPoint update](PowerPoint/Recipe-PowerPoint-UpdateExisting.ps1) |
 
 The [workflow guide](https://officeimo.com/docs/pswriteoffice/object-workflows/) explains when these surfaces fit. They use the same document engines and can coexist in a larger automation job.

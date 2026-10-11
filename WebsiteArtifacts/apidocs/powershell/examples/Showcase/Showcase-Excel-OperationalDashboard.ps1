@@ -1,10 +1,12 @@
 param(
-    [switch] $Open
+    [switch] $Open,
+    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output')
 )
 
+$ErrorActionPreference = 'Stop'
 Import-Module PSWriteOffice -ErrorAction Stop
 
-$documents = Join-Path $PSScriptRoot '..\Documents'
+$documents = $OutputDirectory
 $null = New-Item -Path $documents -ItemType Directory -Force
 $path = Join-Path $documents 'Showcase-Excel-OperationalDashboard.xlsx'
 $logoPath = Join-Path $PSScriptRoot '..\Word\Example-WordTableCells.fixture.png'
@@ -97,7 +99,7 @@ New-OfficeExcel -Path $path {
         ExcelConditionalIconSet -Range 'B2:B9' -IconSet ThreeTrafficLights1
         ExcelUrlLinksByHeader -Header 'Evidence' -TableName 'ServiceHealth' -UrlScript { param($text) "https://evotec.xyz/docs/$text" } -TitleScript { param($text) "Open $text" }
         ExcelPivotTable -SourceRange 'A1:F9' -DestinationCell 'J1' -Name 'ServiceStatusPivot' -RowField Status -DataField Incidents -DataDisplayName 'Total Incidents' -PivotStyle PivotStyleMedium9 -RefreshOnOpen
-        ExcelChart -Range 'A1:C9' -Row 12 -Column 1 -Type BarClustered -Title 'Health Score and Incidents' -WidthPixels 760 -HeightPixels 340 -PassThru |
+        ExcelChart -Range 'A1:B9' -Row 12 -Column 1 -Type BarClustered -Title 'Service health score (0-100)' -WidthPixels 760 -HeightPixels 340 -PassThru |
             Set-OfficeExcelChartLegend -Position Bottom -PassThru |
             Set-OfficeExcelChartDataLabels -ShowValue $true -Position OutsideEnd -PassThru |
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
@@ -107,13 +109,15 @@ New-OfficeExcel -Path $path {
     ExcelSheet 'Trend' {
         ExcelTable -Data $trend -TableName 'TrendData' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium2' -AutoFit
         ExcelFreeze -TopRows 1
-        ExcelSparkline -DataRange 'B2:D2' -LocationRange 'E2'
-        ExcelSparkline -DataRange 'B3:D3' -LocationRange 'E3'
-        ExcelSparkline -DataRange 'B4:D4' -LocationRange 'E4'
-        ExcelSparkline -DataRange 'B5:D5' -LocationRange 'E5'
-        ExcelSparkline -DataRange 'B6:D6' -LocationRange 'E6'
-        ExcelSparkline -DataRange 'B7:D7' -LocationRange 'E7'
-        ExcelChart -TableName 'TrendData' -Row 10 -Column 1 -Type Line -Title 'Availability, Incidents, and Automation' -WidthPixels 780 -HeightPixels 340 -PassThru |
+        ExcelCell -Address 'F1' -Value 'Six-month trends'
+        ExcelCell -Address 'F2' -Value 'Availability (%)'
+        ExcelSparkline -DataRange 'B2:B7' -LocationRange 'G2'
+        ExcelCell -Address 'F3' -Value 'Incidents'
+        ExcelSparkline -DataRange 'C2:C7' -LocationRange 'G3'
+        ExcelCell -Address 'F4' -Value 'Automation (%)'
+        ExcelSparkline -DataRange 'D2:D7' -LocationRange 'G4'
+        ExcelTable -Data ($trend | Select-Object Month, Incidents) -TableName 'IncidentTrend' -StartRow 1 -StartColumn 10 -TableStyle 'TableStyleMedium2' -AutoFit
+        ExcelChart -Range 'J1:K7' -Row 10 -Column 1 -Type Line -Title 'Recorded incidents by month' -WidthPixels 780 -HeightPixels 340 -PassThru |
             Set-OfficeExcelChartLegend -Position Bottom -PassThru |
             Set-OfficeExcelChartDataLabels -ShowValue $true -Position Top -PassThru |
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
@@ -138,7 +142,7 @@ New-OfficeExcel -Path $path {
     }
 
     ExcelTableOfContents -SheetName 'Index' -IncludeNamedRanges -AddBackLinks -BackLinkText 'Back to Index'
-} -Open:$Open
+} -Open:$Open -EvaluateFormulas
 
 $threaded = Add-OfficeExcelThreadedComment -Path $path -Sheet Summary -Address A2 -Text 'Review dashboard posture before sending to service owners.' -Author 'Automation Reviewer' -PassThru
 Add-OfficeExcelThreadedComment -Path $path -Sheet Summary -Address A2 -Text 'Ready for owner review.' -Author 'Report Owner' -ParentId $threaded.Id -Done
