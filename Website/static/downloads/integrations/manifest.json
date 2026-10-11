@@ -1,6 +1,6 @@
 {
   "sourceRepository": "EvotecIT/PSWriteOffice",
-  "sourceCommit": "9290893aec8913d1e95fbb43d9e60940fab448fe",
+  "sourceCommit": "87729715cabfeda884b46a3bb7a2994c97ec8093",
   "modules": {
     "PSWriteOffice": "3.0.8",
     "PSParseHTML": "3.0.3",
@@ -69,8 +69,8 @@
     },
     {
       "path": "/downloads/integrations/mail-default/ReportReview.eml",
-      "bytes": 6840,
-      "sha256": "4a0f3b166f2ef369e0c98d22feed99925b974e36b8930b84415ed43b77667274"
+      "bytes": 6842,
+      "sha256": "4fc38eec1e0463a304ada5c210737b1a9ea84329cb58bc6cad3402dce488624a"
     },
     {
       "path": "/downloads/integrations/mail-default/preview.png",
@@ -89,8 +89,8 @@
     },
     {
       "path": "/downloads/integrations/source/Recipe-Mailozaurr-PdfDelivery.ps1",
-      "bytes": 3466,
-      "sha256": "3a98804de72816fbd9506378cb02505d11f1b1687479b7a5a5b6f8b7407987af"
+      "bytes": 3468,
+      "sha256": "5ab9be9b9568d83a94af74545daa2917b56cc5dbf9cae5c6f78af5d8997ea6aa"
     },
     {
       "path": "/downloads/integrations/source/Input/SupplierOffers.html",

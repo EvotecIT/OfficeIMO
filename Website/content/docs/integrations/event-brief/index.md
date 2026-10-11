@@ -17,7 +17,7 @@ Install-Module PSWriteOffice -Scope CurrentUser
 ./Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1 -OutputDirectory ./Output/EventBrief
 ```
 
-Run from a PSWriteOffice checkout, or download the [complete script](/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1). Its [source revision](https://github.com/EvotecIT/PSWriteOffice/blob/9290893aec8913d1e95fbb43d9e60940fab448fe/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) matches these downloads.
+Run from a PSWriteOffice checkout, or download the [complete script](/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1). Its [source revision](https://github.com/EvotecIT/PSWriteOffice/blob/87729715cabfeda884b46a3bb7a2994c97ec8093/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) matches these downloads.
 
 ## Use an existing snapshot or collect once
 
