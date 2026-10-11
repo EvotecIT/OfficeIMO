@@ -64,6 +64,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Opml\OfficeIMO.Reader.Opml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.PowerPoint\OfficeIMO.Reader.PowerPoint.csproj" />
+    <ProjectReference Include="../OfficeIMO.Reader.Publisher/OfficeIMO.Reader.Publisher.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Subtitles\OfficeIMO.Reader.Subtitles.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
@@ -103,6 +104,7 @@
     <None Include="..\OfficeIMO.OneNote.Tests\Fixtures\*.one" Link="OneNoteFixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\**" Link="Documents\IWorkCorpus\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="ReaderGolden\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Publisher.Tests/Fixtures/*.pub" Link="PublisherFixtures/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

@@ -26,26 +26,31 @@ public sealed partial class OfficeWorkflowRunner {
         List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
         using var source = new MemoryStream(input, writable: false);
         using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
-        OfficeWorkflowConversionEvidence evidence = request.Registration!.Converter(source, output, request.Limits.CloneAndValidate(), request.RegisteredConversionSettings, token)
-            ?? throw new InvalidOperationException("The registered converter returned no evidence.");
-        token.ThrowIfCancellationRequested();
-        foreach (OfficeConversionFidelityDiagnostic diagnostic in evidence.FidelityDiagnostics) {
-            var details = new Dictionary<string, string>(StringComparer.Ordinal) {
-                ["lossKind"] = diagnostic.LossKind.ToString(), ["source"] = diagnostic.Source
-            };
-            if (diagnostic.Location is not null) details["location"] = diagnostic.Location;
-            diagnostics.Add(new OfficeWorkflowDiagnostic(diagnostic.Code, diagnostic.Message,
-                diagnostic.LossKind == OfficeConversionLossKind.Failure ? OfficeWorkflowDiagnosticSeverity.Error
-                    : diagnostic.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information
-                    : OfficeWorkflowDiagnosticSeverity.Warning, "convert", details));
+        OfficeWorkflowConversionEvidence evidence;
+        try {
+            evidence = request.Registration!.Converter(source, output, request.Limits.CloneAndValidate(), request.RegisteredConversionSettings, token)
+                ?? throw new InvalidOperationException("The registered converter returned no evidence.");
+        } catch (OfficeConversionException exception) {
+            var failed = exception.Report as OfficeWorkflowConversionEvidence ?? new OfficeWorkflowConversionEvidence(exception.Report);
+            if (token.IsCancellationRequested && exception.InnerException is OperationCanceledException cancelled)
+                throw new WorkflowConversionCancellationException(cancelled, failed);
+            throw new WorkflowConversionFailureException(exception.InnerException ?? exception, failed);
         }
+        AddConversionDiagnostics(evidence, diagnostics);
         diagnostics.Add(new OfficeWorkflowDiagnostic("ConversionEvidence", "Source and projection evidence from the registered format owner.",
             stage: "convert", details: evidence.Facts));
         diagnostics.Add(new OfficeWorkflowDiagnostic("RouteContract", request.Route!.Description, stage: "convert",
             details: new Dictionary<string, string> { ["route"] = request.Route.Id, ["engine"] = request.Route.Engine,
                 ["knownLimitations"] = request.Route.KnownLimitations }));
-        return new OperationArtifact(output.ToArray(), request.Route.Label + (evidence.HasLoss
-            ? " completed with fidelity warnings; review the structured diagnostics."
-            : " completed and the output reopened successfully."), null, ConversionEvidence: evidence);
+        try {
+            token.ThrowIfCancellationRequested();
+            return new OperationArtifact(output.ToArray(), request.Route.Label + (evidence.HasLoss
+                ? " completed with fidelity warnings; review the structured diagnostics."
+                : " completed and the output reopened successfully."), null, ConversionEvidence: evidence);
+        } catch (OperationCanceledException exception) when (token.IsCancellationRequested) {
+            throw new WorkflowConversionCancellationException(exception, evidence, diagnosticsAdded: true);
+        } catch (Exception exception) when (exception is not OperationCanceledException and not OutOfMemoryException and not StackOverflowException) {
+            throw new WorkflowConversionFailureException(exception, evidence, diagnosticsAdded: true);
+        }
     }
 }
