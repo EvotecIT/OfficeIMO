@@ -1,9 +1,14 @@
 param(
     [string] $SiteRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
     [string] $PSWriteOfficeRoot = $env:PSWRITEOFFICE_ROOT,
+    [string] $ExportedArtifactsRoot,
     [switch] $SkipDocumentation,
     [switch] $SkipExamples
 )
+
+if ($ExportedArtifactsRoot -and -not $PSWriteOfficeRoot) {
+    throw 'An exported bundle requires an explicit PSWriteOffice source checkout.'
+}
 
 function Assert-NoSourceLinks {
     param([Parameter(Mandatory)][string] $Root)
@@ -260,7 +265,8 @@ function Test-ApiBundle {
         [Parameter(Mandatory)][string] $ManifestPath,
         [Parameter(Mandatory)][string] $HelpPath,
         [Parameter(Mandatory)][string] $MetadataPath,
-        [Parameter(Mandatory)][string[]] $ExpectedCommands
+        [Parameter(Mandatory)][string[]] $ExpectedCommands,
+        [Parameter(Mandatory)][version] $ExpectedVersion
     )
 
     $paths = @($ManifestPath, $HelpPath, $MetadataPath)
@@ -270,6 +276,10 @@ function Test-ApiBundle {
     }
 
     try {
+        $bundleManifest = Import-PowerShellDataFile -LiteralPath $ManifestPath
+        if ([version]$bundleManifest.ModuleVersion -ne $ExpectedVersion) {
+            return [PSCustomObject]@{ Valid = $false; Reason = "bundle version $($bundleManifest.ModuleVersion) does not match source version $ExpectedVersion"; CommandCount = 0 }
+        }
         $sets = [ordered]@{
             manifest = @(Get-ManifestCommandNames -Path $ManifestPath)
             help = @(Get-HelpCommandNames -Path $HelpPath)
@@ -291,6 +301,22 @@ function Test-ApiBundle {
     }
 
     [PSCustomObject]@{ Valid = $true; Reason = 'complete'; CommandCount = $ExpectedCommands.Count }
+}
+
+function Test-DocumentationCatalog {
+    param(
+        [Parameter(Mandatory)][string] $Path,
+        [Parameter(Mandatory)][version] $ExpectedVersion,
+        [Parameter(Mandatory)][int] $ExpectedCommandCount
+    )
+
+    try {
+        $catalog = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json
+        $familyTotal = @($catalog.families | Measure-Object commandCount -Sum).Sum
+        return [version]$catalog.module.version -eq $ExpectedVersion -and
+            $catalog.module.commandCount -eq $ExpectedCommandCount -and
+            $familyTotal -eq $ExpectedCommandCount
+    } catch { return $false }
 }
 
 function Set-PSWriteOfficeSourceLinks {
@@ -462,26 +488,31 @@ if (-not $resolvedRepoRoot) {
 # Reject links before reading any source bundle or dereferencing copy inputs.
 Assert-NoSourceLinks -Root $resolvedRepoRoot
 
-$websiteArtifactsRoot = Join-Path $resolvedRepoRoot 'WebsiteArtifacts\apidocs\powershell'
+$sourceArtifactsRoot = if ($ExportedArtifactsRoot) {
+    (Resolve-Path -LiteralPath $ExportedArtifactsRoot -ErrorAction Stop).Path
+} else { Join-Path $resolvedRepoRoot 'WebsiteArtifacts' }
+Assert-NoSourceLinks -Root $sourceArtifactsRoot
+$websiteArtifactsRoot = Join-Path $sourceArtifactsRoot 'apidocs\powershell'
 $resolvedHelpPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice-help.xml'
 $resolvedManifestPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice.psd1'
 $resolvedCommandMetadataPath = Join-Path $websiteArtifactsRoot 'command-metadata.json'
 $authoritativeManifestPath = Join-Path $resolvedRepoRoot 'PSWriteOffice.psd1'
 $expectedCommands = @(Get-ManifestCommandNames -Path $authoritativeManifestPath)
+$expectedVersion = [version](Import-PowerShellDataFile -LiteralPath $authoritativeManifestPath).ModuleVersion
 $summary.expectedCommandCount = $expectedCommands.Count
 
 $sourceBundle = Test-ApiBundle `
     -ManifestPath $resolvedManifestPath `
     -HelpPath $resolvedHelpPath `
     -MetadataPath $resolvedCommandMetadataPath `
-    -ExpectedCommands $expectedCommands
+    -ExpectedCommands $expectedCommands -ExpectedVersion $expectedVersion
 $summary.sourceBundleStatus = $sourceBundle.Reason
 
 $checkedInBundle = Test-ApiBundle `
     -ManifestPath $targetManifestPath `
     -HelpPath $targetHelpPath `
     -MetadataPath $targetCommandMetadataPath `
-    -ExpectedCommands $expectedCommands
+    -ExpectedCommands $expectedCommands -ExpectedVersion $expectedVersion
 
 $gitDirectory = Join-Path $resolvedRepoRoot '.git'
 if (Test-Path -LiteralPath $gitDirectory) {
@@ -528,22 +559,12 @@ if (-not $SkipExamples) {
 if (-not $SkipDocumentation) {
     $sourceDocumentationPath = Join-Path $resolvedRepoRoot 'Website\content\project-docs\docs'
     $targetDocumentationPath = Join-Path $resolvedSiteRoot 'content\docs\pswriteoffice'
-    $sourceCatalogPath = Join-Path $resolvedRepoRoot 'WebsiteArtifacts\documentation\command-catalog.json'
+    $sourceCatalogPath = Join-Path $sourceArtifactsRoot 'documentation\command-catalog.json'
     $targetCatalogPath = Join-Path $resolvedSiteRoot 'data\pswriteoffice_command_catalog.json'
     $sourceDocumentationAvailable = Test-Path -LiteralPath $sourceDocumentationPath -PathType Container
     $sourceCatalogAvailable = Test-Path -LiteralPath $sourceCatalogPath -PathType Leaf
-    $sourceCatalogValid = $false
-
-    if ($sourceCatalogAvailable) {
-        try {
-            $sourceCatalog = Get-Content -LiteralPath $sourceCatalogPath -Raw | ConvertFrom-Json
-            $sourceFamilyTotal = @($sourceCatalog.families | Measure-Object commandCount -Sum).Sum
-            $sourceCatalogValid = $sourceCatalog.module.commandCount -eq $expectedCommands.Count -and
-                $sourceFamilyTotal -eq $expectedCommands.Count
-        } catch {
-            $sourceCatalogValid = $false
-        }
-    }
+    $sourceCatalogValid = $sourceCatalogAvailable -and (Test-DocumentationCatalog `
+        -Path $sourceCatalogPath -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count)
 
     if ($sourceDocumentationAvailable -and $sourceCatalogValid) {
         Sync-DocumentationPages -Source $sourceDocumentationPath -Destination $targetDocumentationPath
@@ -557,7 +578,7 @@ if (-not $SkipDocumentation) {
         $summary.documentationCatalogSource = $sourceCatalogPath
         $summary.documentationCatalogUpdated = $true
     } elseif ((Test-Path -LiteralPath (Join-Path $targetDocumentationPath 'index.md') -PathType Leaf) -and
-        (Test-Path -LiteralPath $targetCatalogPath -PathType Leaf)) {
+        (Test-DocumentationCatalog -Path $targetCatalogPath -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count)) {
         Write-Host 'PSWriteOffice source documentation/catalog pair is missing or incomplete. Keeping the complete checked-in documentation snapshot.' -ForegroundColor Yellow
         $summary.documentationSource = $targetDocumentationPath
         $summary.documentationCatalogSource = $targetCatalogPath

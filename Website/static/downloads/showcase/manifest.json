@@ -189,24 +189,24 @@
     {
       "id": "pswriteoffice-output",
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
-      "bytes": 22207,
-      "sha256": "1bd89df5eb7508ce51f3f4cc8e42c9f20dbc8f3f0f3efd0d7f6d55ccc4409dde",
+      "bytes": 22211,
+      "sha256": "0c92b856efbd855be94c3f8ce7583dcd360f6809210f62d16fef583c28491e01",
       "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
       "evidence": "DOCX created from PowerShell objects by PSWriteOffice."
     },
     {
       "id": "pswriteoffice-pdf",
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
-      "bytes": 72370,
-      "sha256": "070edb8353772df3c0acb065a9a6ecde5f04aba283e6ac8f270fa94494360a3a",
+      "bytes": 92595,
+      "sha256": "bd6cc8410b3787ae1686fc41633902f08b9383b5e71da394256a44d0093a1ea8",
       "generator": "PSWriteOffice Export-OfficeDocumentPdf",
       "evidence": "First-party Word-to-PDF conversion of the generated DOCX."
     },
     {
       "id": "pswriteoffice-preview",
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
-      "bytes": 87244,
-      "sha256": "c88d616c98a0478a21b48a2d0c0509e5a7762381faf59f00a2466c3ae5413695",
+      "bytes": 89773,
+      "sha256": "70b9c31b995b3db2958e0ea67b4a1fbd581a1be3f39f45d9015ca43e58e0d59e",
       "generator": "Poppler pdftocairo page-one render of the generated PDF",
       "evidence": "Independent page-one render of the first-party PDF result."
     },

@@ -54442,9 +54442,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Font size in points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -54585,9 +54585,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Font size in points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -54728,9 +54728,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Font size in points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -143527,7 +143527,7 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDocumentFontEmbedding</maml:name>
           <maml:description>
-            <maml:para>Allow embedding installed fonts selected by a trusted workbook. System-font embedding must also be enabled.</maml:para>
+            <maml:para>Allow embedding fonts stored in the workbook.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -143930,7 +143930,7 @@ This does not discover, bypass, or crack a missing password.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>AllowDocumentFontEmbedding</maml:name>
         <maml:description>
-          <maml:para>Allow embedding installed fonts selected by a trusted workbook. System-font embedding must also be enabled.</maml:para>
+          <maml:para>Allow embedding fonts stored in the workbook.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -153778,7 +153778,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDocumentFontEmbedding</maml:name>
           <maml:description>
-            <maml:para>Allow embedding installed fonts selected by a trusted presentation. System-font embedding must also be enabled.</maml:para>
+            <maml:para>Allow embedding fonts stored in the presentation.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -154031,7 +154031,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>AllowDocumentFontEmbedding</maml:name>
         <maml:description>
-          <maml:para>Allow embedding installed fonts selected by a trusted presentation. System-font embedding must also be enabled.</maml:para>
+          <maml:para>Allow embedding fonts stored in the presentation.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -158210,7 +158210,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>AllowDocumentFontEmbedding</maml:name>
           <maml:description>
-            <maml:para>Allow embedding installed fonts selected by a trusted Word document. System-font embedding must also be enabled.</maml:para>
+            <maml:para>Allow embedding fonts stored in the Word document.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -158461,7 +158461,7 @@ Use -NoSave or omit -Path when a document object should be returned for further 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>AllowDocumentFontEmbedding</maml:name>
         <maml:description>
-          <maml:para>Allow embedding installed fonts selected by a trusted Word document. System-font embedding must also be enabled.</maml:para>
+          <maml:para>Allow embedding fonts stored in the Word document.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -200012,9 +200012,9 @@ cell inside a deck that already exists.</maml:para>
           <maml:description>
             <maml:para>Font size in points.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
-            <maml:name>Double</maml:name>
+            <maml:name>Int32</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -200299,9 +200299,9 @@ cell inside a deck that already exists.</maml:para>
         <maml:description>
           <maml:para>Font size in points.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
-          <maml:name>Double</maml:name>
+          <maml:name>Int32</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
