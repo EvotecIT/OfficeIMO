@@ -35,6 +35,13 @@ PS> Get-OfficeConversionRoute -PdfBatch | Select-Object Id, SourceExtensions, Pa
 
 Batch PDF export requires PowerShell 7.4 or newer. Windows PowerShell 5.1 can inspect the catalog and use supported single-file commands.
 
+### EXAMPLE 3
+```powershell
+PS> 'docx-pdf', 'pdf-docx' | Get-OfficeConversionRoute
+```
+
+The pipeline also accepts objects with an Id property.
+
 ## PARAMETERS
 
 ### -Id
@@ -49,7 +56,7 @@ Possible values:
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByPropertyName)
+Accept pipeline input: True (ByValue, ByPropertyName)
 Accept wildcard characters: False
 ```
 
