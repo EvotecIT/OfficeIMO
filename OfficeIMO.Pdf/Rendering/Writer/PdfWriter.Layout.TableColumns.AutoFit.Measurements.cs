@@ -181,6 +181,13 @@ internal static partial class PdfWriter {
             var cells = GetTableCellLayouts(table, rowIndex, cols);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                 TableCellLayout cell = cells[cellIndex];
+                // Complete imported percentage grids measure text in source
+                // twips before applying the layout's floating-point tolerance.
+                // Pictures and controls have independent geometry conversions.
+                bool useSourceTextWidthUnits = style.AutoFitWidthUsesContentMinimum &&
+                    style.ImportedAutomaticColumnWidthFractions != null && cell.TextRotation == 0 &&
+                    cell.Images.Count == 0 && cell.CheckBoxes.Count == 0 && cell.FormFields.Count == 0 &&
+                    !cell.Runs.Any(run => run.InlineElement != null && run.InlineElement is not PdfInlineBox { IsTextSpacer: true });
                 AutoFitTextProfile textProfile = textProfiles[rowIndex * cols + cell.Column];
                 bool splitMinimumCamelCase = useLargeDenseCamelCaseCap || useLargeDenseDelimitedCodeCap;
                 string[] tokens = GetAutoFitMinimumWidthTokens(cell.Text, splitCamelCase: splitMinimumCamelCase);
@@ -202,6 +209,8 @@ internal static partial class PdfWriter {
                 for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols; c++)
                     paddingWidths[c] = Math.Max(paddingWidths[c], horizontalPadding / cell.ColumnSpan);
                 double requestedWidth = Math.Max(1D, measuredPoints + horizontalPadding);
+                if (useSourceTextWidthUnits)
+                    requestedWidth = Math.Ceiling(requestedWidth * 20D - 1e-9D) / 20D;
                 double requestedPerColumn = requestedWidth / cell.ColumnSpan;
                 for (int c = cell.Column; c < cell.Column + cell.ColumnSpan && c < cols &&
                     (!automaticImportedSpans || cell.ColumnSpan == 1); c++) {
@@ -216,7 +225,10 @@ internal static partial class PdfWriter {
                     double wordWidth = cell.TextRotation != 0 ? orientedTextWidth : MeasureImportedTableTextWidth(cell, rowStandardFont, rowSize, options);
                     // Subtracting the padding again during layout must not
                     // round the inner width below the measured word width.
-                    double minimum = Math.Max(1D, Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding + .001D);
+                    double minimum = Math.Max(wordWidth, MeasureTableCellObjectWidth(cell)) + horizontalPadding;
+                    if (useSourceTextWidthUnits)
+                        minimum = Math.Ceiling(minimum * 20D - 1e-9D) / 20D;
+                    minimum = Math.Max(1D, minimum + .001D);
                     if (cell.ColumnSpan == 1)
                         minimumWidths[cell.Column] = Math.Max(minimumWidths[cell.Column], minimum);
                     else
