@@ -98,7 +98,7 @@ Font sizes preserve half-point values, including 10.5 pt. When the run and its s
 
 Each text run resolves its font through its own formatting, character style, paragraph style, table style, and document defaults. A preceding run's explicit font does not change the font of an unformatted sibling. This also applies to source page fields in headers and footers.
 
-Supplying an empty `PdfOptions` object, metadata, or header/footer presentation settings preserves the document's inherited body font and size. Generated headers and page numbers retain their explicitly selected fonts, including when the body embeds a font with the same standard-font alias. Explicit PDF body-font and default-size assignments retain their precedence. Rendering profiles keep the same distinction between document typography and presentation overrides.
+Supplying an empty `PdfOptions` object, metadata, or header/footer presentation settings preserves the document's inherited body font and size. Registering a reusable named font family makes it available to matching text without selecting a different body font. Generated headers and page numbers retain their explicitly selected fonts, including when the body embeds a font with the same standard-font alias. Explicit PDF body-font and default-size assignments retain their precedence. Rendering profiles keep the same distinction between document typography and presentation overrides.
 
 Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets

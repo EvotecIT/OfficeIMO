@@ -159,6 +159,11 @@ namespace OfficeIMO.Word.Pdf {
                 document.Settings.FontFamilyEastAsia,
                 document.Settings.FontFamilyComplexScript
             })) {
+                // Keep an available named source family on the run-resolution path.
+                // Mapping it to a standard slot would suppress inherited named text.
+                if (pdfOptions.TryResolveNamedOfficeFontFamily(family, out _)) {
+                    return false;
+                }
                 if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: allowDocumentFontEmbedding)) {
                     RegisterAppliedNativeDefaultFont(family!, pdfOptions, nativeFontMap, allowDocumentFontEmbedding);
                     return true;
