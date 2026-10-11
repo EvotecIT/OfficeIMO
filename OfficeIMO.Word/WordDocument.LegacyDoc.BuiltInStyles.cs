@@ -44,6 +44,7 @@ namespace OfficeIMO.Word {
         private static void MergeLegacyDocBuiltInStyleParagraphFormatting(WordDocument document, Style style, LegacyDocParagraphFormat paragraphFormat) {
             // Imported styles inherit absent controls from their own base style, not from our authoring templates.
             if (style.StyleParagraphProperties is StyleParagraphProperties templateProperties) {
+                RemoveStyleProperties<SpacingBetweenLines>(templateProperties);
                 RemoveStyleProperties<KeepLines>(templateProperties);
                 RemoveStyleProperties<KeepNext>(templateProperties);
                 RemoveStyleProperties<PageBreakBefore>(templateProperties);
