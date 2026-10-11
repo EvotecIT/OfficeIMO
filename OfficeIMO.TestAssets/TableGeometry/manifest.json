@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "producer": "ReportLab",
+  "reportlab": "4.4.9",
+  "sourceCoordinateSystem": "PDF default user space; points; origin lower-left",
+  "license": "MIT; repository LICENSE covers authored fixtures and labels",
+  "producerLicense": "ReportLab BSD license; generation tooling only",
+  "fontProvenance": "Unembedded PDF standard 14 Helvetica; no font binary bundled",
+  "cases": [
+    {
+      "id": "ruled-ledger-0",
+      "clockwiseDegrees": 0,
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "visualPageSizePoints": [
+        612,
+        792
+      ],
+      "rotationMethod": "PDF /Rotate; identical content stream and MediaBox",
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "geometry": {
+        "columnBoundariesPoints": [
+          42,
+          282,
+          354,
+          450,
+          570
+        ],
+        "columnWidthsPoints": [
+          240,
+          72,
+          96,
+          120
+        ],
+        "normalizedColumnWidths": [
+          0.45454545454545453,
+          0.13636363636363635,
+          0.18181818181818182,
+          0.22727272727272727
+        ],
+        "rowBoundariesPoints": [
+          700,
+          665,
+          630,
+          595,
+          560
+        ],
+        "rulingWidthPoints": 0.5,
+        "boundaryReference": "Ruling stroke centre in unrotated PDF user space",
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "acceptance": {
+        "requireExactTables": true,
+        "ratioReference": "Canonical detected column progression lengths",
+        "maximumXlsxNormalizedShareError": 1e-06,
+        "maximumOdsNormalizedShareError": 0.02,
+        "sourceGridRecoveryQualified": false
+      },
+      "files": {
+        "native.pdf": "6867264f16f64ad0651bcc643d273b6a2d746a584896f9b109b9c9161eae82e4"
+      }
+    },
+    {
+      "id": "ruled-ledger-90",
+      "clockwiseDegrees": 90,
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "visualPageSizePoints": [
+        792,
+        612
+      ],
+      "rotationMethod": "PDF /Rotate; identical content stream and MediaBox",
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "geometry": {
+        "columnBoundariesPoints": [
+          42,
+          282,
+          354,
+          450,
+          570
+        ],
+        "columnWidthsPoints": [
+          240,
+          72,
+          96,
+          120
+        ],
+        "normalizedColumnWidths": [
+          0.45454545454545453,
+          0.13636363636363635,
+          0.18181818181818182,
+          0.22727272727272727
+        ],
+        "rowBoundariesPoints": [
+          700,
+          665,
+          630,
+          595,
+          560
+        ],
+        "rulingWidthPoints": 0.5,
+        "boundaryReference": "Ruling stroke centre in unrotated PDF user space",
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ]
+      },
+      "acceptance": {
+        "requireExactTables": true,
+        "ratioReference": "Canonical detected column progression lengths",
+        "maximumXlsxNormalizedShareError": 1e-06,
+        "maximumOdsNormalizedShareError": 0.02,
+        "sourceGridRecoveryQualified": false
+      },
+      "files": {
+        "native.pdf": "20c3b0c16c00e0011fa153432dbff0892056fd762ac0b42a53018bd1558d018d"
+      }
+    }
+  ]
+}
