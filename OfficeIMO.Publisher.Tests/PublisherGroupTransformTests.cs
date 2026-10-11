@@ -7,6 +7,62 @@ using OfficeIMO.Publisher.Pdf;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherGroupTransformTests {
+    [Fact]
+    public void Client_anchors_keep_page_units_inside_a_scaled_group() {
+        byte[] leaf = Shape(3, 0, 0, false, new[] { -127000, -254000, 127000, 254000 }, filled: true);
+        PublisherDocument document = ProjectRecords(Record(0xF003, 15,
+            Shape(1, 1, 30, false, new[] { -1270000, -635000, 1270000, 635000 }, 1270000), leaf));
+        PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
+        Assert.Equal(20, frame.Width, 6); Assert.Equal(40, frame.Height, 6);
+        Equal(Transform(new OfficePoint(296, 376), 306, 396, 30, false, false),
+            frame.PageTransform.TransformPoint(new OfficePoint(0, 0)));
+    }
+
+    private static PublisherDocument CreateNonuniformGroup(bool relative, double angle) {
+        byte[] leaf = Shape(3, 0, relative ? 20 : angle, true, new[] { 317500, 317500, 952500, 952500 },
+            relativeAngle: relative ? angle : null, filled: true);
+        byte[] records = Record(0xF003, 15,
+            Shape(1, 1, 30, false, new[] { -1270000, -635000, 1270000, 635000 }, 1270000), leaf);
+        return ProjectRecords(records);
+    }
+
+    private static PublisherDocument ProjectRecords(byte[] records) {
+        var escher = new PublisherEscherReader(new PublisherBinaryData(records, "nonuniform group"), null,
+            new PublisherParseContext(new PublisherReadOptions(), default)).Read();
+        var source = new PublisherContents(612, 792, new Dictionary<uint, PublisherContentChunk>());
+        source.Pages.Add(new PublisherSourcePage(10, "", null, null));
+        source.Shapes.Add(1, new PublisherSourceShape(new PublisherContentChunk(1, 1, 0, 10), Array.Empty<PublisherBlock>()));
+        source.Shapes.Add(3, new PublisherSourceShape(new PublisherContentChunk(3, 1, 0, 10),
+            new[] { new PublisherBlock(0x27, 0, 0, 0, 4) }));
+        source.ObjectPages.Add(1, 10); source.ObjectPages.Add(3, 10);
+        var text = new PublisherQuillText();
+        text.Stories.Add(4, new PublisherTextStory(4, "", Array.Empty<OfficeRichTextParagraph>()));
+        return new PublisherPageProjector(source, text, escher,
+            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+    }
+
+    [Theory]
+    [InlineData(false, 45)]
+    [InlineData(false, 90)]
+    [InlineData(false, -30)]
+    [InlineData(true, 45)]
+    [InlineData(true, 0)]
+    public void Nonuniform_group_scaling_follows_child_rotation_in_artwork_and_frame_corners(bool relative, double angle) {
+        PublisherDocument document = CreateNonuniformGroup(relative, angle);
+        PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
+        var artwork = PublisherNativeTests.Elements(document.Pages[0].Drawing).OfType<OfficeDrawingEffectGroup>()
+            .Single(item => item.SourceElementIds?.Contains("publisher-object-3") == true
+                || PublisherNativeTests.Elements(item.InnerDrawing).Any(element => element.SourceElementIds?.Contains("publisher-object-3") == true));
+        foreach (OfficePoint unit in new[] { new OfficePoint(0, 0), new OfficePoint(1, 0), new OfficePoint(1, 1) }) {
+            OfficePoint rotated = Transform(new OfficePoint(25 + unit.X * 50, 25 + unit.Y * 50), 50, 50, angle, false, false);
+            OfficePoint expected = Transform(new OfficePoint(206 + rotated.X * 2, 346 + rotated.Y), 306, 396, 30, false, false);
+            Equal(expected, frame.PageTransform.TransformPoint(new OfficePoint(unit.X * frame.Width, unit.Y * frame.Height)));
+            OfficeDrawingShape shape = PublisherNativeTests.Elements(artwork.InnerDrawing).OfType<OfficeDrawingShape>().Single();
+            Equal(expected, artwork.Transform.TransformPoint(new OfficePoint(shape.X + unit.X * shape.Shape.Width,
+                shape.Y + unit.Y * shape.Shape.Height)));
+        }
+    }
+
     [Theory]
     [InlineData(0, true, false)]
     [InlineData(0, false, true)]
@@ -54,12 +110,14 @@ public sealed class PublisherGroupTransformTests {
         var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
         PublisherEscherData result = new PublisherEscherReader(new PublisherBinaryData(outer, "nested group records"), null, context).Read();
         PublisherEscherShape child = result.Shapes.Single(shape => shape.Id == 3);
-        Assert.Equal(-91440, child.Bounds!.Value.X1, 6);
-        Assert.Equal(-71120, child.Bounds.Value.Y1, 6);
-        Assert.Equal(0, child.Bounds.Value.X2, 6);
-        Assert.Equal(-25400, child.Bounds.Value.Y2, 6);
-        var point = new OfficePoint(32000, -20000);
-        OfficePoint expected = Transform(Transform(point, 0, -38100, 30, false, true), 0, 0, 90, true, false);
+        Assert.Equal(100, child.Bounds!.Value.X1, 6);
+        Assert.Equal(120, child.Bounds.Value.Y1, 6);
+        Assert.Equal(250, child.Bounds.Value.X2, 6);
+        Assert.Equal(300, child.Bounds.Value.Y2, 6);
+        var point = new OfficePoint(100, 120);
+        OfficePoint inParent = Transform(new OfficePoint(200 + point.X * 1.2, 100 + point.Y), 500, 350, 30, false, true);
+        OfficePoint inOuter = new(-254000 + inParent.X * 508, -127000 + inParent.Y * 254);
+        OfficePoint expected = Transform(inOuter, 0, 0, 90, true, false);
         Equal(expected, child.GroupTransform.TransformPoint(point));
     }
 
@@ -199,13 +257,15 @@ public sealed class PublisherGroupTransformTests {
         Record(0xF003, 15, Shape(id, 1U | (horizontal ? 0x40U : 0) | (vertical ? 0x80U : 0), angle, child, anchor,
             child ? 500 : 1000), contents);
 
-    private static byte[] Shape(uint id, uint flags, double angle, bool child, int[] anchor, int coordinateExtent = 500) {
+    private static byte[] Shape(uint id, uint flags, double angle, bool child, int[] anchor, int coordinateExtent = 500, double? relativeAngle = null, bool filled = false) {
         byte[] anchorRecord = child ? Record(0xF00F, 0, Integers(anchor)) : Record(0xF010, 0,
             Client(new ushort[] { 0x2001, 0x2002, 0x2003, 0x2004 }, anchor.Select(value => unchecked((uint)value)).ToArray()));
         byte[] coordinates = (flags & 1) == 0 ? Array.Empty<byte>() : Record(0xF009, 1,
             Integers(0, 0, coordinateExtent, coordinateExtent));
         return Record(0xF004, 15, coordinates, Record(0xF00A, 2, Integers(unchecked((int)id), unchecked((int)flags))),
-            Record(0xF00B, 19, new byte[] { 4, 0 }.Concat(BitConverter.GetBytes((int)(angle * 65536))).ToArray()), anchorRecord,
+            Record(0xF00B, (ushort)(((1 + (relativeAngle.HasValue ? 1 : 0) + (filled ? 1 : 0)) << 4) | 3), new byte[] { 4, 0 }.Concat(BitConverter.GetBytes((int)(angle * 65536)))
+                .Concat(relativeAngle.HasValue ? new byte[] { 0xC4, 3 }.Concat(BitConverter.GetBytes((int)(relativeAngle.Value * 65536))) : Array.Empty<byte>())
+                .Concat(filled ? new byte[] { 0x81, 1, 0xFF, 0, 0, 0 } : Array.Empty<byte>()).ToArray()), anchorRecord,
             Record(0xF011, 0, Client(new ushort[] { 0x6801 }, new[] { id })));
     }
 

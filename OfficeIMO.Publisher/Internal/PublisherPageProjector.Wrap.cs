@@ -41,18 +41,22 @@ internal sealed partial class PublisherPageProjector {
         return Math.Max(0, distance) / 12700D;
     }
 
-    private static OfficeImageFrameTransform Transform(PublisherEscherShape shape, FrameRectangle bounds) =>
-        new(shape.Transform.RotationDegrees.GetValueOrDefault(), bounds.X + bounds.Width / 2,
-            bounds.Y + bounds.Height / 2, shape.Transform.FlipHorizontal, shape.Transform.FlipVertical);
-
-    private OfficeTransform PageTransform(PublisherEscherShape shape, FrameRectangle bounds) =>
-        Transform(shape, bounds).CreateDestinationTransform().Then(GroupPageTransform(shape));
+    private OfficeTransform PageTransform(PublisherEscherShape shape, FrameRectangle bounds) {
+        double x = bounds.X + bounds.Width / 2, y = bounds.Y + bounds.Height / 2;
+        double sx = shape.LayoutTransform.M11, sy = shape.LayoutTransform.M22;
+        // Layout is already expressed in physical units. Conjugate the child's
+        // rotation into that basis, then apply the remaining ancestor map.
+        return OfficeTransform.Translate(-x, -y).Then(OfficeTransform.Scale(1 / sx, 1 / sy))
+            .Then(OfficeTransform.Scale(shape.Transform.FlipHorizontal ? -1 : 1, shape.Transform.FlipVertical ? -1 : 1))
+            .Then(OfficeTransform.RotateDegrees(shape.Transform.RotationDegrees.GetValueOrDefault()))
+            .Then(OfficeTransform.Scale(sx, sy)).Then(OfficeTransform.Translate(x, y)).Then(GroupPageTransform(shape));
+    }
 
     private OfficeTransform GroupPageTransform(PublisherEscherShape shape) =>
-        shape.GroupTransform == OfficeTransform.Identity ? OfficeTransform.Identity :
+        shape.GroupTransform == shape.LayoutTransform ? OfficeTransform.Identity :
         OfficeTransform.Translate(-_source.Width / 2, -_source.Height / 2)
             .Then(OfficeTransform.Scale(12700, 12700))
-            .Then(shape.GroupTransform)
+            .Then(shape.LayoutTransform.Invert()).Then(shape.GroupTransform)
             .Then(OfficeTransform.Scale(1 / 12700D, 1 / 12700D))
             .Then(OfficeTransform.Translate(_source.Width / 2, _source.Height / 2));
 }
