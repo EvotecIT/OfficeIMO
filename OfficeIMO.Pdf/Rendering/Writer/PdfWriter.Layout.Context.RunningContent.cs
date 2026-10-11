@@ -124,7 +124,7 @@ internal static partial class PdfWriter {
                 RenderRunningContent(source, footerBlocks!, footer.DistanceFromEdge + footerHeight, footerHeight, isHeader: false);
 
             static double Exclusion(PdfRunningContent? content, double height, double physicalMargin) =>
-                content == null || height <= 0D ? physicalMargin
+                content == null || (height <= 0D && !content.ReserveDistanceWhenEmpty) ? physicalMargin
                     : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
 

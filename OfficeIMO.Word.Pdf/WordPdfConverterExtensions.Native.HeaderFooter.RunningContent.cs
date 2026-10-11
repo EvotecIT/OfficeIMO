@@ -30,6 +30,7 @@ public static partial class WordPdfConverterExtensions {
         double width = GetNativePageSize(section, options).Width - margins.Left - margins.Right;
         foreach (WordHeaderFooter? story in variants) {
             if (story == null) continue;
+            hasParagraph |= !story.ChildElements.Any();
             double minimumHeight = 0D;
             double joinedLineHeight = double.PositiveInfinity;
             ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph);
@@ -103,6 +104,9 @@ public static partial class WordPdfConverterExtensions {
                 if (section.DocumentOddEvenSettingEnabled)
                     header.EvenPagesContent(CreateNativeRunningStory(section.Header?.Even, section, options, fontMap, listMarkers, defaults, false), distance);
             });
+            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.Header?.Default,
+                section.DifferentFirstPage ? section.Header?.First : null,
+                section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null);
             if (!new[] { section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
                     section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: true);
@@ -116,6 +120,9 @@ public static partial class WordPdfConverterExtensions {
                 if (section.DocumentOddEvenSettingEnabled)
                     footer.EvenPagesContent(CreateNativeRunningStory(section.Footer?.Even, section, options, fontMap, listMarkers, defaults, true), distance);
             });
+            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.Footer?.Default,
+                section.DifferentFirstPage ? section.Footer?.First : null,
+                section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null);
             if (!new[] { section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
                     section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
@@ -141,6 +148,8 @@ public static partial class WordPdfConverterExtensions {
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
                 new PdfCore.PageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);
             NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context };
+            if (story != null && !story.ChildElements.Any())
+                RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);
             var notes = new NativeNoteNumbering(section._document, options);
             notes.BeginSection(section);
             var destinations = new Dictionary<W.Paragraph, string>();
