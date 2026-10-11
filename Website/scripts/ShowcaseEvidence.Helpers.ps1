@@ -21,9 +21,18 @@ function New-ShowcasePdfPreview {
     if ($Page -lt 1) { throw 'PDF preview pages are one-based.' }
     New-Item -ItemType Directory -Path (Split-Path -Parent $OutputPath) -Force | Out-Null
     $outputBase = Join-Path (Split-Path -Parent $OutputPath) ([IO.Path]::GetFileNameWithoutExtension($OutputPath))
-    & $renderer.Source '-f' $Page '-l' $Page '-singlefile' '-png' '-scale-to' '1123' $InputPath $outputBase
+    $diagnostics = @(& $renderer.Source '-f' $Page '-l' $Page '-singlefile' '-png' '-scale-to' '1123' $InputPath $outputBase 2>&1 | ForEach-Object { $_.ToString() })
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
         throw "Could not render showcase PDF: $InputPath"
+    }
+    [ordered]@{
+        tool = 'pdftocairo'
+        version = (@(& $renderer.Source '-v' 2>&1 | ForEach-Object { $_.ToString() }) | Select-Object -First 1)
+        executableSha256 = (Get-FileHash -LiteralPath $renderer.Source).Hash.ToLowerInvariant()
+        page = $Page
+        inputSha256 = (Get-FileHash -LiteralPath $InputPath).Hash.ToLowerInvariant()
+        sha256 = (Get-FileHash -LiteralPath $OutputPath).Hash.ToLowerInvariant()
+        diagnostics = $diagnostics
     }
 }
 

@@ -211,6 +211,15 @@ if ($showcaseManifest.schema -ne 'officeimo.showcase-evidence' -or $showcaseMani
     Add-Failure 'The showcase evidence manifest has an unsupported schema.'
 }
 $manifestPaths = @($showcaseManifest.artifacts | ForEach-Object { [string] $_.path })
+. (Join-Path $PSScriptRoot 'ShowcaseEvidence.Helpers.ps1')
+. (Join-Path $PSScriptRoot 'ShowcaseEvidence.Provenance.ps1')
+$showcaseModuleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
+$generationEvidence = @(Complete-ShowcaseGenerationEvidence -RepositoryRoot (Split-Path -Parent $SiteRoot) -Catalog $showcase -Artifacts @($showcaseManifest.artifacts) -Previous @($showcaseManifest.generations) -Generated @{} -ModuleVersion $showcaseModuleVersion)
+foreach ($generation in $generationEvidence) {
+    if ($generation.state -cne 'generated' -or $generation.previewReview.state -cne 'reviewed') {
+        Add-Failure "PowerShell showcase '$($generation.exampleId)' needs matching generation evidence and completed preview review."
+    }
+}
 foreach ($artifact in @($showcaseManifest.artifacts)) {
     $artifactPath = Join-Path (Join-Path $SiteRoot 'static') ([string] $artifact.path).TrimStart([char[]] '/')
     if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
