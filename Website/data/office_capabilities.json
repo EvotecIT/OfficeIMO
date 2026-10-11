@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 74,
-    "operationCount": 1396
+    "operationCount": 1401
   },
   "fidelityStates": [
     {
@@ -5084,8 +5084,11 @@
     {
       "id": "OfficeIMO.Visio",
       "slug": "visio",
-      "capabilityCount": 20,
+      "capabilityCount": 24,
       "formats": [
+        "Binary Visio",
+        "Binary Visio stencil",
+        "Binary Visio template",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
         "JPEG",
         "PNG",
@@ -5094,6 +5097,9 @@
         "Visio",
         "Visio Open XML",
         "Visio.OpenXml",
+        "VSDX",
+        "VSSX",
+        "VSTX",
         "WebP"
       ],
       "sourceCatalogs": [
@@ -5103,6 +5109,17 @@
         "OfficeIMO.Provenance"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 3
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -5139,6 +5156,12 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 5
+            },
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         },
@@ -5208,8 +5231,9 @@
     {
       "id": "OfficeIMO.Visio.Pdf",
       "slug": "visio-pdf",
-      "capabilityCount": 1,
+      "capabilityCount": 2,
       "formats": [
+        "Binary Visio",
         "PDF",
         "Visio"
       ],
@@ -5224,7 +5248,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
+              "count": 2
             }
           ]
         }

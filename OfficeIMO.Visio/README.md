@@ -43,6 +43,76 @@ var incoming = VisioDocument.Load("upload.vsdx", VisioLoadOptions.UntrustedDefau
 
 It rejects macros, embedded payloads, ActiveX, and external relationships before parsing. Ordinary load options retain compatibility with drawings containing those parts; set `PackageSecurity` explicitly for another policy.
 
+## Legacy binary Visio
+
+`VisioDocument.LoadLegacyBinary` reads the bounded binary version 11 profile from
+`.vsd` drawings, `.vss` stencils and `.vst` templates. It returns the existing
+`VisioDocument` model with an `OfficeLegacyImportReport`; inspect that report before
+accepting a conversion. Earlier binary generations fail explicitly.
+
+```csharp
+var imported = VisioDocument.LoadLegacyBinary("floorplan.vsd");
+foreach (var finding in imported.Report.Findings) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
+}
+
+// After accepting the reported import losses:
+imported.Value.Save("floorplan.vsdx");
+string svg = imported.Value.Pages[0].ToSvg();
+```
+
+The path overload infers the family from its extension. For caller-owned streams,
+pass `VisioPackageType.Stencil` or `VisioPackageType.Template` when appropriate.
+Seekable streams are read from the beginning and their position is restored;
+nonseekable streams are read from their current position. The caller's stream
+remains open, including on failure. Binary input is never associated with `Save`:
+choose a modern output path explicitly. The matching modern families are VSDX,
+VSSX and VSTX.
+
+The profile reconstructs cached transforms, group nesting, master identities and
+references, basic line/fill and character styles, MoveTo/LineTo/ArcTo/Ellipse
+geometry and cached string text fields. The existing SVG and
+[PDF adapter](../OfficeIMO.Visio.Pdf/README.md) project imported pages; retain both
+the import report and the subsequent projection report. To render a page-less
+stencil, place a recovered master on a drawing page first.
+
+For diagram PDF output, select the adapter's page projection explicitly:
+
+```csharp
+using OfficeIMO.Visio.Pdf;
+
+var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions {
+    Mode = VisioPdfProjectionMode.DiagramPages
+});
+pdf.Save("floorplan.pdf");
+```
+
+Cached paint styles and transparency feed the shared model. Geometryless native
+master children remain text-only in previews. Non-solid fill patterns use a
+foreground-color approximation in managed SVG/PDF; the modern package retains
+the cached pattern cells. Exact native appearance remains unqualified.
+
+This is a lossy conversion. Native page/master/shape names use stable fallback
+names. Formulas, recalculation, unresolved or numeric fields, custom data,
+advanced styling, unsupported curves and foreign objects are omitted or
+approximated with diagnostics. Active content is never executed. Original binary
+carriers and binary save-back are not supported.
+
+`VisioLegacyBinaryImportOptions` supplies independent source, expansion, record,
+shape, text and depth budgets. Defaults are 64 MiB input, 128 MiB cumulative
+decoded native streams, one million records/pointers, 250,000 shapes, four million
+text characters, 512 compound streams and depth 64. Shared pointer tables use one
+cached child list, while every reference consumes its logical subtree budget and
+must satisfy the depth limit at that position. Exceeding a budget aborts import;
+partial results are not returned.
+
+The [independent fixture manifest](../OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/producer-manifest.json)
+pins Microsoft Visio version 11 binary files and paired XML drawings, stencils and
+templates. Checks cover identities, groups, cached transforms and text, modern
+package reopening, Reader dispatch and SVG/PDF output. Microsoft Visio application
+acceptance, broader producers and earlier generations remain unqualified. No
+external converter is a runtime dependency.
+
 ## Legacy Visio XML
 
 `LoadLegacyXml` imports Visio 2002 and 2003 XML drawings (`.vdx`), stencils (`.vsx`), and templates (`.vtx`) into the existing editable model. `ToLegacyXmlResult` and `SaveLegacyXml` export those families with operation-level fidelity diagnostics.
@@ -640,7 +710,8 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Inspect | 3 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 3 | 0 | 0 | 0 | 0 | 0 |
 | Remove | 2 | 0 | 0 | 0 | 0 | 0 |
-| Export | 5 | 0 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 3 | 0 | 0 | 0 | 0 |
+| Export | 5 | 1 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Visio` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

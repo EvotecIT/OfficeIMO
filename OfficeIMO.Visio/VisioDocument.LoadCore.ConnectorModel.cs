@@ -9,7 +9,8 @@ namespace OfficeIMO.Visio;
 public partial class VisioDocument {
     private static VisioConnector? LoadConnector(XElement connectorElement, XNamespace vNs,
         IReadOnlyDictionary<string, VisioMaster> masters, IReadOnlyDictionary<int, string> faceNamesById,
-        VisioPage page, VisioShape? fromShape, VisioShape? toShape, string? fromCell, string? toCell, IReadOnlyDictionary<int, string>? textBackgroundColors) {
+        VisioPage page, VisioShape? fromShape, VisioShape? toShape, string? fromCell, string? toCell, IReadOnlyDictionary<int, string>? textBackgroundColors,
+        VisioNativePaintStyleResolver? paintStyles = null) {
         OfficePoint? startPoint = ReadConnectorPoint(connectorElement, vNs, "Begin");
         OfficePoint? endPoint = ReadConnectorPoint(connectorElement, vNs, "End");
         if (fromShape == null && !startPoint.HasValue || toShape == null && !endPoint.HasValue) return null;
@@ -165,6 +166,14 @@ public partial class VisioDocument {
             }
         }
 
+        VisioShape? inheritedPaint = null;
+        string? masterId = (string?)connectorElement.Attribute("Master");
+        if (masterId != null && masters.TryGetValue(masterId, out VisioMaster? paintMaster)) {
+            string? masterShapeId = (string?)connectorElement.Attribute("MasterShape");
+            inheritedPaint = masterShapeId == null ? paintMaster.Shape
+                : FindMasterShapeByNativeId(paintMaster.Shape, masterShapeId) ?? paintMaster.Shape;
+        }
+        paintStyles?.Apply(connector, connectorElement, inheritedPaint);
         connector.Kind = DetermineConnectorKind(connectorElement, vNs, masters);
         ApplyLayerNamesFromIndexes(page, connector);
         XElement? connectorCharSection = connectorElement.Elements(vNs + "Section")
