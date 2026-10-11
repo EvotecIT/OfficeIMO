@@ -162,6 +162,7 @@ internal static partial class PdfWriter {
             }
             bool IsKeptInCurrentFrame() {
                 if (paragraphStyle?.KeepTogether != true) return false;
+                if (lines.Count == 1 && CanOverflowImportedExactLine(paragraphStyle)) return false;
                 if (paragraphStyle.KeepTogetherOverflow != PdfKeepTogetherOverflowBehavior.Reject &&
                     MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D) {
                     splittingConstrainedParagraph = true;
@@ -286,7 +287,8 @@ internal static partial class PdfWriter {
                 if (lineIndex == lines.Count - 1) firstBodyHeight += GetClosingTextPadding(spacingAfter);
                 firstBodyHeight += GetRunningBodyContinuationReservation();
                 NewPage(forcePhysicalPage: SkipColumnsForParagraphOverflow(), firstBodyHeight: firstBodyHeight,
-                    firstBodyAllowsFooterOverlap: paragraphStyle?.AllowFirstLineOverlapWithRunningFooter == true && activeColumnFlow == null);
+                    firstBodyAllowsFooterOverlap: paragraphStyle?.AllowFirstLineOverlapWithRunningFooter == true && activeColumnFlow == null,
+                    firstBodyAllowsExactOverflow: CanOverflowImportedExactLine(paragraphStyle));
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
@@ -331,12 +333,14 @@ internal static partial class PdfWriter {
                 double minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
                 if (lineIndex == lines.Count - 1) minimumLineHeight += GetClosingTextPadding(spacingAfter);
                 if (minimumLineHeight > GetMaximumParagraphContinuationHeight() + .001D &&
+                    !CanOverflowImportedExactLine(paragraphStyle) &&
                     !CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 while (ShouldAdvanceForBlockHeight(minimumLineHeight)) {
                     NewParagraphPage();
                     minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetClosingTextPadding(spacingAfter) : 0D);
                     if (minimumLineHeight > GetMaximumParagraphContinuationHeight() + .001D &&
+                        !CanOverflowImportedExactLine(paragraphStyle) &&
                         !CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))
                         throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 }
@@ -349,7 +353,8 @@ internal static partial class PdfWriter {
 
                 double segmentSpacingBefore = firstSegment && y < frameStart - 0.001 ? spacingBefore : 0;
                 if (available < segmentSpacingBefore + minimumLineHeight &&
-                    !(y >= frameStart - .001D && CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))) {
+                    !(y >= frameStart - .001D && (CanOverflowImportedExactLine(paragraphStyle) ||
+                        CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight)))) {
                     NewParagraphPage();
                     minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetClosingTextPadding(spacingAfter) : 0D);
                     available = y - currentOpts.MarginBottom;
@@ -377,7 +382,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (take == 0 && y >= frameStart - .001D &&
-                    CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight)) {
+                    (CanOverflowImportedExactLine(paragraphStyle) || CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))) {
                     take = 1;
                     heightSum = lineHeights[lineIndex];
                 }

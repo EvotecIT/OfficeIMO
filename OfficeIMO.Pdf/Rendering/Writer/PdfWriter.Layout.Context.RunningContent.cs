@@ -10,6 +10,14 @@ internal static partial class PdfWriter {
         private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
         private double? runningFirstBodyHeight;
         private bool runningFirstBodyAllowsFooterOverlap;
+        private bool runningFirstBodyAllowsExactOverflow;
+
+        // Imported exact-height body lines retain their authored baseline even
+        // beyond the bottom margin. Admit only one line on an empty page;
+        // columns, decorated containers and running stories keep their bounds.
+        private bool CanOverflowImportedExactLine(PdfParagraphStyle? style) =>
+            !isRunningContent && activeColumnFlow == null && activeContainerScopes.Count == 0 &&
+            style?.LineSpacing?.FixedLineBoxBaselineOffset != null;
 
         // A paragraph continuation can reclaim an optional imported header's
         // exclusion. Preserve footer and active-container reservations.
@@ -82,18 +90,20 @@ internal static partial class PdfWriter {
             if (header?.AllowTextFallback == true && top > source.MarginTop + .001D) {
                 double? footerOverlapHeight;
                 double firstBodyHeight;
+                bool allowsExactOverflow;
                 if (runningFirstBodyHeight is double continuationHeight) {
                     // Paragraph flow already wrapped and measured this actual
                     // continuation line, including its container reservation.
                     firstBodyHeight = continuationHeight;
                     footerOverlapHeight = runningFirstBodyAllowsFooterOverlap ? continuationHeight : null;
-                } else firstBodyHeight = MeasureRunningContentFirstBodyHeight(source, out footerOverlapHeight);
+                    allowsExactOverflow = runningFirstBodyAllowsExactOverflow;
+                } else firstBodyHeight = MeasureRunningContentFirstBodyHeight(source, out footerOverlapHeight, out allowsExactOverflow);
                 // A supported imported paragraph can retain its header and put
                 // its first line beside the footer. Admission must use the same
                 // physical bottom bound as paragraph flow before dropping it.
                 bool fitsBesideFooter = footerOverlapHeight.HasValue && bottom > source.MarginBottom + .001D &&
                     footerOverlapHeight.Value <= source.PageHeight - top - source.MarginBottom + .001D;
-                if (!fitsBesideFooter && firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
+                if (!allowsExactOverflow && !fitsBesideFooter && firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
                     source.PageHeight - top - bottom + .001D < firstBodyHeight) {
                     fallbackHeader = true;
                     header = null;
@@ -152,9 +162,11 @@ internal static partial class PdfWriter {
                     : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
 
-        private double MeasureRunningContentFirstBodyHeight(PdfOptions source, out double? footerOverlapHeight) {
+        private double MeasureRunningContentFirstBodyHeight(PdfOptions source, out double? footerOverlapHeight, out bool allowsExactOverflow) {
             double? firstVisualFooterOverlapHeight = null;
+            bool firstVisualAllowsExactOverflow = false;
             footerOverlapHeight = null;
+            allowsExactOverflow = false;
             for (int depth = activeBlockSequences.Count - 1; depth >= 0; depth--) {
                 BlockSequenceScope sequence = activeBlockSequences[depth];
                 int start = sequence.Index + (depth == activeBlockSequences.Count - 1 ? 0 : 1);
@@ -164,6 +176,7 @@ internal static partial class PdfWriter {
                 double? height = FirstVisual(PendingBlocks(sequence.Blocks, start), frame.X, frame.Width,
                     GetClosingContainerPadding(depth));
                 if (height.HasValue) {
+                    allowsExactOverflow = firstVisualAllowsExactOverflow;
                     footerOverlapHeight = firstVisualFooterOverlapHeight.HasValue
                         ? firstVisualFooterOverlapHeight.Value + frame.ReservedHeight : null;
                     return height.Value <= .001D ? height.Value : height.Value + frame.ReservedHeight;
@@ -202,6 +215,8 @@ internal static partial class PdfWriter {
                         firstVisualFooterOverlapHeight = MeasureParagraphFirstVisual(paragraph, frameX, frameWidth,
                             source.DefaultFontSize, suppressSpacingBefore: true, closingPadding: paragraphClosingPadding,
                             reserveSingleLine: true).Height;
+                    firstVisualAllowsExactOverflow = block is RichParagraphBlock exactParagraph &&
+                        CanOverflowImportedExactLine(EffectiveParagraphStyle(exactParagraph));
                     return height;
                 }
                 return null;

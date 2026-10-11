@@ -14,6 +14,18 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
+    public void Paragraph_ExactLineRejectsAdvanceTallerThanContentArea() {
+        var options = new PdfOptions {
+            PageWidth = 300, PageHeight = 300,
+            MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72
+        };
+        var exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(options)
+            .Paragraph(p => p.Text("A"), style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(200) })
+            .ToBytes());
+        Assert.Contains("Paragraph line height exceeds the available page content height.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Paragraph_KeepTogetherRejectsContentTallerThanContentArea() {
         var options = new PdfOptions {
             PageWidth = 320,
