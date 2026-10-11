@@ -168,6 +168,14 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## Publisher Reader identity and transport
+
+`ReaderInputKind.Publisher` (`30`) requires document transport schema version 14.
+Update exhaustive input-kind switches and transport bindings. Schemas 5 through
+13 remain readable but cannot carry Publisher input kinds. CHM (`27`), DjVu (`28`)
+and DBF (`29`) retain their existing identities and minimum schema versions.
+Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
+
 ## DBF Reader identity and transport
 
 Register `.AddDbfHandler()` from `OfficeIMO.Reader.Dbf`, or use the all-adapters
