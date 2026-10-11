@@ -196,6 +196,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        [Trait("Category", "Performance")]
         public void WholeDiagramRelayoutHandlesDenseTopologyWithinLinearBudget() {
             VisioDocument document = VisioDocument.Create();
             VisioPage page = document.AddPage("Dense", 11, 8.5);
