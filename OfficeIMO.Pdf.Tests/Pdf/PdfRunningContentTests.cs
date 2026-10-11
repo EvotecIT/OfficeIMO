@@ -13,7 +13,7 @@ public sealed class PdfRunningContentTests {
             .Content(content => content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(24)), 18)
             .FirstPageContent(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(246)), 18));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
-        document.Paragraph(paragraph => paragraph.Text("BODY").FontSize(40)).PageBreak()
+        document.Paragraph(paragraph => paragraph.FontSize(40).Text("BODY")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("BODY"));
 
         for (int pass = 0; pass < 2; pass++) {
