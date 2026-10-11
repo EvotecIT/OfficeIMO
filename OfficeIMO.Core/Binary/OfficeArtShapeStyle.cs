@@ -244,7 +244,7 @@ public sealed class OfficeArtShapeStyle {
     }
 
     private OfficeArtProperty? GetProperty(ushort propertyId) =>
-        Properties.LastOrDefault(property => property.PropertyId == propertyId && !property.IsComplex);
+        OfficeArtProperty.GetScalarProperty(Properties, propertyId);
 
     private uint? GetUInt32(ushort propertyId) => GetProperty(propertyId)?.Value;
 

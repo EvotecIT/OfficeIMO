@@ -17,6 +17,10 @@ The generation signature does not establish qualification for every Publisher
 release or object type. Independent producer files exercise real native storage;
 they are not produced by an OfficeIMO writer.
 
+Inline OfficeArt picture data stays in the preserved source and reports omitted
+artwork; positioned reconstruction uses image-store references. Cleared picture
+references do not report missing images.
+
 ## Reconstruction
 
 | Content | Current behavior | Limit |

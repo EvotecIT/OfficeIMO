@@ -150,7 +150,7 @@ internal static class OfficeArtCustomPathProjector {
     private static OfficeArtProperty? Property(IReadOnlyList<OfficeArtProperty> properties, ushort id) =>
         properties.LastOrDefault(property => property.PropertyId == id);
     private static int Scalar(IReadOnlyList<OfficeArtProperty> properties, ushort id, int fallback) {
-        OfficeArtProperty? property = properties.LastOrDefault(item => item.PropertyId == id && !item.IsComplex);
+        OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(properties, id);
         return property == null ? fallback : unchecked((int)property.Value);
     }
     private static bool Disabled(IReadOnlyList<OfficeArtProperty> properties, uint valueBit) =>
