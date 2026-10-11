@@ -8,6 +8,34 @@ public sealed class PublisherGroupCanvasTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void Empty_grouped_children_do_not_consume_effect_canvases(bool textFrame) {
+        var source = new PublisherContents(612, 792, new Dictionary<uint, PublisherContentChunk>());
+        source.Pages.Add(new PublisherSourcePage(1, "", null, null));
+        var text = new PublisherQuillText();
+        var escher = new PublisherEscherData();
+        for (uint id = 2; id < 106; id++) {
+            text.Stories.Add(id + 500, new PublisherTextStory(id + 500, "", Array.Empty<OfficeRichTextParagraph>()));
+            source.Shapes.Add(id, new PublisherSourceShape(new PublisherContentChunk(id, 1, 0, 1),
+                textFrame ? new[] { new PublisherBlock(0x27, 0, 0, 0, id + 500) } : Array.Empty<PublisherBlock>()));
+            source.ObjectPages.Add(id, 1);
+            escher.Shapes.Add(new PublisherEscherShape(id, 1, 0, new[] {
+                new OfficeArtProperty(0, 0x01FF, 0x00080000), new OfficeArtProperty(1, 0x01BF, 0x00100000)
+            }) {
+                Bounds = new PublisherNativeRectangle(-306 * 12700, -396 * 12700, 306 * 12700, 396 * 12700),
+                GroupTransform = OfficeTransform.Translate(12700, 12700)
+            });
+        }
+        PublisherDocument document = new PublisherPageProjector(source, text, escher,
+            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(document.Pages[0].Drawing);
+        Assert.Equal(OfficeColor.White, raster.GetPixel(300, 300));
+        Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].Drawing), item => item is OfficeDrawingEffectGroup);
+        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_OBJECT_NOT_PROJECTED");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void Grouped_text_retains_glyph_and_decoration_ink_outside_its_frame(bool condensed) {
         OfficeRasterImage reference = OfficeDrawingRasterRenderer.Render(TextPaint(false, condensed).Pages[0].Drawing);
         OfficeRasterImage grouped = OfficeDrawingRasterRenderer.Render(TextPaint(true, condensed).Pages[0].Drawing);

@@ -23,9 +23,15 @@ public sealed class OfficeArtShapeTransform {
 
     /// <summary>Decodes transform state from FSP flags and OfficeArt properties.</summary>
     public static OfficeArtShapeTransform Decode(uint fspFlags,
-        IReadOnlyList<OfficeArtProperty>? properties = null) {
+        IReadOnlyList<OfficeArtProperty>? properties = null) => Decode(fspFlags, properties, false);
+
+    // RelXfrm belongs to a parent coordinate space; callers opt in only after
+    // resolving a child anchor. Explicit relative zero overrides absolute rotation.
+    internal static OfficeArtShapeTransform Decode(uint fspFlags,
+        IReadOnlyList<OfficeArtProperty>? properties, bool relativeToParent) {
         IReadOnlyList<OfficeArtProperty> source = properties ?? Array.Empty<OfficeArtProperty>();
-        OfficeArtProperty? rotation = OfficeArtProperty.GetScalarProperty(source, 0x0004);
+        OfficeArtProperty? rotation = OfficeArtProperty.GetScalarProperty(source,
+            relativeToParent && source.Any(property => property.PropertyId == 0x03C4) ? 0x03C4 : 0x0004);
         double? rotationDegrees = rotation == null
             ? null
             : unchecked((int)rotation.Value) / 65536D;
