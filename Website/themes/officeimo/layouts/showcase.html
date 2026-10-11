@@ -29,7 +29,7 @@
         <p>{{ data.showcase.description }}</p>
       </header>
       {{ walkthrough_count = 0 }}{{ for card in data.showcase.cards }}{{ if card.walkthrough_url }}{{ walkthrough_count = walkthrough_count + 1 }}{{ end }}{{ end }}
-      {{ if walkthrough_count > 0 }}<a class="imo-gallery__walkthroughs" href="/showcase/?q=walkthrough"><strong>{{ walkthrough_count }} code walkthroughs</strong><span>Follow the C# source from a practical task to its generated document <span aria-hidden="true">&rarr;</span></span></a>{{ end }}
+      {{ if walkthrough_count > 0 }}<a class="imo-gallery__walkthroughs" href="/showcase/?q=walkthrough"><strong>{{ walkthrough_count }} code walkthroughs</strong><span>Follow runnable source from a practical task to its generated document <span aria-hidden="true">&rarr;</span></span></a>{{ end }}
       <form id="showcase-controls" class="imo-gallery__controls" role="search" aria-label="Find a showcase example">
         <label class="imo-gallery__search" for="showcase-query"><span>Search examples</span>
           <input id="showcase-query" name="q" type="search" maxlength="160" placeholder="Try charts, mail merge, forms…" autocomplete="off" />
@@ -44,6 +44,11 @@
             {{ for operation in data.showcase.operations }}<option value="{{ operation.id }}">{{ operation.label }}</option>{{ end }}
           </select>
         </label>
+        <label for="showcase-language"><span>Source language</span>
+          <select id="showcase-language" name="language"><option value="all">All languages</option>
+            {{ for language in data.showcase.source_languages }}<option value="{{ language.id }}">{{ language.label }}</option>{{ end }}
+          </select>
+        </label>
         <button type="reset" class="imo-gallery__reset">Reset filters</button>
       </form>
       <noscript><p>All examples are shown below. Enable JavaScript to search and filter this gallery.</p></noscript>
@@ -54,7 +59,8 @@
       </div>
       <div class="imo-gallery__grid">
         {{ for card in data.showcase.cards }}
-        <article class="imo-example" id="{{ card.id }}" data-showcase-format="{{ card.format_id }}" data-showcase-capabilities="{{ card.operation_tags }}" data-showcase-search="{{ card.search_text | html.escape }}">
+        {{ include "showcase-language" }}
+        <article class="imo-example" id="{{ card.id }}" data-showcase-format="{{ card.format_id }}" data-showcase-language="{{ source_language }}" data-showcase-capabilities="{{ card.operation_tags }}" data-showcase-search="{{ card.search_text | html.escape }}">
           <div class="imo-example__preview">
             <span class="imo-example__format">{{ card.format }}</span>
             {{ if card.preview_kind == "reader" }}
@@ -82,7 +88,7 @@
                 <h4>What to check</h4><p>{{ card.proof }}</p>
                 <h4>Scope</h4><p>{{ card.limit }}</p>
                 <nav class="imo-example__references" aria-label="{{ card.title | html.escape }} implementation">
-                  <a href="{{ card.source_url }}" aria-label="View C# source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View C# source</a>
+                  <a href="{{ card.source_url }}" aria-label="View {{ source_language_label }} source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View {{ source_language_label }} source</a>
                   <a href="{{ card.guide_url }}" aria-label="Read guide: {{ card.title | html.escape }}">Read guide</a><a href="{{ card.api_url }}" aria-label="API reference: {{ card.title | html.escape }}">API reference</a>
                 </nav>
                 <details class="imo-example__run"><summary>Run from a source checkout</summary><pre><code>{{ card.run_command | html.escape }}</code></pre></details>
