@@ -1,6 +1,6 @@
 {
   "sourceRepository": "EvotecIT/PSWriteOffice",
-  "sourceCommit": "db029a8ee3fcb96227777894daaf8bbd7f94dab1",
+  "sourceCommit": "3bad89a2230d4bdb970251e5e1c73065e044ac00",
   "modules": {
     "PSWriteOffice": "3.0.8",
     "PSParseHTML": "3.0.3",
@@ -10,12 +10,12 @@
     "PSEventViewer": "4.0.1"
   },
   "inputs": "Bundled synthetic supplier and incident data; example.invalid mail recipients.",
-  "generation": "Run the linked scripts from PSWriteOffice with explicit OutputDirectory. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeExcelRangeImage, Offers A1:D10 and Events A1:E10.",
+  "generation": "Run the linked scripts from PSWriteOffice with explicit OutputDirectory. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeExcelRangeImage, Offers A1:D10 and Events A1:G10.",
   "artifacts": [
     {
       "path": "/downloads/integrations/supplier/SupplierReview.docx",
-      "bytes": 20972,
-      "sha256": "25ac579c5cb86f66a953240f9d0f9421926818165e82b3cb5edc34689c4aae74"
+      "bytes": 20978,
+      "sha256": "b85946976ba3d2be505d33375dd93cc00d29e6b7503b7a523446b641f05e9c3d"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierReview.pdf",
@@ -25,7 +25,7 @@
     {
       "path": "/downloads/integrations/supplier/SupplierOffers.xlsx",
       "bytes": 5120,
-      "sha256": "12b1e139cd7a42678905e59b1afeccc07dfbb25489f9ac1e0e2d12ed6628d525"
+      "sha256": "0be9378c87c60c196cbb77ecb6bfcf3b31a31db49950363e0837f85c0f9f6078"
     },
     {
       "path": "/downloads/integrations/supplier/preview.png",
@@ -39,28 +39,28 @@
     },
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.docx",
-      "bytes": 20957,
-      "sha256": "d85dee219f95aa668544fb08e17f9619e31b48163909f747c48f226642f86018"
+      "bytes": 21018,
+      "sha256": "b8f0523830869b83f0a32bf19c73a42a77ad36ed5632503c50967e24e2de057c"
     },
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.pdf",
-      "bytes": 2422,
-      "sha256": "c232debd59289332f2a4e62cf49f61bfec3302f88c172dd7d317cd110073286e"
+      "bytes": 2530,
+      "sha256": "514f37a4359b5311bfdc2fac4debf326a6a9da86b687999b62e4300e7ebcfa65"
     },
     {
       "path": "/downloads/integrations/events/EventRegister.xlsx",
-      "bytes": 5349,
-      "sha256": "aeb4ef8f3033d6d2cc047ceceadbf206289153ac8cde655e15d8f86dfd032e73"
+      "bytes": 5501,
+      "sha256": "920cb23b3bab10fe91e23bd45b9ae2400a427bf5b8d9192776a9457e307af012"
     },
     {
       "path": "/downloads/integrations/events/preview.png",
-      "bytes": 107232,
-      "sha256": "e4d1fefee111d304329da3c6673e9a5d83f27a0e3fca949efb091ab22faf1a0a"
+      "bytes": 121220,
+      "sha256": "2540a5c3f81c60fcd8ebcb171d661081ad984290d5d7a2788e00514cee92c3ff"
     },
     {
       "path": "/downloads/integrations/events/workbook.png",
-      "bytes": 14909,
-      "sha256": "9857600bab8f39e079ef795b91e0ab0a43ab663175931833b0fe80053c296913"
+      "bytes": 18193,
+      "sha256": "852a47cb54e6283a5e7c3588c403d8b55482f2f5a750e90957f4c04c2a9b5712"
     },
     {
       "path": "/downloads/integrations/mail-default/Daily-Service-Report.pdf",
@@ -79,13 +79,13 @@
     },
     {
       "path": "/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1",
-      "bytes": 5008,
-      "sha256": "77022071dc2ba4237057fddcc2707d673a6470d5e3cd8095f81eab0d6b6342c3"
+      "bytes": 5038,
+      "sha256": "3659ade2d70eb23a8475965852f6ad6993d0b5227621ea0347c6cc6c91cef3e6"
     },
     {
       "path": "/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1",
-      "bytes": 6977,
-      "sha256": "5894174a7064d3364627061262c30bd83370ea4101f94858dd8680412f3d500c"
+      "bytes": 7973,
+      "sha256": "288d0110ce5aaebb4e08902bfe8cafa65362331304b78fd41b933673f087f10a"
     },
     {
       "path": "/downloads/integrations/source/Recipe-Mailozaurr-PdfDelivery.ps1",

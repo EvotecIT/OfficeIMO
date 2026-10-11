@@ -19,11 +19,11 @@ $ErrorActionPreference = 'Stop'
 Import-Module PSParseHTML -MinimumVersion 3.0.3 -ErrorAction Stop
 Import-Module PSWriteOffice -MinimumVersion 3.0.8 -ErrorAction Stop
 
-$tables = @(ConvertFrom-HtmlTable -Path $HtmlPath -TableId offers)
-if ($tables.Count -ne 1 -or $tables[0].Count -eq 0) {
+$tables = @(ConvertFrom-HtmlTable -Path $HtmlPath -TableId offers -IncludeMetadata)
+if ($tables.Count -ne 1 -or @($tables[0].Data).Count -eq 0) {
     throw 'Supply one nonempty HTML table with id="offers".'
 }
-$offers = @($tables[0] | ForEach-Object {
+$offers = @($tables[0].Data | ForEach-Object {
     if ([string]::IsNullOrWhiteSpace($_.Item) -or [string]::IsNullOrWhiteSpace($_.Supplier)) {
         throw 'Each offer needs Item and Supplier values.'
     }
