@@ -16,7 +16,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-if ($ModuleVersion) { Import-Module PSWriteOffice -RequiredVersion $ModuleVersion } else { Import-Module PSWriteOffice }
+if ($ModuleVersion) {
+    if ([version] $ModuleVersion -lt [version] '3.0.9') { throw 'The cell-margin parameters require PSWriteOffice 3.0.9 or later.' }
+    Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
+} else { Import-Module PSWriteOffice -MinimumVersion 3.0.9 -ErrorAction Stop }
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $docxPath = Join-Path $OutputDirectory 'PatchComplianceReport.docx'
 $pdfPath = Join-Path $OutputDirectory 'PatchComplianceReport.pdf'
