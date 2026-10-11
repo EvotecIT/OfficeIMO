@@ -7,6 +7,28 @@ namespace OfficeIMO.Tests;
 public partial class DrawingTests {
     [Theory]
     [InlineData(0x0145, 8)]
+    [InlineData(0x0145, 0xFFF0)]
+    [InlineData(0x0146, 2)]
+    [InlineData(0x0156, 8)]
+    [InlineData(0x0156, 0xFFF0)]
+    [InlineData(0x0197, 8)]
+    public void OfficeArtPropertyTableReader_TruncatedRecoveredHeaderPreservesFollowingPayload(ushort id, ushort elementSize) {
+        int stride = elementSize == 0xFFF0 ? 4 : elementSize;
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)(id | 0x8000)); writer.Write((uint)(2 * stride));
+        writer.Write((ushort)0x8380); writer.Write(4U);
+        writer.Write((ushort)2); writer.Write((ushort)2); writer.Write(elementSize);
+        writer.Write((ushort)123);
+        writer.Write(System.Text.Encoding.Unicode.GetBytes("OK"));
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 2);
+        Assert.Equal(8, properties[0].AvailableComplexDataLength);
+        Assert.False(properties[0].HasCompleteComplexData);
+        Assert.Equal("OK", properties[1].ComplexText);
+        Assert.True(properties[1].HasCompleteComplexData);
+    }
+
+    [Theory]
+    [InlineData(0x0145, 8)]
     [InlineData(0x0145, 4)]
     [InlineData(0x0145, 0xFFF0)]
     [InlineData(0x0146, 2)]
