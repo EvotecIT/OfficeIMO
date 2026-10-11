@@ -616,6 +616,42 @@
       "artifact": "/downloads/showcase/workflows/markdown-api-handover/example.md"
     }
   ],
+  "pswriteoffice-patch-report": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
+    }
+  ],
+  "pswriteoffice-project-delivery": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
+    }
+  ],
+  "pswriteoffice-budget-review": [
+    {
+      "title": "Excel to PDF",
+      "url": "/browser/excel-to-pdf/",
+      "artifact": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
+    }
+  ],
   "word-research-brief": [
     {
       "title": "Word to PDF",

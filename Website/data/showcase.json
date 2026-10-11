@@ -159,7 +159,8 @@
           "customer-delivery-summary"
         ]
       },
-      "search_text": "Project charter Create an editable Word project charter in C# with scope, milestone owners, acceptance evidence, and a PDF copy for review and handover. Word .NET C# walkthrough code sample Project scope and milestone data"
+      "search_text": "Project charter Create an editable Word project charter in C# with scope, milestone owners, acceptance evidence, and a PDF copy for review and handover. Word .NET C# walkthrough code sample Project scope and milestone data",
+      "source_language": "csharp"
     },
     {
       "id": "excel-budget-scenarios",
@@ -238,7 +239,8 @@
           "excel-project-workbook"
         ]
       },
-      "search_text": "Budget scenario comparison Compare budget scenarios in Excel with C# formulas, editable assumptions, and calculated contribution. Download the workbook, preview, and source. Excel .NET C# walkthrough code sample Volume, unit price, and fixed-cost assumptions"
+      "search_text": "Budget scenario comparison Compare budget scenarios in Excel with C# formulas, editable assumptions, and calculated contribution. Download the workbook, preview, and source. Excel .NET C# walkthrough code sample Volume, unit price, and fixed-cost assumptions",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-project-roadmap",
@@ -327,7 +329,8 @@
           "powerpoint-service-overview"
         ]
       },
-      "search_text": "An editable project roadmap deck Create a PowerPoint roadmap in C# with editable phase cards and a decision-checkpoint table. Preview the slides and download the PPTX and PDF. PowerPoint .NET C# walkthrough code sample Project phases, activities, and decision gates"
+      "search_text": "An editable project roadmap deck Create a PowerPoint roadmap in C# with editable phase cards and a decision-checkpoint table. Preview the slides and download the PPTX and PDF. PowerPoint .NET C# walkthrough code sample Project phases, activities, and decision gates",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-workshop-pack",
@@ -410,7 +413,8 @@
           "powerpoint-training-quiz"
         ]
       },
-      "search_text": "A two-page workshop pack Build a two-page PDF workshop pack in C# with an agenda, exercise sheet, running header, and page numbers. Preview both pages and download the PDF. PDF .NET C# walkthrough code sample Workshop objectives, agenda, and exercise prompts"
+      "search_text": "A two-page workshop pack Build a two-page PDF workshop pack in C# with an agenda, exercise sheet, running header, and page numbers. Preview both pages and download the PDF. PDF .NET C# walkthrough code sample Workshop objectives, agenda, and exercise prompts",
+      "source_language": "csharp"
     },
     {
       "id": "markdown-incident-runbook",
@@ -493,7 +497,8 @@
           "word-policy-brief"
         ]
       },
-      "search_text": "A portable incident runbook Author an incident runbook in C# as Markdown, with a decision table, warning, and update template. Download the editable source and rendered PDF. Markdown .NET C# walkthrough code sample Response steps, ownership, and communication guidance"
+      "search_text": "A portable incident runbook Author an incident runbook in C# as Markdown, with a decision table, warning, and update template. Download the editable source and rendered PDF. Markdown .NET C# walkthrough code sample Response steps, ownership, and communication guidance",
+      "source_language": "csharp"
     },
     {
       "id": "word-meeting-minutes",
@@ -576,7 +581,8 @@
           "markdown-decision-record"
         ]
       },
-      "search_text": "Meeting minutes and actions Generate Word meeting minutes in C# with a running header, decisions, action owners, and due dates. Download the editable record and PDF preview. Word .NET C# walkthrough code sample Meeting details, decisions, and action items"
+      "search_text": "Meeting minutes and actions Generate Word meeting minutes in C# with a running header, decisions, action owners, and due dates. Download the editable record and PDF preview. Word .NET C# walkthrough code sample Meeting details, decisions, and action items",
+      "source_language": "csharp"
     },
     {
       "id": "word-onboarding-checklist",
@@ -659,7 +665,8 @@
           "excel-project-workbook"
         ]
       },
-      "search_text": "Employee onboarding checklist Build a Word onboarding checklist in C# with tasks grouped by stage, named owners, and completion status. Inspect the PDF and download the DOCX. Word .NET C# walkthrough code sample Onboarding stages and assigned tasks"
+      "search_text": "Employee onboarding checklist Build a Word onboarding checklist in C# with tasks grouped by stage, named owners, and completion status. Inspect the PDF and download the DOCX. Word .NET C# walkthrough code sample Onboarding stages and assigned tasks",
+      "source_language": "csharp"
     },
     {
       "id": "word-policy-brief",
@@ -742,7 +749,8 @@
           "markdown-incident-runbook"
         ]
       },
-      "search_text": "A concise policy brief Create a Word policy brief in C# with styled headings, a rules table, a shaded reminder, and bullet lists. Download the source, DOCX, and PDF. Word .NET C# walkthrough code sample Working agreements and review ownership"
+      "search_text": "A concise policy brief Create a Word policy brief in C# with styled headings, a rules table, a shaded reminder, and bullet lists. Download the source, DOCX, and PDF. Word .NET C# walkthrough code sample Working agreements and review ownership",
+      "source_language": "csharp"
     },
     {
       "id": "word-decision-record",
@@ -825,7 +833,8 @@
           "powerpoint-project-roadmap"
         ]
       },
-      "search_text": "An editable decision record Create a Word decision record in C# with context, alternatives, trade-offs, and a revisit condition. Compare the editable DOCX with its PDF preview. Word .NET C# walkthrough code sample Decision context and evaluated options"
+      "search_text": "An editable decision record Create a Word decision record in C# with context, alternatives, trade-offs, and a revisit condition. Compare the editable DOCX with its PDF preview. Word .NET C# walkthrough code sample Decision context and evaluated options",
+      "source_language": "csharp"
     },
     {
       "id": "excel-named-range-pricing",
@@ -904,7 +913,8 @@
           "excel-expense-register"
         ]
       },
-      "search_text": "Pricing with named ranges Use named ranges in a C# Excel pricing model so formulas read like the business calculation. Inspect the rendered quote and download the workbook. Excel .NET C# walkthrough code sample Quantity, unit price, and discount rate"
+      "search_text": "Pricing with named ranges Use named ranges in a C# Excel pricing model so formulas read like the business calculation. Inspect the rendered quote and download the workbook. Excel .NET C# walkthrough code sample Quantity, unit price, and discount rate",
+      "source_language": "csharp"
     },
     {
       "id": "excel-project-workbook",
@@ -983,7 +993,8 @@
           "powerpoint-project-roadmap"
         ]
       },
-      "search_text": "A project workbook with a summary Build an Excel project workbook in C# with detail and summary sheets, cross-sheet formulas, and a filterable delivery table. Download the XLSX. Excel .NET C# walkthrough code sample Planned and used days by workstream"
+      "search_text": "A project workbook with a summary Build an Excel project workbook in C# with detail and summary sheets, cross-sheet formulas, and a filterable delivery table. Download the XLSX. Excel .NET C# walkthrough code sample Planned and used days by workstream",
+      "source_language": "csharp"
     },
     {
       "id": "excel-expense-register",
@@ -1062,7 +1073,8 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "A structured expense register Generate an Excel expense register in C# with real dates, numeric amounts, dropdown validation, and a total. Download the workbook and range preview. Excel .NET C# walkthrough code sample Expense dates, categories, amounts, and review status"
+      "search_text": "A structured expense register Generate an Excel expense register in C# with real dates, numeric amounts, dropdown validation, and a total. Download the workbook and range preview. Excel .NET C# walkthrough code sample Expense dates, categories, amounts, and review status",
+      "source_language": "csharp"
     },
     {
       "id": "excel-object-export",
@@ -1141,7 +1153,8 @@
           "operational-excel-report"
         ]
       },
-      "search_text": "Export application records to Excel Turn typed C# asset records into a filterable Excel table with the fluent API. Download the generated XLSX, rendered range, and complete source. Excel .NET C# walkthrough code sample An array of typed asset records"
+      "search_text": "Export application records to Excel Turn typed C# asset records into a filterable Excel table with the fluent API. Download the generated XLSX, rendered range, and complete source. Excel .NET C# walkthrough code sample An array of typed asset records",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-branded-invoice",
@@ -1234,7 +1247,8 @@
           "pdf-weekly-brief"
         ]
       },
-      "search_text": "A branded invoice with embedded CII Build a polished invoice from a typed C# model with a company logo, rounded cards and tables, payment details, visible approval blocks, and embedded CII XML. PDF .NET C# invoice walkthrough code sample"
+      "search_text": "A branded invoice with embedded CII Build a polished invoice from a typed C# model with a company logo, rounded cards and tables, payment details, visible approval blocks, and embedded CII XML. PDF .NET C# invoice walkthrough code sample",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-dispatch-note",
@@ -1311,7 +1325,8 @@
           "word-onboarding-checklist"
         ]
       },
-      "search_text": "A PDF dispatch note Create a PDF dispatch note in C# with shipment references, item quantities, delivery instructions, and a receipt area. Inspect and download the output. PDF .NET C# walkthrough code sample Shipment reference, item rows, and receiving instructions"
+      "search_text": "A PDF dispatch note Create a PDF dispatch note in C# with shipment references, item quantities, delivery instructions, and a receipt area. Inspect and download the output. PDF .NET C# walkthrough code sample Shipment reference, item rows, and receiving instructions",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-service-catalog",
@@ -1388,7 +1403,8 @@
           "pdf-weekly-brief"
         ]
       },
-      "search_text": "A three-column service catalog Lay out a PDF service catalog in C# with relative columns, feature lists, and colored guidance panels. Download the generated PDF and source. PDF .NET C# walkthrough code sample Three service offerings and their intended use"
+      "search_text": "A three-column service catalog Lay out a PDF service catalog in C# with relative columns, feature lists, and colored guidance panels. Download the generated PDF and source. PDF .NET C# walkthrough code sample Three service offerings and their intended use",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-weekly-brief",
@@ -1465,7 +1481,8 @@
           "markdown-incident-runbook"
         ]
       },
-      "search_text": "A decision-focused weekly PDF brief Generate a weekly PDF brief in C# with a highlighted decision, progress bullets, risks, and an action table. Download the report and runnable source. PDF .NET C# walkthrough code sample Weekly progress, risks, and next actions"
+      "search_text": "A decision-focused weekly PDF brief Generate a weekly PDF brief in C# with a highlighted decision, progress bullets, risks, and an action table. Download the report and runnable source. PDF .NET C# walkthrough code sample Weekly progress, risks, and next actions",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-training-quiz",
@@ -1560,7 +1577,8 @@
           "markdown-incident-runbook"
         ]
       },
-      "search_text": "A short training quiz deck Generate a PowerPoint training quiz in C# with question, answer, and team-exercise slides. Inspect every slide and download editable PPTX source. PowerPoint .NET C# walkthrough code sample A training question, explanation, and discussion prompts"
+      "search_text": "A short training quiz deck Generate a PowerPoint training quiz in C# with question, answer, and team-exercise slides. Inspect every slide and download editable PPTX source. PowerPoint .NET C# walkthrough code sample A training question, explanation, and discussion prompts",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-service-overview",
@@ -1655,7 +1673,8 @@
           "portable-project-handover"
         ]
       },
-      "search_text": "A service handover briefing deck Build a PowerPoint service handover deck in C# with a cover, responsibility cards, and a first-week checklist. Download the PPTX, PDF, and previews. PowerPoint .NET C# walkthrough code sample Service ownership and handover tasks"
+      "search_text": "A service handover briefing deck Build a PowerPoint service handover deck in C# with a cover, responsibility cards, and a first-week checklist. Download the PPTX, PDF, and previews. PowerPoint .NET C# walkthrough code sample Service ownership and handover tasks",
+      "source_language": "csharp"
     },
     {
       "id": "markdown-decision-record",
@@ -1738,7 +1757,8 @@
           "markdown-api-handover"
         ]
       },
-      "search_text": "An architecture decision record Generate an architecture decision record as Markdown in C# with context, alternatives, and consequences. Inspect the PDF and download the source. Markdown .NET C# walkthrough code sample An architectural choice and the reasons behind it"
+      "search_text": "An architecture decision record Generate an architecture decision record as Markdown in C# with context, alternatives, and consequences. Inspect the PDF and download the source. Markdown .NET C# walkthrough code sample An architectural choice and the reasons behind it",
+      "source_language": "csharp"
     },
     {
       "id": "markdown-api-handover",
@@ -1827,7 +1847,8 @@
           "markdown-technical-guide"
         ]
       },
-      "search_text": "An API handover guide Build an API handover guide as Markdown in C# with request and response examples, a field table, and integration notes. Download Markdown and PDF. Markdown .NET C# walkthrough code sample Request fields, example payloads, and integration notes"
+      "search_text": "An API handover guide Build an API handover guide as Markdown in C# with request and response examples, a field table, and integration notes. Download Markdown and PDF. Markdown .NET C# walkthrough code sample Request fields, example payloads, and integration notes",
+      "source_language": "csharp"
     },
     {
       "id": "design-guided-presentation-deck",
@@ -1876,7 +1897,8 @@
         }
       ],
       "operation_tags": "create validate",
-      "search_text": "Design-guided presentation deck Create an editable presentation from a design brief with a consistent visual theme. PowerPoint dotnet powershell create validate powerpoint .NET C# design guided presentation deck pptx slides presentations"
+      "search_text": "Design-guided presentation deck Create an editable presentation from a design brief with a consistent visual theme. PowerPoint dotnet powershell create validate powerpoint .NET C# design guided presentation deck pptx slides presentations",
+      "source_language": "csharp"
     },
     {
       "id": "pswriteoffice-patch-report",
@@ -1910,7 +1932,7 @@
         "convert"
       ],
       "source_path": "OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1",
-      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
+      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
       "downloads": [
         {
           "label": "DOCX",
@@ -1926,7 +1948,222 @@
         }
       ],
       "operation_tags": "create convert",
-      "search_text": "Patch compliance report from PowerShell Turn a list of PowerShell objects into a Word report with a headline figure, a conditionally highlighted table, a chart, numbered steps and a numbered footer, then export a PDF. Word powershell create convert word PSWriteOffice docx report automation"
+      "search_text": "Patch compliance report from PowerShell Turn a list of PowerShell objects into a Word report with a headline figure, a conditionally highlighted table, a chart, numbered steps and a numbered footer, then export a PDF. Word powershell create convert word PSWriteOffice docx report automation",
+      "source_language": "powershell",
+      "walkthrough_url": "/showcase/pswriteoffice-patch-report/",
+      "output_directory": "./out/",
+      "walkthrough": {
+        "use_case": "Turn patch status objects into a report that a service owner can review: compliance, exceptions, and a clear follow-up list, with an editable Word file and a PDF for distribution.",
+        "steps": [
+          {
+            "title": "Prepare the patch inventory",
+            "body": "Replace the sample site objects with your own approved inventory. Keep the Site, Servers, Patched, Pending and Status fields so the summary and detail table use the same data."
+          },
+          {
+            "title": "Create a report with clear hierarchy",
+            "body": "The script builds a title, summary and detailed table, with consistent colors, cell padding and spacing. The DOCX remains editable for review notes."
+          },
+          {
+            "title": "Export the distribution copy",
+            "body": "Export-OfficeDocumentPdf converts the saved Word file with the first-party converter. Check the PDF before distribution, especially after adding more rows or changing fonts."
+          }
+        ],
+        "adapt": "Group the inventory by service or business owner, replace the example branding, and add exception owners and review dates. Generate from a reviewed data snapshot so every recipient sees the same report.",
+        "related": [
+          "word-post-incident-review",
+          "pdf-risk-assessment"
+        ]
+      },
+      "previews": [
+        {
+          "url": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ]
+    },
+    {
+      "id": "pswriteoffice-project-delivery",
+      "format": "Word",
+      "tags": "powershell create convert word excel",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Turn dated milestones into an editable register and a Word/PDF review with completed counts, overdue work and named recovery actions.",
+      "title": "Project delivery review and milestone register",
+      "description": "Turn dated milestones into an editable register and a Word/PDF review with completed counts, overdue work and named recovery actions.",
+      "input": "Synthetic CSV snapshot",
+      "output": "XLSX + DOCX + PDF",
+      "proof": "The script and CSV generate all three native files with the PSWriteOffice version documented by the command catalog. The PNG is an independent Poppler render of the PDF.",
+      "limit": "The data is synthetic. The Word/PDF review is a dated snapshot; regenerate it after changing the input. Larger inputs can span several pages. Check pagination and fonts before distributing the PDF.",
+      "artifact_url": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
+      "evidence_label": "Download project delivery PDF",
+      "source_url": "/downloads/showcase/source/PowerShell/ProjectDeliveryPack.ps1.txt",
+      "guide_url": "/docs/pswriteoffice/",
+      "api_url": "/api/powershell/",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "source_path": "OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1",
+      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx"
+        },
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png"
+        },
+        {
+          "label": "CSV input",
+          "url": "/downloads/showcase/source/PowerShell/Data/ProjectMilestones.csv"
+        }
+      ],
+      "operation_tags": "create convert",
+      "search_text": "Project delivery review and milestone register Turn dated milestones into an editable register and a Word/PDF review with completed counts, overdue work and named recovery actions. PowerShell CSV workflow workbook review owners decisions",
+      "source_language": "powershell",
+      "walkthrough_url": "/showcase/pswriteoffice-project-delivery/",
+      "output_directory": "./out/",
+      "walkthrough": {
+        "use_case": "Prepare a delivery review that connects current progress, due dates and owner decisions, with a workbook the team can update.",
+        "steps": [
+          {
+            "title": "Prepare the input snapshot",
+            "body": "Use the synthetic project or provide Milestone, Owner, DueDate, Progress and NextAction columns. DueDate uses yyyy-MM-dd and Progress is a whole number from 0 to 100."
+          },
+          {
+            "title": "Calculate the review",
+            "body": "The workbook recalculates status from progress and the snapshot date. Completed milestones are Done; an incomplete milestone due before the snapshot is Overdue. The review derives the same status and recovery list."
+          },
+          {
+            "title": "Review the distribution copy",
+            "body": "Inspect the generated PDF and use the Word copy for review notes. The source checkout includes the companion CSV. If downloading the script separately, save it as a .ps1 file and pass the downloaded CSV with -InputPath."
+          }
+        ],
+        "adapt": "Replace the milestones and owners, set the review date with -AsOfDate, and record the decision in the Word copy. Due today remains on track. Updating the workbook does not refresh an already generated Word/PDF snapshot; update the CSV and regenerate it.",
+        "related": [
+          "pswriteoffice-patch-report",
+          "pswriteoffice-budget-review"
+        ]
+      },
+      "previews": [
+        {
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ]
+    },
+    {
+      "id": "pswriteoffice-budget-review",
+      "format": "Excel",
+      "tags": "powershell create convert word excel",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Reconcile annual budget, actual spending and forecast in an editable workbook, then produce a Word/PDF review with owner decisions for overspend exceptions.",
+      "title": "Budget and forecast review from CSV",
+      "description": "Reconcile annual budget, actual spending and forecast in an editable workbook, then produce a Word/PDF review with owner decisions for overspend exceptions.",
+      "input": "Synthetic CSV snapshot",
+      "output": "XLSX + DOCX + PDF",
+      "proof": "The script and CSV generate all three native files with the PSWriteOffice version documented by the command catalog. The PNG is an independent Poppler render of the PDF.",
+      "limit": "The data is synthetic. The Word/PDF review is a dated snapshot; regenerate it after changing the input. Larger inputs can span several pages. Check pagination and fonts before distributing the PDF.",
+      "artifact_url": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
+      "artifact_label": "Download XLSX",
+      "evidence_url": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
+      "evidence_label": "Download budget forecast PDF",
+      "source_url": "/downloads/showcase/source/PowerShell/BudgetForecastReview.ps1.txt",
+      "guide_url": "/docs/pswriteoffice/",
+      "api_url": "/api/powershell/",
+      "format_id": "excel",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "source_path": "OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1",
+      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
+        },
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png"
+        },
+        {
+          "label": "CSV input",
+          "url": "/downloads/showcase/source/PowerShell/Data/BudgetForecast.csv"
+        }
+      ],
+      "operation_tags": "create convert",
+      "search_text": "Budget and forecast review from CSV Reconcile annual budget, actual spending and forecast in an editable workbook, then produce a Word/PDF review with owner decisions for overspend exceptions. PowerShell CSV workflow workbook review owners decisions",
+      "source_language": "powershell",
+      "walkthrough_url": "/showcase/pswriteoffice-budget-review/",
+      "output_directory": "./out/",
+      "walkthrough": {
+        "use_case": "Give a finance reviewer the detail behind the forecast and a short decision brief from the same data snapshot.",
+        "steps": [
+          {
+            "title": "Prepare the input snapshot",
+            "body": "Use the synthetic USD sample or provide Department, Owner, Budget, Actual, Forecast and Action columns. Use non-negative USD amounts with a dot decimal separator, at most two decimal places, and no grouping separators, such as 1234.50."
+          },
+          {
+            "title": "Calculate the review",
+            "body": "The workbook calculates totals and forecast variance, retains input validation, and identifies positive variance as overspend. The review derives its figures and owner decisions from the same CSV."
+          },
+          {
+            "title": "Review the distribution copy",
+            "body": "Inspect the generated PDF and use the Word copy for review notes. The source checkout includes the companion CSV. If downloading the script separately, save it as a .ps1 file and pass the downloaded CSV with -InputPath."
+          }
+        ],
+        "adapt": "Replace the synthetic departments and actions with an approved forecast. Keep the currency explicit. Positive variance means overspend; a zero-budget pilot remains a visible exception. Edit the CSV and regenerate the review for distribution.",
+        "related": [
+          "pswriteoffice-patch-report",
+          "pswriteoffice-project-delivery"
+        ]
+      },
+      "previews": [
+        {
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ]
     },
     {
       "id": "executive-pdf-dashboard",
@@ -1974,7 +2211,8 @@
         }
       ],
       "operation_tags": "create validate",
-      "search_text": "Executive PDF dashboard Build a landscape operations dashboard directly as a PDF: KPI panels, a vector chart with labels, styled tables, bullets and page numbers. PDF dotnet powershell create validate pdf .NET C# executive pdf dashboard "
+      "search_text": "Executive PDF dashboard Build a landscape operations dashboard directly as a PDF: KPI panels, a vector chart with labels, styled tables, bullets and page numbers. PDF dotnet powershell create validate pdf .NET C# executive pdf dashboard ",
+      "source_language": "csharp"
     },
     {
       "id": "color-and-gradients",
@@ -2027,7 +2265,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "CSS color and gradients Compare angled linear gradients, an off-center radial gradient, and hard color stops in the same document. HTML html dotnet render convert backgrounds, color stops, rounded corners .NET C# color and gradients html css rendering"
+      "search_text": "CSS color and gradients Compare angled linear gradients, an off-center radial gradient, and hard color stops in the same document. HTML html dotnet render convert backgrounds, color stops, rounded corners .NET C# color and gradients html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "operational-excel-report",
@@ -2078,7 +2317,8 @@
         }
       ],
       "operation_tags": "create validate",
-      "search_text": "Operational Excel report Build an editable regional revenue workbook: formulas and totals, number formats, a table with a colour scale, a SUMIF summary, a chart and a pivot table. Excel dotnet powershell create validate excel .NET C# operational excel report spreadsheet spreadsheets xlsx workbooks"
+      "search_text": "Operational Excel report Build an editable regional revenue workbook: formulas and totals, number formats, a table with a colour scale, a SUMIF summary, a chart and a pivot table. Excel dotnet powershell create validate excel .NET C# operational excel report spreadsheet spreadsheets xlsx workbooks",
+      "source_language": "csharp"
     },
     {
       "id": "customer-delivery-summary",
@@ -2130,7 +2370,8 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Customer delivery summary Create an editable one-page client report from structured data: KPI strip, status-coloured tables, a native chart, a callout and a numbered footer, then export a PDF. Word dotnet powershell create convert validate word .NET C# customer delivery summary docx documents"
+      "search_text": "Customer delivery summary Create an editable one-page client report from structured data: KPI strip, status-coloured tables, a native chart, a callout and a numbered footer, then export a PDF. Word dotnet powershell create convert validate word .NET C# customer delivery summary docx documents",
+      "source_language": "csharp"
     },
     {
       "id": "cloud-architecture-diagram",
@@ -2177,7 +2418,8 @@
         }
       ],
       "operation_tags": "create validate",
-      "search_text": "Cloud architecture diagram Build an editable Visio architecture diagram and render a native preview. Visio dotnet powershell create validate visio .NET C# cloud architecture diagram "
+      "search_text": "Cloud architecture diagram Build an editable Visio architecture diagram and render a native preview. Visio dotnet powershell create validate visio .NET C# cloud architecture diagram ",
+      "source_language": "csharp"
     },
     {
       "id": "managed-html-renderer-field-guide",
@@ -2236,7 +2478,8 @@
         }
       ],
       "operation_tags": "create convert render validate",
-      "search_text": "Managed HTML renderer field guide Explore CSS layout, vector paint, MathML, and PDF form fields in one HTML document. HTML dotnet create convert render validate html .NET C# managed html renderer field guide html css rendering forms"
+      "search_text": "Managed HTML renderer field guide Explore CSS layout, vector paint, MathML, and PDF form fields in one HTML document. HTML dotnet create convert render validate html .NET C# managed html renderer field guide html css rendering forms",
+      "source_language": "csharp"
     },
     {
       "id": "data-driven-purchase-report",
@@ -2290,7 +2533,8 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Data-driven purchase report Turn purchase rows into a three-page report with repeated table headings and page counters. HTML dotnet create convert validate html .NET C# data driven purchase report html css rendering"
+      "search_text": "Data-driven purchase report Turn purchase rows into a three-page report with repeated table headings and page counters. HTML dotnet create convert validate html .NET C# data driven purchase report html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "change-approval-memo",
@@ -2343,7 +2587,8 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Change approval memo Write a structured RTF memo with a shaded decision callout, a status-coloured controls table, a checklist and a page-numbered footer, then export a review copy. RTF dotnet powershell create convert validate rtf .NET C# change approval memo "
+      "search_text": "Change approval memo Write a structured RTF memo with a shaded decision callout, a status-coloured controls table, a checklist and a page-numbered footer, then export a review copy. RTF dotnet powershell create convert validate rtf .NET C# change approval memo ",
+      "source_language": "csharp"
     },
     {
       "id": "release-readiness-report",
@@ -2395,7 +2640,8 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Release readiness report Build a Markdown decision record with an evidence table, task checklist, rollout details and a callout, then export a themed PDF. Markdown dotnet powershell create convert validate markdown .NET C# release readiness report md"
+      "search_text": "Release readiness report Build a Markdown decision record with an evidence table, task checklist, rollout details and a callout, then export a themed PDF. Markdown dotnet powershell create convert validate markdown .NET C# release readiness report md",
+      "source_language": "csharp"
     },
     {
       "id": "portable-project-handover",
@@ -2447,7 +2693,8 @@
         }
       ],
       "operation_tags": "create convert validate",
-      "search_text": "Portable project handover Create a portable OpenDocument handover with a styled title, a delivery table, an open-items list and a page-numbered footer, then export the same content as PDF. OpenDocument dotnet powershell create convert validate opendocument .NET C# portable project handover odt odf"
+      "search_text": "Portable project handover Create a portable OpenDocument handover with a styled title, a delivery table, an open-items list and a page-numbered footer, then export the same content as PDF. OpenDocument dotnet powershell create convert validate opendocument .NET C# portable project handover odt odf",
+      "source_language": "csharp"
     },
     {
       "id": "multi-format-extraction-result",
@@ -2498,7 +2745,8 @@
         }
       ],
       "operation_tags": "extract validate",
-      "search_text": "Multi-format extraction result Extract a PowerPoint deck into a structured Reader result for downstream processing. Reader dotnet powershell extract validate reader .NET C# multi format extraction result "
+      "search_text": "Multi-format extraction result Extract a PowerPoint deck into a structured Reader result for downstream processing. Reader dotnet powershell extract validate reader .NET C# multi format extraction result ",
+      "source_language": "csharp"
     },
     {
       "id": "offline-notebook-export",
@@ -2559,7 +2807,8 @@
         }
       ],
       "operation_tags": "create convert extract validate",
-      "search_text": "Offline notebook export Create an offline OneNote notebook and export the same notes as PDF, HTML, and Markdown. OneNote dotnet create convert extract validate onenote .NET C# offline notebook export "
+      "search_text": "Offline notebook export Create an offline OneNote notebook and export the same notes as PDF, HTML, and Markdown. OneNote dotnet create convert extract validate onenote .NET C# offline notebook export ",
+      "source_language": "csharp"
     },
     {
       "id": "report-layout",
@@ -2612,7 +2861,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "A report with grid and flex layout Arrange a report header, summary metrics, a regional table, and commentary using a single HTML stylesheet. HTML html dotnet render convert css grid, flexbox, tables, spacing .NET C# report layout html css rendering"
+      "search_text": "A report with grid and flex layout Arrange a report header, summary metrics, a regional table, and commentary using a single HTML stylesheet. HTML html dotnet render convert css grid, flexbox, tables, spacing .NET C# report layout html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "fillable-forms",
@@ -2665,7 +2915,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "HTML controls to fillable PDF fields Create a project review with an editable name, a decision list, a checkbox, and a radio group. HTML html dotnet render convert text input, select, checkbox, radio group .NET C# fillable forms html css rendering"
+      "search_text": "HTML controls to fillable PDF fields Create a project review with an editable name, a decision list, a checkbox, and a radio group. HTML html dotnet render convert text input, select, checkbox, radio group .NET C# fillable forms html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "math-and-science",
@@ -2718,7 +2969,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "Mathematics in technical documents Place presentation MathML superscripts, a fraction, and a square root alongside headings and explanatory text. HTML html dotnet render convert mathml, fractions, roots, superscripts .NET C# math and science html css rendering"
+      "search_text": "Mathematics in technical documents Place presentation MathML superscripts, a fraction, and a square root alongside headings and explanatory text. HTML html dotnet render convert mathml, fractions, roots, superscripts .NET C# math and science html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "typography-and-lists",
@@ -2771,7 +3023,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "Readable prose and structured lists Combine headings, emphasis, a quotation, inline code, numbered steps, and a bulleted delivery list. HTML html dotnet render convert text flow, emphasis, lists, quotations .NET C# typography and lists html css rendering"
+      "search_text": "Readable prose and structured lists Combine headings, emphasis, a quotation, inline code, numbered steps, and a bulleted delivery list. HTML html dotnet render convert text flow, emphasis, lists, quotations .NET C# typography and lists html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "vector-diagrams",
@@ -2824,7 +3077,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "Inline SVG diagrams Include a three-stage workflow diagram built from SVG rectangles, circles, lines, and paths in an HTML report. HTML html dotnet render convert inline svg, paths, shapes, vector output .NET C# vector diagrams html css rendering"
+      "search_text": "Inline SVG diagrams Include a three-stage workflow diagram built from SVG rectangles, circles, lines, and paths in an HTML report. HTML html dotnet render convert inline svg, paths, shapes, vector output .NET C# vector diagrams html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "table-spans",
@@ -2877,7 +3131,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "Grouped HTML table headings Combine row spans, column spans, and collapsed borders in a grouped report table. HTML html dotnet render convert tables, rowspan, colspan, borders .NET C# table spans html css rendering"
+      "search_text": "Grouped HTML table headings Combine row spans, column spans, and collapsed borders in a grouped report table. HTML html dotnet render convert tables, rowspan, colspan, borders .NET C# table spans html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "positioning-and-layers",
@@ -2930,7 +3185,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "Positioned HTML content Place report cards, status labels, and captions within a relative container. HTML html dotnet render convert relative positioning, absolute positioning, layers .NET C# positioning and layers html css rendering"
+      "search_text": "Positioned HTML content Place report cards, status labels, and captions within a relative container. HTML html dotnet render convert relative positioning, absolute positioning, layers .NET C# positioning and layers html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "page-breaks",
@@ -2983,7 +3239,8 @@
         "Render",
         "Convert"
       ],
-      "search_text": "A cover with a deliberate page break Keep the cover on page one and start the delivery plan on a second page. HTML html dotnet render convert paged media, break-after, page flow .NET C# page breaks html css rendering"
+      "search_text": "A cover with a deliberate page break Keep the cover on page one and start the delivery plan on a second page. HTML html dotnet render convert paged media, break-after, page flow .NET C# page breaks html css rendering",
+      "source_language": "csharp"
     },
     {
       "id": "word-mail-merge",
@@ -3036,7 +3293,8 @@
         "Create",
         "Convert"
       ],
-      "search_text": "Mail merge with invoice rows Fill document fields and repeat an invoice row for each line item. Word word dotnet create convert .NET C# word mail merge docx documents"
+      "search_text": "Mail merge with invoice rows Fill document fields and repeat an invoice row for each line item. Word word dotnet create convert .NET C# word mail merge docx documents",
+      "source_language": "csharp"
     },
     {
       "id": "word-grouped-tables",
@@ -3089,7 +3347,8 @@
         "Create",
         "Convert"
       ],
-      "search_text": "Grouped rows and subtotals Generate group headings, detail rows, and supplied subtotals from structured records. Word word dotnet create convert .NET C# word grouped tables docx documents"
+      "search_text": "Grouped rows and subtotals Generate group headings, detail rows, and supplied subtotals from structured records. Word word dotnet create convert .NET C# word grouped tables docx documents",
+      "source_language": "csharp"
     },
     {
       "id": "word-review-report",
@@ -3146,7 +3405,8 @@
         "Edit",
         "Extract"
       ],
-      "search_text": "Comments and tracked-change reports Inspect threaded comments, resolution state, and tracked revisions in a Word document. Word word dotnet edit extract .NET C# word review report docx documents"
+      "search_text": "Comments and tracked-change reports Inspect threaded comments, resolution state, and tracked revisions in a Word document. Word word dotnet edit extract .NET C# word review report docx documents",
+      "source_language": "csharp"
     },
     {
       "id": "word-comparison",
@@ -3207,7 +3467,8 @@
         "Edit",
         "Extract"
       ],
-      "search_text": "Compare documents and create a redline Compare source and revised contracts, then generate a redline and structured findings. Word word dotnet edit extract .NET C# word comparison docx documents"
+      "search_text": "Compare documents and create a redline Compare source and revised contracts, then generate a redline and structured findings. Word word dotnet edit extract .NET C# word comparison docx documents",
+      "source_language": "csharp"
     },
     {
       "id": "excel-formulas",
@@ -3250,7 +3511,8 @@
       "badge_tags": [
         "Create"
       ],
-      "search_text": "Calculate a six-month forecast Calculate profit and margin formulas from revenue and cost inputs. Excel excel dotnet create .NET C# excel formulas spreadsheet spreadsheets xlsx workbooks"
+      "search_text": "Calculate a six-month forecast Calculate profit and margin formulas from revenue and cost inputs. Excel excel dotnet create .NET C# excel formulas spreadsheet spreadsheets xlsx workbooks",
+      "source_language": "csharp"
     },
     {
       "id": "excel-tables",
@@ -3293,7 +3555,8 @@
       "badge_tags": [
         "Create"
       ],
-      "search_text": "Styled inventory tables Create a filterable inventory table with frozen headings. Excel excel dotnet create .NET C# excel tables spreadsheet spreadsheets xlsx workbooks"
+      "search_text": "Styled inventory tables Create a filterable inventory table with frozen headings. Excel excel dotnet create .NET C# excel tables spreadsheet spreadsheets xlsx workbooks",
+      "source_language": "csharp"
     },
     {
       "id": "excel-charts",
@@ -3338,7 +3601,8 @@
         "Create",
         "Render"
       ],
-      "search_text": "Charts from worksheet data Build an editable column chart with actual and target series. Excel excel dotnet create render .NET C# excel charts spreadsheet spreadsheets xlsx workbooks"
+      "search_text": "Charts from worksheet data Build an editable column chart with actual and target series. Excel excel dotnet create render .NET C# excel charts spreadsheet spreadsheets xlsx workbooks",
+      "source_language": "csharp"
     },
     {
       "id": "excel-conditional-formatting",
@@ -3383,7 +3647,8 @@
         "Create",
         "Render"
       ],
-      "search_text": "A capacity heatmap Apply a conditional color scale to a team-by-day capacity matrix. Excel excel dotnet create render .NET C# excel conditional formatting spreadsheet spreadsheets xlsx workbooks"
+      "search_text": "A capacity heatmap Apply a conditional color scale to a team-by-day capacity matrix. Excel excel dotnet create render .NET C# excel conditional formatting spreadsheet spreadsheets xlsx workbooks",
+      "source_language": "csharp"
     },
     {
       "id": "excel-validation",
@@ -3428,7 +3693,8 @@
         "Create",
         "Validate"
       ],
-      "search_text": "Validated spreadsheet inputs Use dropdown choices and whole-number limits in a request register. Excel excel dotnet create validate .NET C# excel validation spreadsheet spreadsheets xlsx workbooks"
+      "search_text": "Validated spreadsheet inputs Use dropdown choices and whole-number limits in a request register. Excel excel dotnet create validate .NET C# excel validation spreadsheet spreadsheets xlsx workbooks",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-data-tables",
@@ -3481,7 +3747,8 @@
         "Create",
         "Render"
       ],
-      "search_text": "Editable slide tables Create a sales table with explicit header, cell, and alignment styling. PowerPoint powerpoint dotnet create render .NET C# powerpoint data tables pptx slides presentations"
+      "search_text": "Editable slide tables Create a sales table with explicit header, cell, and alignment styling. PowerPoint powerpoint dotnet create render .NET C# powerpoint data tables pptx slides presentations",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-shapes",
@@ -3534,7 +3801,8 @@
         "Create",
         "Render"
       ],
-      "search_text": "A workflow built from shapes Compose a three-stage workflow from named shapes and editable text boxes. PowerPoint powerpoint dotnet create render .NET C# powerpoint shapes pptx slides presentations"
+      "search_text": "A workflow built from shapes Compose a three-stage workflow from named shapes and editable text boxes. PowerPoint powerpoint dotnet create render .NET C# powerpoint shapes pptx slides presentations",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-text",
@@ -3587,7 +3855,8 @@
         "Create",
         "Render"
       ],
-      "search_text": "Rich text and bullet paragraphs Mix emphasis, colors, bullets, and a sidebar in editable slide text. PowerPoint powerpoint dotnet create render .NET C# powerpoint text pptx slides presentations"
+      "search_text": "Rich text and bullet paragraphs Mix emphasis, colors, bullets, and a sidebar in editable slide text. PowerPoint powerpoint dotnet create render .NET C# powerpoint text pptx slides presentations",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-theme",
@@ -3640,7 +3909,8 @@
         "Create",
         "Render"
       ],
-      "search_text": "Themes and content-box layouts Build slides with theme colors, placeholders, and a reusable content grid. PowerPoint powerpoint dotnet create render .NET C# powerpoint theme pptx slides presentations"
+      "search_text": "Themes and content-box layouts Build slides with theme colors, placeholders, and a reusable content grid. PowerPoint powerpoint dotnet create render .NET C# powerpoint theme pptx slides presentations",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-statement",
@@ -3683,7 +3953,8 @@
       "badge_tags": [
         "Create"
       ],
-      "search_text": "A paginated customer statement Generate an account statement with line items, totals, and running page information. PDF pdf dotnet create .NET C# pdf statement "
+      "search_text": "A paginated customer statement Generate an account statement with line items, totals, and running page information. PDF pdf dotnet create .NET C# pdf statement ",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-columns",
@@ -3726,7 +3997,8 @@
       "badge_tags": [
         "Create"
       ],
-      "search_text": "Columns, panels, and reading order Compose fixed-width and relative columns with gutters, lists, and callouts. PDF pdf dotnet create .NET C# pdf columns "
+      "search_text": "Columns, panels, and reading order Compose fixed-width and relative columns with gutters, lists, and callouts. PDF pdf dotnet create .NET C# pdf columns ",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-drawing",
@@ -3771,7 +4043,8 @@
         "Create",
         "Render"
       ],
-      "search_text": "Vector drawing primitives Draw shapes, paths, and styled marks directly in a PDF document. PDF pdf dotnet create render .NET C# pdf drawing "
+      "search_text": "Vector drawing primitives Draw shapes, paths, and styled marks directly in a PDF document. PDF pdf dotnet create render .NET C# pdf drawing ",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-table-styles",
@@ -3814,7 +4087,8 @@
       "badge_tags": [
         "Create"
       ],
-      "search_text": "A PDF table-style gallery Compare border, header, row, and spacing styles in generated tables. PDF pdf dotnet create .NET C# pdf table styles "
+      "search_text": "A PDF table-style gallery Compare border, header, row, and spacing styles in generated tables. PDF pdf dotnet create .NET C# pdf table styles ",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-page-operations",
@@ -3871,7 +4145,8 @@
         "Edit",
         "Extract"
       ],
-      "search_text": "Merge, extract, and stamp PDF pages Combine two PDFs, extract a page, and stamp the assembled result. PDF pdf dotnet edit extract .NET C# pdf page operations "
+      "search_text": "Merge, extract, and stamp PDF pages Combine two PDFs, extract a page, and stamp the assembled result. PDF pdf dotnet edit extract .NET C# pdf page operations ",
+      "source_language": "csharp"
     },
     {
       "id": "markdown-technical-guide",
@@ -3920,7 +4195,8 @@
         "Create",
         "Convert"
       ],
-      "search_text": "A technical guide from Markdown Combine code, headings, tables, and a callout in a portable technical guide. Markdown markdown dotnet create convert .NET C# markdown technical guide md"
+      "search_text": "A technical guide from Markdown Combine code, headings, tables, and a callout in a portable technical guide. Markdown markdown dotnet create convert .NET C# markdown technical guide md",
+      "source_language": "csharp"
     },
     {
       "id": "word-research-brief",
@@ -4002,7 +4278,8 @@
           "word-decision-record"
         ]
       },
-      "search_text": "Research brief with footnotes Create a Word research brief with native footnotes, a recommendation and explicit limits on the evidence. Download the DOCX and C# source. Word .NET C# walkthrough code sample Research observations and source notes"
+      "search_text": "Research brief with footnotes Create a Word research brief with native footnotes, a recommendation and explicit limits on the evidence. Download the DOCX and C# source. Word .NET C# walkthrough code sample Research observations and source notes",
+      "source_language": "csharp"
     },
     {
       "id": "word-service-intake",
@@ -4088,7 +4365,8 @@
           "word-onboarding-checklist"
         ]
       },
-      "search_text": "Reusable service intake template Save a tagged Word template, then fill a separate request from a dictionary while preserving editable content controls. Includes the blank DOCX template. Word .NET C# walkthrough code sample Template field definitions and request values"
+      "search_text": "Reusable service intake template Save a tagged Word template, then fill a separate request from a dictionary while preserving editable content controls. Includes the blank DOCX template. Word .NET C# walkthrough code sample Template field definitions and request values",
+      "source_language": "csharp"
     },
     {
       "id": "word-mixed-orientation-report",
@@ -4176,7 +4454,8 @@
           "word-project-charter"
         ]
       },
-      "search_text": "Portrait report with a landscape matrix Combine a readable portrait recommendation with a wide landscape comparison table in the same editable Word file. Includes runnable C# source. Word .NET C# walkthrough code sample Evaluation narrative and a five-column evidence matrix"
+      "search_text": "Portrait report with a landscape matrix Combine a readable portrait recommendation with a wide landscape comparison table in the same editable Word file. Includes runnable C# source. Word .NET C# walkthrough code sample Evaluation narrative and a five-column evidence matrix",
+      "source_language": "csharp"
     },
     {
       "id": "excel-inventory-reorder",
@@ -4254,7 +4533,8 @@
           "excel-budget-scenarios"
         ]
       },
-      "search_text": "Inventory replenishment plan Calculate stock gaps, non-negative order quantities and proposed spend in an editable Excel workbook. Includes formulas and a PNG preview. Excel .NET C# walkthrough code sample On-hand quantities, target stock and unit costs"
+      "search_text": "Inventory replenishment plan Calculate stock gaps, non-negative order quantities and proposed spend in an editable Excel workbook. Includes formulas and a PNG preview. Excel .NET C# walkthrough code sample On-hand quantities, target stock and unit costs",
+      "source_language": "csharp"
     },
     {
       "id": "excel-training-matrix",
@@ -4332,7 +4612,8 @@
           "word-onboarding-checklist"
         ]
       },
-      "search_text": "Training coverage matrix Track validated training states and calculate completion counts for each colleague and the team. Download the Excel workbook and C# source. Excel .NET C# walkthrough code sample People, required modules and completion states"
+      "search_text": "Training coverage matrix Track validated training states and calculate completion counts for each colleague and the team. Download the Excel workbook and C# source. Excel .NET C# walkthrough code sample People, required modules and completion states",
+      "source_language": "csharp"
     },
     {
       "id": "excel-operational-trends",
@@ -4410,7 +4691,8 @@
           "powerpoint-results-briefing"
         ]
       },
-      "search_text": "Six-week workload trend Generate an editable Excel line chart from received and resolved request counts, with weekly net-change formulas. Includes the XLSX and source. Excel .NET C# walkthrough code sample Six weekly received and resolved counts"
+      "search_text": "Six-week workload trend Generate an editable Excel line chart from received and resolved request counts, with weekly net-change formulas. Includes the XLSX and source. Excel .NET C# walkthrough code sample Six weekly received and resolved counts",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-equipment-inspection",
@@ -4486,7 +4768,8 @@
           "word-service-intake"
         ]
       },
-      "search_text": "Fillable equipment inspection Create a PDF form with named text fields, checkboxes and a disposition dropdown for an equipment return workflow. Includes runnable C# source. PDF .NET C# walkthrough code sample Inspection labels, a sample asset identifier and allowed dispositions"
+      "search_text": "Fillable equipment inspection Create a PDF form with named text fields, checkboxes and a disposition dropdown for an equipment return workflow. Includes runnable C# source. PDF .NET C# walkthrough code sample Inspection labels, a sample asset identifier and allowed dispositions",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-linked-resource-guide",
@@ -4562,7 +4845,8 @@
           "pdf-navigable-handbook"
         ]
       },
-      "search_text": "PDF reading list with clickable resources Author descriptive paragraph and table links in a compact PDF reference for a document automation team. Download the PDF and generating C# source. PDF .NET C# walkthrough code sample Resource names, destinations and usage notes"
+      "search_text": "PDF reading list with clickable resources Author descriptive paragraph and table links in a compact PDF reference for a document automation team. Download the PDF and generating C# source. PDF .NET C# walkthrough code sample Resource names, destinations and usage notes",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-navigable-handbook",
@@ -4644,7 +4928,8 @@
           "pdf-linked-resource-guide"
         ]
       },
-      "search_text": "Handbook with a linked contents page Build a two-page PDF handbook with named sections, bookmarks and an automatically generated table of contents. Includes the PDF and C# source. PDF .NET C# walkthrough code sample Workshop stages, timings and follow-up guidance"
+      "search_text": "Handbook with a linked contents page Build a two-page PDF handbook with named sections, bookmarks and an automatically generated table of contents. Includes the PDF and C# source. PDF .NET C# walkthrough code sample Workshop stages, timings and follow-up guidance",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-results-briefing",
@@ -4732,7 +5017,8 @@
           "powerpoint-service-overview"
         ]
       },
-      "search_text": "Results briefing with an editable chart Create a PowerPoint results chart, a decision slide and speaker notes that keep measurement limits visible. Includes the PPTX and runnable C# source. PowerPoint .NET C# walkthrough code sample Baseline and pilot response times plus decision notes"
+      "search_text": "Results briefing with an editable chart Create a PowerPoint results chart, a decision slide and speaker notes that keep measurement limits visible. Includes the PPTX and runnable C# source. PowerPoint .NET C# walkthrough code sample Baseline and pilot response times plus decision notes",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-branching-playbook",
@@ -4826,7 +5112,8 @@
           "markdown-incident-runbook"
         ]
       },
-      "search_text": "PowerPoint playbook with linked paths Build a three-slide support playbook with clickable path cards and return links to the opening menu. Download the editable PPTX and C# source. PowerPoint .NET C# walkthrough code sample Two support scenarios and their checklists"
+      "search_text": "PowerPoint playbook with linked paths Build a three-slide support playbook with clickable path cards and return links to the opening menu. Download the editable PPTX and C# source. PowerPoint .NET C# walkthrough code sample Two support scenarios and their checklists",
+      "source_language": "csharp"
     },
     {
       "id": "markdown-migration-guide",
@@ -4908,7 +5195,8 @@
           "markdown-data-dictionary"
         ]
       },
-      "search_text": "Configuration migration guide Generate a Markdown upgrade guide with an old-to-new mapping, complete JSON examples and verification steps. Includes Markdown and PDF downloads. Markdown .NET C# walkthrough code sample An illustrative configuration change and its migration rules"
+      "search_text": "Configuration migration guide Generate a Markdown upgrade guide with an old-to-new mapping, complete JSON examples and verification steps. Includes Markdown and PDF downloads. Markdown .NET C# walkthrough code sample An illustrative configuration change and its migration rules",
+      "source_language": "csharp"
     },
     {
       "id": "markdown-data-dictionary",
@@ -4990,7 +5278,8 @@
           "markdown-api-handover"
         ]
       },
-      "search_text": "Data dictionary from a field catalog Turn typed field definitions into Markdown documentation with constraints, a JSON sample and consumer rules. Includes runnable C# and a PDF preview. Markdown .NET C# walkthrough code sample A structured field catalog for a service request export"
+      "search_text": "Data dictionary from a field catalog Turn typed field definitions into Markdown documentation with constraints, a JSON sample and consumer rules. Includes runnable C# and a PDF preview. Markdown .NET C# walkthrough code sample A structured field catalog for a service request export",
+      "source_language": "csharp"
     },
     {
       "id": "html-course-certificate",
@@ -5072,7 +5361,8 @@
           "pdf-workshop-pack"
         ]
       },
-      "search_text": "Personalized course certificate Render a personalized HTML workshop certificate to PDF with an inline SVG mark and print styling. Includes the HTML document and runnable C# source. HTML .NET C# walkthrough code sample Learner name, course title and completion details"
+      "search_text": "Personalized course certificate Render a personalized HTML workshop certificate to PDF with an inline SVG mark and print styling. Includes the HTML document and runnable C# source. HTML .NET C# walkthrough code sample Learner name, course title and completion details",
+      "source_language": "csharp"
     },
     {
       "id": "html-service-level-report",
@@ -5154,7 +5444,8 @@
           "excel-operational-trends"
         ]
       },
-      "search_text": "Service review with explicit target misses Generate an HTML service review that compares actual values with targets and keeps missed thresholds visible in the PDF. HTML .NET C# walkthrough code sample Measured values, targets, units and comparison direction"
+      "search_text": "Service review with explicit target misses Generate an HTML service review that compares actual values with targets and keeps missed thresholds visible in the PDF. HTML .NET C# walkthrough code sample Measured values, targets, units and comparison direction",
+      "source_language": "csharp"
     },
     {
       "id": "opendocument-service-proposal",
@@ -5236,7 +5527,8 @@
           "word-project-charter"
         ]
       },
-      "search_text": "Editable OpenDocument proposal Create an ODT service proposal with styled text, acceptance conditions, assumptions and a PDF review copy. Includes the ODT and runnable C# source. OpenDocument .NET C# walkthrough code sample Proposed outcome, deliverables and acceptance conditions"
+      "search_text": "Editable OpenDocument proposal Create an ODT service proposal with styled text, acceptance conditions, assumptions and a PDF review copy. Includes the ODT and runnable C# source. OpenDocument .NET C# walkthrough code sample Proposed outcome, deliverables and acceptance conditions",
+      "source_language": "csharp"
     },
     {
       "id": "opendocument-workshop-agenda",
@@ -5322,7 +5614,8 @@
           "pdf-workshop-pack"
         ]
       },
-      "search_text": "Workshop agenda in ODT and flat XML Save one structured workshop agenda as editable ODT, inspectable FODT and a PDF review copy. Download all three formats and the generating C# source. OpenDocument .NET C# walkthrough code sample Workshop timings, activities, outputs and preparation notes"
+      "search_text": "Workshop agenda in ODT and flat XML Save one structured workshop agenda as editable ODT, inspectable FODT and a PDF review copy. Download all three formats and the generating C# source. OpenDocument .NET C# walkthrough code sample Workshop timings, activities, outputs and preparation notes",
+      "source_language": "csharp"
     },
     {
       "id": "rtf-support-bulletin",
@@ -5404,7 +5697,8 @@
           "pdf-linked-resource-guide"
         ]
       },
-      "search_text": "Portable RTF support bulletin Generate an RTF troubleshooting bulletin with formatted headings, a checklist and an evidence table. Includes the editable RTF and a PDF preview. RTF .NET C# walkthrough code sample A support symptom, diagnostic steps and evidence fields"
+      "search_text": "Portable RTF support bulletin Generate an RTF troubleshooting bulletin with formatted headings, a checklist and an evidence table. Includes the editable RTF and a PDF preview. RTF .NET C# walkthrough code sample A support symptom, diagnostic steps and evidence fields",
+      "source_language": "csharp"
     },
     {
       "id": "visio-approval-swimlane",
@@ -5486,7 +5780,8 @@
           "word-decision-record"
         ]
       },
-      "search_text": "Purchase approval swimlane Generate an editable Visio process map with role lanes, phases, a decision and a revision loop. Includes the VSDX, SVG preview and C# source. Visio .NET C# walkthrough code sample Approval roles, process steps and labeled transitions"
+      "search_text": "Purchase approval swimlane Generate an editable Visio process map with role lanes, phases, a decision and a revision loop. Includes the VSDX, SVG preview and C# source. Visio .NET C# walkthrough code sample Approval roles, process steps and labeled transitions",
+      "source_language": "csharp"
     },
     {
       "id": "visio-team-organisation",
@@ -5568,7 +5863,8 @@
           "powerpoint-service-overview"
         ]
       },
-      "search_text": "Organisation chart with team vacancies Build an editable Visio organisation chart with reporting lines, team bands, an assistant, a vacancy and an external adviser. Visio .NET C# walkthrough code sample People, roles, reporting relationships and open positions"
+      "search_text": "Organisation chart with team vacancies Build an editable Visio organisation chart with reporting lines, team bands, an assistant, a vacancy and an external adviser. Visio .NET C# walkthrough code sample People, roles, reporting relationships and open positions",
+      "source_language": "csharp"
     },
     {
       "id": "project-delivery-gantt",
@@ -5662,7 +5958,8 @@
           "project-milestone-timeline"
         ]
       },
-      "search_text": "Delivery Gantt with progress Create a delivery plan in C# with progress bars, a status date, and a launch milestone. Export the calculated Gantt to Word, PDF, SVG, and PNG. Project .NET C# walkthrough code schedule exports"
+      "search_text": "Delivery Gantt with progress Create a delivery plan in C# with progress bars, a status date, and a launch milestone. Export the calculated Gantt to Word, PDF, SVG, and PNG. Project .NET C# walkthrough code schedule exports",
+      "source_language": "csharp"
     },
     {
       "id": "project-dependency-network",
@@ -5752,7 +6049,8 @@
           "project-milestone-timeline"
         ]
       },
-      "search_text": "Parallel dependency network Render a dependency network in C# with parallel task lanes, progress, and cross-task references. Export the calculated release plan to PDF, SVG, and PNG. Project .NET C# walkthrough code schedule exports"
+      "search_text": "Parallel dependency network Render a dependency network in C# with parallel task lanes, progress, and cross-task references. Export the calculated release plan to PDF, SVG, and PNG. Project .NET C# walkthrough code schedule exports",
+      "source_language": "csharp"
     },
     {
       "id": "project-milestone-timeline",
@@ -5850,7 +6148,8 @@
           "project-dependency-network"
         ]
       },
-      "search_text": "Release milestone timeline Build a release timeline with phase bars and milestone diamonds, then export a PowerPoint report and editable Excel data. Project .NET C# walkthrough code schedule exports"
+      "search_text": "Release milestone timeline Build a release timeline with phase bars and milestone diamonds, then export a PowerPoint report and editable Excel data. Project .NET C# walkthrough code schedule exports",
+      "source_language": "csharp"
     },
     {
       "id": "word-business-case",
@@ -5932,7 +6231,8 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Business case with cost options Compare estimated costs, savings and payback assumptions in an editable Word decision brief. Word .NET C# walkthrough code sample Options, estimated cost and expected saving"
+      "search_text": "Business case with cost options Compare estimated costs, savings and payback assumptions in an editable Word decision brief. Word .NET C# walkthrough code sample Options, estimated cost and expected saving",
+      "source_language": "csharp"
     },
     {
       "id": "word-renewal-proposal",
@@ -6014,7 +6314,8 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Managed service renewal proposal Prepare a Word renewal proposal with service coverage, fees, review evidence and explicit exclusions. Word .NET C# walkthrough code sample Service commitments and proposed commercial terms"
+      "search_text": "Managed service renewal proposal Prepare a Word renewal proposal with service coverage, fees, review evidence and explicit exclusions. Word .NET C# walkthrough code sample Service commitments and proposed commercial terms",
+      "source_language": "csharp"
     },
     {
       "id": "word-post-incident-review",
@@ -6096,7 +6397,8 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Post-incident review timeline Build a Word incident review with a UTC timeline, evidence references, contributing conditions and follow-up owners. Word .NET C# walkthrough code sample Incident events and corrective actions"
+      "search_text": "Post-incident review timeline Build a Word incident review with a UTC timeline, evidence references, contributing conditions and follow-up owners. Word .NET C# walkthrough code sample Incident events and corrective actions",
+      "source_language": "csharp"
     },
     {
       "id": "word-statement-of-work",
@@ -6178,7 +6480,8 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Statement of work and acceptance Create a Word scope document with deliverables, owners, acceptance evidence and a concise change-control boundary. Word .NET C# walkthrough code sample Deliverables and acceptance criteria"
+      "search_text": "Statement of work and acceptance Create a Word scope document with deliverables, owners, acceptance evidence and a concise change-control boundary. Word .NET C# walkthrough code sample Deliverables and acceptance criteria",
+      "source_language": "csharp"
     },
     {
       "id": "excel-cash-flow-forecast",
@@ -6256,7 +6559,8 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Rolling cash-flow forecast Calculate opening cash, monthly net flow and closing cash in a six-month Excel planning workbook. Excel .NET C# walkthrough code sample Opening cash, receipts and payments"
+      "search_text": "Rolling cash-flow forecast Calculate opening cash, monthly net flow and closing cash in a six-month Excel planning workbook. Excel .NET C# walkthrough code sample Opening cash, receipts and payments",
+      "source_language": "csharp"
     },
     {
       "id": "excel-asset-depreciation",
@@ -6334,7 +6638,8 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Asset depreciation schedule Build an Excel straight-line planning register with residual values, useful lives and a total annual charge. Excel .NET C# walkthrough code sample Asset cost, residual value and useful life"
+      "search_text": "Asset depreciation schedule Build an Excel straight-line planning register with residual values, useful lives and a total annual charge. Excel .NET C# walkthrough code sample Asset cost, residual value and useful life",
+      "source_language": "csharp"
     },
     {
       "id": "excel-vendor-comparison",
@@ -6412,7 +6717,8 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Weighted vendor scorecard Compare synthetic vendor offers using explicit criteria, 1-5 scores and a visible weighted-score formula. Excel .NET C# walkthrough code sample Criterion scores and agreed weights"
+      "search_text": "Weighted vendor scorecard Compare synthetic vendor offers using explicit criteria, 1-5 scores and a visible weighted-score formula. Excel .NET C# walkthrough code sample Criterion scores and agreed weights",
+      "source_language": "csharp"
     },
     {
       "id": "excel-workforce-rota",
@@ -6490,7 +6796,8 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Weekly support rota and coverage Create a colour-coded Excel rota with desk-day totals and daily coverage counts calculated from shift codes. Excel .NET C# walkthrough code sample Team members and daily shift codes"
+      "search_text": "Weekly support rota and coverage Create a colour-coded Excel rota with desk-day totals and daily coverage counts calculated from shift codes. Excel .NET C# walkthrough code sample Team members and daily shift codes",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-travel-itinerary",
@@ -6566,7 +6873,8 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Travel itinerary and arrival brief Create a PDF itinerary with local-time labels, an arrival schedule, departure notes and a preparation checklist. PDF .NET C# walkthrough code sample Travel plan and workshop arrangements"
+      "search_text": "Travel itinerary and arrival brief Create a PDF itinerary with local-time labels, an arrival schedule, departure notes and a preparation checklist. PDF .NET C# walkthrough code sample Travel plan and workshop arrangements",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-event-badges",
@@ -6652,7 +6960,8 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Small-format workshop badges Generate two individual 340-by-255-point PDF badge pages with participant names, roles and event details. PDF .NET C# walkthrough code sample Participant names, roles and event details"
+      "search_text": "Small-format workshop badges Generate two individual 340-by-255-point PDF badge pages with participant names, roles and event details. PDF .NET C# walkthrough code sample Participant names, roles and event details",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-maintenance-job-card",
@@ -6728,7 +7037,8 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Fillable maintenance job card Create a PDF work record with named fields for planned work, completed work, outcome and handover. PDF .NET C# walkthrough code sample Work order and completion record"
+      "search_text": "Fillable maintenance job card Create a PDF work record with named fields for planned work, completed work, outcome and handover. PDF .NET C# walkthrough code sample Work order and completion record",
+      "source_language": "csharp"
     },
     {
       "id": "pdf-risk-assessment",
@@ -6804,7 +7114,8 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Pilot delivery risk review Present delivery risks, likelihood, impact, controls and owners in a PDF review with an explicit expansion decision. PDF .NET C# walkthrough code sample Delivery risks and proposed controls"
+      "search_text": "Pilot delivery risk review Present delivery risks, likelihood, impact, controls and owners in a PDF review with an explicit expansion decision. PDF .NET C# walkthrough code sample Delivery risks and proposed controls",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-board-decision",
@@ -6896,7 +7207,8 @@
           "powerpoint-training-quiz"
         ]
       },
-      "search_text": "Board decision brief Build a two-slide PowerPoint brief with three investment options, trade-offs and a bounded approval request. PowerPoint .NET C# walkthrough code sample Investment options and approval conditions"
+      "search_text": "Board decision brief Build a two-slide PowerPoint brief with three investment options, trade-offs and a bounded approval request. PowerPoint .NET C# walkthrough code sample Investment options and approval conditions",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-sales-pipeline",
@@ -6988,7 +7300,8 @@
           "powerpoint-training-quiz"
         ]
       },
-      "search_text": "Sales pipeline review Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions. PowerPoint .NET C# walkthrough code sample Opportunity value by current stage"
+      "search_text": "Sales pipeline review Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions. PowerPoint .NET C# walkthrough code sample Opportunity value by current stage",
+      "source_language": "csharp"
     },
     {
       "id": "powerpoint-retrospective",
@@ -7080,7 +7393,8 @@
           "powerpoint-training-quiz"
         ]
       },
-      "search_text": "Pilot retrospective and experiments Create a PowerPoint keep-change-try board followed by two owned experiments and observable review checks. PowerPoint .NET C# walkthrough code sample Team observations and proposed experiments"
+      "search_text": "Pilot retrospective and experiments Create a PowerPoint keep-change-try board followed by two owned experiments and observable review checks. PowerPoint .NET C# walkthrough code sample Team observations and proposed experiments",
+      "source_language": "csharp"
     },
     {
       "id": "visio-triage-flow",
@@ -7162,7 +7476,8 @@
           "visio-team-organisation"
         ]
       },
-      "search_text": "Support triage flow Create an editable Visio flowchart with an investigation loop and an explicit requester-acceptance decision. Visio .NET C# walkthrough code sample Support states and acceptance decision"
+      "search_text": "Support triage flow Create an editable Visio flowchart with an investigation loop and an explicit requester-acceptance decision. Visio .NET C# walkthrough code sample Support states and acceptance decision",
+      "source_language": "csharp"
     },
     {
       "id": "visio-onboarding-journey",
@@ -7244,7 +7559,8 @@
           "visio-team-organisation"
         ]
       },
-      "search_text": "New-starter handover journey Map a new-starter journey across manager, people-team and IT swimlanes with before-arrival, day-one and week-one phases. Visio .NET C# walkthrough code sample Starter milestones and team handovers"
+      "search_text": "New-starter handover journey Map a new-starter journey across manager, people-team and IT swimlanes with before-arrival, day-one and week-one phases. Visio .NET C# walkthrough code sample Starter milestones and team handovers",
+      "source_language": "csharp"
     },
     {
       "id": "markdown-release-checklist",
@@ -7326,7 +7642,8 @@
           "markdown-decision-record"
         ]
       },
-      "search_text": "Release readiness checklist Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision. Markdown .NET C# walkthrough code sample Readiness checks and release ownership"
+      "search_text": "Release readiness checklist Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision. Markdown .NET C# walkthrough code sample Readiness checks and release ownership",
+      "source_language": "csharp"
     },
     {
       "id": "opendocument-client-letter",
@@ -7405,7 +7722,8 @@
         "adapt": "Replace the invented appointment and contact route with confirmed arrangements.",
         "related": []
       },
-      "search_text": "Client appointment letter Create an editable ODT letter with a dated appointment, preparation notes, follow-up commitment and clear typography. OpenDocument .NET C# walkthrough code sample Recipient, appointment and preparation details"
+      "search_text": "Client appointment letter Create an editable ODT letter with a dated appointment, preparation notes, follow-up commitment and clear typography. OpenDocument .NET C# walkthrough code sample Recipient, appointment and preparation details",
+      "source_language": "csharp"
     },
     {
       "id": "rtf-desk-reference",
@@ -7486,7 +7804,8 @@
           "rtf-support-bulletin"
         ]
       },
-      "search_text": "Service desk handover reference Generate an editable RTF quick reference with a four-field handover table, privacy reminders and a sample closing message. RTF .NET C# walkthrough code sample Handover fields and communication guidance"
+      "search_text": "Service desk handover reference Generate an editable RTF quick reference with a four-field handover table, privacy reminders and a sample closing message. RTF .NET C# walkthrough code sample Handover fields and communication guidance",
+      "source_language": "csharp"
     }
   ],
   "artifacts": [
@@ -10951,6 +11270,116 @@
       "destination": "workflows/rtf-desk-reference/DeskReference.cs.txt",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pswriteoffice-budget-review-xlsx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.xlsx",
+      "destination": "pswriteoffice/budget-forecast-review.xlsx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native XLSX generated from BudgetForecast.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-budget-review-docx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.docx",
+      "destination": "pswriteoffice/budget-forecast-review.docx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native DOCX generated from BudgetForecast.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-budget-review-pdf",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.pdf",
+      "destination": "pswriteoffice/budget-forecast-review.pdf",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native PDF generated from BudgetForecast.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-budget-review-preview",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.png",
+      "destination": "pswriteoffice/budget-forecast-review-page1.png",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result.",
+      "previewSource": "PowerShell/BudgetForecastReview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pswriteoffice-budget-review-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1",
+      "destination": "source/PowerShell/BudgetForecastReview.ps1.txt",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-budget-review-input",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/Data/BudgetForecast.csv",
+      "destination": "source/PowerShell/Data/BudgetForecast.csv",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-xlsx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.xlsx",
+      "destination": "pswriteoffice/project-delivery-pack.xlsx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native XLSX generated from ProjectMilestones.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-docx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.docx",
+      "destination": "pswriteoffice/project-delivery-pack.docx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native DOCX generated from ProjectMilestones.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-pdf",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.pdf",
+      "destination": "pswriteoffice/project-delivery-pack.pdf",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native PDF generated from ProjectMilestones.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-preview",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.png",
+      "destination": "pswriteoffice/project-delivery-pack-page1.png",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result.",
+      "previewSource": "PowerShell/ProjectDeliveryPack.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pswriteoffice-project-delivery-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1",
+      "destination": "source/PowerShell/ProjectDeliveryPack.ps1.txt",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-input",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/Data/ProjectMilestones.csv",
+      "destination": "source/PowerShell/Data/ProjectMilestones.csv",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
+    }
+  ],
+  "source_languages": [
+    {
+      "id": "csharp",
+      "label": "C#"
+    },
+    {
+      "id": "powershell",
+      "label": "PowerShell"
     }
   ]
 }

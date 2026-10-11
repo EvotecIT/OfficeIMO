@@ -511,6 +511,26 @@ if ($powerShellCatalog.module.aliasCount -lt 0) {
     Add-Failure 'The PSWriteOffice snapshot alias count cannot be negative.'
 }
 
+$apiSnapshotRoot = Join-Path $SiteRoot 'data/apidocs/powershell'
+$apiBundle = Get-Content -LiteralPath (Join-Path $apiSnapshotRoot 'bundle-manifest.json') -Raw | ConvertFrom-Json
+if ($apiBundle.schemaVersion -ne 1 -or $apiBundle.moduleName -cne 'PSWriteOffice' -or
+    $apiBundle.moduleVersion -cne $psWriteOfficeVersion -or
+    $apiBundle.sourceCommit -cne $psWriteOfficeSource[0].Ref) {
+    Add-Failure 'The PowerShell API bundle provenance must identify the imported release.'
+}
+foreach ($component in @(
+    @{ Key = 'manifest'; File = 'PSWriteOffice.psd1' },
+    @{ Key = 'help'; File = 'PSWriteOffice-Help.xml' },
+    @{ Key = 'metadata'; File = 'command-metadata.json' }
+)) {
+    $path = Join-Path $apiSnapshotRoot $component.File
+    $evidence = $apiBundle.components.($component.Key)
+    if ($null -eq $evidence -or (Get-Item -LiteralPath $path).Length -ne $evidence.bytes -or
+        (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine $evidence.sha256) {
+        Add-Failure "The PowerShell API $($component.Key) must match its release fingerprint."
+    }
+}
+
 $codeExamplesPath = Join-Path $SiteRoot 'data\code_examples.json'
 $codeExamples = Get-Content -LiteralPath $codeExamplesPath -Raw | ConvertFrom-Json
 $powerShellExample = @($codeExamples.tabs | Where-Object language -EQ 'powershell')
@@ -544,6 +564,26 @@ if ($powerShellExample.Count -ne 1) {
         $commandByName[[string] $command.name] = [string] $command.name
         foreach ($alias in @($command.aliases)) {
             $commandByName[[string] $alias] = [string] $command.name
+        }
+    }
+
+    $apiLinks = Get-Content -LiteralPath (Join-Path $SiteRoot 'data/api_links.json') -Raw | ConvertFrom-Json
+    $patchReportLinks = @($apiLinks.pages.'/showcase/pswriteoffice-patch-report/')
+    if (@($patchReportLinks | Where-Object { $_.n -ceq 'Export-OfficeDocumentPdf' -and $_.h -ceq '/api/powershell/export-officedocumentpdf/' }).Count -ne 1) {
+        Add-Failure 'The PowerShell patch-report walkthrough must link its PDF export step to the canonical command reference.'
+    }
+    foreach ($page in $apiLinks.pages.PSObject.Properties | Where-Object Name -Like '/docs/pswriteoffice/*') {
+        foreach ($link in $page.Value) {
+            if ($commandByName.ContainsKey($link.n) -and $link.h -cne "/api/powershell/$($commandByName[$link.n].ToLowerInvariant())/") {
+                Add-Failure "PowerShell command or alias '$($link.n)' must link to its canonical command on '$($page.Name)'."
+            }
+        }
+    }
+    foreach ($manifest in Get-ChildItem -LiteralPath (Join-Path $SiteRoot 'data/apidocs/related') -Filter '*.json') {
+        foreach ($entry in @(Get-Content -LiteralPath $manifest.FullName -Raw | ConvertFrom-Json)) {
+            if (@($entry.targets).Count -ne @($entry.targets | Sort-Object -Unique).Count) {
+                Add-Failure "Related content '$($entry.url)' has duplicate canonical targets in '$($manifest.Name)'."
+            }
         }
     }
 

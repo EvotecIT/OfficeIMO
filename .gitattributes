@@ -8,6 +8,12 @@
 Website/static/downloads/integrations/** -text -whitespace
 Website/static/downloads/integrations/**/*.pdf -diff
 
+# Imported PowerShell API components are bound to release fingerprints.
+Website/data/apidocs/powershell/PSWriteOffice.psd1 -text -diff
+Website/data/apidocs/powershell/PSWriteOffice-Help.xml -text -diff
+Website/data/apidocs/powershell/command-metadata.json -text -diff
+Website/data/apidocs/powershell/bundle-manifest.json text eol=lf
+
 # Access producer exports and expected-value captures have manifest-bound bytes.
 OfficeIMO.Access.Tests/Fixtures/** -text -whitespace
 OfficeIMO.Access.Tests/Fixtures/**/*.mdb -diff

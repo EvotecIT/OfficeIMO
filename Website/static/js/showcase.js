@@ -7,6 +7,7 @@
     var query = document.getElementById("showcase-query");
     var format = document.getElementById("showcase-format");
     var capability = document.getElementById("showcase-capability");
+    var language = document.getElementById("showcase-language");
     var count = document.getElementById("showcase-result-count");
     var empty = document.getElementById("showcase-empty");
     var cards = Array.prototype.slice.call(document.querySelectorAll("[data-showcase-format]"));
@@ -19,6 +20,7 @@
       return {
         element: card,
         format: card.getAttribute("data-showcase-format"),
+        language: card.getAttribute("data-showcase-language"),
         capabilities: (card.getAttribute("data-showcase-capabilities") || "").split(/\s+/),
         text: normalize(card.getAttribute("data-showcase-search") || "")
       };
@@ -35,6 +37,7 @@
       examples.forEach(function (example) {
         var matches = (format.value === "all" || format.value === example.format) &&
           (capability.value === "all" || example.capabilities.indexOf(capability.value) !== -1) &&
+          (language.value === "all" || language.value === example.language) &&
           terms.every(function (term) { return example.text.indexOf(term) !== -1; });
         example.element.hidden = !matches;
         if (matches) visible += 1;
@@ -46,7 +49,7 @@
 
     function writeLocation(push, preserveHash) {
       var url = new URL(window.location.href);
-      [["q", query.value.trim()], ["format", format.value], ["capability", capability.value]].forEach(function (entry) {
+      [["q", query.value.trim()], ["format", format.value], ["capability", capability.value], ["language", language.value]].forEach(function (entry) {
         if (entry[1] && entry[1] !== "all") url.searchParams.set(entry[0], entry[1]);
         else url.searchParams.delete(entry[0]);
       });
@@ -65,6 +68,7 @@
         query.value = "";
         format.value = example.format;
         capability.value = "all";
+        language.value = example.language;
         applyFilters();
         writeLocation(false, true);
       }
@@ -78,6 +82,7 @@
       query.value = (params.get("q") || "").slice(0, 160);
       selectKnown(format, params.get("format"));
       selectKnown(capability, params.get("capability"));
+      selectKnown(language, params.get("language"));
       applyFilters();
       openLinkedExample();
     }
@@ -88,6 +93,7 @@
       query.value = "";
       format.value = "all";
       capability.value = "all";
+      language.value = "all";
       applyFilters();
       writeLocation(true, false);
     });
@@ -95,7 +101,7 @@
       applyFilters();
       writeLocation(false, false);
     });
-    [format, capability].forEach(function (select) {
+    [format, capability, language].forEach(function (select) {
       select.addEventListener("change", function () {
         applyFilters();
         writeLocation(true, false);

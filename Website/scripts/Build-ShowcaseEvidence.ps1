@@ -1,17 +1,29 @@
+<#
+.SYNOPSIS
+Generates and records downloadable showcase evidence.
+.PARAMETER DocumentsRoot
+Uses an explicit output directory for PowerShell-only generation, or reads already generated
+documents with SkipGeneration. The .NET example runner uses its own Documents directory.
+#>
 [CmdletBinding()]
 param(
     [string] $Framework = 'net10.0',
     [ValidateSet('Debug', 'Release')][string] $Configuration = 'Debug',
     [switch] $SkipGeneration,
     [switch] $ManifestOnly,
-    [string[]] $ExampleId = @()
+    [string[]] $ExampleId = @(),
+    [string] $DocumentsRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$documentsRoot = Join-Path $repoRoot "OfficeIMO.Examples/bin/$Configuration/$Framework/Documents"
+$customDocumentsRoot = -not [string]::IsNullOrWhiteSpace($DocumentsRoot)
+if ([string]::IsNullOrWhiteSpace($DocumentsRoot)) {
+    $DocumentsRoot = Join-Path $repoRoot "OfficeIMO.Examples/bin/$Configuration/$Framework/Documents"
+}
 $downloadRoot = Join-Path $repoRoot 'Website/static/downloads/showcase'
 $catalog = Get-Content -LiteralPath (Join-Path $repoRoot 'Website/data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
+$moduleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $repoRoot 'Website/data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
 . (Join-Path $PSScriptRoot 'ShowcaseEvidence.Helpers.ps1')
 
 $selectedCards = @($catalog.cards)
@@ -21,6 +33,10 @@ if ($ExampleId.Count -gt 0) {
     }
     $selectedCards = @($catalog.cards | Where-Object { $_.id -cin $ExampleId })
 }
+if ($customDocumentsRoot -and -not $SkipGeneration -and -not $ManifestOnly -and
+    @($selectedCards | Where-Object generator_switch).Count -gt 0) {
+    throw 'DocumentsRoot supports PowerShell-only generation. For .NET examples, use the default output root or import pre-generated documents with SkipGeneration.'
+}
 $selectedUrls = @($selectedCards | ForEach-Object {
     @($_.downloads.url) + @($_.source_url, $_.image) + @($_.previews.url)
 })
@@ -29,12 +45,13 @@ $refreshArtifacts = @($catalog.artifacts | Where-Object {
 })
 
 if (-not $SkipGeneration -and -not $ManifestOnly) {
-    Invoke-ShowcaseDotNet @('build', (Join-Path $repoRoot 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'), '-c', $Configuration, '-f', $Framework, '--nologo')
+    if (@($selectedCards | Where-Object generator_switch).Count -gt 0) {
+        Invoke-ShowcaseDotNet @('build', (Join-Path $repoRoot 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'), '-c', $Configuration, '-f', $Framework, '--nologo')
+    }
     $examplesAssembly = Join-Path $repoRoot "OfficeIMO.Examples/bin/$Configuration/$Framework/OfficeIMO.Examples.dll"
     # PowerShell examples are scripts, not switches of the .NET example runner: run each one against the PSWriteOffice
     # version the command catalog was generated from and write its outputs under the shared Documents folder.
     foreach ($card in @($selectedCards | Where-Object { $_.source_path -and $_.source_path.EndsWith('.ps1', [StringComparison]::Ordinal) })) {
-        $moduleVersion = [regex]::Match((Get-Content -LiteralPath (Join-Path $repoRoot 'Website/data/apidocs/powershell/command-metadata.json') -Raw), '/blob/v(\d+\.\d+\.\d+)/').Groups[1].Value
         if (-not $moduleVersion) { throw 'The PowerShell command catalog does not name a module version.' }
         $scriptOutput = Join-Path $documentsRoot 'PowerShell'
         & pwsh -NoProfile -File (Resolve-ShowcasePath $repoRoot $card.source_path) -OutputDirectory $scriptOutput -ModuleVersion $moduleVersion
@@ -96,8 +113,8 @@ $manifestArtifacts = foreach ($artifact in $catalog.artifacts) {
         path = '/downloads/showcase/' + $artifact.destination
         bytes = $file.Length
         sha256 = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
-        generator = $artifact.generator.Replace('-f net10.0', "-f $Framework")
-        evidence = $artifact.evidence
+        generator = $artifact.generator.Replace('-f net10.0', "-f $Framework").Replace('{moduleVersion}', $moduleVersion)
+        evidence = $artifact.evidence.Replace('{moduleVersion}', $moduleVersion)
     }
 }
 

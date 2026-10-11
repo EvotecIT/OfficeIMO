@@ -7,7 +7,8 @@
 [CmdletBinding()]
 param(
     [string] $SiteRoot = (Join-Path (Split-Path -Parent $PSScriptRoot) '_site'),
-    [string] $SourceRoot = (Split-Path -Parent $PSScriptRoot)
+    [string] $SourceRoot = (Split-Path -Parent $PSScriptRoot),
+    [ValidateSet('All', 'Showcase')][string] $Scope = 'All'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -71,6 +72,38 @@ function Assert-ContainsPattern {
         throw "Presentation contract '$Contract' is missing."
     }
 }
+
+$showcase = Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
+$galleryHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'showcase/index.html')
+Assert-ContainsAttribute -Text $galleryHtml -Name 'id' -Value 'showcase-language' -Contract 'showcase language selection'
+foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
+    $galleryCard = [regex]::Match($galleryHtml, '<article\b[^>]*\bid="' + [regex]::Escape($card.id) + '"[^>]*>').Value
+    Assert-ContainsPattern -Text $galleryCard -Pattern 'data-showcase-search="[^"]*\bwalkthrough\b' -Contract "$($card.id) walkthrough discovery"
+    $languageLabel = ($showcase.source_languages | Where-Object id -CEQ $card.source_language).label
+    $walkthroughHtml = Get-RequiredText -Path (Join-Path $siteRootPath "showcase/$($card.id)/index.html")
+    Assert-ContainsLiteral -Text $walkthroughHtml -Expected "$languageLabel walkthrough" -Contract "$($card.id) source language"
+    Assert-ContainsLiteral -Text $walkthroughHtml -Expected "Copy $languageLabel source" -Contract "$($card.id) code copy label"
+    Assert-ContainsAttribute -Text $walkthroughHtml -Name 'class' -Value "language-$($card.source_language)" -Contract "$($card.id) syntax highlighting"
+    if ($card.source_language -eq 'powershell') {
+        $moduleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $sourceRootPath 'data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
+        $runCommand = $card.run_command.Replace('{moduleVersion}', $moduleVersion)
+        Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand)) -Contract "$($card.id) executable command"
+        Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand.Replace('pwsh -NoProfile', 'powershell -NoProfile'))) -Contract "$($card.id) Windows PowerShell command"
+        $commandMetadata = Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/apidocs/powershell/command-metadata.json') -Raw | ConvertFrom-Json
+        $aliases = @{}
+        foreach ($command in $commandMetadata.commands) {
+            foreach ($alias in $command.aliases) { $aliases[$alias] = $command.name }
+        }
+        $apiLinks = Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/api_links.json') -Raw | ConvertFrom-Json
+        foreach ($link in $apiLinks.pages.($card.walkthrough_url)) {
+            if ($aliases.ContainsKey($link.n) -and $link.h -cne "/api/powershell/$($aliases[$link.n].ToLowerInvariant())/") {
+                throw "PowerShell alias '$($link.n)' must link to its command reference on '$($card.id)'."
+            }
+        }
+    }
+}
+
+if ($Scope -eq 'Showcase') { Write-Host 'Showcase presentation contracts validated.'; return }
 
 $presentationRoutes = @('', 'downloads', 'studio', 'tool', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api/word')
 # Parse actual head elements, excluding comments, script text and inert fallbacks.
