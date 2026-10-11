@@ -96,6 +96,8 @@ Word text extraction honors `xml:space`: leading and trailing XML whitespace is 
 
 Font sizes preserve half-point values, including 10.5 pt. When the run and its styles omit a size, conversion honors the document default. An existing `docDefaults` element without a size uses Word's 10 pt fallback; a document without `docDefaults` uses 12 pt. OfficeIMO-created documents declare an 11 pt default and retain that size.
 
+Each text run resolves its font through its own formatting, character style, paragraph style, table style, and document defaults. A preceding run's explicit font does not change the font of an unformatted sibling. This also applies to source page fields in headers and footers.
+
 Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets
 taking precedence. Body text, list markers, table cells, hyperlinks and header/footer
