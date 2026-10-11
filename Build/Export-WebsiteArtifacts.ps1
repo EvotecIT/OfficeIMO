@@ -1,7 +1,19 @@
+<#
+.SYNOPSIS
+Exports the PowerShell API help, command metadata and examples for the website.
+.DESCRIPTION
+Use an explicit complete module bundle with -SkipBuild to export a qualified package
+without building or installing it. The bundle version and help command set must match
+the source checkout. -ArtifactsOnly leaves repository documentation unchanged.
+.EXAMPLE
+./Build/Export-WebsiteArtifacts.ps1 -RepositoryRoot ./release-source -ArtifactsRoot ./out/website-api -SkipBuild -BuiltModuleManifestPath ./package/PSWriteOffice.psd1 -ArtifactsOnly
+#>
 param(
     [string] $RepositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
     [string] $ArtifactsRoot = '',
-    [switch] $SkipBuild
+    [switch] $SkipBuild,
+    [string] $BuiltModuleManifestPath = '',
+    [switch] $ArtifactsOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,6 +63,23 @@ function Get-RelativeFilePath {
     return [System.Uri]::UnescapeDataString($relativeUri).Replace('/', [System.IO.Path]::DirectorySeparatorChar)
 }
 
+function Get-CompleteModuleBundle {
+    param([Parameter(Mandatory)][string] $Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
+    $moduleRoot = Split-Path -Parent ([IO.Path]::GetFullPath($Path))
+    $helpPath = Join-Path $moduleRoot "en-US\$moduleName-help.xml"
+    if (-not (Test-Path -LiteralPath $helpPath -PathType Leaf)) { return $null }
+    $builtManifest = Import-PowerShellDataFile -LiteralPath $Path
+    if ([version]$builtManifest.ModuleVersion -ne [version]$manifest.ModuleVersion) { return $null }
+    $helpCommands = @(Get-HelpCommandNames -Path $helpPath)
+    if ($helpCommands.Count -ne $expectedCommands.Count -or
+        @(Compare-Object -ReferenceObject $expectedCommands -DifferenceObject $helpCommands).Count -gt 0) {
+        return $null
+    }
+    return [PSCustomObject]@{ HelpPath = $helpPath; ManifestPath = $Path; ModuleRoot = $moduleRoot }
+}
+
 function Find-CompleteBuiltModule {
     $unpackedRoot = Join-Path $RepositoryRoot 'Artefacts\Unpacked'
     if (-not (Test-Path -LiteralPath $unpackedRoot -PathType Container)) {
@@ -61,29 +90,21 @@ function Find-CompleteBuiltModule {
         Sort-Object LastWriteTimeUtc -Descending) {
         $moduleRoot = Split-Path -Parent (Split-Path -Parent $helpFile.FullName)
         $builtManifestPath = Join-Path $moduleRoot "$moduleName.psd1"
-        if (-not (Test-Path -LiteralPath $builtManifestPath -PathType Leaf)) {
-            continue
-        }
-
-        $helpCommands = @(Get-HelpCommandNames -Path $helpFile.FullName)
-        if ($helpCommands.Count -ne $expectedCommands.Count) {
-            continue
-        }
-
-        if (@(Compare-Object -ReferenceObject $expectedCommands -DifferenceObject $helpCommands).Count -eq 0) {
-            return [PSCustomObject]@{
-                HelpPath = $helpFile.FullName
-                ManifestPath = $builtManifestPath
-                ModuleRoot = $moduleRoot
-            }
-        }
+        $bundle = Get-CompleteModuleBundle -Path $builtManifestPath
+        if ($bundle) { return $bundle }
     }
 
     return $null
 }
 
 $builtModule = $null
-if (-not $SkipBuild) {
+if ($BuiltModuleManifestPath) {
+    if (-not $SkipBuild) { throw 'An explicit module bundle requires -SkipBuild.' }
+    $builtModule = Get-CompleteModuleBundle -Path $BuiltModuleManifestPath
+    if (-not $builtModule) {
+        throw "The explicit module must be a complete bundle for PSWriteOffice $($manifest.ModuleVersion), with help for every exported command."
+    }
+} elseif (-not $SkipBuild) {
     & (Join-Path $RepositoryRoot 'Build\Build-Module.ps1') -RunMode Build
     if (-not $?) {
         throw 'PSWriteOffice module build failed.'
@@ -199,9 +220,11 @@ Get-ChildItem -LiteralPath $sourceExamplesRoot -Force |
 
 $apiHelpPath = Join-Path $apiRoot "$moduleName-help.xml"
 $docsHelpPath = Join-Path $RepositoryRoot "Docs\Generated\$moduleName-help.xml"
-New-Item -ItemType Directory -Path (Split-Path -Parent $docsHelpPath) -Force | Out-Null
 Copy-Item -LiteralPath $builtModule.HelpPath -Destination $apiHelpPath -Force
-Copy-Item -LiteralPath $builtModule.HelpPath -Destination $docsHelpPath -Force
+if (-not $ArtifactsOnly) {
+    New-Item -ItemType Directory -Path (Split-Path -Parent $docsHelpPath) -Force | Out-Null
+    Copy-Item -LiteralPath $builtModule.HelpPath -Destination $docsHelpPath -Force
+}
 [System.IO.File]::WriteAllBytes((Join-Path $apiRoot "$moduleName.psd1"), $sourceManifestBytes)
 
 $metadata = [ordered]@{
@@ -224,7 +247,7 @@ if (Test-Path -LiteralPath $projectManifestPath -PathType Leaf) {
     [System.IO.File]::WriteAllText($projectManifestPath, $projectManifest, [System.Text.UTF8Encoding]::new($false))
 }
 
-foreach ($guideName in 'command-families.md', 'overview.md') {
+foreach ($guideName in $(if ($ArtifactsOnly) { @() } else { @('command-families.md', 'overview.md') })) {
     $guidePath = Join-Path $RepositoryRoot "Website\content\project-docs\docs\$guideName"
     if (-not (Test-Path -LiteralPath $guidePath -PathType Leaf)) {
         continue
