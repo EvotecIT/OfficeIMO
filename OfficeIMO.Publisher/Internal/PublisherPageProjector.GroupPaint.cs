@@ -10,7 +10,9 @@ internal sealed partial class PublisherPageProjector {
         foreach (OfficeDrawingShape item in local.Elements.OfType<OfficeDrawingShape>()) {
             _context.Token.ThrowIfCancellationRequested();
             OfficeShape shape = item.Shape;
-            double padding = 1 + Math.Max(0, shape.StrokeWidth) * Math.Max(1, shape.StrokeMiterLimit) / 2;
+            // An unspecified join can use PDF's implicit miter limit of ten.
+            double miterLimit = shape.StrokeLineJoin.HasValue ? shape.StrokeMiterLimit : Math.Max(10, shape.StrokeMiterLimit);
+            double padding = 1 + Math.Max(0, shape.StrokeWidth) * Math.Max(1, miterLimit) / 2;
             foreach (OfficeLineMarker? marker in new[] { shape.StrokeStartMarker, shape.StrokeEndMarker })
                 if (marker != null) padding += Math.Max(marker.Width, marker.Length);
             if (shape.Shadow is OfficeShadow shadow)
