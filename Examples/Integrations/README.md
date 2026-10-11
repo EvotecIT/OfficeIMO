@@ -35,7 +35,7 @@ $attachments = @(
 ./Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1 -AttachmentPath $attachments -OutputDirectory ./Output/Mail
 ```
 
-The supplier and event defaults use synthetic inputs. The mail command saves `ReportReview.eml` without sending it. Open that file to review its recipients, text and attachments.
+The supplier and event defaults use synthetic inputs. The mail command saves `ReportReview.eml` with a unique `example.invalid` message identity and sends nothing. Open that file to review its recipients, text and attachments.
 
 ## Adapt the inputs
 

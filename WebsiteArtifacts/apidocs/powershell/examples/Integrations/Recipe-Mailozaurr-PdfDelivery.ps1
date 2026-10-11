@@ -60,7 +60,8 @@ Confirm the findings, decision owner and next action before distribution.
 
 This EML is a local review package. Open it in a mail client to inspect its recipients and attachments.
 '@
-$message = New-MimeMessage -From $From -To $To -Subject $Subject -AttachmentPath $attachments -TextBody $text
+$messageId = '{0}@example.invalid' -f [guid]::NewGuid().ToString('N')
+$message = New-MimeMessage -From $From -To $To -Subject $Subject -AttachmentPath $attachments -TextBody $text -Header @{ 'Message-Id' = $messageId }
 $path = Join-Path $OutputDirectory 'ReportReview.eml'
 $message | Save-MimeMessage -Path $path
 Get-Item -LiteralPath $path | Select-Object Name, Length
