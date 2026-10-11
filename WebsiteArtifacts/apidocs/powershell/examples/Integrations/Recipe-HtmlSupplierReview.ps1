@@ -3,7 +3,8 @@
 Turns an HTML supplier table into an editable Word review, PDF and Excel workbook.
 .DESCRIPTION
 PSParseHTML selects table id="offers". PSWriteOffice creates the documents.
-The bundled input is synthetic. Prices use invariant decimal notation and USD per unit.
+The bundled input is synthetic. Prices use invariant decimal notation without group
+separators and USD per unit. Sub-cent prices remain visible in both reports.
 .EXAMPLE
 ./Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 .EXAMPLE
@@ -19,6 +20,7 @@ $ErrorActionPreference = 'Stop'
 Import-Module PSParseHTML -MinimumVersion 3.0.3 -ErrorAction Stop
 Import-Module PSWriteOffice -MinimumVersion 3.0.8 -ErrorAction Stop
 
+$priceTextFormat = '0.00##########################'
 $tables = @(ConvertFrom-HtmlTable -Path $HtmlPath -TableId offers -IncludeMetadata)
 if ($tables.Count -ne 1 -or @($tables[0].Data).Count -eq 0) {
     throw 'Supply one nonempty HTML table with id="offers".'
@@ -27,13 +29,16 @@ $offers = @($tables[0].Data | ForEach-Object {
     if ([string]::IsNullOrWhiteSpace($_.Item) -or [string]::IsNullOrWhiteSpace($_.Supplier)) {
         throw 'Each offer needs Item and Supplier values.'
     }
-    $price = [decimal]::Parse($_.UnitPriceUsd, [Globalization.CultureInfo]::InvariantCulture)
+    [decimal] $price = 0
+    if (-not [decimal]::TryParse($_.UnitPriceUsd, [Globalization.NumberStyles]::AllowDecimalPoint, [Globalization.CultureInfo]::InvariantCulture, [ref] $price)) {
+        throw 'UnitPriceUsd must be a nonnegative dot-decimal price without group separators.'
+    }
     $days = [int]::Parse($_.LeadDays, [Globalization.CultureInfo]::InvariantCulture)
     if ($price -lt 0 -or $days -lt 0) { throw 'Prices and lead times must be nonnegative.' }
     [pscustomobject]@{ Item = [string] $_.Item; Supplier = [string] $_.Supplier; UnitPriceUsd = $price; LeadDays = $days }
 })
 $reviewRows = $offers | Select-Object Item, Supplier,
-    @{ Name = 'USD per unit'; Expression = { $_.UnitPriceUsd.ToString('0.00', [Globalization.CultureInfo]::InvariantCulture) } },
+    @{ Name = 'USD per unit'; Expression = { $_.UnitPriceUsd.ToString($priceTextFormat, [Globalization.CultureInfo]::InvariantCulture) } },
     @{ Name = 'Lead days'; Expression = { $_.LeadDays } }
 $itemCount = @($offers | Select-Object -ExpandProperty Item -Unique).Count
 
@@ -87,12 +92,15 @@ New-OfficeExcel -Path $xlsx {
         ExcelCell -Address A2 -Value 'Editable numeric values; freight and tax excluded.'
         ExcelTable -InputObject $offers -StartRow 4 -TableName SupplierOffers -TableStyle TableStyleMedium2 -AutoFit
         for ($row = 5; $row -lt 5 + $offers.Count; $row++) {
-            ExcelCell -Row $row -Column 3 -Value $offers[$row - 5].UnitPriceUsd -NumberFormat '0.00'
+            # Keep each quote's decimal places visible rather than rounding every price to cents.
+            $priceText = $offers[$row - 5].UnitPriceUsd.ToString($priceTextFormat, [Globalization.CultureInfo]::InvariantCulture)
+            $decimalPlaces = $priceText.Split('.')[1].Length
+            ExcelCell -Row $row -Column 3 -Value $offers[$row - 5].UnitPriceUsd -NumberFormat ('0.' + ('0' * $decimalPlaces))
             ExcelRow -Row $row -Height 24
         }
         ExcelColumn -Column 1 -Width 25
         ExcelColumn -Column 2 -Width 22
-        ExcelColumn -Column 3 -Width 20
+        ExcelColumn -Column 3 -Width 22
         ExcelColumn -Column 4 -Width 16
         ExcelFreeze -TopRows 4
     }

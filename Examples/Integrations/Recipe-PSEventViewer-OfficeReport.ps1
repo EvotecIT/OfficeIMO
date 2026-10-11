@@ -117,11 +117,11 @@ New-OfficeExcel -Path $xlsx {
         if ($records.Count) {
             ExcelTable -InputObject $records -StartRow 4 -TableName EventRegister -TableStyle TableStyleMedium2
             for ($row = 5; $row -lt 5 + $records.Count; $row++) {
-                ExcelCell -Row $row -Column 1 -Value $records[$row - 5].TimeCreated -NumberFormat 'yyyy-mm-dd hh:mm'
+                ExcelCell -Row $row -Column 1 -Value $records[$row - 5].TimeCreated -NumberFormat 'yyyy-mm-dd hh:mm:ss.000'
                 ExcelRow -Row $row -Height 30 -WrapText $true
             }
         } else { ExcelCell -Address A4 -Value 'No matching events returned.' }
-        ExcelColumn -Column 1 -Width 23
+        ExcelColumn -Column 1 -Width 32
         ExcelColumn -Column 2 -Width 12
         ExcelColumn -Column 3 -Width 26
         ExcelColumn -Column 4 -Width 8
