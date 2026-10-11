@@ -51,7 +51,8 @@ internal static partial class PdfWriter {
             if (run.Bold || run.Italic || run.Underline || run.Strike || run.Color.HasValue ||
                 run.BackgroundColor.HasValue || run.DecorationColor.HasValue || run.FontSize.HasValue || run.Font.HasValue ||
                 run.FontFamily != null || run.LinkUri != null || run.LinkDestinationName != null || run.LinkContents != null ||
-                run.Baseline != PdfTextBaseline.Normal || run.TabLeader != PdfTabLeaderStyle.None ||
+                run.Baseline != PdfTextBaseline.Normal || run.HorizontalTextScaling != 100D || run.CharacterSpacing != 0D ||
+                run.TabLeader != PdfTabLeaderStyle.None ||
                 run.TabAlignment != PdfTabAlignment.Left || run.InlineElement != null || run.HorizontalOffset != 0D ||
                 !run.FeatureSettings.IsDefault || run.TextDirection != OfficeTextDirection.Auto ||
                 run.Text.Length == 0 || run.Text.Length > MaximumTextLength) {
