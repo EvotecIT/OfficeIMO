@@ -1,6 +1,6 @@
 {
   "sourceRepository": "EvotecIT/PSWriteOffice",
-  "sourceCommit": "3bad89a2230d4bdb970251e5e1c73065e044ac00",
+  "sourceCommit": "c7a93f8ed393a97a0235b5db66078216ba73a98a",
   "modules": {
     "PSWriteOffice": "3.0.8",
     "PSParseHTML": "3.0.3",
@@ -14,8 +14,8 @@
   "artifacts": [
     {
       "path": "/downloads/integrations/supplier/SupplierReview.docx",
-      "bytes": 20978,
-      "sha256": "b85946976ba3d2be505d33375dd93cc00d29e6b7503b7a523446b641f05e9c3d"
+      "bytes": 20975,
+      "sha256": "bb618cbf503640d70ff702eed49479d56496151af958e8f569d6475b41651385"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierReview.pdf",
@@ -25,7 +25,7 @@
     {
       "path": "/downloads/integrations/supplier/SupplierOffers.xlsx",
       "bytes": 5120,
-      "sha256": "0be9378c87c60c196cbb77ecb6bfcf3b31a31db49950363e0837f85c0f9f6078"
+      "sha256": "3b8626fa9d956f0bc9130abc86c823a92cb5a9f540ba99da48f6c01ba453e571"
     },
     {
       "path": "/downloads/integrations/supplier/preview.png",
@@ -39,8 +39,8 @@
     },
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.docx",
-      "bytes": 21018,
-      "sha256": "b8f0523830869b83f0a32bf19c73a42a77ad36ed5632503c50967e24e2de057c"
+      "bytes": 21019,
+      "sha256": "9569d7ff7bfe3bc5e601e0ae7e89b09d052293aeacd6f7a69295e521f6d37392"
     },
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.pdf",
@@ -50,7 +50,7 @@
     {
       "path": "/downloads/integrations/events/EventRegister.xlsx",
       "bytes": 5501,
-      "sha256": "920cb23b3bab10fe91e23bd45b9ae2400a427bf5b8d9192776a9457e307af012"
+      "sha256": "54712a1ccf13f706d5a17c8c4ee29753556c19f58f49588731444487b09dd84e"
     },
     {
       "path": "/downloads/integrations/events/preview.png",
@@ -84,8 +84,8 @@
     },
     {
       "path": "/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1",
-      "bytes": 7973,
-      "sha256": "288d0110ce5aaebb4e08902bfe8cafa65362331304b78fd41b933673f087f10a"
+      "bytes": 8314,
+      "sha256": "0f3c643a66a1c3ed64656b65820983c12135cf22b5cfea36d6a33142b7124487"
     },
     {
       "path": "/downloads/integrations/source/Recipe-Mailozaurr-PdfDelivery.ps1",
