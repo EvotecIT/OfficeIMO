@@ -33,6 +33,62 @@ Use `-MemorySamplingIntervalMilliseconds 10` in a separate run to observe manage
 
 The [independent viewer checks](../PdfViewerVerification/README.md) use retained source/result pairs to verify extraction, geometry and rendered pages outside the measured lane.
 
+## PDF runtime operations
+
+Build the opt-in PDF workload and run the shared PowerForge suite from a fresh
+PowerShell 7 process with PSPublishModule 3.0.168 or newer and Poppler's `pdftotext`
+available:
+
+```powershell
+dotnet build OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0
+./Build/Benchmarks/Run-PdfRuntimeBenchmarks.ps1 -OutputRoot ./Ignore/Benchmarks/PdfRuntime
+```
+
+The default 1-, 20- and 100-page matrix measures buffered/forward generation, four
+inspections with fresh or reused loading, SVG/PNG rendering, and one region
+replacement or movement on the middle page. Generation includes composition,
+layout, serialization and the final byte-array copy. Buffered output uses PDF 1.4;
+forward output uses PDF 1.7. Both retain complete layout before serialization.
+Rendering covers at most 12 SVG pages or four 384×512 PNG previews. Editing includes
+source loading and serialization, with the target region prepared outside timing.
+
+Generation, inspection and rendering use the `BusinessEmbeddedCarlito` profile:
+embedded regular Carlito text, a numeric table, a colored rectangle and a repeated
+32×32 image. The existing benchmark font asset is loaded during preparation;
+font registration remains part of generation. Editing uses the separately
+labelled `TextEditStandard14` profile with four ordinary Helvetica paragraphs per
+page. Mixed business-page graphics can make source text unsafe to restamp, so
+that corpus does not qualify this ordinary region-edit lane. Each case records
+both source fingerprints and byte counts; per-sample evidence identifies the
+actual profile and input hash. Affected text spans include source space spans.
+
+PowerForge owns timing, managed allocations, rotated ordering, and raw JSON/CSV
+samples. Every measured result is validated outside timing. Poppler independently
+checks all saved PDF pages, replacement absence, and retained neighboring word
+geometry. Rendering requires zero capability diagnostics. PNG checks decode the
+image and verify dimensions and visible content. SVG checks validate logical
+drawing text and require byte-exact agreement with the public page drawing export,
+including embedded cmap aliases that preserve shaped glyphs and vector rectangles
+that preserve non-interpolated image pixels. These rendering
+checks establish managed representation consistency, without independent visual
+fidelity proof.
+Poppler is a validation dependency of this opt-in suite, not a product requirement.
+
+Use `-Pages`, `-Operation`, `-BinaryRoot`, `-WarmupCount`, `-IterationCount` and
+`-Plan` to select a run. On Windows, pass `-ProcessorAffinityMask` and
+`-ProcessPriority Normal` and repeat the full matrix separately for each discovered
+CPU domain. The runner records requested/applied/original placement and restores
+the process afterward. `-EnvironmentEvidence` accepts a JSON host snapshot for
+physical/cache topology and power-plan details the runner does not discover.
+Source, input, assembly, spec, reader and runner fingerprints accompany the results.
+Keep other builds idle and compare only equivalent workloads and host settings.
+
+Use `-MemorySamplingIntervalMilliseconds 5` in a separate run for sampled managed
+heap and resident memory. Sampled maxima are lower bounds and include observer
+effects. The output root retains exact per-iteration PDFs, rendered pages and
+validation evidence; keep the final reports and decisive artifacts, then remove
+superseded output. This suite adds no ordinary correctness timing thresholds.
+
 ## AI request packing
 
 Build `OfficeIMO.AI` in Release and run from a fresh PowerShell process on .NET 10 or newer with PSPublishModule installed:
