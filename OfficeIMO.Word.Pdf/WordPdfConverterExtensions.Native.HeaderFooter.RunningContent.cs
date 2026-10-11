@@ -76,7 +76,8 @@ public static partial class WordPdfConverterExtensions {
             double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
             ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height;
         }
-        return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
+        return (hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported)) &&
+            (options?.RunningStoryFits?.Invoke(section, isFooter) ?? true);
     }
 
     /// <summary>

@@ -3,7 +3,21 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
+    /// <summary>Measures bounded running flow through the same paragraph and container layout used during serialization.</summary>
+    internal static double? MeasureRunningContentHeight(PdfOptions options, IReadOnlyList<IPdfBlock> blocks,
+        double contentWidth, System.Threading.CancellationToken cancellationToken) {
+        using var measure = new LayoutContext(options, isRunningContent: true, cancellationToken: cancellationToken);
+        return measure.MeasureRunningContentAdmission(blocks, contentWidth);
+    }
+
     private sealed partial class LayoutContext {
+        public double? MeasureRunningContentAdmission(IReadOnlyList<IPdfBlock> blocks, double contentWidth) {
+            cancellationToken.ThrowIfCancellationRequested();
+            width = contentWidth;
+            yStart = currentOpts.PageHeight - currentOpts.MarginTop;
+            return MeasureBlockSequence(blocks, currentOpts.MarginLeft, contentWidth, currentOpts.DefaultFontSize, initialY: yStart);
+        }
+
         private readonly RunningContentImageAssets runningAssets;
         private readonly IReadOnlyList<PageNumberInfo>? previousRunningPages;
         private readonly int previousDocumentPages;
