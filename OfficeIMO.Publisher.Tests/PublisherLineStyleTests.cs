@@ -8,6 +8,22 @@ namespace OfficeIMO.Publisher.Tests;
 public sealed class PublisherLineStyleTests {
     private static readonly OfficeColor Ink = OfficeColor.FromRgb(204, 32, 64);
 
+    [Theory]
+    [InlineData(0x00080000U, 0x10000U)]
+    [InlineData(0x00080008U, 0U)]
+    [InlineData(0x00080008U, 0x10000U)]
+    public void Native_line_markers_report_the_omitted_shadow_silhouette(uint lineFlags, uint opacity) {
+        PublisherDocument publication = Load(new Dictionary<ushort, uint> {
+            [0x01FF] = lineFlags, [0x01C1] = opacity, [0x01D1] = 1,
+            [0x023F] = 0x00020002, [0x0201] = 0x0000FF00, [0x0205] = 127000
+        });
+        Assert.NotNull(Artwork(publication).Shadow);
+        Assert.NotNull(Artwork(publication).StrokeEndMarker);
+        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINE_MARKER_SHADOW_OMITTED"
+            && item.LossKind == OfficeConversionLossKind.Omission && item.Location == "Contents/object/293");
+        Assert.Contains(publication.ReadReport, publication.ToPdfDocumentResult().SourceConversionReports);
+    }
+
     [Fact]
     public void Shadow_only_native_line_keeps_its_caps_joins_miter_and_fidelity_reports() {
         PublisherDocument publication = Load(new Dictionary<ushort, uint> {
@@ -114,6 +130,9 @@ public sealed class PublisherLineStyleTests {
         PublisherDocument transparentStroke = Load(values);
         Assert.DoesNotContain(transparentStroke.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_LINE_"));
         Assert.NotNull(Artwork(transparentStroke).StrokeEndMarker);
+        values[0x023F] = 0x00020002; values[0x0204] = 0;
+        PublisherDocument transparentShadow = Load(values);
+        Assert.DoesNotContain(transparentShadow.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_LINE_"));
     }
 
     [Fact]
