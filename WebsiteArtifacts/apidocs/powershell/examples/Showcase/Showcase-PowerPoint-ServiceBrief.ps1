@@ -1,95 +1,132 @@
+<#
+.SYNOPSIS
+Builds an editable workplace-support brief from quarterly demand data.
+.DESCRIPTION
+The default CSV contains synthetic planning data. Counts, comparisons and the
+highlighted demand increase come from that CSV; the proposal is an example,
+not a service-level or quality claim. Requires PSWriteOffice 3.0.8 or newer.
+.EXAMPLE
+./Showcase-PowerPoint-ServiceBrief.ps1 -OutputDirectory ./ServiceBrief
+#>
 param(
+    [string] $OutputDirectory = (Join-Path $PSScriptRoot '../Documents'),
+    [string] $InputCsv = (Join-Path $PSScriptRoot '../Samples/ServiceBrief/Quarterly-Demand.csv'),
+    [datetime] $ReviewDate = '2026-09-30',
+    [string] $ModulePath = 'PSWriteOffice',
     [switch] $Open
 )
 
-Import-Module PSWriteOffice -ErrorAction Stop
-
-$documents = Join-Path $PSScriptRoot '..\Documents'
-$null = New-Item -Path $documents -ItemType Directory -Force
-$path = Join-Path $documents 'Showcase-PowerPoint-ServiceBrief.pptx'
+$ErrorActionPreference = 'Stop'
+Import-Module $ModulePath -MinimumVersion 3.0.8 -ErrorAction Stop
+$rows = @(Import-Csv -LiteralPath $InputCsv)
+if ($rows.Count -lt 1 -or $rows.Count -gt 6) { throw 'Supply one to six service locations for this eight-slide brief.' }
+$sites = @(foreach ($row in $rows) {
+    if ([string]::IsNullOrWhiteSpace($row.Site) -or [string]::IsNullOrWhiteSpace($row.Owner)) {
+        throw 'Every service location needs a Site and Owner.'
+    }
+    foreach ($field in 'Site', 'Owner') {
+        $maxLength = if ($field -eq 'Site') { 20 } else { 40 }
+        if ($row.$field.Trim().Length -gt $maxLength -or $row.$field -match '[\r\n|]') {
+            throw "Use a single line of at most $maxLength characters without | for $field."
+        }
+    }
+    $values = @{}
+    foreach ($field in 'SupportedPeople', 'PreviousQuarterTickets', 'CurrentQuarterTickets') {
+        $number = 0
+        if (-not [int]::TryParse($row.$field, [Globalization.NumberStyles]::None,
+            [Globalization.CultureInfo]::InvariantCulture, [ref]$number)) {
+            throw "Use a nonnegative whole number for $field at $($row.Site)."
+        }
+        $values[$field] = $number
+    }
+    if ($values.SupportedPeople -eq 0) { throw "SupportedPeople must be positive at $($row.Site)." }
+    [pscustomobject]@{
+        Site = $row.Site.Trim(); Owner = $row.Owner.Trim()
+        SupportedPeople = $values.SupportedPeople
+        PreviousQuarterTickets = $values.PreviousQuarterTickets
+        CurrentQuarterTickets = $values.CurrentQuarterTickets
+        Change = $values.CurrentQuarterTickets - $values.PreviousQuarterTickets
+    }
+})
+if (@($sites.Site | Sort-Object -Unique).Count -ne $sites.Count) { throw 'Service location names must be unique.' }
+$people = [long](($sites | Measure-Object SupportedPeople -Sum).Sum)
+$previous = [long](($sites | Measure-Object PreviousQuarterTickets -Sum).Sum)
+$current = [long](($sites | Measure-Object CurrentQuarterTickets -Sum).Sum)
+$change = $current - $previous
+$culture = [Globalization.CultureInfo]::InvariantCulture
+$changeText = if ($previous -gt 0) { ($change / [double]$previous).ToString('P1', $culture) } else { 'no prior-quarter baseline' }
+$prioritySite = $sites | Sort-Object Change -Descending | Select-Object -First 1
+$priorityText = if ($prioritySite.Change -gt 0) {
+    "$($prioritySite.Site) increased by $($prioritySite.Change) tickets; review its intake with $($prioritySite.Owner)."
+} else { 'No location increased its ticket count; review request mix before changing capacity.' }
+$dateText = $ReviewDate.ToString('dd MMM yyyy', $culture)
+$sampleCsv = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../Samples/ServiceBrief/Quarterly-Demand.csv'))
+$dataLabel = if ([IO.Path]::GetFullPath($InputCsv) -eq $sampleCsv) { 'Synthetic data' } else { 'Supplied CSV' }
+$null = New-Item -Path $OutputDirectory -ItemType Directory -Force
+$path = Join-Path $OutputDirectory 'Showcase-PowerPoint-ServiceBrief.pptx'
 
 $process = @(
-    [pscustomobject]@{ Title = 'Assess'; Body = 'Map services, owners, risk, and reporting expectations.' }
-    [pscustomobject]@{ Title = 'Design'; Body = 'Choose workbook, report, and deck outputs that match the audience.' }
-    [pscustomobject]@{ Title = 'Automate'; Body = 'Generate Office files from repeatable PowerShell objects.' }
-    [pscustomobject]@{ Title = 'Publish'; Body = 'Attach visuals and explain the workflow in reusable blog posts.' }
+    [pscustomobject]@{ Title = 'Baseline'; Body = 'Agree request categories and reconcile the quarterly intake.' }
+    [pscustomobject]@{ Title = 'Pilot'; Body = 'Test the proposed triage queue with a nominated service owner.' }
+    [pscustomobject]@{ Title = 'Review'; Body = 'Check demand, repeat requests and user feedback before rollout.' }
+    [pscustomobject]@{ Title = 'Roll out'; Body = 'Publish ownership, working hours and the escalation route.' }
 )
-
 $cards = @(
-    [pscustomobject]@{ Title = 'Word'; Items = 'TOC|sections|tables|charts|approvals'; AccentColor = '#2F80ED' }
-    [pscustomobject]@{ Title = 'Excel'; Items = 'dashboard|pivots|sparklines|validation|links'; AccentColor = '#219653' }
-    [pscustomobject]@{ Title = 'PowerPoint'; Items = 'designer plans|process|cards|coverage|notes'; AccentColor = '#9B51E0' }
-    [pscustomobject]@{ Title = 'Blog'; Items = 'screenshots|code|generated covers|artifact links'; AccentColor = '#F2994A' }
+    [pscustomobject]@{ Title = 'User incidents'; Items = 'triage|ownership|escalation'; AccentColor = '#2F80ED' }
+    [pscustomobject]@{ Title = 'Device lifecycle'; Items = 'onboarding|replacement|returns'; AccentColor = '#219653' }
+    [pscustomobject]@{ Title = 'Access requests'; Items = 'approval|least privilege|evidence'; AccentColor = '#9B51E0' }
+    [pscustomobject]@{ Title = 'Service changes'; Items = 'notice|handover|review'; AccentColor = '#F2994A' }
 )
-
-$coverage = @(
-    [pscustomobject]@{ Name = 'Engine'; X = 0.22; Y = 0.42; Detail = 'OfficeIMO owns Open XML behavior.' }
-    [pscustomobject]@{ Name = 'PowerShell'; X = 0.48; Y = 0.34; Detail = 'PSWriteOffice owns scripting ergonomics.' }
-    [pscustomobject]@{ Name = 'Examples'; X = 0.68; Y = 0.58; Detail = 'Showcase scripts prove the surface.' }
-    [pscustomobject]@{ Name = 'Website'; X = 0.82; Y = 0.36; Detail = 'Blog posts turn artifacts into adoption.' }
-)
-
+$locationCards = @($sites | ForEach-Object {
+    [pscustomobject]@{
+        Title = $_.Site
+        Items = "$($_.SupportedPeople) people|$($_.CurrentQuarterTickets) current tickets|$($_.Owner)"
+        AccentColor = '#008C95'
+    }
+})
 $capabilities = @(
-    [pscustomobject]@{ Heading = 'Readable by humans'; Body = 'Outputs should look like business artifacts, not raw exports.'; Items = 'visual hierarchy|navigation|metadata' }
-    [pscustomobject]@{ Heading = 'Useful to scripts'; Body = 'Generated files should be inspectable and testable.'; Items = 'summaries|parts|deterministic paths' }
-    [pscustomobject]@{ Heading = 'Fast enough to reuse'; Body = 'Examples should be smoke-test friendly and avoid desktop Office for generation.'; Items = 'Open XML|parallel engine work|small fixtures' }
+    [pscustomobject]@{ Title = 'A clear front door'; Items = 'published request categories|named service owner|agreed escalation route' }
+    [pscustomobject]@{ Title = 'A reliable handover'; Items = 'agreed service hours|useful operating notes|acceptance by support owner' }
+    [pscustomobject]@{ Title = 'An evidence-based review'; Items = 'quarterly ticket counts|repeat request analysis|feedback from service users' }
 )
-
-$caseStudy = @(
-    [pscustomobject]@{ Heading = 'Problem'; Body = 'Basic examples hide how much OfficeIMO can already produce.' }
-    [pscustomobject]@{ Heading = 'Approach'; Body = 'Expose semantic PowerPoint plans and richer Office examples through PSWriteOffice.' }
-    [pscustomobject]@{ Heading = 'Outcome'; Body = 'A test-drive deck that remains editable and visually credible.' }
+$decisions = @(
+    [pscustomobject]@{ Title = 'Demand baseline'; Items = "$current quarterly tickets|$changeText from $previous|$people people supported" }
+    [pscustomobject]@{ Title = 'Priority review'; Items = "$priorityText|Check request mix before changing capacity." }
+    [pscustomobject]@{ Title = 'Decision requested'; Items = 'Nominate the pilot owner.|Agree the review date.|Assess the pilot before changing service commitments.' }
 )
-
-$metrics = @(
-    [pscustomobject]@{ Value = '3'; Label = 'flagship products' }
-    [pscustomobject]@{ Value = '1'; Label = 'shared showcase plan' }
-    [pscustomobject]@{ Value = '0'; Label = 'desktop Office dependency' }
+$chartData = @($sites | ForEach-Object {
+    [pscustomobject]@{ Site=$_.Site; 'Previous quarter'=$_.PreviousQuarterTickets; 'Current quarter'=$_.CurrentQuarterTickets }
+})
+$actions = @(
+    [pscustomobject]@{ Action = 'Agree intake categories'; Owner = 'Service desk lead'; Review = $ReviewDate.AddDays(15).ToString('dd MMM', $culture) }
+    [pscustomobject]@{ Action = "Review $($prioritySite.Site) demand"; Owner = $prioritySite.Owner; Review = $ReviewDate.AddDays(22).ToString('dd MMM', $culture) }
+    [pscustomobject]@{ Action = 'Review pilot evidence'; Owner = 'Service owner'; Review = $ReviewDate.AddDays(36).ToString('dd MMM', $culture) }
 )
-
-$chartRows = @(
-    [pscustomobject]@{ Product = 'Word'; Coverage = 82; Polish = 72 }
-    [pscustomobject]@{ Product = 'Excel'; Coverage = 91; Polish = 83 }
-    [pscustomobject]@{ Product = 'PowerPoint'; Coverage = 76; Polish = 68 }
-)
-
-$tableRows = @(
-    [pscustomobject]@{ Area = 'Designer bridge'; Status = 'Added'; Next = 'Add more variant knobs' }
-    [pscustomobject]@{ Area = 'Showcase deck'; Status = 'Added'; Next = 'Export screenshots' }
-    [pscustomobject]@{ Area = 'Blog post'; Status = 'Planned'; Next = 'Write after visuals' }
-)
-
 $plan = PptDeckPlan {
-    PptPlanSection -Title 'PSWriteOffice Showcase' -Subtitle 'Beautiful, useful Office artifacts from PowerShell' -Seed 'showcase-cover'
-    PptPlanProcess -Title 'From objects to publishable artifacts' -Subtitle 'A repeatable path for examples and blog posts' -Steps $process -Seed 'delivery-process'
-    PptPlanCardGrid -Title 'Product surfaces' -Subtitle 'Each product should show a real workflow, not only primitives.' -Cards $cards -Seed 'product-cards'
-    PptPlanCoverage -Title 'Where the work belongs' -Subtitle 'Engine, wrapper, examples, and website stay distinct.' -Locations $coverage -Seed 'coverage-map'
-    PptPlanCapability -Title 'Quality bar' -Subtitle 'The showcase should be practical enough to copy and attractive enough to publish.' -Sections $capabilities -Seed 'quality-bar'
-    PptPlanCaseStudy -Title 'PowerPoint designer bridge' -Sections $caseStudy -Metrics $metrics -Seed 'designer-case-study'
+    PptPlanSection -Title 'Workplace support plan' -Subtitle "Demand review and service pilot | $dateText" -Seed 'service-cover'
+    PptPlanProcess -Title 'A controlled service transition' -Subtitle 'Agree the baseline, test the change and review the evidence.' -Steps $process -Seed 'service-transition'
+    PptPlanCardGrid -Title 'Service scope' -Subtitle 'Four service areas with explicit ownership and a common intake.' -Cards $cards -Seed 'service-scope'
+    PptPlanCardGrid -Title 'Supported locations' -Subtitle "$people people across $($sites.Count) service locations." -Cards $locationCards -Seed 'service-locations'
+    PptPlanCardGrid -Title 'What the operating model must provide' -Subtitle 'Practical acceptance criteria for the pilot.' -Cards $capabilities -Seed 'service-acceptance'
+    PptPlanCardGrid -Title 'Demand and the proposed decision' -Subtitle 'Separate the observation, proposed review and decision.' -Cards $decisions -Seed 'service-decision'
 }
-
 New-OfficePowerPoint -Path $path {
     PptSlideSize -Preset Screen16x9
-    PptDesignerDeck -Plan $plan -AccentColor '#008C95' -Seed 'pswriteoffice-showcase' -Purpose 'technical service brief' -Name 'PSWriteOffice Showcase' -FooterLeft 'PSWriteOffice' -FooterRight 'OfficeIMO designer' -CreativeDirectionPack TechnicalMap -LayoutStrategy ContentFirst
-
+    PptDesignerDeck -Plan $plan -AccentColor '#008C95' -Seed 'workplace-support' -Purpose 'workplace support planning brief' -Name 'Workplace support plan' -Eyebrow 'Workplace support' -FooterLeft $dateText -FooterRight $dataLabel -CreativeDirectionPack Boardroom -LayoutStrategy ContentFirst
     $chartSlide = PptSlide -PassThru
-    PptTitle -Slide $chartSlide -Title 'Coverage and polish scorecard'
-    PptChart -Slide $chartSlide -Type ClusteredColumn -Data $chartRows -CategoryProperty Product -SeriesProperty Coverage, Polish -Title 'Current Surface vs Polish Target' -X 58 -Y 118 -Width 610 -Height 265
-    PptNotes -Slide $chartSlide -Text 'Use this slide as the bridge between the designer slides and the concrete backlog.'
-
+    PptTitle -Slide $chartSlide -Title 'Quarterly ticket demand'
+    PptChart -Slide $chartSlide -Type ClusteredColumn -Data $chartData -CategoryProperty Site -SeriesProperty 'Previous quarter', 'Current quarter' -Title "Tickets: $previous previous / $current current ($changeText)" -X 58 -Y 118 -Width 610 -Height 235
+    PptNotes -Slide $chartSlide -Text 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
     $tableSlide = PptSlide -PassThru
-    PptTitle -Slide $tableSlide -Title 'Immediate implementation path'
-    PptTable -Slide $tableSlide -Data $tableRows -X 64 -Y 132 -Width 590 -Height 210
-    PptNotes -Slide $tableSlide -Text 'Close with the next concrete pull request slices: visual screenshots, blog drafts, and richer wrappers.'
-
-    PptSection -Name 'Designer story' -StartSlideIndex 0
-    PptSection -Name 'Evidence appendix' -StartSlideIndex 6
+    PptTitle -Slide $tableSlide -Title 'Owners and review dates'
+    PptTable -Slide $tableSlide -Data $actions -X 54 -Y 120 -Width 612 -Height 200
+    PptNotes -Slide $tableSlide -Text 'Example actions for a proposed pilot. Agree actual owners and dates before using this brief.'
+    PptSection -Name 'Service planning' -StartSlideIndex 0
+    PptSection -Name 'Demand and actions' -StartSlideIndex 6
     PptTransition -Slide $chartSlide -Transition PushLeft
     Get-OfficePowerPointSlide -Index 0 | PptTransition -Transition Fade
 } -Open:$Open
 
 $presentation = Get-OfficePowerPoint -Path $path
-$summary = Get-OfficePowerPointSlideSummary -Presentation $presentation
-$presentation | Close-OfficePowerPoint
-
-$summary | Select-Object SlideIndex, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes
+try { Get-OfficePowerPointSlideSummary -Presentation $presentation | Select-Object SlideIndex, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes }
+finally { $presentation | Close-OfficePowerPoint }
