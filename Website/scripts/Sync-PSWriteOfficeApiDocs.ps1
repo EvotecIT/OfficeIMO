@@ -491,7 +491,9 @@ Assert-NoSourceLinks -Root $resolvedRepoRoot
 $sourceArtifactsRoot = if ($ExportedArtifactsRoot) {
     (Resolve-Path -LiteralPath $ExportedArtifactsRoot -ErrorAction Stop).Path
 } else { Join-Path $resolvedRepoRoot 'WebsiteArtifacts' }
-Assert-NoSourceLinks -Root $sourceArtifactsRoot
+if (Test-Path -LiteralPath $sourceArtifactsRoot) {
+    Assert-NoSourceLinks -Root $sourceArtifactsRoot
+}
 $websiteArtifactsRoot = Join-Path $sourceArtifactsRoot 'apidocs\powershell'
 $resolvedHelpPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice-help.xml'
 $resolvedManifestPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice.psd1'
