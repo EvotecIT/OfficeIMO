@@ -168,6 +168,7 @@ namespace OfficeIMO.Excel {
             int row = startRow;
             if (includeHeaders) {
                 for (int i = 0; i < headers.Length; i++) {
+                    ct.ThrowIfCancellationRequested();
                     CellValue(row, startColumn + i, headers[i]);
                 }
 
@@ -188,9 +189,11 @@ namespace OfficeIMO.Excel {
                     : reusableValues ??= new object?[headers.Length];
                 FillDataReaderValues(reader, values, headers.Length, ref useBulkRead);
                 for (int i = 0; i < headers.Length; i++) {
+                    ct.ThrowIfCancellationRequested();
                     object? value = values[i];
                     int column = startColumn + i;
                     CellValue(row, column, value);
+                    ct.ThrowIfCancellationRequested();
 
                     string? numberFormat = GetReaderNumberFormat(fieldTypes[i], value);
                     if (!string.IsNullOrWhiteSpace(numberFormat)) {
@@ -363,10 +366,12 @@ namespace OfficeIMO.Excel {
             bool autoFit,
             string range,
             CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
             string? actualTableName = null;
             int row = startRow;
             if (includeHeaders) {
                 for (int i = 0; i < headers.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
                     CellValue(row, startColumn + i, headers[i]);
                 }
 
@@ -374,10 +379,13 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (object?[] values in rows) {
+                ct.ThrowIfCancellationRequested();
                 for (int i = 0; i < headers.Count; i++) {
+                    ct.ThrowIfCancellationRequested();
                     object? value = values[i];
                     int column = startColumn + i;
                     CellValue(row, column, value);
+                    ct.ThrowIfCancellationRequested();
 
                     string? numberFormat = GetReaderNumberFormat(fieldTypes[i], value);
                     if (!string.IsNullOrWhiteSpace(numberFormat)) {
@@ -388,6 +396,7 @@ namespace OfficeIMO.Excel {
                 row++;
             }
 
+            ct.ThrowIfCancellationRequested();
             if (createTable && range.Length != 0) {
                 string[]? headerNames = includeHeaders
                     ? headers is string[] headerArray ? headerArray : headers.ToArray()
