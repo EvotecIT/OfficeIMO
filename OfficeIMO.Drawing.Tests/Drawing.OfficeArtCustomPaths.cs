@@ -7,6 +7,20 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(0x0145)]
+    [InlineData(0x0146)]
+    public void OfficeArtCustomPath_PresenceUsesTheEffectivePropertyAfterClearingAndRestoring(int id) {
+        var original = CustomPath(new[] { (0, 0), (21600, 21600) },
+            new ushort[] { 0x4000, 0x0001, 0x8000 }).Single(property => property.PropertyId == id);
+        var properties = new List<OfficeArtProperty> { original };
+        Assert.True(OfficeArtCustomPathProjector.HasPath(properties));
+        properties.Add(new OfficeArtProperty(1, checked((ushort)id), 0));
+        Assert.False(OfficeArtCustomPathProjector.HasPath(properties));
+        properties.Add(original);
+        Assert.True(OfficeArtCustomPathProjector.HasPath(properties));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void OfficeArtCustomPath_UnderstatedArraysDoNotSilentlyDiscardVerticesOrCommands(bool segments) {

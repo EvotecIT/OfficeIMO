@@ -8,8 +8,12 @@ namespace OfficeIMO.Drawing.Binary;
 // MS-ODRAW 2.3.6 and 2.4.30 describe native geometry and command consumption.
 // Importers own cumulative operation limits and feature-level fidelity reports.
 internal static class OfficeArtCustomPathProjector {
-    internal static bool HasPath(IReadOnlyList<OfficeArtProperty> properties) => properties.Any(property =>
-        property.PropertyId is 0x0145 or 0x0146 && property.Value != 0);
+    internal static bool HasPath(IReadOnlyList<OfficeArtProperty> properties) =>
+        Property(properties, 0x0145)?.Value > 0 || Property(properties, 0x0146)?.Value > 0;
+
+    // Geometry paint controls also apply when an importer falls back to a preset.
+    internal static bool IsFillDisabled(IReadOnlyList<OfficeArtProperty> properties) => Disabled(properties, 0x0200);
+    internal static bool IsLineDisabled(IReadOnlyList<OfficeArtProperty> properties) => Disabled(properties, 0x0040);
 
     internal static bool TryProject(IReadOnlyList<OfficeArtProperty> properties,
         double width, double height, Action<int> accountItems, CancellationToken token,
@@ -45,7 +49,7 @@ internal static class OfficeArtCustomPathProjector {
         void Add(OfficePathCommand command) {
             token.ThrowIfCancellationRequested(); accountItems(1); commands.Add(command);
         }
-        bool noFill = Disabled(properties, 0x0200), noLine = Disabled(properties, 0x0040);
+        bool noFill = IsFillDisabled(properties), noLine = IsLineDisabled(properties);
         if (segmentCount == 0) {
             int kind = Scalar(properties, 0x0144, 1);
             if (kind < 0 || kind > 3 || (kind >= 2 && (pointCount - 1) % 3 != 0)) return false;
