@@ -84,17 +84,6 @@ namespace OfficeIMO.Core.Internal {
         private static readonly byte[] HmacValueBlockKey = { 0xa0, 0x67, 0x7f, 0x02, 0xb2, 0x2c, 0x84, 0x33 };
 
         /// <summary>
-        /// Returns true when the byte array appears to be an encrypted Office package.
-        /// </summary>
-        public static bool IsEncryptedPackage(byte[] bytes) {
-            if (!CompoundFile.TryRead(bytes, out var streams)) {
-                return false;
-            }
-
-            return streams.ContainsKey("EncryptionInfo") && streams.ContainsKey("EncryptedPackage");
-        }
-
-        /// <summary>
         /// Encrypts a plain Open XML package into the encrypted Office container format.
         /// </summary>
         public static byte[] EncryptPackage(byte[] packageBytes, string password, OfficeEncryptionOptions? options = null) {
@@ -144,9 +133,9 @@ namespace OfficeIMO.Core.Internal {
                     encryptedHmacKey,
                     encryptedHmacValue);
 
-                return CompoundFile.Write(new Dictionary<string, byte[]>(StringComparer.Ordinal) {
-                    ["EncryptionInfo"] = encryptionInfo,
-                    ["EncryptedPackage"] = encryptedPackage
+                return OfficeCompoundFileWriter.Write(new[] {
+                    new OfficeCompoundStream("EncryptionInfo", encryptionInfo),
+                    new OfficeCompoundStream("EncryptedPackage", encryptedPackage)
                 });
             } finally {
                 Clear(keyDataSalt, passwordSalt, verifier, verifierHash, secretKey, passwordHash);
