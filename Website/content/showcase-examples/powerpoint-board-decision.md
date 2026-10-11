@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Board decision brief"
-description: "Build a two-slide PowerPoint brief with three investment options, trade-offs and a bounded approval request."
+description: "Build a two-slide PowerPoint decision brief with three investment options, trade-offs and a bounded approval request. Download the editable slides."
 layout: showcase-example
 meta.showcase_id: powerpoint-board-decision
 meta.seo_title: "Board decision brief in C# | OfficeIMO"
