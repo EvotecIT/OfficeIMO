@@ -12,15 +12,20 @@ internal sealed partial class PublisherPageProjector {
             OfficeShape shape = item.Shape;
             // An unspecified join can use PDF's implicit miter limit of ten.
             double miterLimit = shape.StrokeLineJoin.HasValue ? shape.StrokeMiterLimit : Math.Max(10, shape.StrokeMiterLimit);
-            double strokeRadius = Math.Max(0, shape.StrokeWidth) / 2;
-            // Non-expandable shadows widen the stroke before forming its joins.
-            // Square caps can extend sqrt(2) radii along either canvas axis.
-            if (shape.Shadow is OfficeShadow softShadow) strokeRadius += softShadow.BlurRadius;
-            double padding = 1 + strokeRadius * Math.Max(2, miterLimit);
-            foreach (OfficeLineMarker? marker in new[] { shape.StrokeStartMarker, shape.StrokeEndMarker })
-                if (marker != null) padding += Math.Max(marker.Width, marker.Length);
-            if (shape.Shadow is OfficeShadow shadow)
-                padding += Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY));
+            bool paintsStroke = shape.StrokeOpacity.GetValueOrDefault(1) > 0 && (shape.StrokeGradient != null || shape.StrokeRadialGradient != null
+                || shape.StrokeColor is OfficeColor { A: > 0 });
+            // Disabled native lines retain their stored width but paint no stroke.
+            double padding = 1 + (paintsStroke ? Math.Max(0, shape.StrokeWidth) / 2 * Math.Max(2, miterLimit) : 0);
+            foreach (OfficeShadowLayer layer in OfficeDrawingRasterRenderer.CreateShadowLayers(shape)) {
+                OfficeShadow shadow = shape.Shadow!;
+                // Use the renderer's actual expansion/stroke plan, retaining
+                // square caps and soft miter joins without reserving hidden ink.
+                double shadowPadding = layer.Expansion + (layer.HasStroke ? layer.StrokeWidth / 2 * Math.Max(2, miterLimit) : 0);
+                padding = Math.Max(padding, 1 + shadowPadding + Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY)));
+            }
+            if (paintsStroke)
+                foreach (OfficeLineMarker? marker in new[] { shape.StrokeStartMarker, shape.StrokeEndMarker })
+                    if (marker != null) padding += Math.Max(marker.Width, marker.Length);
             OfficeTransform placement = (shape.Transform ?? OfficeTransform.Identity)
                 .Then(OfficeTransform.Translate(item.X, item.Y));
             foreach (OfficeFlattenedPathContour contour in OfficeStrokeGeometry.FlattenShape(shape, 4))
