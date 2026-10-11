@@ -23,7 +23,9 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap? nativeFontMap = null) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            var style = new PdfCore.PdfParagraphStyle();
+            var style = new PdfCore.PdfParagraphStyle {
+                AllowFirstLineOverlapWithRunningFooter = nativeDefaults.RunningContentContext == null
+            };
             double fontSize = ResolveNativeParagraphEffectiveFontSize(paragraph, nativeDefaults, styleDefaults);
             double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, styleDefaults, nativeFontMap: nativeFontMap);
             NativeLineSpacing lineSpacing = ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, nativeDefaults);

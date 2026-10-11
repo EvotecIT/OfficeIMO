@@ -8,9 +8,11 @@ namespace OfficeIMO.Word.Pdf {
             public bool SupportsPositionedTables => _inner.SupportsPositionedTables;
             private readonly INativePdfFlow _inner;
             private double? _pendingSpacingAfter;
+            private bool _preserveInitialSpacingBefore;
 
-            public NativeSpacingCollapseFlow(INativePdfFlow inner) {
+            public NativeSpacingCollapseFlow(INativePdfFlow inner, bool preserveInitialSpacingBefore = false) {
                 _inner = inner;
+                _preserveInitialSpacingBefore = preserveInitialSpacingBefore;
             }
 
             // Contextual spacing removes the rendered trailing space, but Word
@@ -157,12 +159,25 @@ namespace OfficeIMO.Word.Pdf {
                 return collapsedStyle;
             }
 
-            private double CollapseSpacingBefore(double spacingBefore) =>
-                _pendingSpacingAfter.HasValue
+            private double CollapseSpacingBefore(double spacingBefore) {
+                // Running Word stories preserve authored initial spacing. An
+                // explicit spacer avoids generic page-start suppression while
+                // keeping measurement and rendering on the same flow path.
+                bool preserve = _preserveInitialSpacingBefore;
+                _preserveInitialSpacingBefore = false;
+                if (preserve && spacingBefore > 0D) {
+                    _inner.Spacer(spacingBefore);
+                    return 0D;
+                }
+                return _pendingSpacingAfter.HasValue
                     ? Math.Max(0D, spacingBefore - _pendingSpacingAfter.Value)
                     : spacingBefore;
+            }
 
-            private void ResetSpacingCollapse() => _pendingSpacingAfter = null;
+            private void ResetSpacingCollapse() {
+                _pendingSpacingAfter = null;
+                _preserveInitialSpacingBefore = false;
+            }
         }
     }
 }

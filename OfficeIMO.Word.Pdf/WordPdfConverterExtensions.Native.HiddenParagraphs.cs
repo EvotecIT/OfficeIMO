@@ -13,19 +13,11 @@ public static partial class WordPdfConverterExtensions {
         Func<WordParagraph, (int Level, string Marker)?> getMarker,
         NativeNoteNumbering footnoteNumbersById, WordToPdfOptions? options,
         NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
-        if (elements[index] is not WordParagraph first || ShouldRenderNativeEmptyParagraphLineBox(first) ||
-            index + 1 >= elements.Count || elements[index + 1] is not WordParagraph) return false;
-
-        var paragraphs = new List<WordParagraph> { first };
-        int lastIndex = index;
-        while (!ShouldRenderNativeEmptyParagraphLineBox(paragraphs[paragraphs.Count - 1]) &&
-               lastIndex + 1 < elements.Count && elements[lastIndex + 1] is WordParagraph next) {
-            paragraphs.Add(next);
-            lastIndex++;
-        }
-        if (paragraphs.Any(paragraph => !CanJoinNativeTextParagraph(paragraph, getMarker, nativeDefaults, nativeFontMap)) ||
-            paragraphs.Skip(1).Any(HasNativePageBreakBefore)) {
-            if (options != null) AddNativeExportWarning(options, "NativeHiddenParagraphJoinUnsupported", "body",
+        if (!TryGetNativeParagraphJoinChain(elements, index, out var paragraphs, out int lastIndex)) return false;
+        WordParagraph first = paragraphs[0];
+        if (!CanJoinNativeParagraphChain(paragraphs, getMarker, nativeDefaults, nativeFontMap)) {
+            if (options != null) AddNativeExportWarning(options, "NativeHiddenParagraphJoinUnsupported",
+                nativeDefaults.RunningContentContext == null ? "body" : "header/footer",
                 "Hidden paragraph marks beside lists, headings, decorated paragraphs, flow breaks or objects retain separate PDF paragraph boundaries.");
             return false;
         }
@@ -86,6 +78,27 @@ public static partial class WordPdfConverterExtensions {
         index = lastIndex;
         return true;
     }
+
+    private static bool TryGetNativeParagraphJoinChain(IReadOnlyList<WordElement> elements, int index,
+        out List<WordParagraph> paragraphs, out int lastIndex) {
+        paragraphs = new List<WordParagraph>();
+        lastIndex = index;
+        if (elements[index] is not WordParagraph first || ShouldRenderNativeEmptyParagraphLineBox(first) ||
+            index + 1 >= elements.Count || elements[index + 1] is not WordParagraph) return false;
+        paragraphs.Add(first);
+        while (!ShouldRenderNativeEmptyParagraphLineBox(paragraphs[paragraphs.Count - 1]) &&
+               lastIndex + 1 < elements.Count && elements[lastIndex + 1] is WordParagraph next) {
+            paragraphs.Add(next);
+            lastIndex++;
+        }
+        return true;
+    }
+
+    private static bool CanJoinNativeParagraphChain(IReadOnlyList<WordParagraph> paragraphs,
+        Func<WordParagraph, (int Level, string Marker)?> getMarker,
+        NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) =>
+        paragraphs.All(paragraph => CanJoinNativeTextParagraph(paragraph, getMarker, nativeDefaults, nativeFontMap)) &&
+        !paragraphs.Skip(1).Any(HasNativePageBreakBefore);
 
     private static bool CanJoinNativeTextParagraph(WordParagraph paragraph,
         Func<WordParagraph, (int Level, string Marker)?> getMarker,

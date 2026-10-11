@@ -9,6 +9,14 @@ internal static partial class PdfWriter {
         private readonly int previousDocumentPages;
         private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
 
+        // Imported Word pages can place one body line beside a tall footer even
+        // when its expanded exclusion leaves less than one line of body space.
+        // Ordinary PDF flow and the physical body margins retain their bounds.
+        private bool CanOverlapRunningFooterWithFirstLine(PdfParagraphStyle? style, double height) =>
+            !isRunningContent && style?.AllowFirstLineOverlapWithRunningFooter == true && activeColumnFlow == null &&
+            currentOpts.MarginBottom > currentPageBaseOptions.MarginBottom + .001D &&
+            height <= GetCurrentFramePageStartY() - currentPageBaseOptions.MarginBottom + .001D;
+
         private PdfOptions GetRunningFrameOptions(PdfOptions source, double top, double bottom) {
             var key = (source, top, bottom);
             if (!runningFrameOptions.TryGetValue(key, out PdfOptions? frame)) {

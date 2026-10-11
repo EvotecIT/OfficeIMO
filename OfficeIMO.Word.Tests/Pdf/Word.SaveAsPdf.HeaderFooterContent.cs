@@ -40,7 +40,8 @@ public partial class Word {
 
         document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
 
-        string pdfText = PdfCore.PdfTextExtractor.ExtractAllText(pdfPath);
+        string pdfText = PdfCore.PdfReadDocument.Open(pdfPath,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.DoesNotContain("Hidden header", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden body instruction", pdfText, StringComparison.Ordinal);
         Assert.Contains("Visible header", pdfText, StringComparison.Ordinal);
@@ -102,7 +103,9 @@ public partial class Word {
         Assert.Contains("LeftFooterOverflowMarker", text, StringComparison.Ordinal);
         Assert.Contains("CenterFooterOverflowMarker", text, StringComparison.Ordinal);
         Assert.Contains("RightFooterOverflowMarker", text, StringComparison.Ordinal);
-        Assert.Contains("Wide header footer body", text, StringComparison.Ordinal);
+        Assert.Equal(new[] { "Wide", "header", "footer", "body" }, pdf.GetPages()
+            .SelectMany(page => page.GetWords()).Select(word => word.Text)
+            .Where(word => word is "Wide" or "header" or "footer" or "body").ToArray());
     }
 
     [Fact]
@@ -195,7 +198,8 @@ public partial class Word {
             document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
         }
 
-        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
+        string text = PdfCore.PdfReadDocument.Open(pdfPath,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("Visible header", text);
         Assert.DoesNotContain("Hidden instruction", text);
         Assert.DoesNotContain("1Visible header", text);

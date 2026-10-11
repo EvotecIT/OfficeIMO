@@ -326,12 +326,14 @@ internal static partial class PdfWriter {
                 if (floatingPageStarts?.Remove(lineIndex) == true && (HasFloatingTables || y < frameStart - 0.001)) NewParagraphPage();
                 double minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
                 if (lineIndex == lines.Count - 1) minimumLineHeight += GetClosingTextPadding(spacingAfter);
-                if (minimumLineHeight > GetMaximumBlockContinuationHeight() + .001D)
+                if (minimumLineHeight > GetMaximumBlockContinuationHeight() + .001D &&
+                    !CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))
                     throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 while (ShouldAdvanceForBlockHeight(minimumLineHeight)) {
                     NewParagraphPage();
                     minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetClosingTextPadding(spacingAfter) : 0D);
-                    if (minimumLineHeight > GetMaximumBlockContinuationHeight() + .001D)
+                    if (minimumLineHeight > GetMaximumBlockContinuationHeight() + .001D &&
+                        !CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))
                         throw new ArgumentException("Paragraph line height exceeds the available page content height.");
                 }
                 double available = y - currentOpts.MarginBottom;
@@ -342,7 +344,8 @@ internal static partial class PdfWriter {
                 }
 
                 double segmentSpacingBefore = firstSegment && y < frameStart - 0.001 ? spacingBefore : 0;
-                if (available < segmentSpacingBefore + minimumLineHeight) {
+                if (available < segmentSpacingBefore + minimumLineHeight &&
+                    !(y >= frameStart - .001D && CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight))) {
                     NewParagraphPage();
                     minimumLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D) + (lineIndex == lines.Count - 1 ? GetClosingTextPadding(spacingAfter) : 0D);
                     available = y - currentOpts.MarginBottom;
@@ -369,6 +372,11 @@ internal static partial class PdfWriter {
                     take++;
                 }
 
+                if (take == 0 && y >= frameStart - .001D &&
+                    CanOverlapRunningFooterWithFirstLine(paragraphStyle, minimumLineHeight)) {
+                    take = 1;
+                    heightSum = lineHeights[lineIndex];
+                }
                 ReserveBalancedKeepNextTail(lineHeights, lineIndex, lines.Count, spacingAfter, roomForText, blockList,
                     blockIndex, paragraphStyle?.KeepWithNext == true, paragraphStyle == null ? 1 : ResolveMinimumWidowLines(paragraphStyle),
                     ref take, ref heightSum);
