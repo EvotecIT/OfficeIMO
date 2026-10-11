@@ -24,12 +24,18 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <code>Get-OfficeConversionRoute -PdfBatch | Select-Object Id, SourceExtensions, PackageId, Fidelity, KnownLimitations</code>
 ///   <para>Batch PDF export requires PowerShell 7.4 or newer. Windows PowerShell 5.1 can inspect the catalog and use supported single-file commands.</para>
 /// </example>
+/// <example>
+///   <summary>Inspect several route identifiers from the pipeline.</summary>
+///   <prefix>PS&gt; </prefix>
+///   <code>'docx-pdf', 'pdf-docx' | Get-OfficeConversionRoute</code>
+///   <para>The pipeline also accepts objects with an Id property.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeConversionRoute")]
 [OutputType(typeof(OfficeConversionCapability))]
 public sealed class GetOfficeConversionRouteCommand : PSCmdlet
 {
     /// <summary>Exact route identifiers, for example docx-pdf or pdf-docx. Unknown identifiers return no rows.</summary>
-    [Parameter(ValueFromPipelineByPropertyName = true)]
+    [Parameter(ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
     [ValidateNotNullOrEmpty]
     public string[]? Id { get; set; }
 
