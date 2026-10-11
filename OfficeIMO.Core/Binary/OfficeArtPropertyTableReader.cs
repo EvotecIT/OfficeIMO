@@ -68,6 +68,20 @@ public static class OfficeArtPropertyTableReader {
 
     private static ulong[] FollowingComplexLengths(byte[] payload, int offset, int count, int complexStart, int end) {
         var following = new ulong[count];
+        // A recognizable empty suffix can also be the tail of a complete earlier
+        // array. Keep established complete prefix boundaries before reserving it.
+        var prefixStarts = new int[count];
+        int prefix = complexStart;
+        for (int index = 0; index < count; index++) {
+            prefixStarts[index] = prefix;
+            int propertyOffset = offset + index * 6;
+            ushort operation = ReadUInt16(payload, propertyOffset);
+            if (prefix < 0 || (operation & 0x8000) == 0) continue;
+            uint declared = ReadUInt32(payload, propertyOffset + 2);
+            uint physical = ExpectedComplexDataLength((ushort)(operation & 0x3fff), declared,
+                payload, prefix, end - prefix);
+            prefix = physical <= end - prefix ? prefix + (int)physical : -1;
+        }
         ulong required = 0;
         int boundary = end;
         for (int index = count - 1; index >= 0; index--) {
@@ -88,8 +102,10 @@ public static class OfficeArtPropertyTableReader {
                         payload, start - 6, (int)declared + 6) == declared + 6)
                     length += 6;
             }
-            // Zero-length arrays can be absent; a reverse scan cannot establish
-            // their header without risking bytes owned by the preceding payload.
+            if (declared == 0 && remaining >= 6 &&
+                (prefixStarts[index] < 0 || prefixStarts[index] <= boundary - 6) &&
+                ExpectedComplexDataLength(id, 0, payload, boundary - 6, 6) == 6)
+                length = 6;
             required += length;
             boundary = required <= (ulong)(end - complexStart) ? end - (int)required : complexStart;
         }
@@ -102,6 +118,10 @@ public static class OfficeArtPropertyTableReader {
         uint length = ExpectedComplexDataLength(propertyId, declaredLength, payload, offset, endOffset - offset);
         int remaining = endOffset - offset;
         if (length > declaredLength) {
+            // An oversized/truncated suffix has no established boundary. It must
+            // not erase a complete, recognizable array at the current position.
+            if (followingDeclaredLength > (ulong)remaining)
+                return (int)Math.Min(length, (uint)remaining);
             // Header recovery must preserve following complex properties even
             // when a nonempty array is truncated. Retain only its available prefix.
             uint available = (uint)((ulong)remaining - Math.Min((ulong)remaining, followingDeclaredLength));

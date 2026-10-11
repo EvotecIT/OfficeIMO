@@ -52,16 +52,22 @@ public sealed class PublisherGroupCanvasTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Grouped_shapes_retain_square_caps_and_blurred_miter_shadows(bool shadow) {
+    public void Grouped_shapes_retain_wide_strokes_and_blurred_shadows(bool shadow) {
         OfficeRasterImage reference = OfficeDrawingRasterRenderer.Render(WidePaint(false, shadow).Pages[0].Drawing);
         OfficeRasterImage grouped = OfficeDrawingRasterRenderer.Render(WidePaint(true, shadow).Pages[0].Drawing);
-        int x = shadow ? 121 : 40, y = shadow ? 61 : 101;
-        OfficeColor expected = reference.GetPixel(x, y);
-        Assert.True(expected.R < 255);
-        Assert.Equal(expected, grouped.GetPixel(x, y));
+        int painted = 0, missing = 0;
+        for (int y = 0; y < 300; y++)
+            for (int x = 0; x < 300; x++) {
+                OfficeColor expected = reference.GetPixel(x, y);
+                if (expected.R == 255) continue;
+                painted++;
+                if (grouped.GetPixel(x, y).R > expected.R) missing++;
+            }
+        Assert.True(painted > 0);
+        Assert.Equal(0, missing);
     }
 
-    private static PublisherDocument WidePaint(bool grouped, bool shadow) {
+    internal static PublisherDocument WidePaint(bool grouped, bool shadow) {
         var source = new PublisherContents(612, 792, new Dictionary<uint, PublisherContentChunk>());
         source.Pages.Add(new PublisherSourcePage(1, "", null, null));
         source.Shapes.Add(2, new PublisherSourceShape(new PublisherContentChunk(2, 1, 0, 1), Array.Empty<PublisherBlock>()));

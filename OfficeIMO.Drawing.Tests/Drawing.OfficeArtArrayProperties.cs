@@ -6,6 +6,37 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void OfficeArtPropertyTableReader_CompleteArraySurvivesATruncatedFollowingPayload() {
+        byte[] vertices = { 1, 0, 1, 0, 8, 0, 7, 0, 0, 0, 0, 0, 2, 0 };
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x8145); writer.Write(8U);
+        writer.Write((ushort)0x8380); writer.Write(100U);
+        writer.Write(vertices); writer.Write(Encoding.Unicode.GetBytes("OK"));
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 2);
+        Assert.Equal(vertices, properties[0].CopyComplexData());
+        Assert.True(properties[0].HasCompleteComplexData);
+        Assert.Equal("OK", properties[1].ComplexText);
+        Assert.False(properties[1].HasCompleteComplexData);
+    }
+
+    [Fact]
+    public void OfficeArtPropertyTableReader_TruncatedArrayPreservesPresentEmptyArrayAndText() {
+        byte[] empty = { 0, 0, 0, 0, 2, 0 };
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x8145); writer.Write(16U);
+        writer.Write((ushort)0x8146); writer.Write(0U);
+        writer.Write((ushort)0x8380); writer.Write(4U);
+        writer.Write((ushort)2); writer.Write((ushort)2); writer.Write((ushort)8); writer.Write((ushort)123);
+        writer.Write(empty); writer.Write(Encoding.Unicode.GetBytes("OK"));
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 3);
+        Assert.Equal(8, properties[0].AvailableComplexDataLength);
+        Assert.False(properties[0].HasCompleteComplexData);
+        Assert.Equal(empty, properties[1].CopyComplexData());
+        Assert.True(properties[1].HasCompleteComplexData);
+        Assert.Equal("OK", properties[2].ComplexText);
+    }
+
+    [Fact]
     public void OfficeArtPropertyTableReader_InclusiveSegmentHeaderDoesNotBorrowAHeaderLikePrecedingTail() {
         byte[] vertices = { 1, 0, 1, 0, 8, 0, 7, 0, 5, 0, 5, 0, 2, 0 };
         byte[] segments = { 2, 0, 2, 0, 2, 0, 1, 0, 2, 0 };
