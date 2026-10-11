@@ -93,8 +93,9 @@ internal static partial class PdfTextEditor {
         PdfLoadOptions? readOptions,
         IReadOnlyList<PageSpanKey>? exactTargets = null,
         bool allowInvisibleTargetRemoval = false,
-        bool allowTextRenderingMode3 = false) {
-        PdfReadDocument before = PdfReadDocument.Open(pdf, readOptions);
+        bool allowTextRenderingMode3 = false,
+        PdfReadDocument? sourceDocument = null) {
+        PdfReadDocument before = sourceDocument ?? PdfReadDocument.Open(pdf, readOptions);
         int[] affectedPages = areas.Select(static area => area.PageNumber).Distinct().ToArray();
         var original = new List<PageTextSpanSnapshot>();
         for (int index = 0; index < affectedPages.Length; index++) {
@@ -554,6 +555,10 @@ internal static partial class PdfTextEditor {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
+        return TranslateRegionToSource(document, region);
+    }
+
+    private static PdfPageRegion TranslateRegionToSource(PdfReadDocument document, PdfPageRegion region) {
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         (double originX, double originY) = document.Pages[region.PageNumber - 1].GetPageBoundaryOrigin();
         return OffsetRegion(region, originX, originY);
@@ -562,26 +567,13 @@ internal static partial class PdfTextEditor {
     private static PdfPageRegion OffsetRegion(PdfPageRegion region, double deltaX, double deltaY) =>
         new PdfPageRegion(region.PageNumber, region.X + deltaX, region.Y + deltaY, region.Width, region.Height);
 
-    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) =>
-        InspectSource(pdf, region, includeTextRenderingMode3: false, readOptions);
-
-    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, bool includeTextRenderingMode3, PdfLoadOptions? readOptions) {
-        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
-        ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
-        return InspectSource(document.Pages[region.PageNumber - 1], region, includeTextRenderingMode3);
-    }
-
     private static PdfRegionText InspectSource(PdfReadPage page, PdfPageRegion region, bool includeTextRenderingMode3 = false) =>
         BuildRegionText(page.GetTextSpans()
             .Where(span => IsSearchSpan(span, includeTextRenderingMode3) && Intersects(region, GetBounds(span)))
             .ToArray());
 
-    private static void EnsureRegionIsSafelyEditable(byte[] pdf, PdfPageRegion region, bool allowTextRenderingMode3, PdfLoadOptions? readOptions) {
-        Guard.NotNull(pdf, nameof(pdf));
-        Guard.NotNull(region, nameof(region));
-        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
-        ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
-        bool containsUnsafeText = document.Pages[region.PageNumber - 1]
+    private static void EnsureRegionIsSafelyEditable(PdfReadPage page, PdfPageRegion region, bool allowTextRenderingMode3) {
+        bool containsUnsafeText = page
             .GetTextSpans()
             .Any(span => !IsSafelyEditableSpan(span, allowTextRenderingMode3) && Intersects(region, GetBounds(span)));
         if (containsUnsafeText) {
@@ -601,16 +593,21 @@ internal static partial class PdfTextEditor {
         }
     }
 
-    private static void EnsureAppendOrderIsSafe(byte[] pdf, int pageNumber, IReadOnlyList<PdfTextSpan> spans, PdfLoadOptions? readOptions, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
-        if (spans.Count == 0) return;
+    private static void EnsureAppendOrderIsSafe(byte[] pdf, int pageNumber, PdfTextSpan[] spans, PdfLoadOptions? readOptions, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
+        if (spans.Length == 0) return;
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
+        EnsureAppendOrderIsSafe(document.Pages[pageNumber - 1], spans, appendedRequests);
+    }
+
+    private static void EnsureAppendOrderIsSafe(PdfReadPage page, IReadOnlyList<PdfTextSpan> spans, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
+        if (spans.Count == 0) return;
         PdfTextSpan[] visibleSpans = spans.Where(static span => span.TextRenderingMode != 3).ToArray();
         PdfReadPage.PdfAppendedTextBounds[]? appendedBounds = appendedRequests?
             .Where(static request => request.TextRenderingMode != 3)
             .Select(ToAppendedTextBounds)
             .ToArray();
         if (visibleSpans.Length == 0 && (appendedBounds == null || appendedBounds.Length == 0)) return;
-        if (document.Pages[pageNumber - 1].WouldAppendingTextChangeVisibleStacking(visibleSpans, appendedBounds)) {
+        if (page.WouldAppendingTextChangeVisibleStacking(visibleSpans, appendedBounds)) {
             throw new NotSupportedException("The text edit would change the visible stacking order of overlapping page content.");
         }
     }
