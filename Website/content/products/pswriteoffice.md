@@ -38,6 +38,9 @@ PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command sur
 
 | Job | Working path |
 |---|---|
+| Review patch compliance and maintenance actions | [Patch report walkthrough and native downloads](/showcase/pswriteoffice-patch-report/) |
+| Reconcile budget, actual spending and forecast | [Budget review, workbook and CSV input](/showcase/pswriteoffice-budget-review/) |
+| Review delivery milestones and overdue actions | [Project review, milestone register and CSV input](/showcase/pswriteoffice-project-delivery/) |
 | Export SQL data to Excel and verify the round trip | [DbaClientX database reporting guide](/docs/workflows/database-reporting/) and the {{< pswriteoffice-source kind="blob" path="Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1" label="runnable Excel example" >}} |
 | Move database data through CSV | {{< pswriteoffice-source kind="blob" path="Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1" label="Runnable CSV round-trip example" >}} |
 | Create an operational Excel dashboard | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1" label="Excel showcase example" >}} |

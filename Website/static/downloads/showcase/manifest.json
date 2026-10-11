@@ -3345,6 +3345,102 @@
       "sha256": "0cbc7c33c5a52d30a519685b29352a589ebb64142948f8701abb34fea739ed4b",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pswriteoffice-budget-review-xlsx",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
+      "bytes": 5504,
+      "sha256": "f116097a517a617b288c09b98ed2d086e0db2f8e1b7d25d540e11de36db756d8",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native XLSX generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-budget-review-docx",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx",
+      "bytes": 21075,
+      "sha256": "d27f377d1ad5b51c4dd38c311f8a125e9184a0df8a79990803db2abfb749eb3a",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native DOCX generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-budget-review-pdf",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
+      "bytes": 3167,
+      "sha256": "9bebbbea9cd25034f815de13befdadc3910382dc4655314fe204474205a80d20",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native PDF generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-budget-review-preview",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+      "bytes": 109119,
+      "sha256": "669462340412feba707ba79d12f4346a2b7d1ab428ee9ddeba8e77616d5dd430",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result."
+    },
+    {
+      "id": "pswriteoffice-budget-review-source",
+      "path": "/downloads/showcase/source/PowerShell/BudgetForecastReview.ps1.txt",
+      "bytes": 7781,
+      "sha256": "bd3919ded3cdd7abce9a8093b591e3eae228502255d1bc8dec3fe861ecb42e2c",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-budget-review-input",
+      "path": "/downloads/showcase/source/PowerShell/Data/BudgetForecast.csv",
+      "bytes": 540,
+      "sha256": "121aa5914ede8c0c9e42ab9898ab0b2422f77c56134faa60af6666064cc38d0c",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-xlsx",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx",
+      "bytes": 5396,
+      "sha256": "1c19bd7e8e04018eaf0fadfa22f54fd629e78fa8013013539d2aa6872bc9a29c",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native XLSX generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-docx",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
+      "bytes": 21175,
+      "sha256": "55060459b55621f43d1c6e646cf058dbbb90dbdccf0b7b30f0794be2d8547c6d",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native DOCX generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-pdf",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
+      "bytes": 95924,
+      "sha256": "d59a91d761449fa48c6f2a85c37bb2429ead4dd87a59c46919e140112df32316",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native PDF generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-preview",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+      "bytes": 117362,
+      "sha256": "b1ccf9d7d1d938abbdb6a66ba1262f20ee2a1e896a1161c5eadee90255fa0966",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-source",
+      "path": "/downloads/showcase/source/PowerShell/ProjectDeliveryPack.ps1.txt",
+      "bytes": 7148,
+      "sha256": "e0081498de33acdc9e8f3ab36741f36b9be507e1c58556d730aff737e8f69fb3",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-input",
+      "path": "/downloads/showcase/source/PowerShell/Data/ProjectMilestones.csv",
+      "bytes": 520,
+      "sha256": "da0b5b88df370224e9d561f7c540f52ca3f5a22e9bfb06aca832b5afc0c811fd",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
     }
   ]
 }

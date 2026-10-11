@@ -1984,6 +1984,188 @@
       ]
     },
     {
+      "id": "pswriteoffice-project-delivery",
+      "format": "Word",
+      "tags": "powershell create convert word excel",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Turn dated milestones into an editable register and a Word/PDF review with completed counts, overdue work and named recovery actions.",
+      "title": "Project delivery review and milestone register",
+      "description": "Turn dated milestones into an editable register and a Word/PDF review with completed counts, overdue work and named recovery actions.",
+      "input": "Synthetic CSV snapshot",
+      "output": "XLSX + DOCX + PDF",
+      "proof": "The script and CSV generate all three native files with the PSWriteOffice version documented by the command catalog. The PNG is an independent Poppler render of the PDF.",
+      "limit": "The data is synthetic. The Word/PDF review is a dated snapshot; regenerate it after changing the input. Larger inputs can span several pages. Check pagination and fonts before distributing the PDF.",
+      "artifact_url": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
+      "artifact_label": "Download DOCX",
+      "evidence_url": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
+      "evidence_label": "Download review PDF",
+      "source_url": "/downloads/showcase/source/PowerShell/ProjectDeliveryPack.ps1.txt",
+      "guide_url": "/docs/pswriteoffice/",
+      "api_url": "/api/powershell/",
+      "format_id": "word",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "source_path": "OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1",
+      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx"
+        },
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png"
+        },
+        {
+          "label": "CSV input",
+          "url": "/downloads/showcase/source/PowerShell/Data/ProjectMilestones.csv"
+        }
+      ],
+      "operation_tags": "create convert",
+      "search_text": "Project delivery review and milestone register Turn dated milestones into an editable register and a Word/PDF review with completed counts, overdue work and named recovery actions. PowerShell CSV workflow workbook review owners decisions",
+      "source_language": "powershell",
+      "walkthrough_url": "/showcase/pswriteoffice-project-delivery/",
+      "output_directory": "./out/",
+      "walkthrough": {
+        "use_case": "Prepare a delivery review that connects current progress, due dates and owner decisions, with a workbook the team can update.",
+        "steps": [
+          {
+            "title": "Prepare the input snapshot",
+            "body": "Use the synthetic project or provide Milestone, Owner, DueDate, Progress and NextAction columns. DueDate uses yyyy-MM-dd and Progress is a whole number from 0 to 100."
+          },
+          {
+            "title": "Calculate the review",
+            "body": "The workbook recalculates status from progress and the snapshot date. Completed milestones are Done; an incomplete milestone due before the snapshot is Overdue. The review derives the same status and recovery list."
+          },
+          {
+            "title": "Review the distribution copy",
+            "body": "Inspect the generated PDF and use the Word copy for review notes. The source checkout includes the companion CSV. If downloading the script separately, save it as a .ps1 file and pass the downloaded CSV with -InputPath."
+          }
+        ],
+        "adapt": "Replace the milestones and owners, set the review date with -AsOfDate, and record the decision in the Word copy. Due today remains on track. Updating the workbook does not refresh an already generated Word/PDF snapshot; update the CSV and regenerate it.",
+        "related": [
+          "pswriteoffice-patch-report",
+          "pswriteoffice-budget-review"
+        ]
+      },
+      "previews": [
+        {
+          "url": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ]
+    },
+    {
+      "id": "pswriteoffice-budget-review",
+      "format": "Excel",
+      "tags": "powershell create convert word excel",
+      "badge_tags": [
+        "Create",
+        "Convert"
+      ],
+      "preview_kind": "image",
+      "image": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+      "image_width": 868,
+      "image_height": 1123,
+      "image_alt": "Reconcile annual budget, actual spending and forecast in an editable workbook, then produce a Word/PDF review with owner decisions for overspend exceptions.",
+      "title": "Budget and forecast review from CSV",
+      "description": "Reconcile annual budget, actual spending and forecast in an editable workbook, then produce a Word/PDF review with owner decisions for overspend exceptions.",
+      "input": "Synthetic CSV snapshot",
+      "output": "XLSX + DOCX + PDF",
+      "proof": "The script and CSV generate all three native files with the PSWriteOffice version documented by the command catalog. The PNG is an independent Poppler render of the PDF.",
+      "limit": "The data is synthetic. The Word/PDF review is a dated snapshot; regenerate it after changing the input. Larger inputs can span several pages. Check pagination and fonts before distributing the PDF.",
+      "artifact_url": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
+      "artifact_label": "Download XLSX",
+      "evidence_url": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
+      "evidence_label": "Download review PDF",
+      "source_url": "/downloads/showcase/source/PowerShell/BudgetForecastReview.ps1.txt",
+      "guide_url": "/docs/pswriteoffice/",
+      "api_url": "/api/powershell/",
+      "format_id": "excel",
+      "operations": [
+        "create",
+        "convert"
+      ],
+      "source_path": "OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1",
+      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "downloads": [
+        {
+          "label": "XLSX",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
+        },
+        {
+          "label": "DOCX",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx"
+        },
+        {
+          "label": "PDF",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf"
+        },
+        {
+          "label": "PNG",
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png"
+        },
+        {
+          "label": "CSV input",
+          "url": "/downloads/showcase/source/PowerShell/Data/BudgetForecast.csv"
+        }
+      ],
+      "operation_tags": "create convert",
+      "search_text": "Budget and forecast review from CSV Reconcile annual budget, actual spending and forecast in an editable workbook, then produce a Word/PDF review with owner decisions for overspend exceptions. PowerShell CSV workflow workbook review owners decisions",
+      "source_language": "powershell",
+      "walkthrough_url": "/showcase/pswriteoffice-budget-review/",
+      "output_directory": "./out/",
+      "walkthrough": {
+        "use_case": "Give a finance reviewer the detail behind the forecast and a short decision brief from the same data snapshot.",
+        "steps": [
+          {
+            "title": "Prepare the input snapshot",
+            "body": "Use the synthetic USD sample or provide Department, Owner, Budget, Actual, Forecast and Action columns. Amounts must be non-negative with at most two decimal places."
+          },
+          {
+            "title": "Calculate the review",
+            "body": "The workbook calculates totals and forecast variance, retains input validation, and identifies positive variance as overspend. The review derives its figures and owner decisions from the same CSV."
+          },
+          {
+            "title": "Review the distribution copy",
+            "body": "Inspect the generated PDF and use the Word copy for review notes. The source checkout includes the companion CSV. If downloading the script separately, save it as a .ps1 file and pass the downloaded CSV with -InputPath."
+          }
+        ],
+        "adapt": "Replace the synthetic departments and actions with an approved forecast. Keep the currency explicit. Positive variance means overspend; a zero-budget pilot remains a visible exception. Edit the CSV and regenerate the review for distribution.",
+        "related": [
+          "pswriteoffice-patch-report",
+          "pswriteoffice-project-delivery"
+        ]
+      },
+      "previews": [
+        {
+          "url": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+          "label": "Page 1",
+          "width": 868,
+          "height": 1123
+        }
+      ]
+    },
+    {
       "id": "executive-pdf-dashboard",
       "format": "PDF",
       "tags": "dotnet powershell create validate pdf",
@@ -11088,6 +11270,106 @@
       "destination": "workflows/rtf-desk-reference/DeskReference.cs.txt",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pswriteoffice-budget-review-xlsx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.xlsx",
+      "destination": "pswriteoffice/budget-forecast-review.xlsx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native XLSX generated from BudgetForecast.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-budget-review-docx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.docx",
+      "destination": "pswriteoffice/budget-forecast-review.docx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native DOCX generated from BudgetForecast.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-budget-review-pdf",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.pdf",
+      "destination": "pswriteoffice/budget-forecast-review.pdf",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native PDF generated from BudgetForecast.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-budget-review-preview",
+      "sourceRoot": "documents",
+      "source": "PowerShell/BudgetForecastReview.png",
+      "destination": "pswriteoffice/budget-forecast-review-page1.png",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result.",
+      "previewSource": "PowerShell/BudgetForecastReview.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pswriteoffice-budget-review-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1",
+      "destination": "source/PowerShell/BudgetForecastReview.ps1.txt",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-budget-review-input",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/Data/BudgetForecast.csv",
+      "destination": "source/PowerShell/Data/BudgetForecast.csv",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-xlsx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.xlsx",
+      "destination": "pswriteoffice/project-delivery-pack.xlsx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native XLSX generated from ProjectMilestones.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-docx",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.docx",
+      "destination": "pswriteoffice/project-delivery-pack.docx",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native DOCX generated from ProjectMilestones.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-pdf",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.pdf",
+      "destination": "pswriteoffice/project-delivery-pack.pdf",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "evidence": "Native PDF generated from ProjectMilestones.csv by PSWriteOffice {moduleVersion}."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-preview",
+      "sourceRoot": "documents",
+      "source": "PowerShell/ProjectDeliveryPack.png",
+      "destination": "pswriteoffice/project-delivery-pack-page1.png",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result.",
+      "previewSource": "PowerShell/ProjectDeliveryPack.pdf",
+      "previewPage": 1
+    },
+    {
+      "id": "pswriteoffice-project-delivery-source",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1",
+      "destination": "source/PowerShell/ProjectDeliveryPack.ps1.txt",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-input",
+      "sourceRoot": "repository",
+      "source": "OfficeIMO.Examples/PowerShell/Data/ProjectMilestones.csv",
+      "destination": "source/PowerShell/Data/ProjectMilestones.csv",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
     }
   ],
   "source_languages": [

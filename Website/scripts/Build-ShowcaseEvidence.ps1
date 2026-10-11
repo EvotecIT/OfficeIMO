@@ -23,6 +23,7 @@ if ([string]::IsNullOrWhiteSpace($DocumentsRoot)) {
 }
 $downloadRoot = Join-Path $repoRoot 'Website/static/downloads/showcase'
 $catalog = Get-Content -LiteralPath (Join-Path $repoRoot 'Website/data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
+$moduleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $repoRoot 'Website/data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
 . (Join-Path $PSScriptRoot 'ShowcaseEvidence.Helpers.ps1')
 
 $selectedCards = @($catalog.cards)
@@ -51,7 +52,6 @@ if (-not $SkipGeneration -and -not $ManifestOnly) {
     # PowerShell examples are scripts, not switches of the .NET example runner: run each one against the PSWriteOffice
     # version the command catalog was generated from and write its outputs under the shared Documents folder.
     foreach ($card in @($selectedCards | Where-Object { $_.source_path -and $_.source_path.EndsWith('.ps1', [StringComparison]::Ordinal) })) {
-        $moduleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $repoRoot 'Website/data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
         if (-not $moduleVersion) { throw 'The PowerShell command catalog does not name a module version.' }
         $scriptOutput = Join-Path $documentsRoot 'PowerShell'
         & pwsh -NoProfile -File (Resolve-ShowcasePath $repoRoot $card.source_path) -OutputDirectory $scriptOutput -ModuleVersion $moduleVersion
@@ -113,8 +113,8 @@ $manifestArtifacts = foreach ($artifact in $catalog.artifacts) {
         path = '/downloads/showcase/' + $artifact.destination
         bytes = $file.Length
         sha256 = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
-        generator = $artifact.generator.Replace('-f net10.0', "-f $Framework")
-        evidence = $artifact.evidence
+        generator = $artifact.generator.Replace('-f net10.0', "-f $Framework").Replace('{moduleVersion}', $moduleVersion)
+        evidence = $artifact.evidence.Replace('{moduleVersion}', $moduleVersion)
     }
 }
 
