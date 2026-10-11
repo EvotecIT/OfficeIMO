@@ -205,5 +205,5 @@ internal sealed class PublisherEscherShape {
     internal bool Hidden => HiddenByGroup || Style.Hidden == true;
     internal PublisherNativeRectangle? Bounds { get; set; }
     internal PublisherNativeRectangle? GroupCoordinates { get; set; }
-    internal uint? Property(int id) => Properties.FirstOrDefault(item => item.PropertyId == id)?.Value;
+    internal uint? Property(int id) => OfficeArtProperty.GetScalarProperty(Properties, id)?.Value;
 }

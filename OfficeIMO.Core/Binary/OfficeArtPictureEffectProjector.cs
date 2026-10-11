@@ -39,10 +39,9 @@ internal sealed class OfficeArtPictureEffectProjector {
         }
         if (source.RecolorColor.HasValue && !source.RecolorColor.Value.IsIgnored)
             limits |= OfficeArtPictureEffectLimit.UnqualifiedRecolor;
-        foreach (OfficeArtProperty property in source.Properties) {
-            if (!property.IsComplex &&
-                ((property.PropertyId is 0x0115 or 0x011B) && property.Value != uint.MaxValue ||
-                 (property.PropertyId is 0x0117 or 0x011D) && property.Value != 0x20000000U))
+        foreach (ushort id in new ushort[] { 0x0115, 0x011B, 0x0117, 0x011D }) {
+            OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(source.Properties, id);
+            if (property != null && property.Value != (id is 0x0115 or 0x011B ? uint.MaxValue : 0x20000000U))
                 limits |= OfficeArtPictureEffectLimit.ExtendedColor;
         }
         return new OfficeArtPictureEffectProjector(transparent, contrast, brightness,

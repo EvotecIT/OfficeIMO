@@ -71,8 +71,8 @@ internal static class OfficeArtLinearGradientProjector {
         return OfficeColor.FromRgba(color.R, color.G, color.B, rounded);
     }
 
-    private static bool InvalidOpacity(OfficeArtShapeStyle style, ushort id) => style.Properties.LastOrDefault(property =>
-        property.PropertyId == id && !property.IsComplex)?.Value > 65536;
+    private static bool InvalidOpacity(OfficeArtShapeStyle style, ushort id) =>
+        OfficeArtProperty.GetScalarProperty(style.Properties, id)?.Value > 65536;
 
     private static List<OfficeGradientStop> ApplyFocus(List<OfficeGradientStop> stops, int focus) {
         if (focus == 0) return stops;

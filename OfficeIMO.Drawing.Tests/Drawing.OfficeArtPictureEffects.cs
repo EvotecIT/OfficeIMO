@@ -6,6 +6,18 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(0x0115, 0xFFFFFFFFU)]
+    [InlineData(0x011B, 0xFFFFFFFFU)]
+    [InlineData(0x0117, 0x20000000U)]
+    [InlineData(0x011D, 0x20000000U)]
+    public void OfficeArtPictureEffects_ClearedExtendedControlsDoNotReportHistoricalColorChanges(int id, uint reset) {
+        var source = OfficeArtPictureProperties.Decode(new[] { new OfficeArtProperty(0, (ushort)id, 0),
+            new OfficeArtProperty(1, (ushort)id, reset) });
+        var effects = OfficeArtPictureEffectProjector.Create(source, _ => null);
+        Assert.Equal(OfficeArtPictureEffectLimit.None, effects.Limits & OfficeArtPictureEffectLimit.ExtendedColor);
+    }
+
+    [Theory]
     [InlineData(0x00040004U, 0x00040000U)]
     [InlineData(0x00020002U, 0x00020000U)]
     public void OfficeArtBooleanInheritance_PictureDisplayEffectsSurviveIndependentSecondaryBits(uint enabled, uint cleared) {
