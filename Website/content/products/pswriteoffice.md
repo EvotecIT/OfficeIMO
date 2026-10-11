@@ -44,7 +44,7 @@ PSWriteOffice brings the OfficeIMO document stack to PowerShell. The command sur
 | Export SQL data to Excel and verify the round trip | [DbaClientX database reporting guide](/docs/workflows/database-reporting/) and the {{< pswriteoffice-source kind="blob" path="Examples/Excel/Example-ExcelDbaClientXRoundTrip.ps1" label="runnable Excel example" >}} |
 | Move database data through CSV | {{< pswriteoffice-source kind="blob" path="Examples/Csv/Example-CsvDbaClientXRoundTrip.ps1" label="Runnable CSV round-trip example" >}} |
 | Create an operational Excel dashboard | {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1" label="Excel showcase example" >}} |
-| Review quarterly support demand in PowerPoint | [CSV-driven service brief](https://github.com/EvotecIT/PSWriteOffice/blob/840ab293b932a568c6528d586a864267cda9fa27/Examples/Showcase/ServiceBrief.md) with location totals, ticket comparisons and dated actions. |
+| Review quarterly support demand in PowerPoint | [CSV-driven service brief](https://github.com/EvotecIT/PSWriteOffice/blob/f28d09d2ff157925598d9396bf0f2c8ef19a2b25/Examples/Showcase/ServiceBrief.md) with location totals, ticket comparisons and dated actions. |
 | Browse copyable PowerShell patterns | [PSWriteOffice recipe gallery](/docs/workflows/powershell-recipes/) |
 | Compare Excel and CSV performance | [PSWriteOffice benchmark guide](/docs/workflows/powershell-benchmarks/) |
 | Evaluate mixed search, authenticated PDF, or Confluence publishing | [PSWriteOffice command families](/docs/pswriteoffice/command-families/) |
