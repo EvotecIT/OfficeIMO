@@ -130,6 +130,29 @@ def verify(driver_name, path, ado_consumer, hive):
                 assert m.SQLGetData(statement, 1, target, c.byref(value), c.sizeof(value), c.byref(indicator)) == -1
                 assert m.diagnostics(3, statement)[0][0] == '22003'
                 close()
+            for text, target, scalar, expected, status in [
+                    ('1.9', 4, c.c_int, 1, 1), ('-1.9', 5, c.c_short, -1, 1),
+                    ('42', 4, c.c_int, 42, 0), ('1.99999999999999999999999999999999', 4, c.c_int, 1, 1),
+                    ('1.99999999999999999999999999999999', -7, c.c_ubyte, 1, 1),
+                    ('9223372036854775807.9', -25, c.c_longlong, 9223372036854775807, 1),
+                    ('18446744073709551615', -27, c.c_ulonglong, 18446744073709551615, 0),
+                    ('1e2', -17, c.c_ushort, 100, 0), ('1e-1000000000', -18, c.c_uint, 0, 1)]:
+                execute("SELECT '" + text + "'")
+                m.check(m.SQLFetch(statement), 3, statement)
+                value, indicator = scalar(), c.c_ssize_t()
+                actual = m.SQLGetData(statement, 1, target, c.byref(value), c.sizeof(value), c.byref(indicator))
+                assert actual == status, (text, target, actual, m.diagnostics(3, statement))
+                assert value.value == expected
+                if status == 1:
+                    assert m.diagnostics(3, statement)[0][0] == '01S07'
+                close()
+            for text, state in [('invalid', '22018'), ('1e30', '22003')]:
+                execute("SELECT '" + text + "'")
+                m.check(m.SQLFetch(statement), 3, statement)
+                value, indicator = c.c_longlong(), c.c_ssize_t()
+                assert m.SQLGetData(statement, 1, -25, c.byref(value), 8, c.byref(indicator)) == -1
+                assert m.diagnostics(3, statement)[0][0] == state
+                close()
             execute("SELECT 'abcdef', 'other', NULL, 42")
             m.check(m.SQLFetch(statement), 3, statement)
             chunk, indicator = c.create_unicode_buffer(3), c.c_ssize_t()

@@ -70,6 +70,11 @@ internal static unsafe class NativeValue {
             int size;
             switch (targetType) {
                 case -7:
+                    if (value is string bitText) {
+                        decimal wholeBit = TruncateText(bitText, out fractional);
+                        if (wholeBit < 0 || wholeBit >= 2 || fractional && bitText.TrimStart().StartsWith('-')) throw new OverflowException();
+                        *(byte*)buffer = (byte)wholeBit; size = 1; break;
+                    }
                     double bit = Convert.ToDouble(value, CultureInfo.InvariantCulture);
                     if (!double.IsFinite(bit) || bit < 0 || bit >= 2) throw new OverflowException();
                     fractional = bit != Math.Truncate(bit);
@@ -116,12 +121,37 @@ internal static unsafe class NativeValue {
     }
 
     private static object Truncate(object value, out bool fractional) {
+        if (value is string text) return TruncateText(text, out fractional);
         object result = value switch {
             double number => Math.Truncate(number), float number => MathF.Truncate(number),
             decimal number => decimal.Truncate(number), _ => value
         };
         fractional = !result.Equals(value);
         return result;
+    }
+
+    private static decimal TruncateText(string value, out bool fractional) {
+        var match = System.Text.RegularExpressions.Regex.Match(value.Trim(),
+            @"\A(?<sign>[+-]?)(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?(?:[eE](?<exponent>[+-]?[0-9]+))?\z",
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.NonBacktracking,
+            TimeSpan.FromSeconds(1));
+        string digits = match.Groups["whole"].Value + match.Groups["fraction"].Value;
+        if (!match.Success || digits.Length == 0) throw new FormatException("Expected a numeric literal.");
+        int first = digits.AsSpan().IndexOfAnyExcept('0');
+        if (first < 0) { fractional = false; return 0; }
+        string exponentText = match.Groups["exponent"].Value;
+        int exponent = 0;
+        if (exponentText.Length != 0 && !int.TryParse(exponentText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out exponent))
+            exponent = exponentText[0] == '-' ? int.MinValue : int.MaxValue;
+        long count = (long)match.Groups["whole"].Length + exponent - first;
+        if (count > 20) throw new OverflowException();
+        digits = digits[first..];
+        int whole = (int)Math.Max(0, count);
+        fractional = whole < digits.Length && digits.AsSpan(whole).IndexOfAnyExcept('0') >= 0;
+        // At most 20 whole digits can fit any supported integer target. Truncate the
+        // literal before parsing so long fractions never round an exact boundary.
+        string integral = whole == 0 ? "0" : whole <= digits.Length ? digits[..whole] : digits.PadRight(whole, '0');
+        return decimal.Parse(match.Groups["sign"].Value + integral, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
     }
 
     internal static object? Read(ParameterBinding binding) {
