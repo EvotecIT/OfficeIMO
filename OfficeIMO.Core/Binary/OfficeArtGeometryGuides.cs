@@ -18,15 +18,16 @@ internal static class OfficeArtGeometryGuides {
         if (property?.IsComplex != true || !property.HasCompleteComplexData
             || property.CopyComplexData() is not byte[] bytes || bytes.Length < 6) return false;
         int count = U16(bytes, 0);
-        if (count is < 1 or > 128 || count > U16(bytes, 2) || U16(bytes, 4) != 8
-            || 6 + count * 8 > bytes.Length) return false;
+        int storedSize = U16(bytes, 4) switch { 8 => 8, 0xFFF0 => 4, _ => 0 };
+        if (count is < 1 or > 128 || count > U16(bytes, 2) || storedSize == 0
+            || 6 + count * storedSize > bytes.Length) return false;
         accountItems(count);
         token.ThrowIfCancellationRequested();
         var calculated = new int[count];
         var context = new OfficeArtGeometryGuideContext(properties, width, height);
         for (int index = 0; index < count; index++) {
             token.ThrowIfCancellationRequested();
-            int offset = 6 + index * 8;
+            int offset = 6 + index * storedSize;
             int operation = U16(bytes, offset), kind = operation & 0x1FFF;
             if (kind > 0x10) { failure = OfficeArtCustomPathFailure.GuideFormula; return false; }
             int arity = kind is 3 or 13 ? 1 : kind is 2 or 4 or 5 or 8 or 9 or 10 or 16 ? 2 : 3;
@@ -39,7 +40,9 @@ internal static class OfficeArtGeometryGuides {
             }
 
             bool Parameter(int parameter, out int value) {
-                int raw = U16(bytes, offset + 2 + parameter * 2);
+                // IMsoArray's truncated SG stores the low four bytes and
+                // implicitly zeroes the two remaining operands.
+                int raw = 2 + parameter * 2 < storedSize ? U16(bytes, offset + 2 + parameter * 2) : 0;
                 value = raw;
                 if ((operation & (0x2000 << parameter)) == 0) return true;
                 if (raw is >= 0x0400 and <= 0x047F) {

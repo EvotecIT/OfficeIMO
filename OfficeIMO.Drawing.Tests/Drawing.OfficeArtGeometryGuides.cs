@@ -6,6 +6,31 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtGeometryGuides_TruncatedRecordsZeroExtendAndKeepTheNextComplexProperty(bool lengthIncludesHeader) {
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x8156); writer.Write((uint)(lengthIncludesHeader ? 14 : 8));
+        writer.Write((ushort)0x8380); writer.Write((uint)4);
+        writer.Write((ushort)2); writer.Write((ushort)2); writer.Write((ushort)0xFFF0);
+        writer.Write((ushort)0); writer.Write((ushort)123);
+        writer.Write((ushort)0x2000); writer.Write((ushort)0x0400);
+        writer.Write(new byte[] { (byte)'O', 0, (byte)'K', 0 });
+        byte[] payload = stream.ToArray();
+        var properties = OfficeArtPropertyTableReader.Read(payload, 2);
+        Assert.Equal(14, properties[0].AvailableComplexDataLength);
+        Assert.Equal("OK", properties[1].ComplexText);
+        int charged = 0;
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, count => charged += count,
+            default, out var values, out var failure));
+        Assert.Equal(OfficeArtCustomPathFailure.None, failure);
+        Assert.Equal(new[] { 123, 123 }, values); Assert.Equal(2, charged);
+        byte[] truncated = payload.Skip(12).Take(13).ToArray();
+        Assert.False(OfficeArtGeometryGuides.TryEvaluate(new[] { new OfficeArtProperty(0, 0x8156, 13, truncated.Length, complexData: truncated) },
+            72, 144, _ => { }, default, out _, out _));
+    }
+
     [Fact]
     public void OfficeArtBooleanInheritance_GuideStrokeOperandKeepsIndependentBitsAndAllowsExplicitOverride() {
         var properties = Guides(((ushort)0x2000, (ushort)0x01FC, (ushort)0, (ushort)0));
