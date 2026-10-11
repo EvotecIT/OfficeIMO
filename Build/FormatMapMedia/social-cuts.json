@@ -37,6 +37,19 @@
       "fps": 30
     },
     {
+      "name": "youtube-landscape-4k",
+      "ratio": "16x9",
+      "width": 3840,
+      "height": 2160,
+      "scenes": "intro,spot:DOCX,spot:XLSX,path:DOCX>Markdown,path:XLSX>PDF,surface:browser,surface:powershell,outro",
+      "formats": [
+        "mp4"
+      ],
+      "posterMs": 6800,
+      "fps": 30,
+      "scale": 2
+    },
+    {
       "name": "youtube-shorts",
       "ratio": "9x16",
       "width": 1080,

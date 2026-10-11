@@ -31,23 +31,29 @@ The standard `cuts.json` includes MP4 for all four compositions and GIF for the 
 
 ## Export for X/Twitter, LinkedIn and YouTube
 
-[Social presets](../Build/FormatMapMedia/social-cuts.json) provide four named, silent H.264 MP4 exports at 30 fps. Each composition is rendered at its native dimensions; vertical output is not cropped from the landscape clip.
+[Social presets](../Build/FormatMapMedia/social-cuts.json) provide five named, silent H.264 MP4 exports at 30 fps, including both 4K and 1080p YouTube landscape files. Each composition is rendered at its native dimensions; vertical output is not cropped from the landscape clip.
 
 | Preset | Intended placement | Resolution | Aspect ratio |
 | --- | --- | --- | --- |
 | `x-twitter-feed` | X/Twitter feed | 1080 x 1080 | 1:1 |
 | `linkedin-feed` | LinkedIn organic feed | 1080 x 1350 | 4:5 |
-| `youtube-landscape` | YouTube standard video | 1920 x 1080 | 16:9 |
+| `youtube-landscape-4k` | YouTube standard video: preferred upload | 3840 x 2160 | 16:9 |
+| `youtube-landscape` | YouTube standard video: smaller 1080p alternative | 1920 x 1080 | 16:9 |
 | `youtube-shorts` | YouTube Shorts | 1080 x 1920 | 9:16 |
 
-These are editorial export choices within the documented upload formats, not a promise that one size performs best for every audience. Square keeps the X composition compact; 4:5 gives the LinkedIn composition more vertical room. YouTube's standard desktop ratio is 16:9; the vertical preset fills a Shorts frame.
+Use the 4K landscape file for a standard YouTube upload when preserving the diagram's fine lines and small labels matters. Its recipe sets `scale: 2`, so the page draws the same landscape composition at twice the pixel dimensions; it does not enlarge an existing 1080p video. Keep the 1080p landscape file as a smaller alternative. Both play the same scenes at the same speed.
+
+For X use the square export, for LinkedIn use the 4:5 export, and for Shorts use the 1080 x 1920 vertical export. These are editorial choices within the documented upload formats, not a promise that one size performs best for every audience. Do not apply `-Scale 2` to the entire social recipe: the 4K preset already includes its scale, and the other presets retain their platform dimensions.
 
 ```powershell
 # List the platform presets
 ./Build/Record-FormatMap.ps1 -CutsFile Build/FormatMapMedia/social-cuts.json -List
 
-# Refresh the catalog and render all four upload files and posters
+# Refresh the catalog and render all five files and their posters
 ./Build/Record-FormatMap.ps1 -CutsFile Build/FormatMapMedia/social-cuts.json -Output Artefacts/FormatMapSocial
+
+# Render only the preferred YouTube upload (already configured for native 4K)
+./Build/Record-FormatMap.ps1 -CutsFile Build/FormatMapMedia/social-cuts.json -Cut youtube-landscape-4k -Output Artefacts/FormatMapSocial -SkipCatalog
 
 # Re-render one preset after a design change
 ./Build/Record-FormatMap.ps1 -CutsFile Build/FormatMapMedia/social-cuts.json -Cut linkedin-feed -Output Artefacts/FormatMapSocial -SkipCatalog
@@ -59,8 +65,9 @@ Platform rules change and vary by placement or account. Check the linked sources
 
 - [X video uploads](https://help.x.com/en/using-x/x-videos): non-Premium uploads are limited to 140 seconds and 512 MB. Keep the short feed preset below both limits.
 - [LinkedIn Page video guidelines](https://www.linkedin.com/help/linkedin/answer/a1311816): MP4/H.264, 10-60 fps and aspect ratios from 1:2.4 to 2.4:1 are supported. [LinkedIn advertising specifications](https://business.linkedin.com/advertise/ads/sponsored-content/video-ads/specs) also describe 1080 x 1350 at 4:5, but ads have their own rules; the supplied preset targets organic posts.
-- [YouTube upload encoding](https://support.google.com/youtube/answer/1722171): MP4, H.264, progressive video, 4:2:0 and fast-start metadata are supported upload settings. The recorder uses quality-based variable bitrate, not a fixed platform bitrate target.
+- [YouTube 4K guidance](https://support.google.com/youtube/answer/16597617?hl=en) supports recording and exporting at 3840 x 2160. [YouTube upload encoding](https://support.google.com/youtube/answer/1722171): MP4, H.264, progressive video, 4:2:0 and fast-start metadata are supported upload settings. The recorder uses quality-based variable bitrate, not a fixed platform bitrate target. Allow [high-resolution processing](https://support.google.com/youtube/answer/71674?hl=en) to finish before assessing the uploaded video's quality.
 - [YouTube Shorts classification](https://support.google.com/youtube/answer/15424877): square or vertical videos up to three minutes are classified as Shorts under the current rules. Use the landscape preset for a standard watch-page video.
+- [YouTube Shorts creation guidance](https://support.google.com/youtube/answer/10059070?hl=en-GB) specifies a maximum upload resolution of 1080p for that workflow; the Shorts preset stays at 1080 x 1920. LinkedIn's Page guidelines list a maximum of 4096 x 2304, so doubling the 4:5 preset to 2160 x 2700 would exceed the listed height.
 
 ## Output formats and options
 
