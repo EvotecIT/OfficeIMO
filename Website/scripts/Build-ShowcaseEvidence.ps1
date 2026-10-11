@@ -20,6 +20,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ($ReviewedExampleId.Count -gt 0 -and -not $ManifestOnly) {
+    throw 'Record preview review in a separate manifest-only invocation after inspecting the generated preview.'
+}
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $customDocumentsRoot = -not [string]::IsNullOrWhiteSpace($DocumentsRoot)
 if ([string]::IsNullOrWhiteSpace($DocumentsRoot)) {
@@ -107,6 +110,7 @@ foreach ($card in $selectedCards | Where-Object { $generated.ContainsKey($_.id) 
         [ordered]@{ path = $_.url; rendering = $previewEvidence[$_.url] }
     })
     $generated[$card.id] | Add-Member -NotePropertyName previews -NotePropertyValue $previews
+    $generated[$card.id] | Add-Member -NotePropertyName receiptSha256 -NotePropertyValue (Get-ShowcaseGenerationReceiptHash $generated[$card.id])
 }
 
 $seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)

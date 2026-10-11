@@ -97,8 +97,10 @@ try {
         host = [ordered]@{ powershell = $PSVersionTable.PSVersion.ToString(); os = [Runtime.InteropServices.RuntimeInformation]::OSDescription; architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() }
         sources = $bindings
         evidenceProducer = $producer
-        package = [ordered]@{ name = $module.Name; version = $module.Version.ToString(); files = $packageFiles }
-        conversions = @([ordered]@{ routeId = 'docx-pdf'; command = 'Export-OfficeDocumentPdf'; routeEvidence = 'recipe-uses-single-document-DOCX-export'; report = $global:showcasePdfReport; warnings = @($global:showcasePdfWarnings) })
+        package = [ordered]@{ name = $module.Name; version = $module.Version.ToString(); fileCount = $packageFiles.Count; files = $packageFiles }
+        conversions = @($outputs | Where-Object { $_.path.EndsWith('.pdf', [StringComparison]::Ordinal) } | ForEach-Object {
+            [ordered]@{ outputPath = $_.path; outputSha256 = $_.sha256; routeId = 'docx-pdf'; command = 'Export-OfficeDocumentPdf'; routeEvidence = 'recipe-uses-single-document-DOCX-export'; report = $global:showcasePdfReport; warnings = @($global:showcasePdfWarnings) }
+        })
         outputs = @($outputs)
     } | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $ReceiptPath -Encoding utf8NoBOM
 } finally {
