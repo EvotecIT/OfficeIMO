@@ -8,10 +8,21 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     private static bool RequiresNativeRunningStory(WordHeaderFooter? story) => story != null &&
         (story.ChildElements.Any(element => element is W.Table || element.Descendants<W.Table>().Any()) ||
+        NativeRunningStoryUsesSectionPageCount(story));
+
+    private static bool NativeRunningStoryUsesSectionPageCount(WordHeaderFooter? story) => story != null &&
         story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
             ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())
             .Any(paragraph => GetNativeHeaderFooterVisibleTextRuns(new WordParagraph(story.Document, paragraph))
-                .Any(item => item.IsField && item.Text == "{sectionpages}")));
+                .Any(item => item.IsField && item.Text == "{sectionpages}"));
+
+    private static bool UsesNativeSectionPageCounts(WordSection section) =>
+        new WordHeaderFooter?[] { section.ResolveDefaultHeader(), section.ResolveDefaultFooter(),
+            section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+            section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+            section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null,
+            section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null }
+        .Any(NativeRunningStoryUsesSectionPageCount);
 
     private static bool UsesNativeRunningHeader(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options, false,
         section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,

@@ -180,7 +180,7 @@ internal static partial class PdfWriter {
                 while (pending.MoveNext()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IPdfBlock block = pending.Current;
-                    if (block is BookmarkBlock or ColumnBreakBlock) continue;
+                    if (block is BookmarkBlock or RunningContentSectionBlock or ColumnBreakBlock) continue;
                     if (block is PageBreakBlock) return 0D;
                     if (block is PageBlock page) return FirstVisual(page.Blocks, frameX, frameWidth, closingPadding) ?? 0D;
                     double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
@@ -270,7 +270,9 @@ internal static partial class PdfWriter {
                 .Append(source.PageHeight.ToString("0.###", CultureInfo.InvariantCulture)).Append(" re W n\n")
                 .Append("/Artifact << /Type /Pagination /Subtype /").Append(isHeader ? "Header" : "Footer")
                 .Append(" >> BDC\n").Append(story.sb).Append("EMC\nQ\n");
-            pageDirty = true;
+            // Running stories make a page printable but do not belong to its
+            // body section. The first body content owns shared-page fields.
+            pageHasContent = true;
         }
     }
 

@@ -312,7 +312,7 @@ namespace OfficeIMO.Word.Pdf {
                     SuppressMissingFirstPageWatermark(page, defaultApplied, firstApplied);
                 }
 
-                if (section.DifferentOddAndEvenPages) {
+                if (section.DocumentOddEvenSettingEnabled) {
                     WordWatermark? evenWatermark = section.ResolveEvenHeader()?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                     NativeAppliedWatermark evenApplied = ApplyNativeWatermark(page.EvenPagesWatermark, page.EvenPagesImageWatermark, evenWatermark, options, "even header watermark");
                     SuppressMissingEvenPagesWatermark(page, defaultApplied, evenApplied);
@@ -455,7 +455,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool HasNativeHeaderSpecificWatermarks(WordSection section) {
-            if (!section.DifferentFirstPage && !section.DifferentOddAndEvenPages) {
+            if (!section.DifferentFirstPage && !section.DocumentOddEvenSettingEnabled) {
                 return false;
             }
 
