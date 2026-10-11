@@ -8,6 +8,34 @@ public sealed class PdfTableCellTextSizingTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void ShrinkingReservesFixedInlineWidthInFlowAndCanvasTables(bool canvas) {
+        PdfTableCell cell = new PdfTableCell(new[] {
+            PdfTextRun.Inline(new PdfInlineBox(30, 10, background: new PdfColor(.2D, .5D, .8D))),
+            PdfTextRun.Normal("ABCDE")
+        }).WithNoWrap().WithShrinkTextToFit();
+        PdfTableStyle style = new PdfTableStyle {
+            FontSize = 12, HeaderRowCount = 0, HeaderBold = false,
+            ColumnWidthPoints = new() { 50 }, MaxWidth = 50, PreserveWidth = true,
+            CellPaddingX = 0, CellPaddingY = 0, MinimumShrinkFontSize = 4,
+            FixedRowHeights = new() { 30 }, BorderColor = null
+        };
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+            DefaultFont = PdfStandardFont.Courier, PageWidth = 200, PageHeight = 150,
+            MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20
+        });
+        PdfTableCell[][] rows = new[] { new[] { cell } };
+        if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 50, 30, style));
+        else document.Table(rows, style: style);
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
+        UglyToad.PdfPig.Content.Word word = Assert.Single(pdf.GetPage(1).GetWords());
+        Assert.Equal("ABCDE", word.Text);
+        Assert.All(word.Letters, letter => Assert.InRange(letter.PointSize, 6.66D, 6.67D));
+        Assert.True(word.BoundingBox.Right <= 70.01D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void DefaultCellShrinkMinimumAppliesToEveryExplicitRun(bool paragraphs) {
         var runs = new[] { new PdfTextRun("A", fontSize: 30), new PdfTextRun("B", fontSize: 12) };
         var cell = paragraphs ? new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs) }) : new PdfTableCell(runs);
