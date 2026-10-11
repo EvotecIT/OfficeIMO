@@ -50,7 +50,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
 | Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
-| Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
+| Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, bounded legacy binary import, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | Optional document AI | [OfficeIMO.AI](OfficeIMO.AI/README.md) and [IntelligenceX adapter](OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
@@ -977,6 +977,14 @@ _Dependency footprint:_ only OfficeIMO.Reader.Core, AsciiDoc, and AsciiDoc.Markd
 - [x] Path/stream input, size limits, configurable chunk rows, headers, and Markdown previews
 
 _Dependency footprint:_ only OfficeIMO.Reader.Core and CSV.
+
+#### [OfficeIMO.Reader.Dbf](OfficeIMO.Reader.Dbf/README.md)
+
+- [x] Bounded DBF/xBase table chunks through the DbaClientX codec
+- [x] Opt-in path memo sidecars, physical record locations and inert Base64 binary values
+- [x] CSV/XLSX conversion through the codec's typed reader and existing exporters
+
+_Dependency footprint:_ OfficeIMO.Reader.Core and DBAClientX.Dbf; no database driver.
 
 #### [OfficeIMO.Reader.DocBook](OfficeIMO.Reader.DocBook/README.md)
 

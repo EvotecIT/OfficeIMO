@@ -3,7 +3,7 @@
     <Description>Managed DjVu scanned-page PDFs with stored text and optional engine-neutral OCR.</Description>
     <AssemblyName>OfficeIMO.DjVu.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.DjVu.Pdf</AssemblyTitle>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

@@ -5,10 +5,8 @@ using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Data operations: autofilter, sorting (values-only), find/replace, and validation.
-    /// Kept small and focused; advanced formatting lives in dedicated files.
-    /// </summary>
+    // Data operations: autofilter, sorting (values-only), find/replace, and validation.
+    // Kept small and focused; advanced formatting lives in dedicated files.
     public partial class ExcelSheet {
         // -------- AutoFilter --------
 

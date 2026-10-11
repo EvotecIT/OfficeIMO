@@ -15,7 +15,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
         void Check(VisioPage page) {
             var title = page.Shapes.Single(shape => shape.Id == "cfx-title");
-            Assert.Equal("Service delivery\nThree editable services · prepared routes", title.Text.Replace("\r\n", "\n"));
+            Assert.Equal("Service delivery\nThree editable services · prepared routes", title.Text?.Replace("\r\n", "\n"));
             Assert.Equal(22D, title.TextStyle!.Size!.Value, 6);
             Assert.True(title.Height > 2D * 22D / 72D);
             var bounds = title.GetShapeBounds();

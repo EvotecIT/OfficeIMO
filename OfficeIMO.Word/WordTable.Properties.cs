@@ -1,10 +1,8 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Represents a table in a Word document and exposes various
-    /// properties controlling its appearance and behavior.
-    /// </summary>
+    // Represents a table in a Word document and exposes various
+    // properties controlling its appearance and behavior.
     public partial class WordTable {
         /// <summary>
         /// Rebuilds the table grid (w:tblGrid) using DXA widths derived from

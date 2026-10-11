@@ -1,4 +1,6 @@
+using OfficeIMO;
 using OfficeIMO.Adf;
+using DBAClientX.Dbf;
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.Confluence;
 using OfficeIMO.CSV;
@@ -157,6 +159,20 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(pdf);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdfDocumentResult(odp);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdpPresentationResult(pdf);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryVisio = VisioDocument.LoadLegacyBinary(stream);
+        OfficeLegacyImportReport binaryImportReport = binaryVisio.Report;
+        binaryVisio.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryStencil = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil);
+        OfficeLegacyImportReport stencilImportReport = binaryStencil.Report;
+        binaryStencil.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryTemplate = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template);
+        OfficeLegacyImportReport templateImportReport = binaryTemplate.Report;
+        binaryTemplate.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryPageSource = VisioDocument.LoadLegacyBinary(source);
+        OfficeLegacyImportReport pageSourceImportReport = binaryPageSource.Report;
+        string binarySvg = binaryPageSource.Value.Pages[0].ToSvg();
+        PdfDocumentConversionResult binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(binaryPageSource.Value,
+            new OfficeIMO.Visio.Pdf.VisioToPdfOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages });
         _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
         _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");
@@ -174,6 +190,13 @@ internal static class ConversionApiCompileContract {
         _ = ConfluenceContentConverter.ToHtml(confluencePage);
         _ = ExcelDocumentCsvExtensions.ToExcelDocument(csv);
         _ = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
+        using (DbfDataReader dbf = DbfDataReader.Open(source))
+        using (StringWriter csvOutput = new StringWriter()) {
+            CsvDocument.WriteDataReader(csvOutput, dbf);
+        }
+        using (DbfDataReader dbf = DbfDataReader.Open(source)) {
+            _ = ExcelDocument.WriteDataReader(stream, dbf);
+        }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointPresentationResult(officeMarkup);

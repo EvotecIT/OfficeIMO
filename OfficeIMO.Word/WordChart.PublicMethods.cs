@@ -3,9 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Partial class containing public methods for building chart content.
-    /// </summary>
+    // Partial class containing public methods for building chart content.
     public partial class WordChart {
         /// <summary>
         /// Sets the chart frame size. Values are in pixels.

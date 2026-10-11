@@ -6,6 +6,8 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+using System.Threading;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Visio {
     public partial class VisioDocument {
@@ -23,7 +25,8 @@ namespace OfficeIMO.Visio {
             MaxCharactersFromEntities = 0,
         };
 
-        private static void LoadComments(Package package, PackagePart documentPart, VisioDocument document) {
+        private static void LoadComments(Package package, PackagePart documentPart, VisioDocument document, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             PackageRelationship? commentsRel = documentPart.GetRelationshipsByType(CommentsRelationshipType).FirstOrDefault();
             if (commentsRel == null) {
                 return;
@@ -35,7 +38,7 @@ namespace OfficeIMO.Visio {
             }
 
             PackagePart commentsPart = package.GetPart(commentsUri);
-            XDocument commentsXml = LoadCommentsXml(commentsPart);
+            XDocument commentsXml = LoadCommentsXml(commentsPart, cancellationToken);
             XElement? root = commentsXml.Root;
             if (root == null) {
                 return;
@@ -44,6 +47,7 @@ namespace OfficeIMO.Visio {
             Dictionary<int, (string? Name, string? Initials, string? ResolutionId)> authors = new();
             XElement? authorList = root.Elements().FirstOrDefault(element => IsVisioElement(element, "AuthorList"));
             foreach (XElement authorElement in authorList?.Elements().Where(element => IsVisioElement(element, "AuthorEntry")) ?? Enumerable.Empty<XElement>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!TryParseIntAttribute(authorElement, "ID", out int authorId)) {
                     continue;
                 }
@@ -57,6 +61,7 @@ namespace OfficeIMO.Visio {
             XElement? commentList = root.Elements().FirstOrDefault(element => IsVisioElement(element, "CommentList"));
             int loadedCommentCount = 0;
             foreach (XElement commentElement in commentList?.Elements().Where(element => IsVisioElement(element, "CommentEntry")) ?? Enumerable.Empty<XElement>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 loadedCommentCount++;
                 if (loadedCommentCount > MaxLoadedComments) {
                     throw new InvalidDataException($"Visio comments part contains more than {MaxLoadedComments} comments.");
@@ -103,11 +108,13 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static XDocument LoadCommentsXml(PackagePart commentsPart) {
+        private static XDocument LoadCommentsXml(PackagePart commentsPart, CancellationToken cancellationToken) {
             using Stream commentsStream = commentsPart.GetStream();
             using Stream boundedStream = new BoundedReadStream(commentsStream, MaxCommentsPartBytes, "Visio comments part");
             using XmlReader reader = XmlReader.Create(boundedStream, CommentsXmlReaderSettings);
-            return XDocument.Load(reader);
+            using var cancellable = new OfficeXmlLimitingReader(reader, "Visio comments XML",
+                int.MaxValue, int.MaxValue, int.MaxValue, cancellationToken);
+            return XDocument.Load(cancellable);
         }
 
         private static string GetBoundedCommentText(XElement commentElement) {

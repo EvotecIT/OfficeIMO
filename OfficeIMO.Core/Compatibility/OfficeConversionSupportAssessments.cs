@@ -9,6 +9,10 @@ internal sealed record OfficeConversionSupportAssessment(
 
 internal static class OfficeConversionSupportAssessments {
     internal static OfficeConversionSupportAssessment Get(string routeId) {
+        if (routeId is "visio-binary-vsdx" or "visio-binary-vssx" or "visio-binary-vstx" or "visio-binary-svg" or "visio-binary-pdf")
+            return Targeted(
+                "Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.");
         if (IsImageRoute(routeId, out string source)) return Image(source);
         if (routeId.StartsWith("email-", StringComparison.Ordinal)) {
             return Established(
@@ -160,6 +164,9 @@ internal static class OfficeConversionSupportAssessments {
         "csv-xlsx" or "xlsx-csv" => Established(
             "Delimited-data fixtures cover streams, files, delimiter detection, typed cell import, worksheet-range export, reopen behavior, and cancellation.",
             "CSV and TSV have no font, rich-text, formula, multi-sheet, drawing, or layout model; those workbook semantics are intentionally absent from CSV output."),
+        "dbf-csv" or "dbf-xlsx" => Targeted(
+            "Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+            "Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."),
         "officemarkup-docx" or "officemarkup-xlsx" or "officemarkup-pptx" => Established(
             "Typed profile fixtures verify parser diagnostics, editable destination artifacts, font family/size/color, bold, italic, underline variants, strike, scripts, case transforms, small caps where native, and target-specific layout.",
             "OfficeIMO Markup is a directed authoring format rather than a lossless Office round trip; unsupported blocks and destination-only effects are diagnosed, simplified, or omitted according to exporter options."),

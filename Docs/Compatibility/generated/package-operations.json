@@ -773,6 +773,20 @@
       "limitation":""
     },
     {
+      "id":"conversion:dbf-csv",
+      "packageId":"OfficeIMO.CSV",
+      "formatId":"DBF/xBase",
+      "targetFormatId":"CSV",
+      "capabilityId":"dbf-csv",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DbfDataReader.Open(path), then CsvDocument.WriteDataReader(writer, reader, options)",
+      "evidence":"Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dbf"],
+      "limitation":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."
+    },
+    {
       "id":"native:chm-native:create",
       "packageId":"OfficeIMO.Chm",
       "formatId":"Chm.Native",
@@ -2969,6 +2983,20 @@
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".epub"],
       "limitation":"Image output is intentionally flattened. Unsupported source structure, remote or missing resources, and advanced source-specific layout remain approximated or diagnosed."
+    },
+    {
+      "id":"conversion:dbf-xlsx",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"DBF/xBase",
+      "targetFormatId":"XLSX",
+      "capabilityId":"dbf-xlsx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"DbfDataReader.Open(path), then ExcelDocument.WriteDataReader(stream, reader, options)",
+      "evidence":"Independent Python-produced dBASE III, FoxPro 2 and Visual FoxPro fixtures exercise typed rows, deleted-row filtering, DBT/FPT memos, binary Base64, CSV reopen, and streaming/buffered XLSX reopen and Open XML validation.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".dbf"],
+      "limitation":"Requires DBAClientX.Dbf's bounded field profiles. Native application acceptance and Visual FoxPro 31/32 generations remain unqualified. Output omits DBF indexes, deletion flags and native schema metadata; CSV nulls need a selected marker, and XLSX follows Excel numeric precision and cell text limits."
     },
     {
       "id":"protection:vba-signature:excel:create",
@@ -15515,6 +15543,62 @@
       "limitation":"Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."
     },
     {
+      "id":"conversion:visio-binary-vsdx",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio",
+      "targetFormatId":"VSDX",
+      "capabilityId":"visio-binary-vsdx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(stream); var importReport = imported.Report; imported.Value.Save(output)",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vsd"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
+      "id":"conversion:visio-binary-svg",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio",
+      "targetFormatId":"SVG",
+      "capabilityId":"visio-binary-svg",
+      "operation":"Export",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var svg = imported.Value.Pages[0].ToSvg()",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vsd",".vst"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
+      "id":"conversion:visio-binary-vssx",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio stencil",
+      "targetFormatId":"VSSX",
+      "capabilityId":"visio-binary-vssx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil); var importReport = imported.Report; imported.Value.Save(output)",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vss"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
+      "id":"conversion:visio-binary-vstx",
+      "packageId":"OfficeIMO.Visio",
+      "formatId":"Binary Visio template",
+      "targetFormatId":"VSTX",
+      "capabilityId":"visio-binary-vstx",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template); var importReport = imported.Report; imported.Value.Save(output)",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vst"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
+    },
+    {
       "id":"protection:opc-package-signature:visio:create",
       "packageId":"OfficeIMO.Visio",
       "formatId":"DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
@@ -15793,6 +15877,20 @@
       "sourceCatalog":"OfficeIMO.NativeLifecycle",
       "extensions":[".vsdm",".vsdx",".vssm",".vssx",".vstm",".vstx"],
       "limitation":""
+    },
+    {
+      "id":"conversion:visio-binary-pdf",
+      "packageId":"OfficeIMO.Visio.Pdf",
+      "formatId":"Binary Visio",
+      "targetFormatId":"PDF",
+      "capabilityId":"visio-binary-pdf",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"var imported = VisioDocument.LoadLegacyBinary(sourcePath); var importReport = imported.Report; var pdf = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages })",
+      "evidence":"Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+      "sourceCatalog":"OfficeConversionCapabilityCatalog",
+      "extensions":[".vsd",".vst"],
+      "limitation":"Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified."
     },
     {
       "id":"conversion:visio-pdf",

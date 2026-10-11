@@ -168,6 +168,24 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## Publisher Reader identity and transport
+
+`ReaderInputKind.Publisher` (`30`) requires document transport schema version 14.
+Update exhaustive input-kind switches and transport bindings. Schemas 5 through
+13 remain readable but cannot carry Publisher input kinds. CHM (`27`), DjVu (`28`)
+and DBF (`29`) retain their existing identities and minimum schema versions.
+Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
+
+## DBF Reader identity and transport
+
+Register `.AddDbfHandler()` from `OfficeIMO.Reader.Dbf`, or use the all-adapters
+preset, to ingest DBF/xBase tables. `ReaderInputKind.Dbf` (`29`) requires document
+transport schema v13. Update exhaustive input-kind switches and transport bindings;
+schemas v5 through v12 remain readable but cannot carry DBF input kinds. CHM (`27`)
+and DjVu (`28`) retain their existing identities and minimum schema versions.
+Memo sidecar reads require explicit opt-in through `ReaderDbfOptions` or
+`ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
+
 ## DjVu Reader identity and transport
 
 Register `.AddDjVuHandler()` from `OfficeIMO.Reader.DjVu` for `.djvu` and `.djv`,
@@ -2922,6 +2940,32 @@ inspect the resulting worksheet/table when row or column counts are needed. `Del
 reports the actual delimiter used, including one selected by detection.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
+
+XML streaming Excel data readers also enforce `MaxXmlDataReaderBufferedCharacters`
+(32 Mi characters by default) while completing a physical row, or across all
+buffered out-of-order rows. Decoded raw, formula and inline text plus resolved
+strings count conservatively, including duplicate records. If intentionally
+larger trusted rows exceed this limit, close the failed reader and reopen with
+a higher value. After a limit failure, that range reader's `Read` and value
+getters continue throwing `InvalidDataException` until it is closed. XML
+preparation also bounds text used to validate shared-string indices and shared
+formula followers. Indexed UTF-8 and SDK worksheet-chunk caches keep their
+existing limits. This option does not cap framework XML parser memory; a CDATA
+or attribute node can be buffered before its decoded text is charged.
+
+XLSX numeric cells and cached numeric formula results now retain their invariant
+wire values under a configured reader culture. For example, `1.5` reads as `1.5`
+under `de-DE` instead of `15`, including decimal overflow fallback and typed object
+mapping. Legacy localized numeric text still uses the configured culture fallback.
+Culture-aware conversion of string cells and custom converter precedence
+remain unchanged. Re-read affected files if earlier imports persisted altered values.
+
+XML inline and shared strings include visible text and rich runs while excluding
+phonetic guidance and extension payloads. Only direct worksheet rows and cells
+contribute values, and only direct shared-string items contribute indexes. Cell
+extensions cannot replace a cell's value or formula. Re-read imports that included
+extension content. XML streaming data readers reject child markup inside individual
+text elements; valid rich runs, CDATA and preserved whitespace remain supported.
 
 The shared `OfficeRenderingProfile` and Excel structural mutation planning APIs are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy. Use `PlanInsertRows(...)` / `PlanDeleteRows(...)`, `PlanInsertColumns(...)` / `PlanDeleteColumns(...)`, or the range mutation plans when an application must inspect workbook impact before a transactional change; existing direct mutation calls remain available.
 

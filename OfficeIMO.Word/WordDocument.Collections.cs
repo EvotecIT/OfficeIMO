@@ -9,9 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides functionality for creating, loading and manipulating Word documents.
-    /// </summary>
+    // Provides functionality for creating, loading and manipulating Word documents.
     public partial class WordDocument : IDisposable {
 
         internal int BookmarkId {

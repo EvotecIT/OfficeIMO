@@ -30,7 +30,7 @@ internal static class VisualSpecimens {
                 .AddLine("Capacity", new[] { new ChartPoint(1, 100), new ChartPoint(2, 100), new ChartPoint(3, 100),
                     new ChartPoint(4, 100), new ChartPoint(5, 100), new ChartPoint(6, 100) });
             const string loadDescription = "Observed events per minute across six intervals: 42, 58, 73, 91, 67 and 82. Capacity is 100 in every interval.";
-            chart.WithAccessibility(value => value.WithTextAlternative("Service capacity", loadDescription, "en"));
+            chart.ConfigureAccessibility(value => value.WithTextAlternative("Service capacity", loadDescription, "en"));
             var chartArtifact = chart.Prepare(Context(mode, "Service capacity", "Events per minute · six observation intervals", true))
                 .ToArtifact("service-capacity");
             result.Add(new VisualSpecimen("capacity-" + mode.ToString().ToLowerInvariant(), mode, chartArtifact, false));

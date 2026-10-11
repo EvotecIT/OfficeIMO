@@ -18,7 +18,7 @@ namespace OfficeIMO.ChartForgeX.Tests
         public void PreparedChartPlacementRetainsDimensionsAndAccessibleTextThroughSavedDocuments() {
             const string description = "Service load increases across three samples.";
             var chart = Chart.Create().AddLine("Load", new[] { new ChartPoint(0, 20), new ChartPoint(1, 35), new ChartPoint(2, 50) })
-                .WithAccessibility(value => value.WithTextAlternative("Service load", description, "en"));
+                .ConfigureAccessibility(value => value.WithTextAlternative("Service load", description, "en"));
             var prepared = chart.Prepare(new VisualRenderContext(
                 layout: new VisualLayoutOptions(new VisualSize(320, 200), padding: 16),
                 frame: new VisualFrame(title: "Service load", showLegend: false)));
