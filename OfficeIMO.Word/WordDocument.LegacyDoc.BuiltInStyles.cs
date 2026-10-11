@@ -76,7 +76,11 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.SpacingBeforeTwips != null || paragraphFormat.SpacingAfterTwips != null || paragraphFormat.LineSpacingTwips != null) {
-                SpacingBetweenLines spacing = properties.GetFirstChild<SpacingBetweenLines>() ?? properties.AppendChild(new SpacingBetweenLines());
+                SpacingBetweenLines? spacing = properties.GetFirstChild<SpacingBetweenLines>();
+                if (spacing == null) {
+                    spacing = new SpacingBetweenLines();
+                    properties.AddChild(spacing, true);
+                }
                 if (paragraphFormat.SpacingBeforeTwips != null) {
                     spacing.Before = paragraphFormat.SpacingBeforeTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
