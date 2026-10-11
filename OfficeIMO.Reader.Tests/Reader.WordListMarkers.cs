@@ -34,7 +34,7 @@ public sealed class ReaderWordListMarkerTests {
         stream.Position = 0;
 
         OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.Word().ReadDocument(stream, "bulleted.docx");
-        Assert.Equal(marker, Assert.Single(result.Blocks.Where(block => block.Kind == "list-item")).Marker);
+        Assert.Equal(marker, Assert.Single(result.Blocks, block => block.Kind == "list-item").Marker);
     }
 
     [Theory]

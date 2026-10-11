@@ -41,7 +41,7 @@ For local validation, add the absolute checkout path as the marketplace instead.
 The canonical `plugin.json`, `mcp.json`, and `skills/` follow Agent Plugins 1.0.0. Clients may support only a subset of components. A client with manual MCP configuration can launch the same server:
 
 ```text
-dotnet dnx OfficeIMO.Tool@3.4.4 mcp serve --stdio
+dotnet dnx OfficeIMO.Tool@3.4.5 mcp serve --stdio
 ```
 
 Use that client's native STDIO configuration syntax and pass the allowed-roots environment above. ChatGPT's public directory requires a reviewed submission and a hosted HTTPS MCP endpoint for connected tools; this local package alone does not provide that endpoint or imply a directory listing.

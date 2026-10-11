@@ -1,13 +1,11 @@
 ---
 title: "Browser document tools"
-description: "Choose a document converter, PDF tool, or file-origin check. Tools load when you open them, and your files stay in your browser."
+description: "Convert documents, organize and secure PDFs, and inspect hidden origin data in your browser. Choose a tool, review the result and download without uploads."
 layout: playground
 meta.seo_title: "Browser document tools | OfficeIMO"
 ---
 
 <section class="imo-converter-launch">
 {{< browser-tools >}}
-  <div class="imo-container imo-converter-launch__frame-shell" hidden></div>
-  <template id="browser-workspace-template"><iframe class="imo-converter-launch__frame" data-workspace-src="/apps/officeimo-converter/?embedded=1" title="OfficeIMO browser document workspace"></iframe></template>
-  <noscript><div class="imo-container"><p>Enable JavaScript to run a tool. You can still browse the <a href="/convert/guides/">conversion guides</a>.</p></div></noscript>
+  <noscript><div class="imo-container"><p>The tools need JavaScript to run in your browser. You can still read the <a href="/convert/guides/">conversion guides</a>.</p></div></noscript>
 </section>

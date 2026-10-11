@@ -47,6 +47,7 @@ namespace OfficeIMO.Excel {
             using var stream = _wsPart.GetStream(System.IO.FileMode.Open, System.IO.FileAccess.Read);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
+            var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
             bool fillBlanks = _opt.FillBlanksInRanges;
             bool hasCustomConverter = _opt.CellValueConverter != null;
@@ -57,7 +58,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                if (!worksheetRows.IsRowElement(reader)) {
                     continue;
                 }
 
@@ -94,7 +95,7 @@ namespace OfficeIMO.Excel {
                         break;
                     }
 
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                    if (!SpreadsheetXmlContent.IsDirectChildElement(reader, depth, "c")) {
                         continue;
                     }
 

@@ -550,6 +550,7 @@ namespace OfficeIMO.Excel {
         /// Disposes the underlying OpenXML document.
         /// </summary>
         public void Dispose() {
+            _sst.Dispose();
             if (_owns) {
                 try {
                     _doc.Dispose();

@@ -135,7 +135,7 @@ public readonly ref struct CsvRecord
         : _detachedBatch is not null ? _detachedBatch.GetSpan(ordinal)
         : _source is not null
             ? _source.GetSpan(ordinal)
-            : _reader!.GetCurrentSourceString(ordinal).AsSpan();
+            : _reader!.GetCurrentSourceSpan(ordinal);
 
     /// <summary>Materializes a field as a string.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

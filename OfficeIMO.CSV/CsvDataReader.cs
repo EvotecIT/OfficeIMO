@@ -61,6 +61,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     private bool _hasBufferedRow;
     private bool _checkedForRows;
     private bool _hasCurrentTextRow;
+    private bool _readFailed;
     private bool? _hasRows;
     private bool _closed;
     private int _rowIndex = -1;
@@ -204,8 +205,21 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
                 return false;
             }
 
-            _hasRows ??= EnsureBufferedRow();
-            return _hasRows.Value;
+            if (_readFailed)
+            {
+                throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+            }
+
+            try
+            {
+                _hasRows ??= EnsureBufferedRow();
+                return _hasRows.Value;
+            }
+            catch
+            {
+                MarkReadFailed();
+                throw;
+            }
         }
     }
 
@@ -220,6 +234,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override bool GetBoolean(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Boolean(ordinal, out var utf8Boolean))
+        {
+            return utf8Boolean;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText))
         {
             if (bool.TryParse(directText, out var directBoolean))
@@ -258,6 +277,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override byte GetByte(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<byte>(ordinal, out var utf8Byte))
+        {
+            return utf8Byte;
+        }
+#endif
         object value = GetValue(ordinal);
         if (value is byte byteValue)
         {
@@ -328,6 +353,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override DateTime GetDateTime(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8DateTime(ordinal, out var utf8DateTime))
+        {
+            return utf8DateTime;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText) &&
             CsvDataProjectionConverter.TryParseDateTime(
                 directText,
@@ -357,6 +387,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override decimal GetDecimal(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<decimal>(ordinal, out var utf8Decimal))
+        {
+            return utf8Decimal;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText))
         {
             if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
@@ -397,6 +432,18 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override double GetDouble(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<double>(ordinal, out var utf8Double))
+        {
+            return utf8Double;
+        }
+
+        if (TryGetDirectTextSpan(ordinal, out var directText) &&
+            double.TryParse(directText, NumberStyles.Any, _culture, out var directDouble))
+        {
+            return directDouble;
+        }
+#endif
         var value = GetValue(ordinal);
         if (value is double doubleValue)
         {
@@ -447,6 +494,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override float GetFloat(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<float>(ordinal, out var utf8Float))
+        {
+            return utf8Float;
+        }
+#endif
         object value = GetValue(ordinal);
         if (value is float floatValue)
         {
@@ -465,6 +518,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override Guid GetGuid(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Guid(ordinal, out var utf8Guid))
+        {
+            return utf8Guid;
+        }
+#endif
         object value = GetValue(ordinal);
         if (value is Guid guidValue)
         {
@@ -482,6 +541,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override short GetInt16(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<short>(ordinal, out var utf8Int16))
+        {
+            return utf8Int16;
+        }
+#endif
         var value = GetValue(ordinal);
         if (value is short int16)
         {
@@ -501,6 +566,11 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     public override int GetInt32(int ordinal)
     {
 #if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<int>(ordinal, out var utf8Int32))
+        {
+            return utf8Int32;
+        }
+
         if (TryGetDirectTextSpan(ordinal, out var directText))
         {
             if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
@@ -541,6 +611,18 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     /// <inheritdoc />
     public override long GetInt64(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (TryGetDirectUtf8Number<long>(ordinal, out var utf8Int64))
+        {
+            return utf8Int64;
+        }
+
+        if (TryGetDirectTextSpan(ordinal, out var directText) &&
+            long.TryParse(directText, NumberStyles.Any, _culture, out var directInt64))
+        {
+            return directInt64;
+        }
+#endif
         var value = GetValue(ordinal);
         if (value is long int64)
         {
@@ -843,12 +925,10 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     }
 
 #if NET8_0_OR_GREATER
-    private bool _incrementalReadFailed;
-
     private async ValueTask<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, bool asynchronous, CancellationToken cancellationToken)
     {
         if (_closed) return false;
-        if (_incrementalReadFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        if (_readFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -868,8 +948,7 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         }
         catch
         {
-            _incrementalReadFailed = true;
-            ClearCurrentRow();
+            MarkReadFailed();
             throw;
         }
     }
@@ -886,6 +965,25 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
             return ReadIncrementalAsync(asynchronousRows, asynchronous: false, cancellationToken).GetAwaiter().GetResult();
 #endif
+        if (_readFailed && !_closed)
+        {
+            throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        }
+
+        try
+        {
+            return ReadSynchronousCore(cancellationToken);
+        }
+        catch
+        {
+            MarkReadFailed();
+            throw;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool ReadSynchronousCore(CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
         _processingCancellationToken.ThrowIfCancellationRequested();
         if (_closed)
@@ -1157,6 +1255,15 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
         _currentStringRow = _stringRows.Current;
         ValidateStringRowColumnCount(_currentStringRow);
         return true;
+    }
+
+    private void MarkReadFailed()
+    {
+        _readFailed = true;
+        ClearCurrentRow();
+        _bufferedRawRow = null;
+        _bufferedStringRow = null;
+        _hasBufferedRow = false;
     }
 
     private void ClearCurrentRow()

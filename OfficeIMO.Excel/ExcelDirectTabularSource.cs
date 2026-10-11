@@ -79,11 +79,13 @@ namespace OfficeIMO.Excel {
             string sheetName,
             IExcelSheetTabularRowSource rows,
             bool includeHeaders,
-            bool preserveMissingValues) {
+            bool preserveMissingValues,
+            bool useCellValueNumberFormats = false) {
             SheetName = sheetName ?? throw new ArgumentNullException(nameof(sheetName));
             Rows = rows ?? throw new ArgumentNullException(nameof(rows));
             IncludeHeaders = includeHeaders;
             PreserveMissingValues = preserveMissingValues;
+            UseCellValueNumberFormats = useCellValueNumberFormats;
         }
 
         internal string SheetName { get; }
@@ -91,6 +93,8 @@ namespace OfficeIMO.Excel {
         internal IExcelSheetTabularRowSource Rows { get; }
 
         internal bool IncludeHeaders { get; }
+
+        internal bool UseCellValueNumberFormats { get; }
 
         /// <summary>
         /// Keeps imported nulls blank while preserving the explicit CellValue
