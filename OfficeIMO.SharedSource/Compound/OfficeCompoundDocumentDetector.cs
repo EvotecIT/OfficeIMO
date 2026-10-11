@@ -22,6 +22,7 @@ namespace OfficeIMO.Core.Internal {
             EncryptedOpenXmlPackage,
             Ambiguous,
             UnknownCompound,
+            VisioDrawing,
             PublisherPublication
         }
 
@@ -108,17 +109,21 @@ namespace OfficeIMO.Core.Internal {
             bool hasPublisher = ContainsPayloadStream(entries, "Contents", cancellationToken)
                 && ContainsPayloadStream(entries, "Quill/QuillSub/CONTENTS", cancellationToken);
 
+            bool hasVisio = ContainsPayloadStream(entries, "VisioDocument", cancellationToken);
+
             int recognizedRootCount = (hasWordDocument ? 1 : 0)
                 + (hasWorkbook ? 1 : 0)
                 + (hasPowerPointPresentation ? 1 : 0)
                 + (hasEncryptedPackage ? 1 : 0)
-                + (hasPublisher ? 1 : 0);
+                + (hasPublisher ? 1 : 0)
+                + (hasVisio ? 1 : 0);
             if (recognizedRootCount > 1) return DocumentKind.Ambiguous;
             if (hasWordDocument) return DocumentKind.WordDocument;
             if (hasWorkbook) return DocumentKind.ExcelWorkbook;
             if (hasPowerPointPresentation) return DocumentKind.PowerPointPresentation;
             if (hasEncryptedPackage) return DocumentKind.EncryptedOpenXmlPackage;
             if (hasPublisher) return DocumentKind.PublisherPublication;
+            if (hasVisio) return DocumentKind.VisioDrawing;
             return DocumentKind.UnknownCompound;
         }
 
