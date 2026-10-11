@@ -28,8 +28,8 @@ namespace OfficeIMO.Word.Pdf {
                         .WithFixedLineBoxBaseline(Value.Value / 20D * .8D);
                 if (GridPitch.HasValue) spacing = spacing.WithLineGrid(GridPitch.Value);
                 // The native PDF layout device uses 600 square pixels per inch.
-                // Align each font within the exact box without rounding line advances.
-                if (spacing.IsExact && FontAlignment.HasValue) {
+                // Align each font within its line without rounding line advances.
+                if (FontAlignment.HasValue) {
                     var alignment = FontAlignment.Value == W.VerticalTextAlignmentValues.Top ? OfficeIMO.Pdf.PdfFontLineAlignment.Top
                         : FontAlignment.Value == W.VerticalTextAlignmentValues.Center ? OfficeIMO.Pdf.PdfFontLineAlignment.Center
                         : FontAlignment.Value == W.VerticalTextAlignmentValues.Bottom ? OfficeIMO.Pdf.PdfFontLineAlignment.Bottom
