@@ -1052,6 +1052,15 @@ This bounds the selected decoded payload and avoids decoding the other files.
 `pdf.Attachments.Remove(selected)` removes the matching file specification when
 more than one attachment uses the same display name.
 
+Attachment edits apply `PdfLoadOptions.Limits.MaxTotalAttachmentBytes` to the
+aggregate payload of the target collection. `Add` and `Replace` reject an
+oversized target with `PdfReadLimitException` before cloning the new payload or
+rewriting the PDF. A rejected operation leaves the edit session unchanged, so
+the callback can remove another attachment or choose a smaller replacement.
+Load the source with an explicit larger limit when the intended collection
+exceeds the default 256 MiB. This payload limit does not represent peak process
+memory; defensive snapshots and rewrite validation can retain additional copies.
+
 `PdfDocument.Read(...)` is the only semantic reconstruction entry point. Both
 profiles return `PdfDocumentReadResult`; they do not maintain separate logical
 models. `Structured` adds document-wide tagged-PDF, outline, repeated-edge,
