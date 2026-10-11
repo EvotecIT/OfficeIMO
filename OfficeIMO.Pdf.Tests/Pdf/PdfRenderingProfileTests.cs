@@ -2090,19 +2090,6 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void WordShapingOnlyProfileTreatsEqualFontSizeAssignmentAsExplicit() {
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-
-        options.PdfOptions!.DefaultFontSize = 11D;
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-    }
-
-    [Fact]
     public void ExcelRenderingProfilePreservesWorksheetPageSizeUntilCallerOverridesIt() {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
         OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
@@ -2347,18 +2334,6 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void EqualDefaultFontSizeAssignmentAfterFontlessProfileIsExplicit() {
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
-
-        Assert.False(options.HasExplicitPdfFontConfiguration);
-        options.PdfOptions!.DefaultFontSize = options.PdfOptions.DefaultFontSize;
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-    }
-
-    [Fact]
     public void WordFontProfileRemainsExplicitFontConfiguration() {
         var profile = new OfficeRenderingProfile(
             "word-font-profile",
@@ -2538,22 +2513,6 @@ public sealed class PdfRenderingProfileTests {
         Assert.True(options.HasExplicitPdfFontConfiguration);
         Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
         Assert.Empty(options.PdfOptions!.NamedFontFamilies);
-    }
-
-    [Fact]
-    public void RepeatedWordFontlessReplacementPreservesCallerAssignment() {
-        var fontless = new OfficeRenderingProfile("shaping-only");
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(fontless);
-        options.PdfOptions!.DefaultFontSize = 13;
-
-        options.UseRenderingProfile(
-            fontless,
-            OfficeRenderingProfileApplyMode.Replace);
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-        Assert.Equal(13, options.PdfOptions.DefaultFontSize);
     }
 
     [Fact]

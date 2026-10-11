@@ -1,6 +1,15 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
+    // Header/footer presentation and point sizes do not select the document's
+    // body font. Converters still preserve supplied font resources and slots.
+    internal bool HasDocumentFontConfiguration =>
+        _hasExplicitDefaultFont
+        || (_embeddedFonts?.Count ?? 0) > 0
+        || (_namedFontFamilies?.Count ?? 0) > 0
+        || (_fontFamilySubstitutions?.Count ?? 0) > 0
+        || _embeddedFontFallbacks != null;
+
     internal long FontConfigurationState {
         get {
             const ulong offset = 14695981039346656037UL;
