@@ -6,6 +6,38 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfInlineElementTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TableRowShrinkingReservesFixedInlineWidth(bool canvas) {
+        PdfColor fill = new PdfColor(.2D, .5D, .8D);
+        PdfTableCell cell = new PdfTableCell(new[] {
+            PdfTextRun.Inline(new PdfInlineBox(30, 10, background: fill)),
+            PdfTextRun.Normal("ABCDE")
+        }).WithNoWrap();
+        PdfTableStyle style = new PdfTableStyle {
+            FontSize = 12, HeaderRowCount = 0, HeaderBold = false,
+            ColumnWidthPoints = new() { 50 }, MaxWidth = 50, PreserveWidth = true,
+            CellPaddingX = 0, CellPaddingY = 0, MinimumShrinkFontSize = 4,
+            FixedRowHeights = new() { 30 }, BorderColor = null, ShrinkTextToFit = true
+        };
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+            DefaultFont = PdfStandardFont.Courier, PageWidth = 200, PageHeight = 150,
+            MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20,
+            CompressContentStreams = false
+        });
+        PdfTableCell[][] rows = new[] { new[] { cell } };
+        if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 50, 30, style));
+        else document.Table(rows, style: style);
+        byte[] bytes = document.ToBytes();
+        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        UglyToad.PdfPig.Content.Word word = Assert.Single(pdf.GetPage(1).GetWords());
+        Assert.Equal("ABCDE", word.Text);
+        Assert.All(word.Letters, letter => Assert.InRange(letter.PointSize, 6.66D, 6.67D));
+        Assert.True(word.BoundingBox.Right <= 70.01D);
+        Assert.Equal(20D, FindFilledBoxX(PdfEncoding.Latin1GetString(bytes), fill, 30, 10), 3);
+    }
+
     [Fact]
     public void RichParagraph_RendersInlineImageAndBoxInContentOrderWithTags() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
