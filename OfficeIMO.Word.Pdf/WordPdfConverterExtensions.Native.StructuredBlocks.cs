@@ -304,16 +304,16 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeSectionWatermark(PdfCore.PdfPageBuilder page, WordSection section, WordToPdfOptions? options) {
             if (HasNativeHeaderSpecificWatermarks(section)) {
-                WordWatermark? defaultWatermark = section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+                WordWatermark? defaultWatermark = section.ResolveDefaultHeader()?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                 NativeAppliedWatermark defaultApplied = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, defaultWatermark, options, "default header watermark");
                 if (section.DifferentFirstPage) {
-                    WordWatermark? firstWatermark = section.Header?.First?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+                    WordWatermark? firstWatermark = section.ResolveFirstHeader()?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                     NativeAppliedWatermark firstApplied = ApplyNativeWatermark(page.FirstPageWatermark, page.FirstPageImageWatermark, firstWatermark, options, "first header watermark");
                     SuppressMissingFirstPageWatermark(page, defaultApplied, firstApplied);
                 }
 
                 if (section.DifferentOddAndEvenPages) {
-                    WordWatermark? evenWatermark = section.Header?.Even?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+                    WordWatermark? evenWatermark = section.ResolveEvenHeader()?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
                     NativeAppliedWatermark evenApplied = ApplyNativeWatermark(page.EvenPagesWatermark, page.EvenPagesImageWatermark, evenWatermark, options, "even header watermark");
                     SuppressMissingEvenPagesWatermark(page, defaultApplied, evenApplied);
                 }
@@ -321,7 +321,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            WordWatermark? watermark = section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+            WordWatermark? watermark = section.ResolveDefaultHeader()?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
             _ = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, watermark, options, "default header watermark");
         }
 
@@ -459,9 +459,9 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            return HasNativeWatermark(section.Header?.Default) ||
-                   HasNativeWatermark(section.Header?.First) ||
-                   HasNativeWatermark(section.Header?.Even);
+            return HasNativeWatermark(section.ResolveDefaultHeader()) ||
+                   HasNativeWatermark(section.ResolveFirstHeader()) ||
+                   HasNativeWatermark(section.ResolveEvenHeader());
         }
 
         private static bool HasNativeWatermark(WordHeaderFooter? headerFooter) =>

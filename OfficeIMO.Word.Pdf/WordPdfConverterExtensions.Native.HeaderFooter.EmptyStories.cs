@@ -12,11 +12,11 @@ public static partial class WordPdfConverterExtensions {
         WordToPdfOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
         NativeDocumentDefaults defaults, bool isFooter) {
-        WordHeaderFooter? defaultStory = isFooter ? section.Footer?.Default : section.Header?.Default;
+        WordHeaderFooter? defaultStory = isFooter ? section.ResolveDefaultFooter() : section.ResolveDefaultHeader();
         WordHeaderFooter? firstStory = section.DifferentFirstPage
-            ? isFooter ? section.Footer?.First : section.Header?.First : null;
+            ? isFooter ? section.ResolveFirstFooter() : section.ResolveFirstHeader() : null;
         WordHeaderFooter? evenStory = section.DocumentOddEvenSettingEnabled
-            ? isFooter ? section.Footer?.Even : section.Header?.Even : null;
+            ? isFooter ? section.ResolveEvenFooter() : section.ResolveEvenHeader() : null;
         WordHeaderFooter?[] stories = { defaultStory, firstStory, evenStory };
         double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
         for (int index = 0; index < stories.Length; index++) {

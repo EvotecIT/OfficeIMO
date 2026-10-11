@@ -14,12 +14,12 @@ public static partial class WordPdfConverterExtensions {
                 .Any(item => item.IsField && item.Text == "{sectionpages}")));
 
     private static bool UsesNativeRunningHeader(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options, false,
-        section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
-        section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null);
+        section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+        section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null);
 
     private static bool UsesNativeRunningFooter(WordSection section, WordToPdfOptions? options) => UsesNativeRunningStories(section, options, true,
-        section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
-        section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null);
+        section.ResolveDefaultFooter(), section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+        section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
 
     private static bool UsesNativeRunningStories(WordSection section, WordToPdfOptions? options, bool isFooter, params WordHeaderFooter?[] variants) {
         if (variants.Any(RequiresNativeRunningStory)) return true;
@@ -98,43 +98,43 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningHeader(section, options)) {
             double distance = section.Margins.HeaderDistance / 20D;
             page.Header(header => {
-                if (section.Header?.Default != null)
-                    header.Content(CreateNativeRunningStory(section.Header.Default, section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DifferentFirstPage && section.Header?.First != null)
-                    header.FirstPageContent(CreateNativeRunningStory(section.Header?.First, section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DocumentOddEvenSettingEnabled && section.Header?.Even != null)
-                    header.EvenPagesContent(CreateNativeRunningStory(section.Header?.Even, section, options, fontMap, listMarkers, defaults, false), distance);
+                if (section.ResolveDefaultHeader() != null)
+                    header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
+                if (section.DifferentFirstPage && section.ResolveFirstHeader() != null)
+                    header.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
+                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null)
+                    header.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
             });
-            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.Header?.Default,
-                section.DifferentFirstPage ? section.Header?.First : null,
-                section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null);
-            if (!new[] { section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
-                    section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null }.Any(RequiresNativeRunningStory))
+            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.ResolveDefaultHeader(),
+                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null);
+            if (!new[] { section.ResolveDefaultHeader(), section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                    section.DocumentOddEvenSettingEnabled ? section.ResolveEvenHeader() : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: true);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: false);
         if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
             page.Footer(footer => {
-                if (section.Footer?.Default != null)
-                    footer.Content(CreateNativeRunningStory(section.Footer.Default, section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DifferentFirstPage && section.Footer?.First != null)
-                    footer.FirstPageContent(CreateNativeRunningStory(section.Footer?.First, section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DocumentOddEvenSettingEnabled && section.Footer?.Even != null)
-                    footer.EvenPagesContent(CreateNativeRunningStory(section.Footer?.Even, section, options, fontMap, listMarkers, defaults, true), distance);
+                if (section.ResolveDefaultFooter() != null)
+                    footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
+                if (section.DifferentFirstPage && section.ResolveFirstFooter() != null)
+                    footer.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
+                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
+                    footer.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
             });
-            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.Footer?.Default,
-                section.DifferentFirstPage ? section.Footer?.First : null,
-                section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null);
-            RetainNativeTextFreeFooterProjection(page.Options, section.Footer?.Default, listMarkers, fontMap,
+            ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.ResolveDefaultFooter(),
+                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
+            RetainNativeTextFreeFooterProjection(page.Options, section.ResolveDefaultFooter(), listMarkers, fontMap,
                 PdfCore.PdfRunningContentVariant.Default);
             if (section.DifferentFirstPage)
-                RetainNativeTextFreeFooterProjection(page.Options, section.Footer?.First, listMarkers, fontMap,
+                RetainNativeTextFreeFooterProjection(page.Options, section.ResolveFirstFooter(), listMarkers, fontMap,
                     PdfCore.PdfRunningContentVariant.FirstPage);
             if (section.DocumentOddEvenSettingEnabled)
-                RetainNativeTextFreeFooterProjection(page.Options, section.Footer?.Even, listMarkers, fontMap,
+                RetainNativeTextFreeFooterProjection(page.Options, section.ResolveEvenFooter(), listMarkers, fontMap,
                     PdfCore.PdfRunningContentVariant.EvenPages);
-            if (!new[] { section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
-                    section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null }.Any(RequiresNativeRunningStory))
+            if (!new[] { section.ResolveDefaultFooter(), section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                    section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: true);
     }
