@@ -10,17 +10,25 @@ namespace OfficeIMO.Archives;
 public static partial class ArchiveExtractor {
     private static void ExtractMsi(Stream source, string staging, ArchiveLimits limits, List<ExtractedArchiveFile> files,
         ref long total, CancellationToken token) {
-        var database = new MsiPackageReader(source, limits, token);
+        using var database = new MsiPackageReader(source, limits, token);
         IReadOnlyList<MsiPayloadFile> payload = database.ReadFiles();
+        var groups = payload.GroupBy(file => file.Cabinet, StringComparer.Ordinal).ToArray();
+        if (groups.Length > limits.Cabinets) throw new InvalidDataException("MSI exceeds the configured embedded-cabinet count.");
+        long cabinetInputBytes = 0;
+        foreach (var group in groups) {
+            ArchiveLimits.Add(ref cabinetInputBytes, database.GetCabinetLength(group.Key), limits.Input, "Aggregate MSI cabinet input");
+        }
         long decodedBudget = limits.Expanded;
-        foreach (var group in payload.GroupBy(file => file.Cabinet, StringComparer.OrdinalIgnoreCase)) {
+        int remainingEntries = limits.Entries;
+        foreach (var group in groups) {
             token.ThrowIfCancellationRequested();
-            if (decodedBudget == 0) throw new InvalidDataException("MSI cabinet expansion exceeds the configured aggregate byte limit.");
             var expected = group.ToDictionary(file => file.Id, StringComparer.OrdinalIgnoreCase);
+            if (expected.Count > remainingEntries) throw new InvalidDataException("MSI cabinets exceed the configured aggregate member count.");
+            remainingEntries -= expected.Count;
             var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using Stream cabinet = database.OpenCabinet(group.Key);
             IReadOnlyList<OfficeCabinetEntry> entries = OfficeCabinetArchiveReader.Read(cabinet, limits.Input,
-                decodedBudget, limits.Entry, limits.Entries, out long decodedBytes, token, name => {
+                decodedBudget, limits.Entry, expected.Count, out long decodedBytes, token, name => {
                     if (!expected.TryGetValue(name, out MsiPayloadFile? file))
                         throw new InvalidDataException("MSI cabinet contains a member absent from its File/Media mapping.");
                     if (!found.Add(name)) throw new InvalidDataException("MSI cabinet repeats a File identifier.");

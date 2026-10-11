@@ -23,7 +23,6 @@ public static partial class ArchiveExtractor {
         string package = Path.GetFullPath(packagePath);
         string destination = Path.GetFullPath(destinationDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         string parent = Path.GetDirectoryName(destination) ?? throw new ArgumentException("The destination must have a parent directory.", nameof(destinationDirectory));
-        ArchivePaths.RejectLinks(package);
         ArchivePaths.RejectLinks(destination);
         CheckDestination(destination);
         using var source = new FileStream(package, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -33,10 +32,10 @@ public static partial class ArchiveExtractor {
         source.Position = 0;
         ArchiveFormat format = Detect(header, headerLength);
         Directory.CreateDirectory(parent);
-        ArchivePaths.RejectLinks(parent);
         string staging = Path.Combine(parent, ".officeimo-archive-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(staging);
         try {
+            ArchivePaths.RejectLinks(staging);
             var files = new List<ExtractedArchiveFile>();
             long total = 0;
             switch (format) {
@@ -52,6 +51,9 @@ public static partial class ArchiveExtractor {
             staging = string.Empty;
             return new ArchiveExtractionResult(format, Array.AsReadOnly(files.OrderBy(file => file.RelativePath, StringComparer.Ordinal).ToArray()), total);
         } catch (OfficeCabinetException exception) {
+            if (exception.Code == "CAB_COMPRESSION" || exception.Code == "CAB_MULTIPART" ||
+                exception.Code == "CAB_LZX_WINDOW" || exception.Code == "CAB_NAME_ENCODING")
+                throw new NotSupportedException(exception.Code + ": " + exception.Message, exception);
             throw new InvalidDataException(exception.Code + ": " + exception.Message, exception);
         } finally {
             if (staging.Length != 0 && Directory.Exists(staging)) Directory.Delete(staging, recursive: true);
@@ -92,8 +94,9 @@ public static partial class ArchiveExtractor {
         limits.CheckEntry(length);
         ArchiveLimits.Add(ref total, length, limits.Expanded, "Extracted content");
         string target = Path.Combine(staging, path.Replace('/', Path.DirectorySeparatorChar));
+        ArchivePaths.RejectLinks(target, staging);
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-        ArchivePaths.RejectLinks(target);
+        ArchivePaths.RejectLinks(target, staging);
         using var output = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         byte[] buffer = new byte[81920];
         long written = 0;

@@ -8,12 +8,11 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Archives;
 
 /// <summary>Reads inert MSI metadata and embedded streams; never invokes Windows Installer.</summary>
-internal sealed partial class MsiPackageReader {
+internal sealed partial class MsiPackageReader : IDisposable {
     private static readonly Guid InstallerClass = new("000c1084-0000-0000-c000-000000000046");
-    private readonly Stream _source;
     private readonly ArchiveLimits _limits;
     private readonly CancellationToken _token;
-    private readonly OfficeCompoundReadOptions _compoundOptions;
+    private readonly OfficeCompoundFileReader.ReadSession _compound;
     private readonly Dictionary<string, string> _streams;
     private long _metadataBytes;
     private string?[] _strings = Array.Empty<string?>();
@@ -21,35 +20,35 @@ internal sealed partial class MsiPackageReader {
     private Dictionary<string, MsiColumn[]> _schemas = new(StringComparer.OrdinalIgnoreCase);
 
     internal MsiPackageReader(Stream source, ArchiveLimits limits, CancellationToken token) {
-        _source = source; _limits = limits; _token = token;
-        _compoundOptions = new OfficeCompoundReadOptions(maxDirectoryEntries: Math.Min(65536, limits.Rows),
+        _limits = limits; _token = token;
+        var compoundOptions = new OfficeCompoundReadOptions(maxDirectoryEntries: Math.Min(65536, limits.Rows),
             maxStreamCount: Math.Min(32768, limits.Rows), maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input);
         source.Position = 0;
-        if (!OfficeCompoundFileReader.TryInspectDirectory(source, limits.Input, Math.Min(65536, limits.Rows), token,
-                out IReadOnlyList<OfficeCompoundFileEntry> directory, out string? error)) throw new InvalidDataException(error);
-        OfficeCompoundFileEntry? root = directory.FirstOrDefault(entry => entry.ObjectType == 5);
-        if (root == null || root.ClassId != InstallerClass) throw new NotSupportedException("The compound container is not an ordinary Windows Installer database. Patches and transforms are unsupported.");
-        _streams = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (OfficeCompoundFileEntry entry in directory.Where(entry => entry.IsStream)) {
-            token.ThrowIfCancellationRequested();
-            if (entry.IsFallback || entry.Path.IndexOf('/') >= 0 || _streams.ContainsKey(entry.Path))
-                throw new InvalidDataException("MSI contains unreachable, nested or ambiguous stream names.");
-            _streams.Add(entry.Path, entry.Path);
-        }
-        LoadStrings();
-        LoadSchemas();
+        _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token);
+        _streams = new Dictionary<string, string>(StringComparer.Ordinal);
+        try {
+            OfficeCompoundFileEntry? root = _compound.Entries.FirstOrDefault(entry => entry.ObjectType == 5);
+            if (root == null || root.ClassId != InstallerClass) throw new NotSupportedException("The compound container is not an ordinary Windows Installer database. Patches and transforms are unsupported.");
+            foreach (OfficeCompoundFileEntry entry in _compound.Entries.Where(entry => entry.IsStream)) {
+                token.ThrowIfCancellationRequested();
+                if (entry.IsFallback || entry.Path.IndexOf('/') >= 0 || _streams.ContainsKey(entry.Path))
+                    throw new InvalidDataException("MSI contains unreachable, nested or ambiguous stream names.");
+                _streams.Add(entry.Path, entry.Path);
+            }
+            LoadStrings();
+            LoadSchemas();
+        } catch { _compound.Dispose(); throw; }
     }
     internal Stream OpenCabinet(string name) => Open(name, table: false);
-    private Stream Open(string name, bool table = true) {
+    internal long GetCabinetLength(string name) => _compound.GetStreamLength(StoredName(name, table: false));
+    private Stream Open(string name, bool table = true) => _compound.OpenStream(StoredName(name, table));
+    private string StoredName(string name, bool table) {
         _token.ThrowIfCancellationRequested();
         string encoded = EncodeStreamName(name, table);
         if (!_streams.TryGetValue(encoded, out string? stored)) throw new InvalidDataException("Required MSI stream is missing: " + name);
-        _source.Position = 0;
-        if (!OfficeCompoundFileReader.TryOpenStream(_source, _compoundOptions,
-                (path, size) => string.Equals(path, stored, StringComparison.Ordinal), true, _token,
-                out Stream? payload, out string? error)) throw new InvalidDataException(error);
-        return payload!;
+        return stored;
     }
+    public void Dispose() => _compound.Dispose();
     private byte[] ReadMetadata(string name) {
         using Stream payload = Open(name);
         ArchiveLimits.Add(ref _metadataBytes, payload.Length, _limits.Metadata, "MSI metadata");

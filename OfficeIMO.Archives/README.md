@@ -2,6 +2,14 @@
 
 OfficeIMO.Archives extracts Microsoft Cabinet archives and payloads embedded in ordinary Windows Installer databases. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared archive validation. Extraction does not execute an installer, scripts or custom actions.
 
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Archives
+```
+
+## Extract policy files
+
 ```csharp
 using OfficeIMO.Archives;
 
@@ -25,6 +33,6 @@ Results preserve authored filename case and use forward slashes. MSI results des
 
 Each call opens one container. A nested archive remains a file in that result. The caller owns ZIP processing, any deliberate nesting and overall collection limits; OfficeIMO.Zip provides shared ZIP traversal primitives.
 
-`ArchiveExtractionOptions` bounds input bytes, member count, per-file and aggregate expansion, MSI metadata and rows, and path length/depth. `IncludeFile` receives each normalized relative file path; safety and collision checks still apply to unselected members. CAB folder decompression counts toward the expansion bound even when its files are filtered out. The reader buffers bounded input, one decoded folder at a time and selected entry arrays. Cancellation is observed during parsing, decoding and file writes.
+`ArchiveExtractionOptions` bounds input bytes, member count, per-file and aggregate expansion, MSI metadata and rows, embedded cabinet count, and path length/depth. MSI extraction indexes compound storage once and accepts at most 256 embedded cabinets by default, including cabinets with empty or unselected files. `IncludeFile` receives each normalized relative file path; safety and collision checks still apply to unselected members. CAB folder decompression counts toward the expansion bound even when its files are filtered out. The reader buffers bounded input, one decoded folder at a time and selected entry arrays. Cancellation is observed during parsing, decoding and file writes.
 
 See [SUPPORT.md](SUPPORT.md) for supported compression and MSI profiles. There are no native archive executables to install or download.

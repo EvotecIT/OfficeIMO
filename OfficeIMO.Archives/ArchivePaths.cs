@@ -41,15 +41,30 @@ internal sealed class ArchivePaths {
             || part.EndsWith(" ", StringComparison.Ordinal) || part.Any(c => c < 32 || ":<>\"|?*/\\".IndexOf(c) >= 0)
             || IsDevice(baseName)) throw new InvalidDataException("Archive member has a nonportable path segment: " + part);
     }
-    internal static void RejectLinks(string fullPath) {
-        string? current = fullPath;
+    /// <summary>Rejects a linked node or links inside a controlled subtree, trusting caller and OS ancestors.</summary>
+    internal static void RejectLinks(string fullPath, string? controlledRoot = null) {
+        string target = NormalizeLinkPath(fullPath);
+        string boundary = NormalizeLinkPath(controlledRoot ?? fullPath);
+        StringComparison comparison = Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        string prefix = boundary.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+            ? boundary : boundary + Path.DirectorySeparatorChar;
+        if (!string.Equals(target, boundary, comparison) && !target.StartsWith(prefix, comparison))
+            throw new IOException("Extraction paths must remain inside the controlled staging directory.");
+        string? current = target;
         while (!string.IsNullOrEmpty(current)) {
             try {
                 if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
                     throw new IOException("Extraction paths must not contain symbolic links or reparse points: " + current);
             } catch (FileNotFoundException) { } catch (DirectoryNotFoundException) { }
+            if (string.Equals(current, boundary, comparison)) break;
             current = Path.GetDirectoryName(current);
         }
+    }
+    private static string NormalizeLinkPath(string path) {
+        string full = Path.GetFullPath(path);
+        int rootLength = Path.GetPathRoot(full)!.Length;
+        string trimmed = full.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return trimmed.Length < rootLength ? full.Substring(0, rootLength) : trimmed;
     }
     private static bool IsDevice(string value) => value.Equals("CON", StringComparison.OrdinalIgnoreCase)
         || value.Equals("PRN", StringComparison.OrdinalIgnoreCase) || value.Equals("AUX", StringComparison.OrdinalIgnoreCase)

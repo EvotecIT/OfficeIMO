@@ -63,7 +63,7 @@ internal static class OfficeCabinetArchiveReader {
     }
 
     private static void ValidateLimits(long maxExpandedBytes, long maxEntryBytes, int maxEntries) {
-        if (maxExpandedBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxExpandedBytes));
+        if (maxExpandedBytes < 0) throw new ArgumentOutOfRangeException(nameof(maxExpandedBytes));
         if (maxEntryBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxEntryBytes));
         if (maxEntries < 1) throw new ArgumentOutOfRangeException(nameof(maxEntries));
     }
@@ -94,10 +94,11 @@ internal static class OfficeCabinetArchiveReader {
             uint filesOffset = UInt32(16);
             int folderCount = UInt16(26);
             int fileCount = UInt16(28);
-            ushort flags = UInt16(30);
+            // MS-CAB requires readers to ignore reserved CFHEADER flag bits.
+            ushort flags = (ushort)(UInt16(30) & 7);
             if (declaredSize < 36 || declaredSize > _length || folderCount < 1 || fileCount > _maxEntries ||
-                _data[24] != 3 || _data[25] != 1 || (flags & ~7) != 0) {
-                throw Error("CAB_HEADER", "The CAB header contains invalid sizes, flags, version or entry counts.");
+                _data[24] != 3 || _data[25] != 1) {
+                throw Error("CAB_HEADER", "The CAB header contains invalid sizes, version or entry counts.");
             }
             // Signed cabinets may have an appended signature, but offsets must
             // remain within the size declared by CFHEADER.
@@ -140,7 +141,8 @@ internal static class OfficeCabinetArchiveReader {
                 ushort attributes = UInt16(offset + 14);
                 string name = ReadCString(offset + 16, (attributes & 0x80) != 0, out int nextOffset);
                 if (length > _maxEntryBytes || length > int.MaxValue) throw Error("CAB_ENTRY_LIMIT", "A CAB entry exceeds the configured size or managed buffer limit.");
-                if (folderIndex >= folders.Length) throw Error("CAB_FOLDER", "A CAB entry references a missing or continued folder.");
+                if (folderIndex >= 0xFFFD) throw Error("CAB_MULTIPART", "Continued CAB file entries are not supported.");
+                if (folderIndex >= folders.Length) throw Error("CAB_FOLDER", "A CAB entry references a missing folder.");
                 if (length > _maxExpandedBytes - extractedBytes) throw Error("CAB_EXPANDED_LIMIT", "The extracted CAB entries exceed the configured size limit.");
                 extractedBytes += length;
                 files[index] = new FileHeader(length, folderOffset, folderIndex, name);
@@ -207,8 +209,12 @@ internal static class OfficeCabinetArchiveReader {
                     _data[dataOffset] != 0x43 || _data[dataOffset + 1] != 0x4B)) {
                     throw Error("CAB_MSZIP_HEADER", "The CAB contains an invalid MSZIP frame header or size.", dataOffset);
                 }
-                if (checksum != 0 && checksum != OfficeCabinetChecksum.Compute(_data, offset + 4, 4 + dataReserve + compressedLength)) {
-                    throw Error("CAB_CHECKSUM", "A CAB data block has an invalid checksum.", offset);
+                if (checksum != 0) {
+                    // MS-CAB section 3.1 checks payload bytes first, then the header
+                    // and reserve bytes. Each region has its own remainder alignment.
+                    uint actualChecksum = OfficeCabinetChecksum.Compute(_data, dataOffset, compressedLength);
+                    actualChecksum = OfficeCabinetChecksum.Compute(_data, offset + 4, 4 + dataReserve, actualChecksum);
+                    if (checksum != actualChecksum) throw Error("CAB_CHECKSUM", "A CAB data block has an invalid checksum.", offset);
                 }
                 blocks[index] = new BlockHeader(dataOffset, compressedLength, expandedLength);
                 total += expandedLength;
@@ -253,18 +259,24 @@ internal static class OfficeCabinetArchiveReader {
             int end = offset;
             while (end < _length && _data[end] != 0) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                if (end - offset == 255) throw Error("CAB_STRING", "A CAB member name exceeds 255 encoded bytes.", offset);
+                if (end - offset == 256) throw Error("CAB_STRING", "A CAB member name exceeds 256 encoded bytes.", offset);
                 end++;
             }
             if (end >= _length) throw Error("CAB_STRING", "A CAB string is not null-terminated.", offset);
-            if (end - offset > 255 || end == offset) throw Error("CAB_STRING", "A CAB member name must contain between 1 and 255 encoded bytes.", offset);
+            if (end == offset) throw Error("CAB_STRING", "A CAB member name must contain between 1 and 256 encoded bytes.", offset);
             nextOffset = end + 1;
             if (utf8) {
                 try { return new UTF8Encoding(false, true).GetString(_data, offset, end - offset); }
                 catch (DecoderFallbackException exception) { throw new OfficeCabinetException("CAB_STRING", "A CAB member name contains invalid UTF-8.", offset, exception); }
             }
             var characters = new char[end - offset];
-            for (int index = 0; index < characters.Length; index++) characters[index] = (char)_data[offset + index];
+            for (int index = 0; index < characters.Length; index++) {
+                byte value = _data[offset + index];
+                if (value > 0x7F) {
+                    throw Error("CAB_NAME_ENCODING", "CAB member names with non-ASCII bytes require the UTF-8 name attribute; locale-dependent name encodings are not supported.", offset);
+                }
+                characters[index] = (char)value;
+            }
             return new string(characters);
         }
 

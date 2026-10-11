@@ -283,7 +283,7 @@
       "description": "Managed, bounded Cabinet and passive Windows Installer payload extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.Archives/OfficeIMO.Archives.csproj",
-      "sourceFileCount": 10,
+      "sourceFileCount": 11,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

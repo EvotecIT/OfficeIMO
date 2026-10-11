@@ -8,6 +8,8 @@ public sealed class ArchiveExtractionOptions {
     public long MaxInputBytes { get; set; } = 512L * 1024 * 1024;
     /// <summary>Maximum number of declared archive members or MSI File rows.</summary>
     public int MaxEntryCount { get; set; } = 200000;
+    /// <summary>Maximum distinct embedded MSI cabinets. Defaults to 256, including cabinets with empty or unselected files.</summary>
+    public int MaxCabinetCount { get; set; } = 256;
     /// <summary>Maximum expanded size of any member. Defaults to 256 MiB.</summary>
     public long MaxEntryBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Maximum aggregate expanded bytes. CAB folder decoding also observes this bound.</summary>

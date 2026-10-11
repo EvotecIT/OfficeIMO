@@ -7,6 +7,7 @@ internal sealed class ArchiveLimits {
     internal ArchiveLimits(ArchiveExtractionOptions options) {
         Input = Positive(options.MaxInputBytes, nameof(options.MaxInputBytes));
         Entries = checked((int)Positive(options.MaxEntryCount, nameof(options.MaxEntryCount)));
+        Cabinets = checked((int)Positive(options.MaxCabinetCount, nameof(options.MaxCabinetCount)));
         Entry = Positive(options.MaxEntryBytes, nameof(options.MaxEntryBytes));
         Expanded = Positive(options.MaxExpandedBytes, nameof(options.MaxExpandedBytes));
         Metadata = Positive(options.MaxMetadataBytes, nameof(options.MaxMetadataBytes));
@@ -17,6 +18,7 @@ internal sealed class ArchiveLimits {
     }
     internal long Input { get; }
     internal int Entries { get; }
+    internal int Cabinets { get; }
     internal long Entry { get; }
     internal long Expanded { get; }
     internal long Metadata { get; }

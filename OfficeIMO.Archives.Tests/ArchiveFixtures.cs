@@ -32,7 +32,8 @@ internal sealed class ArchiveFixtures : IDisposable {
     internal static byte[] Msi(bool wideMedia = false, bool longStrings = false, bool externalCab = false,
         bool directoryCycle = false, bool wrongSize = false, bool missingCabinet = false,
         object?[][]? directoryRows = null, string firstDirectory = "LOCALE", string secondDirectory = "LOCALE",
-        bool twoCabinets = false, bool backwardMedia = false, bool lowercaseCabinetKey = false) {
+        bool twoCabinets = false, bool backwardMedia = false, bool lowercaseCabinetKey = false,
+        int cabinetCount = 0, bool emptyPayloads = false, bool emptySecondPayload = false, int emptySecondCompression = 0) {
         const string key = "PayloadKey";
         byte[] payload = Encoding.UTF8.GetBytes("hello");
         var schemas = new Dictionary<string, (string Name, char Kind)[]> {
@@ -49,10 +50,19 @@ internal sealed class ArchiveFixtures : IDisposable {
         };
         if (twoCabinets) {
             rows["Component"] = rows["Component"].Concat(new[] { new object?[] { "COMP2", null, secondDirectory, 0, null, "PayloadTwo" } }).ToArray();
-            rows["File"] = rows["File"].Concat(new[] { new object?[] { "PayloadTwo", "COMP2", "Second.adml", 5, null, null, 16384, 2 } }).ToArray();
+            rows["File"] = rows["File"].Concat(new[] { new object?[] { "PayloadTwo", "COMP2", "Second.adml", emptySecondPayload ? 0 : 5, null, null, 16384, 2 } }).ToArray();
             rows["Media"] = backwardMedia
                 ? new[] { new object?[] { 1, 2, null, "#second.cab", null, null }, new object?[] { 2, 1, null, "#payload.cab", null, null } }
                 : new[] { new object?[] { 2, 2, null, "#second.cab", null, null }, new object?[] { 1, 1, null, "#payload.cab", null, null } };
+        }
+        if (cabinetCount > 0) {
+            rows["Component"] = Enumerable.Range(1, cabinetCount).Select(index => new object?[] {
+                "COMP" + index, null, firstDirectory, 0, null, "Payload" + index }).ToArray();
+            rows["File"] = Enumerable.Range(1, cabinetCount).Select(index => new object?[] {
+                "Payload" + index, "COMP" + index, "Template" + index + ".adml", emptyPayloads ? 0 : 5,
+                null, null, 16384, index }).ToArray();
+            rows["Media"] = Enumerable.Range(1, cabinetCount).Select(index => new object?[] {
+                index, index, null, "#payload" + index + ".cab", null, null }).ToArray();
         }
         var columns = new List<object?[]>();
         foreach (var table in schemas) for (int column = 0; column < table.Value.Length; column++) {
@@ -90,8 +100,27 @@ internal sealed class ArchiveFixtures : IDisposable {
             }
             streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName(table.Key, true), encoded.ToArray()));
         }
-        if (!missingCabinet) streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("payload.cab", false), StoredCab(lowercaseCabinetKey ? key.ToLowerInvariant() : key, payload)));
-        if (twoCabinets) streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("second.cab", false), StoredCab("PayloadTwo", Encoding.UTF8.GetBytes("world"))));
+        if (cabinetCount > 0) {
+            for (int index = 1; index <= cabinetCount; index++) {
+                byte[] content = emptyPayloads ? Array.Empty<byte>() : payload;
+                // A zero-length file needs no CFDATA block; a cbUncomp=0 record denotes unsupported split data.
+                byte[] cabinet = emptyPayloads ? EmptyStoredCab("Payload" + index) : StoredCab("Payload" + index, content);
+                streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("payload" + index + ".cab", false), cabinet));
+            }
+        } else {
+            if (!missingCabinet) streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("payload.cab", false), StoredCab(lowercaseCabinetKey ? key.ToLowerInvariant() : key, payload)));
+            if (twoCabinets) streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("second.cab", false),
+                emptySecondPayload ? EmptyStoredCab("PayloadTwo", emptySecondCompression) : StoredCab("PayloadTwo", Encoding.UTF8.GetBytes("world"))));
+        }
         return OfficeCompoundFileWriter.Write(streams, new Guid("000c1084-0000-0000-c000-000000000046"));
+    }
+    internal static byte[] EmptyStoredCab(string name, int compression = 0) {
+        // With no folder bytes there are no CFDATA records; cbUncomp=0 would denote split data instead.
+        byte[] cabinet = StoredCab(name, Array.Empty<byte>());
+        Array.Resize(ref cabinet, cabinet.Length - 8);
+        for (int index = 0; index < 4; index++) cabinet[8 + index] = (byte)(cabinet.Length >> (index * 8));
+        cabinet[40] = 0; cabinet[41] = 0;
+        cabinet[42] = (byte)compression; cabinet[43] = (byte)(compression >> 8);
+        return cabinet;
     }
 }
