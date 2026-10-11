@@ -23,10 +23,10 @@ internal static class OfficeArtCustomPathProjector {
             failure = OfficeArtCustomPathFailure.InvalidGeometrySpace; return false;
         }
         OfficeArtProperty? vertexProperty = Property(properties, 0x0145);
-        if (!TryArray(vertexProperty, true, out byte[] vertices, out int pointCount, out int pointSize)
+        if (!TryArray(vertexProperty, true, out OfficeArtComplexData vertices, out int pointCount, out int pointSize)
             || pointCount < 2) return false;
         OfficeArtProperty? segmentProperty = Property(properties, 0x0146);
-        byte[] segments = Array.Empty<byte>(); int segmentCount = 0;
+        OfficeArtComplexData segments = default; int segmentCount = 0;
         if (segmentProperty?.Value > 0 && !TryArray(segmentProperty, false, out segments, out segmentCount, out _)) return false;
         // Charge declared work before allocating decoded arrays or expanding commands.
         accountItems(pointCount + segmentCount);
@@ -108,14 +108,16 @@ internal static class OfficeArtCustomPathProjector {
     }
 
     private static bool TryArray(OfficeArtProperty? property, bool isPoints,
-        out byte[] data, out int count, out int stride) {
-        data = Array.Empty<byte>(); count = stride = 0;
-        if (property?.IsComplex != true || property.CopyComplexData() is not byte[] bytes || bytes.Length < 6) return false;
+        out OfficeArtComplexData data, out int count, out int stride) {
+        data = default; count = stride = 0;
+        if (property?.IsComplex != true) return false;
+        OfficeArtComplexData bytes = property.ComplexData;
+        if (bytes.Length < 6) return false;
         int elementSize = U16(bytes, 4);
         stride = isPoints && elementSize == 0xFFF0 ? 4 : elementSize;
         count = U16(bytes, 0);
         if (count > U16(bytes, 2) || (isPoints ? stride is not (4 or 8) : stride != 2)
-            || 6L + (long)count * stride > bytes.Length) return false;
+            || 6L + (long)count * stride != bytes.Length) return false;
         data = bytes; return true;
     }
 
@@ -130,8 +132,8 @@ internal static class OfficeArtCustomPathProjector {
     }
     private static bool Disabled(IReadOnlyList<OfficeArtProperty> properties, uint valueBit) =>
         OfficeArtProperty.GetBoolean(properties, 0x017F, valueBit << 16, valueBit) == false;
-    private static ushort U16(byte[] bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
-    private static int I32(byte[] bytes, int offset) => bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;
+    private static ushort U16(OfficeArtComplexData bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
+    private static int I32(OfficeArtComplexData bytes, int offset) => bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;
 }
 
 internal sealed class OfficeArtCustomPathProjection {
