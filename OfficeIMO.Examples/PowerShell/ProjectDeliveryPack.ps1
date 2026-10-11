@@ -98,20 +98,25 @@ WordNew -Path $docx {
     WordFooter { WordPageNumber -IncludeTotalPages }
     WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Project delivery review' -Bold -FontSize 25 -Color '17365D' }
     WordParagraph -Text "$($done.Count) of $($rows.Count) milestones are complete; $($overdue.Count) overdue milestone(s) need an owner decision at $($snapshotDate.ToString('yyyy-MM-dd'))."
+    WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordList -Style Bulleted {
+        foreach ($item in $overdue) {
+            $decision = WordListItem -Text "$($item.Owner) | $($item.Milestone): $($item.NextAction)." -PassThru
+            WordParagraphStyle -Paragraph $decision -KeepLinesTogether $true
+        }
+        if (-not $overdue.Count) { WordListItem -Text 'No overdue milestones. Confirm the next due dates and acceptance evidence with their owners.' }
+    }
+    WordParagraph -Text 'Review owner: __________________  Decision: __________________' { WordParagraphStyle -SpacingBeforePoints 12 }
     WordParagraph -Text 'Milestone position' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
         WordTableCondition -FilterScript { $_.Status -eq 'Overdue' } -BackgroundColor '#FFF4D6'
     }
+    $table.RepeatHeaderRowAtTheTopOfEachPage = $true
+    foreach ($tableRow in $table.Rows) { $tableRow.AllowRowToBreakAcrossPages = $false }
     $table | Get-OfficeWordTableCell | ForEach-Object {
         $_.MarginTopCentimeters=0.12; $_.MarginBottomCentimeters=0.12
         $_.MarginLeftCentimeters=0.16; $_.MarginRightCentimeters=0.16
     }
-    WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
-    WordList -Style Bulleted {
-        foreach ($item in $overdue) { WordListItem -Text "$($item.Owner) | $($item.Milestone): $($item.NextAction)." }
-        if (-not $overdue.Count) { WordListItem -Text 'No overdue milestones. Confirm the next due dates and acceptance evidence with their owners.' }
-    }
-    WordParagraph -Text 'Review owner: __________________  Decision: __________________' { WordParagraphStyle -SpacingBeforePoints 12 }
     WordParagraph -Text 'Synthetic sample. Due today is on track; overdue means an incomplete milestone due before the snapshot date. Update the CSV and regenerate this review after changes. Record the review decision in the editable Word copy.'
 }
 Export-OfficeDocumentPdf -InputPath $docx -Path $pdf

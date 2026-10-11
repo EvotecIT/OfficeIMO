@@ -101,23 +101,29 @@ $reviewRows = $rows | Select-Object Department,
     @{Name='Forecast (USD)';Expression={$_.Forecast.ToString('N2',$money)}},
     @{Name='Variance (USD)';Expression={$_.Variance.ToString('+#,##0.00;-#,##0.00;0.00',$money)}}
 WordNew -Path $docx {
-    WordHeader { WordParagraph -Text "FINANCE | Review at $($AsOfDate.ToString('yyyy-MM-dd'))" }
+    WordHeader { WordParagraph -Text "FINANCE | Synthetic USD sample | $($AsOfDate.ToString('yyyy-MM-dd'))" }
     WordFooter { WordPageNumber -IncludeTotalPages }
     WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Budget and forecast review' -Bold -FontSize 25 -Color '17365D' }
     WordParagraph -Text "Forecast $($totalForecast.ToString('C2',$money)) against budget $($totalBudget.ToString('C2',$money)); actual spend $($totalActual.ToString('C2',$money))."
     WordParagraph -Text "$(if ($variance -eq 0) {'The forecast matches the approved budget.'} else { "The forecast is $([math]::Abs($variance).ToString('C2',$money)) $(if ($variance -gt 0) {'above'} else {'below'}) budget." }) $($exceptions.Count) department(s) need an overspend decision."
+    WordParagraph -Text 'Positive variance is overspend; negative is favorable. The workbook retains detail, formulas and input validation. Regenerate this dated review after changing the CSV.'
+    WordParagraph -Text 'Owner decisions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
+    WordList -Style Bulleted {
+        foreach ($item in $exceptions) {
+            $decision = WordListItem -Text "$($item.Department) | $($item.Owner): $($item.Action). Forecast overspend $($item.Variance.ToString('C2',$money))." -PassThru
+            WordParagraphStyle -Paragraph $decision -KeepLinesTogether $true
+        }
+        if (-not $exceptions.Count) { WordListItem -Text 'No overspend exceptions. Confirm the remaining forecast assumptions with department owners.' }
+    }
     WordParagraph -Text 'Department view' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
+    $table.RepeatHeaderRowAtTheTopOfEachPage = $true
+    foreach ($tableRow in $table.Rows) { $tableRow.AllowRowToBreakAcrossPages = $false }
     $table | Get-OfficeWordTableCell | ForEach-Object {
         $_.MarginTopCentimeters = 0.12; $_.MarginBottomCentimeters = 0.12
         $_.MarginLeftCentimeters = 0.16; $_.MarginRightCentimeters = 0.16
     }
-    WordParagraph -Text 'Owner decisions' -Style Heading1 { WordParagraphStyle -KeepWithNext $true -SpacingBeforePoints 12 -SpacingAfterPoints 6 }
-    WordList -Style Bulleted {
-        foreach ($item in $exceptions) { WordListItem -Text "$($item.Department) | $($item.Owner): $($item.Action). Forecast overspend $($item.Variance.ToString('C2',$money))." }
-        if (-not $exceptions.Count) { WordListItem -Text 'No overspend exceptions. Confirm the remaining forecast assumptions with department owners.' }
-    }
-    WordParagraph -Text 'Synthetic sample data. Amounts are USD; negative variance is favorable. The editable workbook retains the detail, formulas and input validation. Regenerate this review after changing the input.'
+
 }
 Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
 #endregion
