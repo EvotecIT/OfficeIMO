@@ -290,7 +290,8 @@ public sealed class OfficeArtShapeStyle {
         int count = ReadUInt16(data, 0);
         int allocated = ReadUInt16(data, 2);
         int elementSize = ReadUInt16(data, 4);
-        if (count > allocated || elementSize != 8 || count > (data.Length - 6) / 8
+        int storedSize = elementSize == 0xFFF0 ? 4 : elementSize;
+        if (count > allocated || (elementSize != 8 && elementSize != 0xFFF0) || count > (data.Length - 6) / storedSize
             || count > MaximumGradientStops) {
             truncated = true;
             return Array.Empty<OfficeArtGradientStop>();
@@ -299,8 +300,10 @@ public sealed class OfficeArtShapeStyle {
         var result = new List<OfficeArtGradientStop>(count);
         double previous = -1D;
         for (int index = 0; index < count; index++) {
-            int offset = 6 + index * 8;
-            uint rawPosition = ReadUInt32(data, offset + 4);
+            int offset = 6 + index * storedSize;
+            // IMsoArray's compact form stores the low four bytes of each
+            // eight-byte element and zero-extends its position field.
+            uint rawPosition = storedSize == 4 ? 0 : ReadUInt32(data, offset + 4);
             if (rawPosition > 0x00010000U) {
                 truncated = true;
                 return Array.Empty<OfficeArtGradientStop>();

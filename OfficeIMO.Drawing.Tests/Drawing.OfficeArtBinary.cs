@@ -5,6 +5,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void OfficeArtShapeStyle_DecodesCompactGradientStopsWithZeroExtendedPositions() {
+        byte[] colors = { 2, 0, 2, 0, 0xF0, 0xFF, 0xFF, 0, 0, 0, 0, 0xFF, 0, 0 };
+        var properties = new[] { new OfficeArtProperty(0, 0x8197, (uint)colors.Length,
+            colors.Length, complexData: colors) };
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(properties);
+        Assert.False(style.IsFillGradientStopTableTruncated);
+        Assert.Equal(2, style.FillGradientStops.Count);
+        Assert.Equal(new[] { 0D, 0D }, style.FillGradientStops.Select(stop => stop.Position));
+        Assert.Equal(new[] { 0x000000FFU, 0x0000FF00U }, style.FillGradientStops.Select(stop => stop.Color.Value));
+    }
+
     [Theory]
     [InlineData(0x00360036U, true)]
     [InlineData(0x00000036U, null)]
