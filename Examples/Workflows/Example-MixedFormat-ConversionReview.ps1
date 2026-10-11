@@ -7,9 +7,9 @@ RTF and text inputs are synthetic service handover material. Conversion, resourc
 limits and hash-verified checkpoints belong to OfficeIMO.Workflows. Completed
 conversion does not establish visual fidelity or archival compliance.
 .EXAMPLE
-./Recipe-MixedFormat-ConversionReview.ps1 -OutputDirectory ./ConversionReview
+./Example-MixedFormat-ConversionReview.ps1 -OutputDirectory ./ConversionReview
 .EXAMPLE
-./Recipe-MixedFormat-ConversionReview.ps1 -InputDirectory ./Handover -OutputDirectory ./ConversionReview -RetryFailed
+./Example-MixedFormat-ConversionReview.ps1 -InputDirectory ./Handover -OutputDirectory ./ConversionReview -RetryFailed
 #>
 #Requires -Version 7.4
 [CmdletBinding()]

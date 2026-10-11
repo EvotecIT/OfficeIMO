@@ -1,6 +1,6 @@
 BeforeAll {
     $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).ProviderPath
-    $recipe = Join-Path $repoRoot 'Examples/Workflows/Recipe-MixedFormat-ConversionReview.ps1'
+    $recipe = Join-Path $repoRoot 'Examples/Workflows/Example-MixedFormat-ConversionReview.ps1'
     $sampleRoot = Join-Path $repoRoot 'Examples/Samples/ConversionReview'
     $moduleManifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) { $env:PSWRITEOFFICE_MODULE_MANIFEST } else { Join-Path $repoRoot 'PSWriteOffice.psd1' }
     Import-Module $moduleManifest -Global -ErrorAction Stop

@@ -1,14 +1,14 @@
 # Review a mixed-format folder before distribution
 
-Use [Recipe-MixedFormat-ConversionReview.ps1](Recipe-MixedFormat-ConversionReview.ps1) to convert an offline handover folder to PDFs and receive a file-by-file review. The sample contains Markdown, RTF and text documents describing the same synthetic service handover.
+Use [Example-MixedFormat-ConversionReview.ps1](Example-MixedFormat-ConversionReview.ps1) to convert an offline handover folder to PDFs and receive a file-by-file review. The sample contains Markdown, RTF and text documents describing the same synthetic service handover.
 
 This workflow requires **PSWriteOffice 3.0.9** and **PowerShell 7.4 or newer**. The single-file conversion command has a different runtime boundary; Windows PowerShell 5.1 does not run this batch recipe. The website's public 3.0.8 snapshot documents its own available operations separately.
 
 ```powershell
-./Examples/Workflows/Recipe-MixedFormat-ConversionReview.ps1 -OutputDirectory ./ConversionReview
+./Examples/Workflows/Example-MixedFormat-ConversionReview.ps1 -OutputDirectory ./ConversionReview
 
 # Use your own source folder. Keep output outside that folder.
-./Examples/Workflows/Recipe-MixedFormat-ConversionReview.ps1 `
+./Examples/Workflows/Example-MixedFormat-ConversionReview.ps1 `
     -InputDirectory ./Handover -OutputDirectory ./ConversionReview
 ```
 
