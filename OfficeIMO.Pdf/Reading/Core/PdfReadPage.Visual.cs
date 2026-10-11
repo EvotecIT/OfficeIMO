@@ -392,7 +392,7 @@ public sealed partial class PdfReadPage {
         EnsureContentNestingBudget(depth);
         if (resources == null) return;
 
-        foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values)
+        foreach (PdfFontResource font in _fontResourceCache.GetFonts(resources, _objects).Values)
             RegisterEmbeddedFont(drawing, font, registeredFonts, preserveExistingFaces);
 
         PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ? xObjectValue : null);

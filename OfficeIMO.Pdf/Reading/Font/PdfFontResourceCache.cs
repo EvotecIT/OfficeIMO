@@ -28,6 +28,15 @@ internal sealed class PdfFontResourceCache {
         }
     }
 
+    /// <summary>Resolves local font aliases without constructing unused text decoders or width providers.</summary>
+    internal Dictionary<string, PdfFontResource> GetFonts(
+        PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects) {
+        lock (_sync) {
+            return ResourceResolver.GetFontsForResources(resources, objects, GetOrCreateFont);
+        }
+    }
+
     private PdfFontResource GetOrCreateFont(
         string resourceName,
         PdfDictionary font,
@@ -50,9 +59,17 @@ internal sealed class PdfFontResourceCache {
 
     private static long EstimateRetainedBytes(PdfFontResource font) {
         long embeddedBytes = font.EmbeddedTrueTypeFont?.LongLength ?? 0;
+        long drawingBytes = 0;
+        if (font.DrawingProgram is PdfDrawingFontProgram drawing) {
+            // The rebuilt program normally is EmbeddedTrueTypeFont. Its glyph delegates also
+            // retain the original sfnt bytes, and CID and Unicode maps have their own storage.
+            drawingBytes = drawing.OriginalProgramByteCount + (drawing.CidToGlyphMap?.LongLength ?? 0) +
+                drawing.UnicodeGlyphs.Count * 64L;
+            if (!ReferenceEquals(drawing.Program, font.EmbeddedTrueTypeFont)) drawingBytes += drawing.Program.LongLength;
+        }
         long cmapBytes = (font.CMap?.MappingCount ?? 0) * 128L;
         long differencesBytes = (font.Differences?.Count ?? 0) * 64L;
-        return embeddedBytes + cmapBytes + differencesBytes + 1024L;
+        return embeddedBytes + drawingBytes + cmapBytes + differencesBytes + 1024L;
     }
 }
 
