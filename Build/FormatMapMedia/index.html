@@ -366,9 +366,18 @@
       const base = { d, stroke: `url(#${id})`, 'stroke-width': e.width * (R / 330) * 1.0, opacity: e.alpha * fade };
       const glow = el('path', { ...base, 'stroke-width': base['stroke-width'] * 3.4, opacity: e.alpha * fade * .11 }, dynGroup);
       const line = el('path', base, dynGroup);
+      // Reveal dashed incoming routes through a solid mask, preserving their dash pattern on every frame.
+      if (e.dashed && progress < 1) {
+        const len = line.getTotalLength(), maskId = id + '-reveal';
+        const mask = el('mask', { id: maskId, maskUnits: 'userSpaceOnUse', x: -W, y: -H, width: W * 3, height: H * 3 }, defs);
+        el('path', { d, fill: 'none', stroke: '#fff', 'stroke-width': base['stroke-width'] * 3.4 + 2,
+          'stroke-linecap': 'round', 'stroke-dasharray': `${len} ${len}`, 'stroke-dashoffset': len * (1 - progress) }, mask);
+        glow.setAttribute('mask', `url(#${maskId})`);
+        line.setAttribute('mask', `url(#${maskId})`);
+      }
       [glow, line].forEach(p => {
         const len = p.getTotalLength();
-        if (e.dashed) { p.setAttribute('stroke-dasharray', `${6} ${7}`); p.style.clipPath = ''; if (progress < 1) { p.setAttribute('stroke-dasharray', `${len * progress} ${len}`); } }
+        if (e.dashed) p.setAttribute('stroke-dasharray', '6 7');
         else { p.setAttribute('stroke-dasharray', `${len} ${len}`); p.setAttribute('stroke-dashoffset', String(len * (1 - progress))); }
       });
       if (e.pulse && pulseOn && progress >= 1) {

@@ -97,7 +97,10 @@ internal static class Program {
             Console.Error.WriteLine("ffmpeg not found. It encodes the rendered frames: install it (winget install Gyan.FFmpeg) or pass --ffmpeg=<path>.");
             return 2;
         }
-        if (ffmpeg is not null) Console.WriteLine("ffmpeg: " + ffmpeg);
+        if (ffmpeg is not null) {
+            await MediaEncoding.ValidateAsync(ffmpeg, cuts).ConfigureAwait(false);
+            Console.WriteLine("ffmpeg: " + ffmpeg);
+        }
 
         Directory.CreateDirectory(output);
         // Own a unique invocation directory; never remove a previous run's or another recorder's frames.
@@ -166,7 +169,7 @@ internal static class Program {
         if (cut.Formats is not { Length: > 0 }) throw new ArgumentException($"Cut '{cut.Name}' needs an output format.");
         foreach (string format in cut.Formats) {
             if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException($"Cut '{cut.Name}' has an empty output format.");
-            _ = Encoding(format.ToLowerInvariant(), cut);
+            _ = MediaEncoding.Settings(format.ToLowerInvariant(), cut);
         }
     }
     /// <summary>
@@ -199,8 +202,10 @@ internal static class Program {
             if (skipped.Length > 0) throw new InvalidOperationException($"The page has nothing to show for: {string.Join(", ", skipped)}. Update the scenes of cut '{cut.Name}' in Build/FormatMapMedia/cuts.json.");
             double duration = await page.EvaluateAsync<double>("() => window.imoMedia.duration").ConfigureAwait(false);
             if (stills.Length > 0) {
+                if (stills.Any(at => at > duration)) throw new ArgumentException($"Cut '{cut.Name}' lasts {duration.ToString("R", CultureInfo.InvariantCulture)} ms; --still timestamps must not exceed its duration.");
+
                 foreach (double at in stills) {
-                    await page.EvaluateAsync("(t) => window.imoMedia.render(t)", Math.Min(at, duration)).ConfigureAwait(false);
+                    await page.EvaluateAsync("(t) => window.imoMedia.render(t)", at).ConfigureAwait(false);
                     string still = Path.Combine(output, $"{cut.Name}-t{at.ToString("R", CultureInfo.InvariantCulture)}.png");
 
                     await page.ScreenshotAsync(new() { Type = ScreenshotType.Png, Path = still }).ConfigureAwait(false);
@@ -219,46 +224,8 @@ internal static class Program {
             }
             if (problems.Count > 0) throw new InvalidOperationException("The media page raised an error while rendering: " + problems[0]);
         }
-        await EncodeAsync(cut, output, frames, count, ffmpeg).ConfigureAwait(false);
+        await MediaEncoding.EncodeAsync(cut, output, frames, count, ffmpeg).ConfigureAwait(false);
         Console.WriteLine($"  rendered in {timer.Elapsed.TotalSeconds:0}s");
-    }
-
-    /// <summary>Encodes the numbered JPEG frames into every format of the cut, writes the poster frame and removes the frames.</summary>
-    private static async Task EncodeAsync(Cut cut, string output, string frames, int count, string ffmpeg) {
-        string[] input = ["-framerate", cut.Fps.ToString(CultureInfo.InvariantCulture), "-i", Path.Combine(frames, "%06d.jpg")];
-        foreach (string format in cut.Formats.Select(static f => f.ToLowerInvariant()).Distinct()) {
-            (string extension, string[] encode) = Encoding(format, cut);
-            string target = Path.Combine(output, cut.Name + extension);
-            await RunAsync(ffmpeg, ["-y", "-hide_banner", "-loglevel", "error", .. input, "-an", .. encode, target]).ConfigureAwait(false);
-            Report(target);
-        }
-        string poster = Path.Combine(output, cut.Name + ".png");
-        int posterFrame = Math.Clamp((int)(cut.PosterMs / 1000.0 * cut.Fps), 0, count - 1);
-        await RunAsync(ffmpeg, ["-y", "-hide_banner", "-loglevel", "error", "-i", Path.Combine(frames, $"{posterFrame:D6}.jpg"), poster]).ConfigureAwait(false);
-        Report(poster);
-        Directory.Delete(frames, recursive: true);
-    }
-
-    /// <summary>
-    /// File name suffix and ffmpeg encoder arguments per output format.
-    ///   mp4   H.264, plays everywhere (LinkedIn, X, Discord, YouTube)      h265  HEVC, smaller at the same quality
-    ///   av1   AV1, smallest, newer players                                 webm  VP9
-    ///   mov   ProRes 422 HQ 10-bit, an editing master (very large)         gif / webp / apng  silent animated loops
-    /// </summary>
-    private static (string Extension, string[] Arguments) Encoding(string format, Cut cut) {
-        string loop = $"fps={cut.GifFps},scale={cut.GifWidth}:-1:flags=lanczos";
-        string fps = cut.Fps.ToString(CultureInfo.InvariantCulture);
-        return format switch {
-            "mp4" => (".mp4", ["-c:v", "libx264", "-preset", "slow", "-crf", "17", "-pix_fmt", "yuv420p", "-r", fps, "-movflags", "+faststart"]),
-            "h265" => (".h265.mp4", ["-c:v", "libx265", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-tag:v", "hvc1", "-r", fps, "-movflags", "+faststart"]),
-            "av1" => (".av1.mp4", ["-c:v", "libsvtav1", "-preset", "6", "-crf", "30", "-pix_fmt", "yuv420p", "-r", fps, "-movflags", "+faststart"]),
-            "webm" => (".webm", ["-c:v", "libvpx-vp9", "-crf", "26", "-b:v", "0", "-r", fps]),
-            "mov" => (".mov", ["-c:v", "prores_ks", "-profile:v", "3", "-vendor", "apl0", "-pix_fmt", "yuv422p10le", "-r", fps]),
-            "gif" => (".gif", ["-vf", $"{loop},split[a][b];[a]palettegen=max_colors=128[p];[b][p]paletteuse=dither=bayer:bayer_scale=4", "-loop", "0"]),
-            "webp" => (".webp", ["-vf", loop, "-c:v", "libwebp_anim", "-q:v", "75", "-loop", "0"]),
-            "apng" => (".apng", ["-vf", loop, "-plays", "0"]),
-            _ => throw new InvalidOperationException($"Unknown format '{format}' in cut '{cut.Name}'. Use mp4, h265, av1, webm, mov, gif, webp or apng.")
-        };
     }
 
     private static void Report(string path) => Console.WriteLine($"  {Path.GetFileName(path),-38} {new FileInfo(path).Length / 1024.0 / 1024.0,7:0.00} MB");
@@ -277,16 +244,7 @@ internal static class Program {
         return File.Exists(winget) ? winget : null;
     }
 
-    private static async Task RunAsync(string executable, string[] arguments) {
-        var info = new ProcessStartInfo(executable) { RedirectStandardError = true, RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true };
-        foreach (string argument in arguments) info.ArgumentList.Add(argument);
-        using Process process = Process.Start(info) ?? throw new InvalidOperationException("Could not start " + executable);
-        Task<string> error = process.StandardError.ReadToEndAsync();
-        Task<string> output = process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync().ConfigureAwait(false);
-        await output.ConfigureAwait(false);
-        if (process.ExitCode != 0) throw new InvalidOperationException($"ffmpeg exited with {process.ExitCode}: {(await error.ConfigureAwait(false)).Trim()}");
-    }
+
 }
 
 internal sealed record CutFile(Cut[] Cuts);

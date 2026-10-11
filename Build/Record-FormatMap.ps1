@@ -7,7 +7,8 @@
       1. Regenerates the catalog data (Website/data/format_map.json) from the conversion catalog and powershell-routes.json.
       2. Renders every cut in Build/FormatMapMedia/cuts.json frame by frame and encodes it with ffmpeg.
     The diagram (Build/FormatMapMedia/index.html) reads the generated data directly, so no website build is needed.
-    Clips and poster frames land in Artefacts/FormatMapVideos (not tracked). Needs ffmpeg and the shared Playwright browsers.
+    Clips and poster frames land in Artefacts/FormatMapVideos (not tracked). Video encoding needs ffmpeg with the selected codecs;
+    PNG stills need only the shared browser. Encoder availability is checked before rendering. Failed encodes preserve existing clips and posters.
 
 .PARAMETER Cut
     Only these cuts (names from cuts.json). Default: all.
@@ -28,7 +29,7 @@
     Reuse the current Website/data/format_map.json (the catalog build takes minutes; skip it when only the design or the cuts changed).
 
 .PARAMETER Still
-    Write PNG stills of these moments (milliseconds) instead of rendering video. Useful when changing the design.
+    Write PNG stills of these moments (milliseconds) instead of rendering video. Timestamps must fit the selected cuts' durations.
 
 .PARAMETER List
     Print the cuts and exit.
