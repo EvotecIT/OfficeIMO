@@ -23,10 +23,10 @@ public static partial class ArchiveExtractor {
         using var aliases = new MsiAliasVerifier(staging, token);
         foreach (var group in groups) {
             token.ThrowIfCancellationRequested();
-            var expected = group.ToDictionary(file => file.Id, StringComparer.OrdinalIgnoreCase);
+            var expected = group.ToDictionary(file => file.Id, StringComparer.Ordinal);
             if (expected.Count > remainingEntries) throw new InvalidDataException("MSI cabinets exceed the configured aggregate member count.");
             remainingEntries -= expected.Count;
-            var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var found = new HashSet<string>(StringComparer.Ordinal);
             using Stream cabinet = database.OpenCabinet(group.Key);
             IReadOnlyList<OfficeCabinetEntry> entries = OfficeCabinetArchiveReader.Read(cabinet, limits.Input,
                 decodedBudget, limits.Entry, expected.Count, out long decodedBytes, token, name => {

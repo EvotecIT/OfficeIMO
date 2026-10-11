@@ -129,12 +129,16 @@ public sealed class ArchiveExtractorTests {
             fixture.Package(ArchiveFixtures.Msi(twoCabinets: true, backwardMedia: true)), invalidDestination));
         Assert.False(Directory.Exists(invalidDestination));
     }
-    [Fact]
-    public void FileIdentifiersRemainCaseInsensitiveWhenMatchingCabinetMembers() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CabinetMemberIdentifiersMustMatchAuthoredFileKeysExactlyEvenWhenFiltered(bool exclude) {
         using var fixture = new ArchiveFixtures();
-        var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.Msi(lowercaseCabinetKey: true)), fixture.Destination);
-        Assert.Equal("PolicyDefinitions/en-US/Template.adml", Assert.Single(result.Files).RelativePath);
-        Assert.Equal("hello", File.ReadAllText(Path.Combine(fixture.Destination, "PolicyDefinitions", "en-US", "Template.adml")));
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+            fixture.Package(ArchiveFixtures.Msi(lowercaseCabinetKey: true)), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => !exclude }));
+        Assert.False(Directory.Exists(fixture.Destination));
+        Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
     }
     [Fact]
     public void FilteredMsiCabinetsStillShareTheAggregateDecodedByteBudget() {

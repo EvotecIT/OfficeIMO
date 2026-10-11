@@ -4,6 +4,17 @@ namespace OfficeIMO.Archives.Tests;
 
 public sealed class ArchivePublicContractTests {
     [Fact]
+    public void FileTableIdentifiersRemainUniqueWithoutCaseSensitivity() {
+        using var fixture = new ArchiveFixtures();
+        byte[] package = RewriteMsi(ArchiveFixtures.Msi(twoCabinets: true), streams =>
+            ReplaceString(streams, "PayloadTwo", "payloadkey"));
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination));
+        Assert.Contains("duplicate identifiers: File", error.Message);
+        Assert.False(Directory.Exists(fixture.Destination));
+    }
+
+    [Fact]
     public void CaseDistinctEmbeddedCabinetsKeepSeparateFileMappings() {
         using var fixture = new ArchiveFixtures();
         byte[] package = RewriteMsi(ArchiveFixtures.Msi(twoCabinets: true), streams => {

@@ -12,6 +12,21 @@ internal sealed partial class ArchiveFixtures : IDisposable {
     internal string Package(byte[] bytes) { string path = Path.Combine(Root, "package.bin"); File.WriteAllBytes(path, bytes); return path; }
     public void Dispose() { if (Directory.Exists(Root)) Directory.Delete(Root, recursive: true); }
     internal static byte[] StoredCab(string name, byte[] data) => StoredCab((name, data));
+    internal static byte[] Utf8Cabinet(string name) {
+        byte[] encodedName = Encoding.UTF8.GetBytes(name + "\0");
+        int dataOffset = 44 + 16 + encodedName.Length;
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        writer.Write(Encoding.ASCII.GetBytes("MSCF")); writer.Write(0u); writer.Write((uint)(dataOffset + 9));
+        writer.Write(0u); writer.Write(44u); writer.Write(0u);
+        writer.Write((byte)3); writer.Write((byte)1); writer.Write((ushort)1); writer.Write((ushort)1);
+        writer.Write((ushort)0); writer.Write(0u);
+        writer.Write((uint)dataOffset); writer.Write((ushort)1); writer.Write((ushort)0);
+        writer.Write(1u); writer.Write(0u); writer.Write((ushort)0); writer.Write(0u); writer.Write((ushort)0x80);
+        writer.Write(encodedName);
+        writer.Write(0u); writer.Write((ushort)1); writer.Write((ushort)1); writer.Write((byte)'A');
+        return stream.ToArray();
+    }
     internal static byte[] StoredCab(params (string Name, byte[] Data)[] files) {
         byte[][] names = files.Select(file => Encoding.ASCII.GetBytes(file.Name + "\0")).ToArray();
         int payloadOffset = 44 + 16 * files.Length + names.Sum(name => name.Length);

@@ -27,10 +27,7 @@ public static partial class ArchiveExtractor {
         CheckDestination(destination);
         using var source = new FileStream(package, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (source.Length > limits.Input) throw new InvalidDataException("Package exceeds the configured input-byte limit.");
-        var header = new byte[8];
-        int headerLength = source.Read(header, 0, header.Length);
-        source.Position = 0;
-        ArchiveFormat format = Detect(header, headerLength);
+        ArchiveFormat format = Detect(source, cancellationToken);
         Directory.CreateDirectory(parent);
         string staging = Path.Combine(parent, ".officeimo-archive-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(staging);
@@ -62,6 +59,24 @@ public static partial class ArchiveExtractor {
     private static void CheckDestination(string destination) {
         if (File.Exists(destination) || Directory.Exists(destination) && Directory.EnumerateFileSystemEntries(destination).Any())
             throw new IOException("Extraction requires an absent or empty destination directory.");
+    }
+    /// <summary>Detects a seekable container from its initial header and restores the caller's stream position.</summary>
+    internal static ArchiveFormat Detect(Stream source, CancellationToken token) {
+        long originalPosition = source.Position;
+        try {
+            source.Position = 0;
+            var header = new byte[8];
+            int headerLength = 0;
+            while (headerLength < header.Length) {
+                token.ThrowIfCancellationRequested();
+                int read = source.Read(header, headerLength, header.Length - headerLength);
+                if (read == 0) break;
+                headerLength += read;
+            }
+            return Detect(header, headerLength);
+        } finally {
+            source.Position = originalPosition;
+        }
     }
     private static ArchiveFormat Detect(byte[] bytes, int length) {
         if (length >= 4 && bytes[0] == 'M' && bytes[1] == 'S' && bytes[2] == 'C' && bytes[3] == 'F') return ArchiveFormat.Cab;

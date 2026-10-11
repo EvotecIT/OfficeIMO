@@ -34,7 +34,8 @@ internal sealed class ArchivePaths {
         return path;
     }
     internal static void ValidateSegment(string part) {
-        if (part.Length == 0 || part.Length > 255) throw new InvalidDataException("Archive member has an empty or oversized path segment.");
+        if (part.Length == 0 || part.Length > 255 || Encoding.UTF8.GetByteCount(part) > 255)
+            throw new InvalidDataException("Archive member has an empty or oversized path segment.");
         int dot = part.IndexOf('.');
         string baseName = dot < 0 ? part : part.Substring(0, dot);
         if (part.EndsWith(".", StringComparison.Ordinal)
