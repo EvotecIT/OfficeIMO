@@ -6,8 +6,8 @@ param([switch] $Check)
 Derives the links between the API reference and the guides and examples that use it.
 
 .DESCRIPTION
-Reads the merged xref map (data/xrefmap.json) for every documented type, member, and
-PowerShell command, then scans docs and workflow pages (inline code and C#/PowerShell
+Reads the merged xref map (data/xrefmap.json) for documented types and members, and
+the imported command metadata for PowerShell commands, then scans docs and workflow pages (inline code and C#/PowerShell
 blocks) and the showcase example sources for the symbols they use. It writes:
 
 - data/apidocs/related/<package>.json: "Guides & Samples" manifests for each API package,
@@ -113,7 +113,13 @@ $xref.Dispose()
 $commandAliases = @{}
 $commandMetadata = Get-Content -LiteralPath (Join-Path $websiteRoot 'data/apidocs/powershell/command-metadata.json') -Raw | ConvertFrom-Json
 foreach ($command in $commandMetadata.commands) {
-    if (-not $commands.ContainsKey($command.name)) { continue }
+    # The imported release catalog owns command availability. The merged xref can
+    # predate that snapshot, so it must not hide a supported command or its aliases.
+    $commands[$command.name] = [pscustomobject]@{
+        Uid = $command.name; Name = $command.name
+        Href = "/api/powershell/$($command.name.ToLowerInvariant())/"
+        Package = 'powershell'; Namespace = ''
+    }
     foreach ($alias in $command.aliases) {
         $canonical = $commands[$command.name]
         $commandAliases[$alias] = [pscustomobject]@{ Uid = $canonical.Uid; Name = $alias; Href = $canonical.Href; Package = 'powershell'; Namespace = '' }
