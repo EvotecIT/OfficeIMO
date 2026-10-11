@@ -445,7 +445,10 @@
           g.addEventListener('mouseenter', function () { if (moved()) setHover(n); });
           g.addEventListener('mousemove', function () { if (moved()) setHover(n); });
           g.addEventListener('mouseleave', function () { setHover(null); });
-          g.addEventListener('focus', function () { tour.touched = true; stopTour(true); state.focus = n; refreshPreview(true); });
+          g.addEventListener('focus', function () {
+            if (tour.on) { state.from = state.to = null; syncChips(); syncPickers(); }
+            tour.touched = true; stopTour(true); state.focus = n; refreshPreview(true);
+          });
           g.addEventListener('blur', function () { state.focus = null; refreshPreview(true); });
           g.addEventListener('click', function (e) { e.stopPropagation(); pick(n, true); });
           g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(n, true); } });
@@ -590,7 +593,14 @@
     function moved() { return Date.now() - pointer.at < 400; }
     function setHover(n) {
       window.clearTimeout(hoverLeave);
-      if (tour.on) return;
+      if (tour.on) {
+        if (!n) return;
+        tour.touched = true;
+        stopTour(true);
+        state.from = state.to = null;
+        syncChips();
+        syncPickers();
+      }
       if (n) {
         if (state.hover === n) return;
         state.hover = n;
