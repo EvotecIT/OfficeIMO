@@ -14,6 +14,8 @@ Use a collector to obtain the data, then pass ordinary objects or files to the n
 
 The first two recipes run with synthetic data by default. The mail recipe saves an EML locally; sending is an explicit `-Send` operation with your SMTP settings.
 
+Open the worked examples to inspect the generated files before adapting the scripts: [supplier offer review](/docs/integrations/supplier-review/), [event incident brief](/docs/integrations/event-brief/) and [email review package](/docs/integrations/report-email/).
+
 ```powershell
 ./Examples/Integrations/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 ./Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1 -OutputDirectory ./Output/EventBrief
