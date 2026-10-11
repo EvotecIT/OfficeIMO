@@ -469,6 +469,15 @@ allocation. The isolated runner places retained heap, managed-heap peak, and
 absolute process peak below 1x for both scales. EPUB therefore clears the 2x
 contender ceiling without a runtime optimization in this slice.
 
+## PDF runtime operations
+
+The [11 October 2026 runtime evidence](pdf-runtime-2026-10-11.md) measures generation,
+repeated inspection, rendering, region editing, structured reading, and file
+destinations through the shared PowerForge runner. Its [raw companion](pdf-runtime-2026-10-11.json)
+retains exact inputs, binary identities, samples, allocation changes, and observed
+timing losses. The results describe frozen source/binary snapshots and named
+workloads on a shared Windows host.
+
 ## PDF comparisons
 
 The opt-in `OfficeIMO.Pdf.Benchmarks.Comparisons` project measures validated
