@@ -291,7 +291,7 @@ public sealed class OfficeArtShapeStyle {
         int allocated = ReadUInt16(data, 2);
         int elementSize = ReadUInt16(data, 4);
         int storedSize = elementSize == 0xFFF0 ? 4 : elementSize;
-        if (count > allocated || (elementSize != 8 && elementSize != 0xFFF0) || count > (data.Length - 6) / storedSize
+        if (count > allocated || (elementSize != 8 && elementSize != 0xFFF0) || 6L + (long)count * storedSize != data.Length
             || count > MaximumGradientStops) {
             truncated = true;
             return Array.Empty<OfficeArtGradientStop>();
