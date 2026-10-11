@@ -243,7 +243,7 @@ namespace OfficeIMO.Excel.Pdf {
                     options.CancellationToken);
 
                 if (options.AutoFitColumns) {
-                    sheet.AutoFitColumns();
+                        sheet.AutoFitColumns(ct: options.CancellationToken);
                 }
 
                 string actualTableName = FindActualTableName(workbook, sheet.Name, range, requestedTableName);
