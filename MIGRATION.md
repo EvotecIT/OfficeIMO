@@ -37,6 +37,12 @@ to use `Scale` for percentage-based printing. To enable page fitting, configure
 it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
 with no height limit, instead of relying on cached dimensions in the worksheet XML.
 
+## Excel import cancellation and date conversion
+
+`ExcelDocument.AddWorksheet(name, sheetPosition, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+
+`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
+
 ## PDF form value assessment
 
 `PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
