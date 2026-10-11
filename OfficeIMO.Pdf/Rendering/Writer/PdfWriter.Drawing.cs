@@ -201,9 +201,12 @@ internal static partial class PdfWriter {
         bool hasFill,
         bool hasStroke) {
         OfficeIMO.Drawing.OfficeShape shape = source;
-        if (source.Transform.HasValue) {
+        if (source.Transform.HasValue || RequiresExactStrokeWriter(source)) {
             shape = source.Clone();
+            shape.Transform ??= OfficeIMO.Drawing.OfficeTransform.Identity;
             shape.StrokeWidth = strokeWidth;
+            shape.StrokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid;
+            shape.SetStrokeDashArray(null);
             shape.ClipPath = null;
             DrawTransformedShape(sb, shape, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, null, x, bottomY);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) {

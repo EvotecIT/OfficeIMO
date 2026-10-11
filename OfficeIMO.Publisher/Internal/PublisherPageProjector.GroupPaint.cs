@@ -12,11 +12,15 @@ internal sealed partial class PublisherPageProjector {
             OfficeShape shape = item.Shape;
             // An unspecified join can use PDF's implicit miter limit of ten.
             double miterLimit = shape.StrokeLineJoin.HasValue ? shape.StrokeMiterLimit : Math.Max(10, shape.StrokeMiterLimit);
-            double padding = 1 + Math.Max(0, shape.StrokeWidth) * Math.Max(1, miterLimit) / 2;
+            double strokeRadius = Math.Max(0, shape.StrokeWidth) / 2;
+            // Non-expandable shadows widen the stroke before forming its joins.
+            // Square caps can extend sqrt(2) radii along either canvas axis.
+            if (shape.Shadow is OfficeShadow softShadow) strokeRadius += softShadow.BlurRadius;
+            double padding = 1 + strokeRadius * Math.Max(2, miterLimit);
             foreach (OfficeLineMarker? marker in new[] { shape.StrokeStartMarker, shape.StrokeEndMarker })
                 if (marker != null) padding += Math.Max(marker.Width, marker.Length);
             if (shape.Shadow is OfficeShadow shadow)
-                padding += Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY)) + shadow.BlurRadius;
+                padding += Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY));
             OfficeTransform placement = (shape.Transform ?? OfficeTransform.Identity)
                 .Then(OfficeTransform.Translate(item.X, item.Y));
             foreach (OfficeFlattenedPathContour contour in OfficeStrokeGeometry.FlattenShape(shape, 4))
