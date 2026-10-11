@@ -11,6 +11,7 @@
     PNG stills need only the shared browser. Encoder availability is checked before rendering. Rendering or encoding failures preserve existing clips, posters and stills.
     Failed file replacements restore previous outputs. If recovery is blocked, the error identifies the retained recovery directory.
     Custom cuts must set posterMs within their duration; poster timestamps are checked before frame capture.
+    Cut JSON rejects unknown or duplicate properties and missing required fields; configured playback speed is preserved without rounding.
 
 .PARAMETER Cut
     Only these cuts (names from cuts.json). Default: all.

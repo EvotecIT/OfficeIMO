@@ -23,7 +23,11 @@ using Microsoft.Playwright;
 /// Frames are written under EVOTEC_SCRATCH_ROOT (or the output folder) and removed after a successful encode.
 /// </summary>
 internal static class Program {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip };
+    private static readonly JsonSerializerOptions JsonOptions = new() {
+        PropertyNameCaseInsensitive = true, ReadCommentHandling = JsonCommentHandling.Skip,
+        UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
+        AllowDuplicateProperties = false, RespectRequiredConstructorParameters = true
+    };
 
     private static async Task<int> Main(string[] args) {
         try {
@@ -179,7 +183,8 @@ internal static class Program {
     private static async Task RecordAsync(string baseUrl, Cut cut, string output, string frames, string ffmpeg, double[] stills) {
         var query = new List<string> { "ratio=" + cut.Ratio };
         if (cut.Scenes is not null) query.Add("scenes=" + Uri.EscapeDataString(cut.Scenes));
-        if (Math.Abs(cut.Speed - 1) > 0.001) query.Add("speed=" + cut.Speed.ToString("0.##", CultureInfo.InvariantCulture));
+        if (cut.Speed != 1) query.Add("speed=" + cut.Speed.ToString("R", CultureInfo.InvariantCulture));
+
         string url = $"{baseUrl}/index.html?{string.Join('&', query)}";
         Console.WriteLine($"[{cut.Name}] rendering media {cut.Width}x{cut.Height} at {cut.Fps} fps ({cut.Scale}x) {url}");
 
