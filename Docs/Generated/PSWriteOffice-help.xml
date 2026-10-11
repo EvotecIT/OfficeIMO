@@ -201969,6 +201969,54 @@ cell inside a deck that already exists.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MarginBottomCentimeters</maml:name>
+          <maml:description>
+            <maml:para>Bottom cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <dev:type>
+            <maml:name>Double</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MarginLeftCentimeters</maml:name>
+          <maml:description>
+            <maml:para>Left cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <dev:type>
+            <maml:name>Double</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MarginRightCentimeters</maml:name>
+          <maml:description>
+            <maml:para>Right cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <dev:type>
+            <maml:name>Double</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>MarginTopCentimeters</maml:name>
+          <maml:description>
+            <maml:para>Top cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+          <dev:type>
+            <maml:name>Double</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>MergeDown</maml:name>
           <maml:description>
             <maml:para>Number of cells to merge downward.</maml:para>
@@ -202207,6 +202255,54 @@ cell inside a deck that already exists.</maml:para>
         <command:parameterValue required="false" variableLength="false">Boolean</command:parameterValue>
         <dev:type>
           <maml:name>Boolean</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MarginBottomCentimeters</maml:name>
+        <maml:description>
+          <maml:para>Bottom cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <dev:type>
+          <maml:name>Double</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MarginLeftCentimeters</maml:name>
+        <maml:description>
+          <maml:para>Left cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <dev:type>
+          <maml:name>Double</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MarginRightCentimeters</maml:name>
+        <maml:description>
+          <maml:para>Right cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <dev:type>
+          <maml:name>Double</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>MarginTopCentimeters</maml:name>
+        <maml:description>
+          <maml:para>Top cell padding in centimeters. Pass null to remove the explicit margin.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Double</command:parameterValue>
+        <dev:type>
+          <maml:name>Double</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -202464,6 +202560,16 @@ cell inside a deck that already exists.</maml:para>
             $doc | Save-OfficeWord -Path .\Report-StatusCells.docx</dev:code>
         <dev:remarks>
           <maml:para>Reads cells from an OfficeIMO table object, applies cell shading and width, and saves the updated document.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Add readable padding to every cell in a report table.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16</dev:code>
+        <dev:remarks>
+          <maml:para>Sets independent cell margins in centimeters. Omitted margins retain their values; pass null to remove an explicit margin.</maml:para>
         </dev:remarks>
       </command:example>
       <command:example>

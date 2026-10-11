@@ -194,6 +194,8 @@ This is useful when audiences need different artifacts but the numbers and statu
 
 ## Run and adapt a recipe
 
+For reports that combine headings, tables and charts, use [document spacing and table padding](../document-layout/) to keep each section readable. The [patch compliance recipe](https://github.com/EvotecIT/PSWriteOffice/blob/main/Examples/Word/Recipe-Word-PatchCompliance.ps1) creates both an editable Word document and a PDF delivery copy.
+
 ```powershell
 .\Examples\Word\Recipe-Word-ProjectStatus.ps1
 ```

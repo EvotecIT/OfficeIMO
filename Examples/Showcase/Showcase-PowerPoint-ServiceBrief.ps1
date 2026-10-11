@@ -1,71 +1,73 @@
 param(
-    [switch] $Open
+    [switch] $Open,
+    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output')
 )
 
+$ErrorActionPreference = 'Stop'
 Import-Module PSWriteOffice -ErrorAction Stop
 
-$documents = Join-Path $PSScriptRoot '..\Documents'
+$documents = $OutputDirectory
 $null = New-Item -Path $documents -ItemType Directory -Force
 $path = Join-Path $documents 'Showcase-PowerPoint-ServiceBrief.pptx'
 
 $process = @(
-    [pscustomobject]@{ Title = 'Assess'; Body = 'Map services, owners, risk, and reporting expectations.' }
-    [pscustomobject]@{ Title = 'Design'; Body = 'Choose workbook, report, and deck outputs that match the audience.' }
-    [pscustomobject]@{ Title = 'Automate'; Body = 'Generate Office files from repeatable PowerShell objects.' }
-    [pscustomobject]@{ Title = 'Publish'; Body = 'Attach visuals and explain the workflow in reusable blog posts.' }
+    [pscustomobject]@{ Title = 'Assess'; Body = 'Review service incidents and confirm accountable owners.' }
+    [pscustomobject]@{ Title = 'Prioritize'; Body = 'Compare operational impact and select the next fixes.' }
+    [pscustomobject]@{ Title = 'Remediate'; Body = 'Schedule changes with owners and recovery checks.' }
+    [pscustomobject]@{ Title = 'Verify'; Body = 'Review outcomes at the next monthly service meeting.' }
 )
 
 $cards = @(
-    [pscustomobject]@{ Title = 'Word'; Items = 'TOC|sections|tables|charts|approvals'; AccentColor = '#2F80ED' }
-    [pscustomobject]@{ Title = 'Excel'; Items = 'dashboard|pivots|sparklines|validation|links'; AccentColor = '#219653' }
-    [pscustomobject]@{ Title = 'PowerPoint'; Items = 'designer plans|process|cards|coverage|notes'; AccentColor = '#9B51E0' }
-    [pscustomobject]@{ Title = 'Blog'; Items = 'screenshots|code|generated covers|artifact links'; AccentColor = '#F2994A' }
+    [pscustomobject]@{ Title = 'Identity'; Items = 'owner: Platform|1 incident|stable service'; AccentColor = '#2F80ED' }
+    [pscustomobject]@{ Title = 'Backup'; Items = 'owner: Operations|5 incidents|retry tuning'; AccentColor = '#219653' }
+    [pscustomobject]@{ Title = 'Remote Access'; Items = 'owner: Security|7 incidents|profile retirement'; AccentColor = '#9B51E0' }
+    [pscustomobject]@{ Title = 'Messaging'; Items = 'owner: Collaboration|4 incidents|queue alert review'; AccentColor = '#F2994A' }
 )
 
 $coverage = @(
-    [pscustomobject]@{ Name = 'Engine'; X = 0.22; Y = 0.42; Detail = 'OfficeIMO owns Open XML behavior.' }
-    [pscustomobject]@{ Name = 'PowerShell'; X = 0.48; Y = 0.34; Detail = 'PSWriteOffice owns scripting ergonomics.' }
-    [pscustomobject]@{ Name = 'Examples'; X = 0.68; Y = 0.58; Detail = 'Showcase scripts prove the surface.' }
-    [pscustomobject]@{ Name = 'Website'; X = 0.82; Y = 0.36; Detail = 'Blog posts turn artifacts into adoption.' }
+    [pscustomobject]@{ Name = 'Identity'; X = 0.22; Y = 0.42; Detail = 'Platform confirms synchronization health.' }
+    [pscustomobject]@{ Name = 'Backup'; X = 0.48; Y = 0.34; Detail = 'Operations owns retry tuning and restore checks.' }
+    [pscustomobject]@{ Name = 'Remote Access'; X = 0.68; Y = 0.58; Detail = 'Security retires legacy VPN profiles.' }
+    [pscustomobject]@{ Name = 'Messaging'; X = 0.82; Y = 0.36; Detail = 'Collaboration reviews queue alerts.' }
 )
 
 $capabilities = @(
-    [pscustomobject]@{ Heading = 'Readable by humans'; Body = 'Outputs should look like business artifacts, not raw exports.'; Items = 'visual hierarchy|navigation|metadata' }
-    [pscustomobject]@{ Heading = 'Useful to scripts'; Body = 'Generated files should be inspectable and testable.'; Items = 'summaries|parts|deterministic paths' }
-    [pscustomobject]@{ Heading = 'Fast enough to reuse'; Body = 'Examples should be smoke-test friendly and avoid desktop Office for generation.'; Items = 'Open XML|parallel engine work|small fixtures' }
+    [pscustomobject]@{ Heading = 'Protect access'; Body = 'Retire legacy remote-access profiles without disrupting supported users.'; Items = 'owner: Security|pilot group first|rollback documented' }
+    [pscustomobject]@{ Heading = 'Improve recovery'; Body = 'Tune failed backup retries and verify a representative restore.'; Items = 'owner: Operations|restore evidence|completion trend' }
+    [pscustomobject]@{ Heading = 'Reduce alert noise'; Body = 'Review repetitive messaging alerts while keeping actionable failures visible.'; Items = 'owner: Collaboration|threshold review|incident follow-up' }
 )
 
 $caseStudy = @(
-    [pscustomobject]@{ Heading = 'Problem'; Body = 'Basic examples hide how much OfficeIMO can already produce.' }
-    [pscustomobject]@{ Heading = 'Approach'; Body = 'Expose semantic PowerPoint plans and richer Office examples through PSWriteOffice.' }
-    [pscustomobject]@{ Heading = 'Outcome'; Body = 'A test-drive deck that remains editable and visually credible.' }
+    [pscustomobject]@{ Heading = 'Problem'; Body = 'Repeated backup failures consume operator time and reduce confidence in recovery.' }
+    [pscustomobject]@{ Heading = 'Approach'; Body = 'Tune the retry window, review exceptions and run a representative restore.' }
+    [pscustomobject]@{ Heading = 'Success measure'; Body = 'Fewer repeat failures, with a recorded restore result and an accountable owner.' }
 )
 
 $metrics = @(
-    [pscustomobject]@{ Value = '3'; Label = 'flagship products' }
-    [pscustomobject]@{ Value = '1'; Label = 'shared showcase plan' }
-    [pscustomobject]@{ Value = '0'; Label = 'desktop Office dependency' }
+    [pscustomobject]@{ Value = '3'; Label = 'priority actions' }
+    [pscustomobject]@{ Value = '1'; Label = 'approval requested' }
+    [pscustomobject]@{ Value = '30'; Label = 'days to next review' }
 )
 
 $chartRows = @(
-    [pscustomobject]@{ Product = 'Word'; Coverage = 82; Polish = 72 }
-    [pscustomobject]@{ Product = 'Excel'; Coverage = 91; Polish = 83 }
-    [pscustomobject]@{ Product = 'PowerPoint'; Coverage = 76; Polish = 68 }
+    [pscustomobject]@{ Service = 'Backup'; Previous = 8; Current = 5 }
+    [pscustomobject]@{ Service = 'Remote Access'; Previous = 9; Current = 7 }
+    [pscustomobject]@{ Service = 'Messaging'; Previous = 6; Current = 4 }
 )
 
 $tableRows = @(
-    [pscustomobject]@{ Area = 'Designer bridge'; Status = 'Added'; Next = 'Add more variant knobs' }
-    [pscustomobject]@{ Area = 'Showcase deck'; Status = 'Added'; Next = 'Export screenshots' }
-    [pscustomobject]@{ Area = 'Blog post'; Status = 'Planned'; Next = 'Write after visuals' }
+    [pscustomobject]@{ Action = 'Retire legacy VPN profiles'; Owner = 'Security'; Due = '24 May' }
+    [pscustomobject]@{ Action = 'Tune backup retries'; Owner = 'Operations'; Due = '31 May' }
+    [pscustomobject]@{ Action = 'Review messaging alerts'; Owner = 'Collaboration'; Due = '7 June' }
 )
 
 $plan = PptDeckPlan {
-    PptPlanSection -Title 'PSWriteOffice Showcase' -Subtitle 'Beautiful, useful Office artifacts from PowerShell' -Seed 'showcase-cover'
-    PptPlanProcess -Title 'From objects to publishable artifacts' -Subtitle 'A repeatable path for examples and blog posts' -Steps $process -Seed 'delivery-process'
-    PptPlanCardGrid -Title 'Product surfaces' -Subtitle 'Each product should show a real workflow, not only primitives.' -Cards $cards -Seed 'product-cards'
-    PptPlanCoverage -Title 'Where the work belongs' -Subtitle 'Engine, wrapper, examples, and website stay distinct.' -Locations $coverage -Seed 'coverage-map'
-    PptPlanCapability -Title 'Quality bar' -Subtitle 'The showcase should be practical enough to copy and attractive enough to publish.' -Sections $capabilities -Seed 'quality-bar'
-    PptPlanCaseStudy -Title 'PowerPoint designer bridge' -Sections $caseStudy -Metrics $metrics -Seed 'designer-case-study'
+    PptPlanSection -Title 'Service-health briefing' -Subtitle 'Monthly review | Synthetic example data' -Seed 'showcase-cover'
+    PptPlanProcess -Title 'From review to verified action' -Subtitle 'A monthly service-improvement cycle' -Steps $process -Seed 'delivery-process'
+    PptPlanCardGrid -Title 'Service posture' -Subtitle 'Current incidents and named owners for this review.' -Cards $cards -Seed 'product-cards'
+    PptPlanCoverage -Title 'Accountable service owners' -Subtitle 'The map illustrates ownership; position does not represent a measured score.' -Locations $coverage -Seed 'coverage-map'
+    PptPlanCapability -Title 'Three priorities for this month' -Subtitle 'Approve the actions, then verify their outcomes.' -Sections $capabilities -Seed 'quality-bar'
+    PptPlanCaseStudy -Title 'Backup recovery improvement' -Sections $caseStudy -Metrics $metrics -Seed 'designer-case-study'
 }
 
 New-OfficePowerPoint -Path $path {
@@ -73,17 +75,17 @@ New-OfficePowerPoint -Path $path {
     PptDesignerDeck -Plan $plan -AccentColor '#008C95' -Seed 'pswriteoffice-showcase' -Purpose 'technical service brief' -Name 'PSWriteOffice Showcase' -FooterLeft 'PSWriteOffice' -FooterRight 'OfficeIMO designer' -CreativeDirectionPack TechnicalMap -LayoutStrategy ContentFirst
 
     $chartSlide = PptSlide -PassThru
-    PptTitle -Slide $chartSlide -Title 'Coverage and polish scorecard'
-    PptChart -Slide $chartSlide -Type ClusteredColumn -Data $chartRows -CategoryProperty Product -SeriesProperty Coverage, Polish -Title 'Current Surface vs Polish Target' -X 58 -Y 118 -Width 610 -Height 265
-    PptNotes -Slide $chartSlide -Text 'Use this slide as the bridge between the designer slides and the concrete backlog.'
+    PptTitle -Slide $chartSlide -Title 'Incident counts by service'
+    PptChart -Slide $chartSlide -Type ClusteredColumn -Data $chartRows -CategoryProperty Service -SeriesProperty Previous, Current -Title 'Previous month vs current month' -X 58 -Y 118 -Width 610 -Height 265
+    PptNotes -Slide $chartSlide -Text 'Synthetic counts for the same three services over two months. Do not treat them as production measurements.'
 
     $tableSlide = PptSlide -PassThru
-    PptTitle -Slide $tableSlide -Title 'Immediate implementation path'
+    PptTitle -Slide $tableSlide -Title 'Actions for approval'
     PptTable -Slide $tableSlide -Data $tableRows -X 64 -Y 132 -Width 590 -Height 210
-    PptNotes -Slide $tableSlide -Text 'Close with the next concrete pull request slices: visual screenshots, blog drafts, and richer wrappers.'
+    PptNotes -Slide $tableSlide -Text 'Confirm each owner, due date and acceptance measure before approving this illustrative plan.'
 
-    PptSection -Name 'Designer story' -StartSlideIndex 0
-    PptSection -Name 'Evidence appendix' -StartSlideIndex 6
+    PptSection -Name 'Service review' -StartSlideIndex 0
+    PptSection -Name 'Evidence and actions' -StartSlideIndex 6
     PptTransition -Slide $chartSlide -Transition PushLeft
     Get-OfficePowerPointSlide -Index 0 | PptTransition -Transition Fade
 } -Open:$Open

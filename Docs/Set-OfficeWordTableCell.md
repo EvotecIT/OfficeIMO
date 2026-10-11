@@ -11,7 +11,7 @@ Updates OfficeIMO Word table-cell content, layout, and merge settings.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficeWordTableCell [-Cell] <WordTableCell> [-Text <string>] [-ShadingFillColor <string>] [-ShadingPattern <WordShadingPattern>] [-Width <Int32>] [-WidthType <WordTableWidthUnit>] [-TextDirection <WordTextDirection>] [-WrapText <Boolean>] [-FitText <Boolean>] [-MergeRight <Int32>] [-MergeDown <Int32>] [-SplitHorizontal <Int32>] [-SplitVertical <Int32>] [-CopyParagraphs] [-PassThru] [<CommonParameters>]
+Set-OfficeWordTableCell [-Cell] <WordTableCell> [-Text <string>] [-MarginTopCentimeters <Double>] [-MarginBottomCentimeters <Double>] [-MarginLeftCentimeters <Double>] [-MarginRightCentimeters <Double>] [-ShadingFillColor <string>] [-ShadingPattern <WordShadingPattern>] [-Width <Int32>] [-WidthType <WordTableWidthUnit>] [-TextDirection <WordTextDirection>] [-WrapText <Boolean>] [-FitText <Boolean>] [-MergeRight <Int32>] [-MergeDown <Int32>] [-SplitHorizontal <Int32>] [-SplitVertical <Int32>] [-CopyParagraphs] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -44,6 +44,13 @@ $doc | Save-OfficeWord -Path .\Report-StatusCells.docx
 Reads cells from an OfficeIMO table object, applies cell shading and width, and saves the updated document.
 
 ### EXAMPLE 3
+```powershell
+PS> $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
+```
+
+Sets independent cell margins in centimeters. Omitted margins retain their values; pass null to remove an explicit margin.
+
+### EXAMPLE 4
 ```powershell
 PS> $doc = Get-OfficeWord -Path .\Report.docx
 $table = $doc | Get-OfficeWordTable | Select-Object -First 1
@@ -94,6 +101,70 @@ Whether text should fit within the cell.
 
 ```yaml
 Type: Boolean
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginBottomCentimeters
+Bottom cell padding in centimeters. Pass null to remove the explicit margin.
+
+```yaml
+Type: Double
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginLeftCentimeters
+Left cell padding in centimeters. Pass null to remove the explicit margin.
+
+```yaml
+Type: Double
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginRightCentimeters
+Right cell padding in centimeters. Pass null to remove the explicit margin.
+
+```yaml
+Type: Double
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MarginTopCentimeters
+Top cell padding in centimeters. Pass null to remove the explicit margin.
+
+```yaml
+Type: Double
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
