@@ -85,6 +85,7 @@ Website/static/downloads/showcase/** -text -diff
 OfficeIMO.Examples/PowerShell/*.ps1 text eol=lf
 OfficeIMO.Examples/PowerShell/Data/*.csv text eol=lf
 Website/scripts/Invoke-ShowcasePowerShellExample.ps1 text eol=lf
+Website/scripts/Build-ShowcaseEvidence.ps1 text eol=lf
 Website/scripts/ShowcaseEvidence.Helpers.ps1 text eol=lf
 Website/scripts/ShowcaseEvidence.Provenance.ps1 text eol=lf
 
