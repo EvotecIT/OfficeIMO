@@ -117,11 +117,13 @@ public static class OfficeArtPropertyTableReader {
         byte[]? payload, int offset, int remaining) {
         // These native geometry/color arrays can declare only element bytes.
         // Recognize their exact header layout without guessing for arbitrary complex properties.
-        if (payload != null && remaining >= 6 && propertyId is 0x0145 or 0x0146 or 0x0197) {
+        if (payload != null && remaining >= 6 && propertyId is 0x0145 or 0x0146 or 0x0156 or 0x0197) {
             int count = ReadUInt16(payload, offset), allocated = ReadUInt16(payload, offset + 2);
             int size = ReadUInt16(payload, offset + 4);
-            if (propertyId == 0x0145 && size == 0xFFF0) size = 4;
-            bool knownSize = propertyId switch { 0x0145 => size is 4 or 8, 0x0146 => size == 2, _ => size == 8 };
+            bool truncatedGuide = propertyId == 0x0156 && size == 0xFFF0;
+            if ((propertyId == 0x0145 || truncatedGuide) && size == 0xFFF0) size = 4;
+            bool knownSize = propertyId switch { 0x0145 => size is 4 or 8, 0x0146 => size == 2,
+                0x0156 => size == 8 || truncatedGuide, _ => size == 8 };
             if (knownSize && count <= allocated && count * size == declaredLength) return declaredLength + 6;
         }
         return declaredLength;
