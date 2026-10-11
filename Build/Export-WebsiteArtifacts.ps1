@@ -3,8 +3,9 @@
 Exports the PowerShell API help, command metadata and examples for the website.
 .DESCRIPTION
 Use an explicit complete module bundle with -SkipBuild to export a qualified package
-without building or installing it. The bundle version and help command set must match
-the source checkout. -ArtifactsOnly leaves repository documentation unchanged.
+without building or installing it. The bundle version, help command set and aliases must
+match the checkout. Both host assemblies identify their SDK source revision; API and build
+inputs must match that revision. -ArtifactsOnly leaves repository documentation unchanged.
 .EXAMPLE
 ./Build/Export-WebsiteArtifacts.ps1 -RepositoryRoot ./release-source -ArtifactsRoot ./out/website-api -SkipBuild -BuiltModuleManifestPath ./package/PSWriteOffice.psd1 -ArtifactsOnly
 #>
@@ -17,10 +18,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$RepositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot -ErrorAction Stop).ProviderPath
 
 if ([string]::IsNullOrWhiteSpace($ArtifactsRoot)) {
     $ArtifactsRoot = Join-Path $RepositoryRoot 'WebsiteArtifacts'
 }
+$ArtifactsRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ArtifactsRoot)
 
 $moduleName = 'PSWriteOffice'
 $manifestPath = Join-Path $RepositoryRoot "$moduleName.psd1"
@@ -67,7 +70,8 @@ function Get-CompleteModuleBundle {
     param([Parameter(Mandatory)][string] $Path)
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $null }
-    $moduleRoot = Split-Path -Parent ([IO.Path]::GetFullPath($Path))
+    $resolvedManifestPath = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath
+    $moduleRoot = Split-Path -Parent $resolvedManifestPath
     $helpPath = Join-Path $moduleRoot "en-US\$moduleName-help.xml"
     if (-not (Test-Path -LiteralPath $helpPath -PathType Leaf)) { return $null }
     $builtManifest = Import-PowerShellDataFile -LiteralPath $Path
@@ -77,7 +81,68 @@ function Get-CompleteModuleBundle {
         @(Compare-Object -ReferenceObject $expectedCommands -DifferenceObject $helpCommands).Count -gt 0) {
         return $null
     }
-    return [PSCustomObject]@{ HelpPath = $helpPath; ManifestPath = $Path; ModuleRoot = $moduleRoot }
+    $expectedAliases = @($manifest.AliasesToExport | Sort-Object -Unique)
+    $bundleAliases = @($builtManifest.AliasesToExport | Sort-Object -Unique)
+    if ($expectedAliases.Count -ne $bundleAliases.Count -or
+        ($expectedAliases.Count -gt 0 -and @(Compare-Object $expectedAliases $bundleAliases).Count -gt 0)) {
+        return $null
+    }
+    return [PSCustomObject]@{ HelpPath = $helpPath; ManifestPath = $resolvedManifestPath; ModuleRoot = $moduleRoot }
+}
+
+function Invoke-SourceGit {
+    param([Parameter(Mandatory)][string[]] $Arguments)
+    # Windows PowerShell turns native stderr into errors before callers can
+    # classify Git's exit code. Keep that handling local to these read-only probes.
+    $ErrorActionPreference = 'Continue'
+    $output = @(& git -C $RepositoryRoot @Arguments 2>$null)
+    [PSCustomObject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+}
+
+function Get-QualifiedSourceRevision {
+    param([Parameter(Mandatory)][string] $ModuleRoot)
+
+    $topLevelResult = Invoke-SourceGit @('rev-parse', '--show-toplevel')
+    $topLevel = $topLevelResult.Output
+    $pathComparison = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        [StringComparison]::OrdinalIgnoreCase
+    } else { [StringComparison]::Ordinal }
+    if ($topLevelResult.ExitCode -ne 0 -or $topLevel.Count -ne 1 -or
+        -not [string]::Equals((Resolve-Path -LiteralPath $topLevel[0]).ProviderPath.TrimEnd('\', '/'),
+            $RepositoryRoot.TrimEnd('\', '/'), $pathComparison)) {
+        throw 'Website API export requires an exact Git source root.'
+    }
+    $headResult = Invoke-SourceGit @('rev-parse', '--verify', 'HEAD')
+    $head = $headResult.Output
+    if ($headResult.ExitCode -ne 0 -or $head.Count -ne 1 -or $head[0] -cnotmatch '^[0-9a-f]{40}$') {
+        throw 'Website API export requires a committed source revision.'
+    }
+
+    # The SDK embeds the package's actual source revision in each host assembly.
+    # A later documentation-only checkout is acceptable when its API/build inputs
+    # remain identical; a same-version stale implementation or help source is not.
+    $packageCommits = foreach ($hostDirectory in 'Core', 'Default') {
+        $assemblyPath = Join-Path $ModuleRoot "Lib/$hostDirectory/PSWriteOffice.dll"
+        if (-not (Test-Path -LiteralPath $assemblyPath -PathType Leaf)) {
+            throw "The module bundle lacks its $hostDirectory assembly source provenance."
+        }
+        $information = [Diagnostics.FileVersionInfo]::GetVersionInfo($assemblyPath).ProductVersion
+        if ($information -cnotmatch ('^' + [regex]::Escape([string]$manifest.ModuleVersion) + '\+([0-9a-f]{40})$')) {
+            throw "The $hostDirectory assembly must identify its module version and source revision."
+        }
+        $Matches[1]
+    }
+    if (@($packageCommits | Sort-Object -Unique).Count -ne 1) {
+        throw 'The module host assemblies must come from the same source revision.'
+    }
+    $apiInputs = @('Sources', 'PSWriteOffice.psm1', 'Directory.Build.props', 'Directory.Build.targets',
+        'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config', 'Build/Build-Module.ps1')
+    $difference = Invoke-SourceGit (@('diff', '--quiet', $packageCommits[0], '--') + $apiInputs)
+    $untrackedInputs = Invoke-SourceGit (@('ls-files', '--others', '--exclude-standard', '--') + $apiInputs)
+    if ($difference.ExitCode -ne 0 -or $untrackedInputs.ExitCode -ne 0 -or $untrackedInputs.Output.Count -gt 0) {
+        throw 'The module bundle source does not match the selected API and build inputs. Rebuild it from this checkout.'
+    }
+    [PSCustomObject]@{ SourceCommit = [string]$head[0]; PackageSourceCommit = [string]$packageCommits[0] }
 }
 
 function Find-CompleteBuiltModule {
@@ -105,10 +170,14 @@ if ($BuiltModuleManifestPath) {
         throw "The explicit module must be a complete bundle for PSWriteOffice $($manifest.ModuleVersion), with help for every exported command."
     }
 } elseif (-not $SkipBuild) {
-    & (Join-Path $RepositoryRoot 'Build\Build-Module.ps1') -RunMode Build
+    & (Join-Path $RepositoryRoot 'Build\Build-Module.ps1') -RunMode Build -SignModule $false
     if (-not $?) {
         throw 'PSWriteOffice module build failed.'
     }
+    $sourceManifestBytes = [System.IO.File]::ReadAllBytes($manifestPath)
+    $manifest = Import-PowerShellDataFile -LiteralPath $manifestPath
+    $expectedCommands = @($manifest.CmdletsToExport) |
+        Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -ne '*' } | Sort-Object -Unique
     $builtModule = Find-CompleteBuiltModule
 } else {
     $builtModule = Find-CompleteBuiltModule
@@ -117,6 +186,7 @@ if ($BuiltModuleManifestPath) {
 if (-not $builtModule) {
     throw "No complete built PSWriteOffice API bundle was found. Run Build\Build-Module.ps1 -RunMode Build first."
 }
+$sourceRevision = Get-QualifiedSourceRevision -ModuleRoot $builtModule.ModuleRoot
 
 $sourceFilesByType = @{}
 $sourceFilePriorityByType = @{}
@@ -237,8 +307,6 @@ $metadata | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $apiRo
 
 # Bind the generated components together so a consumer can detect a mixed release
 # even when old and current help happen to contain the same command names.
-$sourceCommitLines = @(& git -C $RepositoryRoot rev-parse HEAD 2>$null)
-$sourceCommit = if ($LASTEXITCODE -eq 0 -and $sourceCommitLines.Count -eq 1) { [string]$sourceCommitLines[0] } else { $null }
 $components = [ordered]@{}
 foreach ($component in @(
     @{ Key = 'manifest'; Path = (Join-Path $apiRoot "$moduleName.psd1") },
@@ -252,7 +320,8 @@ foreach ($component in @(
 }
 [ordered]@{
     schemaVersion = 1; moduleName = $moduleName
-    moduleVersion = [string]$manifest.ModuleVersion; sourceCommit = $sourceCommit
+    moduleVersion = [string]$manifest.ModuleVersion; sourceCommit = $sourceRevision.SourceCommit
+    packageSourceCommit = $sourceRevision.PackageSourceCommit
     components = $components
 } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $apiRoot 'bundle-manifest.json') -Encoding utf8
 
