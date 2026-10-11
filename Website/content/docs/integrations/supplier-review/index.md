@@ -19,11 +19,11 @@ Install-Module PSParseHTML, PSWriteOffice -Scope CurrentUser
 ./Examples/Integrations/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 ```
 
-Read the [complete script](https://github.com/EvotecIT/PSWriteOffice/blob/c7a93f8ed393a97a0235b5db66078216ba73a98a/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) and [sample HTML](https://github.com/EvotecIT/PSWriteOffice/blob/c7a93f8ed393a97a0235b5db66078216ba73a98a/Examples/Integrations/Input/SupplierOffers.html). For a small standalone run, download the [script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and save the [HTML input](/downloads/integrations/source/Input/SupplierOffers.html) as `Input/SupplierOffers.html` beside it.
+Read the [complete script](https://github.com/EvotecIT/PSWriteOffice/blob/76b1994c7a3a2fe23d5e57b180c94aa1c8e43d58/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) and [sample HTML](https://github.com/EvotecIT/PSWriteOffice/blob/76b1994c7a3a2fe23d5e57b180c94aa1c8e43d58/Examples/Integrations/Input/SupplierOffers.html). For a small standalone run, download the [script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and save the [HTML input](/downloads/integrations/source/Input/SupplierOffers.html) as `Input/SupplierOffers.html` beside it.
 
 ## Adapt the data
 
-Keep table `id="offers"` and the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDays` headers. Pass your own file with `-HtmlPath`. Prices are USD per unit with a decimal point; freight and tax are excluded. The recipe rejects missing tables, empty item/supplier names and negative price or lead-time values before writing documents.
+Keep table `id="offers"` and the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDays` headers. Pass your own file with `-HtmlPath`. Prices are USD per unit with a decimal point; freight and tax are excluded. Comma decimals and group separators reject before output. Sub-cent prices remain distinct in Word and in numeric Excel cells; each quote displays its own decimal places. The recipe rejects missing tables, empty item/supplier names and negative price or lead-time values before writing documents.
 
 ![Native Excel range preview with numeric price and lead-time columns](/downloads/integrations/supplier/workbook.png)
 

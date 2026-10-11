@@ -17,7 +17,7 @@ Install-Module PSWriteOffice -Scope CurrentUser
 ./Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1 -OutputDirectory ./Output/EventBrief
 ```
 
-Run from a PSWriteOffice checkout, or download the [complete script](/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1). Its [source revision](https://github.com/EvotecIT/PSWriteOffice/blob/c7a93f8ed393a97a0235b5db66078216ba73a98a/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) matches these downloads.
+Run from a PSWriteOffice checkout, or download the [complete script](/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1). Its [source revision](https://github.com/EvotecIT/PSWriteOffice/blob/76b1994c7a3a2fe23d5e57b180c94aa1c8e43d58/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) matches these downloads.
 
 ## Use an existing snapshot or collect once
 
@@ -31,6 +31,6 @@ Alternatively, use `-CollectLive -LogName Application -MaxEvents 100`. Live coll
 
 ![Native Excel preview of retained timestamps, providers, source computers, logs and full event messages](/downloads/integrations/events/workbook.png)
 
-The brief shows the retained count and top eight providers with critical, error and warning counts. Excel keeps every retained record up to `MaxEvents`, including source computer and log where supplied, the full message and typed timestamp. Raw and typed `Get-EVXEvent` results are accepted; typed results use their original `SourceEvent` snapshot. `-Event @()` produces an explicit empty report. Counts describe this bounded snapshot; they do not establish root cause, service impact or the total size of a log. Review messages before sharing a live register.
+The brief shows the retained count and top eight providers with critical, error and warning counts. Excel keeps every retained record up to `MaxEvents`, including source computer and log where supplied, the full message and typed timestamp. The XLSX timestamp format includes seconds and milliseconds so events within the same minute remain distinguishable. Raw and typed `Get-EVXEvent` results are accepted; typed results use their original `SourceEvent` snapshot. `-Event @()` produces an explicit empty report. Counts describe this bounded snapshot; they do not establish root cause, service impact or the total size of a log. Review messages before sharing a live register.
 
 Use EventViewerX's `Show-EVXEvent` for its native reports. Choose this integration when the handoff also needs an editable Word brief and PDF, then prepare a [local email package](../report-email/).

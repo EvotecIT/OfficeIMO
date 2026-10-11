@@ -14,4 +14,4 @@ Start with the input you already have. These examples pass ordinary objects and 
 
 Each page includes real generated files and the complete source that produced them. The downloads contain synthetic data. The recipes run with published modules and add no required dependencies to PSWriteOffice.
 
-Use the [integration guide](https://github.com/EvotecIT/PSWriteOffice/tree/c7a93f8ed393a97a0235b5db66078216ba73a98a/Examples/Integrations) for module requirements and input contracts. The [download manifest](/downloads/integrations/manifest.json) records the source revision, module versions and file hashes.
+Use the [integration guide](https://github.com/EvotecIT/PSWriteOffice/tree/76b1994c7a3a2fe23d5e57b180c94aa1c8e43d58/Examples/Integrations) for module requirements and input contracts. The [download manifest](/downloads/integrations/manifest.json) records the source revision, module versions and file hashes.
