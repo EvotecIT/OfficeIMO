@@ -94,7 +94,7 @@ public sealed partial class OfficeWorkflowRunner {
             case "chm-pdf":
             case "chm-markdown":
             case "chm-epub": {
-                (bytes, evidence) = ConvertChm(request, input, settings, diagnostics, cancellationToken, emitHtmlTaggedStructure);
+                (bytes, evidence) = ConvertChm(request, input, settings, cancellationToken, emitHtmlTaggedStructure);
                 hasLoss = evidence.HasLoss;
                 break;
             }
@@ -109,7 +109,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "djvu-pdf": {
-                (bytes, evidence) = ConvertDjVu(request, input, settings, diagnostics, cancellationToken);
+                (bytes, evidence) = ConvertDjVu(request, input, settings, cancellationToken);
                 hasLoss = evidence.HasLoss;
                 break;
             }
