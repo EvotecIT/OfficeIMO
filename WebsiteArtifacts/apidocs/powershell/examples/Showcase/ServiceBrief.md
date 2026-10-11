@@ -14,6 +14,8 @@ The script uses PSWriteOffice 3.0.8 or newer and runs on PowerShell 7 and Window
     -OutputDirectory ./DecemberReview
 ```
 
+PSWriteOffice 3.0.8 supports the script and its calculations. Its bundled designer can clip compact section labels and metrics in PDF output. The rendering qualification uses the shared [OfficeIMO designer-layout correction](https://github.com/EvotecIT/OfficeIMO/pull/3059); inspect the deck and review copy with the package and fonts used for delivery.
+
 The CSV needs these columns:
 
 | Column | Meaning |
