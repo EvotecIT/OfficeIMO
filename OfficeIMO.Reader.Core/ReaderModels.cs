@@ -120,7 +120,9 @@ public enum ReaderInputKind {
     /// <summary>DjVu scanned document with optional stored text.</summary>
     DjVu = 28,
     /// <summary>DBF/xBase table.</summary>
-    Dbf = 29
+    Dbf = 29,
+    /// <summary>Microsoft Publisher publication.</summary>
+    Publisher = 30
 }
 
 /// <summary>
