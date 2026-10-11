@@ -1,6 +1,6 @@
 ---
 title: "Windows event incident brief"
-description: "Turn a bounded event snapshot into a Word/PDF investigation handoff and an Excel register with full messages."
+description: "Turn a bounded Windows event snapshot into a Word/PDF investigation handoff and an Excel register retaining source computers, logs and full messages."
 layout: docs
 ---
 

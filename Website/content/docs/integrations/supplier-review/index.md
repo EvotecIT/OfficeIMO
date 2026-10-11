@@ -1,6 +1,6 @@
 ---
 title: "HTML supplier offer review"
-description: "Extract supplier offers with PSParseHTML and create a spaced Word review, PDF and numeric Excel workbook."
+description: "Extract supplier offers with PSParseHTML and create a padded Word review, PDF and numeric Excel workbook. Download the files and runnable PowerShell recipe."
 layout: docs
 ---
 

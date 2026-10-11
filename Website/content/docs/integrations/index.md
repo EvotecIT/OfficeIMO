@@ -1,6 +1,6 @@
 ---
 title: "Reports across PowerShell modules"
-description: "Inspect generated supplier reviews, incident briefs and email packages, then adapt the complete scripts."
+description: "Inspect generated supplier reviews, incident briefs and email packages built with PowerShell modules. Download the files and adapt the complete scripts."
 layout: docs
 ---
 

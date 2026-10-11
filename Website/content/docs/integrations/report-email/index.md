@@ -1,6 +1,6 @@
 ---
 title: "Prepare a report email for review"
-description: "Use Mailozaurr to save an EML containing report attachments, with an optional PSWriteOffice sample PDF."
+description: "Use Mailozaurr to save report attachments in a local EML for review, with an optional PSWriteOffice sample PDF. Sending requires an explicit operation."
 layout: docs
 ---
 
