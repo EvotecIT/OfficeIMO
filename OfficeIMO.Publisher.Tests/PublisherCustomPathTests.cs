@@ -134,7 +134,9 @@ public sealed class PublisherCustomPathTests {
 
     [Fact]
     public void Native_array_lengths_excluding_headers_preserve_both_commands_and_following_properties() {
-        byte[] input = PublisherDrawingFixture.Mutate(new() { [0x144] = 4 }, 0, new() {
+        byte[] input = PublisherDrawingFixture.Mutate(new() {
+            [0x144] = 4, [0x181] = 0x000000FF, [0x1BF] = 0x00100010
+        }, 0, new() {
             [0x145] = Vertices(new[] { (0, 0), (21600, 0), (0, 21600) }),
             [0x146] = Segments(new ushort[] { 0x4000, 0x0002, 0x6001, 0x8000 }),
             [0x380] = System.Text.Encoding.Unicode.GetBytes("Custom triangle\0")
