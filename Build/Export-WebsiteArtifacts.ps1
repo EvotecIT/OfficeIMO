@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Exports the PowerShell API help, command metadata and examples for the website.
 .DESCRIPTION
@@ -6,7 +6,8 @@ Builds an unsigned module from committed source using PowerForge, without instal
 Exports only the bundle returned by that build, from a new staging directory. Both host
 assemblies, the manifest and help must match the source. -ArtifactsOnly limits the export
 writes to ArtifactsRoot; the native build still regenerates Docs. BuildOutputRoot holds
-the retained build staging directory. Requires PSPublishModule 3.0.168 or newer.
+the retained build staging directory. Command metadata uses a clean child process of the
+same PowerShell host. Requires PSPublishModule 3.0.168 or newer.
 .EXAMPLE
 ./Build/Export-WebsiteArtifacts.ps1 -RepositoryRoot ./release-source -ArtifactsRoot ./out/website-api -BuildOutputRoot ./out/builds -ArtifactsOnly
 #>
@@ -67,29 +68,6 @@ function Get-ComparableManifest {
         if (-not $IgnoreVersion -or $key -ne 'ModuleVersion') { $copy[$key] = $Data[$key] }
     }
     ConvertTo-ComparableManifestValue $copy | ConvertTo-Json -Depth 30 -Compress
-}
-
-function Get-RelativeFilePath {
-    param(
-        [Parameter(Mandatory)][string] $BasePath,
-        [Parameter(Mandatory)][string] $Path
-    )
-
-    $baseFullPath = [System.IO.Path]::GetFullPath($BasePath)
-    $separator = [System.IO.Path]::DirectorySeparatorChar.ToString()
-    if (-not $baseFullPath.EndsWith($separator, [System.StringComparison]::Ordinal)) {
-        $baseFullPath += $separator
-    }
-
-    $targetFullPath = [System.IO.Path]::GetFullPath($Path)
-    $baseUri = [System.Uri] $baseFullPath
-    $targetUri = [System.Uri] $targetFullPath
-    if (-not [string]::Equals($baseUri.Scheme, $targetUri.Scheme, [System.StringComparison]::OrdinalIgnoreCase)) {
-        return $targetFullPath
-    }
-
-    $relativeUri = $baseUri.MakeRelativeUri($targetUri).ToString()
-    return [System.Uri]::UnescapeDataString($relativeUri).Replace('/', [System.IO.Path]::DirectorySeparatorChar)
 }
 
 function Get-CompleteModuleBundle {
@@ -192,7 +170,7 @@ function Get-QualifiedSourceRevision {
         }
     }
     $apiInputs = @('Sources', 'PSWriteOffice.psm1', 'Directory.Build.props', 'Directory.Build.targets',
-        'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config', 'Build/Build-Module.ps1')
+        'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config', 'Build')
     if ($BeforeBuild) { $apiInputs = @('.', ':(exclude)PSWriteOffice.psd1') }
     $difference = Invoke-SourceGit (@('diff', '--quiet', $packageCommits[0], $head[0], '--') + $apiInputs)
     $workingDifference = Invoke-SourceGit (@('diff', '--quiet', 'HEAD', '--') + $apiInputs)
@@ -229,86 +207,27 @@ if ($sourceBeforeBuild.SourceCommit -cne $sourceRevision.SourceCommit) {
     throw 'The source revision changed during the website API build.'
 }
 
-$sourceFilesByType = @{}
-$sourceFilePriorityByType = @{}
-foreach ($sourceFile in Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'Sources\PSWriteOffice\Cmdlets') -Recurse -Filter '*.cs' -File) {
-    $sourceText = Get-Content -LiteralPath $sourceFile.FullName -Raw -Encoding UTF8
-    $containsCmdletDeclaration = $sourceText -match '(?m)^\s*\[(?:System\.Management\.Automation\.)?Cmdlet(?:Attribute)?\s*\('
-    $typeNames = @($sourceFile.BaseName) + @(
-        [regex]::Matches($sourceText, '\b(?:sealed\s+)?(?:partial\s+)?class\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\b') |
-            ForEach-Object { $_.Groups['name'].Value }
-    )
-
-    foreach ($typeName in @($typeNames | Sort-Object -Unique)) {
-        $priority = $(if ($containsCmdletDeclaration) { 2 } else { 0 }) + $(if ($sourceFile.BaseName -eq $typeName) { 1 } else { 0 })
-        if (-not $sourceFilesByType.ContainsKey($typeName) -or $priority -gt $sourceFilePriorityByType[$typeName]) {
-            $sourceFilesByType[$typeName] = $sourceFile.FullName
-            $sourceFilePriorityByType[$typeName] = $priority
-        }
-    }
+# Windows PowerShell cannot unload dependencies imported by the build tool.
+# Use PowerForge's runner to inspect the fresh module in the same host, in a clean process.
+$metadataPath = Join-Path $resolvedStaging 'website-command-metadata.json'
+$hostExecutable = (Get-Process -Id $PID).Path
+$metadataArguments = [string[]]@('-RepositoryRoot', $RepositoryRoot, '-ManifestPath', $builtModule.ManifestPath,
+    '-OutputPath', $metadataPath)
+# PowerForge is loaded in PSPublishModule's assembly context on Core; resolve its public
+# runner types from the returned build result rather than loading another assembly copy.
+$powerForgeAssembly = $buildResult.GetType().Assembly
+$requestType = $powerForgeAssembly.GetType('PowerForge.PowerShellRunRequest', $true)
+$request = $requestType::new((Join-Path $RepositoryRoot 'Build/Export-WebsiteCommandMetadata.ps1'), $metadataArguments,
+        [TimeSpan]::FromMinutes(5), ($PSVersionTable.PSEdition -eq 'Core'), $RepositoryRoot,
+        $null, $hostExecutable, $true, $true)
+$runnerType = $powerForgeAssembly.GetType('PowerForge.PowerShellRunner', $true)
+$runner = $runnerType::new($null)
+$metadataResult = $runner.Run($request)
+if ($metadataResult.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $metadataPath -PathType Leaf)) {
+    throw "Command metadata discovery failed in $($metadataResult.Executable): $($metadataResult.StdErr) $($metadataResult.StdOut)"
 }
-
-Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
-try {
-    Import-Module $builtModule.ManifestPath -Force -ErrorAction Stop | Out-Null
-    $allCommands = @(Get-Command -Module $moduleName -ErrorAction Stop)
-    $commandsByName = @{}
-    $aliasesByTarget = @{}
-
-    foreach ($command in $allCommands) {
-        $commandsByName[$command.Name] = $command
-        if ($command.CommandType -ne 'Alias' -or [string]::IsNullOrWhiteSpace($command.ResolvedCommandName)) {
-            continue
-        }
-
-        if (-not $aliasesByTarget.ContainsKey($command.ResolvedCommandName)) {
-            $aliasesByTarget[$command.ResolvedCommandName] = [System.Collections.Generic.List[string]]::new()
-        }
-        [void] $aliasesByTarget[$command.ResolvedCommandName].Add($command.Name)
-    }
-
-    $missingCommands = @($expectedCommands | Where-Object { -not $commandsByName.ContainsKey($_) })
-    if ($missingCommands.Count -gt 0) {
-        throw "The built module does not export every manifest cmdlet: $($missingCommands -join ', ')"
-    }
-
-    $commandMetadata = foreach ($commandName in $expectedCommands) {
-        $command = $commandsByName[$commandName]
-        $declaredAliases = @()
-        if ($command.ImplementingType) {
-            $declaredAliases = @($command.ImplementingType.GetCustomAttributes([System.Management.Automation.AliasAttribute], $true) |
-                ForEach-Object { $_.AliasNames })
-        }
-        $sourcePath = $null
-        $sourceLine = $null
-        $implementingType = $command.ImplementingType
-        if ($implementingType -and $sourceFilesByType.ContainsKey($implementingType.Name)) {
-            $sourceFullPath = $sourceFilesByType[$implementingType.Name]
-            $sourcePath = (Get-RelativeFilePath -BasePath $RepositoryRoot -Path $sourceFullPath).Replace('\', '/')
-            $typePattern = '\bclass\s+' + [regex]::Escape($implementingType.Name) + '\b'
-            $typeMatch = Select-String -LiteralPath $sourceFullPath -Pattern $typePattern | Select-Object -First 1
-            if ($typeMatch) {
-                $sourceLine = $typeMatch.LineNumber
-            }
-        }
-
-        $entry = [ordered]@{
-            name = $commandName
-            kind = 'Cmdlet'
-            aliases = @(@($aliasesByTarget[$commandName]) + $declaredAliases |
-                Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
-                Sort-Object -Unique)
-        }
-        if ($sourcePath) {
-            $entry.sourcePath = $sourcePath
-            $entry.sourceLine = $sourceLine
-            $entry.sourceUrl = "https://github.com/EvotecIT/PSWriteOffice/blob/main/$sourcePath#L$sourceLine"
-        }
-        $entry
-    }
-} finally {
-    Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
-}
+$commandMetadata = Get-Content -LiteralPath $metadataPath -Raw -Encoding UTF8 | ConvertFrom-Json
+if (@($commandMetadata).Count -ne $expectedCommands.Count) { throw 'Command metadata count does not match the source manifest.' }
 
 $apiRoot = Join-Path $ArtifactsRoot 'apidocs\powershell'
 New-Item -ItemType Directory -Path $apiRoot -Force | Out-Null
