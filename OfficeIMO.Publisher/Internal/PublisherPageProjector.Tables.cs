@@ -41,13 +41,13 @@ internal sealed partial class PublisherPageProjector {
         _tables.Add(shape.Id, new PublisherTable(shape.Id, storyId, pageId, bounds.X, bounds.Y, bounds.Width, bounds.Height,
             OfficeTransform.Translate(bounds.X, bounds.Y).Then(PageTransform(shape, bounds)),
             table.Columns, table.Rows, cells, mapped));
+        _context.Add("PUB_TABLE_CELL_STYLE_UNASSESSED", "Native cell fills, individual borders, and cell-specific padding require additional qualification. The table model retains the native grid and any mapped styled cell text.",
+            OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(shape.Id));
         if (!mapped) return;
         _usedStories.Add(storyId!.Value);
         if (drawing == null) return;
         _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", "Native text stories use the shared drawing paragraph layout. Font availability, line breaking, fitting, and overflow may differ from Publisher.",
             OfficeConversionLossKind.Approximation, "Quill");
-        _context.Add("PUB_TABLE_CELL_STYLE_UNASSESSED", "Native cell fills, individual borders, and cell-specific padding require additional qualification. The recovered native grid and styled cell text are projected.",
-            OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(shape.Id));
     }
     private static double[] TrackOffsets(double[] sizes) {
         var offsets = new double[sizes.Length + 1];
