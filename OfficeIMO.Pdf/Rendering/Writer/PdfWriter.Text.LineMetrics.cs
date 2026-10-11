@@ -53,7 +53,7 @@ internal static partial class PdfWriter {
         double rise = TextRiseForBaseline(fontSize, baseline);
         if (spacing?.FontLineBoxMultiplier is double natural) {
             OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? metrics = ResolveFontLineMetrics(font, namedFont, options);
-            double fontDescent = metrics.HasValue ? size * metrics.Value.WindowsDescentRatio
+            double fontDescent = metrics.HasValue ? size * metrics.Value.DescentRatio
                 : GetDescenderForOptions(font, namedFont, size, options);
             ascent = rise + size * (metrics?.HorizontalAdvanceRatio ?? natural) - fontDescent;
             descent = fontDescent - rise;

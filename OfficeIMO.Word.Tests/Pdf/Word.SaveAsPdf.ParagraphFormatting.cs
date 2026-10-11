@@ -1576,7 +1576,7 @@ namespace OfficeIMO.Tests {
             Type nativeFontMapType = converterType.GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
             Type nativeDefaultsType = converterType.GetNestedType("NativeDocumentDefaults", BindingFlags.NonPublic)!;
             object nativeFontMap = Activator.CreateInstance(nativeFontMapType, nonPublic: true)!;
-            byte[] portableFont = ManagedTextShapingTestAssets.CreateFont('A', 'B');
+            byte[] portableFont = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, 'A', 'B');
             var configured = new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica
             };
@@ -2187,7 +2187,7 @@ namespace OfficeIMO.Tests {
             short ascender,
             short descender,
             params int[] scalars) {
-            byte[] data = ManagedTextShapingTestAssets.CreateFont(scalars);
+            byte[] data = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, scalars);
             int tableCount = (data[4] << 8) | data[5];
             for (int index = 0; index < tableCount; index++) {
                 int recordOffset = 12 + (index * 16);
