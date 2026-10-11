@@ -62,7 +62,7 @@ internal static partial class PdfWriter {
             }
 
             int variantPageNumber = pageNumberInfos[pageIndex].VariantPageNumber;
-            PdfTextWatermark? textWatermark = pageOptions.GetTextWatermarkForPage(variantPageNumber);
+            PdfTextWatermark? textWatermark = pageOptions.GetTextWatermarkForPage(variantPageNumber, pageNumberInfos[pageIndex].PageNumber);
             if (textWatermark != null && textWatermark.Opacity > 0D) {
                 PdfStandardFont watermarkFont = GetTextWatermarkFont(textWatermark);
                 fonts.Add(watermarkFont);
@@ -121,7 +121,7 @@ internal static partial class PdfWriter {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }
 
-            PdfImageWatermark? imageWatermark = pageOptions.GetImageWatermarkForPage(variantPageNumber);
+            PdfImageWatermark? imageWatermark = pageOptions.GetImageWatermarkForPage(pageNumberInfos[pageIndex].VariantPageNumber, pageNumberInfos[pageIndex].PageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }

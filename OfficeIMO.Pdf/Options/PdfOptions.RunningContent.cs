@@ -76,4 +76,13 @@ public sealed partial class PdfOptions {
             : IsEvenPageVariant(variantPageNumber) ? PdfRunningContentVariant.EvenPages : PdfRunningContentVariant.Default;
         SetRunningContent(null, isHeader, variant);
     }
+
+    internal void RetainRunningContentTextProjection(bool isHeader, PdfRunningContentVariant variant) {
+        PdfRunningContent? content = variant == PdfRunningContentVariant.FirstPage
+            ? isHeader ? FirstPageHeaderContent : FirstPageFooterContent
+            : variant == PdfRunningContentVariant.EvenPages
+                ? isHeader ? EvenPageHeaderContent : EvenPageFooterContent
+                : isHeader ? HeaderContent : FooterContent;
+        SetRunningContent(content?.WithTextProjection(), isHeader, variant);
+    }
 }

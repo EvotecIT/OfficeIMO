@@ -508,7 +508,7 @@ internal static partial class PdfWriter {
                 pageNamedFontResources[usedFont] = usedFont.ResourceName;
                 EnsureNamedFont(usedFont, pageOpts);
             }
-            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(pageNumberInfo.VariantPageNumber);
+            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(pageNumberInfo.VariantPageNumber, pageNumberInfo.PageNumber);
             string? watermarkFontAlias = null;
             string? textWatermarkGraphicsStateName = null;
             if (textWatermark != null && textWatermark.Opacity > 0D) {
@@ -522,7 +522,7 @@ internal static partial class PdfWriter {
             if (pageBackgroundImage != null && pageBackgroundImage.Opacity > 0D) {
                 AddPageBackgroundImage(page, pageOpts, pageBackgroundImage);
             }
-            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(pageNumberInfo.VariantPageNumber);
+            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(pageNumberInfo.VariantPageNumber, pageNumberInfo.PageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 AddImageWatermark(page, pageOpts, imageWatermark);
             }
@@ -1878,6 +1878,14 @@ internal static partial class PdfWriter {
 
     private static List<PageNumberInfo> BuildPageNumberInfos(IReadOnlyList<LayoutResult.Page> pages) {
         var seen = new Dictionary<int, int>();
+        var sectionPages = new Dictionary<int, int>();
+        foreach (var page in pages) {
+            if (page.RunningContentSections == null) continue;
+            foreach (int sectionId in page.RunningContentSections) {
+                sectionPages.TryGetValue(sectionId, out int count);
+                sectionPages[sectionId] = count + 1;
+            }
+        }
         var pending = new List<(int VariantPageNumber, int PageNumber, int SequenceId, int GroupId)>(pages.Count);
         int nextSequenceId = 0;
         int currentSequenceId = -1;
@@ -1904,8 +1912,11 @@ internal static partial class PdfWriter {
         }
 
         var infos = new List<PageNumberInfo>(pages.Count);
-        foreach (var item in pending) {
-            infos.Add(new PageNumberInfo(item.VariantPageNumber, item.PageNumber, totals[item.SequenceId], seen[item.GroupId]));
+        for (int index = 0; index < pending.Count; index++) {
+            var item = pending[index];
+            int count = pages[index].RunningContentSectionId is int sectionId && sectionPages.TryGetValue(sectionId, out int logicalCount)
+                ? logicalCount : seen[item.GroupId];
+            infos.Add(new PageNumberInfo(item.VariantPageNumber, item.PageNumber, totals[item.SequenceId], count));
         }
 
         return infos;

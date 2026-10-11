@@ -7,6 +7,67 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
     [Fact]
+    public void GeometryOnlyFooterRetainsProjectedNumbersAtTheirPhysicalAnchorAcrossVariantsAndReplays() {
+        var source = PdfDocument.Create(Options());
+        source.Footer(footer => footer.Text("F{page}").Content(content => content.Spacer(60), 36)
+            .FirstPageText("F{page}").FirstPageContent(content => content.Spacer(80), 36)
+            .EvenPagesText("F{page}").EvenPagesContent(content => content.Spacer(40), 36));
+        foreach (PdfRunningContentVariant variant in Enum.GetValues(typeof(PdfRunningContentVariant))) {
+            source.Options.RetainRunningContentTextProjection(isHeader: false, variant);
+            source.Options.ReserveEmptyRunningContentDistance(isHeader: false, variant);
+        }
+        source.Options.AllowRunningContentTextFallback(isHeader: false);
+        // The imported definition survives the public options snapshot, and its
+        // page-local projection must leave that snapshot unchanged on replay.
+        var document = PdfDocument.Create(source.Options.Clone());
+        document.Paragraph(paragraph => {
+            for (int index = 0; index < 12; index++) {
+                if (index > 0) paragraph.LineBreak();
+                paragraph.Text("A");
+            }
+        }, style: new PdfParagraphStyle { FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(40), WidowControl = false });
+        for (int replay = 0; replay < 2; replay++) {
+            using var pdf = PdfPigDocument.Open(document.ToBytes());
+            Assert.Equal(3, pdf.NumberOfPages);
+            Assert.Equal(new[] { 4, 5, 3 }, pdf.GetPages().Select(page => page.Letters.Count(letter => letter.Value == "A")));
+            for (int page = 1; page <= 3; page++) {
+                Assert.Contains("F" + page, pdf.GetPage(page).Text);
+                Assert.Equal(14D, pdf.GetPage(page).Letters.Single(letter => letter.Value == "F").StartBaseLine.Y, 3);
+            }
+        }
+        Assert.Equal(32D, document.Options.MarginBottom);
+        Assert.Equal(18D, document.Options.FooterOffsetY);
+    }
+
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 2)]
+    public void ImportedFooterFirstLineOverlapRetainsHeaderWithoutChangingOrdinaryFlow(bool allowOverlap, int pages) {
+        var options = Options();
+        options.PageHeight = 300; options.MarginTop = options.MarginBottom = 72;
+        var document = PdfDocument.Create(options);
+        document.Header(header => header.Text("FALLBACK").Content(content => content.Spacer(96), 36));
+        document.Footer(footer => footer.Content(content => content.Spacer(96), 36));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Paragraph(paragraph => paragraph.Text("ALPHA").LineBreak().Text("BETA"), style: new PdfParagraphStyle {
+            FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(48), SpacingBefore = 0, SpacingAfter = 0,
+            WidowControl = false, AllowFirstLineOverlapWithRunningFooter = allowOverlap
+        });
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(pages, pdf.NumberOfPages);
+        Assert.Contains("ALPHA", pdf.GetPage(1).Text);
+        if (allowOverlap) {
+            Assert.DoesNotContain("FALLBACK", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("BETA", pdf.GetPage(1).Text);
+            Assert.Contains("BETA", pdf.GetPage(2).Text);
+        } else {
+            Assert.Contains("FALLBACK", pdf.GetPage(1).Text);
+            Assert.Contains("BETA", pdf.GetPage(1).Text);
+        }
+    }
+
+    [Fact]
     public void EmptyOrdinaryRunningContentDoesNotExpandTheBodyFrame() {
         var document = PdfDocument.Create(Options());
         document.Header(header => header.Content(_ => { }, 80, 20));
