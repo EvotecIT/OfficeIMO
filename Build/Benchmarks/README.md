@@ -89,6 +89,43 @@ effects. The output root retains exact per-iteration PDFs, rendered pages and
 validation evidence; keep the final reports and decisive artifacts, then remove
 superseded output. This suite adds no ordinary correctness timing thresholds.
 
+## PDF structured reading and file destinations
+
+The separate opt-in evidence suite selects one family explicitly and leaves the
+eight-operation runtime matrix unchanged:
+
+```powershell
+./Build/Benchmarks/Run-PdfRuntimeEvidenceBenchmarks.ps1 -Family StructuredRead
+./Build/Benchmarks/Run-PdfRuntimeEvidenceBenchmarks.ps1 -Family Destination
+```
+
+Use the same Release build, PowerShell 7, PSPublishModule and Poppler prerequisites
+as the runtime suite. `StructuredRead` defaults to 20, 100 and 500 pages. Each
+operation loads the immutable bytes afresh and performs the public structured
+read with canonical parser and semantic work limits. Every page has a repeated
+header whose x position and font size drift slightly, plus one ordered body
+marker. Validation requires exactly one header and the complete ordered body
+sequence, with independent source text/page extraction through Poppler. Source
+geometry, exact limits, input fingerprints and semantic digests accompany results.
+
+`Destination` defaults to 1, 20 and 100 pages. `DestinationDirect` composes the
+business corpus and calls `Save(FileStream)`; `DestinationCopied` composes the same
+corpus, calls `Save(MemoryStream)`, then `ToArray` and `File.WriteAllBytes`. Both use
+the same PDF 1.7, compression and forward object serialization settings, and both
+close a complete file inside measurement. They measure destination cost separately
+from the buffered/forward serialization comparison. They retain complete layout
+and use ordinary cached file writes, without a forced durable flush. Every saved
+file is checked after timing against the exact prepared forward-output digest,
+managed content/writer contracts and independent Poppler extraction on every page.
+Writer store retention, budgets and spill flags are recorded separately from final
+byte-array materialization.
+
+The wrapper accepts page/operation selection, output paths, placement and host
+evidence settings, and `-Plan`. PowerForge retains raw samples and outliers and
+owns all timing and allocation measurement. Use sampled memory in a separate
+cohort. These calls pass `CancellationToken.None` through the public APIs;
+cancellation latency and storage durability are outside this measurement contract.
+
 ## AI request packing
 
 Build `OfficeIMO.AI` in Release and run from a fresh PowerShell process on .NET 10 or newer with PSPublishModule installed:

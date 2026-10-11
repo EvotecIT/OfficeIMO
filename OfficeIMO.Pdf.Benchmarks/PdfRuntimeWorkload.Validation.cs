@@ -34,7 +34,7 @@ public sealed partial class PdfRuntimeWorkload {
                 throw new InvalidDataException("The edit did not affect the prepared region's exact source span count.");
             }
             if (_serialization is not null) {
-                bool forward = _operation == "GenerateForward";
+                bool forward = _operation is "GenerateForward" or "DestinationDirect" or "DestinationCopied";
                 if (_serialization.IsForwardOnlyObjectSerialization != forward || forward && _serialization.PeakRetainedObjectBytes != 0L) {
                     throw new InvalidDataException("The requested object serialization contract was not observed.");
                 }
