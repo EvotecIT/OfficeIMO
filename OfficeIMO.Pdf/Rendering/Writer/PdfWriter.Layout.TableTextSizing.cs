@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
             double candidate = Math.Max(minimumFontSize, rowFontSize * Math.Max(0D, innerWidth - 0.001D) / textWidth);
             if (explicitMeasurements?[cellIndex] is { } explicitMeasurement &&
                 HasNonlinearTableTextWidth(explicitMeasurement)) {
-                // Authored spacing stays in page points; intrinsic tracking can vary
+                // Inline objects and authored spacing stay in page points; intrinsic tracking can vary
                 // with font size. Evaluate the complete width at each proposed size.
                 double low = Math.Min(1D, minimumFontSize / rowFontSize);
                 double high = 1D;
@@ -242,7 +242,7 @@ internal static partial class PdfWriter {
             foreach (TableTextLineWidthMeasurement line in paragraph) {
                 if (line.LayoutWidth != null) return true;
                 foreach (TableRunWidthMeasurement run in line.Runs)
-                    if (!run.Inline && (run.FixedWidth != 0D || run.Command?.Tracking != null)) return true;
+                    if (run.Inline || run.FixedWidth != 0D || run.Command?.Tracking != null) return true;
             }
         return false;
     }
