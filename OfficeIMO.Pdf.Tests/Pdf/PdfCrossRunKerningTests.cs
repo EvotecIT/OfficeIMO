@@ -177,6 +177,23 @@ public sealed class PdfCrossRunKerningTests {
         return pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void LargePaintSplitWordsHaveBoundedCrossRunKerningWork(bool kern) {
+        PdfTextRun[] runs = Enumerable.Range(0, 2048).Select(index => new PdfTextRun(index % 2 == 0 ? "A" : "V",
+            fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName,
+            color: index % 2 == 0 ? PdfColor.FromRgb(255, 0, 0) : PdfColor.FromRgb(0, 0, 255))
+            .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", kern ? 1 : 0))).ToArray();
+        if (kern) {
+            var error = Assert.Throws<System.IO.InvalidDataException>(() => Create(30_000D, PdfAlign.Left, runs));
+            Assert.Contains("kerning work limit", error.Message);
+        } else {
+            using var pdf = PdfPigDocument.Open(Create(30_000D, PdfAlign.Left, runs));
+            Assert.Equal(2048, pdf.GetPage(1).Letters.Count);
+        }
+    }
+
     private static byte[] Create(double width, PdfAlign align, params PdfTextRun[] runs) {
         return Create(width, align, runs, ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V', includeSpace: true));
     }
