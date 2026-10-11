@@ -16,11 +16,11 @@ function Get-ShowcaseSourceBindings {
 
 function Get-ShowcaseEvidenceProducerBinding {
     param([string] $RepositoryRoot)
-    $paths = @('Website/scripts/Invoke-ShowcasePowerShellExample.ps1', 'Website/scripts/ShowcaseEvidence.Helpers.ps1', 'Website/scripts/ShowcaseEvidence.Provenance.ps1')
+    $paths = @('Website/scripts/Invoke-ShowcasePowerShellExample.ps1', 'Website/scripts/ShowcaseEvidence.Helpers.ps1', 'Website/scripts/ShowcaseEvidence.Provenance.ps1', 'Website/scripts/Build-ShowcaseEvidence.ps1')
     $files = @(foreach ($path in $paths) {
         [ordered]@{ path = $path; sha256 = (Get-FileHash -LiteralPath (Resolve-ShowcasePath $RepositoryRoot $path) -Algorithm SHA256).Hash.ToLowerInvariant() }
     })
-    [ordered]@{ path = $files[0].path; sha256 = $files[0].sha256; dependencies = @($files[1..2]) }
+    [ordered]@{ path = $files[0].path; sha256 = $files[0].sha256; dependencies = @($files | Select-Object -Skip 1) }
 }
 
 function Get-ShowcaseGenerationReceiptHash {

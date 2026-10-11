@@ -171,9 +171,24 @@
     },
     {
       "task": "exec",
-      "id": "test-showcase-generation-evidence",
+      "id": "prepare-showcase-test-module",
       "dependsOn": [
         "test-api-cross-links"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-Command",
+        "$version = [string](Import-PowerShellDataFile ./data/apidocs/powershell/PSWriteOffice.psd1).ModuleVersion; if (-not (Get-Module -ListAvailable -FullyQualifiedName @{ModuleName='PSWriteOffice';RequiredVersion=$version})) { Install-Module PSWriteOffice -RequiredVersion $version -Repository PSGallery -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop }"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-showcase-generation-evidence",
+      "dependsOn": [
+        "prepare-showcase-test-module"
       ],
       "command": "pwsh",
       "argsList": [

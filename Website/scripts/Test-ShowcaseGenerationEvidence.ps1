@@ -1,5 +1,8 @@
 param([string] $TestRoot = (Join-Path ([IO.Path]::GetTempPath()) ('officeimo-showcase-provenance-' + [guid]::NewGuid().ToString('N'))), [string] $ModuleVersion)
 $ErrorActionPreference = 'Stop'
+if (-not $ModuleVersion) {
+    $ModuleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $PSScriptRoot '../data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
+}
 $ownsTestRoot = -not $PSBoundParameters.ContainsKey('TestRoot')
 . (Join-Path $PSScriptRoot 'ShowcaseEvidence.Helpers.ps1')
 . (Join-Path $PSScriptRoot 'ShowcaseEvidence.Provenance.ps1')
@@ -7,7 +10,7 @@ if (Test-Path -LiteralPath $TestRoot) { throw 'Use a fresh task-owned test direc
 New-Item -ItemType Directory -Path $TestRoot | Out-Null
 try {
 New-Item -ItemType Directory -Path (Join-Path $TestRoot 'Website/scripts') | Out-Null
-foreach ($name in 'Invoke-ShowcasePowerShellExample.ps1', 'ShowcaseEvidence.Helpers.ps1', 'ShowcaseEvidence.Provenance.ps1') {
+foreach ($name in 'Invoke-ShowcasePowerShellExample.ps1', 'ShowcaseEvidence.Helpers.ps1', 'ShowcaseEvidence.Provenance.ps1', 'Build-ShowcaseEvidence.ps1') {
     'producer fixture' | Set-Content -LiteralPath (Join-Path $TestRoot ('Website/scripts/' + $name))
 }
 'sample script' | Set-Content -LiteralPath (Join-Path $TestRoot 'example.ps1')
@@ -114,7 +117,7 @@ foreach ($producerFile in @($completeProducer) + @($completeProducer.dependencie
     $path = Join-Path $TestRoot $producerFile.path
     $original = [IO.File]::ReadAllBytes($path)
     'changed producer' | Set-Content -LiteralPath $path
-    Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'Changing the worker or a loaded helper must invalidate its retained evidence.'
+    Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'Changing the worker, builder or a loaded helper must invalidate its retained evidence.'
     [IO.File]::WriteAllBytes($path, $original)
 }
 $artifacts[3].sha256 = 'changed-preview'
@@ -132,29 +135,28 @@ Assert-Contract $blocked 'Stale generation must reject visual-review attestation
 'sample input' | Set-Content -LiteralPath (Join-Path $TestRoot 'input.csv')
 $arguments.ModuleVersion = '3.0.9'
 Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'A changed documented module version must invalidate old producer evidence.'
-if ($ModuleVersion) {
-    # Exercise the real child runner against an available module. A successful recipe
-    # that omits an export must never relabel an old destination file as fresh output.
-    $runnerRoot = Join-Path $TestRoot 'runner'
-    $runnerDocuments = Join-Path $runnerRoot 'documents'
-    New-Item -ItemType Directory -Path (Join-Path $runnerRoot 'Website/data'), (Join-Path $runnerDocuments 'PowerShell') -Force | Out-Null
-    @'
+# Exercise the real child runner against an available module. A successful recipe
+# that omits an export must never relabel an old destination file as fresh output.
+$runnerRoot = Join-Path $TestRoot 'runner'
+$runnerDocuments = Join-Path $runnerRoot 'documents'
+New-Item -ItemType Directory -Path (Join-Path $runnerRoot 'Website/data'), (Join-Path $runnerDocuments 'PowerShell') -Force | Out-Null
+@'
 param([string] $OutputDirectory, [string] $ModuleVersion)
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 '@ | Set-Content -LiteralPath (Join-Path $runnerRoot 'example.ps1')
-    $runnerCard = [ordered]@{ id = 'example'; source_language = 'powershell'; source_path = 'example.ps1'; source_url = '/downloads/showcase/example.ps1'; downloads = @([ordered]@{ url = '/downloads/showcase/report.docx' }); previews = @() }
-    [ordered]@{ cards = @($runnerCard); artifacts = @([ordered]@{ sourceRoot = 'documents'; source = 'PowerShell/report.docx'; destination = 'report.docx' }) } |
-        ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $runnerRoot 'Website/data/showcase.json')
-    $oldOutput = Join-Path $runnerDocuments 'PowerShell/report.docx'
-    'old-output' | Set-Content -LiteralPath $oldOutput
-    $receiptPath = Join-Path $runnerRoot 'receipt.json'
-    $logPath = Join-Path $runnerRoot 'runner.log'
-    & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Invoke-ShowcasePowerShellExample.ps1') -RepositoryRoot $runnerRoot -DocumentsRoot $runnerDocuments -ExampleId example -ModuleVersion $ModuleVersion -ReceiptPath $receiptPath *> $logPath
-    Assert-Contract ($LASTEXITCODE -ne 0 -and (Get-Content -LiteralPath $logPath -Raw).Contains('Current showcase generation did not produce')) 'The runner must reject the omitted export, even with an older destination file.'
-    Assert-Contract (-not (Test-Path -LiteralPath $receiptPath)) 'A failed generation must not produce a success receipt.'
-    Assert-Contract ((Get-Content -LiteralPath $oldOutput -Raw).Trim() -ceq 'old-output') 'An incomplete generation must preserve the previous destination.'
-    Assert-Contract (@(Get-ChildItem -LiteralPath $runnerDocuments -Directory -Filter 'ShowcaseGeneration-*').Count -eq 0) 'The runner must remove its failed temporary generation.'
-}
+$runnerCard = [ordered]@{ id = 'example'; source_language = 'powershell'; source_path = 'example.ps1'; source_url = '/downloads/showcase/example.ps1'; downloads = @([ordered]@{ url = '/downloads/showcase/report.docx' }); previews = @() }
+[ordered]@{ cards = @($runnerCard); artifacts = @([ordered]@{ sourceRoot = 'documents'; source = 'PowerShell/report.docx'; destination = 'report.docx' }) } |
+    ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $runnerRoot 'Website/data/showcase.json')
+$oldOutput = Join-Path $runnerDocuments 'PowerShell/report.docx'
+'old-output' | Set-Content -LiteralPath $oldOutput
+$receiptPath = Join-Path $runnerRoot 'receipt.json'
+$logPath = Join-Path $runnerRoot 'runner.log'
+& pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Invoke-ShowcasePowerShellExample.ps1') -RepositoryRoot $runnerRoot -DocumentsRoot $runnerDocuments -ExampleId example -ModuleVersion $ModuleVersion -ReceiptPath $receiptPath *> $logPath
+Assert-Contract ($LASTEXITCODE -ne 0 -and (Get-Content -LiteralPath $logPath -Raw).Contains('Current showcase generation did not produce')) 'The runner must reject the omitted export, even with an older destination file.'
+Assert-Contract (-not (Test-Path -LiteralPath $receiptPath)) 'A failed generation must not produce a success receipt.'
+Assert-Contract ((Get-Content -LiteralPath $oldOutput -Raw).Trim() -ceq 'old-output') 'An incomplete generation must preserve the previous destination.'
+Assert-Contract (@(Get-ChildItem -LiteralPath $runnerDocuments -Directory -Filter 'ShowcaseGeneration-*').Count -eq 0) 'The runner must remove its failed temporary generation.'
+Write-Host "Real child-runner omitted-export contracts passed with PSWriteOffice $ModuleVersion."
 Write-Host 'Showcase generation provenance contracts passed.'
 } finally {
     if ($ownsTestRoot) { Remove-Item -LiteralPath $TestRoot -Recurse -ErrorAction Stop }
