@@ -1200,6 +1200,455 @@
       "files": {
         "native.pdf": "7d64676cfbf628bd7181cd1b93187e6d01318c7edae272362282168476da1fb3"
       }
+    },
+    {
+      "id": "ruled-control-opaque-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "A later opaque white stroke removes a short segment of an interior ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [150,630]-[180,630] in opaque white at width 4."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w 150 630 m 180 630 l S Q",
+          "fromPoints": [
+            150,
+            630
+          ],
+          "toPoints": [
+            180,
+            630
+          ],
+          "dashPatternPoints": [],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "635a8c262d556b09a1649ebf11e516ab658373a3c3c582670eda39966acb3084"
+      }
+    },
+    {
+      "id": "ruled-control-full-span-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "A later opaque white stroke removes an entire interior row ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [42,630]-[570,630] in opaque white at width 4."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w 42 630 m 570 630 l S Q",
+          "fromPoints": [
+            42,
+            630
+          ],
+          "toPoints": [
+            570,
+            630
+          ],
+          "dashPatternPoints": [],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "6ae4fc2f6233c411acf80698978804102d1246255a439bca60454a7b36269757"
+      }
+    },
+    {
+      "id": "ruled-control-dashed-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "Later opaque white dashes remove intersected portions of an interior ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [150,630]-[180,630] in white at width 4 with dash [4,2], phase 0."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w [4 2] 0 d 150 630 m 180 630 l S Q",
+          "fromPoints": [
+            150,
+            630
+          ],
+          "toPoints": [
+            180,
+            630
+          ],
+          "dashPatternPoints": [
+            4,
+            2
+          ],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "491d715fe70f4e5f6f9e1dbf78e58ac6ada81ec6af60103fcef00ad4ef39bc8b"
+      }
+    },
+    {
+      "id": "ruled-control-diagonal-white-stroke",
+      "expectedAdmission": false,
+      "expectationReason": "A later diagonal opaque white stroke intersects and removes part of an interior ruling.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "After the grid and before text, stroke [150,628]-[180,632] in opaque white at width 4."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "whiteStroke": {
+          "operators": "q 1 1 1 RG 4 w 150 628 m 180 632 l S Q",
+          "fromPoints": [
+            150,
+            628
+          ],
+          "toPoints": [
+            180,
+            632
+          ],
+          "dashPatternPoints": [],
+          "widthPoints": 4,
+          "strokeRgb": [
+            1,
+            1,
+            1
+          ],
+          "strokeOpacity": 1,
+          "dashPhasePoints": 0,
+          "afterGrid": true,
+          "beforeText": true
+        }
+      },
+      "files": {
+        "native.pdf": "6988c6be714cc98174d7f5ddc210f82d0ded9019d187148eff10dbc4d3f8548d"
+      }
+    },
+    {
+      "id": "ruled-control-white-grid",
+      "expectedAdmission": false,
+      "expectationReason": "Opaque white rulings on the default white page do not establish a visible grid.",
+      "pageSizePoints": [
+        612,
+        792
+      ],
+      "clockwiseDegrees": 0,
+      "table": [
+        [
+          "Description",
+          "Units",
+          "Rate",
+          "Amount"
+        ],
+        [
+          "Initial service",
+          "12",
+          "9.99",
+          "119.88"
+        ],
+        [
+          "Return credit",
+          "3",
+          "-4.50",
+          "-13.50"
+        ],
+        [
+          "Monthly plan",
+          "1",
+          "89.00",
+          "89.00"
+        ]
+      ],
+      "readingOrder": [
+        "Description Units Rate Amount",
+        "Initial service 12 9.99 119.88",
+        "Return credit 3 -4.50 -13.50",
+        "Monthly plan 1 89.00 89.00"
+      ],
+      "construction": {
+        "contentMatrix": [
+          1,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "changes": [
+          "Draw every ordinary 0.5-point grid stroke in opaque white with normal blend mode; preserve black text."
+        ],
+        "rulingWidthPoints": 0.5,
+        "font": "Helvetica",
+        "fontSizePoints": 12,
+        "fontEmbedded": false,
+        "textBaselineOffsetPoints": 22,
+        "cellInsetPoints": 8,
+        "alignments": [
+          "left",
+          "right",
+          "right",
+          "right"
+        ],
+        "strokeRgb": [
+          1,
+          1,
+          1
+        ],
+        "strokeOpacity": 1,
+        "blendMode": "Normal",
+        "pageBackground": "Default white page; no background paint operation"
+      },
+      "files": {
+        "native.pdf": "b79497cf1c650b246fcbb56e8a3734b932e8f0c0a1a01f903a249dc1f6b2c91d"
+      }
     }
   ]
 }

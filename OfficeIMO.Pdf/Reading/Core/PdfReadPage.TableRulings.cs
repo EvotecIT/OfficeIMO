@@ -24,6 +24,7 @@ public sealed partial class PdfReadPage {
         }
         var rulings = new List<PdfTableRuling>();
         bool uncertain = false;
+        (OfficeColor Color, double Width, double Opacity)? strokePaint = null;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
@@ -44,11 +45,28 @@ public sealed partial class PdfReadPage {
             if (uncertain) return;
             if (primitive.ContentOrderKey?.Depth != 1) { uncertain = true; return; }
             if (primitive.HasFillPaint) { uncertain = true; return; }
-            if (!primitive.StrokeColor.HasValue || primitive.StrokeColor.Value.A == 0 ||
+            if (!primitive.HasStrokePaint) return;
+            double opacity = primitive.StrokeOpacity ?? 1D;
+            if (IsFinite(opacity) && opacity <= 0D) return;
+            if (!primitive.StrokeColor.HasValue ||
                 !IsFinite(primitive.StrokeWidth) || primitive.StrokeWidth <= 0D ||
-                !IsFinite(primitive.StrokeOpacity ?? 1D) || (primitive.StrokeOpacity ?? 1D) <= 0D ||
+                !IsFinite(opacity) ||
                 primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null || primitive.StrokeTilingPattern != null ||
-                primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid || primitive.StrokeDashPattern is { Array.Count: > 0 }) return;
+                primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid || primitive.StrokeDashPattern is { Array.Count: > 0 }) {
+                uncertain = true;
+                return;
+            }
+            OfficeColor color = primitive.StrokeColor.Value;
+            if (color.A == 0) return;
+            // This root stroke-only profile has no painted background. White strokes
+            // on the default white page do not establish visible cell boundaries.
+            if (color.R == byte.MaxValue && color.G == byte.MaxValue && color.B == byte.MaxValue) { uncertain = true; return; }
+            var paint = (color, primitive.StrokeWidth, opacity);
+            // Geometry alone cannot establish that an earlier rule survived later
+            // paint. Decline mixed stroke paint before clipping/deduplication: even
+            // a partial, clipped or full-span white stroke can erase a black rule.
+            if (strokePaint.HasValue && !strokePaint.Value.Equals(paint)) { uncertain = true; return; }
+            strokePaint = paint;
             double pad = primitive.StrokeWidth / 2D;
             if (!Contained(primitive.X - pad, primitive.Y - pad, primitive.X + primitive.Width + pad,
                     primitive.Y + primitive.Height + pad, 0D, 0D, width, height)) return;
@@ -88,6 +106,8 @@ public sealed partial class PdfReadPage {
             (double X, double Y) first = ToReadingPoint(x1, y1), second = ToReadingPoint(x2, y2);
             if (!IsFinite(first.X) || !IsFinite(first.Y) || !IsFinite(second.X) || !IsFinite(second.Y)) return;
             double dx = Math.Abs(first.X - second.X), dy = Math.Abs(first.Y - second.Y);
+            // Nonorthogonal decorative strokes cannot erase an earlier rule with the
+            // same ordinary paint; differing paint has already declined this page.
             if ((dx > TableDetector.RulingTolerance && dy > TableDetector.RulingTolerance) ||
                 (dx <= TableDetector.RulingTolerance && dy <= TableDetector.RulingTolerance)) return;
             if (rulings.Count >= TableDetector.MaximumRulingSegments) { uncertain = true; return; }

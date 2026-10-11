@@ -23,6 +23,32 @@ ROWS = AUTHORING["ROW_BOUNDARIES"]
 TABLE = AUTHORING["TABLE"]
 IDENTITY = (1, 0, 0, 1, 0, 0)
 QUARTER_TURN = (0, -1, 1, 0, 0, 612)
+WHITE_STROKES = {
+    "opaque-white-stroke": {
+        "operators": "q 1 1 1 RG 4 w 150 630 m 180 630 l S Q",
+        "fromPoints": [150, 630],
+        "toPoints": [180, 630],
+        "dashPatternPoints": [],
+    },
+    "full-span-white-stroke": {
+        "operators": "q 1 1 1 RG 4 w 42 630 m 570 630 l S Q",
+        "fromPoints": [42, 630],
+        "toPoints": [570, 630],
+        "dashPatternPoints": [],
+    },
+    "dashed-white-stroke": {
+        "operators": "q 1 1 1 RG 4 w [4 2] 0 d 150 630 m 180 630 l S Q",
+        "fromPoints": [150, 630],
+        "toPoints": [180, 630],
+        "dashPatternPoints": [4, 2],
+    },
+    "diagonal-white-stroke": {
+        "operators": "q 1 1 1 RG 4 w 150 628 m 180 632 l S Q",
+        "fromPoints": [150, 628],
+        "toPoints": [180, 632],
+        "dashPatternPoints": [],
+    },
+}
 CONTROLS = [
     (
         "no-rules",
@@ -115,6 +141,36 @@ CONTROLS = [
         "A complete grid cannot refine the ledger when a moved separator crosses Units source text.",
         ["Replace the vertical boundary at x=282 with x=342; preserve text anchors and horizontal edges."],
     ),
+    (
+        "opaque-white-stroke",
+        False,
+        "A later opaque white stroke removes a short segment of an interior ruling.",
+        ["After the grid and before text, stroke [150,630]-[180,630] in opaque white at width 4."],
+    ),
+    (
+        "full-span-white-stroke",
+        False,
+        "A later opaque white stroke removes an entire interior row ruling.",
+        ["After the grid and before text, stroke [42,630]-[570,630] in opaque white at width 4."],
+    ),
+    (
+        "dashed-white-stroke",
+        False,
+        "Later opaque white dashes remove intersected portions of an interior ruling.",
+        ["After the grid and before text, stroke [150,630]-[180,630] in white at width 4 with dash [4,2], phase 0."],
+    ),
+    (
+        "diagonal-white-stroke",
+        False,
+        "A later diagonal opaque white stroke intersects and removes part of an interior ruling.",
+        ["After the grid and before text, stroke [150,628]-[180,632] in opaque white at width 4."],
+    ),
+    (
+        "white-grid",
+        False,
+        "Opaque white rulings on the default white page do not establish a visible grid.",
+        ["Draw every ordinary 0.5-point grid stroke in opaque white with normal blend mode; preserve black text."],
+    ),
 ]
 
 
@@ -139,6 +195,8 @@ def draw_grid(canvas, name):
         canvas.setStrokeAlpha(0)
     if name == "multiply-blend":
         canvas.setBlendMode("Multiply")
+    if name == "white-grid":
+        canvas.setStrokeColorRGB(1, 1, 1)
 
     for x in COLUMNS:
         if name == "open-right" and x == COLUMNS[-1]:
@@ -164,6 +222,8 @@ def draw_grid(canvas, name):
         canvas.setFillColorRGB(1, 1, 1)
         canvas.rect(150, 628, 30, 4, stroke=0, fill=1)
         canvas.restoreState()
+    if name in WHITE_STROKES:
+        canvas.addLiteral(WHITE_STROKES[name]["operators"])
 
 
 def draw_text(canvas):
@@ -280,6 +340,21 @@ def generate_case(name, expected_admission, reason, changes):
         }
     if name == "assignment-conflict":
         result["construction"]["replacedVerticalBoundaryPoints"] = [282, 342]
+    if name == "white-grid":
+        result["construction"]["strokeRgb"] = [1, 1, 1]
+        result["construction"]["strokeOpacity"] = 1
+        result["construction"]["blendMode"] = "Normal"
+        result["construction"]["pageBackground"] = "Default white page; no background paint operation"
+    if name in WHITE_STROKES:
+        result["construction"]["whiteStroke"] = {
+            **WHITE_STROKES[name],
+            "widthPoints": 4,
+            "strokeRgb": [1, 1, 1],
+            "strokeOpacity": 1,
+            "dashPhasePoints": 0,
+            "afterGrid": True,
+            "beforeText": True,
+        }
     return result
 
 
