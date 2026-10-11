@@ -16,7 +16,7 @@ Use PowerShell 7.4 or newer, or replace `pwsh` with `powershell` for Windows Pow
 | `BudgetForecastReview.ps1` | `Data/BudgetForecast.csv` | XLSX detail and formulas, plus a DOCX/PDF review naming overspend decisions |
 | `ProjectDeliveryPack.ps1` | `Data/ProjectMilestones.csv` | XLSX milestone register and status formulas, plus a DOCX/PDF review naming overdue work and recovery actions |
 
-For your own CSV, pass `-InputPath`. Set the review date with `-AsOfDate yyyy-MM-dd`. The budget uses USD with at most two decimal places; positive forecast variance means overspend. Milestone dates use `yyyy-MM-dd`, progress is an integer from 0 to 100, and an incomplete milestone is overdue only when its due date precedes the review date.
+For your own CSV, pass `-InputPath`. Set the review date with `-AsOfDate yyyy-MM-dd`. The budget uses non-negative USD amounts with a dot as the decimal separator, at most two decimal places, and no grouping separators: use `1234.50`. Positive forecast variance means overspend. Milestone dates use `yyyy-MM-dd`, progress is an integer from 0 to 100, and an incomplete milestone is overdue only when its due date precedes the review date.
 
 If downloading a script separately, save it as a `.ps1` file and pass its companion CSV with `-InputPath`, or keep the CSV under the script's `Data` directory. The checked-in data is synthetic and includes Unicode owner names and a zero-budget spending exception. Reports generated from the default input carry a synthetic-sample label. When you pass `-InputPath`, the report uses a neutral snapshot label.
 

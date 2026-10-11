@@ -2139,7 +2139,7 @@
         "steps": [
           {
             "title": "Prepare the input snapshot",
-            "body": "Use the synthetic USD sample or provide Department, Owner, Budget, Actual, Forecast and Action columns. Amounts must be non-negative with at most two decimal places."
+            "body": "Use the synthetic USD sample or provide Department, Owner, Budget, Actual, Forecast and Action columns. Use non-negative USD amounts with a dot decimal separator, at most two decimal places, and no grouping separators, such as 1234.50."
           },
           {
             "title": "Calculate the review",

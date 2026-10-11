@@ -35,8 +35,11 @@ $rows = @(foreach ($item in $inputRows) {
     }
     $amounts = @{}
     foreach ($field in 'Budget','Actual','Forecast') {
-        $value = [decimal]::Parse($item.$field, [Globalization.NumberStyles]::Number, $culture)
-        if ($value -lt 0 -or [decimal]::Round($value,2) -ne $value) { throw "$field must be non-negative USD with at most two decimal places for $($item.Department)." }
+        $amountText = ([string]$item.$field).Trim()
+        if ($amountText -cnotmatch '^[0-9]+(?:\.[0-9]{1,2})?$') {
+            throw "$field must be non-negative USD with at most two decimal places and no group separators for $($item.Department)."
+        }
+        $value = [decimal]::Parse($amountText, [Globalization.NumberStyles]::AllowDecimalPoint, $culture)
         $amounts[$field] = $value
     }
     [pscustomobject]@{ Department=$item.Department; Owner=$item.Owner; Budget=$amounts.Budget; Actual=$amounts.Actual;
