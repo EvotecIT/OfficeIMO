@@ -22,6 +22,9 @@ foreach ($card in $catalog.cards) {
     if ($card.source_language -cne $expectedLanguage -or $card.source_language -cnotin @($catalog.source_languages.id)) {
         throw "Source language must match the generating file on '$($card.id)'."
     }
+    if ($expectedLanguage -eq 'powershell' -and $card.run_command -notmatch '(?:^|\s)-ModuleVersion\s+\{moduleVersion\}(?:\s|$)') {
+        throw "PowerShell run command must select the imported module version with {moduleVersion} on '$($card.id)'."
+    }
 }
 
 foreach ($card in $cards) {

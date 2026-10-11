@@ -91,7 +91,8 @@
                   <a href="{{ card.source_url }}" aria-label="View {{ source_language_label }} source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View {{ source_language_label }} source</a>
                   <a href="{{ card.guide_url }}" aria-label="Read guide: {{ card.title | html.escape }}">Read guide</a><a href="{{ card.api_url }}" aria-label="API reference: {{ card.title | html.escape }}">API reference</a>
                 </nav>
-                <details class="imo-example__run"><summary>Run from a source checkout</summary><pre><code>{{ card.run_command | html.escape }}</code></pre></details>
+                {{ include "showcase-run-command" }}
+                <details class="imo-example__run"><summary>Run from a source checkout</summary><pre><code>{{ run_command | html.escape }}</code></pre></details>
               </div>
             </details>
           </div>

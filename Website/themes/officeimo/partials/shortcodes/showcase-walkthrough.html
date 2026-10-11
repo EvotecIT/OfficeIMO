@@ -40,11 +40,13 @@
   <section id="run-example" class="imo-walkthrough__section">
     <h2>Run it from the source checkout</h2>
     {{ if source_language == "powershell" }}
-    <p>Clone <a href="https://github.com/EvotecIT/OfficeIMO">the OfficeIMO repository</a> and run this command from its root in PowerShell 7.4 or newer. Install the PSWriteOffice version selected by <code>-ModuleVersion</code> first; the script imports that exact version.</p>
+    <p>Clone <a href="https://github.com/EvotecIT/OfficeIMO">the OfficeIMO repository</a> and run this command from its root in PowerShell 7.4 or newer, or use Windows PowerShell 5.1 on Windows with the command below. Install the PSWriteOffice version selected by <code>-ModuleVersion</code> first; the script imports that exact version.</p>
     {{ else }}
     <p>Clone <a href="https://github.com/EvotecIT/OfficeIMO">the OfficeIMO repository</a> and run this command from its root with the .NET 10 SDK. The first run restores the example project's dependencies.</p>
     {{ end }}
-    <div class="imo-walkthrough__command"><pre tabindex="0" aria-label="Run command"><code>{{ card.run_command | html.escape }}</code></pre><button type="button" data-copy="{{ card.run_command | html.escape }}" aria-label="Copy run command">Copy</button></div>
+    {{ include "showcase-run-command" }}
+    <div class="imo-walkthrough__command"><pre tabindex="0" aria-label="Run command"><code>{{ run_command | html.escape }}</code></pre><button type="button" data-copy="{{ run_command | html.escape }}" aria-label="Copy run command">Copy</button></div>
+    {{ if source_language == "powershell" }}<details><summary>Run in Windows PowerShell 5.1</summary><pre tabindex="0"><code>{{ desktop_run_command | html.escape }}</code></pre></details>{{ end }}
     <p>The files are written to <code>{{ if card.output_directory }}{{ card.output_directory }}{{ else }}OfficeIMO.Examples/bin/Debug/net10.0/Documents/Workflows/{{ card.id }}/{{ end }}</code>. Start with the <a href="{{ card.guide_url }}">{{ if source_language == "powershell" }}PSWriteOffice{{ else }}{{ card.format }}{{ end }} guide</a> for package setup and more examples.</p>
   </section>
   <section id="downloads" class="imo-walkthrough__section imo-walkthrough__downloads">
@@ -52,7 +54,7 @@
     <nav aria-label="Example downloads">{{ for download in card.downloads }}<a class="imo-btn imo-btn-ghost" href="{{ download.url }}" aria-label="Download {{ download.label | html.escape }}: {{ card.title | html.escape }}">{{ download.label }}</a>{{ end }}</nav>
     <h3>What the preview shows</h3><p>{{ card.proof }}</p>
     <h3>What to keep in mind</h3><p>{{ card.limit }}</p>
-    <p><a href="{{ card.api_url }}">{{ card.format }} API reference</a> &middot; <a href="/downloads/showcase/manifest.json">Artifact hashes and provenance</a></p>
+    <p><a href="{{ card.api_url }}">{{ if source_language == "powershell" }}PowerShell{{ else }}{{ card.format }}{{ end }} API reference</a> &middot; <a href="/downloads/showcase/manifest.json">Artifact hashes and provenance</a></p>
   </section>
   <section class="imo-walkthrough__section"><h2>Continue with another example</h2><ul class="imo-walkthrough__related">
     {{ for related_id in card.walkthrough.related }}{{ for related in data.showcase.cards }}{{ if related.id == related_id }}<li><a href="{{ if related.walkthrough_url }}{{ related.walkthrough_url }}{{ else }}/showcase/#{{ related.id }}{{ end }}"><span>{{ related.format }}</span><strong>{{ related.title }}</strong></a></li>{{ end }}{{ end }}{{ end }}
