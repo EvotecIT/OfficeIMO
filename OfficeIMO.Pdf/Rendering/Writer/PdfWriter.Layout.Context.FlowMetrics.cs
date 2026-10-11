@@ -670,6 +670,7 @@ internal static partial class PdfWriter {
 
                 RecordFlowPlacement(y);
                 double consumed = Math.Min(remaining, available);
+                if (consumed > 0D) RecordRunningContentSection();
                 y -= consumed;
                 remaining -= consumed;
                 if (remaining > 0.001D) {

@@ -45,10 +45,16 @@ internal static partial class PdfWriter {
             get => pageHasContent;
             set {
                 pageHasContent = value;
-                if (value && !isRunningContent && currentPage != null && currentRunningSectionId is int sectionId) {
-                    currentPage.RunningContentSectionId ??= sectionId;
-                    (currentPage.RunningContentSections ??= new HashSet<int>()).Add(sectionId);
-                }
+                if (value) RecordRunningContentSection();
+            }
+        }
+
+        // Blank body flow can occupy a source section's page without painting it.
+        // Track that ownership separately from whether the page must be emitted.
+        private void RecordRunningContentSection() {
+            if (!isRunningContent && currentPage != null && currentRunningSectionId is int sectionId) {
+                currentPage.RunningContentSectionId ??= sectionId;
+                (currentPage.RunningContentSections ??= new HashSet<int>()).Add(sectionId);
             }
         }
         private bool usedBold;
@@ -243,6 +249,7 @@ internal static partial class PdfWriter {
                     return;
                 }
                 PrepareActiveContainerScopesForPageBreak();
+                if (preserveEmptyPage) RecordRunningContentSection();
                 FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
                 StartPage(currentPageBaseOptions);
                 ResumeActiveContainerScopesOnNewPage();
