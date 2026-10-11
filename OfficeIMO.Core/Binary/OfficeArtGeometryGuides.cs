@@ -15,8 +15,9 @@ internal static class OfficeArtGeometryGuides {
         values = Array.Empty<int>(); failure = OfficeArtCustomPathFailure.InvalidGuide;
         token.ThrowIfCancellationRequested();
         OfficeArtProperty? property = properties.LastOrDefault(item => item.PropertyId == 0x0156);
-        if (property?.IsComplex != true || !property.HasCompleteComplexData
-            || property.CopyComplexData() is not byte[] bytes || bytes.Length < 6) return false;
+        if (property?.IsComplex != true || !property.HasCompleteComplexData) return false;
+        OfficeArtComplexData bytes = property.ComplexData;
+        if (bytes.Length < 6) return false;
         int count = U16(bytes, 0);
         int storedSize = U16(bytes, 4) switch { 8 => 8, 0xFFF0 => 4, _ => 0 };
         if (count is < 1 or > 128 || count > U16(bytes, 2) || storedSize == 0
@@ -135,5 +136,5 @@ internal static class OfficeArtGeometryGuides {
         if (turn is -45 * 65536 or 135 * 65536) return -1;
         return Math.Tan(turn * (Math.PI / (180D * 65536)));
     }
-    private static ushort U16(byte[] bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
+    private static ushort U16(OfficeArtComplexData bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
 }
