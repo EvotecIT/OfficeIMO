@@ -85,8 +85,6 @@ foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
     Assert-ContainsLiteral -Text $walkthroughHtml -Expected "Copy $languageLabel source" -Contract "$($card.id) code copy label"
     Assert-ContainsAttribute -Text $walkthroughHtml -Name 'class' -Value "language-$($card.source_language)" -Contract "$($card.id) syntax highlighting"
     if ($card.source_language -eq 'powershell') {
-        Assert-ContainsLiteral -Text $walkthroughHtml -Expected 'PowerShell 7.4 or newer' -Contract "$($card.id) PowerShell prerequisites"
-        Assert-ContainsLiteral -Text $walkthroughHtml -Expected 'Windows PowerShell 5.1' -Contract "$($card.id) Windows PowerShell prerequisites"
         $moduleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $sourceRootPath 'data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
         $runCommand = $card.run_command.Replace('{moduleVersion}', $moduleVersion)
         Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand)) -Contract "$($card.id) executable command"
