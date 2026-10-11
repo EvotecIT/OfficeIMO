@@ -5,17 +5,84 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
-    [Fact]
-    public void OfficeArtPropertyTableReader_CompleteArraySurvivesATruncatedFollowingPayload() {
+    [Theory]
+    [InlineData(0x80000000U)]
+    [InlineData(uint.MaxValue)]
+    public void OfficeArtPropertyTableReader_OversizedDeclarationRetainsBoundedAvailableBytes(uint declaredLength) {
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x83FE); writer.Write(declaredLength);
+        byte[] data = { 1, 2, 3, 4 }; writer.Write(data);
+        OfficeArtProperty property = Assert.Single(OfficeArtPropertyTableReader.Read(stream.ToArray(), 1));
+        Assert.Equal(data, property.CopyComplexData());
+        Assert.Equal(data.Length, property.AvailableComplexDataLength);
+        Assert.False(property.HasCompleteComplexData);
+    }
+
+    [Theory]
+    [InlineData(false, 100U)]
+    [InlineData(true, 100U)]
+    [InlineData(false, 10U)]
+    [InlineData(true, 10U)]
+    [InlineData(false, uint.MaxValue)]
+    [InlineData(true, 0x80000000U)]
+    public void OfficeArtPropertyTableReader_TruncatedTextPreservesRecognizableFollowingArray(bool includesHeader, uint declaredLength) {
         byte[] vertices = { 1, 0, 1, 0, 8, 0, 7, 0, 0, 0, 0, 0, 2, 0 };
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((ushort)0x8145); writer.Write(8U);
-        writer.Write((ushort)0x8380); writer.Write(100U);
+        writer.Write((ushort)0x8380); writer.Write(declaredLength);
+        writer.Write((ushort)0x8145); writer.Write((uint)(includesHeader ? vertices.Length : vertices.Length - 6));
+        writer.Write((ushort)0x8381); writer.Write(4U);
+        writer.Write(Encoding.Unicode.GetBytes("OK")); writer.Write(vertices); writer.Write(Encoding.Unicode.GetBytes("Hi"));
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 3);
+        Assert.Equal("OK", properties[0].ComplexText);
+        Assert.False(properties[0].HasCompleteComplexData);
+        Assert.Equal(vertices, properties[1].CopyComplexData());
+        Assert.True(properties[1].HasCompleteComplexData);
+        Assert.Equal("Hi", properties[2].ComplexText);
+    }
+
+    [Theory]
+    [InlineData(100U, false)]
+    [InlineData(10U, false)]
+    [InlineData(10U, true)]
+    public void OfficeArtPropertyTableReader_CompleteArraySurvivesATruncatedFollowingPayload(uint suffixLength, bool includesHeader) {
+        byte[] vertices = { 1, 0, 1, 0, 8, 0, 7, 0, 0, 0, 0, 0, 2, 0 };
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x8145); writer.Write(includesHeader ? 14U : 8U);
+        writer.Write((ushort)0x8380); writer.Write(suffixLength);
         writer.Write(vertices); writer.Write(Encoding.Unicode.GetBytes("OK"));
         var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 2);
         Assert.Equal(vertices, properties[0].CopyComplexData());
         Assert.True(properties[0].HasCompleteComplexData);
         Assert.Equal("OK", properties[1].ComplexText);
+        Assert.False(properties[1].HasCompleteComplexData);
+    }
+
+    [Fact]
+    public void OfficeArtPropertyTableReader_CompleteArraysSurviveAnOverstatedMiddlePayload() {
+        byte[] vertices = { 1, 0, 1, 0, 8, 0, 7, 0, 0, 0, 0, 0, 2, 0 };
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x8145); writer.Write(8U);
+        writer.Write((ushort)0x8380); writer.Write(10U);
+        writer.Write((ushort)0x8145); writer.Write(8U);
+        writer.Write(vertices); writer.Write(Encoding.Unicode.GetBytes("OK")); writer.Write(vertices);
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 3);
+        Assert.Equal(vertices, properties[0].CopyComplexData());
+        Assert.Equal("OK", properties[1].ComplexText);
+        Assert.False(properties[1].HasCompleteComplexData);
+        Assert.Equal(vertices, properties[2].CopyComplexData());
+        Assert.True(properties[0].HasCompleteComplexData); Assert.True(properties[2].HasCompleteComplexData);
+    }
+
+    [Fact]
+    public void OfficeArtPropertyTableReader_AbsentNonemptyArrayDoesNotBorrowACompletePrecedingElement() {
+        byte[] vertices = { 1, 0, 1, 0, 8, 0, 1, 0, 1, 0, 2, 0, 7, 0 };
+        using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
+        writer.Write((ushort)0x8145); writer.Write(8U);
+        writer.Write((ushort)0x8146); writer.Write(2U); writer.Write(vertices);
+        var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 2);
+        Assert.Equal(vertices, properties[0].CopyComplexData());
+        Assert.True(properties[0].HasCompleteComplexData);
+        Assert.Equal(0, properties[1].AvailableComplexDataLength);
         Assert.False(properties[1].HasCompleteComplexData);
     }
 
@@ -58,6 +125,7 @@ public partial class DrawingTests {
     [InlineData(0x0156, 8)]
     [InlineData(0x0156, 0xFFF0)]
     [InlineData(0x0197, 8)]
+    [InlineData(0x0197, 0xFFF0)]
     public void OfficeArtPropertyTableReader_TruncatedArrayPreservesFollowingRecoveredArray(ushort id, ushort elementSize) {
         int stride = elementSize == 0xFFF0 ? 4 : elementSize;
         using var arrayStream = new MemoryStream(); using var arrayWriter = new BinaryWriter(arrayStream);
@@ -65,10 +133,12 @@ public partial class DrawingTests {
         arrayWriter.Write(new byte[stride]);
         byte[] following = arrayStream.ToArray();
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((ushort)0x8145); writer.Write(16U);
+        // Its declared body exceeds the whole remaining record, so the prefix
+        // cannot instead be interpreted as a complete array containing header-like points.
+        writer.Write((ushort)0x8145); writer.Write(80U);
         writer.Write((ushort)(id | 0x8000)); writer.Write((uint)stride);
         writer.Write((ushort)0x8380); writer.Write(4U);
-        writer.Write((ushort)2); writer.Write((ushort)2); writer.Write((ushort)8); writer.Write((ushort)123);
+        writer.Write((ushort)10); writer.Write((ushort)10); writer.Write((ushort)8); writer.Write((ushort)123);
         writer.Write(following); writer.Write(Encoding.Unicode.GetBytes("OK"));
         var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 3);
         Assert.Equal(8, properties[0].AvailableComplexDataLength);
@@ -92,18 +162,27 @@ public partial class DrawingTests {
     }
 
     [Theory]
-    [InlineData(0x0145, 8)]
-    [InlineData(0x0145, 0xFFF0)]
-    [InlineData(0x0146, 2)]
-    [InlineData(0x0156, 8)]
-    [InlineData(0x0156, 0xFFF0)]
-    [InlineData(0x0197, 8)]
-    public void OfficeArtPropertyTableReader_TruncatedRecoveredHeaderPreservesFollowingPayload(ushort id, ushort elementSize) {
+    [InlineData(0x0145, 8, false)]
+    [InlineData(0x0145, 0xFFF0, false)]
+    [InlineData(0x0146, 2, false)]
+    [InlineData(0x0156, 8, false)]
+    [InlineData(0x0156, 0xFFF0, false)]
+    [InlineData(0x0197, 8, false)]
+    [InlineData(0x0197, 0xFFF0, false)]
+    [InlineData(0x0145, 8, true)]
+    [InlineData(0x0145, 0xFFF0, true)]
+    [InlineData(0x0146, 2, true)]
+    [InlineData(0x0156, 8, true)]
+    [InlineData(0x0156, 0xFFF0, true)]
+    [InlineData(0x0197, 8, true)]
+    [InlineData(0x0197, 0xFFF0, true)]
+    public void OfficeArtPropertyTableReader_TruncatedRecoveredHeaderPreservesFollowingPayload(ushort id, ushort elementSize, bool includesHeader) {
         int stride = elementSize == 0xFFF0 ? 4 : elementSize;
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
-        writer.Write((ushort)(id | 0x8000)); writer.Write((uint)(2 * stride));
+        // Keep truncation unambiguous even for two-byte segment elements.
+        writer.Write((ushort)(id | 0x8000)); writer.Write((uint)(10 * stride + (includesHeader ? 6 : 0)));
         writer.Write((ushort)0x8380); writer.Write(4U);
-        writer.Write((ushort)2); writer.Write((ushort)2); writer.Write(elementSize);
+        writer.Write((ushort)10); writer.Write((ushort)10); writer.Write(elementSize);
         writer.Write((ushort)123);
         writer.Write(System.Text.Encoding.Unicode.GetBytes("OK"));
         var properties = OfficeArtPropertyTableReader.Read(stream.ToArray(), 2);
@@ -118,7 +197,9 @@ public partial class DrawingTests {
     [InlineData(0x0145, 4)]
     [InlineData(0x0145, 0xFFF0)]
     [InlineData(0x0146, 2)]
+    [InlineData(0x0156, 8)]
     [InlineData(0x0197, 8)]
+    [InlineData(0x0197, 0xFFF0)]
     public void OfficeArtPropertyTableReader_ArrayLengthExcludingHeaderPreservesTheFollowingProperty(ushort id, int elementSize) {
         int stride = elementSize == 0xFFF0 ? 4 : elementSize;
         byte[] array = new byte[6 + 2 * stride];
@@ -144,7 +225,9 @@ public partial class DrawingTests {
     [InlineData(0x0145, 4)]
     [InlineData(0x0145, 0xFFF0)]
     [InlineData(0x0146, 2)]
+    [InlineData(0x0156, 8)]
     [InlineData(0x0197, 8)]
+    [InlineData(0x0197, 0xFFF0)]
     public void OfficeArtPropertyTableReader_EmptyArrayHeaderPreservesTheFollowingProperty(ushort id, ushort elementSize) {
         byte[] name = Encoding.Unicode.GetBytes("After");
         using var stream = new MemoryStream(); using var writer = new BinaryWriter(stream);
