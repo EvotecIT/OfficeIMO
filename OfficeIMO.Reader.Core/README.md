@@ -151,10 +151,11 @@ Version 13 adds DBF input identity (`ReaderInputKind.Dbf`, 29).
 Version 12 adds DjVu identity (`ReaderInputKind.DjVu`, 28); version 11 adds CHM identity
 (`ReaderInputKind.Chm`, 27). Version 10 adds XPS/OpenXPS identity and explicit native
 `ReaderLocation.LogicalOrder` across physical containers; version 9 includes recursive
-`nestedDocuments`. Versions 5 through 12 remain readable. Load the matching artifact
+`nestedDocuments`. Versions 5 through 13 remain readable. Load the matching artifact
 with `OfficeDocumentReadResultSchema.GetJsonSchema(version)`. Versions below 9 cannot
 carry nested documents, below 10 cannot carry XPS input kinds, below 11 cannot carry
-CHM input kinds, below 12 cannot carry DjVu input kinds, and below 13 cannot carry DBF input kinds.
+CHM input kinds, below 12 cannot carry DjVu input kinds, below 13 cannot carry DBF input kinds,
+and below 14 cannot carry Publisher input kinds.
 
 Capability manifest version 6 includes incremental route flags and per-extension `FormatQualifications`.
 A qualification records a format ID, extraction maturity, profile, preservation, limitations and evidence
