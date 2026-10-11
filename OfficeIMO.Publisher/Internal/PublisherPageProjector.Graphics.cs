@@ -17,8 +17,11 @@ internal sealed partial class PublisherPageProjector {
             shape.Shadow = new OfficeShadow(Resolve(style.ShadowColor, source.Id) ?? OfficeColor.Black, style.ShadowOpacity ?? 1,
                 (style.ShadowOffsetXEmus ?? 0) / 12700D, (style.ShadowOffsetYEmus ?? 0) / 12700D, Math.Max(0, (style.ShadowSoftnessEmus ?? 0) / 12700D));
         }
-        uint? imageId = source.Property(0x104);
-        if (!imageId.HasValue) {
+        OfficeArtProperty? pictureReference = source.Properties.LastOrDefault(property => property.PropertyId == 0x0104);
+        if (pictureReference == null || pictureReference.Value == 0 || pictureReference.IsComplex) {
+            if (pictureReference?.IsComplex == true && pictureReference.Value != 0)
+                _context.Add("PUB_IMAGE_DATA_UNSUPPORTED", "A native picture carries inline image data that is retained without artwork projection.",
+                    OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id));
             if (HasFill(shape) || shape.StrokeColor.HasValue || shape.Shadow != null) drawing.AddShape(shape, 0, 0);
             return;
         }
@@ -27,7 +30,7 @@ internal sealed partial class PublisherPageProjector {
         OfficeShape background = shape.Clone();
         background.StrokeColor = null;
         if (HasFill(background) || background.Shadow != null) drawing.AddShape(background, 0, 0);
-        ProjectPicture(source, drawing, imageId.Value);
+        ProjectPicture(source, drawing, pictureReference.Value);
         OfficeShape outline = shape.Clone();
         outline.FillColor = null; outline.FillGradient = null; outline.FillRadialGradient = null; outline.Shadow = null;
         if (outline.StrokeColor.HasValue) drawing.AddShape(outline, 0, 0);

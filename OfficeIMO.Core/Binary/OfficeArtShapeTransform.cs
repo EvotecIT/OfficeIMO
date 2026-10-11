@@ -25,8 +25,7 @@ public sealed class OfficeArtShapeTransform {
     public static OfficeArtShapeTransform Decode(uint fspFlags,
         IReadOnlyList<OfficeArtProperty>? properties = null) {
         IReadOnlyList<OfficeArtProperty> source = properties ?? Array.Empty<OfficeArtProperty>();
-        OfficeArtProperty? rotation = source.LastOrDefault(property =>
-            property.PropertyId == 0x0004 && !property.IsComplex);
+        OfficeArtProperty? rotation = OfficeArtProperty.GetScalarProperty(source, 0x0004);
         double? rotationDegrees = rotation == null
             ? null
             : unchecked((int)rotation.Value) / 65536D;
