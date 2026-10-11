@@ -60,7 +60,7 @@
       <div class="imo-gallery__grid">
         {{ for card in data.showcase.cards }}
         {{ include "showcase-language" }}
-        <article class="imo-example" id="{{ card.id }}" data-showcase-format="{{ card.format_id }}" data-showcase-language="{{ source_language }}" data-showcase-capabilities="{{ card.operation_tags }}" data-showcase-search="{{ card.search_text | html.escape }}">
+        <article class="imo-example" id="{{ card.id }}" data-showcase-format="{{ card.format_id }}" data-showcase-language="{{ source_language }}" data-showcase-capabilities="{{ card.operation_tags }}" data-showcase-search="{{ card.search_text | html.escape }}{{ if card.walkthrough_url }} walkthrough{{ end }}">
           <div class="imo-example__preview">
             <span class="imo-example__format">{{ card.format }}</span>
             {{ if card.preview_kind == "reader" }}
