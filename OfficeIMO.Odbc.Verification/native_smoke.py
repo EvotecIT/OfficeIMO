@@ -110,6 +110,44 @@ def verify(driver_name, path, ado_consumer, hive):
             def close():
                 m.check(m.SQLFreeStmt(statement, 0), 3, statement)
 
+            # SQL-to-C conversion truncates fractions and reports loss rather than rounding.
+            for target, scalar in [(5, c.c_short), (-17, c.c_ushort), (4, c.c_int),
+                                   (-18, c.c_uint), (-25, c.c_longlong), (-27, c.c_ulonglong), (-7, c.c_ubyte)]:
+                for number in ([1.9, -1.9] if target in (5, 4, -25) else [1.9]):
+                    execute('SELECT ' + str(number))
+                    m.check(m.SQLFetch(statement), 3, statement)
+                    value, indicator = scalar(), c.c_ssize_t()
+                    assert m.SQLGetData(statement, 1, target, c.byref(value), c.sizeof(value), c.byref(indicator)) == 1
+                    assert value.value == int(number) and m.diagnostics(3, statement)[0][0] == '01S07'
+                    close()
+            for number, target, scalar in [(32768, 5, c.c_short), (-1, -17, c.c_ushort),
+                                           (2147483648, 4, c.c_int), (4294967296, -18, c.c_uint),
+                                           (9223372036854775808, -25, c.c_longlong),
+                                           (18446744073709551616, -27, c.c_ulonglong), (2, -7, c.c_ubyte)]:
+                execute('SELECT ' + str(number))
+                m.check(m.SQLFetch(statement), 3, statement)
+                value, indicator = scalar(), c.c_ssize_t()
+                assert m.SQLGetData(statement, 1, target, c.byref(value), c.sizeof(value), c.byref(indicator)) == -1
+                assert m.diagnostics(3, statement)[0][0] == '22003'
+                close()
+            execute("SELECT 'abcdef', 'other', NULL, 42")
+            m.check(m.SQLFetch(statement), 3, statement)
+            chunk, indicator = c.create_unicode_buffer(3), c.c_ssize_t()
+            assert m.SQLGetData(statement, 1, -8, chunk, c.sizeof(chunk), c.byref(indicator)) == 1
+            assert chunk.value == 'ab' and m.text(statement, 2) == 'other'
+            assert m.text(statement, 1) == 'abcdef'
+            assert m.text(statement, 2) == 'other' and m.text(statement, 1) == 'abcdef'
+            assert m.text(statement, 3) is None and m.text(statement, 4) == '42' and m.text(statement, 3) is None
+            assert m.text(statement, 4) == '42'
+            close()
+            bound_integer, indicator = c.c_int(), c.c_ssize_t()
+            m.check(m.SQLBindCol(statement, 1, 4, c.byref(bound_integer), 4, c.byref(indicator)), 3, statement)
+            execute('SELECT 1.9')
+            assert m.SQLFetch(statement) == 1 and bound_integer.value == 1
+            assert m.diagnostics(3, statement)[0][0] == '01S07'
+            close()
+            m.check(m.SQLFreeStmt(statement, 2), 3, statement)
+
             execute('SELECT "Name", "Amount", "Optional" FROM "Customers" ORDER BY "Name"')
             count = c.c_short()
             m.check(m.SQLNumResultCols(statement, c.byref(count)), 3, statement)
@@ -171,6 +209,11 @@ def verify(driver_name, path, ado_consumer, hive):
             date = Timestamp()
             m.check(m.SQLGetData(statement, 2, 93, c.byref(date), c.sizeof(date), c.byref(indicator)), 3, statement)
             assert (date.year, date.month, date.day, date.hour, date.minute, date.second, date.fraction) == (2026, 10, 12, 1, 2, 3, 123456700)
+            for target, expected in [(91, (2026, 10, 12)), (92, (1, 2, 3))]:
+                assert m.text(statement, 1) == '1'  # Switching columns restarts the timestamp.
+                parts = (c.c_ushort * 3)()
+                assert m.SQLGetData(statement, 2, target, parts, c.sizeof(parts), c.byref(indicator)) == 1
+                assert tuple(parts) == expected and m.diagnostics(3, statement)[0][0] == '01S07'
             close()
 
             execute('SELECT "Amount" FROM "Customers" ORDER BY "Amount"')

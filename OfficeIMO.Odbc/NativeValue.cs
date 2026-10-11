@@ -28,12 +28,16 @@ internal static unsafe class NativeValue {
         if (statement.Reader is not { } reader || !statement.OnRow) return statement.Fail("24000", "Fetch a row before reading column data.");
         if (column == 0 || column > reader.FieldCount) return statement.Fail("07009", "Invalid column ordinal.");
         if (capacity < 0) return statement.Fail("HY090", "Negative buffer length.");
-        if (advance && statement.Offsets.GetValueOrDefault(column) == -1) return 100;
+        if (advance && statement.DataColumn != column) {
+            statement.DataColumn = column;
+            statement.DataOffset = 0;
+        }
+        if (advance && statement.DataOffset == -1) return 100;
         object value = reader.GetValue(column - 1);
         if (value is DBNull) {
             if (indicator == 0) return statement.Fail("22002", "A null value requires an indicator buffer.");
             *(nint*)indicator = -1;
-            if (advance) statement.Offsets[column] = -1;
+            if (advance) statement.DataOffset = -1;
             return 0;
         }
         if (targetType == 99) targetType = SqlType(reader, column - 1) switch { 8 => 8, 4 => 4, 5 => 5, -5 => -25, -7 => -7, 93 => 93, -3 => -2, _ => -8 };
@@ -41,7 +45,7 @@ internal static unsafe class NativeValue {
             if (targetType is 1 or -8 or -2) {
                 bool wide = targetType == -8;
                 byte[] bytes = targetType == -2 && value is byte[] binary ? binary : NativeText.Bytes(Text(value), wide);
-                int offset = advance ? statement.Offsets.GetValueOrDefault(column) : 0;
+                int offset = advance ? statement.DataOffset : 0;
                 if (offset >= bytes.Length && offset > 0) return 100;
                 int remaining = bytes.Length - offset;
                 if (indicator != 0) *(nint*)indicator = remaining;
@@ -52,7 +56,7 @@ internal static unsafe class NativeValue {
                 if (wide) copied -= copied % 2;
                 bytes.AsSpan(offset, copied).CopyTo(new Span<byte>((void*)buffer, copied));
                 if (terminator != 0) new Span<byte>((byte*)buffer + copied, terminator).Clear();
-                if (advance) statement.Offsets[column] = copied == remaining ? -1 : offset + copied;
+                if (advance) statement.DataOffset = copied == remaining ? -1 : offset + copied;
                 if (copied < remaining) {
                     statement.Diagnostics.Add(new("01004", "Column data was truncated; call SQLGetData again for the remainder."));
                     return 1;
@@ -60,21 +64,35 @@ internal static unsafe class NativeValue {
                 return 0;
             }
             if (buffer == 0) return statement.Fail("HY009", "A numeric or temporal result requires a value buffer.");
+            bool fractional = false;
+            object integral = targetType is 5 or -15 or -17 or 4 or -16 or -18 or -25 or -27
+                ? Truncate(value, out fractional) : value;
             int size;
             switch (targetType) {
-                case -7: *(byte*)buffer = Convert.ToBoolean(value, CultureInfo.InvariantCulture) ? (byte)1 : (byte)0; size = 1; break;
-                case 5: case -15: *(short*)buffer = Convert.ToInt16(value, CultureInfo.InvariantCulture); size = 2; break;
-                case -17: *(ushort*)buffer = Convert.ToUInt16(value, CultureInfo.InvariantCulture); size = 2; break;
-                case 4: case -16: *(int*)buffer = Convert.ToInt32(value, CultureInfo.InvariantCulture); size = 4; break;
-                case -18: *(uint*)buffer = Convert.ToUInt32(value, CultureInfo.InvariantCulture); size = 4; break;
-                case -25: *(long*)buffer = Convert.ToInt64(value, CultureInfo.InvariantCulture); size = 8; break;
-                case -27: *(ulong*)buffer = Convert.ToUInt64(value, CultureInfo.InvariantCulture); size = 8; break;
-                case 7: *(float*)buffer = Convert.ToSingle(value, CultureInfo.InvariantCulture); size = 4; break;
+                case -7:
+                    double bit = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                    if (!double.IsFinite(bit) || bit < 0 || bit >= 2) throw new OverflowException();
+                    fractional = bit != Math.Truncate(bit);
+                    *(byte*)buffer = (byte)Math.Truncate(bit); size = 1; break;
+                case 5: case -15: *(short*)buffer = Convert.ToInt16(integral, CultureInfo.InvariantCulture); size = 2; break;
+                case -17: *(ushort*)buffer = Convert.ToUInt16(integral, CultureInfo.InvariantCulture); size = 2; break;
+                case 4: case -16: *(int*)buffer = Convert.ToInt32(integral, CultureInfo.InvariantCulture); size = 4; break;
+                case -18: *(uint*)buffer = Convert.ToUInt32(integral, CultureInfo.InvariantCulture); size = 4; break;
+                case -25: *(long*)buffer = Convert.ToInt64(integral, CultureInfo.InvariantCulture); size = 8; break;
+                case -27: *(ulong*)buffer = Convert.ToUInt64(integral, CultureInfo.InvariantCulture); size = 8; break;
+                case 7:
+                    float single = Convert.ToSingle(value, CultureInfo.InvariantCulture);
+                    if (!float.IsFinite(single)) throw new OverflowException();
+                    *(float*)buffer = single; size = 4; break;
                 case 8: *(double*)buffer = Convert.ToDouble(value, CultureInfo.InvariantCulture); size = 8; break;
                 case 91: case 92: case 93:
                     DateTime date = value is DateTime typed ? typed : DateTime.Parse(Text(value), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
                     ushort* parts = (ushort*)buffer;
-                    if (targetType == 92) { parts[0] = (ushort)date.Hour; parts[1] = (ushort)date.Minute; parts[2] = (ushort)date.Second; size = 6; break; }
+                    if (targetType == 92) {
+                        fractional = date.Ticks % TimeSpan.TicksPerSecond != 0;
+                        parts[0] = (ushort)date.Hour; parts[1] = (ushort)date.Minute; parts[2] = (ushort)date.Second; size = 6; break;
+                    }
+                    if (targetType == 91) fractional = date.TimeOfDay != TimeSpan.Zero;
                     parts[0] = (ushort)date.Year; parts[1] = (ushort)date.Month; parts[2] = (ushort)date.Day;
                     size = 6;
                     if (targetType == 93) {
@@ -86,11 +104,24 @@ internal static unsafe class NativeValue {
                 default: return statement.Fail("HYC00", "Unsupported C result type.");
             }
             if (indicator != 0) *(nint*)indicator = size;
-            if (advance) statement.Offsets[column] = -1;
+            if (advance) statement.DataOffset = -1;
+            if (fractional) {
+                statement.Diagnostics.Add(new("01S07", "Value lost precision during conversion."));
+                return 1;
+            }
             return 0;
         } catch (OverflowException) { return statement.Fail("22003", "Numeric value is out of range."); }
         catch (FormatException) { return statement.Fail("22018", "Value cannot be converted to the requested type."); }
         catch (InvalidCastException) { return statement.Fail("22018", "Value cannot be converted to the requested type."); }
+    }
+
+    private static object Truncate(object value, out bool fractional) {
+        object result = value switch {
+            double number => Math.Truncate(number), float number => MathF.Truncate(number),
+            decimal number => decimal.Truncate(number), _ => value
+        };
+        fractional = !result.Equals(value);
+        return result;
     }
 
     internal static object? Read(ParameterBinding binding) {

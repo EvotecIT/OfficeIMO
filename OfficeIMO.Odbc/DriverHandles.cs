@@ -28,7 +28,8 @@ internal sealed class StatementHandle(nint parent) : DriverHandle(3, parent) {
     internal CancellationTokenSource? Cancellation;
     internal Dictionary<ushort, ColumnBinding> Bindings { get; } = [];
     internal Dictionary<ushort, ParameterBinding> Parameters { get; } = [];
-    internal Dictionary<ushort, int> Offsets { get; } = [];
+    internal ushort DataColumn;
+    internal int DataOffset;
     internal bool OnRow;
     internal long Fetched;
     internal int ParameterCount;
@@ -42,7 +43,8 @@ internal sealed class StatementHandle(nint parent) : DriverHandle(3, parent) {
             Reader = null;
             Cancellation?.Dispose();
             Cancellation = null;
-            Offsets.Clear();
+            DataColumn = 0;
+            DataOffset = 0;
             OnRow = false;
             Fetched = 0;
         }

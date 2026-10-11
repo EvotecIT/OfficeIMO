@@ -61,7 +61,8 @@ internal static unsafe partial class Exports {
 
     private static short Fetch(StatementHandle statement) {
         statement.OnRow = false;
-        statement.Offsets.Clear();
+        statement.DataColumn = 0;
+        statement.DataOffset = 0;
         if (statement.RowsFetchedPointer != 0) *(nuint*)statement.RowsFetchedPointer = 0;
         if (statement.RowStatusPointer != 0) *(ushort*)statement.RowStatusPointer = 3;
         if (statement.Reader is not { } reader) return statement.Fail("24000", "No result cursor is open.");
