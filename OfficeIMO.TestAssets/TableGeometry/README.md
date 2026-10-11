@@ -16,3 +16,11 @@ python OfficeIMO.TestAssets/TableGeometry/generate.py
 The generator checks the ReportLab version and uses invariant PDF metadata and uncompressed streams. Running it again with the pinned version reproduces the PDF and manifest bytes. No rasterization, OCR provider, or external font file is required.
 
 The generator, labels, and generated PDFs use the repository's [MIT license](../../LICENSE). ReportLab uses its BSD license and remains contributor-only generation tooling. Helvetica is an unembedded PDF standard 14 font; these fixtures do not redistribute a font binary. None of the generator's Python dependencies enters an OfficeIMO runtime package.
+
+`ruling-controls-manifest.json` labels a separate 19-case admission corpus. Generate it with the same disposable ReportLab environment:
+
+```sh
+python OfficeIMO.TestAssets/TableGeometry/generate_ruling_controls.py
+```
+
+`PdfClosedRulingGridTests` compares recovered geometry directly with the authored coordinates. Its two original ledger cases qualify the complete visible closed-grid profile at page rotations of 0 and 90 degrees. The controls cover clipping, incomplete and competing boundaries, conflicting text assignments, content rotation, ordinary decoration, invisible strokes and later overpaint. Rejected controls must retain the text-only table's cells and geometry. The original manifest's propagation tolerances and `sourceGridRecoveryQualified: false` remain scoped to the spreadsheet-width propagation contract; they are not the acceptance criteria for these separate grid-recovery tests. Ruling-grid recovery combined with `/UserUnit`, merged or spanning cells, and the native Numbers table-count discrepancy remain outside this qualification.
