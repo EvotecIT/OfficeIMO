@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     $exportScript = Join-Path $PSScriptRoot '../Build/Export-WebsiteArtifacts.ps1'
     $sourceRoot = Join-Path $TestDrive 'source'
     $outputRoot = Join-Path $TestDrive 'artifacts'
@@ -12,6 +12,7 @@ BeforeAll {
     '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
     @'
 param($RunMode, [bool]$SignModule, [switch]$SkipInstall, [switch]$PassThru, $StagingPath)
+if ($env:UseOfficeIMOProjectReferences -ne 'false') { throw 'External OfficeIMO project references reached the fixture build.' }
 if ($RunMode -ne 'Build' -or $SignModule -or -not $SkipInstall -or -not $PassThru) { throw 'Unsafe fixture build options.' }
 if (Test-Path -LiteralPath $StagingPath) { throw 'Reused fixture staging directory.' }
 $null = New-Item -ItemType Directory -Path $StagingPath
@@ -46,6 +47,24 @@ Describe 'Website API source build qualification' {
         }
         @(Get-ChildItem -LiteralPath $buildRoot -Directory).Count | Should -Be 2
         Test-Path $outputRoot | Should -BeFalse
+    }
+
+    It 'rejects source-local retained build or custom export output before building' {
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot (Join-Path $sourceRoot 'out/builds') } |
+            Should -Throw '*BuildOutputRoot must be outside the source checkout*'
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot (Join-Path $sourceRoot 'out/website-api') -BuildOutputRoot $buildRoot } |
+            Should -Throw '*ArtifactsRoot must be outside the source checkout*'
+        Test-Path (Join-Path $sourceRoot 'out') | Should -BeFalse
+    }
+
+    It 'forces pinned package references and restores an inherited benchmark setting after build failure' {
+        $previous = $env:UseOfficeIMOProjectReferences
+        try {
+            $env:UseOfficeIMOProjectReferences = 'true'
+            { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+                Should -Throw '*Fresh unsigned build reached without installation*'
+            $env:UseOfficeIMOProjectReferences | Should -BeExactly 'true'
+        } finally { $env:UseOfficeIMOProjectReferences = $previous }
     }
 
     It 'rejects changed source before running a build or importing a module' {
