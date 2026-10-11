@@ -5,8 +5,9 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options, double runFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
         if (cell.ShrinkTextToFit && fontSize > 0D) {
+            minimumShrinkFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 6D;
             TableRowTextSizing sizing = ResolveTableCellsTextSizing(new[] { cell }, fontSize,
-                minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 6D, baseFont, options ?? new PdfOptions(),
+                minimumShrinkFontSize, baseFont, options ?? new PdfOptions(),
                 _ => innerWidth, runFontSizeScale);
             leading *= sizing.FontSize / fontSize;
             fontSize = sizing.FontSize;
