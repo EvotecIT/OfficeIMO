@@ -47,7 +47,7 @@ PdfNew -Path $path {
 
     PdfSpacer -Height 14
     PdfText -Text ('Subtotal: ' + $subtotal.ToString('C2', $currency)) -Align Right -Bold
-    PdfText -Text ('Illustrative tax (20%): ' + $tax.ToString('C2', $currency)) -Align Right
+    PdfText -Text ('Illustrative tax (' + $taxRate.ToString('0.##%', $currency) + '): ' + $tax.ToString('C2', $currency)) -Align Right
     PdfText -Text ('Total due: ' + $total.ToString('C2', $currency)) -Align Right -Bold -FontSize 14 -Color '#0F766E'
 
     PdfPanel 'Payment terms: 14 days. Include the invoice number with the transfer.'

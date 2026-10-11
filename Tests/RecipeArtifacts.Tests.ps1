@@ -103,4 +103,16 @@ Describe 'Executable recipe artifacts' {
         $text | Should -Match 'Illustrative tax \(20%\):\s*\$870\.00'
         $text | Should -Match 'Total due:\s*\$5,220\.00'
     }
+
+    It 'keeps the invoice tax label and totals consistent when the configured rate changes' {
+        $folder = Join-Path $TestDrive 'InvoiceWithDifferentTax'
+        $null = New-Item -ItemType Directory -Path $folder
+        $recipe = Get-Content -LiteralPath (Join-Path $examples 'Pdf/Recipe-Pdf-ServiceInvoice.ps1') -Raw
+        Push-Location $folder
+        try { & ([scriptblock]::Create($recipe.Replace('[decimal]0.20', '[decimal]0.125'))) }
+        finally { Pop-Location }
+        $text = Get-OfficePdfText -Path (Join-Path $folder 'Service-Invoice.pdf')
+        $text | Should -Match 'Illustrative tax \(12\.5%\):\s*\$543\.75'
+        $text | Should -Match 'Total due:\s*\$4,893\.75'
+    }
 }

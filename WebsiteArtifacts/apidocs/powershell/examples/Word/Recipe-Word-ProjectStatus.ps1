@@ -40,15 +40,21 @@ WordNew -Path $path {
             WordTableCondition -FilterScript { $_.Status -eq 'Done' } -BackgroundColor '#DCFCE7'
         }
 
-        WordParagraph -Text 'Delivery trend' -Style Heading1
-        WordChart -Type Line -Data $trend -CategoryProperty Week -SeriesProperty Complete -Title 'Completion by week' -Legend -FitToPageWidth
+        WordParagraph -Text 'Delivery trend' -Style Heading1 {
+            WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true
+        }
+        WordChart -Type Line -Data $trend -CategoryProperty Week -SeriesProperty Complete -Title 'Completion by week (%)' -FitToPageWidth -HeightPixels 190
 
-        WordParagraph -Text 'Decision' -Style Heading1
+        WordParagraph -Text 'Decision' -Style Heading1 {
+            WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true
+        }
         WordParagraph {
+            WordParagraphStyle -SpacingAfterPoints 4 -KeepWithNext $true
             WordBold 'Approve the pilot window: '
             WordCheckBox -Alias 'PilotApproved' -Tag 'pilot-approved'
         }
         WordParagraph {
+            WordParagraphStyle -KeepLinesTogether $true
             WordText 'Target review date: '
             WordDatePicker -Date '2026-09-01' -Alias 'PilotReviewDate' -Tag 'pilot-review-date'
         }
