@@ -978,6 +978,14 @@ _Dependency footprint:_ only OfficeIMO.Reader.Core, AsciiDoc, and AsciiDoc.Markd
 
 _Dependency footprint:_ only OfficeIMO.Reader.Core and CSV.
 
+#### [OfficeIMO.Reader.Dbf](OfficeIMO.Reader.Dbf/README.md)
+
+- [x] Bounded DBF/xBase table chunks through the DbaClientX codec
+- [x] Opt-in path memo sidecars, physical record locations and inert Base64 binary values
+- [x] CSV/XLSX conversion through the codec's typed reader and existing exporters
+
+_Dependency footprint:_ OfficeIMO.Reader.Core and DBAClientX.Dbf; no database driver.
+
 #### [OfficeIMO.Reader.DocBook](OfficeIMO.Reader.DocBook/README.md)
 
 - [x] Dedicated `.dbk` and `.docbook` registration while generic `.xml` remains with Reader.Xml

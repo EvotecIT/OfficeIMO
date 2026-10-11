@@ -2105,3 +2105,37 @@ jobs:
         with:
           name: nativeaot-win-x64
           path: artifacts/aot/*.json
+
+  dbf-contracts:
+    name: 'DBF contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        framework: [net8.0, net10.0]
+        include:
+          - os: windows-latest
+            framework: net472
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Read independent DBF fixtures and reopen CSV/XLSX output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Reader.Dbf.Tests/OfficeIMO.Reader.Dbf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --filter 'Category!=Performance' --logger 'trx;LogFileName=dbf.trx' --results-directory TestResults/Dbf
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dbf-tests-${{ matrix.os }}-${{ matrix.framework }}
+          path: TestResults/Dbf
+          if-no-files-found: ignore
+          retention-days: 7

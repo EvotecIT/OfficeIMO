@@ -118,7 +118,9 @@ public enum ReaderInputKind {
     /// <summary>Compiled HTML Help archive.</summary>
     Chm = 27,
     /// <summary>DjVu scanned document with optional stored text.</summary>
-    DjVu = 28
+    DjVu = 28,
+    /// <summary>DBF/xBase table.</summary>
+    Dbf = 29
 }
 
 /// <summary>

@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 74,
-    "operationCount": 1394
+    "operationCount": 1396
   },
   "fidelityStates": [
     {
@@ -2179,14 +2179,28 @@
     {
       "id": "OfficeIMO.CSV",
       "slug": "csv",
-      "capabilityCount": 6,
+      "capabilityCount": 7,
       "formats": [
-        "Csv.Native"
+        "CSV",
+        "Csv.Native",
+        "DBF/xBase"
       ],
       "sourceCatalogs": [
+        "OfficeConversionCapabilityCatalog",
         "OfficeIMO.NativeLifecycle"
       ],
       "operations": [
+        {
+          "id": "Convert",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
         {
           "id": "Create",
           "states": [
@@ -2745,8 +2759,9 @@
     {
       "id": "OfficeIMO.Excel",
       "slug": "excel",
-      "capabilityCount": 326,
+      "capabilityCount": 327,
       "formats": [
+        "DBF/xBase",
         "DOCM/XLSM/XLSB/PPTM families",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM",
         "DOCX/DOCM/XLSX/XLSM/PPTX/PPTM/Visio",
@@ -2785,7 +2800,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 39
+              "count": 40
             },
             {
               "id": "Rejected",
