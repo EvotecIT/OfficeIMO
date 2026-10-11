@@ -77,8 +77,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains(start.ToString(), pdf.GetPage(1).Text);
         }
 
-        [Fact]
-        public void SaveAsPdf_OrdinaryRunningHeaderRetainsRoomForTheFirstBodyLine() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SaveAsPdf_OrdinaryRunningHeaderRetainsRoomForTheFirstBodyLine(bool afterPageBreak) {
             using WordDocument document = CreateJoinedParagraphDocument();
             document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
             document.Sections[0].Margins.Bottom = 1440;
@@ -86,12 +88,14 @@ namespace OfficeIMO.Tests {
             WordParagraph header = document.HeaderDefaultOrCreate.AddParagraph("HEADER");
             header._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
                 Before = "0", After = "0", Line = "13000", LineRule = W.LineSpacingRuleValues.Exact });
+            if (afterPageBreak) document.AddParagraph("FIRST").AddBreak(WordBreakType.Page);
             document.AddParagraph("BODY").FontSize = 40;
 
             using var pdf = OpenJoinedParagraphPdf(document);
-            Assert.Equal(1, pdf.NumberOfPages);
-            Assert.Contains("HEADER", pdf.GetPage(1).Text);
-            Assert.Contains("BODY", pdf.GetPage(1).Text);
+            Assert.Equal(afterPageBreak ? 2 : 1, pdf.NumberOfPages);
+            if (afterPageBreak) Assert.Contains("FIRST", pdf.GetPage(1).Text);
+            Assert.Contains("HEADER", pdf.GetPage(pdf.NumberOfPages).Text);
+            Assert.Contains("BODY", pdf.GetPage(pdf.NumberOfPages).Text);
         }
     }
 }

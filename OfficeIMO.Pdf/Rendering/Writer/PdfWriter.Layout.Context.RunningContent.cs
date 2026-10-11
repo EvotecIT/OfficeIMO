@@ -8,6 +8,17 @@ internal static partial class PdfWriter {
         private readonly IReadOnlyList<PageNumberInfo>? previousRunningPages;
         private readonly int previousDocumentPages;
         private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
+        private double? runningFirstBodyHeight;
+
+        // A paragraph continuation can reclaim an optional imported header's
+        // exclusion. Preserve footer and active-container reservations.
+        private double GetMaximumParagraphContinuationHeight() {
+            double height = GetMaximumBlockContinuationHeight();
+            if (activeColumnFlow != null || currentPage?.RunningContentContext is not { } context) return height;
+            int variant = currentOpts.GetHeaderFooterVariantPageNumber(context.SectionPageNumber, context.PageNumber);
+            return currentOpts.GetRunningContentForPage(variant, isHeader: true)?.AllowTextFallback == true
+                ? height + Math.Max(0D, currentOpts.MarginTop - currentPageBaseOptions.MarginTop) : height;
+        }
 
         // Imported Word pages can place one body line beside a tall footer even
         // when its expanded exclusion leaves less than one line of body space.
@@ -68,7 +79,7 @@ internal static partial class PdfWriter {
             double top = Exclusion(header, headerHeight, source.MarginTop);
             double bottom = Exclusion(footer, footerHeight, source.MarginBottom);
             if (header?.AllowTextFallback == true && top > source.MarginTop + .001D) {
-                double firstBodyHeight = MeasureRunningContentFirstBodyHeight(source);
+                double firstBodyHeight = runningFirstBodyHeight ?? MeasureRunningContentFirstBodyHeight(source);
                 if (firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
                     source.PageHeight - top - bottom + .001D < firstBodyHeight) {
                     fallbackHeader = true;
@@ -118,15 +129,35 @@ internal static partial class PdfWriter {
         }
 
         private double MeasureRunningContentFirstBodyHeight(PdfOptions source) {
-            if (activeBlockSequences.Count == 0) return 0D;
-            BlockSequenceScope sequence = activeBlockSequences[activeBlockSequences.Count - 1];
-            if (sequence.Index >= sequence.Blocks.Count) return 0D;
-            IPdfBlock block = sequence.Blocks[sequence.Index];
-            return block is PageBlock page
-                ? MeasureFirstNestedVisualHeight(page.Blocks, source.MarginLeft, width, source.DefaultFontSize,
-                    allowTableFragments: true, suppressParagraphSpacingBefore: true)
-                : MeasureNextBlockFirstVisualHeight(block, source.MarginLeft, width, source.DefaultFontSize,
-                    allowTableFragments: true, suppressParagraphSpacingBefore: true);
+            for (int depth = activeBlockSequences.Count - 1; depth >= 0; depth--) {
+                BlockSequenceScope sequence = activeBlockSequences[depth];
+                int start = sequence.Index + (depth == activeBlockSequences.Count - 1 ? 0 : 1);
+                if (depth == activeBlockSequences.Count - 1 && start < sequence.Blocks.Count &&
+                    sequence.Blocks[start] is PageBreakBlock) start++;
+                double? height = FirstVisual(PendingBlocks(sequence.Blocks, start));
+                if (height.HasValue) return height.Value;
+                // Do not look through the end of an explicit page/section.
+                if (depth > 0 && activeBlockSequences[depth - 1].Blocks[activeBlockSequences[depth - 1].Index] is PageBlock) break;
+            }
+            return 0D;
+
+            double? FirstVisual(IEnumerable<IPdfBlock> blocks) {
+                foreach (IPdfBlock block in ExpandTransparentMeasurementBlocks(blocks)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (block is BookmarkBlock or ColumnBreakBlock) continue;
+                    if (block is PageBreakBlock) return 0D;
+                    if (block is PageBlock page) return FirstVisual(page.Blocks) ?? 0D;
+                    double height = MeasureNextBlockFirstVisualHeight(block, source.MarginLeft, width, source.DefaultFontSize,
+                        allowTableFragments: true, suppressParagraphSpacingBefore: true);
+                    if (height <= .001D && block is ContainerBlock or SpacerBlock) continue;
+                    return height;
+                }
+                return null;
+            }
+
+            static IEnumerable<IPdfBlock> PendingBlocks(IList<IPdfBlock> blocks, int start) {
+                for (int index = start; index < blocks.Count; index++) yield return blocks[index];
+            }
         }
 
         private double? MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks) {

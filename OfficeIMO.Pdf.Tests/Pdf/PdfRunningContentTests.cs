@@ -6,6 +6,48 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ImportedHeaderFitSkipsLeadingNonvisualContent(int leadingKind) {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT").Content(content =>
+            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        if (leadingKind == 2) {
+            document.Page(page => page.Content(content => content.Panel(panel => panel
+                .Semantic(PdfSemanticRole.Division, empty => { })
+                .Paragraph(paragraph => paragraph.FontSize(40).Text("BODY")),
+                new PdfPanelStyle { PaddingX = 0, PaddingY = 2, SpacingBefore = 0, SpacingAfter = 0 })));
+        } else if (leadingKind == 1) {
+            document.Page(page => page.Content(content => content
+                .Semantic(PdfSemanticRole.Division, empty => { })
+                .Paragraph(paragraph => paragraph.FontSize(40).Text("BODY"))));
+        } else {
+            document.Bookmark("body").Paragraph(paragraph => paragraph.FontSize(40).Text("BODY"));
+        }
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains("TEXT", pdf.GetPage(1).Text);
+        Assert.Contains("BODY", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
+    public void ImportedHeaderFitUsesTheActualParagraphContinuationLine() {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT").Content(content =>
+            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(40).Text("LARGE"));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("FLOW", pdf.GetPage(1).Text);
+        Assert.Contains("SMALL", pdf.GetPage(1).Text);
+        Assert.Contains("TEXT", pdf.GetPage(2).Text);
+        Assert.Contains("LARGE", pdf.GetPage(2).Text);
+    }
+
     [Fact]
     public void ImportedTextFallbackIsLocalToThePageVariantAndReservesTheBodyLine() {
         var document = PdfDocument.Create(Options());
