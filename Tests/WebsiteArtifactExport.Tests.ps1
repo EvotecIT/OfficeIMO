@@ -1,27 +1,28 @@
 BeforeAll {
     $exportScript = Join-Path $PSScriptRoot '../Build/Export-WebsiteArtifacts.ps1'
     $sourceRoot = Join-Path $TestDrive 'source'
-    $bundleRoot = Join-Path $TestDrive 'bundle'
-    $null = New-Item -ItemType Directory -Path $sourceRoot, (Join-Path $bundleRoot 'en-US')
-    $sourceManifest = Join-Path $sourceRoot 'PSWriteOffice.psd1'
-    $bundleManifest = Join-Path $bundleRoot 'PSWriteOffice.psd1'
-    $bundleHelp = Join-Path $bundleRoot 'en-US/PSWriteOffice-help.xml'
     $outputRoot = Join-Path $TestDrive 'artifacts'
-    "@{ ModuleVersion = '3.0.8'; CmdletsToExport = @('Get-OfficeExample') }" | Set-Content $sourceManifest
+    $buildRoot = Join-Path $TestDrive 'builds'
     $sourceInput = Join-Path $sourceRoot 'Sources/Example.cs'
-    $null = New-Item -ItemType Directory -Path (Split-Path -Parent $sourceInput)
+    $sourceManifest = Join-Path $sourceRoot 'PSWriteOffice.psd1'
+    $null = New-Item -ItemType Directory -Path (Split-Path $sourceInput), (Join-Path $sourceRoot 'Build')
+    $manifestText = "@{ ModuleVersion = '3.0.8'; RootModule = 'PSWriteOffice.psm1'; CmdletsToExport = @('Get-OfficeExample') }"
+    $manifestText | Set-Content $sourceManifest
     'public class Example { }' | Set-Content $sourceInput
+    '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
+    @'
+param($RunMode, [bool]$SignModule, [switch]$SkipInstall, [switch]$PassThru, $StagingPath)
+if ($RunMode -ne 'Build' -or $SignModule -or -not $SkipInstall -or -not $PassThru) { throw 'Unsafe fixture build options.' }
+if (Test-Path -LiteralPath $StagingPath) { throw 'Reused fixture staging directory.' }
+$null = New-Item -ItemType Directory -Path $StagingPath
+throw 'Fresh unsigned build reached without installation.'
+'@ | Set-Content (Join-Path $sourceRoot 'Build/Build-Module.ps1')
     & git -C $sourceRoot init --quiet
-    & git -C $sourceRoot add -- PSWriteOffice.psd1 Sources/Example.cs
+    & git -C $sourceRoot add -- .
     $emptyHooks = Join-Path $TestDrive 'empty-git-hooks'
     $null = New-Item -ItemType Directory -Path $emptyHooks
     & git -C $sourceRoot -c user.name='Test Fixture' -c user.email='tests@example.invalid' -c commit.gpgsign=false -c core.hooksPath=$emptyHooks commit --quiet -m 'Create source fixture'
     if ($LASTEXITCODE -ne 0) { throw 'Could not commit the isolated source fixture.' }
-    $copiedSource = Join-Path $TestDrive 'copied-source'
-    $nestedSource = Join-Path $sourceRoot 'nested-copy'
-    $null = New-Item -ItemType Directory -Path $copiedSource, $nestedSource
-    Copy-Item $sourceManifest (Join-Path $copiedSource 'PSWriteOffice.psd1')
-    Copy-Item $sourceManifest (Join-Path $nestedSource 'PSWriteOffice.psd1')
 }
 
 AfterAll {
@@ -30,65 +31,73 @@ AfterAll {
         ForEach-Object { $_.IsReadOnly = $false }
 }
 
-Describe 'Explicit website API bundle qualification' {
+Describe 'Website API source build qualification' {
     BeforeEach {
         'public class Example { }' | Set-Content $sourceInput
-        Copy-Item $sourceManifest $bundleManifest
-        '<helpItems><command><details><name>Get-OfficeExample</name></details></command></helpItems>' | Set-Content $bundleHelp
+        $manifestText | Set-Content $sourceManifest
+        '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
+        & git -C $sourceRoot add -- Sources/Example.cs PSWriteOffice.psd1 PSWriteOffice.psm1
     }
 
-    It 'requires an explicit decision to skip the build before using a package bundle' {
-        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuiltModuleManifestPath $bundleManifest } |
-            Should -Throw '*requires -SkipBuild*'
+    It 'uses a new staging directory and an unsigned build without installation on every export' {
+        1..2 | ForEach-Object {
+            { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot -ArtifactsOnly } |
+                Should -Throw '*Fresh unsigned build reached without installation*'
+        }
+        @(Get-ChildItem -LiteralPath $buildRoot -Directory).Count | Should -Be 2
         Test-Path $outputRoot | Should -BeFalse
     }
 
-    It 'rejects stale bundles even when the exported command names are unchanged' {
-        "@{ ModuleVersion = '3.0.6' }" | Set-Content $bundleManifest
-        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
-            Should -Throw '*complete bundle for PSWriteOffice 3.0.8*'
+    It 'rejects changed source before running a build or importing a module' {
+        'public class Changed { }' | Set-Content $sourceInput
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+            Should -Throw '*does not match the selected API and build inputs*'
         Test-Path $outputRoot | Should -BeFalse
     }
 
-    It 'rejects help for a different command before importing or writing output' {
-        '<helpItems><command><details><name>Get-OfficeOther</name></details></command></helpItems>' | Set-Content $bundleHelp
-        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
-            Should -Throw '*help for every exported command*'
+    It 'rejects staged source changes even if the working file has been changed back' {
+        'public class Changed { }' | Set-Content $sourceInput
+        & git -C $sourceRoot add -- Sources/Example.cs
+        'public class Example { }' | Set-Content $sourceInput
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+            Should -Throw '*does not match the selected API and build inputs*'
         Test-Path $outputRoot | Should -BeFalse
     }
 
-    It 'rejects extra commands in the package manifest before importing or writing output' {
-        "@{ ModuleVersion = '3.0.8'; CmdletsToExport = @('Get-OfficeExample', 'Get-OfficeOther') }" | Set-Content $bundleManifest
-        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
-            Should -Throw '*complete bundle*'
+    It 'rejects uncommitted module code outside the compiled source tree' {
+        '# Changed loader' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+            Should -Throw '*does not match the selected API and build inputs*'
         Test-Path $outputRoot | Should -BeFalse
     }
 
-    It 'rejects package manifest metadata that differs from the selected source' {
-        "@{ ModuleVersion = '3.0.8'; CmdletsToExport = @('Get-OfficeExample'); RootModule = 'Other.psm1' }" | Set-Content $bundleManifest
-        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
-            Should -Throw '*complete bundle*'
-        Test-Path $outputRoot | Should -BeFalse
-    }
-
-    It 'rejects a copied source directory without a Git revision' {
-        { & $exportScript -RepositoryRoot $copiedSource -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
-            Should -Throw '*exact Git source root*'
-        Test-Path $outputRoot | Should -BeFalse
-    }
-
-    It 'rejects a nested copy instead of recording the enclosing repository commit' {
-        { & $exportScript -RepositoryRoot $nestedSource -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
-            Should -Throw '*exact Git source root*'
-        Test-Path $outputRoot | Should -BeFalse
-    }
-
-    It 'resolves a relative bundle path from the PowerShell location' {
-        Push-Location $bundleRoot
+    It 'rejects untracked build inputs' {
+        $extra = Join-Path $sourceRoot 'Extra.ps1'
         try {
-            { & $exportScript -RepositoryRoot $copiedSource -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath './PSWriteOffice.psd1' } |
+            '# Uncommitted module input' | Set-Content $extra
+            { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+                Should -Throw '*does not match the selected API and build inputs*'
+        } finally { Remove-Item -LiteralPath $extra }
+        Test-Path $outputRoot | Should -BeFalse
+    }
+
+    It 'rejects changed manifest fields while allowing normal version resolution' {
+        $manifestText.Replace("RootModule = 'PSWriteOffice.psm1'", "RootModule = 'Other.psm1'") | Set-Content $sourceManifest
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+            Should -Throw '*source manifest does not match this checkout*'
+        $manifestText.Replace("'3.0.8'", "'3.0.9'") | Set-Content $sourceManifest
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+            Should -Throw '*Fresh unsigned build reached without installation*'
+        Test-Path $outputRoot | Should -BeFalse
+    }
+
+    It 'requires an exact Git source root rather than a copied or nested directory' {
+        foreach ($root in @((Join-Path $TestDrive 'copied'), (Join-Path $sourceRoot 'nested'))) {
+            $null = New-Item -ItemType Directory -Path $root
+            Copy-Item $sourceManifest (Join-Path $root 'PSWriteOffice.psd1')
+            { & $exportScript -RepositoryRoot $root -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
                 Should -Throw '*exact Git source root*'
-        } finally { Pop-Location }
+        }
         Test-Path $outputRoot | Should -BeFalse
     }
 }
