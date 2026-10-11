@@ -122,11 +122,11 @@ internal static partial class PdfWriter {
         ValidateGeneratedFormFieldNames(layout.Pages);
         System.Collections.Generic.Dictionary<string, string> positionedRadioValues = ResolvePositionedRadioButtonValues(
             layout.Pages.SelectMany(page => page.FormFields));
+        ValidateEmittedAssociatedFiles(layout, opts, cancellationToken);
         complianceEvidence = CollectGeneratedComplianceEvidence(layout, opts);
         PdfComplianceValidator.ValidateGeneratedDocument(opts, title, complianceEvidence);
         PdfFileVersion serializationFileVersion = complianceEvidence.EffectiveFileVersion ?? opts.FileVersion;
         ValidateAssociatedFileMetadata(opts, serializationFileVersion);
-        ValidateStructureAssociatedFileNames(layout, opts, cancellationToken);
 
         // Build indirect objects through either the bounded replay store or the opt-in one-pass object writer.
         bool finalArtifactBuffered = outputStream == null;

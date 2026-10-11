@@ -948,6 +948,47 @@ require a MIME type. Explicit profile checks include structure-file dates and
 the selected output version. This API does not request or prove a
 compliance profile.
 
+### Attachment authoring limits
+
+Catalog authoring accepts up to 128 MiB per file through
+`PdfOptions.MaxEmbeddedFileBytes` and 256 MiB across the catalog through
+`MaxTotalEmbeddedFileBytes` by default. `AddEmbeddedFile` checks these limits
+before copying payload bytes into the collection. A rejected add or limit
+reduction throws `InvalidDataException` and leaves existing files and settings
+unchanged. `ClearEmbeddedFiles()` restores the collection's available capacity.
+
+Structure attachments have the same defaults through
+`PdfCanvasStructureOptions.MaxAssociatedFileBytes` and
+`MaxTotalAssociatedFileBytes`. Each structure collection enforces its own
+admission limits. At save, the document options also apply to every emitted
+attachment and to their combined payload total. Catalog files count once each;
+identical structure associations that share one emitted file specification count
+once across pages. Different files count separately even when their bytes match.
+
+Set explicit larger limits before adding trusted larger inputs. For example,
+these settings accept a file up to 256 MiB and a collection up to 512 MiB:
+
+```csharp
+var attachmentOptions = new PdfOptions {
+    MaxEmbeddedFileBytes = 256L * 1024 * 1024,
+    MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024
+};
+
+var structureOptions = new PdfCanvasStructureOptions {
+    MaxAssociatedFileBytes = 256L * 1024 * 1024,
+    MaxTotalAssociatedFileBytes = 512L * 1024 * 1024
+};
+```
+
+All four limits must be positive. Standalone `PdfEmbeddedFile` descriptions keep
+their existing construction behavior; collection admission applies the selected
+limits. A combined-limit failure occurs before output bytes are written, so it
+preserves an existing destination file or stream. These limits bound admitted
+and emitted payload bytes, not defensive snapshot multiplicity or peak process
+memory. Use `MaxGeneratedOutputBytes` separately to bound the serialized PDF.
+Attachment reading and editing use `PdfLoadOptions.Limits.MaxTotalAttachmentBytes`
+as described below.
+
 ### Sections, generated navigation, and bounded stream output
 
 ```csharp

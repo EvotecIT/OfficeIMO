@@ -1,5 +1,29 @@
 # Upgrading OfficeIMO
 
+## PDF attachment authoring limits
+
+Generated PDF catalog attachments now default to 128 MiB per payload and 256 MiB
+across the catalog. Previously accepted larger inputs require explicit positive
+`PdfOptions.MaxEmbeddedFileBytes` and `MaxTotalEmbeddedFileBytes` values before
+calling `AddEmbeddedFile`, fluent attachment helpers, or invoice helpers.
+For example, use `MaxEmbeddedFileBytes = 256L * 1024 * 1024` and
+`MaxTotalEmbeddedFileBytes = 512L * 1024 * 1024` for a trusted workflow accepting
+256 MiB files within a 512 MiB collection.
+
+Structure attachments use the same defaults through
+`PdfCanvasStructureOptions.MaxAssociatedFileBytes` and
+`MaxTotalAssociatedFileBytes`. Raise those limits as well when attaching a larger
+trusted file to a structure element. Saving enforces the document's per-file
+limit and combined total across catalog files and distinct emitted structure
+files; repeated identical structure associations sharing one file specification
+count once. Over-budget admission or save throws `InvalidDataException`.
+
+Standalone `PdfEmbeddedFile` constructors retain their existing behavior.
+Read/edit operations continue to use their explicit `PdfLoadOptions` limits.
+The authoring limits bound admitted and emitted payload bytes, not defensive
+copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
+for configuration and destination-preservation behavior.
+
 ## PDF form value assessment
 
 `PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
