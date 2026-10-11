@@ -508,7 +508,7 @@ internal static partial class PdfWriter {
                 pageNamedFontResources[usedFont] = usedFont.ResourceName;
                 EnsureNamedFont(usedFont, pageOpts);
             }
-            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(pageNumberInfo.VariantPageNumber);
+            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(pageNumberInfo.VariantPageNumber, pageNumberInfo.PageNumber);
             string? watermarkFontAlias = null;
             string? textWatermarkGraphicsStateName = null;
             if (textWatermark != null && textWatermark.Opacity > 0D) {
@@ -522,7 +522,7 @@ internal static partial class PdfWriter {
             if (pageBackgroundImage != null && pageBackgroundImage.Opacity > 0D) {
                 AddPageBackgroundImage(page, pageOpts, pageBackgroundImage);
             }
-            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(pageNumberInfo.VariantPageNumber);
+            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(pageNumberInfo.VariantPageNumber, pageNumberInfo.PageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 AddImageWatermark(page, pageOpts, imageWatermark);
             }
