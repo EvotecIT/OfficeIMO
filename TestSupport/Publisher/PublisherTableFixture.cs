@@ -36,6 +36,40 @@ internal static class PublisherTableFixture {
         quill[descriptor + 4] = (byte)'X'; // TCD becomes TCX, leaving complete stories intact.
     });
 
+    internal static byte[] ChangeTableStory(byte[] publication, uint objectId, uint storyId) => Rewrite(publication, streams => {
+        byte[] contents = streams["Contents"];
+        WriteScalar(contents, Chunk(contents, ChunkOffset(contents, objectId)).Single(field => field.Id == 0x27), storyId);
+    });
+
+    internal static byte[] EmptyMergedTableStory(byte[] publication) => Rewrite(publication, streams => {
+        byte[] contents = streams["Contents"];
+        Block[] table = Chunk(contents, ChunkOffset(contents, 299));
+        uint cellsId = BitConverter.ToUInt32(contents, table.Single(field => field.Id == 0x6B).Offset);
+        using var output = new MemoryStream(); using var writer = new BinaryWriter(output);
+        writer.Write(0); // Chunk length.
+        writer.Write((byte)1); writer.Write((byte)0x20); writer.Write(1U);
+        writer.Write((byte)2); writer.Write((byte)0x90); writer.Write(34);
+        writer.Write((byte)0); writer.Write((byte)0x88); writer.Write(28);
+        foreach (var coordinate in new[] { (Id: 1, Value: 0U), (Id: 2, Value: 2U), (Id: 3, Value: 0U), (Id: 4, Value: 1U) }) {
+            writer.Write((byte)coordinate.Id); writer.Write((byte)0x20); writer.Write(coordinate.Value);
+        }
+        byte[] cells = output.ToArray(); Write(cells, 0, (uint)cells.Length);
+        streams["Contents"] = RebuildContents(contents, new Dictionary<uint, byte[]> { [cellsId] = cells });
+        byte[] quill = streams["Quill/QuillSub/CONTENTS"];
+        (int descriptor, int data) = TableTextChunk(quill);
+        int storyIndex = BitConverter.ToUInt16(quill, descriptor + 6);
+        (_, int lengthsData) = QuillChunk(quill, "STRS");
+        int lengths = lengthsData + 4 + checked((int)BitConverter.ToUInt32(quill, lengthsData + 4));
+        int count = checked((int)BitConverter.ToUInt32(quill, lengthsData));
+        Assert.True(storyIndex + 1 < count);
+        uint characters = BitConverter.ToUInt32(quill, lengths + storyIndex * 4);
+        Write(quill, lengths + storyIndex * 4, 0);
+        int next = lengths + (storyIndex + 1) * 4;
+        Write(quill, next, checked(BitConverter.ToUInt32(quill, next) + characters));
+        Write(quill, data, 0); // One cell, ending at the empty story endpoint.
+        Write(quill, data + 12, 0);
+    });
+
     internal static byte[] MoveToMaster(byte[] publication, uint sourcePageId, uint masterPageId) =>
         Rewrite(publication, streams => {
             byte[] contents = streams["Contents"];
@@ -154,14 +188,15 @@ internal static class PublisherTableFixture {
         }
         return result.ToArray();
     }
-    private static (int Descriptor, int Data) TableTextChunk(byte[] bytes) {
+    private static (int Descriptor, int Data) TableTextChunk(byte[] bytes) => QuillChunk(bytes, "TCD ");
+    private static (int Descriptor, int Data) QuillChunk(byte[] bytes, string tag) {
         var chunks = new List<(int, int)>();
         uint next = 0x18;
         while (next != uint.MaxValue) {
             int directory = checked((int)next), count = BitConverter.ToUInt16(bytes, directory + 2);
             for (int i = 0; i < count; i++) {
                 int position = directory + 8 + i * 24;
-                if (Encoding.ASCII.GetString(bytes, position + 2, 4) == "TCD ")
+                if (Encoding.ASCII.GetString(bytes, position + 2, 4) == tag)
                     chunks.Add((position, checked((int)BitConverter.ToUInt32(bytes, position + 16))));
             }
             next = BitConverter.ToUInt32(bytes, directory + 4);
