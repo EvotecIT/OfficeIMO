@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-Import-Module PSWriteOffice -ErrorAction Stop
+Import-Module PSWriteOffice -MinimumVersion 3.0.9 -ErrorAction Stop
 
 $documents = $OutputDirectory
 $null = New-Item -Path $documents -ItemType Directory -Force

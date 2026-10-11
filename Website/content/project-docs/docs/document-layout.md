@@ -31,7 +31,7 @@ WordParagraph {
 
 ## Give table rows room
 
-Use `-PassThru` to retain the table object, select its cells and set their margins. The margin values are centimeters; paragraph spacing values are points.
+Use `-PassThru` to retain the table object, select its cells and set their margins. The `Set-OfficeWordTableCell` margin parameters require PSWriteOffice 3.0.9 or later. The margin values are centimeters; paragraph spacing values are points.
 
 ```powershell
 $table = WordTable -InputObject $rows -Style GridTable4Accent1 `
