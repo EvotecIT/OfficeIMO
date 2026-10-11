@@ -291,15 +291,6 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool ShouldRenderNativeEmptyParagraphLineBox(WordParagraph paragraph) {
-            // Empty text still has a paragraph mark. Its visibility, rather than
-            // the presence of direct spacing or run formatting, determines the line.
-            bool hiddenMark = ReadNativeOnOff(paragraph._paragraph?.ParagraphProperties?
-                .ParagraphMarkRunProperties?.GetFirstChild<W.Vanish>()) ??
-                GetNativeParagraphStyleDefaults(paragraph).Hidden ?? false;
-            return !hiddenMark;
-        }
-
         private static double MeasureNativeEmptyParagraphLineHeight(
             WordParagraph paragraph,
             NativeDocumentDefaults nativeDefaults,
@@ -1158,17 +1149,6 @@ namespace OfficeIMO.Word.Pdf {
                 (segment.ArtifactElement is W.Break || segment.ArtifactElement is W.CarriageReturn)
                     ? "\n"
                     : string.Empty;
-        }
-
-        private static bool IsNativeHiddenTextRun(WordParagraph paragraph, WordParagraph? fallback = null) {
-            WordParagraph styleSource = fallback ?? paragraph;
-            W.RunProperties? runProperties = GetNativeRunProperties(paragraph);
-            NativeCharacterStyleDefaults characterStyleDefaults = GetNativeCharacterStyleDefaults(paragraph._document, runProperties);
-            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(styleSource);
-            return ReadNativeOnOff(runProperties?.GetFirstChild<W.Vanish>()) ??
-                   characterStyleDefaults.Hidden ??
-                   styleDefaults.Hidden ??
-                   false;
         }
 
         private static OfficeTextDecorationStyle? MapNativeUnderlineStyle(W.Underline? underline) {
