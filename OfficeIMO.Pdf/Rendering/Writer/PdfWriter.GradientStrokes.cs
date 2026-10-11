@@ -6,12 +6,13 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     /// <summary>Projects a stroke to fill geometry for the shared native gradient writer.</summary>
     private static OfficeShape? CreateGradientStrokeShape(OfficeShape shape) {
-        var contours = OfficeStrokeGeometry.FlattenShape(shape, 4D);
+        double density = OfficeStrokeGeometry.LocalFlatteningDensity(shape.Transform, 4D);
+        var contours = OfficeStrokeGeometry.FlattenShape(shape, density);
         IReadOnlyList<double>? pattern = shape.StrokeDashArray.Count > 0
             ? shape.StrokeDashArray : shape.StrokeDashStyle.GetDashPattern(shape.StrokeWidth);
         var outlines = OfficeStrokeGeometry.Create(contours, shape.StrokeWidth,
             shape.StrokeLineCap ?? OfficeStrokeLineCap.Round, shape.StrokeLineJoin ?? OfficeStrokeLineJoin.Round,
-            shape.StrokeMiterLimit, pattern, shape.StrokeDashOffset, 4D,
+            shape.StrokeMiterLimit, pattern, shape.StrokeDashOffset, density,
             double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity);
         if (outlines.Count == 0) return null;
         var commands = new List<OfficePathCommand>();

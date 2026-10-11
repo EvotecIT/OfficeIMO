@@ -6,10 +6,11 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherPageProjector {
     /// <summary>Maps native line semantics into the shared scene; marker dimensions remain an explicit approximation.</summary>
     private void ProjectLineDetails(PublisherEscherShape source, OfficeShape shape) {
-        if (!shape.StrokeColor.HasValue || shape.StrokeWidth <= 0) return;
         OfficeArtShapeStyle style = source.Style;
-        bool visibleStroke = shape.StrokeColor.Value.A > 0 && shape.StrokeOpacity.GetValueOrDefault(1) > 0;
-        bool reportLoss = visibleStroke || (style.HasProjectableShadow && style.ShadowOpacity.GetValueOrDefault(1) > 0);
+        bool visibleShadow = style.HasProjectableShadow && style.ShadowOpacity.GetValueOrDefault(1) > 0;
+        if (shape.StrokeWidth <= 0 || (!shape.StrokeColor.HasValue && !visibleShadow)) return;
+        bool visibleStroke = shape.StrokeColor.HasValue && shape.StrokeColor.Value.A > 0 && shape.StrokeOpacity.GetValueOrDefault(1) > 0;
+        bool reportLoss = visibleStroke || visibleShadow;
         ProjectLineDash(style.LineDashing.GetValueOrDefault(), source.Id, shape, reportLoss);
         shape.StrokeLineCap = style.LineEndCapStyle switch {
             0 => OfficeStrokeLineCap.Round, 1 => OfficeStrokeLineCap.Square, _ => OfficeStrokeLineCap.Butt
