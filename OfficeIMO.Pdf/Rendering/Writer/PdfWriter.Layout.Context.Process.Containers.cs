@@ -132,6 +132,7 @@ internal static partial class PdfWriter {
                 double bottomPadding = style.AllowTrailingPaddingOverflow ? style.BottomPadding :
                     Math.Min(style.BottomPadding, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
                 y -= bottomPadding;
+                scope.ConsumedClosingPadding = bottomPadding;
                 scope.MoveTrailingSeparatorToNextFrame = ShouldMoveJoinedContainerSeparator(scope, blockList, blockIndex);
                 FinalizeContainerFragment(scope);
                 // Nested margin options can resolve new fallback mappings as well
@@ -227,7 +228,7 @@ internal static partial class PdfWriter {
         private void FinalizeContainerFragment(ContainerRenderScope scope, double bottom, bool continues = false) {
             if (scope.Container?.FrameTable is { } table) tableFrameScopes.Remove(table);
             bottom = ResolveContainerTableFrameBottom(scope, bottom, continues);
-            if (!continues && scope.MoveTrailingSeparatorToNextFrame) bottom += scope.Style.BottomPadding;
+            if (!continues && scope.MoveTrailingSeparatorToNextFrame) bottom += scope.ConsumedClosingPadding;
             double fragmentHeight = scope.FragmentTop - bottom;
             if (fragmentHeight <= 0.001D) {
                 return;
@@ -251,6 +252,7 @@ internal static partial class PdfWriter {
 
         private sealed class ContainerRenderScope {
             public double? TableContentBottom;
+            public double ConsumedClosingPadding { get; set; }
             public bool MoveTrailingSeparatorToNextFrame { get; set; }
             public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions,
                 PdfOptions parentOptions, PdfOptions nestedOptions, ContainerBlock? container = null) {
