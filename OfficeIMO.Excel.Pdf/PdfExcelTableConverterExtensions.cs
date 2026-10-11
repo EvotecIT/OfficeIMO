@@ -202,6 +202,7 @@ namespace OfficeIMO.Excel.Pdf {
                 options.CancellationToken);
             if (tables.Count == 0) {
                 AddEmptyWorkbookSheet(workbook, options);
+                options.CancellationToken.ThrowIfCancellationRequested();
                 return Array.Empty<PdfExcelTableImportEntry>();
             }
 
@@ -228,7 +229,8 @@ namespace OfficeIMO.Excel.Pdf {
                     dataTable,
                     tableName: requestedTableName,
                     style: options.TableStyle,
-                    includeAutoFilter: options.IncludeAutoFilter);
+                    includeAutoFilter: options.IncludeAutoFilter,
+                    ct: options.CancellationToken);
                 ApplyTypedColumnFormats(
                     sheet,
                     dataTable,
@@ -268,6 +270,7 @@ namespace OfficeIMO.Excel.Pdf {
                     confirmedHeader));
             }
 
+            options.CancellationToken.ThrowIfCancellationRequested();
             return results.AsReadOnly();
         }
 

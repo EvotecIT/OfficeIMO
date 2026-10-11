@@ -17,12 +17,14 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across columns.</param>
         /// <param name="ct">Cancels the auto-fit pass while widths are being measured or applied.</param>
         public void AutoFitColumns(ExcelExecutionMode? mode = null, CancellationToken ct = default) {
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this)) {
+            ct.ThrowIfCancellationRequested();
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, ct)) {
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
             if (CanSkipStableAutoFitColumns(null)) {
+                ct.ThrowIfCancellationRequested();
                 return;
             }
 
@@ -32,6 +34,7 @@ namespace OfficeIMO.Excel {
                 planWatch.Stop();
                 EffectiveExecution.ReportTiming("AutoFitColumns.BuildPlan", planWatch.Elapsed);
             }
+            ct.ThrowIfCancellationRequested();
             if (measurementPlan.Columns.Count == 0) return;
             AutoFitColumnsInternal(measurementPlan, mode, ct);
         }
@@ -43,15 +46,18 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled across the selected columns.</param>
         /// <param name="ct">Cancels the auto-fit pass for the selected columns.</param>
         public void AutoFitColumnsFor(IEnumerable<int> columnIndexes, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             if (columnIndexes == null) return;
             var list = columnIndexes.Where(i => i > 0).Distinct().OrderBy(i => i).ToList();
+            ct.ThrowIfCancellationRequested();
             if (list.Count == 0) return;
-            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, list)) {
+            if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, list, ct)) {
                 return;
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
             if (CanSkipStableAutoFitColumns(list)) {
+                ct.ThrowIfCancellationRequested();
                 return;
             }
 
@@ -59,6 +65,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void AutoFitContiguousColumns(int startColumn, int columnCount, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             if (startColumn <= 0 || columnCount <= 0) return;
             if (startColumn == 1) {
                 int[] directCandidateColumns = new int[columnCount];
@@ -66,12 +73,12 @@ namespace OfficeIMO.Excel {
                     directCandidateColumns[i] = i + 1;
                 }
 
-                if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, directCandidateColumns)) {
+                if (_excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, directCandidateColumns, ct)) {
                     return;
                 }
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
 
             var columns = new int[columnCount];
             for (int i = 0; i < columns.Length; i++) {
@@ -79,6 +86,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (CanSkipStableAutoFitColumns(columns)) {
+                ct.ThrowIfCancellationRequested();
                 return;
             }
 
@@ -92,18 +100,23 @@ namespace OfficeIMO.Excel {
         /// <param name="mode">Overrides how the auto-fit work is scheduled for the remaining columns.</param>
         /// <param name="ct">Cancels the auto-fit pass before it completes.</param>
         public void AutoFitColumnsExcept(IEnumerable<int> columnsToSkip, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             var skip = new HashSet<int>(columnsToSkip ?? Array.Empty<int>());
+            ct.ThrowIfCancellationRequested();
             if (_excelDocument.TryGetDirectTabularSaveCandidateColumnCount(this, out int directColumnCount)) {
                 var directRemaining = Enumerable.Range(1, directColumnCount).Where(i => !skip.Contains(i)).ToList();
-                if (directRemaining.Count == 0 || _excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, directRemaining)) {
+                ct.ThrowIfCancellationRequested();
+                if (directRemaining.Count == 0 || _excelDocument.TryEnableDirectTabularSaveCandidateAutoFit(this, directRemaining, ct)) {
                     return;
                 }
             }
 
-            _excelDocument.MaterializeDeferredDataSetImport();
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
             var remaining = GetAllColumnIndices().Where(i => i > 0 && !skip.Contains(i)).OrderBy(i => i).ToList();
+            ct.ThrowIfCancellationRequested();
             if (remaining.Count == 0) return;
             if (CanSkipStableAutoFitColumns(remaining)) {
+                ct.ThrowIfCancellationRequested();
                 return;
             }
 
@@ -112,6 +125,7 @@ namespace OfficeIMO.Excel {
 
 
         private void AutoFitColumnsInternal(IReadOnlyList<int> columnsList, ExcelExecutionMode? mode, CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
             if (columnsList.Count == 0) return;
             var planWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
             var measurementPlan = BuildAutoFitMeasurementPlan(columnsList, ct);
@@ -123,6 +137,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void AutoFitColumnsInternal(AutoFitMeasurementPlan measurementPlan, ExcelExecutionMode? mode, CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
             var columnsList = measurementPlan.Columns;
             if (columnsList.Count == 0) return;
             double[] computed = new double[columnsList.Count];
@@ -144,6 +159,7 @@ namespace OfficeIMO.Excel {
                         EffectiveExecution.ReportTiming("AutoFitColumns.CalculateWidths", calculateWatch.Elapsed);
                     }
 
+                    ct.ThrowIfCancellationRequested();
                     var applyWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
                     SetColumnWidthsCore(columnsList, computed);
 
@@ -166,6 +182,7 @@ namespace OfficeIMO.Excel {
                     }
                 },
                 applySequential: () => {
+                    ct.ThrowIfCancellationRequested();
                     var worksheet = WorksheetRoot;
                     var applyWatch = EffectiveExecution.OnTiming == null ? null : System.Diagnostics.Stopwatch.StartNew();
                     SetColumnWidthsCore(columnsList, computed);
