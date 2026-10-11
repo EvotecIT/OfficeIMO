@@ -1914,7 +1914,7 @@
       "image_height": 1123,
       "image_alt": "Independent render of the generated patch compliance report: a headline compliance figure, a per-site table with watch rows highlighted, a bar chart and numbered next steps",
       "title": "Patch compliance report from PowerShell",
-      "description": "Turn a list of PowerShell objects into a Word report with a headline figure, a conditionally highlighted table, a chart, numbered steps and a numbered footer, then export a PDF.",
+      "description": "Review patch compliance and site exceptions with a PowerShell report, including a summary chart, an editable Word document and a PDF.",
       "input": "PowerShell objects",
       "output": "DOCX + PDF",
       "proof": "The downloadable DOCX and PDF come from the PowerShell script shown beside them, run against the PSWriteOffice version the command catalog documents. The preview is an independent Poppler render of that PDF.",
