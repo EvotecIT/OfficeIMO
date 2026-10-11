@@ -307,12 +307,6 @@ public sealed class OfficeArtShapeStyle {
         data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16
         | data[offset + 3] << 24));
 
-    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) {
-        // Primary and secondary property tables can set different bits of the
-        // same Boolean group. An entry that does not use this bit must not
-        // erase its value from the preceding table.
-        OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
-            candidate.PropertyId == propertyId && !candidate.IsComplex && (candidate.Value & useMask) != 0);
-        return property == null ? null : (property.Value & valueMask) != 0;
-    }
+    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) =>
+        OfficeArtProperty.GetBoolean(Properties, propertyId, useMask, valueMask);
 }
