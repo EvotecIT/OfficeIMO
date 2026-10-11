@@ -233,3 +233,38 @@ dotnet build OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release
 Supply `-EnvironmentEvidence` with a fresh host snapshot and discover the actual CPU topology before choosing affinity masks. The displayed masks describe this host. Retain raw reports and decisive output hashes; repeated full-document rendering, stronger independent visual fidelity, retained/peak-memory qualification and contention-free capacity measurements require their own evidence.
 
 Use a short output root for native Windows Poppler readback; the failed 261-character XHTML path is retained as excluded qualification evidence. Historical binary/TRX copies and both 37-file phase binary snapshots are preserved in entry-verified archives through the companion's retention mapping. Completed runtime artifacts and raw samples also have an entry-verified archive mapping from their original paths. Current profile evidence retains the raw trace and a lossless complete-frame archive.
+
+## Document-owned font reuse: separate renderer comparison
+
+This comparison isolates the renderer change from baseline `b12d7aabf680d254ef0b090f9682257ef37014e0` to candidate `22534e8708e85ea8dc65e0dfeda86786d0c09a9d`, using canonical harness `2ed26d029163294b5b2113c979ea59530bd895ff`. The candidate reuses font decoding state within one parsed document, avoids unused decoder/width-provider construction on render paths, and bounds admission to the font-resource cache. These 168 measurements form a separate cohort from the earlier historical results, including the 90e061 rendering and 334 phase/profile observations. Later integrated Word and layout repairs are outside this comparison.
+
+Both snapshots use byte-identical embedded-Carlito business PDFs at 1, 20 and 100 source pages, the same 17 canonical harness files, and matching tool/font hashes. `RenderSvg` renders the first `min(pages, 12)` pages; `RenderPng` renders the first `min(pages, 4)` pages at 384 × 512 pixels with a 512 × 512 admission ceiling. SVG retains the 16,000,000-pixel per-page ceiling. Each operation includes source loading and the complete public render call; 100 source pages therefore do not mean 100 rendered previews.
+
+The four runs use A before → after and B after → before, two warmups and seven retained samples per operation/page/domain cell. All 168 measured records succeeded. All 952 encoded SVG/PNG artifacts match their before/after controls; all 252 PNG artifacts also match in complete 384 × 512 RGBA dimensions and bytes. Independent Poppler readback qualifies every source page. These checks establish compatibility with the baseline renderer, while independent visual fidelity remains a separate requirement.
+
+Before → after values below retain both processor domains. Allocation is the mean cumulative managed allocation in MiB. Positive changes are measured losses.
+
+| Domain / operation / source pages | Mean allocation before → after, MiB | Allocation change | Median before → after, ms | Median change | p95 before → after, ms | p95 change |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| A / RenderSvg / 1 | 11.18 → 9.51 | −14.99% | 10.75 → 6.28 | −41.60% | 19.45 → 26.77 | +37.65% |
+| A / RenderSvg / 20 | 92.57 → 67.20 | −27.40% | 91.69 → 56.64 | −38.23% | 197.66 → 302.68 | +53.13% |
+| A / RenderSvg / 100 | 92.97 → 67.87 | −27.00% | 123.36 → 75.87 | −38.50% | 257.54 → 222.01 | −13.80% |
+| A / RenderPng / 1 | 12.12 → 10.46 | −13.69% | 28.32 → 31.52 | +11.31% | 33.51 → 59.34 | +77.09% |
+| A / RenderPng / 20 | 37.46 → 29.36 | −21.64% | 144.22 → 130.52 | −9.50% | 160.73 → 210.52 | +30.97% |
+| A / RenderPng / 100 | 37.98 → 29.89 | −21.31% | 115.45 → 143.22 | +24.06% | 192.58 → 247.84 | +28.69% |
+| B / RenderSvg / 1 | 11.60 → 9.49 | −18.14% | 14.03 → 8.25 | −41.22% | 16.87 → 52.72 | +212.62% |
+| B / RenderSvg / 20 | 92.81 → 67.19 | −27.61% | 141.95 → 133.62 | −5.87% | 208.97 → 226.12 | +8.20% |
+| B / RenderSvg / 100 | 93.45 → 67.79 | −27.46% | 154.15 → 86.96 | −43.59% | 219.46 → 268.71 | +22.44% |
+| B / RenderPng / 1 | 12.55 → 10.48 | −16.45% | 33.32 → 36.40 | +9.24% | 59.27 → 62.71 | +5.81% |
+| B / RenderPng / 20 | 37.89 → 29.34 | −22.57% | 130.83 → 146.82 | +12.22% | 167.81 → 213.28 | +27.09% |
+| B / RenderPng / 100 | 38.43 → 29.88 | −22.26% | 158.44 → 154.08 | −2.75% | 220.22 → 274.96 | +24.86% |
+
+Mean managed allocation decreases in all twelve cells: 14.99–27.61% for SVG and 13.69–22.57% for PNG. All six SVG medians decrease by 5.87–43.59%. PNG has four median losses, from 9.24% to 24.06%, and two improvements. Observed p95 increases in eleven of twelve cells; B/SVG/1 rises 212.62%, while A/SVG/100 decreases 13.80%. Sample coefficients of variation increase in all twelve comparisons. The result supports a bounded allocation improvement with equivalent output; it does not establish a general rendering-latency improvement.
+
+Other coordinated heavy validation was paused during the paired measurement windows. Fresh process snapshots still contain 48/131/131/98 `dotnet` processes in A-before/A-after/B-after/B-before order, plus three compiler processes in each case. Those counts are neither CPU utilization nor continuous contention telemetry. The runs retain the two native 96 MiB L3 domains, masks `0xFFFF` and `0xFFFF0000`, and Normal priority. Seven samples and shared-host variation do not establish production tails or uncontended capacity. All outliers remain included; p95 uses sorted linear interpolation at `(n − 1) × 0.95`.
+
+PowerForge’s allocation counter covers process-wide managed bytes. It does not measure exact CPU time, native allocation, retained heap, true peak memory or the cache’s final retained size. Cache admission permits up to 64 font resources and an estimated 64 MiB retained-font budget per parsed document. Resources beyond admission remain usable without cache retention. This estimate is not a hard heap cap, and page/drawing objects can retain resources independently.
+
+The companion’s separate `rendererComparison` object preserves all twelve exact summaries, the 168 raw timing/allocation observations, every measured loss, input fingerprints and the compact provenance index. Its source analysis is `renderer-comparison-analysis.json`, SHA-256 `D51724346B8B7FAC03187F055793ADF16AEC0D322CA9E990FF87A58DFCA98B07`, with 1,296 referenced evidence files and complete encoded/pixel mappings. Existing cohort statistics and source identities remain unchanged.
+
+A separate resource-audit replay is retained in the companion’s archive mapping: 14 entry-verified files, 9,485,414 compressed bytes and 25,612,488 expanded bytes. Its before/after DLLs retain their documented informational-version limitation and are separate from the frozen performance snapshots. The cleanup receipt records 1,137,128,631 logical temporary bytes removed; it makes no physical-reclamation claim. The frozen renderer binaries, 168 measured records and their encoded/pixel evidence remain retained.
