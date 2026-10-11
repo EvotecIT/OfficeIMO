@@ -19,7 +19,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$usingSampleInput = -not $InputPath
 if (-not $InputPath) { $InputPath = Join-Path $PSScriptRoot 'Data/BudgetForecast.csv' }
+$inputLabel = if ($usingSampleInput) { 'Synthetic USD sample' } else { 'USD forecast snapshot' }
 Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
 $culture = [Globalization.CultureInfo]::InvariantCulture
 $money = [Globalization.CultureInfo]::GetCultureInfo('en-US')
@@ -101,7 +103,7 @@ $reviewRows = $rows | Select-Object Department,
     @{Name='Forecast (USD)';Expression={$_.Forecast.ToString('N2',$money)}},
     @{Name='Variance (USD)';Expression={$_.Variance.ToString('+#,##0.00;-#,##0.00;0.00',$money)}}
 WordNew -Path $docx {
-    WordHeader { WordParagraph -Text "FINANCE | Synthetic USD sample | $($AsOfDate.ToString('yyyy-MM-dd'))" }
+    WordHeader { WordParagraph -Text "FINANCE | $inputLabel | $($AsOfDate.ToString('yyyy-MM-dd'))" }
     WordFooter { WordPageNumber -IncludeTotalPages }
     WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Budget and forecast review' -Bold -FontSize 25 -Color '17365D' }
     WordParagraph -Text "Forecast $($totalForecast.ToString('C2',$money)) against budget $($totalBudget.ToString('C2',$money)); actual spend $($totalActual.ToString('C2',$money))."

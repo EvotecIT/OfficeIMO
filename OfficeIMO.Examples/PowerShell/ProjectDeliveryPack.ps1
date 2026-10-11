@@ -19,7 +19,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$usingSampleInput = -not $InputPath
 if (-not $InputPath) { $InputPath = Join-Path $PSScriptRoot 'Data/ProjectMilestones.csv' }
+$reviewContext = if ($usingSampleInput) { 'Service rollout' } else { 'Milestone snapshot' }
+$sampleNotice = if ($usingSampleInput) { 'Synthetic sample. ' } else { '' }
 Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
 $culture = [Globalization.CultureInfo]::InvariantCulture
 $snapshotDate = $AsOfDate.Date
@@ -52,7 +55,7 @@ ExcelNew -Path $xlsx -EvaluateFormulas {
         ExcelGridlines -Hide
         ExcelColumn -ColumnName A -Width 44
         ExcelColumn -ColumnName B -Width 24
-        ExcelCell -Address A1 -Value 'Service rollout | delivery review'
+        ExcelCell -Address A1 -Value "$reviewContext | delivery review"
         ExcelRow -Row 1 -Bold $true -Height 32
         ExcelCell -Address A2 -Value 'Snapshot date'
         ExcelCell -Address B2 -Value $snapshotDate.ToOADate() -NumberFormat 'yyyy-mm-dd'
@@ -94,7 +97,7 @@ $reviewRows = $rows | Select-Object Milestone,Owner,
     @{Name='Due';Expression={$_.DueDate.ToString('yyyy-MM-dd')}},
     @{Name='Progress';Expression={"$($_.Progress)%"}},Status
 WordNew -Path $docx {
-    WordHeader { WordParagraph -Text "DELIVERY | Service rollout | $($snapshotDate.ToString('yyyy-MM-dd'))" }
+    WordHeader { WordParagraph -Text "DELIVERY | $reviewContext | $($snapshotDate.ToString('yyyy-MM-dd'))" }
     WordFooter { WordPageNumber -IncludeTotalPages }
     WordParagraph { WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true; WordText 'Project delivery review' -Bold -FontSize 25 -Color '17365D' }
     WordParagraph -Text "$($done.Count) of $($rows.Count) milestones are complete; $($overdue.Count) overdue milestone(s) need an owner decision at $($snapshotDate.ToString('yyyy-MM-dd'))."
@@ -117,7 +120,7 @@ WordNew -Path $docx {
         $_.MarginTopCentimeters=0.12; $_.MarginBottomCentimeters=0.12
         $_.MarginLeftCentimeters=0.16; $_.MarginRightCentimeters=0.16
     }
-    WordParagraph -Text 'Synthetic sample. Due today is on track; overdue means an incomplete milestone due before the snapshot date. Update the CSV and regenerate this review after changes. Record the review decision in the editable Word copy.'
+    WordParagraph -Text "${sampleNotice}Due today is on track; overdue means an incomplete milestone due before the snapshot date. Update the CSV and regenerate this review after changes. Record the review decision in the editable Word copy."
 }
 Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
 #endregion
