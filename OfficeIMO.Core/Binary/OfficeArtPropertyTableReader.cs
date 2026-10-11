@@ -76,10 +76,17 @@ public static class OfficeArtPropertyTableReader {
         uint declaredLength, int offset, int endOffset, ulong followingDeclaredLength) {
         if (declaredLength > int.MaxValue || offset >= endOffset) return 0;
         uint length = ExpectedComplexDataLength(propertyId, declaredLength, payload, offset, endOffset - offset);
-        // A zero-length array can be genuinely absent. Recover its header only
-        // when doing so leaves room for the following declared complex payloads.
-        if (declaredLength == 0 && (ulong)(endOffset - offset) < length + followingDeclaredLength) return 0;
-        return (int)Math.Min(length, (uint)(endOffset - offset));
+        int remaining = endOffset - offset;
+        if (length > declaredLength) {
+            // Header recovery must preserve following complex properties even
+            // when a nonempty array is truncated. Retain only its available prefix.
+            uint available = (uint)((ulong)remaining - Math.Min((ulong)remaining, followingDeclaredLength));
+            // A zero-length array can be genuinely absent, so do not consume a
+            // partial or absent header as if it were its own complex payload.
+            if (declaredLength == 0 && available < length) return 0;
+            return (int)Math.Min(length, available);
+        }
+        return (int)Math.Min(length, (uint)remaining);
     }
 
     internal static uint ExpectedComplexDataLength(ushort propertyId, uint declaredLength,
