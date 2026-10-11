@@ -125,10 +125,10 @@ namespace OfficeIMO.Word.Pdf {
             return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background) {
                 EffectiveFontSize = fontSize ?? nativeFontMap?.DefaultFontSize ?? resolvedNativeDefaults.FontSize,
                 TextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
-                    .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(),
+                    .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(resolvedNativeDefaults.OpenTypeFeaturesEnabled),
                 // Numbering uses the paragraph mark, independently of the first body run.
                 ListMarkerTextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
-                    .Merge(styleDefaults.TextSpacing).Merge(markerCharacterStyle.TextSpacing).Merge(markerProperties).Resolve()
+                    .Merge(styleDefaults.TextSpacing).Merge(markerCharacterStyle.TextSpacing).Merge(markerProperties).Resolve(resolvedNativeDefaults.OpenTypeFeaturesEnabled)
             };
         }
 

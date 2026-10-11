@@ -164,7 +164,7 @@ internal static partial class PdfWriter {
 
         // Collect fonts used across pages
         var fontObjectIds = new Dictionary<(PdfStandardFont Font, PdfEmbeddedFont? EmbeddedFont, bool IncludeToUnicode, int ShapingContextId), int>();
-        var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language)>();
+        var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language, OfficeIMO.Drawing.OfficeTextFeatureSettings Features)>();
         var namedFontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfNamedFontFace, int>>();
         var formHelveticaFontIds = new Dictionary<PdfOptions, int>();
         var printColorTransforms = new Dictionary<PdfOptions, PdfPrintColorTransform?>();
@@ -178,7 +178,8 @@ internal static partial class PdfWriter {
                 var context = shapingContexts[index];
                 if (context.Mode == fontOptions.TextShapingModeSnapshot &&
                     ReferenceEquals(context.Provider, fontOptions.TextShapingProviderSnapshot) &&
-                    string.Equals(context.Language, fontOptions.Language, StringComparison.Ordinal)) {
+                    string.Equals(context.Language, fontOptions.Language, StringComparison.Ordinal) &&
+                    context.Features.Equals(fontOptions.DefaultTextFeatureSettings)) {
                     return index + 1;
                 }
             }
@@ -186,7 +187,8 @@ internal static partial class PdfWriter {
             shapingContexts.Add((
                 fontOptions.TextShapingModeSnapshot,
                 fontOptions.TextShapingProviderSnapshot,
-                fontOptions.Language));
+                fontOptions.Language,
+                fontOptions.DefaultTextFeatureSettings));
             return shapingContexts.Count;
         }
 

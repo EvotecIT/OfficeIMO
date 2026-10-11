@@ -48,12 +48,19 @@ public sealed class WordPdfKerningTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ExplicitKerningKeepsDefaultLatinLigaturesWithManagedShaping(bool managedProvider) {
+    public void ExplicitKerningAndSourceLigaturesReachManagedShaping(bool managedProvider) {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("fi");
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         paragraph.FontSize = 10;
         paragraph.KerningMinimumFontSizePoints = 1D;
+        paragraph._paragraph.Descendants<Run>().Single().RunProperties!.Append(
+            new DocumentFormat.OpenXml.Office2010.Word.Ligatures { Val = DocumentFormat.OpenXml.Office2010.Word.LigaturesValues.Standard });
+        document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!
+            .GetFirstChild<Compatibility>()!.Append(new CompatibilitySetting {
+                Name = new DocumentFormat.OpenXml.EnumValue<CompatSettingNameValues> { InnerText = "enableOpenTypeFeatures" },
+                Uri = "http://schemas.microsoft.com/office/word", Val = "1"
+            });
         PdfOptions options = FontOptions(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn"));
         if (managedProvider) options.UseManagedTextShaping();
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(ConversionOptions(options)));

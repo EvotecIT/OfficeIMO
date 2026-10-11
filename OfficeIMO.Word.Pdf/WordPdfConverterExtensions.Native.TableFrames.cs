@@ -27,6 +27,7 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (PdfCore.PdfCellBorder cellBorder in style.CellBorders.Values) cellBorder.PaintInsideFrame = true;
             double sourceSpacing = style.CellSpacing;
             style.CellSpacing = 2D * sourceSpacing;
+            style.CompressFixedColumnsAboveMinimums = sourceSpacing > 0D;
             if (style.PreferredWidth.HasValue)
                 style.PreferredWidth = style.AutoFitColumnPreferredWidthPoints != null
                     ? Math.Max(.001D, style.PreferredWidth.Value - 2D * style.CellSpacing)

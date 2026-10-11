@@ -19,6 +19,9 @@ namespace OfficeIMO.Word.Pdf {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
             pdfOptions.UseFontUnitTextLayout = true;
+            // Flat running content follows the same source defaults as styled runs.
+            // Retain the configured shaper so explicit ligatures use its Latin feature path.
+            pdfOptions.DefaultTextFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(pdfOptions.DefaultFontSize);
             if (!pdfOptions.HasExplicitTextWhitespaceConfiguration) {
                 pdfOptions.TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preserve;
             }
@@ -650,7 +653,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PageSize pageSize = GetNativePageSize(section, options);
                 PdfCore.PageMargins margins = GetNativeMargins(section, options);
                 double contentHeight = Math.Max(72D, pageSize.Height - margins.Top - margins.Bottom);
-                double contentWidth = Math.Max(72D, pageSize.Width - margins.Left - margins.Right);
+                double contentWidth = Math.Max(1D, pageSize.Width - margins.Left - margins.Right);
 
                 List<WordElement> elements = EnumerateNativeTableOfContentsElements(section).ToList();
                 for (int index = 0; index < elements.Count; index++) {

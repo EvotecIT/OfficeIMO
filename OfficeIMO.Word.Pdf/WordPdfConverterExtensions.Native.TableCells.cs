@@ -104,7 +104,10 @@ namespace OfficeIMO.Word.Pdf {
             return columnCount;
         }
 
-        private static IEnumerable<(WordTableCell Cell, int Column, int ColumnSpan)> EnumerateNativeTableCells(TableLayout layout) {
+        private static IEnumerable<(WordTableCell Cell, int Column, int ColumnSpan)> EnumerateNativeTableCells(TableLayout layout) =>
+            EnumerateNativeTableCellPositions(layout).Select(cell => (cell.Cell, cell.Column, cell.ColumnSpan));
+
+        private static IEnumerable<(WordTableCell Cell, int Row, int Column, int ColumnSpan)> EnumerateNativeTableCellPositions(TableLayout layout) {
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
                 int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
@@ -119,7 +122,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    yield return (cell, logicalColumn, columnSpan);
+                    yield return (cell, rowIndex, logicalColumn, columnSpan);
                     logicalColumn += columnSpan;
                 }
             }

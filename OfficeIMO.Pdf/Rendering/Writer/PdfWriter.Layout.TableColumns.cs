@@ -49,6 +49,11 @@ internal static partial class PdfWriter {
         int columnCount,
         double columnGap) {
         double availableWidth = ResolveTableAvailableWidth(style, containerWidth);
+        if (TryResolveImportedPercentageFrameWidth(style, autoFitPreferredWidths, autoFitMinimumWidths,
+            columnCount, columnGap, out double importedWidth))
+            return style.AllowWidthBeyondFrame
+                ? style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value, importedWidth) : importedWidth
+                : Math.Min(availableWidth, importedWidth);
         if (!style.PreferredWidth.HasValue && !style.AutoFitUnspecifiedWidthToContent) {
             return availableWidth;
         }
@@ -85,7 +90,7 @@ internal static partial class PdfWriter {
         return Math.Min(availableWidth, desiredWidth);
     }
 
-    private static double FitFixedTableColumnsToAvailableWidth(double[] columnWidths, bool[] fixedColumns, double?[] minWidths, double fixedWidthTotal, double availableWidth) {
+    private static double FitFixedTableColumnsToAvailableWidth(double[] columnWidths, bool[] fixedColumns, double?[] minWidths, double fixedWidthTotal, double availableWidth, bool preserveMinimums = false) {
         if (fixedWidthTotal <= availableWidth + 0.001D) {
             return fixedWidthTotal;
         }
@@ -99,6 +104,17 @@ internal static partial class PdfWriter {
 
         if (requiredMinimumWidth > availableWidth + 0.001D) {
             throw new ArgumentException("Table fixed column widths cannot fit inside the available table width after applying minimum widths.");
+        }
+
+        if (preserveMinimums && fixedColumns.All(value => value) && fixedWidthTotal > requiredMinimumWidth) {
+            // Imported separate-border cells retain their physical text/padding
+            // minimum while the remaining preferred width is compressed.
+            double scale = (availableWidth - requiredMinimumWidth) / (fixedWidthTotal - requiredMinimumWidth);
+            for (int column = 0; column < columnWidths.Length; column++) {
+                double minimum = minWidths[column] ?? 0D;
+                columnWidths[column] = minimum + (columnWidths[column] - minimum) * scale;
+            }
+            return availableWidth;
         }
 
         double[] originalWidths = new double[columnWidths.Length];
@@ -285,7 +301,8 @@ internal static partial class PdfWriter {
             totalWeight += weight;
         }
 
-        fixedWidthTotal = FitFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, minWidths, fixedWidthTotal, tableInnerWidth);
+        fixedWidthTotal = FitFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, minWidths, fixedWidthTotal, tableInnerWidth,
+            preserveMinimums: style.CompressFixedColumnsAboveMinimums);
         if (style.PreserveWidth && totalWeight <= 0D) {
             fixedWidthTotal = ExpandFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, maxWidths, fixedWidthTotal, tableInnerWidth);
         }
@@ -295,7 +312,9 @@ internal static partial class PdfWriter {
             remainingWidth = 0D;
         }
 
-        if (!TryDistributeImportedPreferredColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
+        if (!TryDistributeImportedPercentageColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
+                autoFit?.PaddingWidths, tableInnerWidth) &&
+            !TryDistributeImportedPreferredColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
             autoFitWeights, autoFit?.PaddingWidths, remainingWidth))
             DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
         if (!style.PreserveWidth) {

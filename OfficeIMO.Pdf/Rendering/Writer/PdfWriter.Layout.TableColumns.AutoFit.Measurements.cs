@@ -157,7 +157,7 @@ internal static partial class PdfWriter {
         var paddingWidths = new double[cols];
         bool automaticImportedSpans = style.AutoFitUnspecifiedWidthToContent &&
             style.AutoFitColumnPreferredWidthPoints != null;
-        var importedSpanMinimums = new System.Collections.Generic.List<(int Column, int Span, double Width, double PreferredWidth)>();
+        var importedSpanMinimums = new System.Collections.Generic.List<(int Column, int Span, double Width, double PreferredWidth, bool HasAbsolutePreference)>();
         if (style.AutoFitWidthUsesContentMinimum) {
             for (int column = 0; column < cols; column++)
                 minimumWidths[column] = GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
@@ -220,7 +220,8 @@ internal static partial class PdfWriter {
                     if (cell.ColumnSpan == 1)
                         minimumWidths[cell.Column] = Math.Max(minimumWidths[cell.Column], minimum);
                     else
-                        importedSpanMinimums.Add((cell.Column, cell.ColumnSpan, minimum, requestedWidth));
+                        importedSpanMinimums.Add((cell.Column, cell.ColumnSpan, minimum, requestedWidth,
+                            style.AutoFitCellsWithAbsolutePreferences?.Contains((rowIndex, cell.Column)) == true));
                     continue;
                 }
                 double tokenWidth = 0D;
@@ -330,8 +331,12 @@ internal static partial class PdfWriter {
             if (automaticImportedSpans) {
                 ApplyImportedAutomaticSpanMinimum(minimumWidths, preferredWidths, span.Column, endColumn,
                     span.Width - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
-                ApplyImportedAutomaticSpanPreference(preferredWidths, span.Column, endColumn,
-                    span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
+                // A merged cell's own absolute preference permits wrapping,
+                // including an explicit zero. Automatic cells still contribute
+                // their unwrapped preference despite absolute cells in other rows.
+                if (!span.HasAbsolutePreference)
+                    ApplyImportedAutomaticSpanPreference(preferredWidths, span.Column, endColumn,
+                        span.PreferredWidth - Math.Max(0, endColumn - span.Column - 1) * style.CellSpacing);
                 continue;
             }
             double available = 0D;

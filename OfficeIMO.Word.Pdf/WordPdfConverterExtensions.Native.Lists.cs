@@ -222,7 +222,7 @@ namespace OfficeIMO.Word.Pdf {
             var style = new PdfCore.PdfListStyle {
                 LeftIndent = markerIndent,
                 MarkerAlignsAtIndent = true,
-                MarkerFeatureSettings = OfficeTextFeatureSettings.Default.With("kern", 0),
+                MarkerFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(markerFontSize),
                 MarkerGap = 0D,
                 MarkerWidth = Math.Max(0D, textIndent - markerIndent),
                 MarkerFont = ResolveNativeListMarkerFont(info, marker, markerTextStyle, nativeFontMap),

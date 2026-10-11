@@ -5,25 +5,37 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private readonly record struct NativeTextSpacing(double? WidthPercentage, double? CharacterSpacing, double? KerningMinimumFontSize = null) {
+        private readonly record struct NativeTextSpacing(double? WidthPercentage, double? CharacterSpacing,
+            double? KerningMinimumFontSize = null, string? LigatureSetting = null) {
             public NativeTextSpacing Merge(OpenXmlElement? properties) => Merge(new NativeTextSpacing(
                 ReadNativeCharacterScale(properties?.GetFirstChild<W.CharacterScale>()),
                 properties?.GetFirstChild<W.Spacing>()?.Val?.Value / 20D,
-                properties?.GetFirstChild<W.Kern>()?.Val?.Value / 2D));
+                properties?.GetFirstChild<W.Kern>()?.Val?.Value / 2D,
+                ReadNativeLigatureSetting(properties)));
 
             public NativeTextSpacing Merge(NativeTextSpacing overrides) => new(
                 overrides.WidthPercentage ?? WidthPercentage,
                 overrides.CharacterSpacing ?? CharacterSpacing,
-                overrides.KerningMinimumFontSize ?? KerningMinimumFontSize);
+                overrides.KerningMinimumFontSize ?? KerningMinimumFontSize,
+                overrides.LigatureSetting ?? LigatureSetting);
 
-            public NativeTextSpacing Resolve() => new(WidthPercentage ?? 100D, CharacterSpacing ?? 0D, KerningMinimumFontSize);
+            public NativeTextSpacing Resolve(bool openTypeFeaturesEnabled = true) => new(WidthPercentage ?? 100D, CharacterSpacing ?? 0D,
+                KerningMinimumFontSize, openTypeFeaturesEnabled ? LigatureSetting : LigatureSetting == null ? null : "none");
 
             // Word uses half-points for the minimum size; zero explicitly disables
             // kerning. Missing formatting inherits, and an entirely absent setting
             // leaves Word kerning disabled, independently of the PDF shaper default.
-            public OfficeTextFeatureSettings ResolveFeatureSettings(double fontSize) =>
-                OfficeTextFeatureSettings.Default.With("kern",
-                    KerningMinimumFontSize is > 0D && fontSize >= KerningMinimumFontSize.Value ? 1 : 0);
+            public OfficeTextFeatureSettings ResolveFeatureSettings(double fontSize) {
+                string? setting = LigatureSetting;
+                bool all = setting == "all";
+                bool Enabled(string name) => all || setting?.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0;
+                return OfficeTextFeatureSettings.Default.With("kern",
+                        KerningMinimumFontSize is > 0D && fontSize >= KerningMinimumFontSize.Value ? 1 : 0)
+                    .With("liga", Enabled("standard") ? 1 : 0)
+                    .With("clig", Enabled("contextual") ? 1 : 0)
+                    .With("dlig", Enabled("discretional") ? 1 : 0)
+                    .With("hlig", Enabled("historical") ? 1 : 0);
+            }
 
             public PdfCore.PdfTextRun ApplyTo(PdfCore.PdfTextRun run, double defaultFontSize) {
                 double width = WidthPercentage ?? 100D;
@@ -32,6 +44,14 @@ namespace OfficeIMO.Word.Pdf {
                 if (run.CharacterSpacing != spacing) run = run.WithCharacterSpacing(spacing);
                 return run.WithFeatureSettings(ResolveFeatureSettings(run.FontSize ?? defaultFontSize));
             }
+        }
+
+        private static string? ReadNativeLigatureSetting(OpenXmlElement? properties) {
+            const string word2010 = "http://schemas.microsoft.com/office/word/2010/wordml";
+            // The SDK retains this extension as an unknown element in some
+            // run-property containers, including loaded document defaults.
+            return properties?.ChildElements.LastOrDefault(child => child.LocalName == "ligatures" && child.NamespaceUri == word2010)
+                ?.GetAttribute("val", word2010).Value;
         }
 
         private static double? ReadNativeCharacterScale(W.CharacterScale? scale) {

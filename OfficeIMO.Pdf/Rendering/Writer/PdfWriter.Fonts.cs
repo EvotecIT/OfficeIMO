@@ -160,6 +160,7 @@ internal static partial class PdfWriter {
     }
 
     private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
+        featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         if (!string.IsNullOrEmpty(text) && ContainsLineBreak(text!)) {
             return MaxLineWidthForOptions(text!, font, fontSize, options, featureSettings);
         }
@@ -232,6 +233,7 @@ internal static partial class PdfWriter {
         double fontSize,
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null) {
+        featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         if (!string.IsNullOrEmpty(text) && ContainsLineBreak(text!)) {
             return MaxLineWidthForOptions(text!, fallbackFont, namedFont, fontSize, options, featureSettings);
         }

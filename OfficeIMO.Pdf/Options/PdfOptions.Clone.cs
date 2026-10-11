@@ -82,6 +82,7 @@ public sealed partial class PdfOptions {
             TextLineBreakCallback = _textLineBreakCallback,
             TextHyphenationCallback = _textHyphenationCallback,
             TextShapingMode = TextShapingMode,
+            DefaultTextFeatureSettings = DefaultTextFeatureSettings,
             TextShapingProvider = TextShapingProvider,
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,

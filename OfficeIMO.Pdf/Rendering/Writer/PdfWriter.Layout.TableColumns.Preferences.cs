@@ -20,23 +20,8 @@ internal static partial class PdfWriter {
                 authoredMinimum += minimums[column] ?? 0D;
             } else automaticMinimum += minimums[column] ?? 0D;
         }
-        // Compress text after reserving padding when unbreakable content cannot
-        // fit the frame. Scaling the padding changes the character wrap budget.
-        double minimumTotal = authoredMinimum + automaticMinimum;
-        if (minimumTotal > availableWidth + .001D) {
-            if (!style.AutoFitWidthUsesContentMinimum || paddingWidths == null) return false;
-            double reserved = 0D;
-            for (int column = 0; column < widths.Length; column++)
-                reserved += Math.Min(minimums[column] ?? 0D, paddingWidths[column]);
-            if (reserved >= availableWidth - .001D) return false;
-            double scale = (availableWidth - reserved) / (minimumTotal - reserved);
-            for (int column = 0; column < widths.Length; column++) {
-                double minimum = minimums[column] ?? 0D;
-                double padding = Math.Min(minimum, paddingWidths[column]);
-                widths[column] = padding + (minimum - padding) * scale;
-            }
-            return true;
-        }
+        if (authoredMinimum + automaticMinimum > availableWidth + .001D)
+            return TryCompressImportedColumnMinimums(style, widths, minimums, paddingWidths, availableWidth);
         if (authoredCount > 0 && authoredCount < widths.Length) {
             // Automatic columns absorb remaining space after the absolute
             // preferences fit. They reserve only their minimum while those
@@ -55,6 +40,25 @@ internal static partial class PdfWriter {
         if (preferences.Sum() <= availableWidth + .001D) return false;
         DistributeImportedPreferenceGroup(widths, Enumerable.Repeat(true, widths.Length).ToArray(),
             minimums, maximums, preferences, availableWidth);
+        return true;
+    }
+
+    /// <summary>Reserves cell padding while compressing text that cannot fit its unbreakable minimum.</summary>
+    private static bool TryCompressImportedColumnMinimums(PdfTableStyle style, double[] widths,
+        double?[] minimums, double[]? paddingWidths, double availableWidth) {
+        double minimumTotal = minimums.Sum(value => value ?? 0D);
+        if (minimumTotal <= availableWidth + .001D || !style.AutoFitWidthUsesContentMinimum || paddingWidths == null)
+            return false;
+        double reserved = 0D;
+        for (int column = 0; column < widths.Length; column++)
+            reserved += Math.Min(minimums[column] ?? 0D, paddingWidths[column]);
+        if (reserved >= availableWidth - .001D) return false;
+        double scale = (availableWidth - reserved) / (minimumTotal - reserved);
+        for (int column = 0; column < widths.Length; column++) {
+            double minimum = minimums[column] ?? 0D;
+            double padding = Math.Min(minimum, paddingWidths[column]);
+            widths[column] = padding + (minimum - padding) * scale;
+        }
         return true;
     }
 

@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
                         embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
                         // Word no-wrap changes automatic sizing. Fixed-layout tables and
                         // cells with absolute preferred widths still wrap their content.
-                        noWrap: usesAutoFitLayout && cell.WidthType != WordTableWidthUnit.Dxa && !cell.WrapText,
+                        noWrap: usesAutoFitLayout && TablePreferredWidth.CanDisableCellWrapping(cell) && !cell.WrapText,
                         textRotation: GetNativeCellTextRotation(cell.TextDirection)) {
                         OrientedRowTextHeight = GetNativeOrientedCellMarkHeight(cell, cellText.Runs, embeddedContent,
                             nativeDefaults, cellStyleDefaults, nativeFontMap)
