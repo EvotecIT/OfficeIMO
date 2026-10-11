@@ -8,6 +8,31 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherGeometryGuideTests {
+    [Theory]
+    [InlineData(0x0145, false)]
+    [InlineData(0x0146, true)]
+    public void Native_cleared_default_paths_keep_preset_geometry_without_false_path_loss(int propertyId, bool tertiary) {
+        byte[] input = PublisherDrawingFixture.Mutate(new() { [0x145] = 0, [0x146] = 0,
+            [0x181] = 0x000000FF, [0x1BF] = 0x00100010 }, 1);
+        Assert.True(OfficeCompoundFileReader.TryRead(input, out OfficeCompoundFile? source, out string? error), error);
+        byte[] escher = source!.Streams["Escher/EscherStm"];
+        int length = checked((int)BitConverter.ToUInt32(escher, 4));
+        byte[] payload = propertyId == 0x145
+            ? PublisherCustomPathTests.Vertices(new[] { (0, 0), (21600, 21600) })
+            : PublisherCustomPathTests.Segments(new ushort[] { 0x4000, 0x0001, 0x8000 });
+        using var data = new MemoryStream(); using var writer = new BinaryWriter(data);
+        writer.Write((ushort)0x13); writer.Write((ushort)(tertiary ? 0xF122 : 0xF00B)); writer.Write(6 + payload.Length);
+        writer.Write((ushort)(propertyId | 0x8000)); writer.Write((uint)payload.Length); writer.Write(payload);
+        byte[] defaults = data.ToArray();
+        byte[] replacement = escher.Take(8 + length).Concat(defaults).Concat(escher.Skip(8 + length)).ToArray();
+        Array.Copy(BitConverter.GetBytes(length + defaults.Length), 0, replacement, 4, 4);
+        input = OfficeCompoundFileWriter.Rewrite(source, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = replacement });
+        PublisherDocument publication = PublisherDocument.Load(input);
+        Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);
+        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Location == "Contents/object/293"
+            && item.Code.StartsWith("PUB_CUSTOM_PATH_"));
+    }
+
     [Fact]
     public void Drawing_default_application_is_bounded_without_recounting_container_headers() {
         byte[] Record(ushort kind, ushort initial, byte[] body) => BitConverter.GetBytes(initial)
