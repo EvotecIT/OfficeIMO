@@ -6,6 +6,20 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void OfficeArtBooleanInheritance_CustomPathPaintFlagsKeepIndependentBitsAndAllowExplicitClearing() {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) });
+        properties.Add(new OfficeArtProperty(0, 0x017F, 0x02000000U));
+        properties.Add(new OfficeArtProperty(0, 0x017F, 0x00400040U));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.True(result!.NoFill);
+        Assert.False(result.NoLine);
+        properties.Add(new OfficeArtProperty(0, 0x017F, 0x02000200U));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out result, out _));
+        Assert.False(result!.NoFill);
+        Assert.False(result.NoLine);
+    }
+
     [Theory]
     [InlineData(4)]
     [InlineData(0xFFF0)]
