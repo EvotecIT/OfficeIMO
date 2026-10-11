@@ -5548,4 +5548,34 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Die Anzeige entspricht mehreren Optionen. Geben Sie den genauen Exportwert ein.</value></data>
   <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Aktuelle Auswahl ohne Partner</value></data>
   <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Vergleichsauswahl ohne Partner</value></data>
+  <data name="Provenance.Credentials" xml:space="preserve"><value>Content Credentials</value></data>
+  <data name="Provenance.CredentialHint" xml:space="preserve"><value>Dies sind in der Datei gespeicherte Angaben. Das Lesen eines Eintrags prüft weder seine Signatur noch das Vertrauen in das Zertifikat oder die Verknüpfung mit dem Inhalt. Die Ergebnisse der Verifizierung werden separat angezeigt.</value></data>
+  <data name="Provenance.Timeline" xml:space="preserve"><value>Aufgezeichnete Aktionen</value></data>
+  <data name="Provenance.TimelineHint" xml:space="preserve"><value>Aktionen aus der aktiven Herkunftserklärung in der aufgezeichneten Reihenfolge. Frühere Manifeste werden gezählt, hier aber nicht im Detail angezeigt; fehlende Zeitangaben bleiben unbekannt.</value></data>
+  <data name="Provenance.WatermarkHint" xml:space="preserve"><value>Der Eintrag gibt an, dass dem Inhalt ein Wasserzeichen hinzugefügt wurde. Das Entfernen des Herkunftsnachweises entfernt dieses Wasserzeichen nicht.</value></data>
+  <data name="Provenance.RecordDetails" xml:space="preserve"><value>Details des Eintrags</value></data>
+  <data name="Provenance.NotRecorded" xml:space="preserve"><value>Nicht aufgezeichnet</value></data>
+  <data name="Provenance.SoftwareNotRecorded" xml:space="preserve"><value>Software nicht aufgezeichnet</value></data>
+  <data name="Provenance.TimeNotRecorded" xml:space="preserve"><value>Zeit nicht aufgezeichnet</value></data>
+  <data name="Provenance.RecordedTime" xml:space="preserve"><value>Aufgezeichnete Zeit: {0}</value></data>
+  <data name="Provenance.CertificateSubjectFormat" xml:space="preserve"><value>Zertifikatssubjekt (ungeprüft): {0}</value></data>
+  <data name="Provenance.CertificateIssuerFormat" xml:space="preserve"><value>Zertifikatsaussteller (ungeprüft): {0}</value></data>
+  <data name="Provenance.SourceAssetFormat" xml:space="preserve"><value>Quellmaterial: {0}</value></data>
+  <data name="Provenance.ManifestCountFormat" xml:space="preserve"><value>Manifeste im Speicher: {0}</value></data>
+  <data name="Provenance.ActionCreated" xml:space="preserve"><value>Erstellt</value></data>
+  <data name="Provenance.ActionOpened" xml:space="preserve"><value>Geöffnet</value></data>
+  <data name="Provenance.ActionEdited" xml:space="preserve"><value>Bearbeitet</value></data>
+  <data name="Provenance.ActionConverted" xml:space="preserve"><value>Konvertiert</value></data>
+  <data name="Provenance.ActionCropped" xml:space="preserve"><value>Zugeschnitten</value></data>
+  <data name="Provenance.ActionResized" xml:space="preserve"><value>Größe geändert</value></data>
+  <data name="Provenance.ActionPlaced" xml:space="preserve"><value>Weitere Inhalte eingefügt</value></data>
+  <data name="Provenance.ActionPublished" xml:space="preserve"><value>Veröffentlicht</value></data>
+  <data name="Provenance.ActionWatermarked" xml:space="preserve"><value>Wasserzeichen zum Inhalt hinzugefügt</value></data>
+  <data name="Provenance.SourceGenerativeAi" xml:space="preserve"><value>Generative KI angegeben</value></data>
+  <data name="Provenance.SourceCompositeAi" xml:space="preserve"><value>Mischung aus KI-generierten und anderen Inhalten angegeben</value></data>
+  <data name="Provenance.SourceAlgorithmic" xml:space="preserve"><value>Softwaregenerierte Inhalte angegeben</value></data>
+  <data name="Provenance.SourceDigitalCapture" xml:space="preserve"><value>Aufnahme mit Kamera oder Scanner angegeben</value></data>
+  <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Zusammenstellung aufgenommener Medien angegeben</value></data>
+  <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Aufgezeichneter Quelltyp: {0}</value></data>
+  <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Quelltyp nicht aufgezeichnet</value></data>
 </root>

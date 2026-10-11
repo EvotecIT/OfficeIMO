@@ -965,9 +965,7 @@ namespace OfficeIMO.Excel {
                 dateTimeValue = default;
                 objectValue = null;
 
-                bool parsedNumber = double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, _options.Culture, out double number)
-                    || TryParseInvariantDouble(value, out number)
-                    || double.TryParse(value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number);
+                bool parsedNumber = TryParseExcelNumberAsDouble(value, _options.Culture, out double number);
                 if (parsedNumber
                     && dateStyle
                     && targetKind != XmlDataReaderTargetKind.Numeric) {

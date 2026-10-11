@@ -13,6 +13,7 @@ internal sealed class LegacySpreadsheetModel {
     internal OfficeLegacyImportQuality Quality { get; set; } = OfficeLegacyImportQuality.Salvage;
     internal OfficeLegacyInertContentKind InertContent { get; set; }
     internal int RecoveredCellCount { get; set; }
+    internal bool PreserveSheetNames { get; set; }
 }
 
 internal sealed class LegacySpreadsheetSheet {
@@ -59,6 +60,6 @@ internal interface ILegacySpreadsheetAdapter {
     LegacySpreadsheetFormat Format { get; }
     string ProfileId { get; }
     string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
-    int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason);
-    LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
+    int Probe(byte[] data, string? sourceName, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken, out string reason);
+    LegacySpreadsheetModel Parse(byte[] data, LegacySpreadsheetImportOptions options, CancellationToken cancellationToken);
 }

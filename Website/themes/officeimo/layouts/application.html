@@ -97,6 +97,7 @@
       </div>
     </section>
     {{ end }}
+    {{ current_surface = page.meta.application }}{{ if current_surface == "tool" }}{{ current_surface = "cli" }}{{ end }}{{ include "sections/surface-switcher" }}
   </main>
   {{ include "footer" }}
   {{ assets.js_html }}

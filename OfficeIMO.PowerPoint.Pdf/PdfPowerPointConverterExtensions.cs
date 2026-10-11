@@ -7,9 +7,7 @@ using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Pdf;
 
-/// <summary>
-/// Converts structured logical PDF tables into PowerPoint tables.
-/// </summary>
+// Converts structured logical PDF tables into PowerPoint tables.
 public static partial class PowerPointPdfConverterExtensions {
     /// <summary>Converts an opened PDF into a PowerPoint presentation.</summary>
     public static PptCore.PowerPointPresentation ToPowerPointPresentation(

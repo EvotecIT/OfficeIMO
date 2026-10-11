@@ -1,0 +1,126 @@
+{
+  "date": "2026-10-09",
+  "profile": {
+    "maximumChannelDifference": 4,
+    "maximumMeanChannelDifference": 0.15,
+    "resolution": "native DPI, display rotation, default gamma 2.2"
+  },
+  "implementation": "Managed OfficeIMO.DjVu, Release net10.0 on macOS arm64",
+  "referenceSource": "DjVuLibre 3.5.30 (executable banner reports 3.5.29); separate validation-only install with libjpeg-turbo 3.2.0",
+  "referenceSourceSha256": "ee5e457d4cfebe566f94b99e5e3d3cc7f5c79ddb741c2ac2ba2e456f00329644",
+  "sources": [
+    {
+      "input": "time-machine.djvu",
+      "sourceSha256": "bfea3804b50f7a75714f8549bd0ab82ef413f26fa7c31c99d028b91405f3c76e",
+      "sourceBytes": 3487428,
+      "pages": 232,
+      "exactRgbPages": 232,
+      "maximumChannelDifference": 0,
+      "maximumMeanChannelDifference": 0,
+      "referenceVersion": "DDJVU --- DjVuLibre-3.5.29"
+    },
+    {
+      "input": "red-badge.djvu",
+      "sourceSha256": "69050b259916119093b6a34a854ac158ad55f2f7dc29b60fee26425582f1c52b",
+      "sourceBytes": 2059850,
+      "pages": 252,
+      "exactRgbPages": 252,
+      "maximumChannelDifference": 0,
+      "maximumMeanChannelDifference": 0,
+      "referenceVersion": "DDJVU --- DjVuLibre-3.5.29"
+    },
+    {
+      "input": "djvu3spec.djvu",
+      "sourceSha256": "a061db04d2c315816820650be1eab383cc33d32a3793e52a3a59c4586c6196f2",
+      "sourceBytes": 484184,
+      "pages": 71,
+      "exactRgbPages": 71,
+      "maximumChannelDifference": 0,
+      "maximumMeanChannelDifference": 0,
+      "referenceVersion": "DDJVU --- DjVuLibre-3.5.29"
+    }
+  ],
+  "archivalStoredText": {
+    "pages": 484,
+    "wordRectangles": 86689,
+    "allTextAndRectanglesMatched": true
+  },
+  "shortIw44Qualification": {
+    "dimensions": [
+      13,
+      9
+    ],
+    "managedSha256": "1b4745d7706c1980875eed3bba44419cd261b5908c720ced884873907a8f48c0",
+    "referenceSha256": "d82f7ff22bc7e6651cd49dad1c491779b5bb27148f2ce5e412decdd2d7d76069",
+    "differingSamples": [
+      22,
+      19,
+      26
+    ],
+    "maximumDifference": [
+      3,
+      2,
+      5
+    ],
+    "meanDifference": [
+      0.26495726495726496,
+      0.20512820512820512,
+      0.4700854700854701
+    ],
+    "firstDifferences": [
+      [
+        27,
+        160,
+        159
+      ],
+      [
+        28,
+        243,
+        242
+      ],
+      [
+        29,
+        89,
+        88
+      ],
+      [
+        32,
+        128,
+        126
+      ],
+      [
+        35,
+        193,
+        191
+      ],
+      [
+        36,
+        158,
+        157
+      ],
+      [
+        37,
+        201,
+        202
+      ],
+      [
+        38,
+        20,
+        18
+      ],
+      [
+        59,
+        225,
+        227
+      ],
+      [
+        66,
+        8,
+        7
+      ]
+    ]
+  },
+  "runtimeCandidate": "f80df6d9e9a7773df9dec18bbe63562e87501357",
+  "requalifiedUtc": "2026-10-09T21:39:25.958863+00:00",
+  "referenceExecutableSha256": "9cc0f653551cdae548e5e5e868197498023efec835406b66ef18903accc4fcaf"
+}

@@ -128,7 +128,9 @@ namespace OfficeIMO.Excel {
             _sharedStrings = sharedStringsPart == null
                 ? SharedStringCache.Empty(options)
                 : SharedStringCache.Build(
-                    () => _parts.OpenPart(sharedStringsPart, maximumPartBytes, options.CancellationToken),
+                    () => _parts.OpenPart(sharedStringsPart, maximumPartBytes, options.CancellationToken,
+                        maximumBufferedBytes: SharedStringCache.MaximumIndexedPartBytes,
+                        acceptBufferedPrefix: SharedStringCache.CanIndexSimpleAsciiPrefix),
                     options);
 
             string? stylesPart = ResolveOptionalPart(
@@ -633,7 +635,11 @@ namespace OfficeIMO.Excel {
             _disposed = true;
             try {
                 try {
-                    _prefetchedParts?.Dispose();
+                    try {
+                        _sharedStrings.Dispose();
+                    } finally {
+                        _prefetchedParts?.Dispose();
+                    }
                 } finally {
                     _parts.Dispose();
                 }

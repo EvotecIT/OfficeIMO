@@ -19,7 +19,8 @@ public sealed class PdfLosslessJpegEmbeddingTests {
         byte[] pdf = PdfDocument.Create().Image(jpeg, 24, 24).ToBytes();
         var embedded = Assert.Single(PdfImageExtractor.ExtractImages(pdf));
         Assert.Equal("image/png", embedded.MimeType);
-        Assert.True(OfficeJpegCodec.TryDecode(jpeg, out var expected));
+        Assert.True(OfficeJpegCodec.TryDecode(jpeg, out var expected,
+            new OfficeJpegDecodeOptions(highQualityChroma: true)));
         Assert.True(OfficePngReader.TryDecode(embedded.Bytes, out var actual));
         Assert.Equal((expected!.Width, expected.Height), (actual!.Width, actual.Height));
         for (int y = 0; y < expected.Height; y++) for (int x = 0; x < expected.Width; x++)

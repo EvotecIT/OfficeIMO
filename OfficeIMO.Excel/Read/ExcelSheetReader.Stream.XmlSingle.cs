@@ -47,6 +47,7 @@ namespace OfficeIMO.Excel {
 
                 _hasWorksheetPartStreamContent = true;
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 int requestedRowCount = r2 - r1 + 1;
@@ -55,7 +56,7 @@ namespace OfficeIMO.Excel {
                     while (reader.Read()) {
                         ct.ThrowIfCancellationRequested();
 
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        if (!worksheetRows.IsRowElement(reader)) {
                             continue;
                         }
 
@@ -81,7 +82,7 @@ namespace OfficeIMO.Excel {
                     }
                 } else {
                     while (reader.Read()) {
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        if (!worksheetRows.IsRowElement(reader)) {
                             continue;
                         }
 

@@ -151,6 +151,7 @@ public static partial class OfficeDocumentReadResultExtensions {
             case ReaderInputKind.Pdf:
             case ReaderInputKind.Xps:
             case ReaderInputKind.Publisher:
+            case ReaderInputKind.DjVu:
                 return OfficeDocumentPageProvenance.Native;
             case ReaderInputKind.PowerPoint:
             case ReaderInputKind.Excel:

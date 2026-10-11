@@ -5,9 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Save orchestrator for VisioDocument.
-    /// </summary>
+    // Save orchestrator for VisioDocument.
     public partial class VisioDocument {
         /// <summary>Opens the associated document in the operating system's registered application.</summary>
         public void OpenInApplication(string? filePath = null) {
