@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using PdfCore = OfficeIMO.Pdf;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 
@@ -6,6 +7,39 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     private static WordParagraph CreateNativeImplicitRunningParagraph(WordHeaderFooter story) =>
         new(story.Document, new W.Paragraph());
+
+    private static void ConfigureNativeImplicitRunningStories(PdfCore.PdfPageBuilder page, WordSection section,
+        WordToPdfOptions? options, NativeFontMap fontMap,
+        IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+        NativeDocumentDefaults defaults, bool isFooter) {
+        WordHeaderFooter? defaultStory = isFooter ? section.Footer?.Default : section.Header?.Default;
+        WordHeaderFooter? firstStory = section.DifferentFirstPage
+            ? isFooter ? section.Footer?.First : section.Header?.First : null;
+        WordHeaderFooter? evenStory = section.DocumentOddEvenSettingEnabled
+            ? isFooter ? section.Footer?.Even : section.Header?.Even : null;
+        WordHeaderFooter?[] stories = { defaultStory, firstStory, evenStory };
+        double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
+        for (int index = 0; index < stories.Length; index++) {
+            WordHeaderFooter? story = stories[index];
+            if (story == null || story.ChildElements.Any()) continue;
+            // An implicit source paragraph still owns its blank line geometry
+            // when visible story text uses the caller-configured projection.
+            // Configure only this variant; its siblings retain their overrides.
+            var content = CreateNativeRunningStory(story, section, options, fontMap, listMarkers, defaults, isFooter);
+            if (isFooter) page.Footer(footer => {
+                if (index == 1) footer.FirstPageContent(content, distance);
+                else if (index == 2) footer.EvenPagesContent(content, distance);
+                else footer.Content(content, distance);
+            });
+            else page.Header(header => {
+                if (index == 1) header.FirstPageContent(content, distance);
+                else if (index == 2) header.EvenPagesContent(content, distance);
+                else header.Content(content, distance);
+            });
+        }
+        ReserveNativeEmptyRunningContentDistances(page.Options, !isFooter, defaultStory, firstStory, evenStory);
+        page.Options.AllowRunningContentTextFallback(!isFooter);
+    }
 
     private static void RenderNativeImplicitRunningParagraph(INativePdfFlow flow, WordHeaderFooter story,
         NativeDocumentDefaults defaults, NativeFontMap fontMap) {

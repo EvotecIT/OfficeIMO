@@ -10,6 +10,106 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, "color")]
+    [InlineData(false, "alignment")]
+    [InlineData(false, "font")]
+    [InlineData(false, "family")]
+    [InlineData(false, "size")]
+    [InlineData(false, "offset")]
+    [InlineData(true, "color")]
+    [InlineData(true, "alignment")]
+    [InlineData(true, "font")]
+    [InlineData(true, "family")]
+    [InlineData(true, "size")]
+    [InlineData(true, "offset")]
+    public void SaveAsPdf_EmptyRunningStoryRetainsFrameWithPresentationOverrides(bool footer, string setting) {
+        Assert.Equal(Render(false), Render(true));
+
+        (double Baseline, int Lines) Render(bool configure) {
+            using WordDocument document = CreateEmptyRunningStoryDocument("implicit", footer);
+            WordParagraph body = document.AddParagraph("A");
+            body.LineSpacing = footer ? 364 : 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
+            if (footer) for (int index = 1; index < 40; index++) body.AddBreak().AddText("A");
+            WordToPdfOptions options = EmptyRunningOptions();
+            if (configure) {
+                options.PdfOptions = new PdfOptions();
+                if (footer) {
+                    if (setting == "alignment") options.PdfOptions.FooterAlign = PdfAlign.Right;
+                    else if (setting == "font") options.PdfOptions.FooterFont = PdfStandardFont.Courier;
+                    else if (setting == "family") options.PdfOptions.FooterFontFamily = "Arial";
+                    else if (setting == "size") options.PdfOptions.FooterFontSize = 24D;
+                    else if (setting == "offset") options.PdfOptions.FooterOffsetY = 45D;
+                    else options.PdfOptions.FooterTextColor = PdfColor.FromRgb(255, 0, 0);
+                } else {
+                    if (setting == "alignment") options.PdfOptions.HeaderAlign = PdfAlign.Right;
+                    else if (setting == "font") options.PdfOptions.HeaderFont = PdfStandardFont.Courier;
+                    else if (setting == "family") options.PdfOptions.HeaderFontFamily = "Arial";
+                    else if (setting == "size") options.PdfOptions.HeaderFontSize = 24D;
+                    else if (setting == "offset") options.PdfOptions.HeaderOffsetY = 45D;
+                    else options.PdfOptions.HeaderTextColor = PdfColor.FromRgb(255, 0, 0);
+                }
+            }
+            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+            var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return (letters[0].StartBaseLine.Y, letters.Length);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 0)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public void SaveAsPdf_ImplicitRunningVariantPreservesOtherStoryPresentation(bool footer, int emptyVariant) {
+        using WordDocument document = CreateEmptyRunningStoryDocument("absent", footer);
+        WordHeaderFooter[] stories = footer
+            ? new WordHeaderFooter[] { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate }
+            : new WordHeaderFooter[] { document.HeaderFirstOrCreate, document.HeaderEvenOrCreate, document.HeaderDefaultOrCreate };
+        foreach (var child in stories[emptyVariant].ChildElements.ToArray()) child.Remove();
+        for (int index = 0; index < stories.Length; index++) {
+            if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
+            WordParagraph body = document.AddParagraph("A");
+            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            if (index < 2) body.AddBreak(WordBreakType.Page);
+        }
+        WordToPdfOptions options = EmptyRunningOptions();
+        options.PdfOptions = new PdfOptions();
+        if (footer) options.PdfOptions.FooterOffsetY = 24D;
+        else options.PdfOptions.HeaderOffsetY = 24D;
+        using var withImplicit = PdfPigDocument.Open(document.ToPdfBytes(options));
+        Assert.Equal(3, withImplicit.NumberOfPages);
+        for (int index = 0; index < 3; index++) {
+            if (index == emptyVariant) Assert.DoesNotContain("STORY", withImplicit.GetPage(index + 1).Text);
+            else Assert.Contains("STORY" + index, withImplicit.GetPage(index + 1).Text);
+        }
+        // Remove only the implicit part's reference. Other variants must retain
+        // their existing projected text and caller-configured positioning.
+        W.HeaderFooterValues kind = emptyVariant == 0 ? W.HeaderFooterValues.First
+            : emptyVariant == 1 ? W.HeaderFooterValues.Even : W.HeaderFooterValues.Default;
+        foreach (var reference in document.Sections[0]._sectionProperties.ChildElements.Where(element =>
+            footer ? element is W.FooterReference f && f.Type?.Value == kind
+                : element is W.HeaderReference h && h.Type?.Value == kind).ToArray()) reference.Remove();
+        using WordDocument withoutDocument = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        using var withoutImplicit = PdfPigDocument.Open(withoutDocument.ToPdfBytes(options));
+        Assert.Equal(3, withoutImplicit.NumberOfPages);
+        for (int index = 0; index < 3; index++) {
+            if (index == emptyVariant) {
+                if (!footer) Assert.Equal(36D,
+                    withoutImplicit.GetPage(index + 1).Letters.Single(letter => letter.Value == "A").StartBaseLine.Y -
+                    withImplicit.GetPage(index + 1).Letters.Single(letter => letter.Value == "A").StartBaseLine.Y, 3);
+                continue;
+            }
+            Assert.Equal(withoutImplicit.GetPage(index + 1).Letters.Select(letter => (letter.Value, letter.StartBaseLine)),
+                withImplicit.GetPage(index + 1).Letters.Select(letter => (letter.Value, letter.StartBaseLine)));
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SaveAsPdf_EmptyRunningStoryRegistersItsExclusiveDefaultStyleFont(bool footer) {

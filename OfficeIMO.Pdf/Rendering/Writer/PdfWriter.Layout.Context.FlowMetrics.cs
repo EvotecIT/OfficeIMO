@@ -122,7 +122,7 @@ internal static partial class PdfWriter {
 
         private (double Height, PdfKeepTogetherOverflowBehavior Overflow) MeasureParagraphFirstVisual(
             RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool suppressSpacingBefore = false,
-            double closingPadding = 0D) {
+            double closingPadding = 0D, bool reserveSingleLine = false) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
             fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
@@ -138,7 +138,7 @@ internal static partial class PdfWriter {
             bool keepAllLines = paragraphStyle?.KeepTogether == true && overflow == PdfKeepTogetherOverflowBehavior.Reject;
             if (keepAllLines) {
                 linesToReserve = wrap.LineHeights.Count;
-            } else if (paragraphStyle != null) {
+            } else if (paragraphStyle != null && !reserveSingleLine) {
                 int minimumOrphanLines = ResolveMinimumOrphanLines(paragraphStyle);
                 if (minimumOrphanLines > 1 && wrap.LineHeights.Count > 1) {
                     linesToReserve = Math.Min(minimumOrphanLines, wrap.LineHeights.Count);

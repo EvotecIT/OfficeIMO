@@ -110,7 +110,7 @@ public static partial class WordPdfConverterExtensions {
             if (!new[] { section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
                     section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: true);
-        }
+        } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: false);
         if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
             page.Footer(footer => {
@@ -126,7 +126,7 @@ public static partial class WordPdfConverterExtensions {
             if (!new[] { section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
                     section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
-        }
+        } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: true);
     }
 
     private static Func<PdfCore.PdfRunningContentContext, Action<PdfCore.PdfContentBuilder>> CreateNativeRunningStory(

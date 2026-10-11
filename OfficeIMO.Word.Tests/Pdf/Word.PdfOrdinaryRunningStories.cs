@@ -38,7 +38,20 @@ public partial class Word {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void SaveAsPdf_TallRunningFooterAllowsOneBodyLinePerPageWithinPhysicalMargins(bool nativeDoc) {
+    public void SaveAsPdf_TallRunningFooterAllowsOneBodyLinePerPageWithinPhysicalMargins(bool nativeDoc) =>
+        AssertTallRunningFooterAllowsOneBodyLine(nativeDoc, 48);
+
+    [Theory]
+    [InlineData(false, 32)]
+    [InlineData(true, 32)]
+    [InlineData(false, 40)]
+    [InlineData(true, 40)]
+    [InlineData(false, 64)]
+    [InlineData(true, 64)]
+    public void SaveAsPdf_TallRunningFooterPreservesHeaderAroundFirstLineFitBoundary(bool nativeDoc, int lineHeight) =>
+        AssertTallRunningFooterAllowsOneBodyLine(nativeDoc, lineHeight);
+
+    private static void AssertTallRunningFooterAllowsOneBodyLine(bool nativeDoc, int lineHeight) {
         using WordDocument source = CreateJoinedParagraphDocument();
         W.PageSize size = source.Sections[0]._sectionProperties.GetFirstChild<W.PageSize>()!;
         size.Width = 5200U; size.Height = 6000U;
@@ -53,7 +66,7 @@ public partial class Word {
         WordParagraph body = source.AddParagraph("ALPHA");
         body._paragraph.Append(new W.Run(new W.Break(), new W.Text("BETA")));
         body._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
-            Before = "0", After = "0", Line = "960", LineRule = W.LineSpacingRuleValues.Exact });
+            Before = "0", After = "0", Line = (lineHeight * 20).ToString(), LineRule = W.LineSpacingRuleValues.Exact });
         Assert.Empty(source.ValidateDocument());
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);
@@ -61,6 +74,8 @@ public partial class Word {
         Assert.Contains("ALPHA", pdf.GetPage(1).Text);
         Assert.DoesNotContain("BETA", pdf.GetPage(1).Text);
         Assert.Contains("BETA", pdf.GetPage(2).Text);
+        Assert.Equal(pdf.GetPage(1).GetWords().Single(word => word.Text == "ALPHA").Letters[0].StartBaseLine.Y,
+            pdf.GetPage(2).GetWords().Single(word => word.Text == "BETA").Letters[0].StartBaseLine.Y, 3);
         foreach (var page in pdf.GetPages()) {
             Assert.Equal(6, page.GetWords().Count(word => word.Text == "STORY"));
             var word = page.GetWords().Single(word => word.Text is "ALPHA" or "BETA");

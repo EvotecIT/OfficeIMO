@@ -6,6 +6,34 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 2)]
+    public void ImportedFooterFirstLineOverlapRetainsHeaderWithoutChangingOrdinaryFlow(bool allowOverlap, int pages) {
+        var options = Options();
+        options.PageHeight = 300; options.MarginTop = options.MarginBottom = 72;
+        var document = PdfDocument.Create(options);
+        document.Header(header => header.Text("FALLBACK").Content(content => content.Spacer(96), 36));
+        document.Footer(footer => footer.Content(content => content.Spacer(96), 36));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Paragraph(paragraph => paragraph.Text("ALPHA").LineBreak().Text("BETA"), style: new PdfParagraphStyle {
+            FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(48), SpacingBefore = 0, SpacingAfter = 0,
+            WidowControl = false, AllowFirstLineOverlapWithRunningFooter = allowOverlap
+        });
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(pages, pdf.NumberOfPages);
+        Assert.Contains("ALPHA", pdf.GetPage(1).Text);
+        if (allowOverlap) {
+            Assert.DoesNotContain("FALLBACK", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("BETA", pdf.GetPage(1).Text);
+            Assert.Contains("BETA", pdf.GetPage(2).Text);
+        } else {
+            Assert.Contains("FALLBACK", pdf.GetPage(1).Text);
+            Assert.Contains("BETA", pdf.GetPage(1).Text);
+        }
+    }
+
     [Fact]
     public void EmptyOrdinaryRunningContentDoesNotExpandTheBodyFrame() {
         var document = PdfDocument.Create(Options());
