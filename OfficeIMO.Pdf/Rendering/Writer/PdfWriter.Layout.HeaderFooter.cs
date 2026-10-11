@@ -404,7 +404,8 @@ internal static partial class PdfWriter {
         out double boundsY,
         out double boundsWidth,
         out double boundsHeight) {
-        double strokeExpansionFactor = UsesPdfMiterJoinEnvelope(shape) ? 10D : 1D;
+        double strokeExpansionFactor = UsesPdfMiterJoinEnvelope(shape)
+            ? (shape.Transform.HasValue || RequiresExactStrokeWriter(shape) ? shape.StrokeMiterLimit : 10D) : 1D;
         if (!shape.Transform.HasValue) {
             double strokeExpansion = strokeWidth * 0.5D * strokeExpansionFactor;
             boundsX = x - strokeExpansion;
@@ -486,11 +487,8 @@ internal static partial class PdfWriter {
     }
 
     private static string? EnsureHeaderFooterOpacityState(LayoutResult.Page page, OfficeShape shape) {
-        bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeShapeKind.Line;
-        bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
-        double fillOpacity = hasFill ? shape.FillOpacity ?? 1D : 1D;
-        double strokeOpacity = hasStroke ? shape.StrokeOpacity ?? 1D : 1D;
-        return EnsureHeaderFooterGraphicsState(page, fillOpacity, strokeOpacity);
+        var opacity = ResolveShapePaintOpacity(shape);
+        return EnsureHeaderFooterGraphicsState(page, opacity.Fill, opacity.Stroke);
     }
 
     private static void DrawHeaderFooterShapeShadowAt(StringBuilder sb, LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY) {

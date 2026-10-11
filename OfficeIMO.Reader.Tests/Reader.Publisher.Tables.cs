@@ -11,6 +11,22 @@ public sealed class ReaderPublisherTableTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void NativeCellLabelsSurviveStructuredMarkdownAndSemanticPdf(bool transport) {
+        OfficeDocumentReadResult result = Read(PublisherTableFixture.WithBulletParagraphs(Fixture()));
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        ReaderTable table = Assert.Single(result.EnumerateTables());
+        Assert.Equal("• Table on page 2", table.Rows[0][0]);
+        Assert.Contains("• Table on page 2", table.ToMarkdownTable());
+        string text = PdfReadDocument.Open(result.ToPdfDocumentResult(new PdfProjectionOptions {
+            PagePolicy = PdfProjectionPagePolicy.ContinuousFlow, IncludeMetadata = false
+        }).ToBytes()).ExtractText();
+        Assert.Contains("• Table on page 2", text);
+        Assert.Single(Regex.Matches(text, "Table on page 2"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void SkippedUnmappedTablesKeepEmittedAndNativeOrdinalsDistinct(bool transport) {
         byte[] original = Fixture();
         PublisherDocument baseline = PublisherDocument.Load(original);
@@ -160,6 +176,9 @@ public sealed class ReaderPublisherTableTests {
         OfficeDocumentReadResult result = Read(input);
         ReaderTable table = Assert.Single(result.EnumerateTables());
         Assert.Null(table.Location!.Page); Assert.Equal("publisher-master-table", table.Location.SourceBlockKind);
+        ReaderTable chunkTable = Assert.Single(DocumentReaderEngine.ExtractTables(result.Chunks));
+        Assert.NotNull(table.Location.LogicalOrder);
+        Assert.Equal(table.Location.LogicalOrder, chunkTable.Location!.LogicalOrder);
         Assert.All(result.Pages, page => Assert.Empty(page.Tables));
         string text = PdfReadDocument.Open(result.ToPdfDocumentResult(new PdfProjectionOptions {
             PagePolicy = PdfProjectionPagePolicy.ContinuousFlow, IncludeMetadata = false

@@ -4,6 +4,42 @@ using OfficeIMO.TestSupport;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherTableTests {
+    [Fact]
+    public void Native_cell_text_includes_recovered_paragraph_labels() {
+        byte[] input = PublisherTableFixture.WithBulletParagraphs(File.ReadAllBytes(PublisherNativeTests.Fixture("Sample.pub")));
+        PublisherTable table = Assert.Single(PublisherDocument.Load(input).Pages[1].Tables);
+        Assert.All(table.Cells, cell => Assert.All(cell.Paragraphs, paragraph => Assert.Equal("•", paragraph.Label!.Run.Text)));
+        Assert.Equal("• Table on page 2", table.Cells[0].Text);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Unavailable_table_stories_report_missing_text_without_claiming_preservation(bool absentReference) {
+        byte[] original = File.ReadAllBytes(PublisherNativeTests.Fixture("Sample.pub"));
+        PublisherDocument document = PublisherDocument.Load(PublisherTableFixture.ChangeTableStory(original, 299,
+            absentReference ? null : uint.MaxValue));
+        PublisherTable table = Assert.Single(document.Pages[1].Tables);
+        Assert.False(table.HasTextMapping); Assert.Equal(6, table.Cells.Count);
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_REFERENCE_UNRESOLVED"
+            && item.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TABLE_TEXT_MAPPING_UNRESOLVED");
+    }
+
+    [Fact]
+    public void Hidden_native_tables_retain_merged_cells_and_styles_without_painting() {
+        byte[] original = File.ReadAllBytes(PublisherNativeTests.Fixture("Sample.pub"));
+        byte[] input = PublisherTableFixture.MergeFirstRow(PublisherTableFixture.WithBulletParagraphs(original));
+        PublisherTable baseline = Assert.Single(PublisherDocument.Load(input).Pages[1].Tables);
+        input = PublisherDrawingFixture.Mutate(input, new Dictionary<ushort, uint> { [0x03BF] = 0x40004000 }, 1, objectId: 299);
+        PublisherDocument document = PublisherDocument.Load(input);
+        PublisherTable table = Assert.Single(document.Pages[1].Tables);
+        Assert.True(table.HasTextMapping); Assert.Equal(5, table.Cells.Count);
+        Assert.Equal(2, table.Cells[0].ColumnSpan); Assert.Equal(baseline.Cells.Select(cell => cell.Text), table.Cells.Select(cell => cell.Text));
+        Assert.All(table.Cells, cell => Assert.All(cell.Paragraphs, paragraph => Assert.NotNull(paragraph.Label)));
+        Assert.DoesNotContain("Table on page 2", document.ToSvg(1));
+    }
+
     [Theory]
     [InlineData("Sample.pub")]
     [InlineData("Sample_2010.pub")]
