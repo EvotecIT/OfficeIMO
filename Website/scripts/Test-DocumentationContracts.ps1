@@ -548,6 +548,10 @@ if ($powerShellExample.Count -ne 1) {
     }
 
     $apiLinks = Get-Content -LiteralPath (Join-Path $SiteRoot 'data/api_links.json') -Raw | ConvertFrom-Json
+    $patchReportLinks = @($apiLinks.pages.'/showcase/pswriteoffice-patch-report/')
+    if (@($patchReportLinks | Where-Object { $_.n -ceq 'Export-OfficeDocumentPdf' -and $_.h -ceq '/api/powershell/export-officedocumentpdf/' }).Count -ne 1) {
+        Add-Failure 'The PowerShell patch-report walkthrough must link its PDF export step to the canonical command reference.'
+    }
     foreach ($page in $apiLinks.pages.PSObject.Properties | Where-Object Name -Like '/docs/pswriteoffice/*') {
         foreach ($link in $page.Value) {
             if ($commandByName.ContainsKey($link.n) -and $link.h -cne "/api/powershell/$($commandByName[$link.n].ToLowerInvariant())/") {
