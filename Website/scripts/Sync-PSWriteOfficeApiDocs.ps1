@@ -266,16 +266,34 @@ function Test-ApiBundle {
         [Parameter(Mandatory)][string] $HelpPath,
         [Parameter(Mandatory)][string] $MetadataPath,
         [Parameter(Mandatory)][string[]] $ExpectedCommands,
-        [Parameter(Mandatory)][version] $ExpectedVersion
+        [Parameter(Mandatory)][version] $ExpectedVersion,
+        [Parameter(Mandatory)][string] $ExpectedSourceCommit
     )
 
-    $paths = @($ManifestPath, $HelpPath, $MetadataPath)
+    $bundleManifestPath = Join-Path (Split-Path -Parent $ManifestPath) 'bundle-manifest.json'
+    $paths = @($ManifestPath, $HelpPath, $MetadataPath, $bundleManifestPath)
     $missing = @($paths | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
     if ($missing.Count -gt 0) {
         return [PSCustomObject]@{ Valid = $false; Reason = "missing: $($missing -join ', ')"; CommandCount = 0 }
     }
 
     try {
+        $provenance = Get-Content -LiteralPath $bundleManifestPath -Raw | ConvertFrom-Json
+        if ($provenance.schemaVersion -ne 1 -or $provenance.moduleName -cne 'PSWriteOffice' -or
+            [version]$provenance.moduleVersion -ne $ExpectedVersion -or $provenance.sourceCommit -cne $ExpectedSourceCommit) {
+            return [PSCustomObject]@{ Valid = $false; Reason = 'bundle provenance does not match the pinned release'; CommandCount = 0 }
+        }
+        foreach ($component in @(
+            @{ Key = 'manifest'; Path = $ManifestPath },
+            @{ Key = 'help'; Path = $HelpPath },
+            @{ Key = 'metadata'; Path = $MetadataPath }
+        )) {
+            $evidence = $provenance.components.($component.Key)
+            if ($null -eq $evidence -or (Get-Item -LiteralPath $component.Path).Length -ne $evidence.bytes -or
+                (Get-FileHash -LiteralPath $component.Path -Algorithm SHA256).Hash -ine $evidence.sha256) {
+                return [PSCustomObject]@{ Valid = $false; Reason = "bundle $($component.Key) does not match its release fingerprint"; CommandCount = 0 }
+            }
+        }
         $bundleManifest = Import-PowerShellDataFile -LiteralPath $ManifestPath
         if ([version]$bundleManifest.ModuleVersion -ne $ExpectedVersion) {
             return [PSCustomObject]@{ Valid = $false; Reason = "bundle version $($bundleManifest.ModuleVersion) does not match source version $ExpectedVersion"; CommandCount = 0 }
@@ -301,6 +319,19 @@ function Test-ApiBundle {
     }
 
     [PSCustomObject]@{ Valid = $true; Reason = 'complete'; CommandCount = $ExpectedCommands.Count }
+}
+
+function Update-ApiBundleMetadataEvidence {
+    param([Parameter(Mandatory)][string] $ApiRoot)
+
+    # Source URLs are normalized after import. Retain the producer's release and
+    # other component fingerprints, and record only that derived metadata change.
+    $path = Join-Path $ApiRoot 'bundle-manifest.json'
+    $bundle = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $metadataPath = Join-Path $ApiRoot 'command-metadata.json'
+    $bundle.components.metadata.bytes = (Get-Item -LiteralPath $metadataPath).Length
+    $bundle.components.metadata.sha256 = (Get-FileHash -LiteralPath $metadataPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $bundle | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $path -Encoding utf8
 }
 
 function Test-DocumentationCatalog {
@@ -444,6 +475,7 @@ $targetRoot = Join-Path $resolvedSiteRoot 'data\apidocs\powershell'
 $targetHelpPath = Join-Path $targetRoot 'PSWriteOffice-Help.xml'
 $targetManifestPath = Join-Path $targetRoot 'PSWriteOffice.psd1'
 $targetCommandMetadataPath = Join-Path $targetRoot 'command-metadata.json'
+$targetBundleManifestPath = Join-Path $targetRoot 'bundle-manifest.json'
 $targetExamplesPath = Join-Path $targetRoot 'examples'
 
 New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
@@ -473,7 +505,17 @@ $summary = [ordered]@{
 }
 
 if (-not $resolvedRepoRoot) {
+    $snapshotCatalog = Get-Content -LiteralPath (Join-Path $resolvedSiteRoot 'data/pswriteoffice_command_catalog.json') -Raw | ConvertFrom-Json
+    $snapshotCommands = @(Get-ManifestCommandNames -Path $targetManifestPath)
+    $checkedInBundle = Test-ApiBundle -ManifestPath $targetManifestPath -HelpPath $targetHelpPath `
+        -MetadataPath $targetCommandMetadataPath -ExpectedCommands $snapshotCommands `
+        -ExpectedVersion ([version]$snapshotCatalog.module.version) -ExpectedSourceCommit $powerShellSource[0].Ref
+    if (-not $checkedInBundle.Valid -or $snapshotCommands.Count -ne $snapshotCatalog.module.commandCount) {
+        throw "The checked-in PowerShell API snapshot is invalid: $($checkedInBundle.Reason)."
+    }
+    $summary.expectedCommandCount = $snapshotCommands.Count
     $summary.commandMetadataUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
+    if ($summary.commandMetadataUpdated) { Update-ApiBundleMetadataEvidence -ApiRoot $targetRoot }
     if (-not $SkipDocumentation) {
         $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
         $summary.documentationCatalogUpdated = $linkUpdates.CatalogUpdated
@@ -498,6 +540,7 @@ $websiteArtifactsRoot = Join-Path $sourceArtifactsRoot 'apidocs\powershell'
 $resolvedHelpPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice-help.xml'
 $resolvedManifestPath = Join-Path $websiteArtifactsRoot 'PSWriteOffice.psd1'
 $resolvedCommandMetadataPath = Join-Path $websiteArtifactsRoot 'command-metadata.json'
+$resolvedBundleManifestPath = Join-Path $websiteArtifactsRoot 'bundle-manifest.json'
 $authoritativeManifestPath = Join-Path $resolvedRepoRoot 'PSWriteOffice.psd1'
 $expectedCommands = @(Get-ManifestCommandNames -Path $authoritativeManifestPath)
 $expectedVersion = [version](Import-PowerShellDataFile -LiteralPath $authoritativeManifestPath).ModuleVersion
@@ -507,14 +550,14 @@ $sourceBundle = Test-ApiBundle `
     -ManifestPath $resolvedManifestPath `
     -HelpPath $resolvedHelpPath `
     -MetadataPath $resolvedCommandMetadataPath `
-    -ExpectedCommands $expectedCommands -ExpectedVersion $expectedVersion
+    -ExpectedCommands $expectedCommands -ExpectedVersion $expectedVersion -ExpectedSourceCommit $sourceHead
 $summary.sourceBundleStatus = $sourceBundle.Reason
 
 $checkedInBundle = Test-ApiBundle `
     -ManifestPath $targetManifestPath `
     -HelpPath $targetHelpPath `
     -MetadataPath $targetCommandMetadataPath `
-    -ExpectedCommands $expectedCommands -ExpectedVersion $expectedVersion
+    -ExpectedCommands $expectedCommands -ExpectedVersion $expectedVersion -ExpectedSourceCommit $sourceHead
 
 $gitDirectory = Join-Path $resolvedRepoRoot '.git'
 if (Test-Path -LiteralPath $gitDirectory) {
@@ -531,6 +574,7 @@ if ($sourceBundle.Valid) {
     $summary.manifestUpdated = $true
 
     Copy-Item -LiteralPath $resolvedCommandMetadataPath -Destination $targetCommandMetadataPath -Force
+    Copy-Item -LiteralPath $resolvedBundleManifestPath -Destination $targetBundleManifestPath -Force
     $summary.commandMetadataSource = $resolvedCommandMetadataPath
     $summary.commandMetadataUpdated = $true
     $summary.fallbackUsed = $false
@@ -545,6 +589,7 @@ if ($sourceBundle.Valid) {
 }
 
 $sourceLinksUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
+if ($sourceLinksUpdated) { Update-ApiBundleMetadataEvidence -ApiRoot $targetRoot }
 $summary.commandMetadataUpdated = $summary.commandMetadataUpdated -or $sourceLinksUpdated
 
 if (-not $SkipExamples) {
