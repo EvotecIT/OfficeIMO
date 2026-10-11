@@ -135,23 +135,8 @@ internal static partial class DocBookReaderAdapter {
         internal string StylePrefix { get; }
         internal string StyleSuffix { get; }
         internal string MarkdownPrefix => (Destination == null ? string.Empty : "[") + StylePrefix;
-        internal string MarkdownSuffix => StyleSuffix + (Destination == null ? string.Empty : "](" + EscapeDestination(Destination) + ")");
+        internal string MarkdownSuffix => StyleSuffix + (Destination == null ? string.Empty : "](" + ReaderMarkdownDestination.EscapeDestination(Destination) + ")");
         internal bool EscapesMarkdownText { get; }
 
-        private static string EscapeDestination(string value) {
-            var escaped = new System.Text.StringBuilder(value.Length);
-            foreach (char character in value) {
-                if (char.IsWhiteSpace(character)) {
-                    foreach (byte utf8Byte in System.Text.Encoding.UTF8.GetBytes(character.ToString())) {
-                        escaped.Append('%').Append(utf8Byte.ToString("X2"));
-                    }
-                } else if (character == '\\' || character == '(' || character == ')') {
-                    escaped.Append('\\').Append(character);
-                } else {
-                    escaped.Append(character);
-                }
-            }
-            return escaped.ToString();
-        }
     }
 }
