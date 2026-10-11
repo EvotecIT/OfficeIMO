@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
+  "moduleVersion": "3.0.9",
   "commands": [
     {
       "name": "Add-OfficeExcelAutoFilter",
