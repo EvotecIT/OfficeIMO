@@ -98,6 +98,8 @@ Font sizes preserve half-point values, including 10.5 pt. When the run and its s
 
 Each text run resolves its font through its own formatting, character style, paragraph style, table style, and document defaults. A preceding run's explicit font does not change the font of an unformatted sibling. This also applies to source page fields in headers and footers.
 
+Supplying an empty `PdfOptions` object, metadata, or header/footer presentation settings preserves the document's inherited body font and size. Explicit PDF body-font and default-size assignments retain their precedence. Rendering profiles keep the same distinction between document typography and presentation overrides.
+
 Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets
 taking precedence. Body text, list markers, table cells, hyperlinks and header/footer
@@ -159,6 +161,8 @@ Missing table margin sides retain Word's standard zero vertical and 5.4-point ho
 Object-only paragraphs retain direct and inherited spacing before and after their flow objects, collapsing that spacing with adjacent paragraphs. Hidden shapes with a resolved flow height reserve that height without drawing the shape. Positioned-shape placement remains subject to the renderer's supported anchor and wrapping mappings.
 
 ### Export to bytes or streams
+
+An otherwise empty authored section retains its section-mark paragraph line, including inherited spacing, font size and mark visibility. A section terminator following ordinary text adds no separate line. Conversion preserves the source XML in both cases.
 
 ```csharp
 using OfficeIMO.Word;
