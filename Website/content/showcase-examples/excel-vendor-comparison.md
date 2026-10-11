@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Weighted vendor scorecard"
-description: "Compare synthetic vendor offers using explicit criteria, 1-5 scores and a visible weighted-score formula."
+description: "Compare synthetic vendor offers in Excel using explicit criteria, 1-5 scores and visible weighted-score formulas. Download the editable workbook."
 layout: showcase-example
 meta.showcase_id: excel-vendor-comparison
 meta.seo_title: "Weighted vendor scorecard in C# | OfficeIMO"

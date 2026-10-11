@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Weekly support rota and coverage"
-description: "Create a colour-coded Excel rota with desk-day totals and daily coverage counts calculated from shift codes."
+description: "Create a colour-coded Excel support rota with desk-day totals and daily coverage counts calculated from shift codes. Download the editable workbook."
 layout: showcase-example
 meta.showcase_id: excel-workforce-rota
 meta.seo_title: "Weekly support rota and coverage in C# | OfficeIMO"

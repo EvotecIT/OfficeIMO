@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Release readiness checklist"
-description: "Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision."
+description: "Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision. Download the source document and PDF preview."
 layout: showcase-example
 meta.showcase_id: markdown-release-checklist
 meta.seo_title: "Release readiness checklist in C# | OfficeIMO"

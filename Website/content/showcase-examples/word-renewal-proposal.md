@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Managed service renewal proposal"
-description: "Prepare a Word renewal proposal with service coverage, fees, review evidence and explicit exclusions."
+description: "Prepare an editable Word renewal proposal with service coverage, fees, review evidence and exclusions, then export a PDF for the client."
 layout: showcase-example
 meta.showcase_id: word-renewal-proposal
 meta.seo_title: "Managed service renewal proposal in C# | OfficeIMO"

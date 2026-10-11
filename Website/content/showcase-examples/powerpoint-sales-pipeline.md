@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Sales pipeline review"
-description: "Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions."
+description: "Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions. Preview both slides and use the C# source."
 layout: showcase-example
 meta.showcase_id: powerpoint-sales-pipeline
 meta.seo_title: "Sales pipeline review in C# | OfficeIMO"
