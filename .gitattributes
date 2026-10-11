@@ -42,6 +42,7 @@ OfficeIMO.TestAssets/ScanQuality/*.tif -text -diff
 OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
 OfficeIMO.TestAssets/TableGeometry/*.pdf -text -diff
 OfficeIMO.TestAssets/TableGeometry/manifest.json text eol=lf
+OfficeIMO.TestAssets/TableGeometry/ruling-controls-manifest.json text eol=lf
 OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
 OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
 
