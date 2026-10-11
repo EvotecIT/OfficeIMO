@@ -282,8 +282,8 @@ public sealed class OfficeArtShapeStyle {
         OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
             candidate.PropertyId == 0x0197 && candidate.IsComplex);
         if (property == null) return Array.Empty<OfficeArtGradientStop>();
-        byte[]? data = property.CopyComplexData();
-        if (data == null || data.Length < 6) {
+        OfficeArtComplexData data = property.ComplexData;
+        if (data.Length < 6) {
             truncated = true;
             return Array.Empty<OfficeArtGradientStop>();
         }
@@ -320,10 +320,10 @@ public sealed class OfficeArtShapeStyle {
         return result;
     }
 
-    private static ushort ReadUInt16(byte[] data, int offset) => unchecked((ushort)(
+    private static ushort ReadUInt16(OfficeArtComplexData data, int offset) => unchecked((ushort)(
         data[offset] | data[offset + 1] << 8));
 
-    private static uint ReadUInt32(byte[] data, int offset) => unchecked((uint)(
+    private static uint ReadUInt32(OfficeArtComplexData data, int offset) => unchecked((uint)(
         data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16
         | data[offset + 3] << 24));
 

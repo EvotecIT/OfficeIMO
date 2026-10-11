@@ -23,6 +23,10 @@ public partial class DrawingTests {
         byte[] colors = { 2, 0, 2, 0, 0xF0, 0xFF, 0xFF, 0, 0, 0, 0, 0xFF, 0, 0 };
         var properties = new[] { new OfficeArtProperty(0, 0x8197, (uint)colors.Length,
             colors.Length, complexData: colors) };
+        // Caller buffers and public copies cannot mutate the owned payload
+        // borrowed by repeated native style decodes.
+        colors[6] = 0;
+        properties[0].CopyComplexData()![10] = 0xFF;
         OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(properties);
         Assert.False(style.IsFillGradientStopTableTruncated);
         Assert.Equal(2, style.FillGradientStops.Count);
