@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Pilot delivery risk review"
-description: "Present delivery risks, likelihood, impact, controls and owners in a PDF review with an explicit expansion decision."
+description: "Present delivery risks, likelihood, impact, controls and owners in a PDF review, with an explicit expansion decision and runnable C# source."
 layout: showcase-example
 meta.showcase_id: pdf-risk-assessment
 meta.seo_title: "Pilot delivery risk review in C# | OfficeIMO"

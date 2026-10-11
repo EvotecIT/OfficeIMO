@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Small-format workshop badges"
-description: "Generate two individual 340-by-255-point PDF badge pages with participant names, roles and event details."
+description: "Generate two individual 340-by-255-point PDF workshop badges with participant names, roles and event details. Preview both pages and adapt the C# source."
 layout: showcase-example
 meta.showcase_id: pdf-event-badges
 meta.seo_title: "Small-format workshop badges in C# | OfficeIMO"

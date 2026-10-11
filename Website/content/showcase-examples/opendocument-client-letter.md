@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Client appointment letter"
-description: "Create an editable ODT letter with a dated appointment, preparation notes, follow-up commitment and clear typography."
+description: "Create an editable ODT client letter with a dated appointment, preparation notes, follow-up commitment and clear typography. Export a PDF copy."
 layout: showcase-example
 meta.showcase_id: opendocument-client-letter
 meta.seo_title: "Client appointment letter in C# | OfficeIMO"
