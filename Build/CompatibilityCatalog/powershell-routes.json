@@ -1,0 +1,512 @@
+[
+  {
+    "route": "asciidoc-markdown",
+    "cmdlet": "ConvertTo-OfficeAsciiDocMarkdown",
+    "example": "ConvertTo-OfficeAsciiDocMarkdown -Path ./in.adoc -OutputPath ./out.md",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/AsciiDoc/ConvertToOfficeAsciiDocMarkdownCommand.cs L26 (-OutputPath); L49 (document.ToMarkdownDocumentResult(Options))"
+  },
+  {
+    "route": "confluence-html",
+    "cmdlet": "Get-OfficeConfluencePage",
+    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsHtml -FailOnLoss).Value | Set-Content -LiteralPath ./out.html -Encoding utf8",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs L64 (-AsHtml); L141 (ConfluenceContentConverter.ToHtml(page)). Reads the page from Confluence Cloud (live session required) and projects it with the route API."
+  },
+  {
+    "route": "confluence-markdown",
+    "cmdlet": "Get-OfficeConfluencePage",
+    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs L60 (-AsMarkdown); L135 (ConfluenceContentConverter.ToMarkdown(page)). Reads the page from Confluence Cloud (live session required) and projects it with the route API."
+  },
+  {
+    "route": "csv-xlsx",
+    "cmdlet": "Import-OfficeExcelDelimitedText",
+    "example": "Import-OfficeExcelDelimitedText -Path ./out.xlsx -SourcePath ./in.csv -SheetName Data",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelDelimitedTextCommand.cs L44 (-SourcePath (CSV)); L95 (workbook.Document.ImportCsvFile(source). -Path is the workbook to write; it is created when missing and the CSV becomes one worksheet (OfficeIMO.Excel.Csv ImportCsvFile)."
+  },
+  {
+    "route": "docx-google-docs",
+    "cmdlet": "Export-OfficeWordGoogleDocument",
+    "example": "Export-OfficeWordGoogleDocument -Path ./in.docx -Session $session",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordGoogleDocumentCommand.cs L32 (-Session); L74 (document.ExportToGoogleDocsAsync(Session, Options). Live export needs a Google Workspace session; -PlanOnly or -AsBatch return the translation without contacting Google."
+  },
+  {
+    "route": "docx-html",
+    "cmdlet": "ConvertTo-OfficeWordHtml",
+    "example": "ConvertTo-OfficeWordHtml -Path ./in.docx -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertToOfficeWordHtmlCommand.cs L43 (-OutputPath); L130 (document.SaveAsHtml(resolvedOutput, options))"
+  },
+  {
+    "route": "docx-jpeg",
+    "cmdlet": "Export-OfficeWordImage",
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Jpeg -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+  },
+  {
+    "route": "docx-markdown",
+    "cmdlet": "ConvertTo-OfficeWordMarkdown",
+    "example": "ConvertTo-OfficeWordMarkdown -Path ./in.docx -OutputPath ./out.md",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertToOfficeWordMarkdownCommand.cs L43 (-OutputPath); L112 (document.SaveAsMarkdown(resolvedOutput, options))"
+  },
+  {
+    "route": "docx-odt",
+    "cmdlet": "ConvertTo-OfficeOpenDocument",
+    "example": "ConvertTo-OfficeOpenDocument -Path ./in.docx -OutputPath ./out.odt",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertToOfficeOpenDocumentCommand.cs L46 (-OutputPath .odt); L87 (word.ToOpenDocumentResult(WordOptions))"
+  },
+  {
+    "route": "docx-pdf",
+    "cmdlet": "Export-OfficeDocumentPdf",
+    "example": "Export-OfficeDocumentPdf -InputPath ./in.docx -Path ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .docx); L177 (word.SaveAsPdf(outputPath, WordOptions)"
+  },
+  {
+    "route": "docx-png",
+    "cmdlet": "Export-OfficeWordImage",
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Png -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+  },
+  {
+    "route": "docx-rtf",
+    "cmdlet": "ConvertTo-OfficeRtf",
+    "example": "ConvertTo-OfficeRtf -WordPath ./in.docx -OutputPath ./out.rtf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L60 (-WordPath); L246 (document.SaveAsRtf(outputPath)"
+  },
+  {
+    "route": "docx-svg",
+    "cmdlet": "Export-OfficeWordImage",
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Svg -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+  },
+  {
+    "route": "docx-tiff",
+    "cmdlet": "Export-OfficeWordImage",
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Tiff -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+  },
+  {
+    "route": "docx-webp",
+    "cmdlet": "Export-OfficeWordImage",
+    "example": "Export-OfficeWordImage -Path ./in.docx -OutputPath ./Images -Format Webp -AllPages",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs: AllPages selects SaveAsImages; OutputPath is a folder with one image per page."
+  },
+  {
+    "route": "email-eml-msg",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookMsg); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-eml-oft",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookTemplate); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-eml-tnef",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.dat -Format Tnef",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Tnef); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-msg-eml",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.eml -Format Eml",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Eml); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-msg-oft",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookTemplate); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-msg-tnef",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.dat -Format Tnef",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Tnef); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-oft-eml",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.eml -Format Eml",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Eml); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-oft-msg",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookMsg); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-oft-tnef",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.dat -Format Tnef",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Tnef); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-tnef-eml",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.eml -Format Eml",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Eml); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-tnef-msg",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookMsg); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "email-tnef-oft",
+    "cmdlet": "Save-OfficeEmail",
+    "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookTemplate); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+  },
+  {
+    "route": "html-confluence",
+    "cmdlet": "Publish-OfficeConfluencePage",
+    "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.html -Raw) -ContentFormat Html -PlanOnly",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs L70 (-ContentFormat Html); L161 (ConfluenceContentConverter.FromHtml(content, BodyFormat)). -PlanOnly returns the Confluence request plan (converted body included) without a network call; add -Session and drop -PlanOnly to publish."
+  },
+  {
+    "route": "html-docx",
+    "cmdlet": "ConvertFrom-OfficeWordHtml",
+    "example": "ConvertFrom-OfficeWordHtml -Path ./in.html -OutputPath ./out.docx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertFromOfficeWordHtmlCommand.cs L44 (-OutputPath); L157 (HtmlConversionDocument.Parse(html).ToWordDocument(options))"
+  },
+  {
+    "route": "html-markdown",
+    "cmdlet": "ConvertFrom-OfficeMarkdownHtml",
+    "example": "ConvertFrom-OfficeMarkdownHtml -Path ./in.html -OutputPath ./out.md",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Markdown/ConvertFromOfficeMarkdownHtmlCommand.cs L46 (-OutputPath); L175 (HtmlConversionDocument.Parse(html).ToMarkdown(options))"
+  },
+  {
+    "route": "html-pdf",
+    "cmdlet": "ConvertFrom-OfficePdfHtml",
+    "example": "ConvertFrom-OfficePdfHtml -Path ./in.html -OutputPath ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertFromOfficePdfHtmlCommand.cs L36 (-Path (HTML file)); L137 (document.SaveAsPdf(outputPath, options))"
+  },
+  {
+    "route": "html-rtf",
+    "cmdlet": "ConvertTo-OfficeRtf",
+    "example": "ConvertTo-OfficeRtf -HtmlPath ./in.html -OutputPath ./out.rtf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L72 (-HtmlPath); L186 (HtmlConversionDocument.Parse(html).ToWordDocument(). Implemented as HTML to Word to RTF, not through the OfficeIMO.Html.Rtf API named by the route."
+  },
+  {
+    "route": "keynote-pptx",
+    "cmdlet": "ConvertFrom-OfficeIWork",
+    "example": "ConvertFrom-OfficeIWork -Path ./in.key -OutputPath ./out.pptx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .pptx); L95 (source.ToPowerPointPresentationResult(ConversionOptions)). The target is chosen from the detected iWork application (Keynote to .pptx)."
+  },
+  {
+    "route": "latex-markdown",
+    "cmdlet": "ConvertTo-OfficeLatexMarkdown",
+    "example": "ConvertTo-OfficeLatexMarkdown -Path ./in.tex -OutputPath ./out.md",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Latex/ConvertToOfficeLatexMarkdownCommand.cs L26 (-OutputPath); L49 (document.ToMarkdownDocumentResult(Options))"
+  },
+  {
+    "route": "markdown-asciidoc",
+    "cmdlet": "ConvertFrom-OfficeAsciiDocMarkdown",
+    "example": "ConvertFrom-OfficeAsciiDocMarkdown -Path ./in.md -OutputPath ./out.adoc",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/AsciiDoc/ConvertFromOfficeAsciiDocMarkdownCommand.cs L26 (-OutputPath); L42 (document.ToAsciiDocDocumentResult(Options))"
+  },
+  {
+    "route": "markdown-confluence",
+    "cmdlet": "Publish-OfficeConfluencePage",
+    "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.md -Raw) -ContentFormat Markdown -PlanOnly",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs L70 (-ContentFormat Markdown); L155 (ConfluenceContentConverter.FromMarkdown(content, BodyFormat)). -PlanOnly returns the Confluence request plan (converted body included) without a network call; add -Session and drop -PlanOnly to publish."
+  },
+  {
+    "route": "markdown-docx",
+    "cmdlet": "ConvertFrom-OfficeWordMarkdown",
+    "example": "ConvertFrom-OfficeWordMarkdown -Path ./in.md -OutputPath ./out.docx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertFromOfficeWordMarkdownCommand.cs L60 (-OutputPath); L335 (markdownDocument.ToWordDocument(options))"
+  },
+  {
+    "route": "markdown-html",
+    "cmdlet": "ConvertTo-OfficeMarkdownHtml",
+    "example": "ConvertTo-OfficeMarkdownHtml -Path ./in.md -DocumentMode -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Markdown/ConvertToOfficeMarkdownHtmlCommand.cs L49 (-OutputPath); L226 (document.SaveAsHtml(resolvedOutput, options)). Implemented with OfficeIMO.Markdown HtmlOptions (MarkdownDoc.SaveAsHtml / ToHtmlDocument), not the OfficeIMO.MarkdownRenderer API named by the route; the Markdown to HTML pair is the same."
+  },
+  {
+    "route": "markdown-latex",
+    "cmdlet": "ConvertFrom-OfficeLatexMarkdown",
+    "example": "ConvertFrom-OfficeLatexMarkdown -Path ./in.md -OutputPath ./out.tex",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Latex/ConvertFromOfficeLatexMarkdownCommand.cs L26 (-OutputPath); L42 (document.ToLatexDocumentResult(Options))"
+  },
+  {
+    "route": "markdown-pdf",
+    "cmdlet": "Export-OfficeDocumentPdf",
+    "example": "Export-OfficeDocumentPdf -InputPath ./in.md -Path ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .md); L183 (markdown.SaveAsPdf(outputPath, PrepareMarkdownOptions)"
+  },
+  {
+    "route": "markdown-rtf",
+    "cmdlet": "ConvertTo-OfficeRtf",
+    "example": "ConvertTo-OfficeRtf -MarkdownPath ./in.md -OutputPath ./out.rtf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L84 (-MarkdownPath); L295 (ToRtfDocument(options).ToRtf())"
+  },
+  {
+    "route": "numbers-xlsx",
+    "cmdlet": "ConvertFrom-OfficeIWork",
+    "example": "ConvertFrom-OfficeIWork -Path ./in.numbers -OutputPath ./out.xlsx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .xlsx); L88 (source.ToExcelDocumentResult(ConversionOptions)). The target is chosen from the detected iWork application (Numbers to .xlsx)."
+  },
+  {
+    "route": "odp-pptx",
+    "cmdlet": "ConvertFrom-OfficeOpenDocument",
+    "example": "ConvertFrom-OfficeOpenDocument -Path ./in.odp -OutputPath ./out.pptx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .pptx); L69 (presentation.ToPowerPointPresentationResult(PowerPointOptions))"
+  },
+  {
+    "route": "ods-xlsx",
+    "cmdlet": "ConvertFrom-OfficeOpenDocument",
+    "example": "ConvertFrom-OfficeOpenDocument -Path ./in.ods -OutputPath ./out.xlsx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .xlsx); L63 (spreadsheet.ToExcelDocumentResult(ExcelOptions))"
+  },
+  {
+    "route": "odt-docx",
+    "cmdlet": "ConvertFrom-OfficeOpenDocument",
+    "example": "ConvertFrom-OfficeOpenDocument -Path ./in.odt -OutputPath ./out.docx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .docx); L57 (text.ToWordDocumentResult(WordOptions))"
+  },
+  {
+    "route": "onenote-html",
+    "cmdlet": "ConvertFrom-OfficeOneNote",
+    "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .html); L134 (section.ToHtmlDocumentResult(ProjectionOptions, HtmlOptions)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
+  },
+  {
+    "route": "onenote-markdown",
+    "cmdlet": "ConvertFrom-OfficeOneNote",
+    "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.md",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .md); L121 (section.ToMarkdownDocumentResult(ProjectionOptions)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
+  },
+  {
+    "route": "onenote-pdf",
+    "cmdlet": "ConvertFrom-OfficeOneNote",
+    "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .pdf); L148 (section.ToPdfDocumentResult(options)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
+  },
+  {
+    "route": "pages-docx",
+    "cmdlet": "ConvertFrom-OfficeIWork",
+    "example": "ConvertFrom-OfficeIWork -Path ./in.pages -OutputPath ./out.docx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .docx); L81 (source.ToWordDocumentResult(ConversionOptions)). The target is chosen from the detected iWork application (Pages to .docx)."
+  },
+  {
+    "route": "pdf-docx",
+    "cmdlet": "ConvertTo-OfficePdfWord",
+    "example": "ConvertTo-OfficePdfWord -Path ./in.pdf -OutputPath ./out.docx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfWordCommand.cs L32 (-OutputPath); L79 (document.SaveAsWord(outputPath, Options))"
+  },
+  {
+    "route": "pdf-html",
+    "cmdlet": "ConvertTo-OfficePdfHtml",
+    "example": "ConvertTo-OfficePdfHtml -Path ./in.pdf -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfHtmlCommand.cs L44 (-OutputPath); L97 (LoadLogicalDocument(inputPath).ToHtml(options)). ToHtml comes from OfficeIMO.Html.Pdf (PdfHtmlConverter)."
+  },
+  {
+    "route": "pdf-jpeg",
+    "cmdlet": "Export-OfficePdfImage",
+    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+  },
+  {
+    "route": "pdf-png",
+    "cmdlet": "Export-OfficePdfImage",
+    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+  },
+  {
+    "route": "pdf-pptx",
+    "cmdlet": "ConvertTo-OfficePdfPowerPoint",
+    "example": "ConvertTo-OfficePdfPowerPoint -Path ./in.pdf -OutputPath ./out.pptx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfPowerPointCommand.cs L32 (-OutputPath); L79 (document.SaveAsPowerPoint(outputPath, Options))"
+  },
+  {
+    "route": "pdf-rtf",
+    "cmdlet": "ConvertTo-OfficeRtf",
+    "example": "ConvertTo-OfficeRtf -PdfPath ./in.pdf -OutputPath ./out.rtf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L76 (-PdfPath); L256 (Read().ToRtfDocument())"
+  },
+  {
+    "route": "pdf-svg",
+    "cmdlet": "Export-OfficePdfImage",
+    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+  },
+  {
+    "route": "pdf-tiff",
+    "cmdlet": "Export-OfficePdfImage",
+    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+  },
+  {
+    "route": "pdf-webp",
+    "cmdlet": "Export-OfficePdfImage",
+    "example": "Export-OfficePdfImage -Path ./in.pdf -OutputPath ./Pages -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfImageCommand.cs L35 (-Format); L71 (document.Render.ExportImages(Format, options, selection)). OutputPath is a folder; files are named page-NNNN with the format extension."
+  },
+  {
+    "route": "pdf-xlsx",
+    "cmdlet": "ConvertTo-OfficePdfExcel",
+    "example": "ConvertTo-OfficePdfExcel -Path ./in.pdf -OutputPath ./out.xlsx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfExcelCommand.cs L32 (-OutputPath); L79 (document.SaveTablesAsExcel(outputPath, Options)). Extracts detected tables, matching the route API ImportTablesToExcelDocumentResult."
+  },
+  {
+    "route": "pptx-html",
+    "cmdlet": "ConvertTo-OfficePowerPointHtml",
+    "example": "ConvertTo-OfficePowerPointHtml -Path ./in.pptx -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ConvertToOfficePowerPointHtmlCommand.cs L51 (-OutputPath); L101 (presentation.ToHtml(CreateOptions()))"
+  },
+  {
+    "route": "pptx-jpeg",
+    "cmdlet": "Export-OfficePowerPointImage",
+    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "pptx-odp",
+    "cmdlet": "ConvertTo-OfficeOpenDocument",
+    "example": "ConvertTo-OfficeOpenDocument -Path ./in.pptx -OutputPath ./out.odp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertToOfficeOpenDocumentCommand.cs L46 (-OutputPath .odp); L111 (presentation.ToOpenDocumentResult(PowerPointOptions))"
+  },
+  {
+    "route": "pptx-pdf",
+    "cmdlet": "Export-OfficeDocumentPdf",
+    "example": "Export-OfficeDocumentPdf -InputPath ./in.pptx -Path ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .pptx); L181 (powerPoint.SaveAsPdf(outputPath, PowerPointOptions)"
+  },
+  {
+    "route": "pptx-png",
+    "cmdlet": "Export-OfficePowerPointImage",
+    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "pptx-svg",
+    "cmdlet": "Export-OfficePowerPointImage",
+    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "pptx-tiff",
+    "cmdlet": "Export-OfficePowerPointImage",
+    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "pptx-webp",
+    "cmdlet": "Export-OfficePowerPointImage",
+    "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs L35 (-Format); L61 (presentation.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per slide. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "rtf-docx",
+    "cmdlet": "ConvertFrom-OfficeRtf",
+    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Word -OutputPath ./out.docx",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Word); L282 (return LoadRtfDocument().ToWordDocument();)"
+  },
+  {
+    "route": "rtf-html",
+    "cmdlet": "ConvertFrom-OfficeRtf",
+    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Html -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Html); L203 (document.SaveAsHtml(outputPath, options)). Implemented as RTF to Word to HTML through OfficeIMO.Word.Html, not through the OfficeIMO.Html.Rtf API named by the route."
+  },
+  {
+    "route": "rtf-markdown",
+    "cmdlet": "ConvertFrom-OfficeRtf",
+    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Markdown -OutputPath ./out.md",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Markdown); L252 (LoadRtfDocument().ToMarkdown(options))"
+  },
+  {
+    "route": "rtf-pdf",
+    "cmdlet": "ConvertFrom-OfficeRtf",
+    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Pdf -OutputPath ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Pdf); L230 (LoadRtfDocument().SaveAsPdf(outputPath, options)). Export-OfficeDocumentPdf -InputPath ./in.rtf -Path ./out.pdf also performs this route."
+  },
+  {
+    "route": "visio-jpeg",
+    "cmdlet": "Export-OfficeVisioImage",
+    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs L36 (-Format); L57 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per page."
+  },
+  {
+    "route": "visio-png",
+    "cmdlet": "Export-OfficeVisioImage",
+    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs: document.SaveAsImages(output, Format, Options) exports every page to the destination folder."
+  },
+  {
+    "route": "visio-svg",
+    "cmdlet": "Export-OfficeVisioImage",
+    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs: document.SaveAsImages(output, Format, Options) exports every page to the destination folder."
+  },
+  {
+    "route": "visio-tiff",
+    "cmdlet": "Export-OfficeVisioImage",
+    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs L36 (-Format); L57 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per page."
+  },
+  {
+    "route": "visio-webp",
+    "cmdlet": "Export-OfficeVisioImage",
+    "example": "Export-OfficeVisioImage -Path ./in.vsdx -OutputPath ./Images -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioImageCommand.cs L36 (-Format); L57 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per page."
+  },
+  {
+    "route": "xlsx-google-sheets",
+    "cmdlet": "Export-OfficeExcelGoogleSpreadsheet",
+    "example": "Export-OfficeExcelGoogleSpreadsheet -Path ./in.xlsx -Session $session",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelGoogleSpreadsheetCommand.cs L32 (-Session); L74 (document.ExportToGoogleSheetsAsync(Session, Options). Live export needs a Google Workspace session; -PlanOnly or -AsBatch return the translation without contacting Google."
+  },
+  {
+    "route": "xlsx-html",
+    "cmdlet": "ConvertTo-OfficeExcelHtml",
+    "example": "ConvertTo-OfficeExcelHtml -Path ./in.xlsx -OutputPath ./out.html",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ConvertToOfficeExcelHtmlCommand.cs L51 (-OutputPath); L89 (document.ToHtml(CreateOptions()))"
+  },
+  {
+    "route": "xlsx-jpeg",
+    "cmdlet": "Export-OfficeExcelImage",
+    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Jpeg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "xlsx-ods",
+    "cmdlet": "ConvertTo-OfficeOpenDocument",
+    "example": "ConvertTo-OfficeOpenDocument -Path ./in.xlsx -OutputPath ./out.ods",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertToOfficeOpenDocumentCommand.cs L46 (-OutputPath .ods); L99 (excel.ToOpenDocumentResult(ExcelOptions))"
+  },
+  {
+    "route": "xlsx-pdf",
+    "cmdlet": "Export-OfficeDocumentPdf",
+    "example": "Export-OfficeDocumentPdf -InputPath ./in.xlsx -Path ./out.pdf",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .xlsx); L179 (excel.SaveAsPdf(outputPath, ExcelOptions)"
+  },
+  {
+    "route": "xlsx-png",
+    "cmdlet": "Export-OfficeExcelImage",
+    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Png",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "xlsx-svg",
+    "cmdlet": "Export-OfficeExcelImage",
+    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Svg",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "xlsx-tiff",
+    "cmdlet": "Export-OfficeExcelImage",
+    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Tiff",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  },
+  {
+    "route": "xlsx-webp",
+    "cmdlet": "Export-OfficeExcelImage",
+    "example": "Export-OfficeExcelImage -Path ./in.xlsx -OutputPath ./Images -Format Webp",
+    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelImageCommand.cs L35 (-Format); L61 (document.SaveAsImages(output, Format, Options)). OutputPath is a folder; one image per sheet. The cmdlet summary mentions PNG or SVG but -Format is the full OfficeImageExportFormat enum passed straight to SaveAsImages."
+  }
+]

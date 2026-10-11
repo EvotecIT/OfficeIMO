@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Helper methods that normalize documents for better rendering in Word Online and Google Docs.
-    /// </summary>
+    // Helper methods that normalize documents for better rendering in Word Online and Google Docs.
     public partial class WordDocument {
         /// <summary>
         /// Walks all tables in body and headers/footers and normalizes their grid/widths

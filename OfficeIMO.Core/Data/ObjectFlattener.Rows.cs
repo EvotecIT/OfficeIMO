@@ -5,9 +5,7 @@ using System.Globalization;
 using System.IO;
 
 namespace OfficeIMO.Data {
-    /// <summary>
-    /// Provides the shared runtime-row projection used by Office table renderers.
-    /// </summary>
+    // Provides the shared runtime-row projection used by Office table renderers.
     public partial class ObjectFlattener {
         internal ObjectTableProjection FlattenRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
             IEnumerable<T> source,

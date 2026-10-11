@@ -215,6 +215,10 @@ internal sealed class PdfStream : PdfObject {
 
 /// <summary>PDF indirect object wrapper.</summary>
 internal sealed class PdfIndirectObject : PdfObject {
+    /// <summary>Byte offset of the selected definition, or its containing object stream, in the input PDF.</summary>
+    internal int SourceOffset { get; set; } = -1;
+    /// <summary>Chronological update containing this definition, derived from the active xref chain.</summary>
+    internal int SourceRevision { get; set; } = -1;
     public int ObjectNumber { get; }
     public int Generation { get; }
     public PdfObject Value { get; }

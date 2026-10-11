@@ -423,7 +423,7 @@ namespace OfficeIMO.Excel {
                         }
                     default:
                         try {
-                            string text = value.ToString() ?? string.Empty;
+                            string text = value is byte[] bytes ? System.Convert.ToBase64String(bytes) : value.ToString() ?? string.Empty;
                             CoerceValueHelper.ValidateSharedStringLength(text, nameof(value));
                             return text;
                         } catch (Exception exception) {

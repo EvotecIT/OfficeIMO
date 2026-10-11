@@ -93,7 +93,7 @@ public sealed class ReaderAdapterTests {
         var rich = DjVuDocument.Load(Fixture("reader-book.djvu")).ToReadResult();
         string json = OfficeDocumentReadResultJson.Serialize(rich);
         var restored = OfficeDocumentReadResultJson.Deserialize(json);
-        Assert.Equal(12, restored.SchemaVersion);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, restored.SchemaVersion);
         Assert.Equal(ReaderInputKind.DjVu, restored.Kind);
         Assert.Equal(rich.Blocks[0].Region!.X, restored.Blocks[0].Region!.X);
         Assert.Equal(4, restored.GetTotalPageCount());

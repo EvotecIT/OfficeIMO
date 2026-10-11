@@ -450,19 +450,30 @@
     }, { passive: true });
   }
 
-  function initConverterFrame() {
-    var template = document.getElementById('browser-workspace-template');
-    if (!template) return;
+  function initBrowserToolDirectory() {
     var directory = document.querySelector('.imo-browser-tools');
+    if (!directory) return;
     var search = directory.querySelector('.imo-browser-tools__search');
     var input = search.querySelector('input');
     var countLabel = search.querySelector('[data-tool-count]');
     var cards = Array.from(directory.querySelectorAll('.imo-browser-tools__card'));
-    var frameShell = document.querySelector('.imo-converter-launch__frame-shell');
-    var frame = null;
-    var workspaceUrl = null;
     var pendingFile = null;
+    var selectionGeneration = 0;
+    var textCharacters = null;
+    var textReading = false;
+    var textReadError = '';
     search.hidden = false;
+
+    // Links from the previous single-page workspace (/convert/?route=docx-pdf) open the tool's own page.
+    var parameters = new URLSearchParams(window.location.search);
+    var legacyKey = null;
+    if (parameters.get('route')) legacyKey = 'route=' + parameters.get('route').toLowerCase();
+    else if ((parameters.get('workspace') || '').toLowerCase() === 'pdf') legacyKey = 'workspace=pdf&tool=' + (parameters.get('tool') || 'inspect').toLowerCase();
+    else if ((parameters.get('workspace') || '').toLowerCase() === 'provenance') legacyKey = 'workspace=provenance';
+    if (legacyKey) {
+      var legacyCard = cards.filter(function (card) { return (card.getAttribute('data-legacy') || '').split(' ').indexOf(legacyKey) >= 0; })[0];
+      if (legacyCard) { window.location.replace(legacyCard.href); return; }
+    }
 
     function fileExtension(name) {
       var dot = name.lastIndexOf('.');
@@ -471,7 +482,17 @@
 
     function acceptsPendingFile(card) {
       if (!pendingFile) return true;
-      return (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0;
+      return (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0 && !pendingFileProblem(card);
+    }
+
+    function pendingFileProblem(card) {
+      if (!pendingFile || card.getAttribute('data-input') !== 'text') return '';
+      if (pendingFile.size > 1024 * 1024) return 'Text tools accept files up to 1 MiB. Choose a smaller text file.';
+      if (card.getAttribute('data-engine-kind') === 'text') return '';
+      if (textReading) return 'Checking text input…';
+      if (textReadError) return textReadError;
+      var limit = parseInt(card.getAttribute('data-max-characters'), 10);
+      return textCharacters > limit ? 'Text conversion is limited to ' + limit.toLocaleString('en-US') + ' characters. The hidden-character tool accepts longer text files up to 1 MiB.' : '';
     }
 
     function filterTools() {
@@ -494,143 +515,6 @@
     });
     filterTools();
 
-    function hasWorkspaceSelection(parameters) {
-      var workspace = (parameters.get('workspace') || '').toLowerCase();
-      return !!(parameters.get('route') || '').trim() || workspace === 'pdf' || workspace === 'provenance';
-    }
-
-    function syncTheme() {
-      try {
-        var frameRoot = frame && frame.contentDocument && frame.contentDocument.documentElement;
-        if (!frameRoot) return;
-        var theme = document.documentElement.getAttribute('data-theme') || 'light';
-        frameRoot.setAttribute('data-theme', theme);
-        frameRoot.style.colorScheme = theme;
-      } catch (error) {
-        // The standalone application retains its saved theme if hosted elsewhere.
-      }
-    }
-
-    function createFrame() {
-      frameShell.appendChild(template.content.cloneNode(true));
-      frame = frameShell.querySelector('iframe');
-      workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
-
-      window.addEventListener('message', function (event) {
-        if (event.source !== frame.contentWindow || event.origin !== workspaceUrl.origin ||
-            !event.data || event.data.type !== 'officeimo:workspace-selection') return;
-        var selection = event.data;
-        if (['workspace', 'route', 'tool'].some(function (key) {
-          return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
-        })) return;
-        if (selection.title != null && (typeof selection.title !== 'string' ||
-            selection.title.length > 160 || selection.title.trim().length === 0)) return;
-        var target = new URL(window.location.href);
-        ['workspace', 'route', 'tool'].forEach(function (key) {
-          var value = selection[key];
-          if (key === 'workspace' && value === 'convert') value = null;
-          if (value) target.searchParams.set(key, value);
-          else target.searchParams.delete(key);
-        });
-        if (target.href !== window.location.href) {
-          window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
-        }
-        if (selection.title) document.title = selection.title;
-      });
-      frame.addEventListener('load', syncTheme);
-      new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    }
-
-    // The app owns route validation; the website forwards only its public selection keys.
-    function workspaceAddress(parameters) {
-      var address = new URL(workspaceUrl.href);
-      ['workspace', 'route', 'tool'].forEach(function (key) {
-        if (parameters.has(key)) address.searchParams.set(key, parameters.get(key));
-      });
-      return address.href;
-    }
-
-    // The app listens for selection messages only after its workspace has rendered.
-    function workspaceReady() {
-      try { return !!(frame.contentDocument && frame.contentDocument.querySelector('.ocx-workspace-content')); } catch (error) { return false; }
-    }
-
-    // Browsing the directory never creates a frame or starts the WebAssembly runtime.
-    function openWorkspace(parameters) {
-      directory.hidden = true;
-      frameShell.hidden = false;
-      showNotice('');
-      if (!frame) {
-        createFrame();
-        frame.src = workspaceAddress(parameters);
-        syncTheme();
-      } else if (!workspaceReady()) {
-        frame.src = workspaceAddress(parameters);
-      } else {
-        frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
-          workspace: parameters.get('workspace'), route: parameters.get('route'), tool: parameters.get('tool')
-        }, workspaceUrl.origin);
-      }
-      window.scrollTo(0, 0);
-    }
-
-    function showDirectory() {
-      frameShell.hidden = true;
-      directory.hidden = false;
-    }
-
-    var notice = null;
-    function showNotice(message) {
-      if (!notice) {
-        if (!message) return;
-        notice = document.createElement('p');
-        notice.className = 'imo-handoff-notice';
-        notice.setAttribute('role', 'status');
-        frameShell.insertBefore(notice, frameShell.firstChild);
-      }
-      notice.textContent = message;
-      notice.hidden = !message;
-    }
-
-    // Hands a file chosen on the directory to the tool's own input once the workspace renders it.
-    function deliverFile(file, card) {
-      var route = card.getAttribute('data-route');
-      var tool = card.getAttribute('data-pdf-tool');
-      var isText = card.getAttribute('data-input') === 'text';
-      var selector = route
-        ? (isText ? '.ocx-conversion-workspace[data-active-route="' + route + '"] .ocx-textarea' : '#conversion-file-input-' + route)
-        : tool ? '#pdf-file-input-' + tool : '#provenance-file-input';
-      var started = Date.now();
-      var tooLarge = file.name + ' is too long for this text tool. Paste a shorter section, or convert the file with another tool.';
-      (function attempt() {
-        var element = null;
-        try { element = frame.contentDocument && frame.contentDocument.querySelector(selector); } catch (error) { return; }
-        if (!element) {
-          if (frameShell.hidden) return;
-          if (Date.now() - started < 120000) setTimeout(attempt, 200);
-          else showNotice('The tool did not finish loading, so ' + file.name + ' was not opened. Choose the file again inside the tool.');
-          return;
-        }
-        var view = frame.contentWindow;
-        if (isText) {
-          // UTF-8 uses at most four bytes per character, so larger files cannot fit.
-          if (element.maxLength > 0 && file.size > element.maxLength * 4) { showNotice(tooLarge); return; }
-          file.text().then(function (text) {
-            if (element.maxLength > 0 && text.length > element.maxLength) { showNotice(tooLarge); return; }
-            element.value = text;
-            element.dispatchEvent(new view.Event('input', { bubbles: true }));
-          }, function () {
-            showNotice(file.name + ' could not be read. Choose it again inside the tool.');
-          });
-          return;
-        }
-        var transfer = new view.DataTransfer();
-        transfer.items.add(new view.File([file], file.name, { type: file.type, lastModified: file.lastModified }));
-        element.files = transfer.files;
-        element.dispatchEvent(new view.Event('change', { bubbles: true }));
-      })();
-    }
-
     function initFileDrop(drop) {
       var fileInput = drop.querySelector('#browser-drop-input');
       var target = drop.querySelector('[data-browser-drop-target]');
@@ -645,18 +529,56 @@
       }
 
       function choose(file) {
-        pendingFile = file || null;
+        var generation = ++selectionGeneration;
+        var oversized = file && file.size > 25 * 1024 * 1024;
+        pendingFile = oversized ? null : file || null;
+        textCharacters = null;
+        textReadError = '';
+        textReading = !!pendingFile && pendingFile.size <= 1024 * 1024 && cards.some(function (card) {
+          return card.getAttribute('data-input') === 'text' && card.getAttribute('data-engine-kind') !== 'text' &&
+            (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0;
+        });
+        fileInput.value = '';
         input.value = '';
         var matches = filterTools();
         target.hidden = !!pendingFile;
         selected.hidden = !pendingFile;
         drop.classList.toggle('has-file', !!pendingFile);
-        if (!pendingFile) return;
+        if (!pendingFile) {
+          drop.querySelector('[data-browser-drop-name]').textContent = '';
+          drop.querySelector('[data-browser-drop-size]').textContent = '';
+          status.textContent = oversized ? 'The limit is 25 MB per file. Choose a smaller file.' : '';
+          status.hidden = !oversized;
+          return;
+        }
         drop.querySelector('[data-browser-drop-name]').textContent = pendingFile.name;
         drop.querySelector('[data-browser-drop-size]').textContent = formatSize(pendingFile.size);
-        status.textContent = matches === 0
-          ? 'No browser tool opens this file type yet.'
-          : matches === 1 ? 'Open the tool below to continue.' : 'Pick one of the ' + matches + ' tools below.';
+        describeSelection(matches);
+        if (textReading) {
+          pendingFile.text().then(function (text) {
+            if (generation !== selectionGeneration) return;
+            textCharacters = text.length;
+            textReading = false;
+            describeSelection(filterTools());
+          }).catch(function () {
+            if (generation !== selectionGeneration) return;
+            textReading = false;
+            textReadError = 'That text file could not be read. Choose it again.';
+            describeSelection(filterTools());
+          });
+        }
+      }
+
+      function describeSelection(matches) {
+        var problem = '';
+        cards.some(function (card) {
+          if ((card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) < 0) return false;
+          problem = pendingFileProblem(card);
+          return !!problem;
+        });
+        var continuation = matches === 0 ? '' : matches === 1 ? 'Open the tool below to continue.' : 'Pick one of the ' + matches + ' tools below.';
+        status.textContent = problem ? problem + (continuation ? ' ' + continuation : '') : continuation || 'No browser tool opens this file type yet.';
+        status.hidden = false;
       }
 
       function carriesFiles(event) {
@@ -672,7 +594,7 @@
 
       var dragDepth = 0;
       document.addEventListener('dragenter', function (event) {
-        if (!carriesFiles(event) || directory.hidden) return;
+        if (!carriesFiles(event)) return;
         dragDepth++;
         drop.classList.add('is-dragging');
       });
@@ -682,12 +604,12 @@
         if (!dragDepth) drop.classList.remove('is-dragging');
       });
       document.addEventListener('dragover', function (event) {
-        if (!carriesFiles(event) || directory.hidden) return;
+        if (!carriesFiles(event)) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'copy';
       });
       document.addEventListener('drop', function (event) {
-        if (!carriesFiles(event) || directory.hidden) return;
+        if (!carriesFiles(event)) return;
         event.preventDefault();
         dragDepth = 0;
         drop.classList.remove('is-dragging');
@@ -698,28 +620,20 @@
         card.addEventListener('click', function (event) {
           if (!pendingFile || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
           event.preventDefault();
-          var destination = new URL(card.href, window.location.href);
-          window.history.pushState(null, '', destination);
-          openWorkspace(destination.searchParams);
-          deliverFile(pendingFile, card);
+          var problem = pendingFileProblem(card);
+          if (problem) { status.textContent = problem; status.hidden = false; return; }
+          var destination = card.href;
+          var file = pendingFile;
+          var generation = selectionGeneration;
+          window.OfficeIMOBrowserHandoff.send(destination, function () {
+            return file.arrayBuffer().then(function (buffer) { return { name: file.name, type: file.type, buffer: buffer }; });
+          }).catch(function (error) { if (generation === selectionGeneration) { status.textContent = error.message; status.hidden = false; } });
         });
       });
     }
 
     var drop = directory.querySelector('[data-browser-drop]');
     if (drop) initFileDrop(drop);
-
-    window.addEventListener('popstate', function () {
-      var selection = new URLSearchParams(window.location.search);
-      if (!hasWorkspaceSelection(selection)) {
-        showDirectory();
-        return;
-      }
-      openWorkspace(selection);
-    });
-
-    var pageParameters = new URLSearchParams(window.location.search);
-    if (hasWorkspaceSelection(pageParameters)) openWorkspace(pageParameters);
   }
 
   function initDocsSidebar() {
@@ -850,15 +764,304 @@
   }
   window.OfficeIMOEnsurePrism = ensurePrism;
 
+  // Pages list the API symbols they use (data/api_links.json, written by Build-ApiCrossLinks.ps1).
+  // Inline code that names one becomes a link to the reference; code blocks are linked after Prism runs.
+  var apiLinks = null;
+
+  function readApiLinks() {
+    if (apiLinks) return apiLinks;
+    var data = document.getElementById("imo-api-links");
+    apiLinks = { map: {}, pattern: null };
+    if (!data) return apiLinks;
+    var list;
+    try { list = JSON.parse(data.textContent); } catch (e) { return apiLinks; }
+    var codeNames = [];
+    list.forEach(function (link) {
+      if (apiLinks.map[link.n]) return;
+      apiLinks.map[link.n] = link.h;
+      if (link.k !== "member") codeNames.push(link.n.replace(/[.]/g, "\\."));
+    });
+    codeNames.sort(function (a, b) { return b.length - a.length; });
+    if (codeNames.length) apiLinks.pattern = new RegExp("(^|[^\\w.$@-])(" + codeNames.join("|") + ")(?![\\w-])", "g");
+    return apiLinks;
+  }
+
+  function initApiLinks() {
+    var links = readApiLinks();
+    Array.prototype.forEach.call(document.querySelectorAll(".imo-prose code, .imo-walkthrough__body p code"), function (code) {
+      if (code.closest("pre, a")) return;
+      var name = code.textContent.trim().replace(/^new\s+/, "").replace(/\(.*\)$/, "");
+      var href = links.map[name];
+      if (!href) return;
+      var anchor = document.createElement("a");
+      anchor.className = "imo-code-ref";
+      anchor.href = href;
+      code.parentNode.insertBefore(anchor, code);
+      anchor.appendChild(code);
+    });
+  }
+
+  function linkApiCode(element) {
+    var links = readApiLinks();
+    if (!links.pattern || !element || element.querySelector(".imo-code-ref")) return;
+    var walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null, false);
+    var nodes = [];
+    while (walker.nextNode()) {
+      var parent = walker.currentNode.parentNode;
+      if (parent.closest(".token.string, .token.comment, a")) continue;
+      nodes.push(walker.currentNode);
+    }
+    nodes.forEach(function (node) {
+      var text = node.nodeValue;
+      links.pattern.lastIndex = 0;
+      if (!links.pattern.test(text)) return;
+      links.pattern.lastIndex = 0;
+      var fragment = document.createDocumentFragment();
+      var last = 0;
+      var match;
+      while ((match = links.pattern.exec(text))) {
+        var start = match.index + match[1].length;
+        fragment.appendChild(document.createTextNode(text.slice(last, start)));
+        var anchor = document.createElement("a");
+        anchor.className = "imo-code-ref";
+        anchor.href = links.map[match[2]];
+        anchor.textContent = match[2];
+        fragment.appendChild(anchor);
+        last = start + match[2].length;
+      }
+      fragment.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(fragment, node);
+    });
+  }
+
   function initPrism() {
     if (!document.querySelector('code[class*="language-"], pre[class*="language-"]')) return;
     ensurePrism().then(function () {
+      if (readApiLinks().pattern && Prism.hooks) Prism.hooks.add("complete", function (env) { linkApiCode(env.element); });
       if (typeof Prism.highlightAllUnder === "function") Prism.highlightAllUnder(document);
       else Prism.highlightAll();
     }).catch(function () { /* Code stays readable without highlighting. */ });
   }
 
+  // Landing pages (products, Studio, CLI) write features as "- **Term** — description" lists, and docs pages
+  // write "- [Area](/docs/x/) for …" and "- **Family:** …" lists. Mark those lists so CSS can lay them out as
+  // cards, and drop the separator between term and text. Docs lists qualify only when every item is short.
+  function initFeatureLists() {
+    var scopes = [
+      { selector: ".imo-product__content .markdown-body > ul, .imo-application-guide .markdown-body > ul", maxText: 0 },
+      { selector: ".imo-docs__content .markdown-body > ul", maxText: 160 }
+    ];
+    scopes.forEach(function (scope) {
+      Array.prototype.forEach.call(document.querySelectorAll(scope.selector), function (list) {
+        markFeatureList(list, scope.maxText);
+      });
+    });
+  }
+
+  function markFeatureList(list, maxText) {
+      var items = Array.prototype.filter.call(list.children, function (li) { return li.tagName === "LI"; });
+      if (items.length < 3 || (maxText && items.length > 16)) return;
+      var featureLike = items.every(function (li) {
+        var first = li.firstChild;
+        while (first && first.nodeType === 3 && !first.nodeValue.trim()) first = first.nextSibling;
+        if (!first || first.nodeType !== 1 || (first.tagName !== "STRONG" && first.tagName !== "A")) return false;
+        if (li.querySelector("ul, ol, pre, table")) return false;
+        return !maxText || li.textContent.trim().length <= maxText;
+      });
+      if (!featureLike) return;
+      list.classList.add("imo-features");
+      items.forEach(function (li) {
+        var title = li.firstElementChild;
+        if (title.tagName === "A") li.classList.add("imo-features__item--link");
+        title.classList.add("imo-features__title");
+        title.textContent = title.textContent.replace(/[\s:]+$/, "");
+        var text = document.createElement("span");
+        text.className = "imo-features__text";
+        while (title.nextSibling) text.appendChild(title.nextSibling);
+        if (text.firstChild && text.firstChild.nodeType === 3) {
+          text.firstChild.nodeValue = text.firstChild.nodeValue.replace(/^[\s:\u2014\u2013-]+/, "").replace(/^[a-z]/, function (c) { return c.toUpperCase(); });
+        }
+        li.appendChild(text);
+      });
+  }
+
+  // On landing pages, a short "Do this:" line followed by a code block becomes a command card;
+  // neighbouring cards share one grid.
+  function initCommandCards() {
+    var bodies = document.querySelectorAll(".imo-product__content .markdown-body, .imo-application-guide .markdown-body");
+    Array.prototype.forEach.call(bodies, function (body) {
+      var paragraphs = Array.prototype.slice.call(body.children).filter(function (node) {
+        var next = node.nextElementSibling;
+        return node.tagName === "P" && next && next.tagName === "PRE" &&
+          node.textContent.trim().length <= 90 && /:\s*$/.test(node.textContent);
+      });
+      paragraphs.forEach(function (p) {
+        var pre = p.nextElementSibling;
+        var card = document.createElement("div");
+        card.className = "imo-command";
+        p.parentNode.insertBefore(card, p);
+        p.textContent = p.textContent.replace(/:\s*$/, "");
+        card.appendChild(p);
+        card.appendChild(pre);
+      });
+      var cards = Array.prototype.slice.call(body.querySelectorAll(":scope > .imo-command"));
+      var group = null;
+      cards.forEach(function (card) {
+        var previous = card.previousElementSibling;
+        if (!group || previous !== group) {
+          group = document.createElement("div");
+          group.className = "imo-commands";
+          card.parentNode.insertBefore(group, card);
+        }
+        group.appendChild(card);
+      });
+    });
+  }
+
+  // FAQ: filter questions by their text; matching answers open so the reader sees them.
+  function initFaqFilter() {
+    var input = document.querySelector("[data-faq-filter]");
+    if (!input) return;
+    var cards = Array.prototype.slice.call(document.querySelectorAll(".imo-faq-card"));
+    var groups = Array.prototype.slice.call(document.querySelectorAll(".imo-faq-group"));
+    var empty = document.querySelector(".imo-faq-empty");
+    input.addEventListener("input", function () {
+      var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      cards.forEach(function (card) {
+        var text = card.textContent.toLowerCase();
+        var match = words.every(function (w) { return text.indexOf(w) >= 0; });
+        card.hidden = !match;
+        if (words.length) {
+          if (!card.hasAttribute('data-faq-was-open')) card.setAttribute('data-faq-was-open', card.open ? '1' : '0');
+          card.open = match;
+        } else if (card.hasAttribute('data-faq-was-open')) {
+          card.open = card.getAttribute('data-faq-was-open') === '1';
+          card.removeAttribute('data-faq-was-open');
+        }
+        if (match) shown++;
+      });
+      groups.forEach(function (group) {
+        group.hidden = !group.querySelector(".imo-faq-card:not([hidden])");
+      });
+      if (empty) empty.hidden = shown > 0;
+    });
+  }
+
+  // <input data-table-filter="#table-id">: hide body rows that don't contain every typed word.
+  function initTableFilters() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-table-filter]"), function (input) {
+      var table = document.querySelector(input.getAttribute("data-table-filter"));
+      if (!table || !table.tBodies.length) return;
+      var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+      var empty = table.parentNode.querySelector(".imo-cap-empty");
+      input.addEventListener("input", function () {
+        var words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+        var shown = 0;
+        rows.forEach(function (row) {
+          var titles = Array.prototype.map.call(row.querySelectorAll("[title]"), function (item) { return item.getAttribute("title"); }).join(" ");
+          var text = ((row.getAttribute("data-search") || row.textContent) + " " + titles).toLowerCase();
+          var match = words.every(function (w) { return text.indexOf(w) >= 0; });
+          row.hidden = !match;
+          if (match) shown++;
+        });
+        if (empty) empty.hidden = shown > 0;
+      });
+    });
+  }
+
+  // Solution pages: three or more neighbouring h2 sections made only of short paragraphs read as principles,
+  // so they become a card grid. Sections with lists, tables or code stay in the normal flow.
+  function initSectionCards() {
+    Array.prototype.forEach.call(document.querySelectorAll(".imo-intent-content > article.markdown-body"), function (body) {
+      var sections = [];
+      var current = null;
+      Array.prototype.slice.call(body.children).forEach(function (node) {
+        if (node.tagName === "H2") {
+          current = { heading: node, nodes: [], prose: true, length: 0 };
+          sections.push(current);
+        } else if (current) {
+          current.nodes.push(node);
+          if (node.tagName !== "P") current.prose = false;
+          current.length += node.textContent.length;
+        }
+      });
+      var run = [];
+      function flush() {
+        if (run.length >= 3) {
+          var grid = document.createElement("div");
+          grid.className = "imo-section-cards";
+          run[0].heading.parentNode.insertBefore(grid, run[0].heading);
+          run.forEach(function (section) {
+            var card = document.createElement("section");
+            card.className = "imo-section-card";
+            card.appendChild(section.heading);
+            section.nodes.forEach(function (node) { card.appendChild(node); });
+            grid.appendChild(card);
+          });
+        }
+        run = [];
+      }
+      sections.forEach(function (section) {
+        if (section.prose && section.nodes.length && section.length <= 900) run.push(section);
+        else flush();
+      });
+      flush();
+    });
+  }
+
+  // Prose tables keep their full width on wide screens and scroll sideways on phones instead of being clipped.
+  function initTableScroll() {
+    Array.prototype.forEach.call(document.querySelectorAll(".imo-prose table"), function (table) {
+      var parent = table.parentElement;
+      if (!parent || parent.classList.contains("imo-table-scroll") || /(auto|scroll)/.test(getComputedStyle(parent).overflowX)) return;
+      var wrap = document.createElement("div");
+      wrap.className = "imo-table-scroll";
+      wrap.setAttribute("tabindex", "0");
+      wrap.setAttribute("role", "region");
+      var caption = table.querySelector("caption") || table.querySelector("th");
+      wrap.setAttribute("aria-label", caption ? "Table: " + caption.textContent.trim().slice(0, 60) : "Table");
+      parent.insertBefore(wrap, table);
+      wrap.appendChild(table);
+      // Tables with three to five columns stack into labelled cards on phones (CSS uses data-label).
+      var headers = table.tHead ? Array.prototype.map.call(table.tHead.rows[0].cells, function (th) { return th.textContent.trim(); }) : [];
+      if (headers.length >= 3 && headers.length <= 5 && table.tBodies.length) {
+        table.classList.add("imo-table--stack");
+        Array.prototype.forEach.call(table.tBodies[0].rows, function (row) {
+          Array.prototype.forEach.call(row.cells, function (cell, i) { if (headers[i]) cell.setAttribute("data-label", headers[i]); });
+        });
+      }
+    });
+  }
+
   function init() {
+    var apiBrowser = document.querySelector('[data-api-browser]');
+    if (apiBrowser && window.matchMedia) apiBrowser.open = window.matchMedia('(min-width: 1101px)').matches;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-showcase-tool]'), function (link) {
+      link.addEventListener('click', function (event) {
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        window.OfficeIMOBrowserHandoff.send(link.href, function () {
+          var url = link.getAttribute('data-showcase-tool');
+          return fetch(url).then(function (response) {
+            if (!response.ok) throw new Error('The example could not be downloaded. Try the download link.');
+            var length = Number(response.headers.get('Content-Length') || 0);
+            if (length > 25 * 1024 * 1024) throw new Error('This example exceeds the browser tool’s 25 MB limit.');
+            return response.arrayBuffer().then(function (buffer) { return { name: url.split('/').pop(), type: response.headers.get('Content-Type') || '', buffer: buffer }; });
+          });
+        }).catch(function (error) {
+          var status = link.parentNode.querySelector('[data-showcase-transfer-status]');
+          if (!status) { status = document.createElement('p'); status.setAttribute('data-showcase-transfer-status', 'true'); status.setAttribute('role', 'status'); link.parentNode.appendChild(status); }
+          status.textContent = error.message;
+        });
+      });
+    });
+    initTableScroll();
+    initFeatureLists();
+    initSectionCards();
+    initFaqFilter();
+    initTableFilters();
+    initCommandCards();
     initTheme();
     initHeaderMenus();
     initMobileNav();
@@ -867,8 +1070,9 @@
     initCodeCopy();
     initTabs();
     initHeaderScroll();
-    initConverterFrame();
+    initBrowserToolDirectory();
     initDocsSidebar();
+    initApiLinks();
     initPrism();
   }
 
