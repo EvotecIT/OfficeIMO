@@ -6,6 +6,19 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
+    [Fact]
+    public void EmptyOrdinaryRunningContentDoesNotExpandTheBodyFrame() {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Content(_ => { }, 80, 20));
+        document.Footer(footer => footer.Content(_ => { }, 60, 20));
+        document.Paragraph(paragraph => paragraph.FontSize(40)
+            .Text("A").LineBreak().Text("A").LineBreak().Text("A").LineBreak().Text("A"));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Equal(4, pdf.GetPage(1).Letters.Count(letter => letter.Value == "A"));
+    }
+
     [Theory]
     [InlineData(false, true)]
     [InlineData(true, true)]
