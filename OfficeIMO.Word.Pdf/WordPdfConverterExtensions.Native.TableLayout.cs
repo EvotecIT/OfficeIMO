@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Pdf {
             if (style.AutoFitColumns || !style.AllowWidthBeyondFrame || !contentWidth.HasValue) return;
             W.TableWidth? sourceWidth = table._tableProperties?.TableWidth;
             if (!GetNativeTablePreferredWidth(sourceWidth, contentWidth).HasValue) sourceWidth = defaults.PreferredWidth;
-            if (sourceWidth?.Type?.Value != W.TableWidthUnitValues.Pct) return;
+            if (ResolveNativeTablePreferredWidthType(sourceWidth) != W.TableWidthUnitValues.Pct || sourceWidth == null) return;
             double? percent = GetNativeTablePreferredWidthPercent(sourceWidth);
             if (!percent.HasValue) return;
             var (left, right) = GetNativeTableOuterBorderInsets(layout, style);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Word.Pdf {
                     W.TableWidth? authoredWidth = properties?.TableWidth;
                     if (!GetNativeTablePreferredWidth(authoredWidth, contentWidth).HasValue)
                         authoredWidth = tableStyleDefaults.PreferredWidth;
-                    if (style.AutoFitColumns && authoredWidth?.Type?.Value == W.TableWidthUnitValues.Dxa) {
+                    if (style.AutoFitColumns && ResolveNativeTablePreferredWidthType(authoredWidth) == W.TableWidthUnitValues.Dxa) {
                         style.AllowWidthBeyondFrame = true;
                         style.AutoFitColumnPreferredWidthPoints = CreateNativeAutoFitColumnPreferences(layout);
                     }
@@ -308,22 +308,28 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeTableAutoFitToContents(W.TableProperties? properties) =>
             IsNativeTableAutoFitLayout(properties) &&
-            properties?.TableWidth?.Type?.Value == W.TableWidthUnitValues.Auto;
+            ResolveNativeTablePreferredWidthType(properties?.TableWidth) == W.TableWidthUnitValues.Auto;
 
-        private static bool IsNativeTableAutoFitLayout(W.TableProperties? properties) {
-            if (properties?.TableLayout?.Type?.Value == W.TableLayoutValues.Autofit) {
-                return true;
-            }
+        private static bool IsNativeTableAutoFitLayout(W.TableProperties? properties) =>
+            properties?.TableLayout?.Type?.Value != W.TableLayoutValues.Fixed;
 
-            if (properties?.TableLayout?.Type?.Value == W.TableLayoutValues.Fixed) {
-                return false;
-            }
-
-            return properties?.TableWidth?.Type?.Value == W.TableWidthUnitValues.Auto;
+        /// <summary>Resolves omitted defaults and Word's zero, nil and percentage preferred-width rules.</summary>
+        private static W.TableWidthUnitValues ResolveNativeTablePreferredWidthType(W.TableWidth? width) {
+            string? rawWidth = width?.Width?.Value;
+            if (string.IsNullOrWhiteSpace(rawWidth)) return W.TableWidthUnitValues.Auto;
+            string value = rawWidth!.Trim();
+            bool percentage = value.EndsWith("%", StringComparison.Ordinal);
+            string numeric = percentage ? value.Substring(0, value.Length - 1) : value;
+            if (double.TryParse(numeric, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && number == 0D)
+                return W.TableWidthUnitValues.Auto;
+            if (percentage) return W.TableWidthUnitValues.Pct;
+            W.TableWidthUnitValues type = width?.Type?.Value ?? W.TableWidthUnitValues.Dxa;
+            return type == W.TableWidthUnitValues.Nil ? W.TableWidthUnitValues.Auto : type;
         }
 
         private static double? GetNativeTablePreferredWidth(W.TableWidth? width, double? contentWidth) {
-            if (width?.Type?.Value == W.TableWidthUnitValues.Pct) {
+            W.TableWidthUnitValues type = ResolveNativeTablePreferredWidthType(width);
+            if (type == W.TableWidthUnitValues.Pct && width != null) {
                 double? percent = GetNativeTablePreferredWidthPercent(width);
                 if (!percent.HasValue || !contentWidth.HasValue || contentWidth.Value <= 0D) {
                     return null;
@@ -332,7 +338,7 @@ namespace OfficeIMO.Word.Pdf {
                 return contentWidth.Value * percent.Value;
             }
 
-            if (width?.Type?.Value != W.TableWidthUnitValues.Dxa) {
+            if (type != W.TableWidthUnitValues.Dxa || width == null) {
                 return null;
             }
 
