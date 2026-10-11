@@ -21,6 +21,8 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             Assert.Contains("\\|", chunks[0].Markdown);
             Assert.Contains("\\<script\\>", chunks[0].Markdown);
             Assert.Contains("\\*\\*bold\\*\\*", chunks[0].Markdown);
+            string separator = chunks[0].Markdown!.Split('\n')[1];
+            Assert.Equal("| --- | --- | --- |", separator);
             Assert.Null(chunks[0].SourceHash);
             Assert.NotNull(chunks[0].ChunkHash);
             Assert.Contains(chunks[1].Warnings!, value => value.Contains("null values"));
