@@ -141,8 +141,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             private static bool TryResolveEmbeddedLineSpacingRatio(byte[] fontData, out double ratio) {
-                OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoad(fontData);
-                ratio = font?.LineSpacingRatio ?? 0D;
+                OfficeOpenTypeLineMetrics? metrics = OfficeOpenTypeLineMetrics.TryRead(fontData);
+                ratio = metrics?.HorizontalAdvanceRatio ?? 0D;
                 return ratio >= 0.8D && ratio <= 2D;
             }
 

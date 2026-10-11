@@ -1325,10 +1325,10 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Uses_Character_Style_Font_Size_For_Table_Cell_Line_Unit_Spacing() {
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Character_Style_Font_Size_For_Text_And_Section_Units_For_Cell_Spacing() {
         double gap = RenderNativeTableCellCharacterStyleLineUnitSpacingGap();
 
-        Assert.InRange(gap, 65D, 90D);
+        Assert.InRange(gap, 50D, 55D);
     }
 
     [Fact]

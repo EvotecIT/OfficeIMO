@@ -399,10 +399,11 @@ internal static partial class PdfWriter {
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
-            if (cell.Viewport != null)
+            TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, rowIndex, columnIndex, cellX, cellTop, cellWidth, cellHeight);
+            if (cell.Viewport != null || style.PreservePartialCellLines)
                 OmitInvisibleTableCellViewportLines(visibleLines, visibleHeights, visibleAlignments, visibleXOffsets, visibleWidths,
                     paragraph.Align, firstBaseline, contentFrame.Left + padLeft, innerWidth,
-                    cellX, cellBottom, cellWidth, cellHeight, leading, fontSize, currentOpts, cellFont);
+                    inkClip.Left, inkClip.Top - inkClip.Height, inkClip.Width, inkClip.Height, leading, fontSize, currentOpts, cellFont);
             int? markedContentId = RegisterTextStructureElement(
                 rowIsHeader ? "TH" : "TD",
                 _canvasStructureParentElement,
@@ -419,10 +420,10 @@ internal static partial class PdfWriter {
                 fontSize,
                 leading,
                 currentPage!.Annotations,
-                cellX - textClipBleed,
-                cellBottom - textClipBleed,
-                cellWidth + (textClipBleed * 2D),
-                cellHeight + (textClipBleed * 2D),
+                inkClip.Left - textClipBleed,
+                inkClip.Top - inkClip.Height - textClipBleed,
+                inkClip.Width + (textClipBleed * 2D),
+                inkClip.Height + (textClipBleed * 2D),
                 contentFrame.Left + padLeft,
                 innerWidth,
                 structureType: rowIsHeader ? "TH" : "TD",

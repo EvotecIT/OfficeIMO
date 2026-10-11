@@ -68,6 +68,7 @@ internal static partial class PdfWriter {
                             Marker = preparedItem.Marker,
                             MarkerFont = prepared.MarkerFont,
                             MarkerNamedFont = prepared.MarkerNamedFont,
+                            MarkerFeatureSettings = prepared.Style?.MarkerFeatureSettings,
                             MarkerSize = prepared.MarkerSize,
                             MarkerColor = prepared.Style?.MarkerColor ?? listColor,
                             MarkerXOffset = markerPlacement.X,

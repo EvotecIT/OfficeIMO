@@ -7,7 +7,7 @@ internal static partial class PdfExternalTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
-        bool automaticLatin = options.ShapingProvider == null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures;
+        bool automaticLatin = UsesDefaultLatinShaping(text, options);
         if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
             text, font.FontName, font.FontDataForInspection, false, font.UnitsPerEm, font.GlyphCount,
             font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null, options, out glyphRun);
@@ -57,7 +57,7 @@ internal static partial class PdfExternalTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
-        bool automaticLatin = options.ShapingProvider == null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures;
+        bool automaticLatin = UsesDefaultLatinShaping(text, options);
         if (automaticLatin && options.FeatureSettings.IsDefault) return TryShapeDefaultLatinText(
             text, font.FontName, font.FontDataForInspection, true, font.UnitsPerEm, font.GlyphCount,
             font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null, options, out glyphRun);
@@ -102,6 +102,16 @@ internal static partial class PdfExternalTextShaper {
         options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, true, automaticLatin);
         return true;
     }
+
+    // Selecting our managed provider must not replace default Latin ligatures
+    // with nominal glyphs when an explicit feature (such as kerning) is present.
+    // Other providers retain ownership of their substitutions and positioning.
+    private static bool UsesDefaultLatinShaping(string text, PdfTextShapingOptions options) =>
+        options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures &&
+        (options.ShapingProvider == null ||
+         ReferenceEquals(options.ShapingProvider, OfficeManagedTextShapingProvider.Instance) &&
+         (options.Direction == OfficeTextDirection.Auto || options.Direction == OfficeTextDirection.LeftToRight) &&
+         !OfficeManagedTextShaper.RequiresComplexLayout(text));
 
     private static PdfGlyphRun BuildGlyphRun(
         string text,

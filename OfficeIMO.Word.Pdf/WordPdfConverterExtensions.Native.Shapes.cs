@@ -222,7 +222,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static OfficeStrokeDashStyle MapNativeDrawingPresetDash(A.Outline? outline) {
             A.PresetDash? presetDash = outline?.GetFirstChild<A.PresetDash>();
-            string? value = presetDash?.GetAttribute("val", string.Empty).Value;
+            string? value = presetDash?.Val?.InnerText;
             if (string.IsNullOrWhiteSpace(value)) {
                 return OfficeStrokeDashStyle.Solid;
             }
