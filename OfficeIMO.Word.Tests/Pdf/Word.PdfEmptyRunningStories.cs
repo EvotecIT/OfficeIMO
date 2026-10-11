@@ -10,6 +10,51 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_EmptyRunningStoryRegistersItsExclusiveDefaultStyleFont(bool footer) {
+        (double Baseline, int Lines) absent = Render("absent");
+        (double Baseline, int Lines) implicitStory = Render("implicit");
+        (double Baseline, int Lines) explicitStory = Render("explicit");
+        Assert.Equal(explicitStory, implicitStory);
+        if (footer) {
+            Assert.Equal(40, absent.Lines);
+            Assert.Equal(37, implicitStory.Lines);
+        } else {
+            Assert.Equal(42D, absent.Baseline - implicitStory.Baseline, 3);
+        }
+
+        (double Baseline, int Lines) Render(string kind) {
+            const string family = "OfficeIMO Tall Implicit Story";
+            using WordDocument document = CreateEmptyRunningStoryDocument(kind, footer);
+            W.Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            W.Style normal = styles.Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
+            normal.StyleRunProperties = new W.StyleRunProperties(
+                new W.RunFonts { Ascii = family, HighAnsi = family }, new W.FontSize { Val = "48" });
+            normal.StyleParagraphProperties = new W.StyleParagraphProperties(new W.SpacingBetweenLines {
+                Before = "0", After = "0", Line = "240", LineRule = W.LineSpacingRuleValues.Auto
+            });
+            styles.AppendChild(new W.Style(new W.StyleName { Val = "Independent Body" },
+                new W.BasedOn { Val = "Normal" }, new W.StyleRunProperties(
+                    new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "22" })) {
+                Type = W.StyleValues.Paragraph, StyleId = "IndependentBody"
+            });
+            WordParagraph body = document.AddParagraph("A");
+            body.LineSpacing = footer ? 364 : 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
+            body._paragraph.ParagraphProperties!.ParagraphStyleId = new W.ParagraphStyleId { Val = "IndependentBody" };
+            if (footer) for (int index = 1; index < 40; index++) body.AddBreak().AddText("A");
+            WordToPdfOptions options = EmptyRunningOptions();
+            options.PdfOptions = new PdfOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
+                family, CreateFontWithLineMetrics(1200, -300, ' ')));
+            using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+            var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return (letters[0].StartBaseLine.Y, letters.Length);
+        }
+    }
+
+    [Theory]
     [InlineData("implicit", 720, 36D)]
     [InlineData("implicit", 0, 0D)]
     [InlineData("explicit", 720, 56D)]

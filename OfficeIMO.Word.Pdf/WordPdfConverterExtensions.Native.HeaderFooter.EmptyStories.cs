@@ -4,12 +4,15 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
+    private static WordParagraph CreateNativeImplicitRunningParagraph(WordHeaderFooter story) =>
+        new(story.Document, new W.Paragraph());
+
     private static void RenderNativeImplicitRunningParagraph(INativePdfFlow flow, WordHeaderFooter story,
         NativeDocumentDefaults defaults, NativeFontMap fontMap) {
         // Word repairs an empty referenced part with a default-paragraph line.
         // It inherits typography and spacing before, but omits spacing after.
         // Keep the synthetic mark detached so conversion leaves the part unchanged.
-        var paragraph = new WordParagraph(story.Document, new W.Paragraph());
+        WordParagraph paragraph = CreateNativeImplicitRunningParagraph(story);
         bool hiddenMark = GetNativeParagraphStyleDefaults(paragraph).Hidden ??
             ReadNativeOnOff(story.Document._wordprocessingDocument.MainDocumentPart?
                 .StyleDefinitionsPart?.Styles?.DocDefaults?.RunPropertiesDefault?

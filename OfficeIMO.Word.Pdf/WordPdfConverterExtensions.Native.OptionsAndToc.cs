@@ -324,6 +324,12 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
+            if (!headerFooter.ChildElements.Any()) {
+                RegisterNativeElementFonts(CreateNativeImplicitRunningParagraph(headerFooter), pdfOptions,
+                    registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                return;
+            }
+
             foreach (WordElement element in CollapseNativeParagraphElements(headerFooter.Elements)) {
                 RegisterNativeElementFonts(element, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             }
