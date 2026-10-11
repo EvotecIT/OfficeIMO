@@ -5,8 +5,26 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets explicit worksheet column definitions such as custom widths and hidden ranges.
         /// </summary>
-        public IReadOnlyList<ExcelColumnSnapshot> GetColumnDefinitions() {
+        public IReadOnlyList<ExcelColumnSnapshot> GetColumnDefinitions() =>
+            _excelDocument.ExecuteReadAfterMaterializing(GetColumnDefinitionsCore);
+
+        private IReadOnlyList<ExcelColumnSnapshot> GetColumnDefinitionsCore() {
             Columns? columns = WorksheetRoot.GetFirstChild<Columns>();
+            IReadOnlyList<double>? pendingWidths = _excelDocument.GetDirectColumnWidthsForSnapshot(this);
+            if (pendingWidths != null) {
+                // A nondeferred direct-save candidate can hold newer auto-fit widths
+                // than the worksheet XML. Project them without changing either state.
+                columns = (Columns?)columns?.CloneNode(true) ?? new Columns();
+                var indexes = new List<int>();
+                var widths = new List<double>();
+                for (int i = 0; i < pendingWidths.Count; i++) {
+                    double width = NormalizeColumnWidth(pendingWidths[i]);
+                    if (width <= 0D) continue;
+                    indexes.Add(i + 1);
+                    widths.Add(width);
+                }
+                if (indexes.Count > 0) SetColumnWidthsCore(columns, indexes, widths.ToArray());
+            }
             if (columns == null) {
                 return Array.Empty<ExcelColumnSnapshot>();
             }
