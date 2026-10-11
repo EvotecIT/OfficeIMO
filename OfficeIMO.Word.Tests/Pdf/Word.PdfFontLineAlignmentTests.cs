@@ -83,7 +83,8 @@ public partial class Word {
         Assert.InRange(first.StartBaseLine.Y - second.StartBaseLine.Y, difference - .002D, difference + .002D);
     }
 
-    private static byte[] CreateLineAlignmentPdf(string route, string alignment, bool nativeDoc, bool table) {
+    private static byte[] CreateLineAlignmentPdf(string route, string alignment, bool nativeDoc, bool table,
+        WordLineSpacingRule lineSpacingRule = WordLineSpacingRule.Exact) {
         const string family = "OfficeIMO device alignment";
         using WordDocument source = WordDocument.Create();
         Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -126,7 +127,7 @@ public partial class Word {
         else if (route == "override") properties.TextAlignment = new TextAlignment { Val = VerticalTextAlignmentValues.Baseline };
         // A direct spacing declaration must not erase alignment inherited from elsewhere.
         paragraph.LineSpacingPoints = 40;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacingRule = lineSpacingRule;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(WordFileFormat.Doc) : source.ToBytes()));
         var options = new PdfOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
