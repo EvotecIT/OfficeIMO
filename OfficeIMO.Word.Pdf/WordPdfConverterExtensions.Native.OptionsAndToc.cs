@@ -99,12 +99,12 @@ namespace OfficeIMO.Word.Pdf {
         private static bool HasNativeBiDiParagraph(WordDocument document) {
             foreach (WordSection section in document.Sections) {
                 if (section.Elements.Any(HasNativeBiDiParagraph) ||
-                    HasNativeBiDiParagraph(section.Header?.Default) ||
-                    HasNativeBiDiParagraph(section.Header?.First) ||
-                    HasNativeBiDiParagraph(section.Header?.Even) ||
-                    HasNativeBiDiParagraph(section.Footer?.Default) ||
-                    HasNativeBiDiParagraph(section.Footer?.First) ||
-                    HasNativeBiDiParagraph(section.Footer?.Even)) {
+                    HasNativeBiDiParagraph(section.ResolveDefaultHeader()) ||
+                    HasNativeBiDiParagraph(section.ResolveFirstHeader()) ||
+                    HasNativeBiDiParagraph(section.ResolveEvenHeader()) ||
+                    HasNativeBiDiParagraph(section.ResolveDefaultFooter()) ||
+                    HasNativeBiDiParagraph(section.ResolveFirstFooter()) ||
+                    HasNativeBiDiParagraph(section.ResolveEvenFooter())) {
                     return true;
                 }
             }
@@ -241,12 +241,12 @@ namespace OfficeIMO.Word.Pdf {
 
             foreach (WordSection section in document.Sections) {
                 foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] {
-                             section.Header?.Default,
-                             section.Header?.First,
-                             section.Header?.Even,
-                             section.Footer?.Default,
-                             section.Footer?.First,
-                             section.Footer?.Even
+                             section.ResolveDefaultHeader(),
+                             section.ResolveFirstHeader(),
+                             section.ResolveEvenHeader(),
+                             section.ResolveDefaultFooter(),
+                             section.ResolveFirstFooter(),
+                             section.ResolveEvenFooter()
                          }) {
                     NativeHeaderFooterText? text = GetNativeHeaderFooterText(headerFooter, listMarkers);
                     yield return text?.Left;
@@ -304,12 +304,12 @@ namespace OfficeIMO.Word.Pdf {
                     RegisterNativeElementFonts(element, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
                 }
 
-                RegisterNativeHeaderFooterFonts(section.Header?.Default, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
-                RegisterNativeHeaderFooterFonts(section.Header?.First, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
-                RegisterNativeHeaderFooterFonts(section.Header?.Even, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
-                RegisterNativeHeaderFooterFonts(section.Footer?.Default, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
-                RegisterNativeHeaderFooterFonts(section.Footer?.First, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
-                RegisterNativeHeaderFooterFonts(section.Footer?.Even, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                RegisterNativeHeaderFooterFonts(section.ResolveDefaultHeader(), pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                RegisterNativeHeaderFooterFonts(section.ResolveFirstHeader(), pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                RegisterNativeHeaderFooterFonts(section.ResolveEvenHeader(), pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                RegisterNativeHeaderFooterFonts(section.ResolveDefaultFooter(), pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                RegisterNativeHeaderFooterFonts(section.ResolveFirstFooter(), pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                RegisterNativeHeaderFooterFonts(section.ResolveEvenFooter(), pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
 
                 foreach (WordWatermark watermark in section.Watermarks) {
                     RegisterNativeFontCandidate(watermark.FontFamily, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);

@@ -395,14 +395,14 @@ namespace OfficeIMO.Word.Pdf {
 
             double headerExpansion = UsesNativeRunningHeader(section, options) ? 0D : GetNativeHeaderFooterMarginExpansion(
                 listMarkers,
-                section.Header?.Default,
-                section.DifferentFirstPage ? section.Header?.First : null,
-                section.DifferentOddAndEvenPages ? section.Header?.Even : null);
+                section.ResolveDefaultHeader(),
+                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.DifferentOddAndEvenPages ? section.ResolveEvenHeader() : null);
             double footerExpansion = UsesNativeRunningFooter(section, options) ? 0D : GetNativeFooterMarginExpansion(
                 listMarkers,
-                section.Footer?.Default,
-                section.DifferentFirstPage ? section.Footer?.First : null,
-                section.DifferentOddAndEvenPages ? section.Footer?.Even : null);
+                section.ResolveDefaultFooter(),
+                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.DifferentOddAndEvenPages ? section.ResolveEvenFooter() : null);
 
             double baseTop = (section.Margins.Top ?? 0) / 20D;
             if (section._document.Settings.GutterAtTop) baseTop += section.Margins.Gutter / 20D;

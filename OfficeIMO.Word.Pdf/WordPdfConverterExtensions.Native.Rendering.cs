@@ -1199,9 +1199,8 @@ namespace OfficeIMO.Word.Pdf {
                    ParseNativeColor(GetNativeParagraphStyleDefaults(paragraph).ColorHex);
         }
 
-        private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, WordParagraph? fallback, NativeCharacterStyleDefaults characterStyleDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+        private static PdfCore.PdfStandardFont? ResolveNativeTextRunFont(WordParagraph paragraph, NativeCharacterStyleDefaults characterStyleDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableRunStyleDefaults tableRunStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
             foreach (string family in EnumerateNativeParagraphOwnFontFamilies(paragraph)
-                .Concat(fallback == null ? Array.Empty<string>() : EnumerateNativeParagraphOwnFontFamilies(fallback))
                 .Concat(EnumerateNativeStyleFontFamilies(characterStyleDefaults, styleDefaults, tableRunStyleDefaults,
                     nativeDefaults, nativeFontMap?.UsePdfDefaultForDocumentDefaultFont != true))) {
                 if (TryResolveNativeMappedFont(family, nativeFontMap, out PdfCore.PdfStandardFont font)) return font;
@@ -1216,7 +1215,6 @@ namespace OfficeIMO.Word.Pdf {
 
         private static string? ResolveNativeTextRunFontFamily(
             WordParagraph paragraph,
-            WordParagraph? fallback,
             NativeCharacterStyleDefaults characterStyleDefaults,
             NativeParagraphStyleDefaults styleDefaults,
             NativeTableRunStyleDefaults tableRunStyleDefaults,
@@ -1227,7 +1225,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (string? familyName in EnumerateNativeParagraphOwnFontFamilies(paragraph)
-                .Concat(fallback == null ? Enumerable.Empty<string>() : EnumerateNativeParagraphOwnFontFamilies(fallback))
                 .Concat(EnumerateNativeStyleFontFamilies(characterStyleDefaults, styleDefaults, tableRunStyleDefaults,
                     nativeDefaults, !nativeFontMap.UsePdfDefaultForDocumentDefaultFont))) {
                 if (string.IsNullOrWhiteSpace(familyName)) {
