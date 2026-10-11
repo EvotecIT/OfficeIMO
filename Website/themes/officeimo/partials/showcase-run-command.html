@@ -1,0 +1,5 @@
+{{ run_command = card.run_command }}
+{{ if source_language == "powershell" }}
+  {{ run_command = run_command | string.replace '{moduleVersion}' data.pswriteoffice_command_catalog.module.version }}
+  {{ desktop_run_command = run_command | string.replace 'pwsh -NoProfile' 'powershell -NoProfile' }}
+{{ end }}

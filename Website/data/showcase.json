@@ -1932,7 +1932,7 @@
         "convert"
       ],
       "source_path": "OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1",
-      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
       "downloads": [
         {
           "label": "DOCX",

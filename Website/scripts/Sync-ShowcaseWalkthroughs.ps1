@@ -22,10 +22,8 @@ foreach ($card in $catalog.cards) {
     if ($card.source_language -cne $expectedLanguage -or $card.source_language -cnotin @($catalog.source_languages.id)) {
         throw "Source language must match the generating file on '$($card.id)'."
     }
-    if ($expectedLanguage -eq 'powershell') {
-        $moduleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $websiteRoot 'data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
-        $runVersion = [regex]::Match($card.run_command, '(?:^|\s)-ModuleVersion\s+(\d+\.\d+\.\d+)(?:\s|$)').Groups[1].Value
-        if ($runVersion -cne $moduleVersion) { throw "PowerShell run command must select the imported module version $moduleVersion on '$($card.id)'." }
+    if ($expectedLanguage -eq 'powershell' -and $card.run_command -notmatch '(?:^|\s)-ModuleVersion\s+\{moduleVersion\}(?:\s|$)') {
+        throw "PowerShell run command must select the imported module version with {moduleVersion} on '$($card.id)'."
     }
 }
 
