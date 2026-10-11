@@ -8,13 +8,17 @@ New-Item -ItemType Directory -Path $TestRoot | Out-Null
 'sample input' | Set-Content -LiteralPath (Join-Path $TestRoot 'input.csv')
 $card = [pscustomobject]@{ id = 'example'; source_language = 'powershell'; source_path = 'example.ps1'; source_url = '/downloads/showcase/example.ps1'; downloads = @([pscustomobject]@{ url = '/downloads/showcase/input.csv' }, [pscustomobject]@{ url = '/downloads/showcase/report.pdf' }); previews = @([pscustomobject]@{ url = '/downloads/showcase/preview.png' }) }
 $catalog = [pscustomobject]@{ cards = @($card); artifacts = @([pscustomobject]@{ sourceRoot = 'repository'; source = 'input.csv'; destination = 'input.csv' }) }
+$card.downloads += [pscustomobject]@{ url = '/downloads/showcase/report.docx' }
+$catalog.artifacts += @([pscustomobject]@{ sourceRoot = 'documents'; source = 'report.pdf'; destination = 'report.pdf' }, [pscustomobject]@{ sourceRoot = 'documents'; source = 'report.docx'; destination = 'report.docx' })
 $artifacts = @(
     [pscustomobject]@{ path = '/downloads/showcase/example.ps1'; sha256 = (Get-FileHash -LiteralPath (Join-Path $TestRoot 'example.ps1')).Hash.ToLowerInvariant() }
     [pscustomobject]@{ path = '/downloads/showcase/input.csv'; sha256 = (Get-FileHash -LiteralPath (Join-Path $TestRoot 'input.csv')).Hash.ToLowerInvariant() }
     [pscustomobject]@{ path = '/downloads/showcase/report.pdf'; sha256 = 'output-hash' }
     [pscustomobject]@{ path = '/downloads/showcase/preview.png'; sha256 = 'preview-hash' }
+    [pscustomobject]@{ path = '/downloads/showcase/report.docx'; sha256 = 'docx-hash' }
 )
 $receipt = [pscustomobject]@{ exampleId = 'example'; state = 'generated'; completedUtc = '2026-01-01T00:00:00Z'; sources = @(Get-ShowcaseSourceBindings $TestRoot $catalog $card); package = [pscustomobject]@{ version = '3.0.8' }; outputs = @([pscustomobject]@{ path = '/downloads/showcase/report.pdf'; sha256 = 'output-hash' }) }
+$receipt.outputs += [pscustomobject]@{ path = '/downloads/showcase/report.docx'; sha256 = 'docx-hash' }
 $arguments = @{ RepositoryRoot = $TestRoot; Catalog = $catalog; Artifacts = $artifacts; ModuleVersion = '3.0.8'; Generated = @{}; Previous = @() }
 function Assert-Contract([bool] $Condition, [string] $Message) { if (-not $Condition) { throw $Message } }
 $unknown = @(Complete-ShowcaseGenerationEvidence @arguments)
@@ -29,6 +33,12 @@ Assert-Contract ($reviewed[0].previewReview.state -ceq 'reviewed' -and $reviewed
 $arguments.Previous = $reviewed
 $retained = @(Complete-ShowcaseGenerationEvidence @arguments)
 Assert-Contract (($retained | ConvertTo-Json -Depth 12 -Compress) -ceq ($reviewed | ConvertTo-Json -Depth 12 -Compress)) 'Manifest-only refresh must retain matching producer and review evidence unchanged.'
+$completeOutputs = $receipt.outputs
+foreach ($incompleteOutputs in @(@(), @($completeOutputs[0]), @($completeOutputs[0], $completeOutputs[0]), @($completeOutputs[0], [pscustomobject]@{ path = '/downloads/showcase/unrelated.pdf'; sha256 = 'output-hash' }))) {
+    $receipt.outputs = $incompleteOutputs
+    Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'Missing, duplicate or unrelated native outputs must invalidate the producer receipt.'
+}
+$receipt.outputs = $completeOutputs
 $artifacts[3].sha256 = 'changed-preview'
 $stale = @(Complete-ShowcaseGenerationEvidence @arguments)
 Assert-Contract ($stale[0].state -ceq 'invalidated' -and $stale[0].previewReview.state -ceq 'pending') 'Changed preview must invalidate previous review.'
