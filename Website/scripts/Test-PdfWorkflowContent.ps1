@@ -88,9 +88,17 @@ if ($missingContent.Count -gt 0 -or $missingBrowserTools.Count -gt 0 -or $browse
     throw "PDF browser tools and public workflow catalog differ. Missing content: $($missingContent -join ', '). Missing browser tools: $($missingBrowserTools -join ', ')."
 }
 
+# Browser tool pages are addressed by the slugs in data/browser_tools.json.
+$browserTools = (Get-Content -LiteralPath (Join-Path $siteRootPath 'data\browser_tools.json') -Raw | ConvertFrom-Json).tools
+function Get-BrowserToolUrl([string] $Kind, [string] $Target) {
+    $match = @($browserTools | Where-Object { $_.engine.kind -eq $Kind -and $_.engine.target -eq $Target })
+    if ($match.Count -ne 1) { throw "data/browser_tools.json must have exactly one $Kind tool for '$Target'; found $($match.Count)." }
+    return "/browser/$($match[0].id)/"
+}
+
 foreach ($operation in $operations) {
     $pagePath = Join-Path $siteRootPath "content\pdf-workflows\$($operation.slug).md"
-    $browserUrl = [string] $catalog.browserBaseUrl + [string] $operation.id
+    $browserUrl = Get-BrowserToolUrl -Kind pdf -Target ([string] $operation.id)
     Assert-WorkflowPage -Path $pagePath -Identity ([string] $operation.id) -PrimaryUrl $browserUrl
 }
 
@@ -117,7 +125,7 @@ foreach ($item in $browserConversions) {
         throw "PDF browser conversion '$($item.routeId)' presentation differs from the conversion catalog."
     }
     $pagePath = Join-Path $siteRootPath "content\conversions\$($item.slug).md"
-    $browserUrl = "/convert/?workspace=convert&route=$($item.routeId)"
+    $browserUrl = Get-BrowserToolUrl -Kind convert -Target ([string] $item.routeId)
     Assert-WorkflowPage -Path $pagePath -Identity ([string] $item.routeId) -PrimaryUrl $browserUrl
 }
 
@@ -131,7 +139,7 @@ if (-not $hubText.Contains('{{< pdf-workflows >}}', [StringComparison]::Ordinal)
 }
 foreach ($requiredHubContract in @(
     'layout: conversion',
-    'meta.primary_url: "/convert/?workspace=pdf"',
+    'meta.primary_url: "/convert/#browser-pdf"',
     'meta.source_format:',
     'meta.destination_format:',
     'meta.limit:'

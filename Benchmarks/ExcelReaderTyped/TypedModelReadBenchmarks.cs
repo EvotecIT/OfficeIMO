@@ -11,6 +11,9 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     public enum TypedModelKind { Class, Struct }
 
     /// <summary>The value-type counterpart of the upstream four-property record.</summary>
+#if OFFICEIMO_BENCHMARK_GENERATED_MAPPING
+    [GenerateRowMapper]
+#endif
     public struct TypedValueRecord {
         public string? Name { get; set; }
         public int Id { get; set; }

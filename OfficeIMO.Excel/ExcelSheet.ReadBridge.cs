@@ -4,9 +4,7 @@ using System.Threading;
 using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Read convenience methods exposed directly on ExcelSheet to avoid separate reader usage.
-    /// </summary>
+    // Read convenience methods exposed directly on ExcelSheet to avoid separate reader usage.
     public partial class ExcelSheet {
         /// <summary>
         /// Returns the used range A1 address for this sheet.

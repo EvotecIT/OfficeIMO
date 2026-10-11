@@ -38,7 +38,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public string? Fields { get; set; }
     }
 
-    /// <summary>Provides Drive collaboration, revision, and change-feed operations.</summary>
+    //Provides Drive collaboration, revision, and change-feed operations.
     public sealed partial class GoogleDriveClient {
         /// <summary>Lists one page of permissions for a file or shared drive.</summary>
         /// <param name="fileId">The file or shared-drive identifier.</param>

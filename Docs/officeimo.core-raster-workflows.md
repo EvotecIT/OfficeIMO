@@ -212,6 +212,30 @@ replacing invalid text. Independent EXIF edits preserve malformed XMP bytes. A v
 packet can replace malformed XMP through the direct writer.
 The writer includes the caller's UTF-16 packet storage in its managed working-set budget.
 
+Use `TryWriteMetadata` when EXIF and XMP changes must complete together before saving.
+Its explicit mask accepts only `Exif` and `Xmp`; every selected family must have an existing
+writable item. Null metadata clears the selected profiles. A nonnull `OfficeImageMetadata`
+supplies replacement EXIF and strict UTF-8 `XmpProfile` bytes; a missing selected profile
+also clears its item. Unselected families remain unchanged. Any rejected edit returns
+`false` with null output, leaving the input untouched:
+
+```csharp
+OfficeImageMetadataProfileKinds profiles =
+    OfficeImageMetadataProfileKinds.Exif | OfficeImageMetadataProfileKinds.Xmp;
+if (!OfficeHeifMetadataReader.TryWriteMetadata(heif, null, profiles,
+        out byte[]? completed, cancellationToken)) {
+    throw new NotSupportedException("The selected HEIF profiles cannot be cleared.");
+}
+OfficeImageFileWriter.WriteAllBytes("clean-photo.heic", completed!, cancellationToken);
+```
+
+This example requires both existing profiles. Select only the declared families when the
+workflow treats absent profiles as a no-op. `None` performs an independent bounded copy
+without inspecting profile items; the encoded, cancellation, and managed memory ceilings
+still apply. Combined edits share parser work limits and charge supplied profiles and the
+first rewritten buffer while preparing the second. Save only the completed result through
+one final atomic file write.
+
 ## Save complete encoded output
 
 `OfficeImageFileWriter` saves completed encoded bytes through Core's shared atomic file

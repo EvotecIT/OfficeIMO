@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 int nextRowIndex = 1;
                 dt.MinimumCapacity = Math.Max(dt.MinimumCapacity, dataRowCount);
                 dt.BeginLoadData();
@@ -28,7 +29,7 @@ namespace OfficeIMO.Excel {
                     while (!advanceReader || reader.Read()) {
                         advanceReader = true;
                         if (canCancel) ct.ThrowIfCancellationRequested();
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") continue;
+                        if (!worksheetRows.IsRowElement(reader)) continue;
 
                         int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                         if (rowIndex <= 0) rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);

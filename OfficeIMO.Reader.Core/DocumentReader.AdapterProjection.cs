@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.Reader;
 
@@ -38,13 +39,15 @@ internal static partial class DocumentReaderEngine {
         string value,
         int firstPartMaxChars,
         int subsequentPartMaxChars) {
-        if (string.IsNullOrEmpty(value)) return Array.Empty<string>();
+        return EnumerateAdapterProjection(value, firstPartMaxChars, subsequentPartMaxChars).ToArray();
+    }
+
+    /// <summary>Produces one bounded projection at a time so adapters can enforce chunk budgets before retaining a full split.</summary>
+    internal static IEnumerable<string> EnumerateAdapterProjection(string value, int firstPartMaxChars, int subsequentPartMaxChars) {
+        if (string.IsNullOrEmpty(value)) yield break;
 
         int firstLimit = Math.Max(1, firstPartMaxChars);
         int subsequentLimit = Math.Max(1, subsequentPartMaxChars);
-        if (value.Length <= firstLimit) return new[] { value };
-
-        var parts = new List<string>(value.Length / subsequentLimit + 1);
         int offset = 0;
         int limit = firstLimit;
         while (offset < value.Length) {
@@ -56,10 +59,9 @@ internal static partial class DocumentReaderEngine {
                 length = length == 1 ? 2 : length - 1;
             }
 
-            parts.Add(value.Substring(offset, length));
+            yield return value.Substring(offset, length);
             offset += length;
             limit = subsequentLimit;
         }
-        return parts;
     }
 }
