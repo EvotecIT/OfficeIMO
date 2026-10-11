@@ -42,6 +42,6 @@ For events, use `-CollectLive` on Windows to query the selected local log for cr
 ./Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1 -CollectLive -LogName Application -MaxEvents 100 -OutputDirectory ./Output/LiveBrief
 ```
 
-Or query once yourself and pass the snapshot with `-Event`. The script retains at most `MaxEvents` records, shows the top eight providers in Word, and keeps all retained records in Excel. An empty snapshot produces an explicit empty report. A count of returned events is not the total size of the log or a root-cause conclusion. Review full messages before sharing the workbook.
+Or query once yourself and pass raw or typed `Get-EVXEvent` results with `-Event`. Typed results use their `SourceEvent` snapshot. The script retains at most `MaxEvents` records, shows the top eight providers in Word, and keeps all retained records in Excel, including the source computer and log where supplied. An empty snapshot produces an explicit empty report. A count of returned events is not the total size of the log or a root-cause conclusion. Review full messages before sharing the workbook.
 
 For email, pass any existing PDF, DOCX or XLSX paths through `-AttachmentPath`. Omitting attachments creates a small sample service PDF. Delivery is a separate opt-in: the existing `-Send` switch requires `-SmtpServer`; `-Port` defaults to 587 and the recipe uses StartTLS. Supply your real recipients and `-Credential` where the server requires authentication. Local EML creation needs no mail credentials.
