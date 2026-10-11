@@ -4,11 +4,11 @@ description: "Use Mailozaurr to save report attachments in a local EML for revie
 layout: docs
 ---
 
-Prepare the message as a file so a reviewer can inspect recipients, text and attachments. The default recipe creates this small service PDF and embeds it in an EML with example.invalid recipients.
+Prepare the message as a file so a reviewer can inspect recipients, text and attachments. The default recipe creates this small service PDF and embeds it in an EML with example.invalid recipients and a unique example.invalid message identity.
 
 ![Generated service report with space between its heading, table and next action](/downloads/integrations/mail-default/preview.png)
 
-[Service PDF](/downloads/integrations/mail-default/Daily-Service-Report.pdf) · [Local EML package](/downloads/integrations/mail-default/ReportReview.eml) · [Complete script](https://github.com/EvotecIT/PSWriteOffice/blob/76b1994c7a3a2fe23d5e57b180c94aa1c8e43d58/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1)
+[Service PDF](/downloads/integrations/mail-default/Daily-Service-Report.pdf) · [Local EML package](/downloads/integrations/mail-default/ReportReview.eml) · [Complete script](https://github.com/EvotecIT/PSWriteOffice/blob/9290893aec8913d1e95fbb43d9e60940fab448fe/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1)
 
 ## Prepare your own attachments
 

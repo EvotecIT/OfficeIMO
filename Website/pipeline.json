@@ -3994,6 +3994,7 @@
       "noDefaultExclude": false,
       "excludePatterns": [
         "downloads/showcase/**",
+        "downloads/integrations/**",
         "**/api-fragments/**",
         "**/*.scripts.html",
         "**/*.head.html"

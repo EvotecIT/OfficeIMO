@@ -1,12 +1,12 @@
 From: Reporting <reporting@example.invalid>
-Date: Sun, 11 Oct 2026 15:35:23 +0200
+Date: Mon, 12 Oct 2026 01:14:35 +0200
 Subject: Report review package
-Message-Id: <17J8GE1GJUU4.8DFNVS0TFAN43@evomagic>
+Message-Id: cc21189fd2344afba1cfa745d33e92f6@example.invalid
 To: Review team <review@example.invalid>
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="=-uZCpW501zGYbXKWqqAxJjA=="
+Content-Type: multipart/mixed; boundary="=-Or+wcRUIK4MCnm0DlUWwtw=="
 
---=-uZCpW501zGYbXKWqqAxJjA==
+--=-Or+wcRUIK4MCnm0DlUWwtw==
 Content-Type: text/plain; charset=utf-8
 
 Hello,
@@ -15,7 +15,7 @@ Please review the attached report and any editable registers.
 Confirm the findings, decision owner and next action before distribution.
 
 This EML is a local review package. Open it in a mail client to inspect its recipients and attachments.
---=-uZCpW501zGYbXKWqqAxJjA==
+--=-Or+wcRUIK4MCnm0DlUWwtw==
 Content-Type: application/pdf; name=Daily-Service-Report.pdf
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename=Daily-Service-Report.pdf
@@ -98,4 +98,4 @@ cmFpbGVyCjw8IC9TaXplIDggL1Jvb3QgNiAwIFIgL0luZm8gNyAwIFIgL0lEIFs8QjBGM0ZDRjUx
 QzJBMjFDNzE5NjA4NUM3RDRBOTAwNTE+IDxCMEYzRkNGNTFDMkEyMUM3MTk2MDg1QzdENEE5MDA1
 MT5dID4+CnN0YXJ0eHJlZgo0MDQ4CiUlRU9GCg==
 
---=-uZCpW501zGYbXKWqqAxJjA==--
+--=-Or+wcRUIK4MCnm0DlUWwtw==--

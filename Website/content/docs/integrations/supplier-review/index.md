@@ -19,7 +19,7 @@ Install-Module PSParseHTML, PSWriteOffice -Scope CurrentUser
 ./Examples/Integrations/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 ```
 
-Read the [complete script](https://github.com/EvotecIT/PSWriteOffice/blob/76b1994c7a3a2fe23d5e57b180c94aa1c8e43d58/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) and [sample HTML](https://github.com/EvotecIT/PSWriteOffice/blob/76b1994c7a3a2fe23d5e57b180c94aa1c8e43d58/Examples/Integrations/Input/SupplierOffers.html). For a small standalone run, download the [script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and save the [HTML input](/downloads/integrations/source/Input/SupplierOffers.html) as `Input/SupplierOffers.html` beside it.
+Read the [complete script](https://github.com/EvotecIT/PSWriteOffice/blob/9290893aec8913d1e95fbb43d9e60940fab448fe/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) and [sample HTML](https://github.com/EvotecIT/PSWriteOffice/blob/9290893aec8913d1e95fbb43d9e60940fab448fe/Examples/Integrations/Input/SupplierOffers.html). For a small standalone run, download the [script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and save the [HTML input](/downloads/integrations/source/Input/SupplierOffers.html) as `Input/SupplierOffers.html` beside it.
 
 ## Adapt the data
 

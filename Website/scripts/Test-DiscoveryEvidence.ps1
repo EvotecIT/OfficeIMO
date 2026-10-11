@@ -300,6 +300,23 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
         }
     }
 
+    foreach ($sitemapArtifact in @('sitemap.xml', 'sitemap/index.json', 'sitemap/index.html')) {
+        $sitemapArtifactPath = Join-Path $resolvedArtifactRoot $sitemapArtifact
+        if (-not (Test-Path -LiteralPath $sitemapArtifactPath -PathType Leaf)) {
+            Add-Failure "The generated discovery artifact '$sitemapArtifact' is missing."
+        } else {
+            $contents = Get-Content -LiteralPath $sitemapArtifactPath -Raw
+            $discoveryUrls = @(switch ($sitemapArtifact) {
+                'sitemap.xml' { ([xml] $contents).urlset.url | ForEach-Object { [string] $_.loc } }
+                'sitemap/index.json' { ($contents | ConvertFrom-Json).entries | ForEach-Object { [string] $_.url } }
+                'sitemap/index.html' { [regex]::Matches($contents, '\bhref=["''](?<url>[^"'']+)["'']') | ForEach-Object { $_.Groups['url'].Value } }
+            })
+            if (@($discoveryUrls | Where-Object { $_ -match '^(?:https://officeimo\.com)?/downloads/(?:showcase|integrations)/' }).Count) {
+                Add-Failure "Generated '$sitemapArtifact' advertises a sample download as a website page."
+            }
+        }
+    }
+
     $sitemapPath = Join-Path $resolvedArtifactRoot 'sitemap.xml'
     if (-not (Test-Path -LiteralPath $sitemapPath)) {
         Add-Failure 'The generated sitemap.xml is missing.'
