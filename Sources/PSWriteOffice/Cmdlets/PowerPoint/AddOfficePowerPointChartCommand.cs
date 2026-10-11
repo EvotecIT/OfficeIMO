@@ -232,7 +232,7 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
         if (item is IDictionary dictionary) {
             foreach (DictionaryEntry entry in dictionary) {
                 if (entry.Key is string key && string.Equals(key, propertyName, StringComparison.OrdinalIgnoreCase)) {
-                    return entry.Value;
+                    return UnwrapValue(entry.Value);
                 }
             }
         }
@@ -242,7 +242,16 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
             throw new PSArgumentException($"Property '{propertyName}' was not found on chart data item.");
         }
 
-        return property.Value;
+        return UnwrapValue(property.Value);
+    }
+
+    private static object? UnwrapValue(object? value) {
+        // Select-Object calculated properties can retain a PSObject around a scalar.
+        while (value is PSObject wrapper && !ReferenceEquals(value, wrapper.BaseObject)) {
+            value = wrapper.BaseObject;
+        }
+
+        return value;
     }
 
     private static string ConvertToString(object? value, string propertyName) {
