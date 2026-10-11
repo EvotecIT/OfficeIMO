@@ -250,8 +250,8 @@ public sealed class OfficeArtShapeStyle {
 
     private int? GetBlipStoreIndex(ushort propertyId) {
         OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
-            candidate.PropertyId == propertyId && candidate.IsBlipId && !candidate.IsComplex);
-        return property == null || property.Value == 0 || property.Value > int.MaxValue
+            candidate.PropertyId == propertyId);
+        return property == null || !property.IsBlipId || property.IsComplex || property.Value == 0 || property.Value > int.MaxValue
             ? null
             : unchecked((int)property.Value);
     }
@@ -259,8 +259,9 @@ public sealed class OfficeArtShapeStyle {
     private IReadOnlyList<OfficeArtGradientStop> ReadGradientStops(out bool truncated) {
         truncated = false;
         OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
-            candidate.PropertyId == 0x0197 && candidate.IsComplex);
-        if (property == null) return Array.Empty<OfficeArtGradientStop>();
+            candidate.PropertyId == 0x0197);
+        if (property == null || property.Value == 0) return Array.Empty<OfficeArtGradientStop>();
+        if (!property.IsComplex) { truncated = true; return Array.Empty<OfficeArtGradientStop>(); }
         byte[]? data = property.CopyComplexData();
         if (data == null || data.Length < 6) {
             truncated = true;
