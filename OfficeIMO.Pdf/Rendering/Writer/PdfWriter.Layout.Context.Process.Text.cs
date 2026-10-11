@@ -144,8 +144,11 @@ internal static partial class PdfWriter {
                 PdfKeepTogetherOverflowBehavior.Reject;
             bool SkipColumnsForParagraphOverflow() => splittingConstrainedParagraph &&
                 paragraphStyle?.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages;
+            // Every column shares this partial physical frame. Ordinary used
+            // columns still advance in reading order when just their tail fills.
             bool AdvancePastPartialColumn(double height) => CanOverflowImportedExactLine(paragraphStyle) &&
-                IsPartialPhysicalColumnFrame() && height > y - currentOpts.MarginBottom + .001D;
+                activeColumnFlow is { } column && IsPartialPhysicalColumnFrame() &&
+                height > column.Top - column.ParentOptions.MarginBottom + .001D;
             if (activeColumnFlow is { Options.BalanceParagraphLines: false, Options.BalanceLastPage: true } &&
                 lineHeights.Sum() <= GetMaximumBlockContinuationHeight() + 0.001D) {
                 paragraphStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
