@@ -1,13 +1,13 @@
+[CmdletBinding()]
+param(
+    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output')
+)
+
 $ErrorActionPreference = 'Stop'
 
-$moduleManifest = Join-Path $PSScriptRoot '..\..\PSWriteOffice.psd1'
-if (Test-Path -LiteralPath $moduleManifest) {
-    Import-Module $moduleManifest -Force -ErrorAction Stop
-} else {
-    Import-Module PSWriteOffice -ErrorAction Stop
-}
+Import-Module PSWriteOffice -ErrorAction Stop
 
-$documents = Join-Path $PSScriptRoot '..\Documents'
+$documents = $OutputDirectory
 $null = New-Item -Path $documents -ItemType Directory -Force
 $wordPath = Join-Path $documents 'Showcase-RichTextRuns.docx'
 $excelPath = Join-Path $documents 'Showcase-RichTextRuns.xlsx'
@@ -58,7 +58,7 @@ ExcelNew -Path $excelPath {
             ExcelTextRun 'Owner: '
             ExcelTextRun 'Platform' -Color Navy -Bold
         )
-        ExcelTable -Data $serviceRows -TableName 'ServiceReadiness'
+        ExcelTable -Data $serviceRows -TableName 'ServiceReadiness' -StartRow 5 -StartColumn 1
         ExcelAutoFit
     }
 }
@@ -85,6 +85,7 @@ PdfNew -Path $pdfPath {
 }
 
 PptNew -Path $pptPath {
+    PptSlideSize -Preset Screen16x9
     PptSlide {
         PptTitle -Title 'Rich text runs'
         PptTextBox -Run @(
@@ -111,7 +112,7 @@ PptNew -Path $pptPath {
                 'Platform'
             )
             , @('Backup', @{ Run = @(PptTextRun 'Watch' -Color DarkOrange -Bold) }, 'Operations')
-        ) -X 70 -Y 190 -Width 560 -Height 220
+        ) -X 70 -Y 190 -Width 560 -Height 160
     }
 }
 

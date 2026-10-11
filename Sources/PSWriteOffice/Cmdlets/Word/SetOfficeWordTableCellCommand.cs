@@ -28,6 +28,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Reads cells from an OfficeIMO table object, applies cell shading and width, and saves the updated document.</para>
 /// </example>
 /// <example>
+///   <summary>Add readable padding to every cell in a report table.</summary>
+///   <prefix>PS&gt; </prefix>
+///   <code>$table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16</code>
+///   <para>Sets independent cell margins in centimeters. Omitted margins retain their values; pass null to remove an explicit margin.</para>
+/// </example>
+/// <example>
 ///   <summary>Merge a heading row across columns.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$doc = Get-OfficeWord -Path .\Report.docx
@@ -49,6 +55,18 @@ public sealed class SetOfficeWordTableCellCommand : PSCmdlet
 
     /// <summary>Replace the visible cell text.</summary>
     [Parameter] public string? Text { get; set; }
+
+    /// <summary>Top cell padding in centimeters. Pass null to remove the explicit margin.</summary>
+    [Parameter] public double? MarginTopCentimeters { get; set; }
+
+    /// <summary>Bottom cell padding in centimeters. Pass null to remove the explicit margin.</summary>
+    [Parameter] public double? MarginBottomCentimeters { get; set; }
+
+    /// <summary>Left cell padding in centimeters. Pass null to remove the explicit margin.</summary>
+    [Parameter] public double? MarginLeftCentimeters { get; set; }
+
+    /// <summary>Right cell padding in centimeters. Pass null to remove the explicit margin.</summary>
+    [Parameter] public double? MarginRightCentimeters { get; set; }
 
     /// <summary>Cell shading fill color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
@@ -102,7 +120,16 @@ public sealed class SetOfficeWordTableCellCommand : PSCmdlet
             return;
         }
 
+        ValidateMargin(MarginTopCentimeters, nameof(MarginTopCentimeters));
+        ValidateMargin(MarginBottomCentimeters, nameof(MarginBottomCentimeters));
+        ValidateMargin(MarginLeftCentimeters, nameof(MarginLeftCentimeters));
+        ValidateMargin(MarginRightCentimeters, nameof(MarginRightCentimeters));
+
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Text))) Cell.AddParagraph(Text ?? string.Empty, removeExistingParagraphs: true);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginTopCentimeters))) Cell.MarginTopCentimeters = MarginTopCentimeters;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottomCentimeters))) Cell.MarginBottomCentimeters = MarginBottomCentimeters;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeftCentimeters))) Cell.MarginLeftCentimeters = MarginLeftCentimeters;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRightCentimeters))) Cell.MarginRightCentimeters = MarginRightCentimeters;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingFillColor))) Cell.ShadingFillColorHex = ShadingFillColor ?? string.Empty;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingPattern))) Cell.ShadingPattern = ShadingPattern;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Cell.Width = Width;
@@ -121,4 +148,12 @@ public sealed class SetOfficeWordTableCellCommand : PSCmdlet
         }
     }
 
+    private static void ValidateMargin(double? value, string name)
+    {
+        // OfficeIMO stores cell margins as signed 16-bit twips. Null removes an override.
+        if (value.HasValue && (double.IsNaN(value.Value) || value.Value < 0 || value.Value > 57.7))
+        {
+            throw new PSArgumentOutOfRangeException(name, value, "Cell margins must be between 0 and 57.7 centimeters, or null.");
+        }
+    }
 }
