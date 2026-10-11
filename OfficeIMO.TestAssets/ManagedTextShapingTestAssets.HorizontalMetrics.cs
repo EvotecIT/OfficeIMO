@@ -5,6 +5,27 @@ using System.Linq;
 namespace OfficeIMO.TestAssets;
 
 internal static partial class ManagedTextShapingTestAssets {
+    internal static byte[] CreateFontWithDeviceMetrics(byte[]? deviceMetrics = null) {
+        if (deviceMetrics == null) {
+            deviceMetrics = new byte[28];
+            WriteUInt16(deviceMetrics, 0, 1);
+            WriteUInt16(deviceMetrics, 2, 1);
+            WriteUInt16(deviceMetrics, 4, 1);
+            deviceMetrics[6] = deviceMetrics[7] = deviceMetrics[8] = deviceMetrics[9] = 1;
+            WriteUInt16(deviceMetrics, 10, 12);
+            WriteUInt16(deviceMetrics, 12, 2);
+            deviceMetrics[14] = 67; deviceMetrics[15] = 133;
+            WriteUInt16(deviceMetrics, 16, 67);
+            WriteUInt16(deviceMetrics, 18, 60);
+            WriteInt16(deviceMetrics, 20, -15);
+            WriteUInt16(deviceMetrics, 22, 133);
+            WriteUInt16(deviceMetrics, 24, 119);
+            WriteInt16(deviceMetrics, 26, -30);
+        }
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { (int)'A', (int)'B' }),
+            glyphCount: 3, vdmx: deviceMetrics);
+    }
+
     internal static byte[] CreateFontWithUniformAdvance(ushort unitsPerEm, ushort advanceWidth, params int[] scalars) {
         if (scalars == null || scalars.Length == 0) throw new ArgumentException("At least one scalar is required.", nameof(scalars));
         int[] ordered = new SortedSet<int>(scalars).ToArray();

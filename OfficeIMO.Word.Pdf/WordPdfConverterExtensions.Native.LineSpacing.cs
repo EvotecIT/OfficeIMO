@@ -7,10 +7,11 @@ namespace OfficeIMO.Word.Pdf {
         // automatic value is a multiplier, not a height measured with the style font.
         private readonly record struct NativeLineSpacing(double? Value, W.LineSpacingRuleValues? Rule) {
             public double? GridPitch { get; init; }
+            public W.VerticalTextAlignmentValues? FontAlignment { get; init; }
             // Word ignores a rule without a value in the same declaration.
             // Inherit the complete pair so its numeric units do not change.
             public NativeLineSpacing Inherit(NativeLineSpacing inherited) =>
-                Value.HasValue ? this : inherited;
+                (Value.HasValue ? this : inherited) with { FontAlignment = FontAlignment ?? inherited.FontAlignment };
 
             public OfficeIMO.Pdf.PdfLineSpacing? ToPdfLineSpacing(double naturalLineHeight) {
                 OfficeIMO.Pdf.PdfLineSpacing spacing;
@@ -25,7 +26,17 @@ namespace OfficeIMO.Word.Pdf {
                     // box in body, column and table exports, regardless of font.
                     : OfficeIMO.Pdf.PdfLineSpacing.Exactly(Value.Value / 20D)
                         .WithFixedLineBoxBaseline(Value.Value / 20D * .8D);
-                return GridPitch.HasValue ? spacing.WithLineGrid(GridPitch.Value) : spacing;
+                if (GridPitch.HasValue) spacing = spacing.WithLineGrid(GridPitch.Value);
+                // The native PDF layout device uses 600 square pixels per inch.
+                // Align each font within the exact box without rounding line advances.
+                if (spacing.IsExact && FontAlignment.HasValue) {
+                    var alignment = FontAlignment.Value == W.VerticalTextAlignmentValues.Top ? OfficeIMO.Pdf.PdfFontLineAlignment.Top
+                        : FontAlignment.Value == W.VerticalTextAlignmentValues.Center ? OfficeIMO.Pdf.PdfFontLineAlignment.Center
+                        : FontAlignment.Value == W.VerticalTextAlignmentValues.Bottom ? OfficeIMO.Pdf.PdfFontLineAlignment.Bottom
+                        : OfficeIMO.Pdf.PdfFontLineAlignment.Baseline;
+                    spacing = spacing.WithFontAlignment(alignment, 72D / 600D);
+                }
+                return spacing;
             }
 
             public double? Resolve(double fontSize, double naturalLineHeight) {
@@ -41,16 +52,19 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static NativeLineSpacing ReadNativeLineSpacing(W.SpacingBetweenLines? spacing) {
+        private static NativeLineSpacing ReadNativeLineSpacing(W.SpacingBetweenLines? spacing, W.TextAlignment? alignment = null) {
             double? value = double.TryParse(spacing?.Line?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double line) &&
                 line >= 0D && !double.IsNaN(line) && !double.IsInfinity(line) ? line : null;
-            return new NativeLineSpacing(value, spacing?.LineRule?.Value ?? (value.HasValue ? W.LineSpacingRuleValues.Auto : null));
+            return new NativeLineSpacing(value, spacing?.LineRule?.Value ?? (value.HasValue ? W.LineSpacingRuleValues.Auto : null)) {
+                FontAlignment = alignment?.Val?.Value
+            };
         }
 
         private static NativeLineSpacing ResolveNativeParagraphLineSpacing(
             WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults,
             NativeDocumentDefaults documentDefaults, NativeTableStyleDefaults table = default) {
-            NativeLineSpacing spacing = ReadNativeLineSpacing(paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines)
+            NativeLineSpacing spacing = ReadNativeLineSpacing(paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines,
+                paragraph._paragraph.ParagraphProperties?.TextAlignment)
                 .Inherit(styleDefaults.LineSpacing.Inherit(table.LineSpacing.Inherit(documentDefaults.LineSpacing)));
             return spacing with { GridPitch = ResolveNativeLineGridPitch(paragraph, styleDefaults, documentDefaults, table) };
         }
