@@ -9,6 +9,58 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfStrokeContractTests {
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ColorAlphaAndStrokeOpacityComposeForFilledAndOpenMarkersAtEveryPlacement(int placement) {
+        var shape = OfficeShape.Line(0, 0, 60, 0);
+        shape.StrokeColor = OfficeColor.FromRgba(204, 32, 64, 128);
+        shape.StrokeOpacity = .5; shape.StrokeWidth = 2;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 8, 10);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 8, 10);
+        byte[] bytes = PaintAtPlacement(new PdfOptions { PageWidth = 100, PageHeight = 100,
+            MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20 }, shape, placement);
+        var paint = Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Select(item => item.Shape)
+            .Where(item => item.StrokeColor == OfficeColor.FromRgb(204, 32, 64) || item.FillColor == OfficeColor.FromRgb(204, 32, 64)).ToArray();
+        Assert.Equal(3, paint.Length);
+        Assert.All(paint, item => Assert.Equal(128D / 255D * .5,
+            (item.StrokeColor.HasValue ? item.StrokeOpacity : item.FillOpacity).GetValueOrDefault(1), 3));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void ColorAlphaAndFillOpacityComposeAtEveryPlacement(int placement) {
+        var shape = OfficeShape.Rectangle(40, 10);
+        shape.FillColor = OfficeColor.FromRgba(204, 32, 64, 128); shape.FillOpacity = .25;
+        byte[] bytes = PaintAtPlacement(new PdfOptions { PageWidth = 100, PageHeight = 100,
+            MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20 }, shape, placement);
+        var painted = Assert.Single(Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()),
+            item => item.Shape.FillColor == OfficeColor.FromRgb(204, 32, 64));
+        Assert.Equal(128D / 255D * .25, painted.Shape.FillOpacity.GetValueOrDefault(1), 3);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void RunningShadowBoundsUseTheirEmittedMiterLimit(bool footer, bool transformed) {
+        var report = new PdfConversionReport();
+        var shape = OfficeShape.Path(40, 20, OfficePathCommand.MoveTo(14, 20), OfficePathCommand.LineTo(20, 0), OfficePathCommand.LineTo(26, 20));
+        shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter; shape.StrokeMiterLimit = 2;
+        shape.Shadow = new OfficeShadow(OfficeColor.Green, 1, 0, 0, 0);
+        if (transformed) shape.Transform = OfficeTransform.Identity;
+        byte[] bytes = Running(new PdfOptions { CompressContentStreams = false, PageWidth = 100, PageHeight = 100,
+            MarginLeft = 3, MarginRight = 10, MarginTop = 40, MarginBottom = 40,
+            HeaderOffsetY = 20, FooterOffsetY = 20 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests"), shape, footer);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?m)^2 M\r?$").Count);
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+    }
+
+    [Theory]
     [InlineData(0, false)]
     [InlineData(1, false)]
     [InlineData(2, false)]
