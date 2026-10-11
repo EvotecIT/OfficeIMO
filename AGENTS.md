@@ -69,6 +69,8 @@
 
 ## Format map recordings
 
+Contributor usage and platform export presets are documented in [Docs/officeimo.format-map-media.md](Docs/officeimo.format-map-media.md). Keep that guide aligned with the recorder and cut files.
+
 `Build/FormatMapMedia/index.html` is a purpose-built diagram of the format map for video and social media; `Build/FormatMapRecorder` renders it into clips. Nothing in a clip is hand-made, so re-record from the data whenever the catalog, the PowerShell mapping or the design changes. The website's own format map (`Website/themes/officeimo/partials/sections/format-map.html`, `Website/static/js/format-map.js`) is separate and is not used for recordings.
 
 - Re-record with `./Build/Record-FormatMap.ps1`. It regenerates `Website/data/format_map.json` and renders every cut in `Build/FormatMapMedia/cuts.json` into `Artefacts/FormatMapVideos` (ignored). Useful switches: `-Cut <name>`, `-Scale 2` (true 3840x2160), `-Formats mp4,h265,mov,gif,...`, `-SkipCatalog`, `-Still 0,2000,8000` (PNG stills of those moments, for design work), `-List`. Video encoding needs ffmpeg; stills need only the shared Playwright browsers (HtmlTinkerX). Review generated changes after regeneration; the wrapper never restores working-tree edits. No website build is involved.
