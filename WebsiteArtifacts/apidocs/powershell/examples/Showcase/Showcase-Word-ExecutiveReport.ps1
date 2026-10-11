@@ -1,11 +1,15 @@
+[CmdletBinding()]
+param(
+    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output')
+)
+
 $ErrorActionPreference = 'Stop'
 
-Import-Module PSWriteOffice -ErrorAction Stop
+Import-Module PSWriteOffice -MinimumVersion 3.0.9 -ErrorAction Stop
 
-$documents = Join-Path $PSScriptRoot '..\Documents'
+$documents = $OutputDirectory
 $null = New-Item -Path $documents -ItemType Directory -Force
 $path = Join-Path $documents 'Showcase-Word-ExecutiveReport.docx'
-Remove-Item -Path $path -Force -ErrorAction SilentlyContinue
 
 $services = @(
     [pscustomobject]@{ Service = 'Identity Sync'; Owner = 'Platform'; Status = 'Healthy'; Availability = 99.98; Incidents = 1; Risk = 'Low'; NextAction = 'Keep monitoring password hash sync drift' }
@@ -24,12 +28,6 @@ $trend = @(
     [pscustomobject]@{ Month = 'Jun'; Availability = 99.82; Incidents = 3 }
 )
 
-$executiveSignals = @(
-    [pscustomobject]@{ Signal = 'Audience'; Detail = 'Technology leadership, service owners, and operational reviewers' }
-    [pscustomobject]@{ Signal = 'Decision'; Detail = 'Approve the focused remediation plan for high-friction services' }
-    [pscustomobject]@{ Signal = 'Evidence'; Detail = 'TOC, scorecard table, trend chart, links, notes, and approval controls' }
-)
-
 $actions = @(
     [pscustomobject]@{ Priority = 'P1'; Action = 'Retire legacy VPN profiles'; Owner = 'Security'; Due = '2026-05-24'; Outcome = 'Lower high-risk remote-access incidents' }
     [pscustomobject]@{ Priority = 'P2'; Action = 'Tune backup retry window'; Owner = 'Operations'; Due = '2026-05-31'; Outcome = 'Improve endpoint backup completion rate' }
@@ -38,6 +36,7 @@ $actions = @(
 
 New-OfficeWord -Path $path {
     WordSection {
+        WordPageSetup -PageSize A4 -Top 1134 -Bottom 1134 -Left 1134 -Right 1134
         WordHeader {
             WordParagraph {
                 WordBold 'PSWriteOffice Showcase'
@@ -45,9 +44,10 @@ New-OfficeWord -Path $path {
             }
         }
         WordFooter {
-            WordText "Generated $(Get-Date -Format 'yyyy-MM-dd')"
-            WordText ' | Page '
-            WordPageNumber
+            WordParagraph {
+                WordText 'Synthetic service data | Page ' -FontSize 9
+                WordField -Type Page
+            }
         }
 
         Set-OfficeWordDocumentProperty -Name Title -Value 'Executive Service Health Report'
@@ -55,9 +55,11 @@ New-OfficeWord -Path $path {
         Set-OfficeWordDocumentProperty -Name Category -Value 'Showcase'
         Set-OfficeWordDocumentProperty -Name ShowcaseProduct -Value 'Word' -Custom
 
-        WordParagraph -Text 'Executive Service Health Report' -Style Heading1
+        WordParagraph {
+            WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
+            WordText 'Executive Service Health Report' -FontSize 24 -Bold -Color '#17365D'
+        }
         WordParagraph 'Generated from PowerShell objects with PSWriteOffice and OfficeIMO.'
-        WordTable -InputObject $executiveSignals -Style GridTable5DarkAccent1 -Layout AutoFitToWindow
         WordParagraph {
             WordBold 'Audience: '
             WordText 'technology leadership, service owners, and operational reviewers.'
@@ -68,8 +70,6 @@ New-OfficeWord -Path $path {
             WordText 'approve the focused remediation plan for high-friction services and keep monthly trend review cadence.'
             WordBookmark -Name 'ExecutiveSummary'
         }
-
-        Add-OfficeWordTableOfContents -Style Template1
 
         WordParagraph -Text 'Executive Summary' -Style Heading1
         WordParagraph 'The portfolio is stable overall, but Remote Access and Endpoint Backup need targeted work before the next governance review.'
@@ -84,17 +84,27 @@ New-OfficeWord -Path $path {
             WordText 'Rows needing attention are highlighted so the table remains useful after export.'
             WordEndnote 'Risk labels combine current incident count, owner feedback, and observed availability trend.'
         }
-        WordTable -InputObject $services -Style GridTable4Accent1 -Layout AutoFitToWindow {
+        $scorecard = $services | Select-Object Service, Owner, Status,
+            @{ Name = 'Availability'; Expression = { '{0:N2}%' -f $_.Availability } }, Incidents, Risk
+        $table = WordTable -InputObject $scorecard -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
             WordTableCondition -FilterScript { $_.Status -eq 'Needs action' } -BackgroundColor '#fde2e2'
             WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4cc'
         }
+        $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
 
-        WordParagraph -Text 'Trend and Incidents' -Style Heading1
-        WordParagraph 'The line chart gives leadership a quick visual read on improvement without opening a separate workbook.'
-        WordChart -Type Line -Data $trend -CategoryProperty Month -SeriesProperty Availability, Incidents -Title 'Availability and incident trend' -Legend -LegendPosition Bottom -XAxisTitle 'Month' -YAxisTitle 'Value' -FitToPageWidth -WidthFraction 0.92
+        WordParagraph {
+            WordParagraphStyle -Style Heading1 -PageBreakBefore $true -KeepWithNext $true -SpacingAfterPoints 8
+            WordText 'Incident trend'
+        }
+        WordParagraph 'Recorded incidents fell from eight in January to three in June. June availability is 99.82%; percentages and incident counts use different units and are reported separately.'
+        WordParagraph {
+            WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 12
+            WordChart -Type Line -Data $trend -CategoryProperty Month -SeriesProperty Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -HeightPixels 240
+        }
 
         WordParagraph -Text 'Action Plan' -Style Heading1
-        WordTable -InputObject $actions -Style GridTable5DarkAccent1 -Layout AutoFitToWindow
+        $actionTable = WordTable -InputObject ($actions | Select-Object Priority, Action, Owner, Due) -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
+        $actionTable | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
         WordParagraph {
             WordText 'Jump back to '
             WordHyperlink -Text 'Executive Summary' -Anchor 'ExecutiveSummary' -Styled
@@ -115,9 +125,7 @@ New-OfficeWord -Path $path {
             WordDropDownList -Items 'Draft','Ready for review','Approved' -Alias 'ReviewStatus' -Tag 'review-status'
         }
 
-        WordWatermark -Text 'SHOWCASE'
         Update-OfficeWordFields
-        Update-OfficeWordTableOfContents
     }
 }
 
