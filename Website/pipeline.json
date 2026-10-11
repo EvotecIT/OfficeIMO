@@ -171,9 +171,24 @@
     },
     {
       "task": "exec",
-      "id": "test-documentation-contracts",
+      "id": "test-showcase-generation-evidence",
       "dependsOn": [
         "test-api-cross-links"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-ShowcaseGenerationEvidence.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-documentation-contracts",
+      "dependsOn": [
+        "test-showcase-generation-evidence"
       ],
       "command": "pwsh",
       "argsList": [
