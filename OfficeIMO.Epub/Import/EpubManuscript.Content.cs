@@ -60,6 +60,7 @@ public static partial class EpubManuscript {
                 element.Add(new XText(text.Data));
             }
         }
+        NormalizeLegacyHtml(element, diagnostics);
         if (name == "img" && element.Attribute("alt") == null) {
             string role = source.GetAttribute("role")?.Trim() ?? string.Empty;
             string accessibleName = HtmlAccessibilitySemantics.GetImageAccessibleName(source);
@@ -69,5 +70,22 @@ public static partial class EpubManuscript {
             else AddDiagnostic(diagnostics, "EPUB_IMPORT_IMAGE_ALT_MISSING", "The source image needs alternative text or an explicit decorative role. Repair the source and import it again.", source.GetAttribute("src"), OfficeConversionLossKind.Failure);
         }
         return element;
+    }
+
+    private static void PreserveLegacyNamedAnchors(XElement body, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        // Reserve only destinations retained in the converted body, including
+        // IDs after named anchors. Omitted controls and head elements cannot collide.
+        var anchorIds = EpubContentIdentifiers.Collect(body, "HTML manuscript", rejectDuplicates: false, token);
+        foreach (XElement element in body.Descendants(Xhtml + "a")) {
+            token.ThrowIfCancellationRequested();
+            if (element.Attribute("name") is not XAttribute namedAnchor) continue;
+            string anchor = namedAnchor.Value;
+            namedAnchor.Remove();
+            if (anchor.Length == 0 || EpubContentIdentifiers.GetIdentifiers(element).Contains(anchor, StringComparer.Ordinal)) continue;
+            if (!anchorIds.Add(anchor))
+                AddDiagnostic(diagnostics, "EPUB_IMPORT_ID_REFERENCE_INVALID", "A legacy named anchor collides with an existing destination; its alias was omitted.", anchor, OfficeConversionLossKind.Failure);
+            else if (!EpubContentIdentifiers.GetIdentifiers(element).Any()) element.SetAttributeValue("id", anchor);
+            else element.AddFirst(new XElement(Xhtml + "span", new XAttribute("id", anchor)));
+        }
     }
 }

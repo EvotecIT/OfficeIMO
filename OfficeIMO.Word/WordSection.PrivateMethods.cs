@@ -5,9 +5,7 @@ using System.Threading;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Section in WordDocument
-    /// </summary>
+    // Section in WordDocument
     public partial class WordSection {
         /// <summary>
         /// Converts tables to WordTables

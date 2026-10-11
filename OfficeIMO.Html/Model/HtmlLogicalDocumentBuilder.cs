@@ -20,17 +20,19 @@ internal static class HtmlLogicalDocumentBuilder {
     /// <summary>
     /// Builds a logical document from an AngleSharp HTML document.
     /// </summary>
-    public static HtmlLogicalDocument FromDocument(IHtmlDocument document, bool useBodyContentsOnly = true) {
+    public static HtmlLogicalDocument FromDocument(IHtmlDocument document, bool useBodyContentsOnly = true, CancellationToken cancellationToken = default) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         INode rootNode = HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly);
         var counts = new Dictionary<HtmlLogicalNodeKind, int>();
         var capabilities = new List<string>();
         var accessibleNames = new HtmlAccessibilitySemantics.HtmlAccessibleNameContext();
         HtmlLogicalNode root = Build(rootNode, counts, capabilities, accessibleNames,
-            forceRetain: true)!;
+            forceRetain: true, cancellationToken)!;
+        cancellationToken.ThrowIfCancellationRequested();
         return new HtmlLogicalDocument(root, counts, capabilities);
     }
 
@@ -38,7 +40,8 @@ internal static class HtmlLogicalDocumentBuilder {
         IDictionary<HtmlLogicalNodeKind, int> counts,
         ICollection<string> capabilities,
         HtmlAccessibilitySemantics.HtmlAccessibleNameContext accessibleNames,
-        bool forceRetain = false) {
+        bool forceRetain = false, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!forceRetain && source is IElement sourceElement && IsNonDocumentLogicalElement(sourceElement.TagName)) {
             return null;
         }
@@ -52,12 +55,14 @@ internal static class HtmlLogicalDocumentBuilder {
                 accessibleNames);
             node.AccessibleName = accessibleName.Length == 0 ? null : accessibleName;
             foreach (IAttr attribute in element.Attributes) {
+                cancellationToken.ThrowIfCancellationRequested();
                 node.AddAttribute(attribute.Name, attribute.Value);
             }
         }
 
         bool suppressCapturedTextChildren = source is IElement && node.Kind == HtmlLogicalNodeKind.Text && node.Text.Length > 0;
         foreach (INode child in source.ChildNodes) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (child.NodeType == NodeType.Comment) {
                 continue;
             }
@@ -66,7 +71,7 @@ internal static class HtmlLogicalDocumentBuilder {
                 continue;
             }
 
-            HtmlLogicalNode? childNode = Build(child, counts, capabilities, accessibleNames);
+            HtmlLogicalNode? childNode = Build(child, counts, capabilities, accessibleNames, cancellationToken: cancellationToken);
             if (childNode != null) {
                 node.AddChild(childNode);
             }

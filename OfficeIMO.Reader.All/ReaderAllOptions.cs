@@ -8,6 +8,10 @@ namespace OfficeIMO.Reader.All;
 /// does not change a built reader.
 /// </remarks>
 public sealed class ReaderAllOptions {
+    /// <summary>Compiled help archive reading and HTML topic projection options.</summary>
+    public Chm.ReaderChmOptions? Chm { get; set; }
+    /// <summary>Gets or sets managed DjVu text and page-image options.</summary>
+    public DjVu.ReaderDjVuOptions? DjVu { get; set; }
     /// <summary>Gets or sets native XPS/OpenXPS adapter options.</summary>
     public Xps.ReaderXpsOptions? Xps { get; set; }
     /// <summary>Gets or sets whether the preset registers safe legacy-word handlers. Default: true.</summary>
@@ -21,6 +25,9 @@ public sealed class ReaderAllOptions {
 
     /// <summary>Gets or sets CSV and TSV adapter options.</summary>
     public Csv.CsvReadOptions? Csv { get; set; }
+
+    /// <summary>Gets or sets DBF/xBase adapter options. Memo sidecar reads are disabled by default.</summary>
+    public Dbf.ReaderDbfOptions? Dbf { get; set; }
 
     /// <summary>Gets or sets DocBook adapter options.</summary>
     public DocBook.ReaderDocBookOptions? DocBook { get; set; }

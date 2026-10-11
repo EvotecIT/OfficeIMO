@@ -49,30 +49,15 @@
       {{ else }}
       <div class="imo-product-example imo-product-example--guide"><h2>Start with a working example</h2><p>Find the input, generated output, and source for the document workflow you need.</p><a href="/showcase/">Browse document examples →</a></div>
       {{ end }}
-      {{ if page.title == "PSWriteOffice" || nuget_pkg == "OfficeIMO.Word" || nuget_pkg == "OfficeIMO.Pdf" }}
+      {{ excerpt = null }}
+      {{ if preview && data.showcase_excerpts }}{{ excerpt = data.showcase_excerpts[preview.id] }}{{ end }}
+      {{ if excerpt }}
+      {{ is_powershell = preview.source_path | string.ends_with ".ps1" }}
+      {{ if is_powershell == (page.title == "PSWriteOffice") }}
       <div class="imo-product-proof__code">
-        {{ if page.title == "PSWriteOffice" }}
-        <span>PowerShell</span><pre class="language-powershell"><code class="language-powershell">New-OfficeWord -Path '.\report.docx' {
-    Add-OfficeWordSection {
-        Add-OfficeWordParagraph `
-            -Text 'Quarterly report' `
-            -Style Heading1
-    }
-}</code></pre>
-        {{ else if nuget_pkg == "OfficeIMO.Word" }}
-        <span>C#</span><pre class="language-csharp"><code class="language-csharp">using var document =
-    WordDocument.Create("report.docx");
-document.AddParagraph(
-    "Quarterly operations review");
-document.Save();</code></pre>
-        {{ else if nuget_pkg == "OfficeIMO.Pdf" }}
-        <span>C#</span><pre class="language-csharp"><code class="language-csharp">using OfficeIMO.Pdf;
-
-PdfDocument.Create(pdf =&gt; pdf.Content(content =&gt; content
-    .H1("Quarterly report")))
-    .Save("report.pdf");</code></pre>
-        {{ end }}
+        <span>{{ if is_powershell }}PowerShell{{ else }}C#{{ end }} · excerpt cut from the example source; the full file is linked above</span><pre tabindex="0" class="language-{{ if is_powershell }}powershell{{ else }}csharp{{ end }}"><code class="language-{{ if is_powershell }}powershell{{ else }}csharp{{ end }}">{{ excerpt | html.escape }}</code></pre>
       </div>
+      {{ end }}
       {{ end }}
     </div>
   </div>

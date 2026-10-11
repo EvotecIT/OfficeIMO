@@ -1,0 +1,5 @@
+[
+  {"title":"CSV Documents","url":"/docs/csv/","summary":"Overview of the OfficeIMO.CSV package for strongly-typed CSV document workflows. Includes practical examples, limits, and API links.","kind":"guide","targets":["OfficeIMO.CSV.CsvDocument","OfficeIMO.CSV.CsvLoadOptions","OfficeIMO.CSV.CsvRow","OfficeIMO.CSV.CsvRowWriter","OfficeIMO.CSV.CsvSaveOptions","OfficeIMO.CSV.CsvSchema"]},
+  {"title":"OfficeIMO.CSV","url":"/products/csv/","summary":"Typed CSV workflows with schema validation, forward-only readers, zero third-party dependencies, and an executed NativeAOT parse scenario.","kind":"guide","targets":["OfficeIMO.CSV.CsvDocument","OfficeIMO.CSV.CsvLoadOptions"]},
+  {"title":"Quick Start","url":"/docs/getting-started/quickstart/","summary":"Create your first Word document, Excel workbook, and PowerPoint presentation with OfficeIMO in minutes. Includes examples and API links.","kind":"guide","targets":["OfficeIMO.CSV.CsvDocument"]}
+]

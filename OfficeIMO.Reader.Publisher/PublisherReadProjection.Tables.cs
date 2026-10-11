@@ -15,6 +15,7 @@ internal sealed partial class PublisherReadProjection {
     }
 
     private void AddPageTables(PublisherPage page, int? pageNumber) {
+        int emittedIndex = 0;
         for (int index = 0; index < page.Tables.Count; index++) {
             _token.ThrowIfCancellationRequested();
             PublisherTable native = page.Tables[index];
@@ -26,7 +27,7 @@ internal sealed partial class PublisherReadProjection {
                 "publisher-object-" + native.Id.ToString(CultureInfo.InvariantCulture), index);
             // Masters have no physical page citation. A document-wide ordinal
             // distinguishes their export names while the object anchor keeps ownership.
-            location.Page = pageNumber; location.TableIndex = pageNumber.HasValue ? index : _masterTableIndex++;
+            location.Page = pageNumber; location.TableIndex = pageNumber.HasValue ? emittedIndex++ : _masterTableIndex++;
             int rowCount = Math.Min(native.RowCount, _settings.MaxTableRows);
             var columns = new string[native.ColumnCount];
             for (int column = 0; column < columns.Length; column++) {

@@ -146,6 +146,21 @@ internal sealed partial class PublisherReadProjection {
             offset += length;
         }
         if (offset != story.Text.Length) throw new InvalidDataException("Publisher Reader projection did not consume its complete source story.");
+        if (tables != null && story.Paragraphs.Count == 0) {
+            // A mapped empty table still needs a chunk for chunk-based table
+            // extraction and export. It carries no invented paragraph text.
+            Item();
+            var chunk = new ReaderChunk {
+                Id = anchor + "-table", Kind = ReaderInputKind.Publisher,
+                Text = string.Empty, Markdown = string.Empty, Tables = tables.ToArray(),
+                Location = Location("publisher-story-table", anchor, 0)
+            };
+            chunk.Location.BlockIndex = _chunks.Count;
+            chunk.Location.LogicalOrder = tableBlock!.Location.LogicalOrder;
+            chunk.Location.Page = chunkPage;
+            ReaderReadScope.Current?.Budget?.AddChunk(chunk);
+            _chunks.Add(chunk);
+        }
     }
 
     private void Item() {

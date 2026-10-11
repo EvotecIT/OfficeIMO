@@ -61,7 +61,7 @@ namespace OfficeIMO.Access {
         /// <inheritdoc />
         public override bool IsDBNull(int ordinal) { Column(ordinal); return _cursor.IsNull(ordinal); }
         /// <inheritdoc />
-        public override Type GetFieldType(int ordinal) => Column(ordinal).DataType switch {
+        public override Type GetFieldType(int ordinal) => Column(ordinal).HasOpaqueTextValues ? typeof(AccessOpaqueValue) : Column(ordinal).DataType switch {
             AccessDataType.AutoNumber or AccessDataType.Int32 => typeof(int),
             AccessDataType.ShortText or AccessDataType.LongText => typeof(string), AccessDataType.Currency => typeof(decimal),
             AccessDataType.Double => typeof(double), AccessDataType.Boolean => typeof(bool), AccessDataType.DateTime => typeof(DateTime),

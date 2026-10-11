@@ -349,9 +349,15 @@ existing explicit output directory before qualification. Setup retains the
 validated XLS/XLSB packages there; ordinary benchmark runs retain only compact
 structure and size descriptions.
 
+`--validate-native-written <fixture.xlsb|fixture.xls> <dataRows>` rechecks a native
+fixture after an external application saves it, using the same full-field and
+package checks and both independent readers. The file must preserve the typed
+fixture's `Name`, `Id`, `Date`, `Value` headers, values, order and native types.
+
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-write-records
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --validate-write-utf8
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-native-written ./native-output.xlsb 50000
 ```
 
 ## Optional CSV and Arrow builds
@@ -499,6 +505,32 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*ColdStartReadBenchmarks*' '*ColdStartWriteBenchmarks*' --artifacts ./Ignore/Benchmarks/first-use --noOverwrite
 ```
 
+## Ordinary mapping strategies
+
+`GeneratedModelReadBenchmarks` compares OfficeIMO's automatic property mapping,
+handwritten `RowMapper<T>` configuration, and generated configuration for the same
+four-field class and struct models. Every operation opens and disposes the reader,
+materializes its selected model, and consumes all four fields. Setup verifies each
+field in every row, headers, row order/count, the single-sheet contract, and the
+checksum for every route before measurement.
+
+Enable the lane with `-p:OfficeIMOBenchmarkGeneratedMapping=true`. It uses the
+existing `OfficeIMO.Data.Generators` source project as a build-time analyzer. The
+generated public `Configure` method supplies typed assignments to `RowsAs<T>`;
+generation is outside timing, while each invocation includes reader opening and
+mapping configuration/binding. No generator assembly becomes a runtime dependency.
+Keep these ordinary-model strategies separate from borrowed ref-struct mapping.
+
+```powershell
+dotnet run -c Release -p:OfficeIMOBenchmarkGeneratedMapping=true --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-generated
+dotnet run -c Release -p:OfficeIMOBenchmarkGeneratedMapping=true --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*GeneratedModelReadBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/generated-model-dry --noOverwrite
+```
+
+The row-count selector and saved-assembly or package selectors apply to this lane.
+The selected OfficeIMO input must supply the existing `GenerateRowMapper` and
+`RowMapper<T>` public contracts. The generator selector is preserved in
+BenchmarkDotNet's generated build and printed with the input identity.
+
 ## Model strategies and shared-string lifecycle
 
 `TypedModelReadBenchmarks` compares public automatic mapping to the same class
@@ -518,7 +550,12 @@ all five Double monetary fields. Both readers use their ordinary automatic
 header mapping. Sylvan supplies an independent per-field oracle outside timing.
 
 `SharedStringFirstRowBenchmarks` measures initialization, moving to the first
-header row, and disposal. `SharedStringFullScanBenchmarks` consumes all
+header row, and disposal. It does not materialize header values.
+`SharedStringHeaderBenchmarks` materializes every header string after opening
+the same large table, then disposes the reader. This separates sparse string
+materialization from a first-row cursor move. Setup checks every header against
+the generator in all three readers and retains the complete field qualification.
+`SharedStringFullScanBenchmarks` consumes all
 materialized fields separately. `SharedStringBorrowedScanBenchmarks` retains
 the original peer span reads and its explicit prefetch option as diagnostics.
 `SharedStringUtf8ReadBenchmarks` adds the public OfficeIMO borrowed shared-string
@@ -532,9 +569,10 @@ there is no caller string-to-byte adapter.
 Its text fields use public borrowed UTF-8 spans, and numeric/date values retain
 their native getters. Setup validates every borrowed byte, native field type,
 count, and order against the generator, peer, and independent Sylvan reader.
-Each measured operation opens and disposes a new reader. OfficeIMO normalizes
-shared-string text and encodes UTF-8 on lookup, with a bounded cache owned by that
-reader. Native XLSB decodes its UTF-16 string storage and uses its canonical
+Each measured operation opens and disposes a new reader. OfficeIMO borrows
+canonical bytes for indexed plain ASCII shared strings. Other normalized
+shared strings encode UTF-8 on lookup with a bounded reader-owned cache.
+Native XLSB decodes its UTF-16 string storage and uses its canonical
 bounded UTF-8 cache. First lookup, eviction, and uncached encoding costs remain
 timed in both formats. The
 peer's normal and explicit decompression-prefetch policies remain separate.
@@ -546,6 +584,54 @@ part without compression; qualification checks identical inflated part hashes,
 ZIP CRCs, and every workbook field. Initialization policies differ between
 libraries, so first-row results are lifecycle costs. Do not subtract independent
 means and present the result as a measured worksheet-only stage.
+
+`--measure-shared-memory <Stored|Deflated> <Materialized|Utf8>` records GC-retained
+managed bytes and the current process working set before opening, after the first
+header, after the complete scan with the reader alive, and after disposal. It
+defaults to 65,536 data rows; `OFFICEIMO_STRING_BENCHMARK_ROWS` accepts exactly one
+count for this command. Run each storage/text policy in a fresh process:
+
+```powershell
+dotnet build -c Release -p:OfficeIMOBenchmarkNewApis=true ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Stored Materialized
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Stored Utf8
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Deflated Materialized
+dotnet ./Benchmarks/ExcelReaderTyped/bin/Release/net10.0/ExcelReaderTyped.Benchmarks.dll --measure-shared-memory Deflated Utf8
+```
+
+The saved-assembly and package selectors also apply. The command generates and
+qualifies the ZIP package before the baseline without opening an OfficeIMO reader.
+It then verifies every header and field, native numeric/date types, raw schema,
+row order/count and single-sheet result before emitting JSON. Utf8 validates each
+borrowed span against owned expected bytes before advancing, without materializing
+text through `GetValue`. Full collections happen only at the four snapshot stages.
+Reports identify source/selected fixture hashes and the loaded OfficeIMO assembly.
+Managed deltas include pool and static-cache retention and validation effects.
+
+Each snapshot performs two forced blocking full collections with compaction
+requested and a finalizer wait between them. `managedRetainedBytes` uses the
+last full blocking collection's `gcHeapSizeBytes` minus `gcFragmentedBytes`;
+`managedDeltaFromBeforeOpenBytes` subtracts the before-open value.
+`gcCollectionIndex` identifies that collection. The
+[heap size](https://learn.microsoft.com/en-us/dotnet/api/system.gcmemoryinfo.heapsizebytes?view=net-10.0)
+and [fragmentation](https://learn.microsoft.com/en-us/dotnet/api/system.gcmemoryinfo.fragmentedbytes?view=net-10.0)
+describe the recorded collection state. `gcGetTotalMemoryEstimateBytes` reports
+the separate raw `GC.GetTotalMemory(false)` estimate for diagnostics; retained
+totals and deltas use the collection figures above.
+
+For a paired run, create one deflated fixture in a separate process and set
+`OFFICEIMO_SHARED_XLSX_FIXTURE` to its path for both saved-assembly runners.
+`--prepare-shared-memory-fixture <path.xlsx>` uses the selected single
+`OFFICEIMO_STRING_BENCHMARK_ROWS` count and refuses to overwrite an existing
+file. The memory and XLSX lifecycle cases load that same input before their
+measurement boundary, then validate the complete expected row/field contract.
+Stored variants preserve entry timestamps and every inflated byte. Reports name
+the input policy and hashes; generation and loaded-input memory observations
+are distinct policies and should not be mixed.
+Process working-set values and lifetime peaks include fixture generation, package
+qualification and JIT; they do not isolate a reader peak or report allocation totals.
+Unavailable .NET peaks appear as `null`. On macOS, prefix each fresh `dotnet`
+invocation with `/usr/bin/time -l` to capture the process lifetime maximum RSS.
 
 The upstream `IndexParse_Utf8Parser` and `IndexParse_DigitLoop` methods compare
 standalone integer parsers over pre-extracted SST index buffers. They do not call

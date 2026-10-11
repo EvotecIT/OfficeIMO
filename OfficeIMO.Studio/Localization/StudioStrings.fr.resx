@@ -2050,4 +2050,34 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Le libellé correspond à plusieurs options. Saisissez la valeur d’exportation exacte.</value></data>
   <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Sélection actuelle sans paire</value></data>
   <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Sélection de comparaison sans paire</value></data>
+  <data name="Provenance.Credentials" xml:space="preserve"><value>Content Credentials</value></data>
+  <data name="Provenance.CredentialHint" xml:space="preserve"><value>Il s'agit de déclarations enregistrées dans le fichier. La lecture d'un enregistrement ne vérifie ni sa signature, ni la confiance accordée au certificat, ni son lien avec le contenu. Les résultats de vérification sont affichés séparément.</value></data>
+  <data name="Provenance.Timeline" xml:space="preserve"><value>Actions enregistrées</value></data>
+  <data name="Provenance.TimelineHint" xml:space="preserve"><value>Actions de la déclaration active, dans l'ordre d'enregistrement. Les manifestes antérieurs sont comptés, mais ne sont pas développés ici ; les horodatages manquants restent inconnus.</value></data>
+  <data name="Provenance.WatermarkHint" xml:space="preserve"><value>L'enregistrement indique qu'un filigrane a été ajouté au contenu. La suppression de l'attestation ne supprime pas ce filigrane.</value></data>
+  <data name="Provenance.RecordDetails" xml:space="preserve"><value>Détails de l'enregistrement</value></data>
+  <data name="Provenance.NotRecorded" xml:space="preserve"><value>Non enregistré</value></data>
+  <data name="Provenance.SoftwareNotRecorded" xml:space="preserve"><value>Logiciel non enregistré</value></data>
+  <data name="Provenance.TimeNotRecorded" xml:space="preserve"><value>Date et heure non enregistrées</value></data>
+  <data name="Provenance.RecordedTime" xml:space="preserve"><value>Date et heure enregistrées : {0}</value></data>
+  <data name="Provenance.CertificateSubjectFormat" xml:space="preserve"><value>Sujet du certificat (non vérifié) : {0}</value></data>
+  <data name="Provenance.CertificateIssuerFormat" xml:space="preserve"><value>Émetteur du certificat (non vérifié) : {0}</value></data>
+  <data name="Provenance.SourceAssetFormat" xml:space="preserve"><value>Ressource source : {0}</value></data>
+  <data name="Provenance.ManifestCountFormat" xml:space="preserve"><value>Manifestes dans le magasin : {0}</value></data>
+  <data name="Provenance.ActionCreated" xml:space="preserve"><value>Créé</value></data>
+  <data name="Provenance.ActionOpened" xml:space="preserve"><value>Ouvert</value></data>
+  <data name="Provenance.ActionEdited" xml:space="preserve"><value>Modifié</value></data>
+  <data name="Provenance.ActionConverted" xml:space="preserve"><value>Converti</value></data>
+  <data name="Provenance.ActionCropped" xml:space="preserve"><value>Recadré</value></data>
+  <data name="Provenance.ActionResized" xml:space="preserve"><value>Redimensionné</value></data>
+  <data name="Provenance.ActionPlaced" xml:space="preserve"><value>Autre contenu inséré</value></data>
+  <data name="Provenance.ActionPublished" xml:space="preserve"><value>Publié</value></data>
+  <data name="Provenance.ActionWatermarked" xml:space="preserve"><value>Filigrane ajouté au contenu</value></data>
+  <data name="Provenance.SourceGenerativeAi" xml:space="preserve"><value>IA générative déclarée</value></data>
+  <data name="Provenance.SourceCompositeAi" xml:space="preserve"><value>Mélange de contenu généré par IA et d'autres contenus déclaré</value></data>
+  <data name="Provenance.SourceAlgorithmic" xml:space="preserve"><value>Contenu généré par logiciel déclaré</value></data>
+  <data name="Provenance.SourceDigitalCapture" xml:space="preserve"><value>Capture par appareil photo ou scanner déclarée</value></data>
+  <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Composition de médias capturés déclarée</value></data>
+  <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Type de source enregistré : {0}</value></data>
+  <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Type de source non enregistré</value></data>
 </root>

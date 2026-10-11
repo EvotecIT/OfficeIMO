@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Generates the foot notes document part.
-    /// </summary>
+    // Generates the foot notes document part.
     public partial class WordDocument {
         internal static void GenerateFootNotesPart1Content(FootnotesPart footnotesPart1) {
             Footnotes footnotes1 = new Footnotes() { MCAttributes = new MarkupCompatibilityAttributes() { Ignorable = "w14 w15 w16se w16cid w16 w16cex w16sdtdh wp14" } };

@@ -11,6 +11,49 @@ public sealed class ReaderPublisherTableTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void SkippedUnmappedTablesKeepEmittedAndNativeOrdinalsDistinct(bool transport) {
+        byte[] original = Fixture();
+        PublisherDocument baseline = PublisherDocument.Load(original);
+        PublisherTextFrame target = baseline.Pages[1].TextFrames[0];
+        byte[] input = PublisherTableFixture.CopyToObject(original, target.Id);
+        uint firstTableId = PublisherDocument.Load(input).Pages[1].Tables[0].Id;
+        uint unmappedStory = baseline.Pages[0].TextFrames.First(frame => frame.StoryId != baseline.Pages[1].Tables[0].StoryId).StoryId;
+        input = PublisherTableFixture.ChangeTableStory(input, firstTableId, unmappedStory);
+        PublisherDocument native = PublisherDocument.Load(input);
+        Assert.Equal(2, native.Pages[1].Tables.Count);
+        Assert.False(native.Pages[1].Tables[0].HasTextMapping);
+        Assert.True(native.Pages[1].Tables[1].HasTextMapping);
+        OfficeDocumentReadResult result = Read(input);
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        ReaderTable table = Assert.Single(result.EnumerateTables());
+        Assert.Equal(0, table.Location!.TableIndex);
+        Assert.Equal(1, table.Location.SourceBlockIndex);
+        Assert.Equal(0, Assert.Single(DocumentReaderEngine.ExtractTables(result.Chunks)).Location!.TableIndex);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MappedEmptyTableStoriesRemainAvailableThroughChunkExports(bool transport) {
+        byte[] input = PublisherTableFixture.EmptyMergedTableStory(Fixture());
+        PublisherDocument native = PublisherDocument.Load(input);
+        PublisherTable nativeTable = Assert.Single(native.Pages[1].Tables);
+        Assert.True(nativeTable.HasTextMapping);
+        PublisherTextStory story = Assert.Single(native.TextStories, item => item.Id == nativeTable.StoryId);
+        Assert.Empty(story.Text); Assert.Empty(story.Paragraphs);
+        OfficeDocumentReadResult result = Read(input);
+        if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
+        ReaderTable rich = Assert.Single(result.EnumerateTables());
+        ReaderTable chunk = Assert.Single(DocumentReaderEngine.ExtractTables(result.Chunks));
+        Assert.Equal(rich.Location!.BlockAnchor, chunk.Location!.BlockAnchor);
+        Assert.Equal(3, chunk.Rows.Count); Assert.All(chunk.Rows, row => Assert.All(row, Assert.Empty));
+        Assert.Single(DocumentReaderEngine.ExportTables(DocumentReaderEngine.ExtractTables(result.Chunks)));
+        Assert.Single(new OfficeDocumentReaderBuilder().AddPublisherHandler().Build().ReadTableExports(input, "empty.pub"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void NativeCellsHaveGenericColumnsAndOneCanonicalTableAcrossRichAndChunkViews(bool transport) {
         OfficeDocumentReadResult result = Read(Fixture());
         if (transport) result = OfficeDocumentReadResultJson.Deserialize(result.ToJson());

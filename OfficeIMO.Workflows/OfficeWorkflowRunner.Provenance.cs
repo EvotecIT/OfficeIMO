@@ -8,7 +8,7 @@ using static OfficeIMO.Workflows.OfficeProvenanceWorkflowAdapter;
 
 namespace OfficeIMO.Workflows;
 
-/// <summary>Runs cross-format provenance workflows through the owning format packages.</summary>
+//Runs cross-format provenance workflows through the owning format packages.
 public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunner {
     private readonly IOfficeProvenanceVerifier? _provenanceVerifier;
     private readonly IReadOnlyList<IOfficeProvenanceSignalDetector> _provenanceSignalDetectors;

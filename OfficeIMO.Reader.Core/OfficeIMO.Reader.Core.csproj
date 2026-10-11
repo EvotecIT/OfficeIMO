@@ -3,7 +3,7 @@
     <Description>Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.</Description>
     <AssemblyName>OfficeIMO.Reader.Core</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Core</AssemblyTitle>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -28,6 +28,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Schemas\officeimo.document.read-result.v14.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v14.schema.json" />
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v14.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v14.schema.json" />
+    <None Include="Schemas\officeimo.document.read-result.v13.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v13.schema.json" />
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v13.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v13.schema.json" />
+    <None Include="Schemas\officeimo.document.read-result.v12.schema.json" Pack="true" PackagePath="schemas\officeimo.document.read-result.v12.schema.json" />
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v12.schema.json" LogicalName="OfficeIMO.Reader.Schemas.officeimo.document.read-result.v12.schema.json" />
     <None Include="Schemas\officeimo.document.read-result.v11.schema.json">
       <Pack>True</Pack>
       <PackagePath>schemas\officeimo.document.read-result.v11.schema.json</PackagePath>
@@ -111,6 +117,8 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Chm" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Publisher" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Image" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Notebook" />
@@ -121,6 +129,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Subtitles" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xps" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.DjVu" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Web" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />
@@ -128,6 +137,5 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.DocBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
-    <InternalsVisibleTo Include="OfficeIMO.Reader.Publisher" />
   </ItemGroup>
 </Project>
