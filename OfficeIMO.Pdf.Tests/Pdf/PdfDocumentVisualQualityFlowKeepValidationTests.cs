@@ -13,15 +13,19 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
-    [Fact]
-    public void Paragraph_ExactLineRejectsAdvanceTallerThanContentArea() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Paragraph_ExactLineRejectsAdvanceTallerThanContentArea(bool columns) {
         var options = new PdfOptions {
             PageWidth = 300, PageHeight = 300,
             MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72
         };
-        var exception = Assert.Throws<ArgumentException>(() => PdfDocument.Create(options)
-            .Paragraph(p => p.Text("A"), style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(200) })
-            .ToBytes());
+        var document = PdfDocument.Create(options);
+        var style = new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exactly(200) };
+        if (columns) document.Columns(flow => flow.Paragraph(p => p.Text("A"), style: style));
+        else document.Paragraph(p => p.Text("A"), style: style);
+        var exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
         Assert.Contains("Paragraph line height exceeds the available page content height.", exception.Message, StringComparison.Ordinal);
     }
 
