@@ -1,6 +1,6 @@
 # PSWriteOffice example library
 
-These 61 recipes are complete PowerShell scripts that create, read, update, combine, or convert real files. Start with the workflow you need, then move to the larger showcase scripts when you want to see several features working together.
+These 62 recipes are complete PowerShell scripts that create, read, update, combine, or convert real files. Start with the workflow you need, then move to the larger showcase scripts when you want to see several features working together.
 
 ```powershell
 Install-Module PSWriteOffice -Scope CurrentUser
@@ -52,7 +52,8 @@ The [workflow guide](https://officeimo.com/docs/pswriteoffice/object-workflows/)
 - [Update and convert RTF](Rtf/Recipe-Rtf-UpdateAndConvert.ps1) and [RTF/Markdown round trip](Rtf/Example-RtfMarkdownRoundTrip.ps1)
 - [Safe CSV export](Csv/Recipe-Csv-SafeExport.ps1), [CSV basics](Csv/Example-CsvBasic.ps1), [advanced CSV options](Csv/Example-CsvAdvanced.ps1), and [DbaClientX round trip](Csv/Example-CsvDbaClientXRoundTrip.ps1)
 - [Excel and DbaClientX round trip](Excel/Example-ExcelDbaClientXRoundTrip.ps1)
-- [Generate a PDF and deliver it with Mailozaurr](Integrations/Recipe-Mailozaurr-PdfDelivery.ps1)
+- [Review supplier offers from HTML](Integrations/Recipe-HtmlSupplierReview.ps1)
+- [Prepare a local EML report package or deliver it with Mailozaurr](Integrations/Recipe-Mailozaurr-PdfDelivery.ps1)
 - [Turn PSEventViewer results into Word and Excel reports](Integrations/Recipe-PSEventViewer-OfficeReport.ps1)
 - [HTML review for Word](Word/Example-WordHtmlConvert.ps1), [Excel](Excel/Example-ExcelHtmlReview.ps1), and [PowerPoint](PowerPoint/Example-PowerPointHtmlReview.ps1)
 - [ChartForgeX visuals](Visuals/Example-ChartForgeXVisuals.ps1)
