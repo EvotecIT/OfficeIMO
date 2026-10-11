@@ -70,5 +70,6 @@ internal sealed class ArchivePaths {
         || value.Equals("PRN", StringComparison.OrdinalIgnoreCase) || value.Equals("AUX", StringComparison.OrdinalIgnoreCase)
         || value.Equals("NUL", StringComparison.OrdinalIgnoreCase)
         || value.Length == 4 && (value.StartsWith("COM", StringComparison.OrdinalIgnoreCase) || value.StartsWith("LPT", StringComparison.OrdinalIgnoreCase))
-            && value[3] >= '1' && value[3] <= '9';
+            // Windows also reserves the ISO-8859-1 superscript digits 1, 2 and 3 in these device names.
+            && (value[3] >= '1' && value[3] <= '9' || value[3] == '\u00b9' || value[3] == '\u00b2' || value[3] == '\u00b3');
 }

@@ -13,6 +13,15 @@ internal sealed partial class MsiPackageReader {
         _ = Index(fileRows, "File", StringComparer.OrdinalIgnoreCase);
         var mediaRows = Table("Media", "DiskId", "LastSequence", "DiskPrompt", "Cabinet", "VolumeLabel", "Source");
         if (fileRows.Length > _limits.Entries) throw new InvalidDataException("MSI exceeds the configured file count.");
+        bool compressedByDefault = ReadDefaultCompression();
+        foreach (object?[] row in fileRows) {
+            _token.ThrowIfCancellationRequested();
+            int attributes = row[6] is int flags ? flags : 0;
+            int compression = attributes & 0x6000;
+            if (compression == 0x6000) throw new InvalidDataException("MSI File compression overrides conflict.");
+            if (compression == 0x2000 || compression == 0 && !compressedByDefault)
+                throw new NotSupportedException("MSI loose uncompressed source files are unsupported.");
+        }
         var media = new List<Tuple<int, int, string>>();
         var disks = new HashSet<int>();
         foreach (object?[] row in mediaRows) {
@@ -31,7 +40,6 @@ internal sealed partial class MsiPackageReader {
             if (disk.Item2 < previousSequence) throw new InvalidDataException("MSI media sequence boundaries move backwards in disk order.");
             previousSequence = disk.Item2;
         }
-        var paths = new ArchivePaths(_limits);
         var sequences = new HashSet<int>();
         var directoryCache = new Dictionary<string, MsiResolvedDirectory>(StringComparer.Ordinal);
         if (directories.Count(pair => pair.Value[1] == null || string.Equals(pair.Key, pair.Value[1] as string, StringComparison.Ordinal)) != 1)
@@ -39,27 +47,29 @@ internal sealed partial class MsiPackageReader {
         foreach (string directoryId in directories.Keys)
             ResolveDirectory(directoryId, directories, directoryCache);
         var result = new List<MsiPayloadFile>();
-        long declared = 0;
         foreach (object?[] row in fileRows) {
             _token.ThrowIfCancellationRequested();
             string id = RequiredString(row[0], "File.File");
             string component = RequiredString(row[1], "File.Component_");
             if (!components.TryGetValue(component, out object?[]? owner)) throw new InvalidDataException("MSI file references an absent component.");
-            string directory = ResolveDirectory(RequiredString(owner[2], "Component.Directory_"), directories, directoryCache).Path;
+            MsiResolvedDirectory resolved = ResolveDirectory(RequiredString(owner[2], "Component.Directory_"), directories, directoryCache);
+            string directory = resolved.Path;
             string filename = LongName(RequiredString(row[2], "File.FileName"));
-            if (filename.IndexOf('/') >= 0 || filename.IndexOf('\\') >= 0) throw new InvalidDataException("MSI FileName contains directory separators.");
-            string path = paths.Add(directory.Length == 0 ? filename : directory + "/" + filename);
+            ArchivePaths.ValidateSegment(filename);
+            long pathLength = (long)directory.Length + (directory.Length == 0 ? 0 : 1) + filename.Length;
+            if (resolved.PathSegments >= _limits.Depth || pathLength > _limits.PathLength)
+                throw new InvalidDataException("MSI authored file path exceeds configured bounds.");
+            // A pool string may be reused by many File rows. Check bounds before
+            // allocating each target; only collision registration waits for aliases.
+            string path = directory.Length == 0 ? filename : directory + "/" + filename;
             int length = RequiredInteger(row[3], "File.FileSize");
             _limits.CheckEntry(length);
-            int attributes = row[6] is int flags ? flags : 0;
-            if ((attributes & 0x2000) != 0) throw new NotSupportedException("MSI loose uncompressed source files are unsupported.");
             int sequence = RequiredInteger(row[7], "File.Sequence");
             if (sequence <= 0 || !sequences.Add(sequence)) throw new InvalidDataException("MSI file sequences are invalid or duplicated.");
             string cabinet = FindCabinet(media, sequence);
-            bool selected = _limits.Select(path);
-            if (selected) ArchiveLimits.Add(ref declared, length, _limits.Expanded, "Selected MSI content");
-            result.Add(new MsiPayloadFile(id, path, length, cabinet, selected));
+            result.Add(new MsiPayloadFile(id, path, length, cabinet));
         }
+        PlanTargets(result);
         return result;
     }
     private static string FindCabinet(List<Tuple<int, int, string>> media, int sequence) {
@@ -80,10 +90,10 @@ internal sealed partial class MsiPackageReader {
 }
 
 internal sealed class MsiPayloadFile {
-    internal MsiPayloadFile(string id, string path, long length, string cabinet, bool selected) { Id = id; Path = path; Length = length; Cabinet = cabinet; Selected = selected; }
+    internal MsiPayloadFile(string id, string path, long length, string cabinet) { Id = id; Path = path; Length = length; Cabinet = cabinet; }
     internal string Id { get; }
     internal string Path { get; }
     internal long Length { get; }
     internal string Cabinet { get; }
-    internal bool Selected { get; }
+    internal MsiPayloadTarget Target { get; set; } = null!;
 }

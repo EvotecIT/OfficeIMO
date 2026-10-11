@@ -18,7 +18,15 @@ internal static class OfficeCabinetArchiveReader {
     internal static IReadOnlyList<OfficeCabinetEntry> Read(Stream stream, long? maxInputBytes,
         long maxExpandedBytes, long maxEntryBytes, int maxEntries, out long expandedBytes,
         CancellationToken cancellationToken = default, Func<string, bool>? entryFilter = null,
-        OfficeCabinetWorkBudget? workBudget = null) {
+        OfficeCabinetWorkBudget? workBudget = null) =>
+        Read(stream, maxInputBytes, maxExpandedBytes, maxEntryBytes, maxEntries, out expandedBytes,
+            cancellationToken, entryFilter, workBudget, null);
+
+    /// <summary>Validates every CFFILE name and length before applying selection, without retaining excluded payloads.</summary>
+    internal static IReadOnlyList<OfficeCabinetEntry> Read(Stream stream, long? maxInputBytes,
+        long maxExpandedBytes, long maxEntryBytes, int maxEntries, out long expandedBytes,
+        CancellationToken cancellationToken, Func<string, bool>? entryFilter,
+        OfficeCabinetWorkBudget? workBudget, Action<string, long>? entryValidator) {
         expandedBytes = 0;
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("The CAB stream must be readable.", nameof(stream));
@@ -41,7 +49,8 @@ internal static class OfficeCabinetArchiveReader {
                 if (read == 0) throw new OfficeCabinetException("CAB_TRUNCATED", "The CAB stream ended unexpectedly.", offset);
                 offset += read;
             }
-            return Read(data, maxExpandedBytes, maxEntryBytes, maxEntries, out expandedBytes, cancellationToken, entryFilter, workBudget);
+            return Read(data, maxExpandedBytes, maxEntryBytes, maxEntries, out expandedBytes,
+                cancellationToken, entryFilter, workBudget, entryValidator);
         } finally {
             stream.Position = originalPosition;
         }
@@ -55,13 +64,19 @@ internal static class OfficeCabinetArchiveReader {
 
     internal static IReadOnlyList<OfficeCabinetEntry> Read(byte[] data, long maxExpandedBytes,
         long maxEntryBytes, int maxEntries, out long expandedBytes, CancellationToken cancellationToken = default,
-        Func<string, bool>? entryFilter = null, OfficeCabinetWorkBudget? workBudget = null) {
+        Func<string, bool>? entryFilter = null, OfficeCabinetWorkBudget? workBudget = null) =>
+        Read(data, maxExpandedBytes, maxEntryBytes, maxEntries, out expandedBytes,
+            cancellationToken, entryFilter, workBudget, null);
+
+    private static IReadOnlyList<OfficeCabinetEntry> Read(byte[] data, long maxExpandedBytes,
+        long maxEntryBytes, int maxEntries, out long expandedBytes, CancellationToken cancellationToken,
+        Func<string, bool>? entryFilter, OfficeCabinetWorkBudget? workBudget, Action<string, long>? entryValidator) {
         expandedBytes = 0;
         if (data == null) throw new ArgumentNullException(nameof(data));
         ValidateLimits(maxExpandedBytes, maxEntryBytes, maxEntries);
         cancellationToken.ThrowIfCancellationRequested();
         return new Reader(data, maxExpandedBytes, maxEntryBytes, maxEntries,
-            cancellationToken, workBudget ?? new OfficeCabinetWorkBudget()).Read(entryFilter, out expandedBytes);
+            cancellationToken, workBudget ?? new OfficeCabinetWorkBudget()).Read(entryFilter, entryValidator, out expandedBytes);
     }
 
     private static void ValidateLimits(long maxExpandedBytes, long maxEntryBytes, int maxEntries) {
@@ -90,7 +105,8 @@ internal static class OfficeCabinetArchiveReader {
             _workBudget = workBudget;
         }
 
-        internal IReadOnlyList<OfficeCabinetEntry> Read(Func<string, bool>? entryFilter, out long expandedBytes) {
+        internal IReadOnlyList<OfficeCabinetEntry> Read(Func<string, bool>? entryFilter,
+            Action<string, long>? entryValidator, out long expandedBytes) {
             expandedBytes = 0;
             if (_length < 36 || _data[0] != (byte)'M' || _data[1] != (byte)'S' || _data[2] != (byte)'C' || _data[3] != (byte)'F') {
                 throw Error("CAB_SIGNATURE", "The file is not a Microsoft Cabinet archive.");
@@ -152,6 +168,7 @@ internal static class OfficeCabinetArchiveReader {
                 extractedBytes += length;
                 files[index] = new FileHeader(length, folderOffset, folderIndex, name);
                 (folderMembers[folderIndex] ?? (folderMembers[folderIndex] = new List<int>())).Add(index);
+                entryValidator?.Invoke(name, length);
                 selected[index] = entryFilter == null || entryFilter(name);
                 offset = nextOffset;
             }

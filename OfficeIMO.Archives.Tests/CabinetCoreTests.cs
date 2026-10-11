@@ -66,6 +66,26 @@ public sealed class CabinetCoreTests {
     }
 
     [Fact]
+    public void MetadataValidationPrecedesSelectionAndRestoresPositionWhenItRejectsAMember() {
+        byte[] cabinet = BuildCabinet(new[] { StoredFrame(new byte[4], final: true) }, new[] { 4 });
+        using var stream = new MemoryStream(cabinet, writable: false);
+        stream.Position = 9;
+        bool selected = false;
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => OfficeCabinetArchiveReader.Read(
+            stream, 1024, 1024, 1024, 10, out _, CancellationToken.None,
+            _ => { selected = true; return false; }, null,
+            (name, length) => {
+                Assert.Equal("templates.admx", name); Assert.Equal(4, length);
+                throw new InvalidDataException("metadata mismatch");
+            }));
+
+        Assert.Equal("metadata mismatch", exception.Message);
+        Assert.False(selected);
+        Assert.Equal(9, stream.Position);
+    }
+
+    [Fact]
     public void RejectsDeclaredEntryLimitBeforeDecoding() {
         byte[] cabinet = BuildCabinet(new[] { StoredFrame(new byte[32], final: true) }, new[] { 32 });
 

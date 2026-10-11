@@ -28,6 +28,7 @@ public sealed class ArchiveExtractionOptions {
     /// <summary>Maximum characters in an authored relative output path.</summary>
     public int MaxPathLength { get; set; } = 1024;
     /// <summary>Optional file selection predicate receiving a normalized authored relative path.
-    /// All member names remain subject to safety and collision checks.</summary>
+    /// MSI aliases invoke it once with their deterministic logical target.
+    /// All member names remain subject to safety, collision and payload-consistency checks.</summary>
     public Func<string, bool>? IncludeFile { get; set; }
 }
