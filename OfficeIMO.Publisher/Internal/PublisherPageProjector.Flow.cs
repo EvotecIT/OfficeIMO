@@ -116,9 +116,10 @@ internal sealed partial class PublisherPageProjector {
 
     private static FrameRectangle FrameBounds(PublisherEscherShape shape, double pageWidth, double pageHeight) {
         PublisherNativeRectangle native = shape.Bounds!.Value.Unrotated(shape.Transform.RotationDegrees.GetValueOrDefault());
-        double x = Math.Min(native.X1, native.X2) / 12700 + pageWidth / 2;
-        double y = Math.Min(native.Y1, native.Y2) / 12700 + pageHeight / 2;
-        double width = Math.Abs(native.X2 - native.X1) / 12700, height = Math.Abs(native.Y2 - native.Y1) / 12700;
+        var mapped = shape.LayoutTransform.TransformRectangleBounds(Math.Min(native.X1, native.X2), Math.Min(native.Y1, native.Y2),
+            Math.Abs(native.X2 - native.X1), Math.Abs(native.Y2 - native.Y1));
+        double x = mapped.Left / 12700 + pageWidth / 2, y = mapped.Top / 12700 + pageHeight / 2;
+        double width = (mapped.Right - mapped.Left) / 12700, height = (mapped.Bottom - mapped.Top) / 12700;
         return new FrameRectangle(x, y, width, height);
     }
 
