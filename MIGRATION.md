@@ -24,6 +24,19 @@ The authoring limits bound admitted and emitted payload bytes, not defensive
 copies or peak process memory. See [attachment authoring limits](OfficeIMO.Pdf/README.md#attachment-authoring-limits)
 for configuration and destination-preservation behavior.
 
+## Excel worksheet page-fit inspection
+
+`ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,
+`FitToWidth` and `FitToHeight` exposed stored dimensions even when worksheet
+`fitToPage` was disabled. They now return null in that case. When fitting is
+enabled, an omitted dimension now returns the native default of `1` instead of
+null; an explicit `0` remains `0` and means no page limit for that dimension.
+
+Update inspection and export code to treat null fit dimensions as inactive and
+to use `Scale` for percentage-based printing. To enable page fitting, configure
+it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
+with no height limit, instead of relying on cached dimensions in the worksheet XML.
+
 ## PDF form value assessment
 
 `PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
