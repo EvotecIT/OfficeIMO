@@ -72,4 +72,57 @@ public partial class Word {
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("Courier", letter.FontName, StringComparison.Ordinal));
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_GeneratedPresentationRetainsItsExplicitFont(bool profile, bool footer) {
+        using WordDocument document = WordDocument.Create();
+        document.Settings.FontFamily = "Times New Roman";
+        document.Settings.FontSize = 18;
+        document.AddParagraph("BODY");
+        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
+        else options.PdfOptions = new PdfOptions();
+        if (footer) {
+            options.PdfOptions!.FooterFont = PdfStandardFont.Courier;
+            options.IncludePageNumbers = true;
+            options.PageNumberFormat = "NUMBER {page}/{pages}";
+        } else {
+            options.PdfOptions!.HeaderFont = PdfStandardFont.Courier;
+            options.PdfOptions.ShowHeader = true;
+            options.PdfOptions.HeaderFormat = "HEADER";
+        }
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(footer ? "BODYNUMBER1/1" : "HEADERBODY", string.Concat(letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).Select(letter => letter.Value)));
+        Assert.All(letters.Where(letter => letter.PointSize == 18), letter => Assert.Contains("Times", letter.FontName, StringComparison.Ordinal));
+        Assert.All(letters.Where(letter => letter.PointSize == 9), letter => Assert.Contains("Courier", letter.FontName, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_DefaultSizeAssignmentPreservesTheInheritedFamily(bool profile, bool repeatProfile) {
+        using WordDocument document = WordDocument.Create();
+        document.Settings.FontFamily = "Times New Roman";
+        document.Settings.FontSize = 18;
+        document.AddParagraph("BODY");
+        var options = new WordToPdfOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+        var fontless = new OfficeRenderingProfile("shaping-only");
+        if (profile) options.UseRenderingProfile(fontless);
+        else options.PdfOptions = new PdfOptions();
+        double size = repeatProfile ? 13 : options.PdfOptions!.DefaultFontSize;
+        options.PdfOptions!.DefaultFontSize = size;
+        if (repeatProfile) options.UseRenderingProfile(fontless, OfficeRenderingProfileApplyMode.Replace);
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(options));
+        Assert.All(pdf.GetPage(1).Letters, letter => {
+            Assert.Equal(size, letter.PointSize, 3);
+            Assert.Contains("Times", letter.FontName, StringComparison.Ordinal);
+        });
+    }
 }

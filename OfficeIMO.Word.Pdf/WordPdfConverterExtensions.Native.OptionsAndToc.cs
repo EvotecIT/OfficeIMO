@@ -265,13 +265,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            bool changed = pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
-            if (requireEmbeddedFont || changed) {
-                return changed;
-            }
-
-            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out _) ||
-                   (embedSystemFont && EmbeddedFontSlotMatchesFamily(pdfOptions, pdfOptions.DefaultFont, familyName!));
+            return pdfOptions.TryUseInheritedOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
         private static HashSet<PdfCore.PdfStandardFont> RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
