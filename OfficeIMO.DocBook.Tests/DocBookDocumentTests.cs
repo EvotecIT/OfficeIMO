@@ -448,6 +448,31 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void DiagnosticSummariesRetainSuppressionOrderAndWorstSuppressedLoss() {
+        var collector = new DocBookDiagnosticCollector(1);
+        var first = new DocBookDiagnostic("A", DocBookDiagnosticSeverity.Warning, "first", "/first");
+        var second = new DocBookDiagnostic("B", DocBookDiagnosticSeverity.Info, "second", "/second");
+        collector.Add(first);
+        collector.Add(second);
+        collector.Add(new DocBookDiagnostic("B", DocBookDiagnosticSeverity.Info, "third", "/third"));
+        collector.Add(new DocBookDiagnostic("A", DocBookDiagnosticSeverity.Warning, "fourth", "/fourth"));
+        collector.Add(new DocBookDiagnostic("B", DocBookDiagnosticSeverity.Error, "fifth", "/fifth"));
+
+        var result = collector.ToArray();
+
+        Assert.Equal(new[] { "A", "B", "B", "A" }, result.Select(diagnostic => diagnostic.Code));
+        Assert.Same(first, result[0]);
+        Assert.Same(second, result[1]);
+        Assert.Equal(DocBookDiagnosticSeverity.Error, result[2].Severity);
+        Assert.Equal(OfficeConversionLossKind.Failure, result[2].LossKind);
+        Assert.Null(result[2].Path);
+        Assert.Equal("2 additional 'B' diagnostics were summarized after the per-code detail limit of 1 was reached.", result[2].Message);
+        Assert.Equal(DocBookDiagnosticSeverity.Warning, result[3].Severity);
+        Assert.Equal(OfficeConversionLossKind.Approximation, result[3].LossKind);
+        Assert.Equal("1 additional 'A' diagnostics were summarized after the per-code detail limit of 1 was reached.", result[3].Message);
+    }
+
+    [Fact]
     public void SharedModelRoundTripRetainsTypedHierarchy() {
         DocBookDocument document = DocBookDocument.CreateBook(DocBookProfile.DocBook45); document.Title = "T";
         document.AddSection("S").AddParagraph("P");
