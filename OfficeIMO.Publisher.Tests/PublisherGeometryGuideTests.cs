@@ -51,7 +51,9 @@ public sealed class PublisherGeometryGuideTests {
 
     [Fact]
     public void Limousine_scaling_keeps_an_explicit_fallback_even_for_literal_paths() {
-        byte[] input = PublisherDrawingFixture.Mutate(new() { [0x0153] = 100, [0x0144] = 1 }, 0,
+        byte[] input = PublisherDrawingFixture.Mutate(new() {
+            [0x0153] = 100, [0x0144] = 1, [0x181] = 0x000000FF, [0x1BF] = 0x00100010
+        }, 0,
             new() { [0x0145] = PublisherCustomPathTests.Vertices(new[] { (0, 0), (21600, 0), (0, 21600) }) });
         var publication = PublisherDocument.Load(input);
         Assert.Equal(OfficeShapeKind.Rectangle, Artwork(publication).Kind);

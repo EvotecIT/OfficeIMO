@@ -109,7 +109,9 @@ Native line-property mutations check caps, joins, fixed-point miter limits,
 dash order and spacing, all five supported marker kinds, disabled strokes,
 unknown values and scene copying. SVG, raster and PDF retain open arrows as
 outlines and other markers as filled geometry. Marker dimensions and native dash
-rendering remain unqualified against Publisher-produced output.
+rendering use approximation reports. The Publisher-authored fixture independently
+confirms the visible dash and endpoint decorations; exact marker sizing and
+device-dependent dash spacing remain unqualified.
 Custom-path record mutations check coordinate offsets, compact vertices,
 line/cubic command consumption, subpaths, paint controls, malformed arrays,
 guide/command fallback reports and inset picture masks. SG guide checks cover
@@ -141,8 +143,10 @@ sRGB interpolation. Custom fill rectangles and view-origin anchors retain their
 primary color with a mapping diagnostic; non-rotating fills on transformed
 frames report approximation. Other gradient, pattern, texture and background
 fill modes retain their current approximation boundary. The five supported
-producer fixtures contain no declared non-solid fills, so these record checks
-and managed SVG/raster/PDF outputs do not establish native gradient fidelity.
+original producer fixtures contain no declared non-solid fills. The additional
+Publisher-authored fixture confirms a horizontal two-color fill's direction and
+endpoint colors against Publisher's PDF export. Its interpolation differs and
+retains the approximation report; other gradient cases remain managed evidence.
 Picture-control mutations exercise transparency keys before tone changes,
 brightness endpoints, contrast, preserve-grays, grayscale and two-color
 precedence. Controlled raster output in original native picture frames is
