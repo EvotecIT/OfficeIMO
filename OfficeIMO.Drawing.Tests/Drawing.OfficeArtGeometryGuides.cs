@@ -6,6 +6,14 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void OfficeArtGeometryGuides_MalformedEffectiveAdjustmentDoesNotReviveAnOlderValue() {
+        var properties = new[] { new OfficeArtProperty(0, 0x0147, 37),
+            new OfficeArtProperty(1, 0x8147, 1, 1, complexData: new byte[] { 0 }) };
+        Assert.True(new OfficeArtGeometryGuideContext(properties, 80, 40).TryParameter(0x0147, out int value, out _));
+        Assert.Equal(0, value);
+    }
+
     [Theory]
     [InlineData(9, 2, 30 * 65536, 1)]
     [InlineData(9, -2, 30 * 65536, -1)]

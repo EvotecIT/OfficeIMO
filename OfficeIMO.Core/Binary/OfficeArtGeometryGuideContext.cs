@@ -41,7 +41,7 @@ internal sealed class OfficeArtGeometryGuideContext {
         value = (int)result; failure = OfficeArtCustomPathFailure.None; return true;
     }
     private int Scalar(int id, int fallback) {
-        OfficeArtProperty? property = _properties.LastOrDefault(item => item.PropertyId == id && !item.IsComplex);
+        OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(_properties, id);
         return property == null ? fallback : unchecked((int)property.Value);
     }
 }
