@@ -61,6 +61,27 @@ public sealed class DocumentTextTests {
         Assert.Throws<OperationCanceledException>(() => DjVuDocument.Load(bytes, cancellationToken: new CancellationToken(true)));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StreamSourceLimitPreservesExceptionAndBoundedConsumption(bool seekable) {
+        using var stream = new LimitedSourceStream(File.ReadAllBytes(Fixture("time-machine-selected.djvu")), seekable);
+        stream.Position = 7;
+
+        var exception = Assert.Throws<DjVuResourceLimitException>(() =>
+            DjVuDocument.Load(stream, new DjVuReadOptions { MaxSourceBytes = 64 }));
+
+        Assert.Equal(nameof(DjVuReadOptions.MaxSourceBytes), exception.LimitName);
+        Assert.Equal(72, stream.Position);
+        Assert.True(stream.CanRead);
+    }
+
+    private sealed class LimitedSourceStream : MemoryStream {
+        private readonly bool _seekable;
+        internal LimitedSourceStream(byte[] bytes, bool seekable) : base(bytes) => _seekable = seekable;
+        public override bool CanSeek => _seekable;
+    }
+
     private static IEnumerable<DjVuTextZone> Flatten(IEnumerable<DjVuTextZone> zones) {
         foreach (var zone in zones) {
             yield return zone;
