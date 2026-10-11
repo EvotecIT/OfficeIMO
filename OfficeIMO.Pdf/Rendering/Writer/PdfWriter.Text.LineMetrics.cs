@@ -103,7 +103,7 @@ internal static partial class PdfWriter {
                 ascender = Math.Max(ascender, inline.BaselineOffset + inline.Height);
                 descender = Math.Max(descender, -inline.BaselineOffset);
             } else {
-                double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
+                double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.LineAlignmentRise;
                 double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
                 ascender = Math.Max(ascender, rise + GetAscenderForOptions(segment.Font, segment.NamedFont, size, options));
                 descender = Math.Max(descender, GetDescenderForOptions(segment.Font, segment.NamedFont, size, options) - rise);
