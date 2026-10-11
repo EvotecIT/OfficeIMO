@@ -4,6 +4,10 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'ShowcaseEvidence.Provenance.ps1')
 if (Test-Path -LiteralPath $TestRoot) { throw 'Use a fresh task-owned test directory.' }
 New-Item -ItemType Directory -Path $TestRoot | Out-Null
+New-Item -ItemType Directory -Path (Join-Path $TestRoot 'Website/scripts') | Out-Null
+foreach ($name in 'Invoke-ShowcasePowerShellExample.ps1', 'ShowcaseEvidence.Helpers.ps1', 'ShowcaseEvidence.Provenance.ps1') {
+    'producer fixture' | Set-Content -LiteralPath (Join-Path $TestRoot ('Website/scripts/' + $name))
+}
 'sample script' | Set-Content -LiteralPath (Join-Path $TestRoot 'example.ps1')
 'sample input' | Set-Content -LiteralPath (Join-Path $TestRoot 'input.csv')
 $card = [pscustomobject]@{ id = 'example'; source_language = 'powershell'; source_path = 'example.ps1'; source_url = '/downloads/showcase/example.ps1'; downloads = @([pscustomobject]@{ url = '/downloads/showcase/input.csv' }, [pscustomobject]@{ url = '/downloads/showcase/report.pdf' }); previews = @([pscustomobject]@{ url = '/downloads/showcase/preview.png' }) }
@@ -19,6 +23,7 @@ $artifacts = @(
 )
 $receipt = [pscustomobject]@{ exampleId = 'example'; state = 'generated'; completedUtc = '2026-01-01T00:00:00Z'; sources = @(Get-ShowcaseSourceBindings $TestRoot $catalog $card); package = [pscustomobject]@{ version = '3.0.8' }; outputs = @([pscustomobject]@{ path = '/downloads/showcase/report.pdf'; sha256 = 'output-hash' }) }
 $receipt.outputs += [pscustomobject]@{ path = '/downloads/showcase/report.docx'; sha256 = 'docx-hash' }
+$receipt | Add-Member -NotePropertyName evidenceProducer -NotePropertyValue (Get-ShowcaseEvidenceProducerBinding $TestRoot)
 $arguments = @{ RepositoryRoot = $TestRoot; Catalog = $catalog; Artifacts = $artifacts; ModuleVersion = '3.0.8'; Generated = @{}; Previous = @() }
 function Assert-Contract([bool] $Condition, [string] $Message) { if (-not $Condition) { throw $Message } }
 $unknown = @(Complete-ShowcaseGenerationEvidence @arguments)
@@ -39,6 +44,23 @@ foreach ($incompleteOutputs in @(@(), @($completeOutputs[0]), @($completeOutputs
     Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'Missing, duplicate or unrelated native outputs must invalidate the producer receipt.'
 }
 $receipt.outputs = $completeOutputs
+$completeProducer = $receipt.evidenceProducer
+$receipt.evidenceProducer = $null
+Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'A missing producer binding must invalidate retained evidence.'
+$receipt.evidenceProducer = $completeProducer
+$completeDependencies = $completeProducer.dependencies
+foreach ($incompleteDependencies in @(@(), @($completeDependencies[0]), @($completeDependencies[0], $completeDependencies[0]))) {
+    $receipt.evidenceProducer.dependencies = $incompleteDependencies
+    Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'Missing, partial or duplicate producer dependencies must invalidate retained evidence.'
+}
+$receipt.evidenceProducer.dependencies = $completeDependencies
+foreach ($producerFile in @($completeProducer) + @($completeProducer.dependencies)) {
+    $path = Join-Path $TestRoot $producerFile.path
+    $original = [IO.File]::ReadAllBytes($path)
+    'changed producer' | Set-Content -LiteralPath $path
+    Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'Changing the worker or a loaded helper must invalidate its retained evidence.'
+    [IO.File]::WriteAllBytes($path, $original)
+}
 $artifacts[3].sha256 = 'changed-preview'
 $stale = @(Complete-ShowcaseGenerationEvidence @arguments)
 Assert-Contract ($stale[0].state -ceq 'invalidated' -and $stale[0].previewReview.state -ceq 'pending') 'Changed preview must invalidate previous review.'

@@ -30,6 +30,6 @@ To refresh the website downloads, use the existing evidence builder:
 
 Its `Website/static/downloads/showcase/manifest.json` records the generating script and CSV hashes, the loaded module version and package-file hashes, native output hashes, PDF conversion warnings, font diagnostics, and preview renderer identity. A missing font-program version or hash is recorded as unknown; an unembedded PDF font is resolved by the viewer. Package hashes identify the producer without establishing a viewer's font selection.
 
-The recipes and sample CSV files use LF line endings on every checkout so these exact source hashes also match on Windows.
+The recipes, sample CSV files, generation worker and its loaded helpers use LF line endings on every checkout so these exact hashes also match on Windows. Changing the worker or a loaded helper invalidates retained producer evidence and requires generation and review again.
 
 Inspect every generated PDF page and its website preview before recording a review. Then run the builder with `-ManifestOnly -ReviewedExampleId pswriteoffice-budget-review,pswriteoffice-project-delivery`. This binds the review to those preview hashes. A manifest-only refresh preserves matching producer evidence; changed inputs, outputs, previews, or the documented module version invalidate it and require generation and review again. `-SkipGeneration` imports existing files and does not invent a producer record for them.

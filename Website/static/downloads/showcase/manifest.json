@@ -189,8 +189,8 @@
     {
       "id": "pswriteoffice-output",
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
-      "bytes": 22213,
-      "sha256": "7ac732f05fd8271efb53c6d4cd65e3410c517a356491d5326a0d838ee5a4a7c3",
+      "bytes": 22211,
+      "sha256": "67da1bae8392f56c9f823b4c50798b8f7a3b92ba2c06927b36fa542d7f859a9d",
       "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
       "evidence": "DOCX created from PowerShell objects by PSWriteOffice."
     },
@@ -3349,16 +3349,16 @@
     {
       "id": "pswriteoffice-budget-review-xlsx",
       "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
-      "bytes": 5503,
-      "sha256": "8cfd77db25ef50d410887bdf0d8946a5d78c1399f137d2b49a912976b1faab5d",
+      "bytes": 5498,
+      "sha256": "6dd9c61df1126f0be5cf040c5423c4bb69d720058a7f3b3ce0a907cfd3d147e2",
       "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
       "evidence": "Native XLSX generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
     },
     {
       "id": "pswriteoffice-budget-review-docx",
       "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx",
-      "bytes": 21100,
-      "sha256": "d7ea151510f2c1700c89dd9f2101c9563f2310ae18ebd5c1b152a1e54c0cbdc5",
+      "bytes": 21096,
+      "sha256": "276ebc75d8c3642bf5b966d31794cae08d8b5cb6157f66b8eb6e824006116ce5",
       "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
       "evidence": "Native DOCX generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
     },
@@ -3397,16 +3397,16 @@
     {
       "id": "pswriteoffice-project-delivery-xlsx",
       "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx",
-      "bytes": 5395,
-      "sha256": "8b5806a4357e3c892a2dd91bec37abc79bac9be2fbd0333011a7828748c48c4f",
+      "bytes": 5400,
+      "sha256": "98e518f016073a5ef06c1f440d00ea5e17215a8f11aa94a267cbbcca572083ac",
       "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
       "evidence": "Native XLSX generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
     },
     {
       "id": "pswriteoffice-project-delivery-docx",
       "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
-      "bytes": 21204,
-      "sha256": "6c5d1578b52d43f61f21859724aca57fecf70135452a50e451daaa85838db601",
+      "bytes": 21199,
+      "sha256": "fdd1c9d714f88c2510cd96bd8e612985da42cde76a297483d7bf306e8b8cec3b",
       "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
       "evidence": "Native DOCX generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
     },
@@ -3447,8 +3447,8 @@
     {
       "exampleId": "pswriteoffice-patch-report",
       "state": "generated",
-      "startedUtc": "2026-10-11T19:37:19.5003346Z",
-      "completedUtc": "2026-10-11T19:37:21.7859083Z",
+      "startedUtc": "2026-10-11T20:02:52.526686Z",
+      "completedUtc": "2026-10-11T20:02:54.401132Z",
       "host": {
         "powershell": "7.6.6",
         "os": "Microsoft Windows 10.0.26300",
@@ -3462,7 +3462,17 @@
       ],
       "evidenceProducer": {
         "path": "Website/scripts/Invoke-ShowcasePowerShellExample.ps1",
-        "sha256": "2acedae88020a95d1d40a50ac7b3b468a768d16edbb31b4c9e963c01fc8a5013"
+        "sha256": "90c5c039bbb9d133455995ddcb4ec89672fc0bbb97944f995e423989e4d71888",
+        "dependencies": [
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Helpers.ps1",
+            "sha256": "5eb84ad7864f43a1a5af237419de3f389f1ba4efb5dfddd66758aa976708b957"
+          },
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Provenance.ps1",
+            "sha256": "08c44e8ce66e74107ce3b74874a86d43343354c00e4dce331cc4aec61ea58580"
+          }
+        ]
       },
       "package": {
         "name": "PSWriteOffice",
@@ -4669,7 +4679,7 @@
       "outputs": [
         {
           "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
-          "sha256": "7ac732f05fd8271efb53c6d4cd65e3410c517a356491d5326a0d838ee5a4a7c3",
+          "sha256": "67da1bae8392f56c9f823b4c50798b8f7a3b92ba2c06927b36fa542d7f859a9d",
           "diagnostics": null
         },
         {
@@ -4742,7 +4752,7 @@
       ],
       "previewReview": {
         "state": "reviewed",
-        "reviewedUtc": "2026-10-11T19:37:32.3272066Z",
+        "reviewedUtc": "2026-10-11T20:03:02.2655084Z",
         "artifacts": [
           {
             "path": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
@@ -4753,7 +4763,7 @@
       "artifacts": [
         {
           "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
-          "sha256": "7ac732f05fd8271efb53c6d4cd65e3410c517a356491d5326a0d838ee5a4a7c3"
+          "sha256": "67da1bae8392f56c9f823b4c50798b8f7a3b92ba2c06927b36fa542d7f859a9d"
         },
         {
           "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
@@ -4772,8 +4782,8 @@
     {
       "exampleId": "pswriteoffice-project-delivery",
       "state": "generated",
-      "startedUtc": "2026-10-11T19:37:23.1858477Z",
-      "completedUtc": "2026-10-11T19:37:25.5221469Z",
+      "startedUtc": "2026-10-11T20:02:55.5118484Z",
+      "completedUtc": "2026-10-11T20:02:57.3337568Z",
       "host": {
         "powershell": "7.6.6",
         "os": "Microsoft Windows 10.0.26300",
@@ -4791,7 +4801,17 @@
       ],
       "evidenceProducer": {
         "path": "Website/scripts/Invoke-ShowcasePowerShellExample.ps1",
-        "sha256": "2acedae88020a95d1d40a50ac7b3b468a768d16edbb31b4c9e963c01fc8a5013"
+        "sha256": "90c5c039bbb9d133455995ddcb4ec89672fc0bbb97944f995e423989e4d71888",
+        "dependencies": [
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Helpers.ps1",
+            "sha256": "5eb84ad7864f43a1a5af237419de3f389f1ba4efb5dfddd66758aa976708b957"
+          },
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Provenance.ps1",
+            "sha256": "08c44e8ce66e74107ce3b74874a86d43343354c00e4dce331cc4aec61ea58580"
+          }
+        ]
       },
       "package": {
         "name": "PSWriteOffice",
@@ -5998,12 +6018,12 @@
       "outputs": [
         {
           "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx",
-          "sha256": "8b5806a4357e3c892a2dd91bec37abc79bac9be2fbd0333011a7828748c48c4f",
+          "sha256": "98e518f016073a5ef06c1f440d00ea5e17215a8f11aa94a267cbbcca572083ac",
           "diagnostics": null
         },
         {
           "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
-          "sha256": "6c5d1578b52d43f61f21859724aca57fecf70135452a50e451daaa85838db601",
+          "sha256": "fdd1c9d714f88c2510cd96bd8e612985da42cde76a297483d7bf306e8b8cec3b",
           "diagnostics": null
         },
         {
@@ -6076,7 +6096,7 @@
       ],
       "previewReview": {
         "state": "reviewed",
-        "reviewedUtc": "2026-10-11T19:37:32.3383663Z",
+        "reviewedUtc": "2026-10-11T20:03:02.2772738Z",
         "artifacts": [
           {
             "path": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
@@ -6087,11 +6107,11 @@
       "artifacts": [
         {
           "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx",
-          "sha256": "8b5806a4357e3c892a2dd91bec37abc79bac9be2fbd0333011a7828748c48c4f"
+          "sha256": "98e518f016073a5ef06c1f440d00ea5e17215a8f11aa94a267cbbcca572083ac"
         },
         {
           "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
-          "sha256": "6c5d1578b52d43f61f21859724aca57fecf70135452a50e451daaa85838db601"
+          "sha256": "fdd1c9d714f88c2510cd96bd8e612985da42cde76a297483d7bf306e8b8cec3b"
         },
         {
           "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
@@ -6114,8 +6134,8 @@
     {
       "exampleId": "pswriteoffice-budget-review",
       "state": "generated",
-      "startedUtc": "2026-10-11T19:37:26.8715239Z",
-      "completedUtc": "2026-10-11T19:37:28.6121686Z",
+      "startedUtc": "2026-10-11T20:02:58.3790249Z",
+      "completedUtc": "2026-10-11T20:02:59.7275308Z",
       "host": {
         "powershell": "7.6.6",
         "os": "Microsoft Windows 10.0.26300",
@@ -6133,7 +6153,17 @@
       ],
       "evidenceProducer": {
         "path": "Website/scripts/Invoke-ShowcasePowerShellExample.ps1",
-        "sha256": "2acedae88020a95d1d40a50ac7b3b468a768d16edbb31b4c9e963c01fc8a5013"
+        "sha256": "90c5c039bbb9d133455995ddcb4ec89672fc0bbb97944f995e423989e4d71888",
+        "dependencies": [
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Helpers.ps1",
+            "sha256": "5eb84ad7864f43a1a5af237419de3f389f1ba4efb5dfddd66758aa976708b957"
+          },
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Provenance.ps1",
+            "sha256": "08c44e8ce66e74107ce3b74874a86d43343354c00e4dce331cc4aec61ea58580"
+          }
+        ]
       },
       "package": {
         "name": "PSWriteOffice",
@@ -7340,12 +7370,12 @@
       "outputs": [
         {
           "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
-          "sha256": "8cfd77db25ef50d410887bdf0d8946a5d78c1399f137d2b49a912976b1faab5d",
+          "sha256": "6dd9c61df1126f0be5cf040c5423c4bb69d720058a7f3b3ce0a907cfd3d147e2",
           "diagnostics": null
         },
         {
           "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx",
-          "sha256": "d7ea151510f2c1700c89dd9f2101c9563f2310ae18ebd5c1b152a1e54c0cbdc5",
+          "sha256": "276ebc75d8c3642bf5b966d31794cae08d8b5cb6157f66b8eb6e824006116ce5",
           "diagnostics": null
         },
         {
@@ -7399,7 +7429,7 @@
       ],
       "previewReview": {
         "state": "reviewed",
-        "reviewedUtc": "2026-10-11T19:37:32.3475057Z",
+        "reviewedUtc": "2026-10-11T20:03:02.2837134Z",
         "artifacts": [
           {
             "path": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
@@ -7410,11 +7440,11 @@
       "artifacts": [
         {
           "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
-          "sha256": "8cfd77db25ef50d410887bdf0d8946a5d78c1399f137d2b49a912976b1faab5d"
+          "sha256": "6dd9c61df1126f0be5cf040c5423c4bb69d720058a7f3b3ce0a907cfd3d147e2"
         },
         {
           "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx",
-          "sha256": "d7ea151510f2c1700c89dd9f2101c9563f2310ae18ebd5c1b152a1e54c0cbdc5"
+          "sha256": "276ebc75d8c3642bf5b966d31794cae08d8b5cb6157f66b8eb6e824006116ce5"
         },
         {
           "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
