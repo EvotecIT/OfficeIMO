@@ -1,4 +1,4 @@
-BeforeAll {
+﻿BeforeAll {
     $manifest = if ($env:PSWRITEOFFICE_MODULE_MANIFEST) { $env:PSWRITEOFFICE_MODULE_MANIFEST } else { Join-Path $PSScriptRoot '../PSWriteOffice.psd1' }
     Import-Module $manifest -Global -ErrorAction Stop
     . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
