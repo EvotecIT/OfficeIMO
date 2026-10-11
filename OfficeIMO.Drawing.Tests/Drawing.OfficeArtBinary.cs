@@ -18,6 +18,24 @@ public partial class DrawingTests {
         Assert.Equal(0x40000003U, style.FillShadeType);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtShapeStyle_SecondaryBooleanGroupsPreserveUnchangedBits(bool enabled) {
+        uint bit = enabled ? 8U : 0U;
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x01FF, 0x00080000U | bit),
+            new OfficeArtProperty(0, 0x01FF, 0x00400000U)
+        });
+        Assert.Equal(enabled, style.LineEnabled);
+        OfficeArtShapeStyle overridden = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x01FF, 0x00080000U | bit),
+            new OfficeArtProperty(0, 0x01FF, 0x00080000U | (enabled ? 0U : 8U))
+        });
+        Assert.Equal(!enabled, overridden.LineEnabled);
+        Assert.Null(OfficeArtShapeStyle.Decode(new[] { new OfficeArtProperty(0, 0x01FF, 0x00400000U) }).LineEnabled);
+    }
+
     [Fact]
     public void OfficeArtShapeStyle_RejectsOversizedGradientStopTables() {
         const int stopCount = 257;

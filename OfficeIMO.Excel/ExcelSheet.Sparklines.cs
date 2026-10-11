@@ -7,9 +7,7 @@ using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Helpers for adding sparklines to worksheets.
-    /// </summary>
+    // Helpers for adding sparklines to worksheets.
     public partial class ExcelSheet {
         private const int MaximumExpandedSparklines = 10_000;
 

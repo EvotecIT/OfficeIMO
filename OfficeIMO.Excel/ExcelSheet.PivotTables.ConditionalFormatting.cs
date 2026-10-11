@@ -3,9 +3,7 @@ using System.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Represents an Excel worksheet.
-    /// </summary>
+    // Represents an Excel worksheet.
     public partial class ExcelSheet {
         /// <summary>
         /// Resolves the output range for a pivot table on this worksheet.

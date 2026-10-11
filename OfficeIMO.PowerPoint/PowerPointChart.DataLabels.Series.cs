@@ -9,9 +9,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
-        /// <summary>
-        ///     Represents a chart on a slide.
-        /// </summary>
+        //     Represents a chart on a slide.
         public partial class PowerPointChart : PowerPointShape {
         /// <summary>
         ///     Configures data labels for a single series by index.

@@ -99,6 +99,9 @@ namespace OfficeIMO.Excel {
                 if (child is BookViews views && IsNeutralWorkbookViews(views)) {
                     continue;
                 }
+                if (child is WorkbookProperties properties && HasOnlyDateSystemWorkbookProperties(properties)) {
+                    continue;
+                }
                 if (child is Sheets sheets) {
                     if (!allowSheets && sheets.OfType<Sheet>().Any()) {
                         return true;
@@ -112,6 +115,11 @@ namespace OfficeIMO.Excel {
 
             return false;
         }
+
+        internal static bool HasOnlyDateSystemWorkbookProperties(WorkbookProperties properties) =>
+            !properties.HasChildren && properties.GetAttributes().All(attribute =>
+                string.Equals(attribute.LocalName, "date1904", StringComparison.Ordinal)
+                && string.Equals(attribute.NamespaceUri, string.Empty, StringComparison.Ordinal));
 
         private static string? GetImportedTableName(ExcelSheet sheet) {
             return sheet.WorksheetPart.TableDefinitionParts
