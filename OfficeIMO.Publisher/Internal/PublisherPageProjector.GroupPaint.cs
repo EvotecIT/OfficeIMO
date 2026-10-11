@@ -23,8 +23,9 @@ internal sealed partial class PublisherPageProjector {
                 double shadowPadding = layer.Expansion + (layer.HasStroke ? layer.StrokeWidth / 2 * Math.Max(2, miterLimit) : 0);
                 padding = Math.Max(padding, 1 + shadowPadding + Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY)));
             }
-            foreach (OfficeLineMarker? marker in new[] { shape.StrokeStartMarker, shape.StrokeEndMarker })
-                if (marker != null) padding += Math.Max(marker.Width, marker.Length);
+            if (paintsStroke)
+                foreach (OfficeLineMarker? marker in new[] { shape.StrokeStartMarker, shape.StrokeEndMarker })
+                    if (marker != null) padding += Math.Max(marker.Width, marker.Length);
             OfficeTransform placement = (shape.Transform ?? OfficeTransform.Identity)
                 .Then(OfficeTransform.Translate(item.X, item.Y));
             foreach (OfficeFlattenedPathContour contour in OfficeStrokeGeometry.FlattenShape(shape, 4))
