@@ -164,9 +164,9 @@ namespace OfficeIMO.Excel {
                 || _disablePendingCellValueDirectSaveBuffer
                 || _excelDocument.HasDeferredDirectDataSetImport
                 || _excelDocument.HasDirectDataSetFastSaveState
-                || !TryPreparePendingDirectCellValue(value, out object? directValue)
                 || (_pendingCellValueDirectSaveBuffer == null && _hasCellValueDomWrites)
-                || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))) {
+                || (_pendingCellValueDirectSaveBuffer == null && !CanRegisterDirectTabularSaveCandidate(1, 1, Math.Max(1, column)))
+                || !TryPreparePendingDirectCellValue(value, out object? directValue)) {
                 return false;
             }
 
