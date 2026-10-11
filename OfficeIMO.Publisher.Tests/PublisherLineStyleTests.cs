@@ -93,6 +93,11 @@ public sealed class PublisherLineStyleTests {
         values[0x01FF] = 0x00080000;
         PublisherDocument hiddenStroke = Load(values);
         Assert.DoesNotContain(hiddenStroke.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_LINE_"));
+        values[0x01FF] = 0x00080008;
+        values[0x01C1] = 0;
+        PublisherDocument transparentStroke = Load(values);
+        Assert.DoesNotContain(transparentStroke.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_LINE_"));
+        Assert.NotNull(Artwork(transparentStroke).StrokeEndMarker);
     }
 
     [Fact]

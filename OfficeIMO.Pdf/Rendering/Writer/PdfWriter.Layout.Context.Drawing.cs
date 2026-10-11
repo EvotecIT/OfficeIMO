@@ -35,15 +35,8 @@ internal static partial class PdfWriter {
         }
 
         private string? EnsureOpacityState(OfficeIMO.Drawing.OfficeShape shape) {
-            bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line;
-            bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
-            double fillColorOpacity = shape.FillGradient == null && shape.FillRadialGradient == null && shape.FillColor.HasValue
-                ? shape.FillColor.Value.A / 255D
-                : 1D;
-            double strokeColorOpacity = shape.StrokeColor.HasValue ? shape.StrokeColor.Value.A / 255D : 1D;
-            double fillOpacity = hasFill ? (shape.FillOpacity ?? 1D) * fillColorOpacity : 1D;
-            double strokeOpacity = hasStroke ? (shape.StrokeOpacity ?? 1D) * strokeColorOpacity : 1D;
-            return EnsureGraphicsState(fillOpacity, strokeOpacity);
+            var opacity = ResolveShapePaintOpacity(shape);
+            return EnsureGraphicsState(opacity.Fill, opacity.Stroke);
         }
 
         private string? EnsureFillGradient(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
