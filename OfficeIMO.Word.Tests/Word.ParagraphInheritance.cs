@@ -25,19 +25,23 @@ namespace OfficeIMO.Tests {
             paragraph.ParagraphAlignment = null;
             paragraph.VerticalCharacterAlignmentOnLine = null;
             byte[] bytes = document.ToBytes(format);
-
-            if (format == WordFileFormat.Docx) {
-                using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(bytes), false);
-                ParagraphProperties properties = package.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single().ParagraphProperties!;
-                Assert.Null(properties.Justification);
-                Assert.Null(properties.TextAlignment);
-                Assert.Equal(styleId, properties.ParagraphStyleId?.Val?.Value);
-            } else {
+            if (format == WordFileFormat.Doc) {
                 using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
-                WordParagraph imported = Assert.Single(loaded.Paragraphs);
-                Assert.Equal(WordParagraphAlignment.Center, imported.ParagraphAlignment);
-                Assert.Equal(WordVerticalCharacterAlignment.Center, imported.VerticalCharacterAlignmentOnLine);
+                bytes = loaded.ToBytes();
             }
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(bytes), false);
+            ParagraphProperties properties = package.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single().ParagraphProperties!;
+            Assert.Null(properties.Justification);
+            Assert.Null(properties.TextAlignment);
+            string? importedStyleId = properties.ParagraphStyleId?.Val?.Value;
+            Assert.False(string.IsNullOrEmpty(importedStyleId));
+            if (format == WordFileFormat.Docx) Assert.Equal(styleId, importedStyleId);
+            Style inheritedStyle = Assert.Single(package.MainDocumentPart.StyleDefinitionsPart!.Styles!.Elements<Style>(),
+                item => item.StyleId?.Value == importedStyleId);
+            Assert.Equal(styleId, inheritedStyle.StyleName?.Val?.Value);
+            Assert.Equal(JustificationValues.Center, inheritedStyle.StyleParagraphProperties?.GetFirstChild<Justification>()?.Val?.Value);
+            Assert.Equal(VerticalTextAlignmentValues.Center, inheritedStyle.StyleParagraphProperties?.GetFirstChild<TextAlignment>()?.Val?.Value);
         }
 
         [Theory]
