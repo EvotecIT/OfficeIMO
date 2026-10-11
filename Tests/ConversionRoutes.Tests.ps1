@@ -36,6 +36,8 @@ Describe 'Conversion route discovery' {
     It 'can be queried repeatedly and from pipeline IDs without modifying catalog rows' {
         $rows = @([pscustomobject]@{ Id = 'docx-pdf' }, [pscustomobject]@{ Id = 'pdf-docx' }) | Get-OfficeConversionRoute
         @($rows).Count | Should -Be 2
+        $stringRows = @('docx-pdf', 'pdf-docx') | Get-OfficeConversionRoute
+        @($stringRows.Id) | Should -Be @('docx-pdf', 'pdf-docx')
         @(Get-OfficeConversionRoute -Id docx-pdf).Count | Should -Be 1
         @(Get-OfficeConversionRoute -Id docx-pdf).Count | Should -Be 1
     }
