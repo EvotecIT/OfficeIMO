@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel {
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
             if (reader.FieldCount < 1) throw new ArgumentException("Data reader must expose at least one field.", nameof(reader));
+            ct.ThrowIfCancellationRequested();
 
             string[] headers = BuildReaderHeaders(reader);
             Type[] fieldTypes = BuildReaderFieldTypes(reader);
@@ -99,6 +100,7 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     ct,
                     out ExcelDataReaderInsertResult deferredResult)) {
+                ct.ThrowIfCancellationRequested();
                 return deferredResult;
             }
 
@@ -115,6 +117,7 @@ namespace OfficeIMO.Excel {
                     ct,
                     out int appendedDataRows,
                     out List<object?[]>? appendedDirectRows)) {
+                ct.ThrowIfCancellationRequested();
                 int appendedOccupiedRows = appendedDataRows + (includeHeaders ? 1 : 0);
                 if (appendedOccupiedRows == 0) {
                     return new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, headers.Length);
@@ -153,8 +156,10 @@ namespace OfficeIMO.Excel {
                     style,
                     includeAutoFilter,
                     autoFit,
-                    canRegisterDirectSave);
+                    canRegisterDirectSave,
+                    ct);
 
+                ct.ThrowIfCancellationRequested();
                 return new ExcelDataReaderInsertResult(Name, appendedTableName, appendedRange, appendedDataRows, headers.Length);
             }
 
@@ -204,6 +209,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            ct.ThrowIfCancellationRequested();
             int occupiedRows = dataRows + (includeHeaders ? 1 : 0);
             if (occupiedRows == 0) {
                 return new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, headers.Length);
@@ -233,8 +239,10 @@ namespace OfficeIMO.Excel {
                 style,
                 includeAutoFilter,
                 autoFit,
-                canRegisterDirectSave);
+                canRegisterDirectSave,
+                ct);
 
+            ct.ThrowIfCancellationRequested();
             return new ExcelDataReaderInsertResult(Name, actualTableName, range, dataRows, headers.Length);
         }
 
@@ -285,6 +293,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            ct.ThrowIfCancellationRequested();
             int occupiedRows = rows.Count + (includeHeaders ? 1 : 0);
             if (occupiedRows == 0) {
                 result = new ExcelDataReaderInsertResult(Name, null, string.Empty, 0, columnCount);
@@ -309,7 +318,8 @@ namespace OfficeIMO.Excel {
                 createTable,
                 style,
                 includeAutoFilter,
-                autoFit)) {
+                autoFit,
+                cancellationToken: ct)) {
                 result = new ExcelDataReaderInsertResult(
                     deferredResult!.SheetName,
                     deferredResult.TableName,
@@ -334,6 +344,7 @@ namespace OfficeIMO.Excel {
                 autoFit,
                 range,
                 ct);
+            ct.ThrowIfCancellationRequested();
             result = new ExcelDataReaderInsertResult(Name, actualTableName, range, rows.Count, columnCount);
             return true;
         }
@@ -691,7 +702,9 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle style,
             bool includeAutoFilter,
             bool autoFit,
-            bool canRegisterDirectSave) {
+            bool canRegisterDirectSave,
+            CancellationToken ct) {
+            ct.ThrowIfCancellationRequested();
             if (!canRegisterDirectSave || directRows == null || range.Length == 0) {
                 return;
             }
@@ -711,7 +724,8 @@ namespace OfficeIMO.Excel {
                 createTable,
                 style,
                 includeAutoFilter,
-                autoFit);
+                autoFit,
+                cancellationToken: ct);
         }
 
         internal static string[] BuildReaderHeaders(IDataReader reader) {
