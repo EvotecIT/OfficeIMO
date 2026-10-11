@@ -10,6 +10,53 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class PdfRunningPaintRecoveryTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DuplicateEndpointStopsUseTheNativePaintersPadding(bool end) {
+        var shape = OfficeShape.Path(100, 1, OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(10, 0),
+            OfficePathCommand.LineTo(10, 1), OfficePathCommand.LineTo(0, 1), OfficePathCommand.Close());
+        shape.FillGradient = end
+            ? new OfficeLinearGradient(1, 0, .5, 0, new[] { new OfficeGradientStop(0, OfficeColor.Red),
+                new OfficeGradientStop(1, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Transparent) })
+            : new OfficeLinearGradient(.5, 0, 1, 0, new[] { new OfficeGradientStop(0, OfficeColor.Transparent),
+                new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Red) });
+        shape.Transform = OfficeTransform.Translate(0, -30);
+        var report = new PdfConversionReport();
+        Assert.NotEmpty(Running(shape, report));
+        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+    }
+
+    [Fact]
+    public void RadialCoordinateScalingPreservesPaintAtThePhysicalEdge() {
+        var shape = OfficeShape.Path(100, 100, OfficePathCommand.MoveTo(9, 49), OfficePathCommand.LineTo(9.5, 49),
+            OfficePathCommand.LineTo(9.5, 50), OfficePathCommand.LineTo(9, 50), OfficePathCommand.Close());
+        shape.FillRadialGradient = new OfficeRadialGradient(-.499, 0, 0, -.499, 0, 1, new[] {
+            new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(.5, OfficeColor.Red),
+            new OfficeGradientStop(.5, OfficeColor.Transparent), new OfficeGradientStop(1, OfficeColor.Transparent)
+        }).TransformCoordinates(OfficeTransform.Scale(100, 100));
+        shape.Transform = OfficeTransform.Translate(80.75, 0);
+        var report = new PdfConversionReport();
+        Assert.NotEmpty(Running(shape, report));
+        Assert.Contains(report.Warnings, w => w.Code == "HeaderFooterPageBoundsClipped");
+    }
+
+    [Fact]
+    public void TranslatedLinkedLineIncludesTheShaftBeyondItsStartMarker() {
+        var shape = OfficeShape.Line(0, 0, 60, 0);
+        shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 30, 20);
+        shape.Transform = OfficeTransform.Translate(100, 0);
+        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 200, PageHeight = 100,
+            MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20 })
+            .Compose(c => c.Page(p => p.Content(b => b.Shape(shape, linkUri: "https://example.com/shape")))).ToBytes();
+        Match match = Regex.Match(Encoding.ASCII.GetString(bytes), @"/Rect\s*\[([^\]]+)\]");
+        Assert.True(match.Success);
+        double[] rect = match.Groups[1].Value.Split(new[] { ' ', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
+        Assert.True(rect[2] >= 170, "The translated shaft must remain clickable beyond the start marker.");
+    }
+
     [Fact]
     public void TransparentPartOutsideThePageDoesNotHideVisibleGradientInkInsideIt() {
         var shape = OfficeShape.Path(100, 1, OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(60, 0),

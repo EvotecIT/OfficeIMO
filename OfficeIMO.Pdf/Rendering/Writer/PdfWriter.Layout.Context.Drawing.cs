@@ -475,10 +475,12 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX, containerWidth, shape.Shape.Width, style.Align);
-            double x1 = x;
-            double x2 = x + shape.Shape.Width;
-            double y1 = topY - shape.Shape.Height;
-            double y2 = topY;
+            var canvas = (shape.Shape.Transform ?? OfficeTransform.Identity)
+                .TransformRectangleBounds(0, 0, shape.Shape.Width, shape.Shape.Height);
+            double x1 = x + canvas.Left;
+            double x2 = x + canvas.Right;
+            double y1 = topY - canvas.Bottom;
+            double y2 = topY - canvas.Top;
             double halfStroke = Math.Max(0.5D, Math.Max(0D, shape.Shape.StrokeWidth) / 2D);
             if (x2 <= x1) {
                 x1 -= halfStroke;
@@ -488,6 +490,12 @@ internal static partial class PdfWriter {
             if (y2 <= y1) {
                 y1 -= halfStroke;
                 y2 += halfStroke;
+            }
+
+            if (TryGetShapePaintBounds(shape.Shape, x, topY - shape.Shape.Height, null, "Body", "shape",
+                    out double paintX, out double paintY, out double paintWidth, out double paintHeight)) {
+                x1 = Math.Min(x1, paintX); x2 = Math.Max(x2, paintX + paintWidth);
+                y1 = Math.Min(y1, paintY); y2 = Math.Max(y2, paintY + paintHeight);
             }
 
             foreach (OfficeShape marker in CreateLineMarkerShapes(shape.Shape)) {

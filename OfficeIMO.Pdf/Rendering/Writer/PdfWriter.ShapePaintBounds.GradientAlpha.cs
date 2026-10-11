@@ -11,6 +11,7 @@ internal static partial class PdfWriter {
         contours = null;
         IReadOnlyList<OfficeGradientStop>? stops = radial?.Stops ?? linear?.Stops;
         if (stops == null) return true;
+        stops = PdfVisualResourceDictionaryBuilder.NormalizeGradientStops(stops);
         bool transparent = false, visible = false;
         foreach (var stop in stops) { transparent |= stop.Color.A == 0; visible |= stop.Color.A > 0; }
         if (!transparent) return true;
@@ -78,7 +79,10 @@ internal static partial class PdfWriter {
         List<OfficePoint> RadialRing(double ratio) {
             double rx = radial!.StartRadiusX + (radial.EndRadiusX - radial.StartRadiusX) * ratio;
             double ry = radial.StartRadiusY + (radial.EndRadiusY - radial.StartRadiusY) * ratio;
-            double density = OfficeStrokeGeometry.LocalFlatteningDensity(shape.Transform, 4D) * Math.Max(shape.Width, shape.Height);
+            OfficeTransform fieldToPage = radial.CoordinateTransform
+                .Then(OfficeTransform.Scale(Math.Max(.0001, shape.Width), Math.Max(.0001, shape.Height)))
+                .Then(shape.Transform ?? OfficeTransform.Identity);
+            double density = OfficeStrokeGeometry.LocalFlatteningDensity(fieldToPage, 4D);
             var ring = OfficeCurveFlattening.Ellipse(radial.StartX, radial.StartY, rx, ry, density);
             for (int i = 0; i < ring.Count; i++) {
                 OfficePoint normalized = radial.CoordinateTransform.TransformPoint(ring[i]);
