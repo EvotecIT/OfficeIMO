@@ -43,6 +43,32 @@ function Get-HelpCommandNames {
         Sort-Object -Unique
 }
 
+function ConvertTo-ComparableManifestValue {
+    param([AllowNull()] $Value)
+
+    if ($Value -is [System.Collections.IDictionary]) {
+        $result = [ordered]@{}
+        foreach ($key in @($Value.Keys | Sort-Object)) {
+            $result[$key] = ConvertTo-ComparableManifestValue $Value[$key]
+        }
+        return $result
+    }
+    if ($Value -is [array]) {
+        return ,@($Value | ForEach-Object { ConvertTo-ComparableManifestValue $_ })
+    }
+    return $Value
+}
+
+function Get-ComparableManifest {
+    param([System.Collections.IDictionary] $Data, [switch] $IgnoreVersion)
+
+    $copy = @{}
+    foreach ($key in $Data.Keys) {
+        if (-not $IgnoreVersion -or $key -ne 'ModuleVersion') { $copy[$key] = $Data[$key] }
+    }
+    ConvertTo-ComparableManifestValue $copy | ConvertTo-Json -Depth 30 -Compress
+}
+
 function Get-RelativeFilePath {
     param(
         [Parameter(Mandatory)][string] $BasePath,
@@ -76,6 +102,7 @@ function Get-CompleteModuleBundle {
     if (-not (Test-Path -LiteralPath $helpPath -PathType Leaf)) { return $null }
     $builtManifest = Import-PowerShellDataFile -LiteralPath $Path
     if ([version]$builtManifest.ModuleVersion -ne [version]$manifest.ModuleVersion) { return $null }
+    if ((Get-ComparableManifest $builtManifest) -cne (Get-ComparableManifest $manifest)) { return $null }
     $helpCommands = @(Get-HelpCommandNames -Path $helpPath)
     if ($helpCommands.Count -ne $expectedCommands.Count -or
         @(Compare-Object -ReferenceObject $expectedCommands -DifferenceObject $helpCommands).Count -gt 0) {
@@ -119,8 +146,8 @@ function Get-QualifiedSourceRevision {
     }
 
     # The SDK embeds the package's actual source revision in each host assembly.
-    # A later documentation-only checkout is acceptable when its API/build inputs
-    # remain identical; a same-version stale implementation or help source is not.
+    # A later documentation-only checkout is acceptable when the package revision
+    # is available locally and its API/build inputs remain identical.
     $packageCommits = foreach ($hostDirectory in 'Core', 'Default') {
         $assemblyPath = Join-Path $ModuleRoot "Lib/$hostDirectory/PSWriteOffice.dll"
         if (-not (Test-Path -LiteralPath $assemblyPath -PathType Leaf)) {
@@ -134,6 +161,31 @@ function Get-QualifiedSourceRevision {
     }
     if (@($packageCommits | Sort-Object -Unique).Count -ne 1) {
         throw 'The module host assemblies must come from the same source revision.'
+    }
+    $packageRevision = Invoke-SourceGit @('cat-file', '-e', "$($packageCommits[0])^{commit}")
+    if ($packageRevision.ExitCode -ne 0) {
+        throw "Package source revision $($packageCommits[0]) is unavailable locally. Fetch this revision or deepen the checkout before exporting."
+    }
+    $packageManifestResult = Invoke-SourceGit @('show', "$($packageCommits[0]):PSWriteOffice.psd1")
+    if ($packageManifestResult.ExitCode -ne 0) { throw 'The package source revision lacks its module manifest.' }
+    $parseErrors = $null
+    $tokens = $null
+    $manifestAst = [System.Management.Automation.Language.Parser]::ParseInput(
+        ($packageManifestResult.Output -join "`n").TrimStart([char]0xfeff), [ref]$tokens, [ref]$parseErrors)
+    if ($parseErrors.Count -gt 0) { throw 'The package source manifest could not be parsed safely.' }
+    $manifestExpression = if ($manifestAst.EndBlock.Statements.Count -eq 1 -and
+        $manifestAst.EndBlock.Statements[0] -is [System.Management.Automation.Language.PipelineAst]) {
+        $manifestAst.EndBlock.Statements[0].GetPureExpression()
+    }
+    if ($manifestExpression -isnot [System.Management.Automation.Language.HashtableAst]) {
+        throw 'The package source manifest must contain a data hashtable.'
+    }
+    $packageManifest = $manifestExpression.SafeGetValue()
+    # PowerForge resolves ModuleVersion during a normal build; every other field
+    # must still describe the manifest from which the package was built.
+    if ((Get-ComparableManifest $packageManifest -IgnoreVersion) -cne
+        (Get-ComparableManifest $manifest -IgnoreVersion)) {
+        throw 'The module bundle source manifest does not match this checkout. Rebuild it from this checkout.'
     }
     $apiInputs = @('Sources', 'PSWriteOffice.psm1', 'Directory.Build.props', 'Directory.Build.targets',
         'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config', 'Build/Build-Module.ps1')

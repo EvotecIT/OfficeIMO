@@ -96836,7 +96836,7 @@ a catalog entry alone does not establish that a converter, credentials, fonts or
     <command:syntax>
       <command:syntaxItem parameterSetName="__AllParameterSets">
         <maml:name>Get-OfficeConversionRoute</maml:name>
-        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="None">
+        <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="named" aliases="None">
           <maml:name>Id</maml:name>
           <maml:description>
             <maml:para>Exact route identifiers, for example docx-pdf or pdf-docx. Unknown identifiers return no rows.</maml:para>
@@ -96887,7 +96887,7 @@ a catalog entry alone does not establish that a converter, credentials, fonts or
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
-      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="None">
+      <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="True (ByValue, ByPropertyName)" position="named" aliases="None">
         <maml:name>Id</maml:name>
         <maml:description>
           <maml:para>Exact route identifiers, for example docx-pdf or pdf-docx. Unknown identifiers return no rows.</maml:para>
@@ -96974,6 +96974,16 @@ a catalog entry alone does not establish that a converter, credentials, fonts or
         <dev:code>Get-OfficeConversionRoute -PdfBatch | Select-Object Id, SourceExtensions, PackageId, Fidelity, KnownLimitations</dev:code>
         <dev:remarks>
           <maml:para>Batch PDF export requires PowerShell 7.4 or newer. Windows PowerShell 5.1 can inspect the catalog and use supported single-file commands.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Inspect several route identifiers from the pipeline.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>'docx-pdf', 'pdf-docx' | Get-OfficeConversionRoute</dev:code>
+        <dev:remarks>
+          <maml:para>The pipeline also accepts objects with an Id property.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
