@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
         if (source.StrokeWidth <= 0D || (source.StrokeColor == null && source.StrokeGradient == null && source.StrokeRadialGradient == null)
             || (source.StrokeStartMarker == null && source.StrokeEndMarker == null)) return Array.Empty<OfficeShape>();
         var markers = new List<OfficeShape>(2);
-        var contours = OfficeStrokeGeometry.FlattenShape(source, 4D);
+        var contours = OfficeStrokeGeometry.FlattenShape(source, OfficeStrokeGeometry.LocalFlatteningDensity(source.Transform, 4D));
         OfficeFlattenedPathContour? first = null, last = null;
         foreach (OfficeFlattenedPathContour contour in contours) {
             if (contour.Closed || contour.Points.Count < 2) continue;

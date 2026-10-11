@@ -383,8 +383,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeCurveFlattening.RoundedRectangle(0D, 0D, width, height, radius, radius, pixelsPerUnit);
 
     private static double GetShapePixelScale(OfficeDrawingShape shape, double scale) {
-        OfficeTransform transform = shape.Shape.Transform ?? OfficeTransform.Identity;
-        return scale * Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12 + transform.M21 * transform.M21 + transform.M22 * transform.M22);
+        return OfficeStrokeGeometry.LocalFlatteningDensity(shape.Shape.Transform ?? OfficeTransform.Identity, scale);
     }
     private static List<OfficePoint> TransformShapePoints(OfficeDrawingShape drawingShape, IReadOnlyList<OfficePoint> points, double scale) {
         List<OfficePoint> transformed = new List<OfficePoint>(points.Count);

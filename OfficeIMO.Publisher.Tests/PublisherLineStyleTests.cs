@@ -8,6 +8,22 @@ namespace OfficeIMO.Publisher.Tests;
 public sealed class PublisherLineStyleTests {
     private static readonly OfficeColor Ink = OfficeColor.FromRgb(204, 32, 64);
 
+    [Fact]
+    public void Shadow_only_native_line_keeps_its_caps_joins_miter_and_fidelity_reports() {
+        PublisherDocument publication = Load(new Dictionary<ushort, uint> {
+            [0x01FF] = 0x00080000, [0x023F] = 0x00020002, [0x0201] = 0x0000FF00,
+            [0x0205] = 127000, [0x01D7] = 1, [0x01D6] = 1, [0x01CC] = 0x00044000,
+            [0x01CE] = 6
+        });
+        OfficeShape shape = Artwork(publication);
+        Assert.Null(shape.StrokeColor); Assert.NotNull(shape.Shadow);
+        Assert.Equal(OfficeStrokeLineCap.Square, shape.StrokeLineCap);
+        Assert.Equal(OfficeStrokeLineJoin.Miter, shape.StrokeLineJoin);
+        Assert.Equal(4.25, shape.StrokeMiterLimit);
+        Assert.Contains(publication.ReadReport.FidelityDiagnostics, d => d.Code == "PUB_LINE_DASH_APPROXIMATED");
+        Assert.Contains("stroke-miterlimit=\"4.25\"", publication.ToSvg(0));
+    }
+
     [Theory]
     [InlineData(0U, 0U, OfficeStrokeLineCap.Round, OfficeStrokeLineJoin.Bevel)]
     [InlineData(1U, 1U, OfficeStrokeLineCap.Square, OfficeStrokeLineJoin.Miter)]

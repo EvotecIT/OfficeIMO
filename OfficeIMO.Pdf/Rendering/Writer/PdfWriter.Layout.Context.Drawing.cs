@@ -490,6 +490,13 @@ internal static partial class PdfWriter {
                 y2 += halfStroke;
             }
 
+            foreach (OfficeShape marker in CreateLineMarkerShapes(shape.Shape)) {
+                if (!TryGetShapePaintBounds(marker, x, topY - marker.Height, null, "Body", "marker",
+                        out double markerX, out double markerY, out double markerWidth, out double markerHeight)) continue;
+                x1 = Math.Min(x1, markerX); x2 = Math.Max(x2, markerX + markerWidth);
+                y1 = Math.Min(y1, markerY); y2 = Math.Max(y2, markerY + markerHeight);
+            }
+
             currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = shape.LinkUri!, Contents = shape.LinkContents, StructElementIndex = structElementIndex });
         }
 

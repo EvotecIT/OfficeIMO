@@ -5,9 +5,19 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static bool UsesSharedMarkerField(OfficeShape shape) =>
-        (shape.Kind == OfficeShapeKind.Line || shape.Kind == OfficeShapeKind.Path)
-        && (shape.StrokeStartMarker != null || shape.StrokeEndMarker != null);
+    private static bool UsesSharedMarkerField(OfficeShape shape) {
+        if (shape.Kind is not (OfficeShapeKind.Line or OfficeShapeKind.Path)
+            || (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null)) return false;
+        OfficeFlattenedPathContour? first = null, last = null;
+        foreach (var contour in OfficeStrokeGeometry.FlattenShape(shape, 1D)) {
+            if (contour.Closed || contour.Points.Count < 2) continue;
+            first ??= contour; last = contour;
+        }
+        bool Paints(OfficeLineMarker? marker, OfficePoint tip, OfficePoint adjacent) =>
+            OfficeLineMarkerGeometry.CreateContour(marker, tip, new OfficePoint(tip.X - adjacent.X, tip.Y - adjacent.Y)).Count >= 3;
+        return first != null && Paints(shape.StrokeStartMarker, first.Points[0], first.Points[1])
+            || last != null && Paints(shape.StrokeEndMarker, last.Points[last.Points.Count - 1], last.Points[last.Points.Count - 2]);
+    }
 
     private static OfficeTransform GetStrokeFieldCoordinates(OfficeDrawingShape drawing) {
         OfficeShape shape = drawing.Shape;
