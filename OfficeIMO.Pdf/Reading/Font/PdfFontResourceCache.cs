@@ -67,9 +67,13 @@ internal sealed class PdfFontResourceCache {
                 drawing.UnicodeGlyphs.Count * 64L;
             if (!ReferenceEquals(drawing.Program, font.EmbeddedTrueTypeFont)) drawingBytes += drawing.Program.LongLength;
         }
-        long cmapBytes = (font.CMap?.MappingCount ?? 0) * 128L;
-        long differencesBytes = (font.Differences?.Count ?? 0) * 64L;
-        return embeddedBytes + drawingBytes + cmapBytes + differencesBytes + 1024L;
+        long cmapBytes = font.CMap?.EstimatedRetainedBytes ?? 0;
+        long differencesBytes = (font.Differences?.Count ?? 0) * 96L;
+        if (font.Differences != null) {
+            foreach (string destination in font.Differences.Values) differencesBytes += destination.Length * (long)sizeof(char);
+        }
+        long type3Bytes = font.Type3?.EstimatedRetainedBytes ?? 0;
+        return embeddedBytes + drawingBytes + cmapBytes + differencesBytes + type3Bytes + 1024L;
     }
 }
 
