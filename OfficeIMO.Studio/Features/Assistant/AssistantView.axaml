@@ -22,10 +22,10 @@
           <Border Width="32" Height="32" CornerRadius="9" Background="{DynamicResource StudioAccentSoftBrush}">
             <PathIcon Data="{StaticResource IconSparkle}" Width="16" Height="16" Foreground="{DynamicResource StudioAccentBrush}" />
           </Border>
-          <TextBlock Text="{loc:Loc Assistant.Title}" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{loc:Loc Assistant.Title}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" VerticalAlignment="Center" />
         </StackPanel>
         <TextBlock Text="{loc:Loc Assistant.ReadOnly}" Classes="muted" TextWrapping="Wrap" />
-        <TextBlock Text="{Binding Connections.Summary}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" FontSize="12" MaxLines="2" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding Connections.Summary}" Foreground="{DynamicResource StudioAccentBrush}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" MaxLines="2" TextTrimming="CharacterEllipsis" />
         <!-- While the welcome card offers "Choose a provider", this entry would only repeat it. -->
         <Button Classes="tool" Content="{loc:Loc Assistant.Connections}" Click="ManageConnectionsClick" HorizontalAlignment="Stretch" IsVisible="{Binding !ShowConnections}" />
       </StackPanel>
@@ -70,10 +70,10 @@
                               <Button Classes="link" Command="{Binding NavigateCommand}" HorizontalAlignment="Left" Padding="0">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                   <PathIcon Data="{StaticResource IconDocument}" Width="11" Height="11" />
-                                  <TextBlock Text="{Binding Label}" FontSize="12" FontWeight="SemiBold" />
+                                  <TextBlock Text="{Binding Label}" FontSize="{StaticResource StudioSecondaryFontSize}" FontWeight="SemiBold" />
                                 </StackPanel>
                               </Button>
-                              <TextBlock Text="{Binding Quote}" Classes="muted" TextWrapping="Wrap" FontSize="12" FontStyle="Italic" />
+                              <TextBlock Text="{Binding Quote}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" FontStyle="Italic" />
                             </StackPanel>
                           </Border>
                         </DataTemplate>
@@ -92,7 +92,7 @@
         </ScrollViewer>
       </Grid>
       <StackPanel Grid.Row="2" Spacing="8" IsVisible="{Binding !ShowConnections}">
-        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="12" AutomationProperties.LiveSetting="Polite" />
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" AutomationProperties.LiveSetting="Polite" />
         <ProgressBar IsVisible="{Binding IsBusy}" IsIndeterminate="True" Height="3" />
         <StackPanel IsEnabled="{Binding !IsBusy}" Spacing="6">
           <CheckBox Content="{loc:Loc Assistant.CurrentPage}" IsChecked="{Binding CurrentPageOnly}" />

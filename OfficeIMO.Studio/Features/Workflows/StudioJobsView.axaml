@@ -4,25 +4,30 @@
              xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows" xmlns:coreworkflow="clr-namespace:OfficeIMO.Workflows;assembly=OfficeIMO.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.StudioJobsView"
              x:DataType="workflow:StudioJobsViewModel">
-  <Grid RowDefinitions="Auto,Auto,*" Margin="36,28,36,20" MaxWidth="1180">
+  <Grid RowDefinitions="Auto,Auto,*" Classes="pageContent" MaxWidth="1180">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,12">
-      <StackPanel Spacing="4">
+      <StackPanel Classes="pageHeading">
         <TextBlock Classes="pageTitle" Text="{loc:Loc Jobs.Title}" />
         <TextBlock Classes="muted" Text="{Binding History.Summary}" TextWrapping="Wrap" />
         <TextBlock Classes="muted" Text="{loc:Loc Jobs.SessionNote}" TextWrapping="Wrap" />
-        <TextBlock Text="{Binding History.RecoveryError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
+        <TextBlock Text="{Binding History.RecoveryError}" IsVisible="{Binding History.RecoveryError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
       </StackPanel>
       <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Jobs.ClearFinished}" IsVisible="{Binding History.HasEntries}"
               Command="{Binding ClearFinishedCommand}" VerticalAlignment="Top" />
     </Grid>
-    <TextBlock Grid.Row="1" Text="{Binding ActionError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" Margin="0,0,0,8" />
+    <TextBlock Grid.Row="1" Text="{Binding ActionError}" IsVisible="{Binding ActionError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" Margin="0,0,0,8" />
     <Grid Grid.Row="2">
       <StackPanel IsVisible="{Binding !History.HasEntries}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="420">
         <Border Width="64" Height="64" CornerRadius="16" Background="{DynamicResource StudioAccentSoftBrush}" HorizontalAlignment="Center">
           <PathIcon Data="{StaticResource IconJobs}" Width="28" Height="28" Foreground="{DynamicResource StudioAccentBrush}" />
         </Border>
-        <TextBlock Text="{loc:Loc Jobs.EmptyTitle}" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+        <TextBlock Text="{loc:Loc Jobs.EmptyTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
         <TextBlock Text="{loc:Loc Jobs.Empty}" Classes="muted" TextWrapping="Wrap" TextAlignment="Center" />
+        <!-- An empty list points to the work that fills it. -->
+        <StackPanel x:Name="EmptyActions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,4,0,0">
+          <Button Classes="primary" Content="{loc:Loc Commands.Convert.Title}" Command="{ReflectionBinding $parent[Window].DataContext.ShowConversionWorkbenchCommand}" />
+          <Button Classes="tool" Content="{loc:Loc Commands.Ocr.Title}" Command="{ReflectionBinding $parent[Window].DataContext.ShowOcrCommand}" />
+        </StackPanel>
       </StackPanel>
       <ListBox ItemsSource="{Binding History.Entries}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}"
                IsVisible="{Binding History.HasEntries}" Background="Transparent" BorderThickness="0"

@@ -5,10 +5,10 @@
         x:Class="OfficeIMO.Studio.Features.Organizer.PageMoveDialogContent"
         x:DataType="local:PageMovePreviewViewModel"
         Title="{loc:Loc Organizer.MovePages}" Width="520" Height="520" MinWidth="380" MinHeight="400"
-        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
   <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="10">
     <StackPanel Spacing="4">
-      <TextBlock Text="{loc:Loc Organizer.MovePages}" FontSize="19" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Organizer.MovePages}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{loc:Loc Organizer.MoveHint}" TextWrapping="Wrap" />
       <TextBlock Text="{Binding SelectedPagesLabel}" TextWrapping="Wrap" MaxHeight="60" />
     </StackPanel>

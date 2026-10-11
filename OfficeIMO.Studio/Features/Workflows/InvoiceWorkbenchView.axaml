@@ -2,8 +2,8 @@
  xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
  x:Class="OfficeIMO.Studio.Features.Workflows.InvoiceWorkbenchView" x:DataType="workflow:InvoiceWorkbenchViewModel">
  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-  <StackPanel Margin="20" Spacing="16" MaxWidth="1000" HorizontalAlignment="Stretch">
-   <StackPanel Spacing="4"><TextBlock Text="{Binding Title}" Classes="pageTitle" /><TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" /></StackPanel>
+  <StackPanel Classes="pageContent" Spacing="{StaticResource StudioSpaceL}" MaxWidth="1000" HorizontalAlignment="Stretch">
+   <StackPanel Classes="pageHeading"><TextBlock Text="{Binding Title}" Classes="pageTitle" /><TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" /></StackPanel>
    <Border Classes="card" Padding="16">
     <StackPanel Spacing="12" IsEnabled="{Binding CanEdit}">
      <TextBlock Text="{loc:Loc Invoice.Input}" Classes="sectionTitle" />

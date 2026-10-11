@@ -130,7 +130,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
             OnPropertyChanged(nameof(HasImage)); OnPropertyChanged(nameof(CanApply));
             await PreviewAsync().ConfigureAwait(true);
         } catch (OperationCanceledException) { }
-        catch (Exception error) { if (!_disposed) ErrorMessage = error.Message; }
+        catch (Exception error) { if (!_disposed) ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 
     [RelayCommand(CanExecute = nameof(CanEdit))]
@@ -172,7 +172,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
             var previous = PreviewImage; PreviewImage = image; previous?.Dispose();
             _prepared = result; _preparedVersion = version;
         } catch (OperationCanceledException) { }
-        catch (Exception error) { if (!_disposed) ErrorMessage = error.Message; }
+        catch (Exception error) { if (!_disposed) ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         finally {
             if (ReferenceEquals(_cancellation, cancellation)) _cancellation = null;
             if (!_disposed) IsBusy = false;

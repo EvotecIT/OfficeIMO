@@ -17,9 +17,11 @@
     </Grid>
     <TextBlock Grid.Row="1" Text="{Binding PageDetails}" TextWrapping="Wrap" Classes="muted" />
     <Grid Grid.Row="2" ColumnDefinitions="340,*" ColumnSpacing="16">
-      <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="8">
-        <WrapPanel>
-          <Button Classes="tool" Content="{loc:Loc Ocr.Review.IncludePage}" Command="{Binding IncludeEligiblePageCommand}" Margin="0,0,8,0" />
+      <Grid RowSpacing="8">
+        <!-- The word list keeps room for a few rows in short windows; the correction details stay compact below it. -->
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" MinHeight="120" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <WrapPanel ItemSpacing="8" LineSpacing="6">
+          <Button Classes="tool" Content="{loc:Loc Ocr.Review.IncludePage}" Command="{Binding IncludeEligiblePageCommand}" />
           <Button Classes="tool" Content="{loc:Loc Ocr.Review.ExcludePage}" Command="{Binding ExcludePageCommand}" />
           <Button Classes="tool" Content="{loc:Loc Ocr.Review.NextUncertain}" Command="{Binding NextUncertainCommand}" />
         </WrapPanel>
@@ -44,10 +46,11 @@
           <TextBlock Text="{loc:Loc Ocr.Review.CorrectText}" />
           <TextBox Text="{Binding SelectedWord.ReviewedText, Mode=TwoWay}" IsEnabled="{Binding SelectedWord.IsEligible}"
                    AutomationProperties.Name="{loc:Loc Ocr.Review.CorrectText}" />
-          <TextBlock Text="{loc:Loc Ocr.Review.OriginalText}" Classes="muted" />
-          <TextBlock Text="{Binding SelectedWord.Text}" TextWrapping="Wrap" Classes="muted" />
+          <TextBlock TextTrimming="CharacterEllipsis" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}"
+                     ToolTip.Tip="{Binding SelectedWord.Geometry}">
+            <Run Text="{loc:Loc Ocr.Review.OriginalText}" /><Run Text=": " /><Run Text="{Binding SelectedWord.Text}" FontWeight="SemiBold" />
+          </TextBlock>
         </StackPanel>
-        <TextBlock Grid.Row="3" Text="{Binding SelectedWord.Geometry}" TextWrapping="Wrap" Classes="muted" />
       </Grid>
       <Border Grid.Column="1" Background="{DynamicResource StudioPanelMutedBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" Padding="8">
         <Grid RowDefinitions="Auto,*">

@@ -222,7 +222,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
             _submittingNote = false;
             DismissSheet();
         } catch (Exception error) {
-            document.ErrorMessage = error.Message;
+            document.ErrorMessage = Infrastructure.StudioMessages.Describe(error);
         } finally {
             _submittingNote = false;
             NotePanel.IsEnabled = SheetDone.IsEnabled = true;
@@ -232,14 +232,14 @@ public sealed partial class MobileWorkspaceView : UserControl {
     private async void OnShareClick(object? sender, RoutedEventArgs e) {
         if (ShareDocumentAsync is null || Document?.IsWorkspaceBusy == true) return;
         try { await ShareDocumentAsync(); }
-        catch (Exception error) { if (Document is { } document) document.ErrorMessage = error.Message; }
+        catch (Exception error) { if (Document is { } document) document.ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 
     private async void OnSampleClick(object? sender, RoutedEventArgs e) {
         if (_openSampleAsync is null || !SampleButton.IsEnabled) return;
         SampleButton.IsEnabled = false;
         try { await _openSampleAsync(); }
-        catch (Exception error) { if (Document is { } document) document.ErrorMessage = error.Message; }
+        catch (Exception error) { if (Document is { } document) document.ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         finally { SampleButton.IsEnabled = true; }
     }
 }

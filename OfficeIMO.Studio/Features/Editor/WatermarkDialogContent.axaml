@@ -2,7 +2,7 @@
         xmlns:local="using:OfficeIMO.Studio.Features.Editor" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
         x:Class="OfficeIMO.Studio.Features.Editor.WatermarkDialogContent" x:DataType="local:WatermarkPreviewViewModel"
         Title="{loc:Loc Watermark.Title}" Width="1000" Height="740" MinWidth="720" MinHeight="540"
-        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
   <Grid Margin="20" RowDefinitions="Auto,*,Auto" RowSpacing="16">
     <TextBlock Text="{loc:Loc Watermark.Title}" Classes="pageTitle" />
     <Grid x:Name="WatermarkLayout" Grid.Row="1" ColumnDefinitions="300,*" ColumnSpacing="20">

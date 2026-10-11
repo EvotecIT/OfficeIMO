@@ -7,7 +7,7 @@
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}">
   <Grid Margin="22,20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="12">
     <StackPanel Spacing="4">
-      <TextBlock x:Name="HeadingText" Text="{loc:Loc FillSign.CreateSignature}" FontSize="19" FontWeight="SemiBold" />
+      <TextBlock x:Name="HeadingText" Text="{loc:Loc FillSign.CreateSignature}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Classes="caption" Text="{loc:Loc FillSign.DialogHint}" TextWrapping="Wrap" />
     </StackPanel>
 
@@ -59,7 +59,7 @@
         <Border Background="#FFFFFF" CornerRadius="10" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1">
           <Panel>
             <Image x:Name="ImagePreview" Stretch="Uniform" Margin="16" />
-            <TextBlock x:Name="ImageEmptyText" Foreground="#5E6878" FontSize="12" Text="{loc:Loc FillSign.ImageHint}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center" />
+            <TextBlock x:Name="ImageEmptyText" Foreground="#5E6878" FontSize="{StaticResource StudioSecondaryFontSize}" Text="{loc:Loc FillSign.ImageHint}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="320" TextAlignment="Center" />
           </Panel>
         </Border>
         <Button Grid.Row="1" Classes="tool" HorizontalAlignment="Left" Content="{loc:Loc FillSign.ChooseImage}" Click="OnChooseImageClick" />

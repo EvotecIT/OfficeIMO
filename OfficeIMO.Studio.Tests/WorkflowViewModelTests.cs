@@ -214,24 +214,27 @@ public sealed class WorkflowViewModelTests {
     }
 
     [Fact]
-    public async Task MismatchedConversionInputRemainsVisibleUntilDismissed() {
+    public async Task PickedInputsUseTheirOwnRouteAndUnsupportedInputsRemainVisibleUntilDismissed() {
         using var scope = new TestDirectory();
-        string path = Path.Combine(scope.Path, "notes.txt");
-        await File.WriteAllTextAsync(path, "not a Word document");
+        string text = Path.Combine(scope.Path, "notes.txt");
+        string unknown = Path.Combine(scope.Path, "archive.xyz");
+        await File.WriteAllTextAsync(text, "not a Word document");
+        await File.WriteAllTextAsync(unknown, "no conversion exists");
         using var viewModel = new ConversionWorkbenchViewModel(
-            _ => Task.FromResult<IReadOnlyList<string>>([path]),
+            _ => Task.FromResult<IReadOnlyList<string>>([text, unknown]),
             _ => Task.FromResult<string?>(scope.Path));
         viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "docx-pdf");
 
         await viewModel.AddFilesCommand.ExecuteAsync(null);
 
-        Assert.Empty(viewModel.Jobs);
+        // Files are added first; the conversion follows each file's format instead of the preselected route.
+        Assert.Equal("txt-pdf", Assert.Single(viewModel.Jobs).Route.Route.Id);
         Assert.True(viewModel.HasUnmatchedInputs);
-        Assert.Contains(viewModel.MatchingInputRoutes, route => route.Route.Id == "html-pdf");
+        Assert.Empty(viewModel.MatchingInputRoutes);
         Assert.Equal(viewModel.UnmatchedInputMessage, viewModel.Status);
         viewModel.DismissUnmatchedInputsCommand.Execute(null);
         Assert.False(viewModel.HasUnmatchedInputs);
-        Assert.Empty(viewModel.Jobs);
+        Assert.Single(viewModel.Jobs);
     }
 
     [Theory]

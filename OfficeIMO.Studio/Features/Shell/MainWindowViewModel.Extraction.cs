@@ -64,7 +64,7 @@ public sealed partial class MainWindowViewModel {
             }
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             OperationStatus = UiText("Workspace.OperationCancelled");
-        } catch (Exception error) { ErrorMessage = error.Message; }
+        } catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         finally { _reviewingPageExtraction = false; }
     }
 }

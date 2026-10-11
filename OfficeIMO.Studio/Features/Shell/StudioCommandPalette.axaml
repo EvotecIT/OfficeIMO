@@ -34,7 +34,7 @@
         <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="14,6">
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
             <PathIcon Data="{StaticResource IconSearch}" Width="17" Height="17" Foreground="{DynamicResource StudioMutedTextBrush}" />
-            <TextBox x:Name="QueryBox" Grid.Column="1" Text="{Binding Query, Mode=TwoWay}" FontSize="15"
+            <TextBox x:Name="QueryBox" Grid.Column="1" Text="{Binding Query, Mode=TwoWay}" FontSize="{StaticResource StudioSubtitleFontSize}"
                      BorderThickness="0" Background="Transparent" MinHeight="38" VerticalContentAlignment="Center"
                      PlaceholderText="{loc:Loc Commands.SearchPlaceholder}"
                      AutomationProperties.Name="{loc:Loc Commands.SearchPlaceholder}">

@@ -59,13 +59,20 @@
     <StyleInclude Source="avares://OfficeIMO.Studio/Features/Shell/AppleShellStyles.axaml" />
   </Window.Styles>
 
-  <Grid x:Name="ShellRoot" RowDefinitions="44,*,Auto" ColumnDefinitions="72,*">
+  <Grid x:Name="ShellRoot" RowDefinitions="44,*,Auto" ColumnDefinitions="80,*">
     <!-- Title bar: drag area, tabs, command search and window actions. -->
     <Border x:Name="TitleBarDragArea" Grid.ColumnSpan="2" Background="Transparent"
             chrome:WindowDecorationProperties.ElementRole="TitleBar" />
     <Image x:Name="TitleBarLogo" Grid.Row="0" Grid.Column="0" Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png"
            Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
            AutomationProperties.Name="OfficeIMO Studio" />
+    <!-- Windows and Linux application menu; macOS uses the native menu bar. -->
+    <Button x:Name="AppMenuButton" Grid.Row="0" Grid.Column="0" Classes="icon appMenu" IsVisible="False"
+            Width="40" Height="34" HorizontalAlignment="Center" VerticalAlignment="Center"
+            chrome:WindowDecorationProperties.ElementRole="User"
+            AutomationProperties.Name="{loc:Loc Menu.ApplicationMenu}" ToolTip.Tip="{loc:Loc Menu.ApplicationMenuTip}">
+      <Image Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png" Width="22" Height="22" />
+    </Button>
     <Grid x:Name="TitleBar" Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
       <Grid x:Name="TitleDocuments" ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Stretch" ColumnSpacing="2">
         <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,10,0"
@@ -85,7 +92,7 @@
                       ToolTip.Tip="{Binding SourcePath}" PointerReleased="OnDocumentTabPointerReleased">
                 <Grid Classes="tabContents" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                   <PathIcon Classes="tabIcon" Data="{StaticResource IconDocument}" Width="13" Height="13" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                  <TextBlock Grid.Column="1" Classes="tabTitle" Text="{Binding DisplayTitle}" FontSize="12.5" FontWeight="Medium"
+                  <TextBlock Grid.Column="1" Classes="tabTitle" Text="{Binding DisplayTitle}" FontSize="{StaticResource StudioSecondaryFontSize}" FontWeight="Medium"
                              TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                   <Grid Classes="tabCloseHost">
                     <Ellipse Classes="dirtyDot" Width="7" Height="7" Fill="{DynamicResource StudioAccentBrush}" IsVisible="{Binding IsDirty}"
@@ -113,18 +120,18 @@
                 chrome:WindowDecorationProperties.ElementRole="User"
                 AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}" ToolTip.Tip="{loc:Loc Apple.OpenDocuments}">
           <PathIcon Data="{StaticResource IconChevronDown}" Width="12" Height="12" />
-          <Button.Flyout><MenuFlyout Opening="OnDocumentListOpening" Placement="BottomEdgeAlignedRight" /></Button.Flyout>
+          <Button.Flyout><MenuFlyout Placement="BottomEdgeAlignedRight" /></Button.Flyout>
         </Button>
       </Grid>
 
       <Button x:Name="CommandSearchButton" Grid.Column="2" Width="300" VerticalAlignment="Center" Click="OnCommandsClick"
               chrome:WindowDecorationProperties.ElementRole="User"
-              AutomationProperties.Name="{loc:Loc Commands.PaletteTitle}" ToolTip.Tip="{loc:Loc Shell.CommandSearchTip}">
+              AutomationProperties.Name="{loc:Loc Commands.PaletteTitle}">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
           <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" Foreground="{DynamicResource StudioMutedTextBrush}" />
           <TextBlock x:Name="CommandSearchLabel" Grid.Column="1" Text="{loc:Loc Shell.CommandSearch}" Foreground="{DynamicResource StudioMutedTextBrush}"
-                     FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-          <Border x:Name="CommandSearchKeycap" Grid.Column="2" Classes="kbd"><TextBlock x:Name="CommandSearchShortcut" Text="Ctrl K" /></Border>
+                     FontSize="{StaticResource StudioSecondaryFontSize}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <Border x:Name="CommandSearchKeycap" Grid.Column="2" Classes="kbd"><TextBlock x:Name="CommandSearchShortcut" Text="Ctrl+K" /></Border>
         </Grid>
       </Button>
       <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
@@ -136,7 +143,7 @@
         <Button x:Name="ThemeToggle" Classes="icon" Click="OnToggleThemeClick"
                       AutomationProperties.Name="{loc:Loc MainWindow.Theme}"
                       AutomationProperties.HelpText="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}"
-                      ToolTip.Tip="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}">
+                      ToolTip.Tip="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}" ToolTip.ShowOnDisabled="True">
           <Panel>
             <PathIcon Classes="moon" Data="{StaticResource IconMoon}" />
             <PathIcon Classes="sun" Data="{StaticResource IconSun}" />
@@ -180,7 +187,7 @@
           <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconJobs}" /><TextBlock Text="{loc:Loc Jobs.Title}" /></StackPanel>
         </infra:StudioRadioToggle>
         <Button x:Name="MoreNavigationButton" Classes="ghost touchNav" AutomationProperties.Name="{loc:Loc Apple.More}">
-          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconMore}" /><TextBlock Text="{loc:Loc Apple.More}" HorizontalAlignment="Center" FontSize="11" /></StackPanel>
+          <StackPanel Spacing="4"><PathIcon Data="{StaticResource IconMore}" /><TextBlock Text="{loc:Loc Apple.More}" HorizontalAlignment="Center" FontSize="{StaticResource StudioLabelFontSize}" /></StackPanel>
           <Button.Flyout><MenuFlyout Placement="TopEdgeAlignedRight">
             <MenuItem Header="{loc:Loc MainWindow.Convert}" Command="{Binding Commands[Convert]}" />
             <MenuItem Header="{loc:Loc MainWindow.OCR}" Command="{Binding Commands[Ocr]}" />
@@ -251,29 +258,18 @@
           <SplitView.Pane><Border IsVisible="{Binding IsAssistantVisible}"><ai:AssistantView DataContext="{Binding Assistant}" /></Border></SplitView.Pane>
           <Grid RowDefinitions="Auto,*">
             <StackPanel Grid.Row="0">
-              <Border IsVisible="{Binding HasVisibleError}" Background="{DynamicResource StudioErrorSoftBrush}"
-                      BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="0,0,0,1" Padding="14,8">
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
-                  <PathIcon Data="{StaticResource IconWarning}" Width="15" Height="15" Foreground="{DynamicResource StudioErrorBrush}" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                  <Button Grid.Column="2" Classes="tool" Command="{Binding Commands[SaveAs]}" IsVisible="{Binding CanRecoverWithSaveAs}" Content="{loc:Loc Shell.SaveCopyInstead}" />
-                  <Button Grid.Column="3" Classes="ghost" Command="{Binding DismissErrorCommand}" AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" Content="{loc:Loc MainWindow.Dismiss}" />
-                </Grid>
-              </Border>
-              <Border IsVisible="{Binding HasSecurityWarning}" Background="{DynamicResource StudioWarningSoftBrush}"
-                      BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="14,8">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                  <PathIcon Data="{StaticResource IconShieldCheck}" Width="15" Height="15" Foreground="{DynamicResource StudioWarningBrush}" VerticalAlignment="Center" />
-                  <TextBlock Grid.Column="1" Text="{Binding SecurityWarning}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
-                </Grid>
-              </Border>
-              <Border IsVisible="{Binding Session.HasStorageError}" Background="{DynamicResource StudioWarningSoftBrush}"
-                      BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="14,8">
-                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                  <TextBlock Text="{Binding Session.StorageError}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                  <Button Grid.Column="1" Classes="tool" Command="{Binding Session.RetryStorageCommand}" Content="{loc:Loc Session.RetryStorage}" />
-                </Grid>
-              </Border>
+              <!-- Persistent notices: failures first, then restrictions on the current task, then how faithfully pages are drawn, then storage problems. -->
+              <infra:StudioNoticeBar Severity="Error" IsVisible="{Binding HasVisibleError}" Message="{Binding ErrorMessage}"
+                                     ActionText="{loc:Loc Shell.SaveCopyInstead}" ActionCommand="{Binding Commands[SaveAs]}" IsActionVisible="{Binding CanRecoverWithSaveAs}"
+                                     DismissCommand="{Binding DismissErrorCommand}" />
+              <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding HasSecurityWarning}" Message="{Binding SecurityWarning}"
+                                     ActionText="{loc:Loc Notices.BackToReading}" ActionCommand="{Binding Commands[Read]}" IsActionVisible="{Binding CanReturnToReading}"
+                                     DismissCommand="{Binding DismissSecurityWarningCommand}" />
+              <infra:StudioNoticeBar Severity="Information" IsVisible="{Binding HasRenderingNotice}" Message="{Binding RenderingNotice}"
+                                     ActionText="{Binding RenderingNoticeAction}" ActionCommand="{Binding ShowRenderingNoticePageCommand}"
+                                     DismissCommand="{Binding DismissRenderingNoticeCommand}" />
+              <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding Session.HasStorageError}" Message="{Binding Session.StorageError}"
+                                     ActionText="{loc:Loc Session.RetryStorage}" ActionCommand="{Binding Session.RetryStorageCommand}" />
             </StackPanel>
 
             <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
@@ -284,7 +280,7 @@
             </TabControl>
             <workspace:DocumentWorkspaceView x:Name="DocumentWorkspace" Grid.Row="1" IsVisible="{Binding IsPdfWorkspaceMode}" />
             <Grid Grid.Row="1" IsVisible="{Binding IsConversionMode}" RowDefinitions="Auto,*">
-              <Border Padding="24,18,24,12" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="{loc:Loc MainWindow.Convert}" Classes="pageTitle" /><TextBlock Text="{loc:Loc MainWindow.PrepareRunAndInspectConversionJobs}" Classes="muted" /></StackPanel></Border>
+              <Border Classes="pageHeader"><StackPanel Classes="pageHeading"><TextBlock Text="{loc:Loc MainWindow.Convert}" Classes="pageTitle" /><TextBlock Text="{loc:Loc MainWindow.PrepareRunAndInspectConversionJobs}" Classes="muted" /></StackPanel></Border>
               <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
             </Grid>
             <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
@@ -358,7 +354,7 @@
               <Border Width="56" Height="56" CornerRadius="14" Background="{DynamicResource StudioAccentSoftBrush}" HorizontalAlignment="Center">
                 <PathIcon Data="{StaticResource IconOpen}" Width="26" Height="26" Foreground="{DynamicResource StudioAccentBrush}" />
               </Border>
-              <TextBlock x:Name="DropOverlayTitle" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock x:Name="DropOverlayTitle" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
               <TextBlock x:Name="DropOverlayDetail" Classes="muted" HorizontalAlignment="Center" TextAlignment="Center" />
             </StackPanel>
           </Border>

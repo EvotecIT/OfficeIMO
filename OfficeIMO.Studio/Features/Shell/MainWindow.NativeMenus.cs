@@ -14,7 +14,7 @@ public sealed partial class MainWindow {
         NativeMenuItem Item(string id, string? gesture = null) => new() {
             Header = ViewModel.Commands[id].Title,
             Command = ViewModel.Commands[id],
-            Gesture = gesture is null ? null : KeyGesture.Parse(gesture)
+            Gesture = gesture is null ? ViewModel.Commands[id].Gesture : KeyGesture.Parse(gesture)
         };
         NativeMenuItem Action(string title, Action action, string? gesture = null) => new() {
             Header = Text(title), Command = new RelayCommand(action),
@@ -28,10 +28,10 @@ public sealed partial class MainWindow {
 
         var close = new AsyncRelayCommand(CloseSelectedDocumentTabAsync, () => TabHost.HasTabs);
         var reopen = new AsyncRelayCommand(TabHost.ReopenClosedTabAsync, () => TabHost.CanReopenClosedTab);
-        var open = Item("Open", "Meta+O"); open.Header = Text("Open");
-        var saveAs = Item("SaveAs", "Meta+Shift+S"); saveAs.Header = Text("SaveAs");
-        var file = Group("File", open, new NativeMenuItemSeparator(), Item("Save", "Meta+S"), saveAs,
-            new NativeMenuItemSeparator(), Item("Print", "Meta+P"), new NativeMenuItemSeparator(),
+        var open = Item("Open"); open.Header = Text("Open");
+        var saveAs = Item("SaveAs"); saveAs.Header = Text("SaveAs");
+        var file = Group("File", open, new NativeMenuItemSeparator(), Item("Save"), saveAs,
+            new NativeMenuItemSeparator(), Item("Print"), new NativeMenuItemSeparator(),
             new NativeMenuItem(Text("CloseDocument")) { Command = close, Gesture = KeyGesture.Parse("Meta+W") });
         file.Menu!.NeedsUpdate += (_, _) => close.NotifyCanExecuteChanged();
 
@@ -74,8 +74,8 @@ public sealed partial class MainWindow {
         var view = Group("View", Action("ToggleSidebar", () => OnSidebarToggleClick(null, new()), "Meta+Alt+S"),
             new NativeMenuItem(Text("Commands")) { Command = new AsyncRelayCommand(ShowCommandPaletteAsync), Gesture = KeyGesture.Parse("Meta+K") },
             new NativeMenuItemSeparator(), Item("Home"), Item("Tools"), Item("Jobs"),
-            new NativeMenuItemSeparator(), Item("ZoomIn", "Meta+OemPlus"), Item("ZoomOut", "Meta+OemMinus"),
-            Item("ActualSize", "Meta+D1"), Item("FitPage", "Meta+D0"), Item("FitWidth", "Meta+D2"), Item("FocusReading"));
+            new NativeMenuItemSeparator(), Item("ZoomIn"), Item("ZoomOut"),
+            Item("ActualSize"), Item("FitPage"), Item("FitWidth"), Item("FocusReading"));
         var fullscreen = Action("FullScreen", () => WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen, "Meta+Control+F");
         var window = Group("Window", Action("Minimize", () => WindowState = WindowState.Minimized, "Meta+M"), fullscreen,
             new NativeMenuItemSeparator(), Action("NextTab", () => TabHost.SelectRelativeTab(false), "Control+Tab"),

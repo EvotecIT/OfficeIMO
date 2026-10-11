@@ -42,6 +42,8 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasDiagnostics))]
+    [NotifyPropertyChangedFor(nameof(DiagnosticsExplanation))]
+    [NotifyPropertyChangedFor(nameof(HasDiagnosticsExplanation))]
     private string? _diagnosticsSummary;
 
     [ObservableProperty]
@@ -130,6 +132,15 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     public bool HasDiagnostics => !string.IsNullOrWhiteSpace(DiagnosticsSummary);
 
+    /// <summary>The most significant rendering note on the page, classified from the renderer's support levels.</summary>
+    public PdfPageRenderingNote RenderingNote { get; private set; }
+
+    /// <summary>What the rendering notes mean for the reader; the engine's own wording stays in the details.</summary>
+    public string? DiagnosticsExplanation =>
+        HasDiagnostics && PdfPageRenderingNotes.ExplanationKey(RenderingNote) is { } key ? _localizer.Get(key) : null;
+
+    public bool HasDiagnosticsExplanation => DiagnosticsExplanation is not null;
+
     internal event Action<string>? LinkActivated;
 
     internal event Action<PdfEditorGesture>? EditorGestureCompleted;
@@ -212,6 +223,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
         IsRendering = true;
         RenderError = null;
+        RenderingNote = PdfPageRenderingNote.None;
         DiagnosticsSummary = null;
         DiagnosticsDetails = null;
 
@@ -250,6 +262,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
                 Scene = scene;
                 ReplaceImage(bitmap);
                 RenderedScale = scene.RequiresRasterFallback ? requestedScale : 0D;
+                RenderingNote = PdfPageRenderingNotes.Classify(scene.CapabilityCodes.Concat(diagnostics));
                 DiagnosticsSummary = diagnostics.Count == 0 ? null : diagnostics[0];
                 DiagnosticsDetails = diagnostics.Count == 0
                     ? null
@@ -259,7 +272,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
             // A detached page, zoom change, document close, or newer generation superseded this result.
         } catch (Exception ex) {
             await uiDispatcher.InvokeAsync(() => {
-                if (!_disposed && _isAttached && generation == _loadGeneration) RenderError = ex.Message;
+                if (!_disposed && _isAttached && generation == _loadGeneration) RenderError = Infrastructure.StudioMessages.Describe(ex);
             });
         } finally {
             if (!_disposed) {

@@ -11,7 +11,7 @@ public static class StudioConverters {
     /// <summary>Maps a Studio command id to its icon geometry so palettes and tool cards share one vocabulary.</summary>
     public static readonly IValueConverter CommandIcon = new CommandIconConverter();
 
-    internal static string CommandIconKey(string? id) => id switch {
+    internal static string CommandIconKey(string? id) => Features.Shell.StudioEditorTools.ForCommand(id)?.IconKey ?? id switch {
         "Open" => "IconOpen",
         "Save" => "IconSave",
         "SaveAs" => "IconSaveCopy",
@@ -43,7 +43,7 @@ public static class StudioConverters {
         "Inspect" => "IconSearch",
         "Compare" => "IconCompare",
         "Optimize" => "IconCompress",
-        "Repair" => "IconShieldCheck",
+        "Repair" => "IconRestore",
         "Sanitize" => "IconShieldCheck",
         "FitPage" => "IconFitPage",
         "ActualSize" => "IconFitPage",
@@ -53,6 +53,25 @@ public static class StudioConverters {
         "Home" => "IconHome",
         "Tools" => "IconTools",
         "Settings" => "IconSettings",
+        "Provenance" => "IconHash",
+        "Invoices" => "IconInvoice",
+        "PublishBook" => "IconBook",
+        "PreviousFormField" => "IconChevronLeft",
+        "NextFormField" => "IconChevronRight",
+        "Watermark" => "IconWatermark",
+        "PageNumbers" => "IconNumbers",
+        "FlattenAnnotations" => "IconStamp",
+        "Split" => "IconSplit",
+        "CompareSideBySide" => "IconCompare",
+        "ValidateSignatures" => "IconShieldCheck",
+        "PageNightMode" => "IconNight",
+        "Assistant" => "IconSparkle",
+        "PlaceDate" => "IconText",
+        "CreateSignature" => "IconSignature",
+        "CreateInitials" => "IconSignature",
+        "FlattenFormField" => "IconRectangle",
+        "FlattenForms" => "IconDuplicate",
+        "BatesNumbers" => "IconHash",
         _ => "IconMore"
     };
 

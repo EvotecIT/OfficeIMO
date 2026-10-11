@@ -17,6 +17,11 @@ public sealed partial class MainWindow {
 
     private void InitializeDocumentTabInteractions() {
         ((MenuFlyout)DocumentListButton.Flyout!).ItemsSource = _documentMenuItems;
+        // Native popups take their size from the items present when they open; refresh before the button opens it.
+        DocumentListButton.AddHandler(PointerPressedEvent, (_, _) => RefreshDocumentListMenu(), RoutingStrategies.Tunnel, handledEventsToo: true);
+        DocumentListButton.AddHandler(KeyDownEvent, (_, e) => {
+            if (e.Key is Key.Enter or Key.Space) RefreshDocumentListMenu();
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
         DocumentTabs.AddHandler(ContextRequestedEvent, OnDocumentTabContextRequested, RoutingStrategies.Tunnel);
         DocumentTabs.AddHandler(KeyDownEvent, OnDocumentTabsKeyDown, RoutingStrategies.Tunnel);
         DocumentTabs.AddHandler(PointerPressedEvent, OnTabDragPressed, RoutingStrategies.Tunnel);

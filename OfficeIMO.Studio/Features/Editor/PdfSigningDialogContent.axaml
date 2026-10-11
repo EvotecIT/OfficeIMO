@@ -2,9 +2,9 @@
         xmlns:local="using:OfficeIMO.Studio.Features.Editor" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
         x:Class="OfficeIMO.Studio.Features.Editor.PdfSigningDialogContent" x:DataType="local:PdfSigningPreviewViewModel"
         Title="{Binding Title}" Width="620" Height="700" MinWidth="380" MinHeight="440"
-        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
   <Grid Margin="20" RowDefinitions="Auto,*,Auto" RowSpacing="12">
-    <TextBlock Text="{Binding Title}" FontSize="19" FontWeight="SemiBold" TextWrapping="Wrap" />
+    <TextBlock Text="{Binding Title}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" TextWrapping="Wrap" />
     <ScrollViewer x:Name="ReviewContent" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
       <StackPanel Spacing="10">
         <TextBlock Text="{Binding Destination}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" ToolTip.Tip="{Binding Destination}" />

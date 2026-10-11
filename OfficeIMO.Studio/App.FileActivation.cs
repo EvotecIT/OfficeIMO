@@ -22,4 +22,16 @@ public sealed partial class App {
             }
         }
     }
+
+    // Windows and Linux have no activation lifetime; a later launch forwards its arguments instead.
+    private void AttachForwardedLaunches(MainWindow window) {
+        SingleInstance?.StartListening(async paths => {
+            try {
+                Services.Diagnostics.Write(StudioDiagnosticLevel.Information, "FileActivation", "Forwarded");
+                await Dispatcher.UIThread.InvokeAsync(() => window.OpenForwardedPathsAsync(paths));
+            } catch (Exception error) when (error is not OutOfMemoryException) {
+                Services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "FileActivation", "DispatchFailed", error);
+            }
+        });
+    }
 }

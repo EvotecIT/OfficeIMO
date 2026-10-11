@@ -5,10 +5,10 @@
         x:Class="OfficeIMO.Studio.Features.Organizer.PageExtractionDialogContent"
         x:DataType="local:PageExtractionPreviewViewModel"
         Title="{loc:Loc Organizer.ExtractTitle}" Width="580" Height="560" MinWidth="380" MinHeight="460"
-        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
   <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
     <StackPanel Spacing="4">
-      <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="19" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{Binding Destination}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Destination}" IsVisible="{Binding IsPreview}" />
       <TextBlock Text="{Binding DestinationHint}" TextWrapping="Wrap" IsVisible="{Binding IsPreview}" />
       <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" IsVisible="{Binding HasResult}" />

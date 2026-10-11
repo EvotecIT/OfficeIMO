@@ -21,6 +21,9 @@ public sealed partial class App : Application {
 
     internal Func<App, Avalonia.Controls.Control>? SingleViewFactory { get; init; }
 
+    /// <summary>The desktop instance lock whose forwarded launches open in the main window.</summary>
+    internal StudioSingleInstance? SingleInstance { get; init; }
+
     public override void Initialize() {
         Services ??= StudioApplicationServices.CreateDefault();
         StudioLocalization.Configure(Services.Localizer);
@@ -61,6 +64,7 @@ public sealed partial class App : Application {
             window.OpenInitialDocument(desktop.Args);
             desktop.MainWindow = window;
             AttachFileActivation(desktop, window);
+            AttachForwardedLaunches(window);
         } else if (ApplicationLifetime is ISingleViewApplicationLifetime singleView && SingleViewFactory is not null) {
             AttachDiagnosticHandlers();
             singleView.MainView = SingleViewFactory(this);
@@ -92,5 +96,20 @@ public sealed partial class App : Application {
 
     private void OnDispatcherUnhandledException(object? sender, DispatcherUnhandledExceptionEventArgs eventArgs) {
         Services.Diagnostics.Write(StudioDiagnosticLevel.Critical, "UserInterface", "UnhandledException", eventArgs.Exception);
+        if (!CanRecoverFromUserInterfaceFailure(eventArgs.Exception, DateTime.UtcNow)) return;
+        // Keep open documents and unsaved work reachable; the notice asks the user to save and restart.
+        eventArgs.Handled = true;
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: MainWindow window }) window.ReportUnexpectedError();
+    }
+
+    private readonly Queue<DateTime> _recentUserInterfaceFailures = new();
+
+    // A failure that repeats on every frame or input would otherwise loop forever; let a burst terminate.
+    internal bool CanRecoverFromUserInterfaceFailure(Exception error, DateTime now) {
+        if (error is OutOfMemoryException or InsufficientExecutionStackException or AccessViolationException) return false;
+        while (_recentUserInterfaceFailures.Count > 0 && now - _recentUserInterfaceFailures.Peek() > TimeSpan.FromSeconds(10))
+            _recentUserInterfaceFailures.Dequeue();
+        _recentUserInterfaceFailures.Enqueue(now);
+        return _recentUserInterfaceFailures.Count <= 5;
     }
 }

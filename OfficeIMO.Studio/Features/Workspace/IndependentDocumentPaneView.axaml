@@ -27,7 +27,7 @@
             <Button Classes="icon" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Next}"><PathIcon Data="{StaticResource IconChevronRight}" Width="13" Height="13" /></Button>
             <ComboBox ItemsSource="{Binding LayoutChoices}" SelectedItem="{Binding SelectedLayout}" Width="124" MinHeight="28" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Layout}" />
             <Button Classes="icon" Command="{Binding ZoomOutCommand}" AutomationProperties.Name="{loc:Loc Commands.ZoomOut.Title}"><PathIcon Data="{StaticResource IconMinus}" Width="13" Height="13" /></Button>
-            <TextBlock Text="{Binding ZoomLabel}" VerticalAlignment="Center" FontSize="12" Width="38" />
+            <TextBlock Text="{Binding ZoomLabel}" VerticalAlignment="Center" FontSize="{StaticResource StudioSecondaryFontSize}" Width="38" />
             <Button Classes="icon" Command="{Binding ZoomInCommand}" AutomationProperties.Name="{loc:Loc Commands.ZoomIn.Title}"><PathIcon Data="{StaticResource IconPlus}" Width="13" Height="13" /></Button>
             <Button Classes="tool" Padding="6,2" Command="{Binding FitWidthCommand}" Content="{loc:Loc DocumentWorkspace.FitWidth}" />
             <Button Classes="tool" Padding="6,2" Command="{Binding FitPageCommand}" Content="{loc:Loc DocumentWorkspace.FitPage}" />

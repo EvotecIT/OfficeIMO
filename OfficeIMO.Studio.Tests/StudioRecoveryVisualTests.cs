@@ -54,7 +54,7 @@ public sealed class StudioRecoveryVisualTests {
                 Capture(window, width, dark, "history-cleared");
                 settings.RequestRecoveryClearCommand.Execute(null);
                 Layout(window, width, height);
-                var scroll = (ScrollViewer)view.Content!;
+                var scroll = view.GetVisualDescendants().OfType<ScrollViewer>().Single(viewer => viewer.Name == "SectionScroller");
                 scroll.Offset = new Vector(0, scroll.Extent.Height);
                 Layout(window, width, height);
                 var clear = view.GetVisualDescendants().OfType<Button>().Single(button => ReferenceEquals(button.Command, settings.ClearRecoveryCommand));

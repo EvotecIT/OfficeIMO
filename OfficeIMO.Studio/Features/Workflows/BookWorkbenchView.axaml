@@ -4,7 +4,7 @@
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              x:Class="OfficeIMO.Studio.Features.Workflows.BookWorkbenchView"
              x:DataType="workflow:BookWorkbenchViewModel">
- <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="24" RowSpacing="12">
+ <Grid RowDefinitions="Auto,Auto,*,Auto" Classes="pageContent" RowSpacing="{StaticResource StudioSpaceM}">
   <StackPanel Spacing="6">
    <TextBlock Text="{Binding Title}" Classes="pageTitle" />
    <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Classes="muted" />
@@ -28,7 +28,7 @@
       <WrapPanel><Button Content="{loc:Loc Book.Cover}" Command="{Binding ChooseCoverCommand}" Margin="0,0,8,8" /><Button Content="{loc:Loc Book.Apply}" Command="{Binding ApplyEditsCommand}" Margin="0,0,8,8" /></WrapPanel>
       <TextBlock Text="{loc:Loc Book.Stylesheet}" FontWeight="SemiBold" />
       <TextBlock Text="{loc:Loc Book.StyleHint}" TextWrapping="Wrap" Classes="muted" />
-      <TextBox Text="{Binding Stylesheet}" AcceptsReturn="True" MinHeight="200" FontFamily="monospace" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc Book.Stylesheet}" />
+      <TextBox Text="{Binding Stylesheet}" AcceptsReturn="True" MinHeight="200" FontFamily="{StaticResource StudioMonoFont}" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc Book.Stylesheet}" />
       <TextBlock Text="{Binding ProjectName}" TextWrapping="Wrap" />
       <CheckBox IsChecked="{Binding IsDirty}" IsEnabled="False" Content="{loc:Loc Book.Unsaved}" />
      </StackPanel>
@@ -45,7 +45,7 @@
       <TextBox Text="{Binding ChapterTitle}" IsEnabled="{Binding CanEditChapter}" AutomationProperties.Name="{loc:Loc Book.ChapterTitle}" />
       <Button Content="{loc:Loc Book.Rename}" Command="{Binding RenameChapterCommand}" HorizontalAlignment="Left" />
       <TextBlock Text="{loc:Loc Book.ContentHint}" Classes="muted" TextWrapping="Wrap" />
-      <TextBox Text="{Binding ChapterBody}" IsEnabled="{Binding CanEditChapter}" AcceptsReturn="True" MinHeight="320" FontFamily="monospace" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc Book.Content}" />
+      <TextBox Text="{Binding ChapterBody}" IsEnabled="{Binding CanEditChapter}" AcceptsReturn="True" MinHeight="320" FontFamily="{StaticResource StudioMonoFont}" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc Book.Content}" />
       <Button Content="{loc:Loc Book.Apply}" Command="{Binding ApplyEditsCommand}" HorizontalAlignment="Left" />
      </StackPanel>
     </ScrollViewer>

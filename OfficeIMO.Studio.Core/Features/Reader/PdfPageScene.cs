@@ -14,6 +14,9 @@ public sealed record PdfPageScene(
     bool RequiresRasterFallback) {
     internal int ElementCount { get; } = CountElements(Drawing);
 
+    /// <summary>Stable renderer capability codes behind <see cref="Diagnostics"/>, for classifying their effect.</summary>
+    public IReadOnlyList<string> CapabilityCodes { get; init; } = [];
+
     /// <summary>True for a scanned page: it paints an image but has no extractable text to search or select.</summary>
     internal bool IsImageOnly { get; } = Interactions is { TextRegions.Count: 0 } && ContainsImage(Drawing);
 

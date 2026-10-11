@@ -80,6 +80,6 @@ public sealed partial class PageImportSourceViewModel : ObservableObject {
             if (selection.Ranges.Sum(range => (long)range.PageCount) > PdfImportPreparation.MaximumImportedPages)
                 throw new ArgumentException($"An import cannot exceed {PdfImportPreparation.MaximumImportedPages:N0} selected pages.");
             SelectedPages = selection.Resolve(PageCount).ToArray();
-        } catch (Exception error) when (error is ArgumentException or FormatException or OverflowException) { ErrorMessage = error.Message; }
+        } catch (Exception error) when (error is ArgumentException or FormatException or OverflowException) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
     }
 }

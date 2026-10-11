@@ -36,6 +36,9 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     public string InputName => Path.GetFileName(InputPath);
     public string OutputName => Path.GetFileName(OutputPath);
     public string ReportName => Path.GetFileName(ReportPath);
+    /// <summary>The copy and report as shown: file names for private working copies, full paths otherwise.</summary>
+    public string CopyDisplay => UsesWorkingCopies ? OutputName : OutputPath;
+    public string ReportDisplay => UsesWorkingCopies ? ReportName : ReportPath;
     [ObservableProperty, NotifyPropertyChangedFor(nameof(InputName)), NotifyPropertyChangedFor(nameof(CanAssess)), NotifyPropertyChangedFor(nameof(CanCreateCopy))]
     private string _inputPath = "";
     [ObservableProperty] private string _outputFolder = "";
@@ -46,8 +49,8 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     [ObservableProperty, NotifyPropertyChangedFor(nameof(CanCreateCopy))] private bool _removeDeclarations;
     [ObservableProperty] private string _status = "Choose a local file and assess its supported provenance evidence.";
     [ObservableProperty] private string _checks = "Structural: NotRequested · Text integrity: NotRequested · Verification: NotConfigured · Providers: NotConfigured";
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(OutputName))] private string _outputPath = "";
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(ReportName))] private string _reportPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(OutputName)), NotifyPropertyChangedFor(nameof(CopyDisplay))] private string _outputPath = "";
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(ReportName)), NotifyPropertyChangedFor(nameof(ReportDisplay))] private string _reportPath = "";
     [ObservableProperty] private string _inputHash = "";
     [ObservableProperty] private string _outputHash = "";
     [ObservableProperty] private string _coverage = "";

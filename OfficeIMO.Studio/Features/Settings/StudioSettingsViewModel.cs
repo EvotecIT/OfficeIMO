@@ -113,18 +113,18 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
 
     partial void OnSelectedCultureChanged(StudioCultureChoice value) {
         if (_synchronizing || value is null) return;
-        _preferences.Update(current => current with { UiCulture = value.Name });
+        _preferences.UpdatePresentation(current => current with { UiCulture = value.Name });
         OnPropertyChanged(nameof(RestartRequired));
     }
 
     partial void OnSelectedThemeChanged(StudioThemeChoice value) {
         if (_synchronizing || value is null) return;
-        _preferences.Update(current => current with { Theme = value.Value });
+        _preferences.UpdatePresentation(current => current with { Theme = value.Value });
     }
 
     partial void OnSelectedDensityChanged(StudioDensityChoice value) {
         if (_synchronizing || value is null) return;
-        _preferences.Update(current => current with { Density = value.Value });
+        _preferences.UpdatePresentation(current => current with { Density = value.Value });
     }
 
     public void Dispose() {
@@ -143,6 +143,7 @@ internal sealed partial class StudioSettingsViewModel : ObservableObject, IDispo
             SelectedDensity = Densities.First(choice => choice.Value == _preferences.Current.Density);
             RememberSession = _preferences.Current.RememberSession;
             OnPropertyChanged(nameof(RememberDocumentHistory));
+            OnPropertyChanged(nameof(ShowRecentPreviews));
             OnPropertyChanged(nameof(HistoryPersistenceAction));
             OnPropertyChanged(nameof(CreateRecoverySnapshots));
             OnPropertyChanged(nameof(RecoveryPersistenceAction));

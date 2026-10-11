@@ -1,6 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:preferences="clr-namespace:OfficeIMO.Studio.Infrastructure.Preferences"
+             xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
              x:Class="OfficeIMO.Studio.App" Name="OfficeIMO Studio">
   <Application.Resources>
     <ResourceDictionary>
@@ -48,15 +49,6 @@
           <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
           <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="StudioPanelRaisedBrush" />
           <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="StudioBorderBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelectedPressed" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelectedPointerOver" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelectedPressed" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundPointerOver" ResourceKey="StudioTextBrush" />
           <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
           <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
           <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
@@ -156,15 +148,6 @@
           <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
           <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="StudioPanelRaisedBrush" />
           <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="StudioBorderBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelectedPressed" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelectedPointerOver" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelectedPressed" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundPointerOver" ResourceKey="StudioTextBrush" />
           <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
           <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
           <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
@@ -264,15 +247,6 @@
           <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
           <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="StudioPanelRaisedBrush" />
           <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="StudioBorderBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemBackgroundSelectedPressed" ResourceKey="StudioAccentSoftBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelectedPointerOver" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundSelectedPressed" ResourceKey="StudioTextBrush" />
-          <StaticResource x:Key="ListBoxItemForegroundPointerOver" ResourceKey="StudioTextBrush" />
           <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
           <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
           <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
@@ -335,7 +309,26 @@
       <x:Double x:Key="StudioCaptionFontSize">11.5</x:Double>
       <x:Double x:Key="StudioLabelFontSize">11</x:Double>
       <x:Double x:Key="StudioTitleFontSize">18</x:Double>
+      <!-- Type ramp. Views use these names instead of literal sizes; body text follows the density preference (StudioBodyFontSize). -->
+      <x:Double x:Key="StudioMicroFontSize">10</x:Double>
+      <x:Double x:Key="StudioSecondaryFontSize">12</x:Double>
+      <x:Double x:Key="StudioSubtitleFontSize">15</x:Double>
+      <x:Double x:Key="StudioSectionFontSize">16</x:Double>
+      <x:Double x:Key="StudioHeadlineFontSize">20</x:Double>
       <x:Double x:Key="StudioDisplayFontSize">28</x:Double>
+      <!-- Spacing scale on a 4px grid, paired with the type ramp. Page shells, headers and cards use the layout
+           tokens below so every screen starts its content at the same place. -->
+      <x:Double x:Key="StudioSpaceXS">4</x:Double>
+      <x:Double x:Key="StudioSpaceS">8</x:Double>
+      <x:Double x:Key="StudioSpaceM">12</x:Double>
+      <x:Double x:Key="StudioSpaceL">16</x:Double>
+      <x:Double x:Key="StudioSpaceXL">24</x:Double>
+      <x:Double x:Key="StudioSpaceXXL">32</x:Double>
+      <Thickness x:Key="StudioPageMargin">32,24,32,32</Thickness>
+      <Thickness x:Key="StudioCompactPageMargin">16,16,16,24</Thickness>
+      <Thickness x:Key="StudioPageHeaderPadding">32,20,32,16</Thickness>
+      <Thickness x:Key="StudioCompactPageHeaderPadding">16,12,16,12</Thickness>
+      <Thickness x:Key="StudioCardPadding">16</Thickness>
 
       <StreamGeometry x:Key="IconHome">M3,10.5 12,3 21,10.5 21,21 15,21 15,15 9,15 9,21 3,21Z</StreamGeometry>
       <StreamGeometry x:Key="IconTools">M4,4 10,4 10,10 4,10ZM14,4 20,4 20,10 14,10ZM4,14 10,14 10,20 4,20ZM14,14 20,14 20,20 14,20Z</StreamGeometry>
@@ -407,12 +400,48 @@
       <StreamGeometry x:Key="IconClose">M6,4.5 12,10.5 18,4.5 19.5,6 13.5,12 19.5,18 18,19.5 12,13.5 6,19.5 4.5,18 10.5,12 4.5,6Z</StreamGeometry>
       <StreamGeometry x:Key="IconRestore">M13,3A9,9 0 1 1 4.2,14L6.2,13.4A7,7 0 1 0 13,5 7,7 0 0 0 7.4,7.8L10,10 3,11 4,4 6,6.2A9,9 0 0 1 13,3ZM12,7 14,7 14,12 17.5,14 16.5,15.8 12,13.2Z</StreamGeometry>
       <StreamGeometry x:Key="IconNight">M20,15.5A8.5,8.5 0 1 1 8.5,4 6.5,6.5 0 0 0 20,15.5ZM3,20 21,20 21,22 3,22Z</StreamGeometry>
+      <StreamGeometry x:Key="IconEye">F1 M12,5C6.6,5 2.7,8.5 1,12 2.7,15.5 6.6,19 12,19 17.4,19 21.3,15.5 23,12 21.3,8.5 17.4,5 12,5ZM12,7C16,7 19.1,9.4 20.8,12 19.1,14.6 16,17 12,17 8,17 4.9,14.6 3.2,12 4.9,9.4 8,7 12,7ZM12,8.5A3.5,3.5 0 1 0 12,15.5A3.5,3.5 0 1 0 12,8.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconInvoice">F1 M6,2H18V22L15,20.5 12,22 9,20.5 6,22ZM8.5,6.5V8.3H15.5V6.5ZM8.5,10.5V12.3H15.5V10.5ZM8.5,14.5V16.3H12.5V14.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconBook">F1 M4,4.5C4,3.1 5.1,2 6.5,2H20V17.5H6.5C6.2,17.5 6,17.7 6,18 6,18.3 6.2,18.5 6.5,18.5H20V22H6.5C5.1,22 4,20.9 4,19.5ZM8.5,5.5V7.3H15.5V5.5Z</StreamGeometry>
       <StreamGeometry x:Key="IconFolder">M3,5 10,5 12,7 21,7 21,19 3,19ZM5,9 5,17 19,17 19,9Z</StreamGeometry>
       <StreamGeometry x:Key="IconCheck">M9,16.2 4.8,12 3.4,13.4 9,19 21,7 19.6,5.6Z</StreamGeometry>
       <StreamGeometry x:Key="IconInfo">M12,2A10,10 0 1 0 12,22A10,10 0 1 0 12,2M11,10 13,10 13,17 11,17ZM11,6.5 13,6.5 13,8.5 11,8.5Z</StreamGeometry>
       <StreamGeometry x:Key="IconWarning">M12,2 23,21 1,21ZM11,9 13,9 13,14 11,14ZM11,16 13,16 13,18 11,18Z</StreamGeometry>
       <StreamGeometry x:Key="IconSelectAll">M3,3 9,3 9,5 5,5 5,9 3,9ZM15,3 21,3 21,9 19,9 19,5 15,5ZM3,15 5,15 5,19 9,19 9,21 3,21ZM19,15 21,15 21,21 15,21 15,19 19,19ZM8,8 16,8 16,16 8,16Z</StreamGeometry>
       <StreamGeometry x:Key="IconCrop">M6,2 8,2 8,16 22,16 22,18 18,18 18,22 16,22 16,18 6,18 6,8 2,8 2,6 6,6ZM10,6 18,6 18,14 16,14 16,8 10,8Z</StreamGeometry>
+
+      <!-- Persistent notices share one layout: severity icon, readable text, up to two next actions and Dismiss.
+           Text keeps the normal foreground for contrast; severity shows through the icon and the leading edge. -->
+      <ControlTheme x:Key="{x:Type infra:StudioNoticeBar}" TargetType="infra:StudioNoticeBar">
+        <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" />
+        <Setter Property="Padding" Value="14,7,8,7" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="3,0,0,1" Padding="{TemplateBinding Padding}">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" MinHeight="30">
+                <PathIcon x:Name="PART_Icon" Width="15" Height="15" VerticalAlignment="Center" Data="{StaticResource IconInfo}" Foreground="{TemplateBinding BorderBrush}" />
+                <SelectableTextBlock Grid.Column="1" Text="{TemplateBinding Message}" Foreground="{TemplateBinding Foreground}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                  <Button Classes="tool" Content="{TemplateBinding ActionText}" Command="{TemplateBinding ActionCommand}" IsVisible="{TemplateBinding HasAction}" />
+                  <Button Classes="tool" Content="{TemplateBinding SecondaryActionText}" Command="{TemplateBinding SecondaryActionCommand}" IsVisible="{TemplateBinding HasSecondaryAction}" />
+                  <Button x:Name="PART_Dismiss" Classes="icon" Width="28" Height="28" Command="{TemplateBinding DismissCommand}" IsVisible="{TemplateBinding IsDismissible}"
+                          AutomationProperties.Name="{x:Static infra:StudioNoticeBarText.Dismiss}" ToolTip.Tip="{x:Static infra:StudioNoticeBarText.Dismiss}">
+                    <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:success"><Setter Property="BorderBrush" Value="{DynamicResource StudioSuccessBrush}" /><Setter Property="Background" Value="{DynamicResource StudioSuccessSoftBrush}" /></Style>
+        <Style Selector="^:success /template/ PathIcon#PART_Icon"><Setter Property="Data" Value="{StaticResource IconCheck}" /></Style>
+        <Style Selector="^:warning"><Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBrush}" /><Setter Property="Background" Value="{DynamicResource StudioWarningSoftBrush}" /></Style>
+        <Style Selector="^:warning /template/ PathIcon#PART_Icon"><Setter Property="Data" Value="{StaticResource IconWarning}" /></Style>
+        <Style Selector="^:error"><Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}" /><Setter Property="Background" Value="{DynamicResource StudioErrorSoftBrush}" /></Style>
+        <Style Selector="^:error /template/ PathIcon#PART_Icon"><Setter Property="Data" Value="{StaticResource IconWarning}" /></Style>
+      </ControlTheme>
     </ResourceDictionary>
   </Application.Resources>
 
@@ -430,8 +459,17 @@
       <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
+    <!-- Keyboard focus: one rounded accent ring around every interactive control, drawn outside the control so it
+         never shifts layout. Text inputs keep their own focused border; document tabs draw their own indicator. -->
+    <Style Selector=":is(Button), CheckBox, ComboBox, TabItem, Slider, ListBoxItem, Expander /template/ ToggleButton">
+      <Setter Property="FocusAdorner">
+        <FocusAdornerTemplate>
+          <Border BorderThickness="2" BorderBrush="{DynamicResource StudioAccentBrush}" CornerRadius="9" Margin="-3" AdornerLayer.IsClipEnabled="False" />
+        </FocusAdornerTemplate>
+      </Setter>
+    </Style>
     <!-- Motion: short, quiet transitions for interactive surfaces. -->
-    <Style Selector="Button.tool, ToggleButton.tool, Button.ghost, Button.primary, Button.danger, Button.cardAction, ToggleButton.nav, ToggleButton.segment, Button.icon, ToggleButton.icon">
+    <Style Selector="Button.tool, ToggleButton.tool, Button.ghost, Button.primary, Button.danger, Button.cardAction, ToggleButton.nav, ToggleButton.segment, Button.icon, ToggleButton.icon, Button.cmd, ToggleButton.cmd">
       <Setter Property="Transitions">
         <Transitions>
           <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
@@ -439,13 +477,14 @@
         </Transitions>
       </Setter>
     </Style>
-    <Style Selector="Button.cardAction:pressed, Button.primary:pressed, Button.tool:pressed, ToggleButton.tool:pressed, Button.icon:pressed, ToggleButton.icon:pressed">
+    <!-- Every clickable surface answers a press the same way; disabled controls share one opacity, and disabled cards stay readable because they explain why. -->
+    <Style Selector="Button.cardAction:pressed, Button.primary:pressed, Button.tool:pressed, ToggleButton.tool:pressed, Button.icon:pressed, ToggleButton.icon:pressed, Button.cmd:pressed, ToggleButton.cmd:pressed, Button.ghost:pressed, Button.danger:pressed, ToggleButton.nav:pressed, ToggleButton.segment:pressed">
       <Setter Property="RenderTransform" Value="scale(0.97)" />
     </Style>
 
     <Style Selector="Button.tool, ToggleButton.tool"><Setter Property="MinWidth" Value="32" /><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Padding" Value="{DynamicResource StudioControlPadding}" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
     <Style Selector="Button.tool:pointerover /template/ ContentPresenter, ToggleButton.tool:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
-    <Style Selector="Button.tool:disabled, ToggleButton.tool:disabled, Button.icon:disabled, ToggleButton.icon:disabled, Button.danger:disabled, Button.ghost:disabled"><Setter Property="Opacity" Value="0.42" /></Style>
+    <Style Selector="Button.tool:disabled, ToggleButton.tool:disabled, Button.icon:disabled, ToggleButton.icon:disabled, Button.danger:disabled, Button.ghost:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
     <Style Selector="Button.tool:disabled /template/ ContentPresenter, ToggleButton.tool:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
     <Style Selector="ToggleButton.tool:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
 
@@ -461,7 +500,7 @@
     <Style Selector="Button.cmd, ToggleButton.cmd"><Setter Property="Height" Value="32" /><Setter Property="MinWidth" Value="32" /><Setter Property="Padding" Value="8,0" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
     <Style Selector="Button.cmd PathIcon, ToggleButton.cmd PathIcon"><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /></Style>
     <Style Selector="Button.cmd:pointerover /template/ ContentPresenter, ToggleButton.cmd:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
-    <Style Selector="Button.cmd:disabled, ToggleButton.cmd:disabled"><Setter Property="Opacity" Value="0.42" /></Style>
+    <Style Selector="Button.cmd:disabled, ToggleButton.cmd:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
     <Style Selector="Button.cmd:disabled /template/ ContentPresenter, ToggleButton.cmd:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
     <Style Selector="ToggleButton.cmd:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="1" /></Style>
     <!-- A menu button that stands for a group of tools shows the group's active state like a checked tool. -->
@@ -476,7 +515,7 @@
     <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="BoxShadow" Value="{DynamicResource StudioCardShadow}" /></Style>
     <Style Selector="ToggleButton.segment:checked"><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
     <Style Selector="ToggleButton.segment:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
-    <Style Selector="ToggleButton.segment:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+    <Style Selector="ToggleButton.segment:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
 
     <Style Selector="Button.primary"><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Background" Value="{DynamicResource StudioAccentButtonBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /><Setter Property="Padding" Value="16,7" /><Setter Property="CornerRadius" Value="7" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="BorderThickness" Value="0" /></Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentButtonHoverBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /></Style>
@@ -495,29 +534,34 @@
     <Style Selector="Button.cardAction"><Setter Property="VerticalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="12" /></Style>
     <Style Selector="Button.cardAction:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
     <Style Selector="Button.cardAction:disabled /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" /></Style>
-    <Style Selector="Button.cardAction:disabled"><Setter Property="Opacity" Value="0.72" /></Style>
+    <Style Selector="Button.cardAction:disabled"><Setter Property="Opacity" Value="0.7" /></Style>
 
     <Style Selector="Expander"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="Expander.accessibleSection /template/ ToggleButton#ExpanderHeader">
       <Setter Property="AutomationProperties.Name" Value="{ReflectionBinding (AutomationProperties.Name), RelativeSource={RelativeSource TemplatedParent}}" />
     </Style>
+    <!-- List rows: a quiet hover and a soft accent selection in every list. Fluent 12 has no ListBoxItem
+         brush keys to override, so the states are set on the row presenter directly. -->
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /></Style>
     <Style Selector="ListBox.providers ListBoxItem"><Setter Property="Padding" Value="12,4" /><Setter Property="Margin" Value="0,0,4,6" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="ListBox.providers ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
 
     <!-- Left rail: icon-first navigation with an accent indicator. -->
-    <Style Selector="ToggleButton.nav"><Setter Property="Foreground" Value="{DynamicResource StudioNavTextBrush}" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Padding" Value="4,7" /><Setter Property="CornerRadius" Value="8" /></Style>
+    <Style Selector="ToggleButton.nav"><Setter Property="Foreground" Value="{DynamicResource StudioNavTextBrush}" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Padding" Value="2,7" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="ToggleButton.nav:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
     <Style Selector="ToggleButton.nav:checked"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /></Style>
     <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
     <Style Selector="ToggleButton.nav:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
     <Style Selector="ToggleButton.nav:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
-    <Style Selector="ToggleButton.nav TextBlock"><Setter Property="FontSize" Value="10.5" /><Setter Property="MaxWidth" Value="60" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /><Setter Property="TextAlignment" Value="Center" /></Style>
+    <Style Selector="ToggleButton.nav TextBlock"><Setter Property="FontSize" Value="{StaticResource StudioLabelFontSize}" /><Setter Property="MaxWidth" Value="62" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /><Setter Property="TextAlignment" Value="Center" /></Style>
 
     <Style Selector="ToggleButton.mode"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="{DynamicResource StudioModePadding}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="CornerRadius" Value="0" /></Style>
     <Style Selector="ToggleButton.mode:checked"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
     <Style Selector="ToggleButton.mode:checked /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
 
-    <Style Selector="Border.card"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="16" /><Setter Property="BoxShadow" Value="{DynamicResource StudioCardShadow}" /></Style>
+    <Style Selector="Border.card"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="{StaticResource StudioCardPadding}" /><Setter Property="BoxShadow" Value="{DynamicResource StudioCardShadow}" /></Style>
     <!-- Floating surfaces over the canvas: page pill, selection bar, toasts. -->
     <Style Selector="Border.floating"><Setter Property="Background" Value="{DynamicResource StudioFloatingBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="12" /><Setter Property="Padding" Value="4" /><Setter Property="BoxShadow" Value="{DynamicResource StudioFloatingShadow}" /></Style>
     <Style Selector="Border.floating">
@@ -530,11 +574,18 @@
     </Style>
     <Style Selector="Border.separator"><Setter Property="Width" Value="1" /><Setter Property="Height" Value="20" /><Setter Property="Margin" Value="4,0" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Background" Value="{DynamicResource StudioBorderBrush}" /></Style>
     <Style Selector="Border.kbd"><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1,1,1,2" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="5,0" /><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
-    <Style Selector="Border.kbd TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /><Setter Property="FontFamily" Value="{StaticResource StudioMonoFont}" /></Style>
+    <Style Selector="Border.kbd TextBlock"><Setter Property="FontSize" Value="{StaticResource StudioLabelFontSize}" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
 
     <Style Selector="TextBlock.pageTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="{StaticResource StudioDisplayFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
-    <Style Selector="TextBlock.sectionTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="16" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
-    <Style Selector="TextBlock.paneTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <!-- Application screens: scrolling page content, a fixed header band for workbenches, and the title block both use. -->
+    <Style Selector=":is(Panel).pageContent"><Setter Property="Margin" Value="{StaticResource StudioPageMargin}" /></Style>
+    <Style Selector=":is(Panel).pageContent.compact"><Setter Property="Margin" Value="{StaticResource StudioCompactPageMargin}" /></Style>
+    <Style Selector="StackPanel.pageContent"><Setter Property="Spacing" Value="{StaticResource StudioSpaceXL}" /></Style>
+    <Style Selector="Border.pageHeader"><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="0,0,0,1" /><Setter Property="Padding" Value="{StaticResource StudioPageHeaderPadding}" /></Style>
+    <Style Selector="Border.pageHeader.compact"><Setter Property="Padding" Value="{StaticResource StudioCompactPageHeaderPadding}" /></Style>
+    <Style Selector="StackPanel.pageHeading"><Setter Property="Spacing" Value="{StaticResource StudioSpaceXS}" /></Style>
+    <Style Selector="TextBlock.sectionTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="{StaticResource StudioSectionFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TextBlock.paneTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="{StaticResource StudioSubtitleFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
     <Style Selector="TextBlock.eyebrow"><Setter Property="FontSize" Value="{StaticResource StudioLabelFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="LetterSpacing" Value="0.6" /></Style>
     <Style Selector="TextBlock.groupLabel"><Setter Property="FontSize" Value="{StaticResource StudioLabelFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /><Setter Property="LetterSpacing" Value="0.6" /></Style>
     <Style Selector="TextBlock.caption"><Setter Property="FontSize" Value="{StaticResource StudioCaptionFontSize}" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
@@ -551,6 +602,11 @@
     <Style Selector="ProgressBar.success"><Setter Property="Foreground" Value="{DynamicResource StudioSuccessBrush}" /></Style>
     <Style Selector="ProgressBar.failed"><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /></Style>
     <Style Selector="ProgressBar.cancelled"><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <!-- Color swatches are shared by the document toolbar, inspectors, and separate dialog windows. -->
+    <Style Selector="Border.swatch"><Setter Property="Width" Value="22" /><Setter Property="Height" Value="22" /><Setter Property="CornerRadius" Value="11" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    <Style Selector="Button.swatchButton"><Setter Property="Padding" Value="2" /><Setter Property="CornerRadius" Value="14" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="2" /><Setter Property="BorderBrush" Value="Transparent" /></Style>
+    <Style Selector="Button.swatchButton.selected, Button.swatchButton:focus-visible"><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="Button.swatchButton:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
     <!-- Informational callouts: neutral surface with an accent edge, for summaries that are not errors. -->
     <!-- On-page form editors sit on white paper in every theme, so they carry their own ink and focus ring. -->
     <Style Selector="Border.inlineFormField"><Setter Property="Background" Value="#F2F7FF" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="2" /><Setter Property="CornerRadius" Value="3" /><Setter Property="BoxShadow" Value="0 0 0 3 #332F63E9" /></Style>
@@ -561,22 +617,24 @@
     <Style Selector="Border.compareHeader"><Setter Property="MinHeight" Value="48" /><Setter Property="Padding" Value="12,0,8,0" /><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" /><Setter Property="BorderThickness" Value="0,0,0,1" /></Style>
     <Style Selector="MenuFlyoutPresenter"><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="4" /><Setter Property="BorderThickness" Value="1" /></Style>
     <Style Selector="MenuFlyoutPresenter MenuItem"><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="10,6" /></Style>
+    <Style Selector="ContextMenu"><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="4" /></Style>
+    <Style Selector="ContextMenu MenuItem"><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="10,6" /></Style>
     <Style Selector="FlyoutPresenter"><Setter Property="CornerRadius" Value="10" /></Style>
     <Style Selector="Border.placementHint"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Padding" Value="10,3,4,3" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
     <Style Selector="Border.callout"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="3,0,0,0" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="12,9" /></Style>
     <Style Selector="Border.callout.warning"><Setter Property="Background" Value="{DynamicResource StudioWarningSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBrush}" /></Style>
     <Style Selector="Border.callout.error"><Setter Property="Background" Value="{DynamicResource StudioErrorSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}" /></Style>
     <Style Selector="Border.callout.success"><Setter Property="Background" Value="{DynamicResource StudioSuccessSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioSuccessBrush}" /></Style>
-    <Style Selector="TabItem"><Setter Property="Padding" Value="12,8" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="TabItem"><Setter Property="Padding" Value="12,8" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="FontSize" Value="{StaticResource StudioSecondaryFontSize}" /></Style>
     <!-- Pane tabs: compact pill tabs for navigation and inspector panes. -->
     <Style Selector="TabControl.paneTabs"><Setter Property="Padding" Value="0" /></Style>
-    <Style Selector="TabControl.paneTabs TabItem"><Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="10,4" /><Setter Property="Margin" Value="0,0,2,0" /><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="CornerRadius" Value="7" /></Style>
+    <Style Selector="TabControl.paneTabs TabItem"><Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="10,4" /><Setter Property="Margin" Value="0,0,2,0" /><Setter Property="FontSize" Value="{StaticResource StudioSecondaryFontSize}" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="CornerRadius" Value="7" /></Style>
     <Style Selector="TabControl.paneTabs TabItem:selected /template/ Border#PART_SelectedPipe"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector="TabControl.paneTabs TabItem:selected"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
     <!-- Page-level tabs (OCR, etc.) read as a segmented header instead of links. -->
     <Style Selector="TabControl.pageTabs"><Setter Property="Padding" Value="0" /></Style>
     <Style Selector="TabControl.pageTabs /template/ ItemsPresenter#PART_ItemsPresenter"><Setter Property="Margin" Value="20,10,20,0" /></Style>
-    <Style Selector="TabControl.pageTabs TabItem"><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="14,6" /><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TabControl.pageTabs TabItem"><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="14,6" /><Setter Property="FontSize" Value="{DynamicResource StudioBodyFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
     <Style Selector="ToolTip"><Setter Property="MaxWidth" Value="360" /></Style>
   </Application.Styles>
 </Application>

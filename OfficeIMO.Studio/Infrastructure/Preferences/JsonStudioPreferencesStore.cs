@@ -33,8 +33,18 @@ internal sealed class JsonStudioPreferencesStore : IStudioPreferencesStore {
         ArgumentNullException.ThrowIfNull(preferences);
         string? directory = Path.GetDirectoryName(_path);
         if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
-        string temporaryPath = _path + ".tmp";
-        File.WriteAllText(temporaryPath, JsonSerializer.Serialize(preferences.Normalize(), SerializerOptions));
-        File.Move(temporaryPath, _path, overwrite: true);
+        // A unique staging name keeps concurrent writers (another process or window) from sharing one temporary file.
+        string temporaryPath = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try {
+            var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
+            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            using (var stream = new FileStream(temporaryPath, options)) {
+                JsonSerializer.Serialize(stream, preferences.Normalize(), SerializerOptions);
+            }
+            File.Move(temporaryPath, _path, overwrite: true);
+        } finally {
+            try { if (File.Exists(temporaryPath)) File.Delete(temporaryPath); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
     }
 }

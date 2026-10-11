@@ -7,7 +7,6 @@
              x:Class="OfficeIMO.Studio.Features.Home.HomeView"
              x:DataType="shell:MainWindowViewModel">
   <UserControl.Styles>
-    <Style Selector="StackPanel.pageContent"><Setter Property="Margin" Value="36,28,36,36" /></Style>
     <Style Selector="Button.task">
       <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" />
@@ -22,7 +21,7 @@
       <Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
     </Style>
-    <Style Selector="Button.task:disabled"><Setter Property="Opacity" Value="0.6" /></Style>
+    <Style Selector="Button.task:disabled"><Setter Property="Opacity" Value="0.7" /></Style>
     <Style Selector="Button.task:disabled /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /></Style>
     <Style Selector="Border.taskGlyph">
       <Setter Property="Width" Value="34" />
@@ -57,8 +56,8 @@
 
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                 Background="{DynamicResource StudioPanelBrush}">
-    <StackPanel x:Name="HomeContent" Classes="pageContent" Spacing="22" MaxWidth="1180" HorizontalAlignment="Stretch">
-      <StackPanel Spacing="4">
+    <StackPanel x:Name="HomeContent" Classes="pageContent" MaxWidth="1180" HorizontalAlignment="Stretch">
+      <StackPanel Classes="pageHeading">
         <TextBlock Text="{loc:Loc Home.Welcome}" Classes="pageTitle" />
         <TextBlock Text="{loc:Loc Home.WelcomeDescription}" Classes="muted" />
       </StackPanel>
@@ -76,7 +75,7 @@
                     BoxShadow="{DynamicResource StudioCardShadow}">
               <PathIcon Data="{StaticResource IconOpen}" Width="28" Height="28" Foreground="{DynamicResource StudioAccentBrush}" />
             </Border>
-            <TextBlock x:Name="OpenPrompt" Text="{loc:Loc Home.DragAndDropFilesHere}" FontSize="19" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock x:Name="OpenPrompt" Text="{loc:Loc Home.DragAndDropFilesHere}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Home.SupportedInputGuidance}" Classes="muted" TextAlignment="Center" HorizontalAlignment="Center" />
             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,4,0,0">
               <Button Classes="primary" Command="{Binding Commands[Open]}" IsEnabled="{Binding CanStartDocumentTransition}"
@@ -86,7 +85,7 @@
                   <TextBlock Text="{loc:Loc Home.OpenFile}" />
                 </StackPanel>
               </Button>
-              <Border Classes="kbd"><TextBlock x:Name="OpenShortcut" Text="Ctrl O" /></Border>
+              <Border Classes="kbd"><TextBlock x:Name="OpenShortcut" Text="Ctrl+O" /></Border>
             </StackPanel>
           </StackPanel>
         </Panel>
@@ -119,7 +118,7 @@
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Compress}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.CompressHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
-            <Button Classes="task" Command="{Binding Commands[Protect]}" AutomationProperties.Name="{loc:Loc Home.Protect}" ToolTip.Tip="{Binding Commands[Protect].UnavailableReason}">
+            <Button Classes="task" Command="{Binding Commands[Protect]}" AutomationProperties.Name="{loc:Loc Home.Protect}" ToolTip.Tip="{Binding Commands[Protect].UnavailableReason}" ToolTip.ShowOnDisabled="True">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioErrorSoftBrush}"><PathIcon Data="{StaticResource IconProtect}" Width="16" Height="16" Foreground="{DynamicResource StudioErrorBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Protect}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.ProtectHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
@@ -158,6 +157,16 @@
                       AutomationProperties.Name="{Binding FileName}" ToolTip.Tip="{Binding Path}"
                       Command="{ReflectionBinding $parent[UserControl].DataContext.OpenRecentCommand}"
                       CommandParameter="{Binding}">
+                <Button.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="{loc:Loc Home.OpenRecent}" Click="OnOpenRecentMenuClick">
+                      <MenuItem.Icon><PathIcon Data="{StaticResource IconDocument}" Width="14" Height="14" /></MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="{loc:Loc Home.RemoveFromRecent}" Click="OnRemoveRecentMenuClick">
+                      <MenuItem.Icon><PathIcon Data="{StaticResource IconClose}" Width="14" Height="14" /></MenuItem.Icon>
+                    </MenuItem>
+                  </ContextMenu>
+                </Button.ContextMenu>
                 <Grid RowDefinitions="132,Auto">
                   <Border Background="{DynamicResource StudioCanvasBrush}" ClipToBounds="True">
                     <Panel>
@@ -167,7 +176,7 @@
                       </Border>
                       <Border IsVisible="{Binding !HasThumbnail}" Width="58" Height="72" CornerRadius="4" Background="{DynamicResource StudioPanelRaisedBrush}"
                               HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="{DynamicResource StudioCardShadow}">
-                        <TextBlock Text="PDF" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock Text="PDF" FontSize="{StaticResource StudioSecondaryFontSize}" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                       </Border>
                     </Panel>
                   </Border>
@@ -176,7 +185,7 @@
                     <TextBlock Text="{Binding DirectoryName}" Classes="caption" TextTrimming="PathSegmentEllipsis" />
                     <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3,0,0">
                       <Border CornerRadius="3" Padding="4,0" Background="{DynamicResource StudioErrorSoftBrush}">
-                        <TextBlock Text="{loc:Loc Home.PDF}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}" />
+                        <TextBlock Text="{loc:Loc Home.PDF}" FontSize="{StaticResource StudioMicroFontSize}" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}" />
                       </Border>
                       <TextBlock Text="{Binding OpenedLabel}" Classes="caption" />
                       <TextBlock Text="·" Classes="caption" />

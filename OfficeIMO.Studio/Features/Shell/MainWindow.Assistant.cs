@@ -27,7 +27,7 @@ public partial class MainWindow {
 
     private async Task<bool> ExportAssistantAnswerAsync(string text, Func<bool> isCurrent, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        if (!isCurrent() || !StorageProvider.CanSave) return false;
+        if (!isCurrent() || !PickerAvailable(StorageProvider.CanSave)) return false;
         IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
             Title = _services.Localizer.GetOrDefault("Assistant.ExportAnswer", "Export answer"),
             SuggestedFileName = "document-answer.txt", DefaultExtension = "txt",

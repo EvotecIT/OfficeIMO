@@ -317,7 +317,7 @@ public sealed partial class MainWindowViewModel {
         try {
             properties = CreateEditorProperties(IsFillSignPlacement(tool));
         } catch (Exception error) {
-            ErrorMessage = error.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(error);
             return;
         }
         if (tool == PdfEditorTool.Redact) {
@@ -358,7 +358,7 @@ public sealed partial class MainWindowViewModel {
                         CancellationToken.None, successStatus: UiText(tool == PdfEditorTool.AddText ? "FillSign.DatePlaced" : "FillSign.SignaturePlaced")).ConfigureAwait(true))
                     CompleteFillSignPlacement();
             } catch (Exception ex) {
-                ErrorMessage = ex.Message;
+                ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
             }
             return;
         }
@@ -378,7 +378,7 @@ public sealed partial class MainWindowViewModel {
                 token => workspace.ApplyEditorGestureAsync(tool, gesture, properties, token, CreateProgress()),
                 CancellationToken.None, successStatus: UiText("Editor.EditAdded")).ConfigureAwait(true);
         } catch (Exception ex) {
-            ErrorMessage = ex.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
         }
     }
 
@@ -590,7 +590,7 @@ public sealed partial class MainWindowViewModel {
             await RunMutationAsync(token => workspace.ApplyWatermarkAsync(prepared, token, CreateProgress()),
                 cancellationToken).ConfigureAwait(true);
         } catch (OperationCanceledException) { }
-        catch (Exception error) { ErrorMessage = error.Message; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); }
         finally { _reviewingWatermark = false; }
     }
 
@@ -610,7 +610,7 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         PdfColor color;
         try { color = ParseColor(EditorColorHex); }
-        catch (Exception error) { ErrorMessage = error.Message; return; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); return; }
         string contents = SelectedAnnotationContents;
         string author = SelectedAnnotationAuthor;
         ClearObjectSelection();
@@ -625,7 +625,7 @@ public sealed partial class MainWindowViewModel {
         string reply = AnnotationReplyText;
         PdfColor color;
         try { color = ParseColor(EditorColorHex); }
-        catch (Exception error) { ErrorMessage = error.Message; return; }
+        catch (Exception error) { ErrorMessage = Infrastructure.StudioMessages.Describe(error); return; }
         ClearObjectSelection();
         bool succeeded = await RunMutationAsync(
             token => _workspace.AddAnnotationReplyAsync(objectNumber, reply, EditorAuthor, color, token, CreateProgress()),

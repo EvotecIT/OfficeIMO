@@ -56,7 +56,10 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
     private string? _outputPath;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSummary))]
     private string? _summary;
+
+    public bool HasSummary => !string.IsNullOrWhiteSpace(Summary);
 
     [ObservableProperty]
     private IReadOnlyList<OfficeWorkflowDiagnostic> _diagnostics = Array.Empty<OfficeWorkflowDiagnostic>();
@@ -65,7 +68,11 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasOutput))]
+    [NotifyPropertyChangedFor(nameof(HasStarted))]
     private ConversionJobState _state;
+
+    /// <summary>Progress is shown once a job has started; a waiting job only shows its status.</summary>
+    public bool HasStarted => State != ConversionJobState.Queued;
 
     public bool HasOutput => State == ConversionJobState.Completed && !string.IsNullOrWhiteSpace(OutputPath);
 

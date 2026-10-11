@@ -29,8 +29,12 @@ public sealed partial class MainWindow : Window {
     internal MainWindow(StudioApplicationServices services) {
         _services = services ?? throw new ArgumentNullException(nameof(services));
         _services.Storage.Attach(() => StorageProvider);
+        // One document-less owner keeps Convert, OCR, Jobs, Settings and the other workbenches for the whole window.
+        _applicationDocument = CreateDocumentViewModel((path, token) => TabHost!.OpenDocumentAsync(path, token));
+        _applicationDocument.FindOpenDocument = FindOpenDocument;
+        _applicationDocument.PropertyChanged += OnApplicationDocumentChanged;
         TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument,
-            document => ConfirmActiveCloseAsync([document]));
+            document => ConfirmActiveCloseAsync([document]), _applicationDocument);
         ViewModel = TabHost.ActiveDocument;
         _session = new StudioSessionController(TabHost, _services, token => PickFileSafelyAsync(PickSavePdfAsync, token));
         ViewModel.Session = _session;
@@ -43,8 +47,11 @@ public sealed partial class MainWindow : Window {
         OpenDocumentTabButton.DataContext = TabHost;
         AppTitleText.DataContext = TabHost;
         DataContext = ViewModel;
-        CommandSearchShortcut.Text = OperatingSystem.IsMacOS() ? "⌘K" : "Ctrl K";
+        CommandSearchShortcut.Text = StudioShortcuts.Describe(StudioShortcuts.CommandSearch);
+        ToolTip.SetTip(CommandSearchButton, _services.Localizer.Format("Shell.CommandSearchTip", StudioShortcuts.Describe(StudioShortcuts.CommandSearch)));
         InitializeChrome();
+        RestoreWindowPlacement();
+        InitializeAppMenu();
         InitializeAppleShell();
         InitializeDocumentTabInteractions();
         DocumentWorkspace.Panes = TabHost.Panes;
@@ -75,12 +82,45 @@ public sealed partial class MainWindow : Window {
         };
         Opened += OnOpened;
         Closing += OnClosing;
-        Closed += (_, _) => { _windowClosed = true; _startupCompleted.TrySetResult(); _session.Dispose(); TabHost.Dispose(); _services.Storage.Dispose(); };
+        _services.Preferences.PersistenceFailed += OnPreferencesPersistenceFailed;
+        _services.Preferences.Changed += OnPreferencesChanged;
+        Closed += (_, _) => {
+            _windowClosed = true;
+            _services.Preferences.PersistenceFailed -= OnPreferencesPersistenceFailed;
+            _services.Preferences.Changed -= OnPreferencesChanged;
+            SaveWindowPlacement();
+            _startupCompleted.TrySetResult(); _session.Dispose(); TabHost.Dispose(); _services.Storage.Dispose();
+        };
+    }
+
+    /// <summary>Tells the user that an unexpected interface failure was contained and how to protect their work.</summary>
+    internal void ReportUnexpectedError() {
+        if (!_windowClosed) ViewModel.ErrorMessage = _services.Localizer.Get("Application.UnexpectedError");
+    }
+
+    private void OnPreferencesChanged(object? sender, EventArgs e) => SyncThemeToggle();
+
+    private void OnPreferencesPersistenceFailed(object? sender, Exception error) {
+        _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Preferences", "SaveFailed", error);
+        if (!_windowClosed) ViewModel.ErrorMessage = _services.Localizer.Get("Preferences.SaveFailed");
     }
 
     public StudioDocumentTabHost TabHost { get; }
 
     internal MainWindowViewModel ViewModel { get; private set; }
+
+    private readonly MainWindowViewModel _applicationDocument;
+    private bool _keepScreenOnActivation;
+
+    private MainWindowViewModel? FindOpenDocument(string path) => TabHost.Tabs.Select(tab => tab.Document).FirstOrDefault(document =>
+        document.DocumentPath is { Length: > 0 } source && OfficeIMO.Internal.OfficeStorageIdentity.AreEquivalent(source, path));
+
+    // Workbench results and failures are reported by the window owner; show them on the visible document.
+    private void OnApplicationDocumentChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
+        if (e.PropertyName != nameof(MainWindowViewModel.ErrorMessage) || _applicationDocument.ErrorMessage is not { Length: > 0 } message) return;
+        _applicationDocument.ErrorMessage = null;
+        if (!_windowClosed) ViewModel.ErrorMessage = message;
+    }
 
     private MainWindowViewModel CreateDocumentViewModel(Func<string, CancellationToken, Task> openDocumentInTab) {
         MainWindowViewModel? document = null;
@@ -125,7 +165,8 @@ public sealed partial class MainWindow : Window {
             publicationGuard: new StudioWorkflowPublicationGuard((path, isDirectory) =>
                 isDirectory ? TabHost.CanPublishDirectory(path) : TabHost.CanPublishPath(path)),
             confirmBookChanges: () => new UnsavedChangesDialog(document?.BookWorkbench.BookTitle ?? "Book", _services.Localizer).ShowDialog<UnsavedChangesDecision>(this),
-            bookPublicationGuard: new StudioWorkflowPublicationGuard((path, _) => TabHost.CanPublishBookPath(document, path)));
+            bookPublicationGuard: new StudioWorkflowPublicationGuard((path, _) => TabHost.CanPublishBookPath(document, path)),
+            sharedWorkbenches: _applicationDocument);
         document.Session = _session;
         document.FileDialogs = FileDialogs;
         document.CreateSignatureDialog = kind => new Features.Sign.SignatureDialog(kind, _services.Localizer).ShowDialog<StudioSignatureDraft?>(this);
@@ -137,9 +178,11 @@ public sealed partial class MainWindow : Window {
         if (ReferenceEquals(ViewModel, document)) return;
         CommandPalette.Dismiss();
         ViewModel.SaveDocumentViewState();
+        StudioWorkspaceMode previousScreen = ViewModel.WorkspaceMode;
         _changingActiveDocument = true;
         try {
             DetachOperationToast(ViewModel);
+            document.WorkspaceMode = ChooseScreenForActivatedDocument(previousScreen, document);
             ViewModel = document;
             DataContext = document;
             RefreshNativeMenus();
@@ -148,6 +191,16 @@ public sealed partial class MainWindow : Window {
         } finally {
             _changingActiveDocument = false;
         }
+    }
+
+    /// <summary>
+    /// A document tab always shows its document. Closing a tab while an application screen (Convert, Jobs,
+    /// Settings…) is visible keeps that screen, and with no document left the window returns to Home.
+    /// </summary>
+    private StudioWorkspaceMode ChooseScreenForActivatedDocument(StudioWorkspaceMode previous, MainWindowViewModel document) {
+        bool applicationScreen = previous != StudioWorkspaceMode.PdfWorkspace;
+        if (applicationScreen && (_keepScreenOnActivation || !document.HasDocument)) return previous;
+        return document.HasDocument ? StudioWorkspaceMode.PdfWorkspace : StudioWorkspaceMode.Home;
     }
 
     internal bool IsCompactLayout { get; private set; }
@@ -201,14 +254,12 @@ public sealed partial class MainWindow : Window {
     }
 
     private void OnToggleThemeClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
-        if (Application.Current is not { } application) return;
-        application.RequestedThemeVariant = application.ActualThemeVariant == ThemeVariant.Dark
-            ? ThemeVariant.Light
-            : ThemeVariant.Dark;
-        StudioThemePreference preference = application.RequestedThemeVariant == ThemeVariant.Dark
-            ? StudioThemePreference.Dark
-            : StudioThemePreference.Light;
-        _services.Preferences.Update(current => current with { Theme = preference });
+        // High contrast is an accessibility choice made in Settings; the quick toggle never replaces it.
+        if (_services.Preferences.Current.Theme == StudioThemePreference.HighContrast) return;
+        StudioThemePreference preference = ActualThemeVariant == ThemeVariant.Dark
+            ? StudioThemePreference.Light
+            : StudioThemePreference.Dark;
+        _services.Preferences.UpdatePresentation(current => current with { Theme = preference });
         SyncThemeToggle();
     }
 
@@ -228,7 +279,14 @@ public sealed partial class MainWindow : Window {
         ApplyBackdrop();
     }
 
-    private void SyncThemeToggle() => ThemeToggle.Classes.Set("dark", ActualThemeVariant == ThemeVariant.Dark);
+    private void SyncThemeToggle() {
+        bool highContrast = _services.Preferences.Current.Theme == StudioThemePreference.HighContrast;
+        ThemeToggle.Classes.Set("dark", ActualThemeVariant == ThemeVariant.Dark);
+        ThemeToggle.IsEnabled = !highContrast;
+        string tip = _services.Localizer.Get(highContrast ? "MainWindow.HighContrastAppearanceInSettings" : "MainWindow.SwitchLightAndDarkAppearance");
+        ToolTip.SetTip(ThemeToggle, tip);
+        Avalonia.Automation.AutomationProperties.SetHelpText(ThemeToggle, tip);
+    }
 
     // The operating system draws caption buttons over the extended title bar; keep tabs and actions clear of them.
     private void UpdateCaptionSpacing() {
@@ -258,139 +316,94 @@ public sealed partial class MainWindow : Window {
 
     private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
         if (CommandPalette.IsOpen) return;
-        if (e.Key == Key.F6 && TabHost.Panes.IsSplit && ViewModel.IsPdfWorkspaceMode && !ViewModel.IsComparisonOpen) {
+        Key key = e.Key;
+        KeyModifiers modifiers = e.KeyModifiers;
+        bool Is(KeyGesture gesture) => StudioShortcuts.Matches(gesture, key, modifiers);
+        bool mac = OperatingSystem.IsMacOS();
+        if (TryOpenAppMenuFromKeyboard(e)) {
+            e.Handled = true;
+            return;
+        }
+        if (!mac && Is(StudioShortcuts.FullScreen)) {
+            ToggleFullScreen();
+            e.Handled = true;
+            return;
+        }
+        // Windows closes on Alt+F4 itself; Linux desktops expect the application to handle Ctrl+Q.
+        if (!mac && !OperatingSystem.IsWindows() && Is(StudioShortcuts.Quit)) {
+            Close();
+            e.Handled = true;
+            return;
+        }
+        if (key == Key.F6 && TabHost.Panes.IsSplit && ViewModel.IsPdfWorkspaceMode && !ViewModel.IsComparisonOpen) {
             TabHost.Panes.SwitchPane();
             DocumentWorkspace.FocusActiveIndependentPane();
             e.Handled = true;
             return;
         }
-        if (e.Key == Key.F9) {
+        if (ViewModel.Commands["FocusReading"].Gestures.Any(Is)) {
             ViewModel.IsAssistantVisible = false;
             await ViewModel.Commands["FocusReading"].ExecuteAsync();
             e.Handled = true;
             return;
         }
-        if (e.Key == Key.Escape && ViewModel.IsFocusReading) {
+        if (key == Key.Escape && ViewModel.IsFocusReading) {
             ViewModel.IsFocusReading = false;
             e.Handled = true;
             return;
         }
-        if (e.Key == Key.Escape && ViewModel.IsAssistantVisible) {
+        if (key == Key.Escape && ViewModel.IsAssistantVisible) {
             ViewModel.IsAssistantVisible = false;
             e.Handled = true;
             return;
         }
-        KeyModifiers primary = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
-        bool primaryModifier = e.KeyModifiers == primary || e.KeyModifiers == (primary | KeyModifiers.Shift);
-        if (primaryModifier && (e.Key == Key.K || (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.P))) {
+        if (Is(StudioShortcuts.CommandSearch) || Is(StudioShortcuts.CommandSearchAlternate)) {
             await ShowCommandPaletteAsync();
             e.Handled = true;
             return;
         }
-        if (primaryModifier && e.Key == Key.F) {
+        if (Is(StudioShortcuts.Find)) {
             FocusDocumentSearch();
             e.Handled = true;
             return;
         }
-
-        if (e.KeyModifiers is KeyModifiers.Control or (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.Tab) {
-            TabHost.SelectRelativeTab(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+        if (Is(StudioShortcuts.NextTab) || Is(StudioShortcuts.PreviousTab)) {
+            TabHost.SelectRelativeTab(Is(StudioShortcuts.PreviousTab));
             e.Handled = true;
             return;
         }
-        if (OperatingSystem.IsMacOS() && e.KeyModifiers == (KeyModifiers.Meta | KeyModifiers.Shift) &&
-            e.Key is Key.OemOpenBrackets or Key.OemCloseBrackets) {
-            TabHost.SelectRelativeTab(e.Key == Key.OemOpenBrackets);
+        if (mac && modifiers == (KeyModifiers.Meta | KeyModifiers.Shift) && key is Key.OemOpenBrackets or Key.OemCloseBrackets) {
+            TabHost.SelectRelativeTab(key == Key.OemOpenBrackets);
             e.Handled = true;
             return;
         }
-        if (!OperatingSystem.IsMacOS() && e.KeyModifiers == KeyModifiers.Control && e.Key == Key.F4) {
+        if (Is(StudioShortcuts.CloseTab) || !mac && modifiers == KeyModifiers.Control && key == Key.F4) {
             await CloseSelectedDocumentTabAsync();
             e.Handled = true;
             return;
         }
-        if (primaryModifier && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && e.Key == Key.T) {
+        if (Is(StudioShortcuts.ReopenTab)) {
             await TabHost.ReopenClosedTabAsync();
             e.Handled = true;
             return;
         }
-        if (primaryModifier && e.Key == Key.OemComma) {
-            ViewModel.Commands["Settings"].Execute(null);
+
+        // Document commands come from the catalog, so their keys match what menus and command search show.
+        // A focused text field keeps its own undo, redo, zoom-like and single-letter keys.
+        bool textEntry = IsTextEntryFocused();
+        if (!textEntry && modifiers == KeyModifiers.None && TrySelectToolShortcut(key)) {
             e.Handled = true;
             return;
         }
-        if (primaryModifier && e.Key == Key.W) {
-            await CloseSelectedDocumentTabAsync();
+        if (ViewModel.Commands.FindByGesture(key, modifiers, textEntry) is { } command) {
+            await command.ExecuteAsync();
             e.Handled = true;
             return;
         }
-        if (primaryModifier && e.Key == Key.O) {
-            await ViewModel.Commands["Open"].ExecuteAsync();
-            e.Handled = true;
-            return;
-        }
+        if (textEntry) return;
 
-        if (primaryModifier && e.Key == Key.S) {
-            await ViewModel.Commands[e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "SaveAs" : "Save"].ExecuteAsync();
-            e.Handled = true;
-            return;
-        }
-
-        if (primaryModifier && e.Key == Key.P) {
-            await ViewModel.Commands["Print"].ExecuteAsync();
-            e.Handled = true;
-            return;
-        }
-
-        if (IsTextEntryFocused()) return;
-
-        if (!OperatingSystem.IsMacOS() && e.KeyModifiers == KeyModifiers.Control && e.Key == Key.Y) {
-            await ViewModel.Commands["Redo"].ExecuteAsync();
-            e.Handled = true;
-            return;
-        }
-
-        if (e.KeyModifiers == KeyModifiers.None && TrySelectToolShortcut(e.Key)) {
-            e.Handled = true;
-            return;
-        }
-
-        if (primaryModifier && e.Key == Key.Z) {
-            await ViewModel.Commands[e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? "Redo" : "Undo"].ExecuteAsync();
-            e.Handled = true;
-            return;
-        }
-
-        if (primaryModifier) {
-            switch (e.Key) {
-                case Key.D0:
-                case Key.NumPad0:
-                    ViewModel.Commands["FitPage"].Execute(null);
-                    e.Handled = true;
-                    return;
-                case Key.D1:
-                case Key.NumPad1:
-                    ViewModel.Commands["ActualSize"].Execute(null);
-                    e.Handled = true;
-                    return;
-                case Key.D2:
-                case Key.NumPad2:
-                    ViewModel.Commands["FitWidth"].Execute(null);
-                    e.Handled = true;
-                    return;
-                case Key.OemPlus:
-                case Key.Add:
-                    ViewModel.Commands["ZoomIn"].Execute(null);
-                    e.Handled = true;
-                    return;
-                case Key.OemMinus:
-                case Key.Subtract:
-                    ViewModel.Commands["ZoomOut"].Execute(null);
-                    e.Handled = true;
-                    return;
-            }
-        }
-
+        // Page keys belong to the open document; Home, Tools and workflow screens keep their own navigation.
+        if (!ViewModel.IsPdfWorkspaceMode) return;
         switch (e.Key) {
             case Key.PageUp:
             case Key.Left:
@@ -425,7 +438,7 @@ public sealed partial class MainWindow : Window {
         try { return await picker(token); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { return null; }
         catch (Exception error) when (error is not OutOfMemoryException) {
-            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            if (!_windowClosed) ViewModel.ErrorMessage = Infrastructure.StudioMessages.Describe(error);
             return null;
         }
     }
@@ -434,21 +447,21 @@ public sealed partial class MainWindow : Window {
         try { return await picker(token); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { return Array.Empty<string>(); }
         catch (Exception error) when (error is not OutOfMemoryException) {
-            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            if (!_windowClosed) ViewModel.ErrorMessage = Infrastructure.StudioMessages.Describe(error);
             return Array.Empty<string>();
         }
     }
 
     private async Task<string?> PickPdfAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanOpen) return null;
+        if (!PickerAvailable(StorageProvider.CanOpen)) return null;
 
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
             Title = _services.Localizer.Get("Picker.OpenPdf"),
             AllowMultiple = false,
             FileTypeFilter = [
                 new FilePickerFileType(_services.Localizer.Get("Picker.PdfDocuments")) {
-                    Patterns = ["*.pdf"],
+                    Patterns = StudioPickerPatterns.CaseInsensitive("*.pdf"),
                     MimeTypes = ["application/pdf"],
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
                 }
@@ -459,14 +472,14 @@ public sealed partial class MainWindow : Window {
 
     private async Task<IReadOnlyList<string>> PickPdfsAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanOpen) return Array.Empty<string>();
+        if (!PickerAvailable(StorageProvider.CanOpen)) return Array.Empty<string>();
 
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
             Title = _services.Localizer.Get("Picker.AddPdfDocuments"),
             AllowMultiple = true,
             FileTypeFilter = [
                 new FilePickerFileType(_services.Localizer.Get("Picker.PdfDocuments")) {
-                    Patterns = ["*.pdf"],
+                    Patterns = StudioPickerPatterns.CaseInsensitive("*.pdf"),
                     MimeTypes = ["application/pdf"],
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
                 }
@@ -477,19 +490,17 @@ public sealed partial class MainWindow : Window {
 
     private async Task<IReadOnlyList<string>> PickWorkflowFilesAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanOpen) return Array.Empty<string>();
+        if (!PickerAvailable(StorageProvider.CanOpen)) return Array.Empty<string>();
 
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
             Title = _services.Localizer.Get("Picker.AddDocumentsOrImages"),
             AllowMultiple = true,
             FileTypeFilter = [
                 new FilePickerFileType(_services.Localizer.Get("Picker.SupportedFiles")) {
-                    Patterns = [
-                        "*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm",
+                    Patterns = StudioPickerPatterns.CaseInsensitive("*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm",
                         "*.pages", "*.numbers", "*.key",
                         "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.tif", "*.tiff",
-                        "*.webp", "*.ico", "*.pcx", "*.zip"
-                    ]
+                        "*.webp", "*.ico", "*.pcx", "*.zip")
                 }
             ]
         });
@@ -498,11 +509,11 @@ public sealed partial class MainWindow : Window {
 
     private async Task<IReadOnlyList<string>> PickOcrFilesAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanOpen) return [];
+        if (!PickerAvailable(StorageProvider.CanOpen)) return [];
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
             Title = _services.Localizer.Get("OcrSession.Add"), AllowMultiple = true,
             FileTypeFilter = [new FilePickerFileType(_services.Localizer.Get("OcrSession.Files")) {
-                Patterns = ["*.pdf", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tif", "*.tiff", "*.gif", "*.webp"]
+                Patterns = StudioPickerPatterns.CaseInsensitive("*.pdf", "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tif", "*.tiff", "*.gif", "*.webp")
             }]
         });
         return await _services.Storage.RegisterManyAsync(files, cancellationToken).ConfigureAwait(true);
@@ -510,7 +521,7 @@ public sealed partial class MainWindow : Window {
 
     private async Task<string?> PickAssemblyFolderAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanPickFolder) return null;
+        if (!PickerAvailable(StorageProvider.CanPickFolder)) return null;
         IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
             Title = _services.Localizer.Get("Picker.AddSourceFolder"),
             AllowMultiple = false
@@ -556,14 +567,14 @@ public sealed partial class MainWindow : Window {
 
     private async Task<string?> PickSavePdfAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanSave) return null;
+        if (!PickerAvailable(StorageProvider.CanSave)) return null;
         IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
             Title = _services.Localizer.Get("Picker.SavePdf"),
             SuggestedFileName = System.IO.Path.GetFileNameWithoutExtension(ViewModel.DocumentName.TrimEnd(' ', '*')),
             DefaultExtension = "pdf",
             FileTypeChoices = [
                 new FilePickerFileType(_services.Localizer.Get("Picker.PdfDocuments")) {
-                    Patterns = ["*.pdf"],
+                    Patterns = StudioPickerPatterns.CaseInsensitive("*.pdf"),
                     MimeTypes = ["application/pdf"],
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
                 }
@@ -575,11 +586,11 @@ public sealed partial class MainWindow : Window {
 
     private async Task<string?> PickSaveRedactionReportAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanSave) return null;
+        if (!PickerAvailable(StorageProvider.CanSave)) return null;
         IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
             Title = _services.Localizer.Get("Redaction.ExportReport"),
             SuggestedFileName = "redaction-evidence.json", DefaultExtension = "json",
-            FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = ["*.json"], MimeTypes = ["application/json"] }]
+            FileTypeChoices = [new FilePickerFileType("JSON") { Patterns = StudioPickerPatterns.CaseInsensitive("*.json"), MimeTypes = ["application/json"] }]
         });
         string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
         return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;
@@ -587,11 +598,11 @@ public sealed partial class MainWindow : Window {
 
     private async Task<string?> PickSaveComparisonReportAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanSave) return null;
+        if (!PickerAvailable(StorageProvider.CanSave)) return null;
         IStorageFile? file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
             Title = _services.Localizer.GetOrDefault("Comparison.ExportReport", "Export comparison report"),
             SuggestedFileName = "comparison.html", DefaultExtension = "html",
-            FileTypeChoices = [new FilePickerFileType("HTML") { Patterns = ["*.html"], MimeTypes = ["text/html"] }]
+            FileTypeChoices = [new FilePickerFileType("HTML") { Patterns = StudioPickerPatterns.CaseInsensitive("*.html"), MimeTypes = ["text/html"] }]
         });
         string? location = await _services.Storage.RegisterSingleAsync(file is null ? [] : [file], cancellationToken).ConfigureAwait(true);
         return location is not null && await ConfirmProviderWriteAsync(location) ? location : null;
@@ -602,7 +613,7 @@ public sealed partial class MainWindow : Window {
             : new ProviderSaveDialog(_services.Storage.Describe(location).Name, _services.Localizer).ShowDialog<bool>(this);
     private async Task<string?> PickOutputFolderAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanPickFolder) return null;
+        if (!PickerAvailable(StorageProvider.CanPickFolder)) return null;
         IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
             Title = _services.Localizer.Get("Picker.ChooseOutputFolder"),
             AllowMultiple = false
@@ -612,13 +623,13 @@ public sealed partial class MainWindow : Window {
 
     private async Task<byte[]?> PickImageAsync(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!StorageProvider.CanOpen) return null;
+        if (!PickerAvailable(StorageProvider.CanOpen)) return null;
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
             Title = _services.Localizer.Get("Picker.ChooseImage"),
             AllowMultiple = false,
             FileTypeFilter = [
                 new FilePickerFileType(_services.Localizer.Get("Picker.PngOrJpegImages")) {
-                    Patterns = ["*.png", "*.jpg", "*.jpeg"],
+                    Patterns = StudioPickerPatterns.CaseInsensitive("*.png", "*.jpg", "*.jpeg"),
                     MimeTypes = ["image/png", "image/jpeg"],
                     AppleUniformTypeIdentifiers = ["public.png", "public.jpeg"]
                 }

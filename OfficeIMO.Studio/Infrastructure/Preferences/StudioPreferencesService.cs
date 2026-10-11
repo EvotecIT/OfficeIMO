@@ -11,8 +11,12 @@ internal sealed class StudioPreferencesService {
 
     internal event EventHandler? Changed;
 
+    /// <summary>Raised when a presentation change applies to this session but could not be written to disk.</summary>
+    internal event EventHandler<Exception>? PersistenceFailed;
+
     internal StudioPreferences Current { get; private set; }
 
+    /// <summary>Persists and applies a change; a failed write leaves the current preferences unchanged and throws.</summary>
     internal void Update(Func<StudioPreferences, StudioPreferences> update) {
         ArgumentNullException.ThrowIfNull(update);
         StudioPreferences next = update(Current).Normalize();
@@ -20,5 +24,25 @@ internal sealed class StudioPreferencesService {
         _store.Save(next);
         Current = next;
         Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Applies a presentation-only change (appearance, density, window placement) even when it cannot be saved,
+    /// so a locked or read-only profile never undoes the visible choice or crashes the window. Privacy and
+    /// data-retention choices must use <see cref="Update"/> so a failed write is reported and rolled back.
+    /// </summary>
+    internal void UpdatePresentation(Func<StudioPreferences, StudioPreferences> update) {
+        ArgumentNullException.ThrowIfNull(update);
+        StudioPreferences next = update(Current).Normalize();
+        if (next == Current) return;
+        Exception? failure = null;
+        try {
+            _store.Save(next);
+        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            failure = error;
+        }
+        Current = next;
+        Changed?.Invoke(this, EventArgs.Empty);
+        if (failure is not null) PersistenceFailed?.Invoke(this, failure);
     }
 }

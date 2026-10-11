@@ -182,26 +182,7 @@ public sealed partial class MainWindow {
     // Single-key tool shortcuts while annotating; letters match the tool names shown in tooltips.
     private bool TrySelectToolShortcut(Key key) {
         if (!ViewModel.IsPdfWorkspaceMode || !ViewModel.HasDocument || ViewModel.IsFocusReading) return false;
-        string? tool = ViewModel.IsAnnotateDocumentMode ? key switch {
-            Key.V => "Select",
-            Key.N => "Note",
-            Key.T => "FreeText",
-            Key.H => "Highlight",
-            Key.U => "Underline",
-            Key.S => "StrikeOut",
-            Key.R => "Rectangle",
-            Key.E => "Ellipse",
-            Key.L => "Line",
-            Key.I => "Ink",
-            Key.Q => "Squiggly",
-            Key.P => "Polygon",
-            _ => null
-        } : ViewModel.IsEditDocumentMode ? key switch {
-            Key.V => "Select",
-            Key.T => "AddText",
-            Key.K => "Link",
-            _ => null
-        } : null;
+        string? tool = StudioEditorTools.ForKey(ViewModel.DocumentMode, key)?.Tool;
         if (tool is null || !ViewModel.SelectEditorToolCommand.CanExecute(tool)) return false;
         ViewModel.SelectEditorToolCommand.Execute(tool);
         return true;

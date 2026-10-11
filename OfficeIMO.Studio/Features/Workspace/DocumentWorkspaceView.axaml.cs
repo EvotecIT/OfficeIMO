@@ -21,9 +21,17 @@ public sealed partial class DocumentWorkspaceView : UserControl {
 
     public DocumentWorkspaceView() {
         InitializeComponent();
+        Avalonia.Controls.ToolTip.SetTip(FindButton, Infrastructure.Localization.StudioLocalization.Current.Format("Shell.FindTip",
+            Shell.StudioShortcuts.Describe(Shell.StudioShortcuts.Find)));
         IndependentPanes.ReaderFocusRequested += (_, _) => FocusActiveIndependentPane();
         InitializeOrganizerInput();
         InitializeAnnotationSelectionInput();
+        // Native popups size themselves when they open, so load saved signatures before the menu appears.
+        FillSignButton.AddHandler(PointerPressedEvent, (_, _) => _document?.EnsureSignaturesLoaded(),
+            Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
+        FillSignButton.AddHandler(KeyDownEvent, (_, e) => {
+            if (e.Key is Avalonia.Input.Key.Enter or Avalonia.Input.Key.Space) _document?.EnsureSignaturesLoaded();
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel, handledEventsToo: true);
         SizeChanged += (_, e) => ApplyResponsiveLayout(e.NewSize.Width, e.NewSize.Height);
         DataContextChanged += (_, _) => {
             if (_document is not null) {

@@ -35,8 +35,12 @@ public sealed class PdfPageViewTests {
                 var flyout = Assert.IsType<Flyout>(notes.Flyout);
                 await WaitUntilAsync(() => flyout.IsOpen);
                 var scroll = Assert.IsType<ScrollViewer>(flyout.Content);
-                TextBlock detail = Assert.IsType<TextBlock>(scroll.Content);
+                var content = Assert.IsType<StackPanel>(scroll.Content);
+                SelectableTextBlock detail = Assert.Single(content.Children.OfType<SelectableTextBlock>());
                 Assert.Equal(page.DiagnosticsDetails, detail.Text);
+                // Uncoded engine notes have no reader explanation; only the details show.
+                Assert.Null(page.DiagnosticsExplanation);
+                Assert.All(content.Children.Where(child => child is not SelectableTextBlock), child => Assert.False(child.IsVisible));
                 Assert.True(detail.IsEffectivelyVisible);
                 Assert.True(detail.Bounds.Width > 0 && detail.Bounds.Height > 0);
                 flyout.Hide();

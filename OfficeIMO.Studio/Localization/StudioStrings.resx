@@ -19,7 +19,7 @@
     <value>Add files to see route fidelity, engine details, diagnostics, and the published result.</value>
   </data>
   <data name="ConversionWorkbench.AddOneOrMoreMatchingFilesTheSelectedRouteProfile" xml:space="preserve">
-    <value>Add one or more matching files. The selected route, profile, and conflict policy apply to the queue.</value>
+    <value>Add files or drop them here. Each file gets the conversion its format supports; choose a result only when a format offers several.</value>
   </data>
   <data name="ConversionWorkbench.BuildYourConversionQueue" xml:space="preserve">
     <value>Build your conversion queue</value>
@@ -31,7 +31,7 @@
     <value>Choose folder</value>
   </data>
   <data name="ConversionWorkbench.ChooseTheResult" xml:space="preserve">
-    <value>Choose the result</value>
+    <value>Conversion defaults</value>
   </data>
   <data name="ConversionWorkbench.Clear" xml:space="preserve">
     <value>Clear</value>
@@ -49,7 +49,7 @@
     <value>Engine</value>
   </data>
   <data name="ConversionWorkbench.FILE" xml:space="preserve">
-    <value>FILE</value>
+    <value>File</value>
   </data>
   <data name="ConversionWorkbench.IfAFileExists" xml:space="preserve">
     <value>If a file exists</value>
@@ -67,7 +67,7 @@
     <value>Output profile</value>
   </data>
   <data name="ConversionWorkbench.PROGRESS" xml:space="preserve">
-    <value>PROGRESS</value>
+    <value>Progress</value>
   </data>
   <data name="ConversionWorkbench.Remove" xml:space="preserve">
     <value>Remove</value>
@@ -106,7 +106,7 @@
     <value>SELECTED JOB</value>
   </data>
   <data name="ConversionWorkbench.STATUS" xml:space="preserve">
-    <value>STATUS</value>
+    <value>Status</value>
   </data>
   <data name="ConversionWorkbench.UseEachSourceFolder" xml:space="preserve">
     <value>Use each source folder</value>
@@ -1149,9 +1149,6 @@
   <data name="Settings.LocalizationContract" xml:space="preserve">
     <value>English, Polish, German and French interface translations are available. Other language packs are admitted after translation review.</value>
   </data>
-  <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve">
-    <value>Privacy and diagnostics</value>
-  </data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
     <value>Local diagnostics record application areas, stable event codes, runtime metadata, and sanitized stack traces. They exclude document contents, document names, document paths, and exception messages.</value>
   </data>
@@ -2073,17 +2070,10 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Watermark.New" xml:space="preserve"><value>Add a new watermark</value></data>
   <data name="Watermark.Choose" xml:space="preserve"><value>Choose a watermark to edit, or add a new one</value></data>
   <data name="Shell.CommandSearch" xml:space="preserve"><value>Search or run a command</value></data>
-  <data name="Shell.CommandSearchTip" xml:space="preserve"><value>Search commands and tools (Ctrl+K)</value></data>
-  <data name="Shell.UndoTip" xml:space="preserve"><value>Undo (Ctrl+Z)</value></data>
-  <data name="Shell.RedoTip" xml:space="preserve"><value>Redo (Ctrl+Shift+Z)</value></data>
-  <data name="Shell.FindTip" xml:space="preserve"><value>Find in document (Ctrl+F)</value></data>
-  <data name="Shell.SaveAsTip" xml:space="preserve"><value>Save a copy (Ctrl+Shift+S)</value></data>
-  <data name="Shell.SaveTip" xml:space="preserve"><value>Save changes (Ctrl+S)</value></data>
-  <data name="Shell.FocusTip" xml:space="preserve"><value>Focus reading (F9)</value></data>
+  <data name="Shell.CommandSearchTip" xml:space="preserve"><value>Search commands and tools ({0})</value></data>
+  <data name="Shell.FindTip" xml:space="preserve"><value>Find in document ({0})</value></data>
   <data name="Shell.ExitFocus" xml:space="preserve"><value>Exit focus reading</value></data>
   <data name="Shell.NoBookmarks" xml:space="preserve"><value>This document has no bookmarks.</value></data>
-  <data name="Shell.MoveUpTip" xml:space="preserve"><value>Move selected pages earlier (Alt+Up)</value></data>
-  <data name="Shell.MoveDownTip" xml:space="preserve"><value>Move selected pages later (Alt+Down)</value></data>
   <data name="Shell.PageNumber" xml:space="preserve"><value>Current page</value></data>
   <data name="Shell.PageNumberTip" xml:space="preserve"><value>Type a page number and press Enter</value></data>
   <data name="Reader.GoToPage" xml:space="preserve"><value>Go to page</value></data>
@@ -2117,7 +2107,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Tools.Ink" xml:space="preserve"><value>Ink</value></data>
   <data name="Tools.InkTip" xml:space="preserve"><value>Freehand ink (I)</value></data>
   <data name="Tools.Stamp" xml:space="preserve"><value>Stamp</value></data>
-  <data name="Tools.FlattenAnnotationsTip" xml:space="preserve"><value>Flatten every annotation into the page content</value></data>
   <data name="Tools.AddTextTip" xml:space="preserve"><value>Add permanent page text (T)</value></data>
   <data name="Tools.LinkTip" xml:space="preserve"><value>Draw a link hotspot (K)</value></data>
   <data name="Color.Yellow" xml:space="preserve"><value>Yellow</value></data>
@@ -2253,7 +2242,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="FillSign.Delete" xml:space="preserve"><value>Delete saved image</value></data>
   <data name="FillSign.Privacy" xml:space="preserve"><value>Saved signatures stay on this computer. They are visual signatures, not certificate signatures; use Protect to sign with a certificate.</value></data>
   <data name="FillSign.Date" xml:space="preserve"><value>Date</value></data>
-  <data name="FillSign.DateTip" xml:space="preserve"><value>Place today’s date on the page</value></data>
   <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Click where the signature goes, or drag to size it</value></data>
   <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Click where the initials go, or drag to size them</value></data>
   <data name="FillSign.PlaceDate" xml:space="preserve"><value>Click where the date goes</value></data>
@@ -2872,4 +2860,96 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>The display label matches several choices. Enter the exact export value.</value></data>
   <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Unmatched current selection</value></data>
   <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Unmatched comparison selection</value></data>
+  <data name="Activation.Missing" xml:space="preserve"><value>Some files could not be found. Check that they still exist, then open them again.</value></data>
+  <data name="Application.UnexpectedError" xml:space="preserve"><value>Something went wrong, but your open documents were kept. Save your work and restart Studio if anything looks wrong.</value></data>
+  <data name="Preferences.SaveFailed" xml:space="preserve"><value>Your settings apply to this session but could not be saved. Check that the profile folder is writable.</value></data>
+  <data name="MainWindow.HighContrastAppearanceInSettings" xml:space="preserve"><value>High contrast is on. Change the appearance in Settings.</value></data>
+  <data name="Recent.Unavailable" xml:space="preserve"><value>That recent document is no longer available. It was removed from the list.</value></data>
+  <data name="Home.OpenRecent" xml:space="preserve"><value>Open</value></data>
+  <data name="Home.RemoveFromRecent" xml:space="preserve"><value>Remove from list</value></data>
+  <data name="Picker.Unavailable" xml:space="preserve"><value>File dialogs are not available on this system. On Linux, install xdg-desktop-portal with a GTK or KDE backend, then restart Studio. You can still drag files onto the window.</value></data>
+  <data name="Menu.ApplicationMenu" xml:space="preserve"><value>Application menu</value></data>
+  <data name="Menu.ApplicationMenuTip" xml:space="preserve"><value>Menu (F10)</value></data>
+  <data name="Menu.File" xml:space="preserve"><value>File</value></data>
+  <data name="Menu.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Menu.View" xml:space="preserve"><value>View</value></data>
+  <data name="Menu.Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Menu.ToolsMenu" xml:space="preserve"><value>Tools</value></data>
+  <data name="Menu.Window" xml:space="preserve"><value>Window</value></data>
+  <data name="Menu.Help" xml:space="preserve"><value>Help</value></data>
+  <data name="Menu.OpenRecent" xml:space="preserve"><value>Open recent</value></data>
+  <data name="Menu.ClearRecent" xml:space="preserve"><value>Clear recent list</value></data>
+  <data name="Menu.CloseTab" xml:space="preserve"><value>Close tab</value></data>
+  <data name="Menu.ReopenTab" xml:space="preserve"><value>Reopen closed tab</value></data>
+  <data name="Menu.Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Menu.Find" xml:space="preserve"><value>Find in document</value></data>
+  <data name="Menu.Commands" xml:space="preserve"><value>Find a command</value></data>
+  <data name="Menu.ToggleSidebar" xml:space="preserve"><value>Show or hide document panes</value></data>
+  <data name="Menu.FullScreen" xml:space="preserve"><value>Full screen</value></data>
+  <data name="Menu.LeaveFullScreen" xml:space="preserve"><value>Exit full screen</value></data>
+  <data name="Menu.NextTab" xml:space="preserve"><value>Next tab</value></data>
+  <data name="Menu.PreviousTab" xml:space="preserve"><value>Previous tab</value></data>
+  <data name="Menu.Minimize" xml:space="preserve"><value>Minimize</value></data>
+  <data name="Menu.KeyboardShortcuts" xml:space="preserve"><value>Commands and keyboard shortcuts</value></data>
+  <data name="Menu.Documentation" xml:space="preserve"><value>Documentation</value></data>
+  <data name="Menu.ReportProblem" xml:space="preserve"><value>Report a problem</value></data>
+  <data name="Menu.About" xml:space="preserve"><value>About OfficeIMO Studio</value></data>
+  <data name="DocumentWorkspace.ViewOptions" xml:space="preserve"><value>View options</value></data>
+  <data name="Errors.AccessDenied" xml:space="preserve"><value>Studio doesn&apos;t have permission to use this file or folder. Choose another location or check its permissions.</value></data>
+  <data name="Errors.NotFound" xml:space="preserve"><value>The file or folder can no longer be found. It may have been moved, renamed, or deleted.</value></data>
+  <data name="Errors.PathTooLong" xml:space="preserve"><value>The file path is too long. Choose a shorter folder or file name.</value></data>
+  <data name="Errors.FileInUse" xml:space="preserve"><value>The file is open in another program. Close it there, then try again.</value></data>
+  <data name="Errors.DiskFull" xml:space="preserve"><value>There isn&apos;t enough free disk space. Free up space or choose another drive, then try again.</value></data>
+  <data name="Commands.Watermark.Title" xml:space="preserve"><value>Add a watermark</value></data>
+  <data name="Commands.Watermark.Description" xml:space="preserve"><value>Preview and place text or image watermarks on selected pages.</value></data>
+  <data name="Commands.PageNumbers.Title" xml:space="preserve"><value>Add page numbers</value></data>
+  <data name="Commands.PageNumbers.Description" xml:space="preserve"><value>Number every page; undo removes them until you save.</value></data>
+  <data name="Commands.FlattenAnnotations.Title" xml:space="preserve"><value>Flatten all annotations</value></data>
+  <data name="Commands.FlattenAnnotations.Description" xml:space="preserve"><value>Merge comments and markup into the page content so they can no longer be edited.</value></data>
+  <data name="Commands.Split.Title" xml:space="preserve"><value>Split into documents</value></data>
+  <data name="Commands.Split.Description" xml:space="preserve"><value>Preview splitting this PDF into several documents, then save them.</value></data>
+  <data name="Commands.CompareSideBySide.Title" xml:space="preserve"><value>Compare side by side</value></data>
+  <data name="Commands.CompareSideBySide.Description" xml:space="preserve"><value>Open another PDF next to this one with synchronized scrolling.</value></data>
+  <data name="Commands.ValidateSignatures.Title" xml:space="preserve"><value>Validate signatures</value></data>
+  <data name="Commands.ValidateSignatures.Description" xml:space="preserve"><value>Check the digital signatures in this document and report their status.</value></data>
+  <data name="Commands.PageNightMode.Title" xml:space="preserve"><value>Page night mode</value></data>
+  <data name="Commands.PageNightMode.Description" xml:space="preserve"><value>Show pages with dark backgrounds for low-light reading; the document is unchanged.</value></data>
+  <data name="Commands.Assistant.Title" xml:space="preserve"><value>Document assistant</value></data>
+  <data name="Commands.Assistant.Description" xml:space="preserve"><value>Show or hide the assistant that answers questions about this document.</value></data>
+  <data name="Notices.BackToReading" xml:space="preserve"><value>Back to reading</value></data>
+  <data name="Settings.ShowRecentPreviews" xml:space="preserve"><value>Show previews of recent documents</value></data>
+  <data name="Settings.ShowRecentPreviewsDescription" xml:space="preserve"><value>Home shows the first page of local recent documents, rendered in memory only. Turn this off before working with private documents so their pages are never shown on Home.</value></data>
+  <data name="Conversion.DefaultsHint" xml:space="preserve"><value>Used for files whose format offers several results, and as the starting options for each new job.</value></data>
+  <data name="Commands.ImportPages.Title" xml:space="preserve"><value>Add pages from PDFs</value></data>
+  <data name="Commands.ImportPages.Description" xml:space="preserve"><value>Insert pages from other PDFs after the current page.</value></data>
+  <data name="Commands.AnnotationTool.Description" xml:space="preserve"><value>Comment and markup tool. Choosing it switches to Annotate.</value></data>
+  <data name="Commands.EditTool.Description" xml:space="preserve"><value>Content editing tool. Choosing it switches to Edit.</value></data>
+  <data name="Commands.PlaceDate.Title" xml:space="preserve"><value>Add today&apos;s date</value></data>
+  <data name="Commands.PlaceDate.Description" xml:space="preserve"><value>Place today&apos;s date on the page where you click next.</value></data>
+  <data name="Commands.CreateSignature.Title" xml:space="preserve"><value>Create a signature</value></data>
+  <data name="Commands.CreateSignature.Description" xml:space="preserve"><value>Draw, type, or choose an image for a signature, then place it on the page.</value></data>
+  <data name="Commands.CreateInitials.Title" xml:space="preserve"><value>Create initials</value></data>
+  <data name="Commands.CreateInitials.Description" xml:space="preserve"><value>Draw, type, or choose an image for initials, then place them on the page.</value></data>
+  <data name="Commands.FlattenFormField.Title" xml:space="preserve"><value>Flatten the selected field</value></data>
+  <data name="Commands.FlattenFormField.Description" xml:space="preserve"><value>Turn the selected form field into fixed page content.</value></data>
+  <data name="Commands.FlattenForms.Title" xml:space="preserve"><value>Flatten all form fields</value></data>
+  <data name="Commands.FlattenForms.Description" xml:space="preserve"><value>Turn every form field into fixed page content so values can no longer be changed.</value></data>
+  <data name="Commands.BatesNumbers.Title" xml:space="preserve"><value>Add Bates numbers</value></data>
+  <data name="Commands.BatesNumbers.Description" xml:space="preserve"><value>Stamp sequential Bates numbers using the prefix, start number, and position set in Protect.</value></data>
+  <data name="Commands.SelectFormField" xml:space="preserve"><value>Select a form field first.</value></data>
+  <data name="Settings.Sections" xml:space="preserve"><value>Settings sections</value></data>
+  <data name="Settings.PrivacySection" xml:space="preserve"><value>Privacy and history</value></data>
+  <data name="Settings.RecoverySection" xml:space="preserve"><value>Recovery and diagnostics</value></data>
+  <data name="Notices.RenderingLimitation" xml:space="preserve"><value>Page {0} may look different from the original because Studio cannot draw some of its content or fonts exactly. Compare it with another viewer before relying on its appearance.</value></data>
+  <data name="Notices.RenderingLimitationPages" xml:space="preserve"><value>Pages {0} may look different from the original because Studio cannot draw some of their content or fonts exactly. Compare them with another viewer before relying on their appearance.</value></data>
+  <data name="Notices.ShowPage" xml:space="preserve"><value>Show page {0}</value></data>
+  <data name="PdfPage.FontSubstitution" xml:space="preserve"><value>A font this page uses is not embedded in the PDF, so an installed font is shown in its place, as in other PDF viewers. Spacing may differ slightly.</value></data>
+  <data name="PdfPage.RenderingLimitation" xml:space="preserve"><value>Studio skips some content on this page that it cannot draw. Compare it with another viewer before relying on its appearance.</value></data>
+  <data name="PdfPage.TechnicalDetails" xml:space="preserve"><value>Technical details</value></data>
+  <data name="PdfPage.RenderingSimplified" xml:space="preserve"><value>Some details on this page are drawn in a simplified way. The difference is usually hard to see.</value></data>
+  <data name="PdfPage.EmbeddedFontReplaced" xml:space="preserve"><value>This page embeds a font Studio cannot draw, so a similar installed font is shown instead. Letter shapes and spacing may differ from the original.</value></data>
+  <data name="Provenance.InputHash" xml:space="preserve"><value>Input SHA-256</value></data>
+  <data name="Provenance.CopyLabel" xml:space="preserve"><value>Copy</value></data>
+  <data name="Provenance.OutputHash" xml:space="preserve"><value>Output SHA-256</value></data>
+  <data name="Provenance.ReportLabel" xml:space="preserve"><value>Report</value></data>
 </root>

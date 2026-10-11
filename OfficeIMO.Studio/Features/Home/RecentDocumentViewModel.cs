@@ -33,6 +33,13 @@ public sealed partial class RecentDocumentViewModel : ObservableObject {
     private int _thumbnailRequestVersion;
 
     /// <summary>Starts loading the first-page preview once; cards without a preview keep the document glyph.</summary>
+    /// <summary>Drops the preview and abandons any pending render, leaving the generic document tile.</summary>
+    internal void ClearThumbnail() {
+        _thumbnailRequestVersion++;
+        _thumbnailRequested = false;
+        Thumbnail = null;
+    }
+
     internal async void EnsureThumbnail(CancellationToken cancellationToken = default) {
         string? fingerprint = RecentDocumentThumbnails.GetFingerprint(Path);
         if (_thumbnailRequested && string.Equals(fingerprint, _thumbnailFingerprint, StringComparison.Ordinal) &&

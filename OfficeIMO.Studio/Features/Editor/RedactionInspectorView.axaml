@@ -6,7 +6,7 @@
              x:Class="OfficeIMO.Studio.Features.Editor.RedactionInspectorView"
              x:DataType="shell:MainWindowViewModel">
   <StackPanel Spacing="8">
-    <TextBlock Text="{loc:Loc DocumentWorkspace.PermanentRedaction}" FontSize="15" FontWeight="SemiBold" />
+    <TextBlock Text="{loc:Loc DocumentWorkspace.PermanentRedaction}" FontSize="{StaticResource StudioSubtitleFontSize}" FontWeight="SemiBold" />
     <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.DrawARedactionAreaReviewMatchedContentAndApplyOnly}" TextWrapping="Wrap" />
     <Button Classes="tool" Content="{loc:Loc DocumentWorkspace.UseRedactionTool}" Command="{Binding Commands[Redact]}" IsEnabled="{Binding CanRedact}" />
     <StackPanel IsVisible="{Binding !CanRedact}" Spacing="5">

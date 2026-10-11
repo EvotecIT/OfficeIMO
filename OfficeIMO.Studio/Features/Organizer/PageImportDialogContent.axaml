@@ -2,10 +2,10 @@
         xmlns:local="using:OfficeIMO.Studio.Features.Organizer" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
         x:Class="OfficeIMO.Studio.Features.Organizer.PageImportDialogContent" x:DataType="local:PageImportPreviewViewModel"
         Title="{loc:Loc Organizer.ImportTitle}" Width="600" Height="590" MinWidth="380" MinHeight="440"
-        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="14">
+        HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
   <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
     <StackPanel Spacing="4">
-      <TextBlock Text="{loc:Loc Organizer.ImportTitle}" FontSize="19" FontWeight="SemiBold" />
+      <TextBlock Text="{loc:Loc Organizer.ImportTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{loc:Loc Organizer.ImportHint}" TextWrapping="Wrap" />
     </StackPanel>
     <StackPanel Grid.Row="1" Spacing="4">

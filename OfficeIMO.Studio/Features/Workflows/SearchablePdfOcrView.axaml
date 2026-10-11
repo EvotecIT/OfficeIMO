@@ -6,11 +6,10 @@
              x:Class="OfficeIMO.Studio.Features.Workflows.SearchablePdfOcrView"
              x:DataType="shell:MainWindowViewModel">
   <Grid RowDefinitions="Auto,*" Background="{DynamicResource StudioWindowBrush}">
-    <Border Grid.Row="0" Padding="24,17" Background="{DynamicResource StudioPanelBrush}"
-            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
+    <Border Grid.Row="0" Classes="pageHeader">
       <!-- The main action stays in the header so it is visible without scrolling in small windows. -->
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-        <StackPanel Spacing="4">
+        <StackPanel Classes="pageHeading">
           <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RecognizeText}" Classes="pageTitle" />
           <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe}" Classes="muted" />
           <TextBlock TextWrapping="Wrap" Text="{Binding OcrWorkbench.RecognitionUnavailableReason}" IsVisible="{Binding !OcrWorkbench.IsRecognitionAvailable}" Foreground="{DynamicResource StudioWarningBrush}"/>
@@ -126,7 +125,7 @@
                           Foreground="{DynamicResource StudioAccentBrush}" />
               </Border>
               <StackPanel Grid.Column="1" Spacing="5">
-                <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SearchableTextWithoutChangingTheVisiblePage}" FontSize="17" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.SearchableTextWithoutChangingTheVisiblePage}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
                 <TextBlock Text="{loc:Loc SearchablePdfOcr.OfficeIMORendersEachSelectedPageRecognizesWordGeometryRemovesOverlap}"
                            Classes="muted" TextWrapping="Wrap" />
               </StackPanel>
@@ -139,7 +138,7 @@
             <StackPanel Spacing="5">
               <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.OCRRuntime}" FontWeight="SemiBold" />
               <TextBlock Text="{loc:Loc SearchablePdfOcr.TesseractMustBeInstalledOnThisComputerOfficeIMODiscoversIt}" IsVisible="{Binding OcrWorkbench.IsRecognitionAvailable}"
-                         Classes="muted" FontSize="12" TextWrapping="Wrap" />
+                         Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
               <Button Classes="tool" Content="{loc:Loc OcrSetup.OpenSettings}" Command="{Binding ShowSettingsCommand}"
                       IsVisible="{Binding OcrWorkbench.IsRecognitionAvailable}" HorizontalAlignment="Left" />
             </StackPanel>
@@ -159,7 +158,7 @@
                          Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" />
               <TextBlock Text="{loc:Loc Assembly.RecoveryNote}" IsVisible="{Binding OcrWorkbench.HasRecovery}" TextWrapping="Wrap" />
               <TextBlock Text="{Binding OcrWorkbench.PublishedPath}" IsVisible="{Binding OcrWorkbench.HasOutput}"
-                         FontFamily="Consolas" FontSize="12" TextWrapping="Wrap" />
+                         FontFamily="{StaticResource StudioMonoFont}" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
             </StackPanel>
           </Border>
         </StackPanel>

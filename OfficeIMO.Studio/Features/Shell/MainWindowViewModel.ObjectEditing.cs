@@ -82,7 +82,7 @@ public sealed partial class MainWindowViewModel {
             OperationStatus = UiText("Workspace.OperationCancelled");
             return;
         } catch (Exception ex) {
-            ErrorMessage = ex.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
             OperationStatus = UiText("Workspace.OperationFailed");
             return;
         }

@@ -12,6 +12,17 @@ namespace OfficeIMO.Tests;
 
 [Collection(TesseractEnvironmentCollection.Name)]
 public sealed class ReaderOcrTesseractTests {
+    [Theory]
+    [InlineData("ubuntu debian", "apt-get install tesseract-ocr")]
+    [InlineData("fedora", "dnf install tesseract")]
+    [InlineData("rocky rhel centos fedora", "dnf install tesseract")]
+    [InlineData("arch", "pacman -S tesseract")]
+    [InlineData("opensuse-tumbleweed opensuse suse", "zypper install tesseract-ocr")]
+    [InlineData(null, "apt-get install tesseract-ocr")]
+    public void TesseractRuntime_LinuxInstallationHintFollowsDistributionFamily(string? family, string expected) {
+        Assert.Equal(expected, TesseractRuntime.GetLinuxInstallationCommand(family));
+    }
+
     [Fact]
     public void TesseractTsvParser_MapsLinesWordsConfidenceAndPixelGeometry() {
         const string tsv = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"

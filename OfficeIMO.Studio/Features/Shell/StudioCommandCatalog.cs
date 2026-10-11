@@ -1,3 +1,4 @@
+using Avalonia.Input;
 using System.ComponentModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,34 +19,37 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         string? Idle() => document.CanStartDocumentTransition ? null : Text("Busy", "Wait for the current document operation or cancel it.");
         string? Loaded() => Idle() ?? (!document.HasDocument ? Text("OpenFirst", "Open a PDF to use this command.") : null);
         string? Allowed(bool value) => Loaded() ?? (!value ? Text("Unsupported", "This document does not allow this operation. Inspect its protection and supported content.") : null);
-        string modifier = OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() ? "⌘" : "Ctrl+";
+        static KeyGesture Primary(Key key, KeyModifiers extra = KeyModifiers.None) => StudioShortcuts.Primary(key, extra);
+        // keys: gestures that run the command anywhere in the window. textEntry: they also run while a text field has focus.
         void Add(string id, string title, string description, string category, ICommand operation,
-            Func<string?>? guard = null, bool tool = false, string shortcut = "", bool workspace = false) {
+            Func<string?>? guard = null, bool tool = false, string shortcut = "", bool workspace = false,
+            KeyGesture[]? keys = null, bool textEntry = false) {
             _byId.Add(id, new StudioCommandItem(id, Text(id + ".Title", title), Text(id + ".Description", description),
                 Text("Category." + category, category), shortcut, tool, operation, guard ?? Idle,
-                workspace ? () => { document.IsFocusReading = false; document.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace; } : null));
+                workspace ? () => { document.IsFocusReading = false; document.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace; } : null, category,
+                keys, textEntry));
         }
 
-        Add("Open", "Open PDF", "Open a PDF in a document tab.", "File", document.OpenCommand, shortcut: modifier + "O");
+        Add("Open", "Open PDF", "Open a PDF in a document tab.", "File", document.OpenCommand, keys: [Primary(Key.O)], textEntry: true);
         Add("Save", "Save", "Save changes to the current document.", "File", document.SaveCommand,
-            () => Loaded() ?? (!document.IsDirty ? Text("NoChanges", "There are no unsaved changes.") : null), shortcut: modifier + "S");
-        Add("SaveAs", "Save a copy", "Choose a destination for this document.", "File", document.SaveAsCommand, Loaded, shortcut: StudioShortcutLabels.Format("Ctrl+Shift+S"));
+            () => Loaded() ?? (!document.IsDirty ? Text("NoChanges", "There are no unsaved changes.") : null), keys: [Primary(Key.S)], textEntry: true);
+        Add("SaveAs", "Save a copy", "Choose a destination for this document.", "File", document.SaveAsCommand, Loaded, keys: [Primary(Key.S, KeyModifiers.Shift)], textEntry: true);
         Add("Undo", "Undo", "Undo the last document edit.", "Edit", document.UndoCommand,
-            () => Loaded() ?? (!document.CanUndo ? Text("NoUndo", "There is no edit to undo.") : null), shortcut: modifier + "Z");
+            () => Loaded() ?? (!document.CanUndo ? Text("NoUndo", "There is no edit to undo.") : null), keys: [Primary(Key.Z)]);
         Add("Redo", "Redo", "Restore the last undone edit.", "Edit", document.RedoCommand,
             () => Loaded() ?? (!document.CanRedo ? Text("NoRedo", "There is no edit to redo.") : null),
-            shortcut: OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() ? StudioShortcutLabels.Format("Ctrl+Shift+Z") : "Ctrl+Y");
+            keys: StudioShortcuts.UsesCommandKey ? [Primary(Key.Z, KeyModifiers.Shift)] : [Primary(Key.Y), Primary(Key.Z, KeyModifiers.Shift)]);
         Add("Read", "Read document", "Return to the document reading workspace.", "Read", document.ShowViewModeCommand, Loaded, workspace: true);
-        Add("FocusReading", "Focus reading", "Hide document tools and panes, or restore the workspace.", "Read", document.ToggleFocusReadingCommand, Loaded, shortcut: "F9");
+        Add("FocusReading", "Focus reading", "Hide document tools and panes, or restore the workspace.", "Read", document.ToggleFocusReadingCommand, Loaded, keys: [StudioShortcuts.Plain(Key.F9)]);
         Add("Comment", "Comment and review", "Add annotations and review existing comments.", "Review", document.ShowAnnotateModeCommand, Loaded, true, workspace: true);
         Add("Edit", "Edit PDF content", "Select supported existing text and images to edit.", "Edit", document.ShowEditModeCommand, () => Allowed(document.CanEditPageContent), true, workspace: true);
         Add("Pages", "Organize pages", "Rotate, crop, duplicate, reorder, import, extract, and split pages.", "Organize", document.ShowPagesModeCommand, Loaded, true, workspace: true);
         Add("MovePages", "Move selected pages", "Preview moving selected pages before another page or to the end.", "Organize", document.MoveSelectedToCommand,
             () => Allowed(document.CanMutateSelection));
         Add("MovePagesUp", "Move selected pages up", "Move selected runs one position toward the beginning.", "Organize", document.MoveSelectedUpCommand,
-            () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↑ (page list)"));
+            () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↑"));
         Add("MovePagesDown", "Move selected pages down", "Move selected runs one position toward the end.", "Organize", document.MoveSelectedDownCommand,
-            () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↓ (page list)"));
+            () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↓"));
         Add("RotatePagesLeft", "Rotate selected pages left", "Turn the selected pages 90 degrees counterclockwise.", "Organize", document.RotateLeftCommand,
             () => Allowed(document.CanMutateSelection));
         Add("RotatePagesRight", "Rotate selected pages right", "Turn the selected pages 90 degrees clockwise.", "Organize", document.RotateRightCommand,
@@ -56,6 +60,8 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
             () => Allowed(document.CanExtractSelection));
         Add("DeletePages", "Delete selected pages", "Remove the selected pages; undo restores them until you save.", "Organize", document.DeleteSelectedCommand,
             () => Allowed(document.CanDeleteSelection));
+        Add("ImportPages", "Add pages from PDFs", "Insert pages from other PDFs after the current page.", "Organize", document.ImportPagesCommand,
+            () => Allowed(document.CanImportPages));
         Add("InsertBlankPage", "Insert a blank page", "Add an empty page after the current page.", "Organize", document.InsertBlankCommand,
             () => Allowed(document.CanMutatePages));
         Add("Forms", "Fill and edit forms", "Fill fields or author supported AcroForm controls.", "Edit", document.ShowFormsModeCommand, Loaded, true, workspace: true);
@@ -75,20 +81,59 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Ocr", "Make PDF searchable", "Recognize scanned pages and add a searchable text layer.", "Convert", document.ShowOcrCommand, tool: true);
         Add("Assemble", "Assemble PDF", "Combine PDFs, images, Office files, folders, and ZIP archives.", "Organize", document.ShowAssemblyCommand, tool: true);
         Add("Export", "Export page images", "Export selected PDF pages to image files.", "Output", document.ShowPageExportCommand, tool: true);
-        Add("Print", "Preview print sheets", "Inspect planned print sheets and page placement.", "Output", document.ShowPrintPreviewCommand, tool: true, shortcut: modifier + "P");
+        Add("Print", "Preview print sheets", "Inspect planned print sheets and page placement.", "Output", document.ShowPrintPreviewCommand, tool: true, keys: [Primary(Key.P)], textEntry: true);
         Add("Inspect", "Inspect document", "Review structure, security, and document findings.", "Review", document.ShowInspectCommand, tool: true);
         Add("Compare", "Compare PDFs", "Compare two PDFs and inspect the resulting report.", "Review", document.ShowCompareCommand, tool: true);
         Add("Optimize", "Optimize PDF", "Plan and run supported lossless optimization.", "Output", document.ShowOptimizeCommand, tool: true);
         Add("Repair", "Plan PDF repair", "Inspect repair findings before choosing an output.", "Review", document.ShowRepairPlanCommand, tool: true);
         Add("Sanitize", "Sanitize PDF", "Remove forbidden actions and payloads, then verify the output.", "Security", document.ShowSanitizeCommand, tool: true);
-        Add("FitPage", "Fit page", "Show the complete current page.", "Read", document.FitPageCommand, Loaded, shortcut: modifier + "0");
-        Add("ActualSize", "Actual size", "Display the document at its natural scale.", "Read", document.ActualSizeCommand, Loaded, shortcut: modifier + "1");
-        Add("FitWidth", "Fit width", "Fit the current page to the reading area.", "Read", document.FitWidthCommand, Loaded, shortcut: modifier + "2");
-        Add("ZoomIn", "Zoom in", "Increase document magnification.", "Read", document.ZoomInCommand, Loaded, shortcut: modifier + "+");
-        Add("ZoomOut", "Zoom out", "Decrease document magnification.", "Read", document.ZoomOutCommand, Loaded, shortcut: modifier + "−");
-        Add("Home", "Home", "Open recent documents and starting tasks.", "Navigate", document.ShowHomeCommand);
+        Add("FitPage", "Fit page", "Show the complete current page.", "Read", document.FitPageCommand, Loaded, keys: [Primary(Key.D0), Primary(Key.NumPad0)]);
+        Add("ActualSize", "Actual size", "Display the document at its natural scale.", "Read", document.ActualSizeCommand, Loaded, keys: [Primary(Key.D1), Primary(Key.NumPad1)]);
+        Add("FitWidth", "Fit width", "Fit the current page to the reading area.", "Read", document.FitWidthCommand, Loaded, keys: [Primary(Key.D2), Primary(Key.NumPad2)]);
+        Add("ZoomIn", "Zoom in", "Increase document magnification.", "Read", document.ZoomInCommand, Loaded, keys: [Primary(Key.OemPlus), Primary(Key.OemPlus, KeyModifiers.Shift), Primary(Key.Add)]);
+        Add("ZoomOut", "Zoom out", "Decrease document magnification.", "Read", document.ZoomOutCommand, Loaded, keys: [Primary(Key.OemMinus), Primary(Key.Subtract)]);
+        Add("Watermark", "Add a watermark", "Preview and place text or image watermarks on selected pages.", "Edit", document.ApplyWatermarkCommand, () => Allowed(document.CanEditPageContent));
+        Add("PageNumbers", "Add page numbers", "Number every page; undo removes them until you save.", "Edit", document.ApplyPageNumbersCommand, () => Allowed(document.CanEditPageContent));
+        Add("FlattenAnnotations", "Flatten all annotations", "Merge comments and markup into the page content so they can no longer be edited.", "Edit", document.FlattenAllAnnotationsCommand, () => Allowed(document.CanEditAnnotations));
+        Add("Split", "Split into documents", "Preview splitting this PDF into several documents, then save them.", "Organize", document.SplitCommand, () => Allowed(document.CanExtractPages));
+        Add("CompareSideBySide", "Compare side by side", "Open another PDF next to this one with synchronized scrolling.", "Review", document.OpenComparisonCommand, Loaded);
+        Add("ValidateSignatures", "Validate signatures", "Check the digital signatures in this document and report their status.", "Security", document.ValidateSignaturesCommand, Loaded);
+        Add("PageNightMode", "Page night mode", "Show pages with dark backgrounds for low-light reading; the document is unchanged.", "Read", document.TogglePageNightModeCommand, Loaded);
+        Add("Assistant", "Document assistant", "Show or hide the assistant that answers questions about this document.", "Navigate", document.ToggleAssistantCommand);        // Fill and sign: these open the Forms task so the placement hint and the page are where the user expects.
+        CommunityToolkit.Mvvm.Input.RelayCommand InForms(System.Windows.Input.ICommand operation, string? parameter = null) => new(() => {
+            document.ShowFormsModeCommand.Execute(null);
+            if (operation.CanExecute(parameter)) operation.Execute(parameter);
+        });
+        Add("PlaceDate", "Add today's date", "Place today's date on the page where you click next.", "Edit",
+            InForms(document.PlaceDateCommand), () => Allowed(document.CanFillAndSign), workspace: true);
+        Add("CreateSignature", "Create a signature", "Draw, type, or choose an image for a signature, then place it on the page.", "Edit",
+            InForms(document.CreateSignatureCommand, "Signature"), () => Allowed(document.CanFillAndSign), workspace: true);
+        Add("CreateInitials", "Create initials", "Draw, type, or choose an image for initials, then place them on the page.", "Edit",
+            InForms(document.CreateSignatureCommand, "Initials"), () => Allowed(document.CanFillAndSign), workspace: true);
+        Add("FlattenFormField", "Flatten the selected field", "Turn the selected form field into fixed page content.", "Edit",
+            document.FlattenSelectedFormFieldCommand,
+            () => Allowed(document.CanFlattenForms) ?? (!document.CanFlattenSelectedFormField ? Text("SelectFormField", "Select a form field first.") : null));
+        Add("FlattenForms", "Flatten all form fields", "Turn every form field into fixed page content so values can no longer be changed.", "Edit",
+            document.FlattenAllFormFieldsCommand, () => Allowed(document.CanFlattenForms));
+        Add("BatesNumbers", "Add Bates numbers", "Stamp sequential Bates numbers using the prefix, start number, and position set in Protect.", "Security",
+            document.ApplyBatesNumberingCommand, () => Allowed(document.CanEditPageContent));
+        // Annotation and editing tools are searchable; choosing one switches to its mode first.
+        foreach (StudioEditorTool editorTool in StudioEditorTools.Searchable) {
+            bool annotate = editorTool.Mode == StudioDocumentMode.Annotate;
+            var choose = new CommunityToolkit.Mvvm.Input.RelayCommand(() => {
+                if (annotate) document.ShowAnnotateModeCommand.Execute(null);
+                else document.ShowEditModeCommand.Execute(null);
+                if (document.SelectEditorToolCommand.CanExecute(editorTool.Tool)) document.SelectEditorToolCommand.Execute(editorTool.Tool);
+            });
+            Add(editorTool.CommandId, localizer.Get(editorTool.NameKey),
+                annotate ? Text("AnnotationTool.Description", "Comment and markup tool. Choosing it switches to Annotate.")
+                         : Text("EditTool.Description", "Content editing tool. Choosing it switches to Edit."),
+                annotate ? "Review" : "Edit", choose,
+                () => Allowed(annotate ? document.CanEditAnnotations : document.CanEditPageContent),
+                shortcut: editorTool.Key?.ToString() ?? string.Empty, workspace: true);
+        }        Add("Home", "Home", "Open recent documents and starting tasks.", "Navigate", document.ShowHomeCommand);
         Add("Tools", "Tools", "Search the document tool catalog.", "Navigate", document.ShowToolsCommand);
-        Add("Settings", "Settings", "Change appearance and interface preferences.", "Navigate", document.ShowSettingsCommand);
+        Add("Settings", "Settings", "Change appearance and interface preferences.", "Navigate", document.ShowSettingsCommand, keys: [Primary(Key.OemComma)], textEntry: true);
         Items = _byId.Values.ToArray();
         document.PropertyChanged += OnDocumentChanged;
     }
@@ -97,10 +142,22 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
     public StudioCommandItem this[string id] => _byId[id];
     public string ToolQuery {
         get => _toolQuery;
-        set { if (SetProperty(ref _toolQuery, value ?? string.Empty)) { OnPropertyChanged(nameof(FilteredTools)); OnPropertyChanged(nameof(HasTools)); } }
+        set { if (SetProperty(ref _toolQuery, value ?? string.Empty)) { OnPropertyChanged(nameof(FilteredTools)); OnPropertyChanged(nameof(FilteredToolGroups)); OnPropertyChanged(nameof(HasTools)); } }
     }
     public IReadOnlyList<StudioCommandItem> FilteredTools => Search(ToolQuery, toolsOnly: true);
     public bool HasTools => FilteredTools.Count > 0;
+
+    // Tools follow the order of document work: change it, review it, arrange it, convert it, produce output, secure it.
+    private static readonly string[] ToolCategoryOrder = ["Edit", "Review", "Organize", "Convert", "Output", "Security"];
+
+    /// <summary>Matching tools grouped by category in a stable task order, for the Tools page and the application menu.</summary>
+    public IReadOnlyList<StudioCommandGroup> FilteredToolGroups => GroupTools(ToolQuery);
+
+    internal IReadOnlyList<StudioCommandGroup> GroupTools(string? query) => Search(query, toolsOnly: true)
+        .GroupBy(item => item.CategoryId)
+        .OrderBy(group => Array.IndexOf(ToolCategoryOrder, group.Key) is var index and >= 0 ? index : int.MaxValue)
+        .Select(group => new StudioCommandGroup(group.First().Category, group.ToArray()))
+        .ToArray();
 
     public IReadOnlyList<StudioCommandItem> Search(string? query, bool toolsOnly = false) {
         string[] terms = (query ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -108,6 +165,11 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
             (item.Id + " " + item.Title + " " + item.Description + " " + item.Category + " " + item.Shortcut)
                 .Contains(term, StringComparison.CurrentCultureIgnoreCase))).ToArray();
     }
+
+    /// <summary>The command a key press runs, honouring text fields that own their own editing keys.</summary>
+    internal StudioCommandItem? FindByGesture(Key key, KeyModifiers modifiers, bool textEntryFocused) =>
+        Items.FirstOrDefault(item => (!textEntryFocused || item.RunsInTextEntry) &&
+            item.Gestures.Any(gesture => StudioShortcuts.Matches(gesture, key, modifiers)));
 
     /// <summary>Records a command chosen from the palette so it ranks first next time in this session.</summary>
     internal void MarkUsed(string id) {
@@ -127,3 +189,6 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
 
     public void Dispose() => _document.PropertyChanged -= OnDocumentChanged;
 }
+
+/// <summary>A titled set of commands shown together.</summary>
+public sealed record StudioCommandGroup(string Title, IReadOnlyList<StudioCommandItem> Items);

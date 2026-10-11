@@ -126,7 +126,9 @@ internal sealed class PdfDocumentSession {
                 drawing,
                 interactions,
                 diagnostics.Select(static diagnostic => diagnostic.Message).Concat(adapterDiagnostics).ToArray(),
-                adapterDiagnostics.Count > 0);
+                adapterDiagnostics.Count > 0) {
+                CapabilityCodes = diagnostics.Select(static diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal).ToArray()
+            };
         }, cancellationToken).ConfigureAwait(false);
     }
 

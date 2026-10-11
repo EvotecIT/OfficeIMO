@@ -395,7 +395,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         } catch (Exception ex) {
             Status = T("Status.Failed", "OCR could not finish");
             Summary = T("Summary.SourceUnchanged", "The source PDF was not changed.");
-            ErrorMessage = ex.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
             job?.Unconfirmed(ex.Message);
         } finally {
             Review?.Dispose();

@@ -1,3 +1,4 @@
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
@@ -61,13 +62,50 @@ public sealed partial class MainWindow {
         return next;
     }
 
+    /// <summary>Opens local paths forwarded by a later launch, or brings the window forward when there are none.</summary>
+    internal async Task OpenForwardedPathsAsync(IReadOnlyList<string> paths) {
+        Avalonia.Threading.Dispatcher.UIThread.VerifyAccess();
+        var items = new List<IStorageItem>(paths.Count);
+        bool missing = false;
+        foreach (string path in paths.Distinct(StudioPathComparer)) {
+            IStorageItem? item = null;
+            try {
+                item = File.Exists(path)
+                    ? await StorageProvider.TryGetFileFromPathAsync(path)
+                    : Directory.Exists(path) ? await StorageProvider.TryGetFolderFromPathAsync(path) : null;
+            } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException) {
+                _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "FileActivation", "ForwardedPathUnavailable", error);
+            }
+            if (item is null) missing = true;
+            else items.Add(item);
+        }
+        if (items.Count == 0) {
+            await _startupCompleted.Task;
+            if (_windowClosed) return;
+            BringToFront();
+            if (missing) ShowIntakeError(_services.Localizer.Get("Activation.Missing"));
+            return;
+        }
+        await OpenActivatedItemsAsync(items);
+        if (missing && !_windowClosed) ShowIntakeError(_services.Localizer.Get("Activation.Missing"));
+    }
+
+    private static StringComparer StudioPathComparer => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
+    private void BringToFront() {
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+    }
+
     private async Task ProcessActivationAsync(IStorageItem[] items, Task previous) {
         var unowned = new HashSet<IStorageItem>(items, ReferenceEqualityComparer.Instance);
         try {
             await previous;
             await _startupCompleted.Task;
             if (_windowClosed) return;
-            Activate();
+            BringToFront();
             IntakeError? priorError = _intakeError;
             foreach (IStorageItem item in items) {
                 if (_windowClosed) return;
@@ -107,7 +145,7 @@ public sealed partial class MainWindow {
 
     private void ReportIntakeError(Exception error) {
         _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "FileActivation", "IntakeFailed", error);
-        if (!_windowClosed) ShowIntakeError(error.Message);
+        if (!_windowClosed) ShowIntakeError(Infrastructure.StudioMessages.Describe(error));
     }
 
     private void ShowIntakeError(string message) {
@@ -150,7 +188,7 @@ public sealed partial class MainWindow {
                 await TabHost.OpenDocumentAsync(location);
             }
         } catch (Exception error) when (error is not OutOfMemoryException) {
-            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
+            if (!_windowClosed) ViewModel.ErrorMessage = Infrastructure.StudioMessages.Describe(error);
         }
     }
 

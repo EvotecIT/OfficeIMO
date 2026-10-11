@@ -11,7 +11,7 @@
       <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
-    <Style Selector="Border.statusChip TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <Style Selector="Border.statusChip TextBlock"><Setter Property="FontSize" Value="{StaticResource StudioLabelFontSize}" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
     <Style Selector="Border.statusChip.ready"><Setter Property="Background" Value="{DynamicResource StudioSuccessSoftBrush}" /></Style>
     <Style Selector="Border.statusChip.ready TextBlock"><Setter Property="Foreground" Value="{DynamicResource StudioSuccessBrush}" /></Style>
     <Style Selector="Border.statusChip.missing"><Setter Property="Background" Value="{DynamicResource StudioWarningSoftBrush}" /></Style>

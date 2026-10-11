@@ -11,7 +11,7 @@
             <DataTemplate x:DataType="ai:StudioAiProvider">
               <StackPanel Spacing="3" Margin="3,8">
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding Category}" Classes="muted" FontSize="12" />
+                <TextBlock Text="{Binding Category}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>

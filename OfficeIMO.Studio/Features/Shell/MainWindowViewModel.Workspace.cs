@@ -356,7 +356,7 @@ public sealed partial class MainWindowViewModel {
             OperationStatus = UiText("Workspace.OperationCancelled");
             return false;
         } catch (Exception ex) {
-            ErrorMessage = ex.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
             OperationStatus = UiText("Workspace.OperationFailed");
             return false;
         } finally {
@@ -386,15 +386,8 @@ public sealed partial class MainWindowViewModel {
         _openCancellation?.Cancel();
         _formOcrCancellation?.Cancel();
         CancelComparisonOpen();
-        if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
-        if (ConversionWorkbench.BatchExport.IsBusy) ConversionWorkbench.BatchExport.CancelCommand.Execute(null);
-        if (InvoiceWorkbench.CanCancel) InvoiceWorkbench.CancelCommand.Execute(null);
-        if (BookWorkbench.IsBusy) BookWorkbench.CancelCommand.Execute(null);
-        if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
-        if (ProvenanceWorkbench.CanCancel) ProvenanceWorkbench.CancelCommand.Execute(null);
-        if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
-        if (OcrWorkbench.CanCancel) OcrWorkbench.CancelCommand.Execute(null);
-        if (OcrSession.IsBusy) OcrSession.CancelCommand.Execute(null);
+        if (_ownsWorkbenches) CancelWorkbenchOperations();
+
         if (CanCancelOperation) OperationStatus = UiText("Workspace.CancellingOperation");
     }
 
@@ -565,7 +558,7 @@ public sealed partial class MainWindowViewModel {
             try {
                 await _openUri(uri).ConfigureAwait(true);
             } catch (Exception ex) {
-                ErrorMessage = ex.Message;
+                ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
             }
             return;
         }

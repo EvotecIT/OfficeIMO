@@ -17,9 +17,11 @@ public sealed partial class DocumentWorkspaceView {
             IndependentPanes.DataContext = value;
             if (value is not null) {
                 value.PropertyChanged += OnIndependentPanesChanged;
-                IndependentPanesLabel.Text = value.SplitLabel;
-                AutomationProperties.SetName(IndependentPanesButton, value.SplitLabel);
-                Avalonia.Controls.ToolTip.SetTip(IndependentPanesButton, value.HelpLabel);
+                if (IndependentPanesMenuItem is { } item) {
+                    item.Header = value.SplitLabel;
+                    AutomationProperties.SetName(item, value.SplitLabel);
+                    Avalonia.Controls.ToolTip.SetTip(item, value.HelpLabel);
+                }
             }
             ShowContextPanes();
         }
@@ -41,6 +43,8 @@ public sealed partial class DocumentWorkspaceView {
             IndependentPanes.FocusActivePane();
         }, DispatcherPriority.Loaded);
     }
+    private MenuItem? IndependentPanesMenuItem => (ViewOptionsButton.Flyout as MenuFlyout)?.Items
+        .OfType<MenuItem>().FirstOrDefault(item => Equals(item.Tag, "independentPanes"));
     private void OnIndependentPanesChanged(object? sender, PropertyChangedEventArgs args) => ShowContextPanes();
     private void OnIndependentPanesClick(object? sender, RoutedEventArgs args) {
         Panes?.SplitCommand.Execute(null);

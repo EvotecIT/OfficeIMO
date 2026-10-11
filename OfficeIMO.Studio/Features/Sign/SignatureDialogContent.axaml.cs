@@ -79,7 +79,7 @@ public sealed partial class SignatureDialogContent : StudioDialogContent {
             if (!StorageProvider.CanOpen) return;
             var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
                 AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType("PNG, JPEG") { Patterns = ["*.png", "*.jpg", "*.jpeg"] }]
+                FileTypeFilter = [new FilePickerFileType("PNG, JPEG") { Patterns = Infrastructure.StudioPickerPatterns.CaseInsensitive("*.png", "*.jpg", "*.jpeg") }]
             });
             if (files.Count == 0) return;
             byte[]? image = await StudioStorageInput.ReadImageAsync(files, CancellationToken.None);

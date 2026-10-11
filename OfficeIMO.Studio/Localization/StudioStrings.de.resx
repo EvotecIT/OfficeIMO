@@ -19,7 +19,7 @@
     <value>Fügen Sie Dateien hinzu, um Wiedergabetreue, Engine-Details, Diagnosen und das bereitgestellte Ergebnis zu sehen.</value>
   </data>
   <data name="ConversionWorkbench.AddOneOrMoreMatchingFilesTheSelectedRouteProfile" xml:space="preserve">
-    <value>Fügen Sie eine oder mehrere passende Dateien hinzu. Der ausgewählte Konvertierungsweg, das Profil und die Konfliktregel gelten für die Warteschlange.</value>
+    <value>Fügen Sie Dateien hinzu oder legen Sie sie hier ab. Jede Datei erhält die Konvertierung, die ihr Format unterstützt; wählen Sie nur dann ein Ergebnis, wenn ein Format mehrere anbietet.</value>
   </data>
   <data name="ConversionWorkbench.BuildYourConversionQueue" xml:space="preserve">
     <value>Konvertierungswarteschlange zusammenstellen</value>
@@ -31,7 +31,7 @@
     <value>Ordner auswählen</value>
   </data>
   <data name="ConversionWorkbench.ChooseTheResult" xml:space="preserve">
-    <value>Ergebnis auswählen</value>
+    <value>Konvertierungsstandards</value>
   </data>
   <data name="ConversionWorkbench.Clear" xml:space="preserve">
     <value>Leeren</value>
@@ -49,7 +49,7 @@
     <value>Engine</value>
   </data>
   <data name="ConversionWorkbench.FILE" xml:space="preserve">
-    <value>DATEI</value>
+    <value>Datei</value>
   </data>
   <data name="ConversionWorkbench.IfAFileExists" xml:space="preserve">
     <value>Wenn eine Datei vorhanden ist</value>
@@ -67,7 +67,7 @@
     <value>Ausgabeprofil</value>
   </data>
   <data name="ConversionWorkbench.PROGRESS" xml:space="preserve">
-    <value>FORTSCHRITT</value>
+    <value>Fortschritt</value>
   </data>
   <data name="ConversionWorkbench.Remove" xml:space="preserve">
     <value>Entfernen</value>
@@ -136,7 +136,7 @@
     <value>AUSGEWÄHLTER AUFTRAG</value>
   </data>
   <data name="ConversionWorkbench.STATUS" xml:space="preserve">
-    <value>STATUS</value>
+    <value>Status</value>
   </data>
   <data name="ConversionWorkbench.UseEachSourceFolder" xml:space="preserve">
     <value>Jeweiligen Quellordner verwenden</value>
@@ -1178,9 +1178,6 @@
   </data>
   <data name="Settings.LocalizationContract" xml:space="preserve">
     <value>Die Oberfläche ist auf Englisch, Polnisch, Deutsch und Französisch verfügbar. Weitere Sprachpakete werden nach Prüfung der Übersetzung freigegeben.</value>
-  </data>
-  <data name="Settings.PrivacyAndDiagnostics" xml:space="preserve">
-    <value>Datenschutz und Diagnosen</value>
   </data>
   <data name="Settings.DiagnosticsPrivacyNotice" xml:space="preserve">
     <value>Lokale Diagnosen erfassen Anwendungsbereiche, stabile Ereigniscodes, Laufzeitmetadaten und bereinigte Stapelüberwachungen. Dokumentinhalte, Dokumentnamen, Dokumentpfade und Ausnahmemeldungen werden ausgeschlossen.</value>
@@ -3738,37 +3735,16 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
     <value>Befehl suchen oder ausführen</value>
   </data>
   <data name="Shell.CommandSearchTip" xml:space="preserve">
-    <value>Befehle und Werkzeuge suchen (Ctrl+K)</value>
-  </data>
-  <data name="Shell.UndoTip" xml:space="preserve">
-    <value>Rückgängig (Ctrl+Z)</value>
-  </data>
-  <data name="Shell.RedoTip" xml:space="preserve">
-    <value>Wiederholen (Ctrl+Shift+Z)</value>
+    <value>Befehle und Werkzeuge suchen ({0})</value>
   </data>
   <data name="Shell.FindTip" xml:space="preserve">
-    <value>Im Dokument suchen (Ctrl+F)</value>
-  </data>
-  <data name="Shell.SaveAsTip" xml:space="preserve">
-    <value>Kopie speichern (Ctrl+Shift+S)</value>
-  </data>
-  <data name="Shell.SaveTip" xml:space="preserve">
-    <value>Änderungen speichern (Ctrl+S)</value>
-  </data>
-  <data name="Shell.FocusTip" xml:space="preserve">
-    <value>Konzentriert lesen (F9)</value>
+    <value>Im Dokument suchen ({0})</value>
   </data>
   <data name="Shell.ExitFocus" xml:space="preserve">
     <value>Konzentriertes Lesen beenden</value>
   </data>
   <data name="Shell.NoBookmarks" xml:space="preserve">
     <value>Dieses Dokument hat keine Lesezeichen.</value>
-  </data>
-  <data name="Shell.MoveUpTip" xml:space="preserve">
-    <value>Ausgewählte Seiten nach vorne verschieben (Alt+Up)</value>
-  </data>
-  <data name="Shell.MoveDownTip" xml:space="preserve">
-    <value>Ausgewählte Seiten nach hinten verschieben (Alt+Down)</value>
   </data>
   <data name="Shell.PageNumber" xml:space="preserve">
     <value>Aktuelle Seite</value>
@@ -3868,9 +3844,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   </data>
   <data name="Tools.Stamp" xml:space="preserve">
     <value>Stempel</value>
-  </data>
-  <data name="Tools.FlattenAnnotationsTip" xml:space="preserve">
-    <value>Jede Anmerkung in dauerhaften Seiteninhalt umwandeln</value>
   </data>
   <data name="Tools.AddTextTip" xml:space="preserve">
     <value>Dauerhaften Seitentext hinzufügen (T)</value>
@@ -4276,9 +4249,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   </data>
   <data name="FillSign.Date" xml:space="preserve">
     <value>Datum</value>
-  </data>
-  <data name="FillSign.DateTip" xml:space="preserve">
-    <value>Heutiges Datum auf der Seite platzieren</value>
   </data>
   <data name="FillSign.PlaceSignature" xml:space="preserve">
     <value>Klicken Sie an die Position der Unterschrift oder ziehen Sie, um ihre Größe festzulegen</value>
@@ -5548,4 +5518,96 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Die Anzeige entspricht mehreren Optionen. Geben Sie den genauen Exportwert ein.</value></data>
   <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Aktuelle Auswahl ohne Partner</value></data>
   <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Vergleichsauswahl ohne Partner</value></data>
+  <data name="Activation.Missing" xml:space="preserve"><value>Einige Dateien wurden nicht gefunden. Prüfen Sie, ob sie noch vorhanden sind, und öffnen Sie sie erneut.</value></data>
+  <data name="Application.UnexpectedError" xml:space="preserve"><value>Ein unerwarteter Fehler ist aufgetreten, Ihre geöffneten Dokumente wurden jedoch beibehalten. Speichern Sie Ihre Arbeit und starten Sie Studio neu, falls etwas nicht stimmt.</value></data>
+  <data name="Preferences.SaveFailed" xml:space="preserve"><value>Ihre Einstellungen gelten für diese Sitzung, konnten aber nicht gespeichert werden. Prüfen Sie, ob der Profilordner beschreibbar ist.</value></data>
+  <data name="MainWindow.HighContrastAppearanceInSettings" xml:space="preserve"><value>Hoher Kontrast ist aktiviert. Ändern Sie die Darstellung in den Einstellungen.</value></data>
+  <data name="Recent.Unavailable" xml:space="preserve"><value>Dieses zuletzt verwendete Dokument ist nicht mehr verfügbar. Es wurde aus der Liste entfernt.</value></data>
+  <data name="Home.OpenRecent" xml:space="preserve"><value>Öffnen</value></data>
+  <data name="Home.RemoveFromRecent" xml:space="preserve"><value>Aus der Liste entfernen</value></data>
+  <data name="Picker.Unavailable" xml:space="preserve"><value>Dateidialoge sind auf diesem System nicht verfügbar. Installieren Sie unter Linux xdg-desktop-portal mit einem GTK- oder KDE-Backend und starten Sie Studio neu. Sie können Dateien weiterhin in das Fenster ziehen.</value></data>
+  <data name="Menu.ApplicationMenu" xml:space="preserve"><value>Anwendungsmenü</value></data>
+  <data name="Menu.ApplicationMenuTip" xml:space="preserve"><value>Menü (F10)</value></data>
+  <data name="Menu.File" xml:space="preserve"><value>Datei</value></data>
+  <data name="Menu.Edit" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="Menu.View" xml:space="preserve"><value>Ansicht</value></data>
+  <data name="Menu.Document" xml:space="preserve"><value>Dokument</value></data>
+  <data name="Menu.ToolsMenu" xml:space="preserve"><value>Werkzeuge</value></data>
+  <data name="Menu.Window" xml:space="preserve"><value>Fenster</value></data>
+  <data name="Menu.Help" xml:space="preserve"><value>Hilfe</value></data>
+  <data name="Menu.OpenRecent" xml:space="preserve"><value>Zuletzt verwendet öffnen</value></data>
+  <data name="Menu.ClearRecent" xml:space="preserve"><value>Liste der zuletzt verwendeten leeren</value></data>
+  <data name="Menu.CloseTab" xml:space="preserve"><value>Tab schließen</value></data>
+  <data name="Menu.ReopenTab" xml:space="preserve"><value>Geschlossenen Tab erneut öffnen</value></data>
+  <data name="Menu.Exit" xml:space="preserve"><value>Beenden</value></data>
+  <data name="Menu.Find" xml:space="preserve"><value>Im Dokument suchen</value></data>
+  <data name="Menu.Commands" xml:space="preserve"><value>Befehl suchen</value></data>
+  <data name="Menu.ToggleSidebar" xml:space="preserve"><value>Dokumentbereiche ein- oder ausblenden</value></data>
+  <data name="Menu.FullScreen" xml:space="preserve"><value>Vollbild</value></data>
+  <data name="Menu.LeaveFullScreen" xml:space="preserve"><value>Vollbild beenden</value></data>
+  <data name="Menu.NextTab" xml:space="preserve"><value>Nächster Tab</value></data>
+  <data name="Menu.PreviousTab" xml:space="preserve"><value>Vorheriger Tab</value></data>
+  <data name="Menu.Minimize" xml:space="preserve"><value>Minimieren</value></data>
+  <data name="Menu.KeyboardShortcuts" xml:space="preserve"><value>Befehle und Tastenkombinationen</value></data>
+  <data name="Menu.Documentation" xml:space="preserve"><value>Dokumentation</value></data>
+  <data name="Menu.ReportProblem" xml:space="preserve"><value>Problem melden</value></data>
+  <data name="Menu.About" xml:space="preserve"><value>Über OfficeIMO Studio</value></data>
+  <data name="DocumentWorkspace.ViewOptions" xml:space="preserve"><value>Ansichtsoptionen</value></data>
+  <data name="Errors.AccessDenied" xml:space="preserve"><value>Studio hat keine Berechtigung für diese Datei oder diesen Ordner. Wählen Sie einen anderen Speicherort oder prüfen Sie die Berechtigungen.</value></data>
+  <data name="Errors.NotFound" xml:space="preserve"><value>Die Datei oder der Ordner wurde nicht mehr gefunden. Sie wurden möglicherweise verschoben, umbenannt oder gelöscht.</value></data>
+  <data name="Errors.PathTooLong" xml:space="preserve"><value>Der Dateipfad ist zu lang. Wählen Sie einen kürzeren Ordner- oder Dateinamen.</value></data>
+  <data name="Errors.FileInUse" xml:space="preserve"><value>Die Datei ist in einem anderen Programm geöffnet. Schließen Sie sie dort und versuchen Sie es erneut.</value></data>
+  <data name="Errors.DiskFull" xml:space="preserve"><value>Es ist nicht genügend freier Speicherplatz vorhanden. Geben Sie Speicherplatz frei oder wählen Sie ein anderes Laufwerk und versuchen Sie es erneut.</value></data>
+  <data name="Commands.Watermark.Title" xml:space="preserve"><value>Wasserzeichen hinzufügen</value></data>
+  <data name="Commands.Watermark.Description" xml:space="preserve"><value>Text- oder Bildwasserzeichen auf ausgewählten Seiten in der Vorschau prüfen und platzieren.</value></data>
+  <data name="Commands.PageNumbers.Title" xml:space="preserve"><value>Seitenzahlen hinzufügen</value></data>
+  <data name="Commands.PageNumbers.Description" xml:space="preserve"><value>Alle Seiten nummerieren; Rückgängig entfernt sie bis zum Speichern.</value></data>
+  <data name="Commands.FlattenAnnotations.Title" xml:space="preserve"><value>Alle Anmerkungen reduzieren</value></data>
+  <data name="Commands.FlattenAnnotations.Description" xml:space="preserve"><value>Kommentare und Markierungen in den Seiteninhalt übernehmen, sodass sie nicht mehr bearbeitet werden können.</value></data>
+  <data name="Commands.Split.Title" xml:space="preserve"><value>In Dokumente aufteilen</value></data>
+  <data name="Commands.Split.Description" xml:space="preserve"><value>Die Aufteilung dieser PDF in mehrere Dokumente in der Vorschau prüfen und dann speichern.</value></data>
+  <data name="Commands.CompareSideBySide.Title" xml:space="preserve"><value>Nebeneinander vergleichen</value></data>
+  <data name="Commands.CompareSideBySide.Description" xml:space="preserve"><value>Eine weitere PDF neben dieser mit synchronisiertem Bildlauf öffnen.</value></data>
+  <data name="Commands.ValidateSignatures.Title" xml:space="preserve"><value>Signaturen prüfen</value></data>
+  <data name="Commands.ValidateSignatures.Description" xml:space="preserve"><value>Die digitalen Signaturen in diesem Dokument prüfen und ihren Status melden.</value></data>
+  <data name="Commands.PageNightMode.Title" xml:space="preserve"><value>Nachtmodus für Seiten</value></data>
+  <data name="Commands.PageNightMode.Description" xml:space="preserve"><value>Seiten für das Lesen bei wenig Licht mit dunklem Hintergrund anzeigen; das Dokument bleibt unverändert.</value></data>
+  <data name="Commands.Assistant.Title" xml:space="preserve"><value>Dokumentassistent</value></data>
+  <data name="Commands.Assistant.Description" xml:space="preserve"><value>Den Assistenten ein- oder ausblenden, der Fragen zu diesem Dokument beantwortet.</value></data>
+  <data name="Notices.BackToReading" xml:space="preserve"><value>Zurück zum Lesen</value></data>
+  <data name="Settings.ShowRecentPreviews" xml:space="preserve"><value>Vorschauen zuletzt verwendeter Dokumente anzeigen</value></data>
+  <data name="Settings.ShowRecentPreviewsDescription" xml:space="preserve"><value>Die Startseite zeigt die erste Seite zuletzt verwendeter lokaler Dokumente, nur im Speicher gerendert. Deaktivieren Sie dies vor der Arbeit mit privaten Dokumenten, damit deren Seiten nie auf der Startseite erscheinen.</value></data>
+  <data name="Conversion.DefaultsHint" xml:space="preserve"><value>Gilt für Dateien, deren Format mehrere Ergebnisse anbietet, und als Ausgangsoptionen für jeden neuen Auftrag.</value></data>
+  <data name="Commands.ImportPages.Title" xml:space="preserve"><value>Seiten aus PDFs hinzufügen</value></data>
+  <data name="Commands.ImportPages.Description" xml:space="preserve"><value>Seiten aus anderen PDFs nach der aktuellen Seite einfügen.</value></data>
+  <data name="Commands.AnnotationTool.Description" xml:space="preserve"><value>Werkzeug für Kommentare und Markierungen. Bei Auswahl wird zu Kommentieren gewechselt.</value></data>
+  <data name="Commands.EditTool.Description" xml:space="preserve"><value>Werkzeug zur Inhaltsbearbeitung. Bei Auswahl wird zu Bearbeiten gewechselt.</value></data>
+  <data name="Commands.PlaceDate.Title" xml:space="preserve"><value>Heutiges Datum einfügen</value></data>
+  <data name="Commands.PlaceDate.Description" xml:space="preserve"><value>Das heutige Datum dort auf der Seite platzieren, wo Sie als Nächstes klicken.</value></data>
+  <data name="Commands.CreateSignature.Title" xml:space="preserve"><value>Unterschrift erstellen</value></data>
+  <data name="Commands.CreateSignature.Description" xml:space="preserve"><value>Eine Unterschrift zeichnen, tippen oder als Bild wählen und dann auf der Seite platzieren.</value></data>
+  <data name="Commands.CreateInitials.Title" xml:space="preserve"><value>Initialen erstellen</value></data>
+  <data name="Commands.CreateInitials.Description" xml:space="preserve"><value>Initialen zeichnen, tippen oder als Bild wählen und dann auf der Seite platzieren.</value></data>
+  <data name="Commands.FlattenFormField.Title" xml:space="preserve"><value>Ausgewähltes Feld reduzieren</value></data>
+  <data name="Commands.FlattenFormField.Description" xml:space="preserve"><value>Das ausgewählte Formularfeld in festen Seiteninhalt umwandeln.</value></data>
+  <data name="Commands.FlattenForms.Title" xml:space="preserve"><value>Alle Formularfelder reduzieren</value></data>
+  <data name="Commands.FlattenForms.Description" xml:space="preserve"><value>Alle Formularfelder in festen Seiteninhalt umwandeln, sodass Werte nicht mehr geändert werden können.</value></data>
+  <data name="Commands.BatesNumbers.Title" xml:space="preserve"><value>Bates-Nummern hinzufügen</value></data>
+  <data name="Commands.BatesNumbers.Description" xml:space="preserve"><value>Fortlaufende Bates-Nummern mit dem unter Schützen festgelegten Präfix, Startwert und der Position stempeln.</value></data>
+  <data name="Commands.SelectFormField" xml:space="preserve"><value>Wählen Sie zuerst ein Formularfeld aus.</value></data>
+  <data name="Settings.Sections" xml:space="preserve"><value>Einstellungsbereiche</value></data>
+  <data name="Settings.PrivacySection" xml:space="preserve"><value>Datenschutz und Verlauf</value></data>
+  <data name="Settings.RecoverySection" xml:space="preserve"><value>Wiederherstellung und Diagnose</value></data>
+  <data name="Notices.RenderingLimitation" xml:space="preserve"><value>Seite {0} kann vom Original abweichen, weil Studio einige Inhalte oder Schriften nicht exakt darstellen kann. Vergleichen Sie sie mit einem anderen Viewer, bevor Sie sich auf ihr Aussehen verlassen.</value></data>
+  <data name="Notices.RenderingLimitationPages" xml:space="preserve"><value>Die Seiten {0} können vom Original abweichen, weil Studio einige Inhalte oder Schriften nicht exakt darstellen kann. Vergleichen Sie sie mit einem anderen Viewer, bevor Sie sich auf ihr Aussehen verlassen.</value></data>
+  <data name="Notices.ShowPage" xml:space="preserve"><value>Seite {0} anzeigen</value></data>
+  <data name="PdfPage.FontSubstitution" xml:space="preserve"><value>Eine Schrift dieser Seite ist nicht in die PDF-Datei eingebettet. Wie in anderen PDF-Viewern wird stattdessen eine installierte Schrift angezeigt; Abstände können leicht abweichen.</value></data>
+  <data name="PdfPage.RenderingLimitation" xml:space="preserve"><value>Studio lässt auf dieser Seite Inhalte aus, die es nicht darstellen kann. Vergleichen Sie sie mit einem anderen Viewer, bevor Sie sich auf ihr Aussehen verlassen.</value></data>
+  <data name="PdfPage.TechnicalDetails" xml:space="preserve"><value>Technische Details</value></data>
+  <data name="PdfPage.RenderingSimplified" xml:space="preserve"><value>Einige Details dieser Seite werden vereinfacht dargestellt. Der Unterschied ist meist kaum sichtbar.</value></data>
+  <data name="PdfPage.EmbeddedFontReplaced" xml:space="preserve"><value>Diese Seite bettet eine Schrift ein, die Studio nicht darstellen kann; stattdessen wird eine ähnliche installierte Schrift angezeigt. Buchstabenformen und Abstände können vom Original abweichen.</value></data>
+  <data name="Provenance.InputHash" xml:space="preserve"><value>SHA-256 der Eingabe</value></data>
+  <data name="Provenance.CopyLabel" xml:space="preserve"><value>Kopie</value></data>
+  <data name="Provenance.OutputHash" xml:space="preserve"><value>SHA-256 der Ausgabe</value></data>
+  <data name="Provenance.ReportLabel" xml:space="preserve"><value>Bericht</value></data>
 </root>

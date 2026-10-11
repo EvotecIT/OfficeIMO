@@ -95,6 +95,10 @@ public sealed class StudioRestrictedViewingTests {
                 window.UpdateLayout(); await Task.Delay(80); window.UpdateLayout();
                 Assert.False(string.IsNullOrWhiteSpace(model.SecurityWarning));
                 Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), text => text.IsEffectivelyVisible && text.Text == model.SecurityWarning);
+                // The restriction is already reported; reading needs no way back, and the reader can dismiss it.
+                Assert.False(model.CanReturnToReading);
+                model.DismissSecurityWarningCommand.Execute(null);
+                Assert.False(model.HasSecurityWarning);
                 window.FindControl<DocumentWorkspaceView>("DocumentWorkspace")!.FocusSearch();
                 model.SearchQuery = "Visible";
                 if (model.CanSearchDocument) {

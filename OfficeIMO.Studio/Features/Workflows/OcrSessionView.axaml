@@ -2,8 +2,8 @@
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.OcrSessionView" x:DataType="workflow:OcrSessionViewModel">
   <Grid Background="{DynamicResource StudioWindowBrush}">
-    <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" IsVisible="{Binding !HasReview}">
-      <StackPanel Spacing="4">
+    <Grid Classes="pageContent" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}" IsVisible="{Binding !HasReview}">
+      <StackPanel Classes="pageHeading">
         <TextBlock Text="{loc:Loc OcrSession.Title}" Classes="pageTitle" />
         <TextBlock Text="{loc:Loc OcrSession.Hint}" TextWrapping="Wrap" Classes="muted" />
         <TextBlock Text="{Binding RecognitionUnavailableReason}" IsVisible="{Binding !IsRecognitionAvailable}" TextWrapping="Wrap" Foreground="{DynamicResource StudioWarningBrush}"/>

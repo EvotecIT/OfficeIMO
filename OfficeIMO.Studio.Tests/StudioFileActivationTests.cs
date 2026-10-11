@@ -26,9 +26,9 @@ public sealed class StudioFileActivationTests {
                 Assert.False(window.IsStartingUp);
                 Assert.Equal(2, window.TabHost.Tabs.Count);
                 Assert.Equal("Second.pdf", window.ViewModel.DocumentName);
-                // Conversion work belongs to the tab where it was accepted; switching tabs must not lose it.
-                var queue = window.TabHost.OperationDocuments.SelectMany(document => document.ConversionWorkbench.Jobs);
-                var job = Assert.Single(queue);
+                // The conversion queue belongs to the window, so every tab shows the accepted work.
+                Assert.All(window.TabHost.OperationDocuments, document => Assert.Same(window.ViewModel.ConversionWorkbench, document.ConversionWorkbench));
+                var job = Assert.Single(window.ViewModel.ConversionWorkbench.Jobs);
                 Assert.Equal("numbers-xlsx", job.Route.Route.Id);
                 Assert.Equal(numbers.Bookmark, services.Storage.Describe(job.InputPath).Bookmark);
                 Assert.Equal(0, numbers.Disposals);

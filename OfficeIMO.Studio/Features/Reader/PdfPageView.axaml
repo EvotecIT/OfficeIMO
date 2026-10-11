@@ -130,7 +130,7 @@
       <TextBlock
                  Text="{Binding PageLabel}"
                  Foreground="{DynamicResource StudioMutedTextBrush}"
-                 FontSize="12" />
+                 FontSize="{StaticResource StudioSecondaryFontSize}" />
       <Button Grid.Column="1" Classes="ghost" IsVisible="{Binding HasDiagnostics}"
               Background="{DynamicResource StudioAccentSoftBrush}" Foreground="{DynamicResource StudioAccentBrush}"
               CornerRadius="6" Padding="8,2" Margin="8,0,0,0" HorizontalAlignment="Left"
@@ -139,7 +139,12 @@
         <Button.Flyout>
           <Flyout>
             <ScrollViewer MaxHeight="280" MaxWidth="420" VerticalScrollBarVisibility="Auto">
-              <TextBlock Text="{Binding DiagnosticsDetails}" TextWrapping="Wrap" />
+              <StackPanel Spacing="{StaticResource StudioSpaceS}">
+                <TextBlock Text="{Binding DiagnosticsExplanation}" IsVisible="{Binding HasDiagnosticsExplanation}" TextWrapping="Wrap" />
+                <TextBlock Text="{loc:Loc PdfPage.TechnicalDetails}" IsVisible="{Binding HasDiagnosticsExplanation}" Classes="muted"
+                           FontSize="{StaticResource StudioLabelFontSize}" FontWeight="SemiBold" />
+                <SelectableTextBlock Text="{Binding DiagnosticsDetails}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
+              </StackPanel>
             </ScrollViewer>
           </Flyout>
         </Button.Flyout>

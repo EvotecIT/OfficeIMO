@@ -17,7 +17,7 @@
         <Button Content="{Binding FormOcrCancelLabel}" Command="{Binding CancelFormOcrCommand}" Classes="tool" />
       </StackPanel>
     </Expander>
-    <TextBlock Text="{loc:Loc DocumentWorkspace.FillFields}" FontSize="15" FontWeight="SemiBold" />
+    <TextBlock Text="{loc:Loc DocumentWorkspace.FillFields}" FontSize="{StaticResource StudioSubtitleFontSize}" FontWeight="SemiBold" />
     <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="{loc:Loc DocumentWorkspace.ThisPDFHasNoNamedFormFieldsYet}" TextWrapping="Wrap" />
     <ComboBox IsVisible="{Binding HasFormFields}" ItemsSource="{Binding FormFields}" SelectedItem="{Binding SelectedFormField, Mode=TwoWay}"
               AutomationProperties.Name="{loc:Loc Forms.ChooseField}">
@@ -35,7 +35,7 @@
           <PathIcon Data="{StaticResource IconChevronRight}" Width="14" Height="14" />
         </Button>
       </Grid>
-      <TextBlock Text="{Binding SelectedFormField.PageLabel}" Classes="muted" FontSize="12" />
+      <TextBlock Text="{Binding SelectedFormField.PageLabel}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" />
       <Button Classes="tool" Content="{loc:Loc Forms.ShowField}" Command="{Binding ShowSelectedFormFieldCommand}" />
       <TextBlock Text="{Binding SelectedFormField.FieldState}" Classes="muted" TextWrapping="Wrap" />
       <StackPanel Spacing="8" IsEnabled="{Binding SelectedFormField.CanFill}">
@@ -165,40 +165,40 @@
     </ItemsControl>
 
     <Separator Margin="0,5" />
-    <TextBlock Text="{loc:Loc DocumentWorkspace.CreateField}" FontSize="15" FontWeight="SemiBold" />
+    <TextBlock Text="{loc:Loc DocumentWorkspace.CreateField}" FontSize="{StaticResource StudioSubtitleFontSize}" FontWeight="SemiBold" />
     <TextBlock IsVisible="{Binding !CanAuthorForms}" Classes="muted" Text="{loc:Loc DocumentWorkspace.FieldAuthoringIsUnavailableUnderThisDocumentSCurrentSecurity}" TextWrapping="Wrap" />
     <ComboBox ItemsSource="{Binding FormFieldCreationChoices}" SelectedItem="{Binding SelectedFormFieldCreationChoice, Mode=TwoWay}" IsEnabled="{Binding CanAuthorForms}">
       <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldCreationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
     </ComboBox>
-    <TextBlock Text="{loc:Loc DocumentWorkspace.Name}" FontSize="12" /><TextBox Text="{Binding NewFormFieldName}" IsEnabled="{Binding CanAuthorForms}" />
-    <TextBlock Text="{loc:Loc Forms.DisplayName}" FontSize="12" />
+    <TextBlock Text="{loc:Loc DocumentWorkspace.Name}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBox Text="{Binding NewFormFieldName}" IsEnabled="{Binding CanAuthorForms}" />
+    <TextBlock Text="{loc:Loc Forms.DisplayName}" FontSize="{StaticResource StudioSecondaryFontSize}" />
     <TextBox x:Name="NewFieldLabel" AutomationProperties.Name="{loc:Loc Forms.DisplayName}" Text="{Binding NewFormFieldDisplayName}" IsEnabled="{Binding CanAuthorForms}" />
     <CheckBox x:Name="NewFieldRequired" IsChecked="{Binding NewFormFieldIsRequired}" Content="{loc:Loc Forms.Required}" IsEnabled="{Binding CanAuthorForms}" />
     <CheckBox x:Name="NewFieldReadOnly" IsChecked="{Binding NewFormFieldIsReadOnly}" Content="{loc:Loc Forms.ReadOnly}" IsEnabled="{Binding CanAuthorForms}" />
     <Expander Header="{loc:Loc Forms.AdvancedGeometry}" HorizontalAlignment="Stretch">
     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
-      <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Page}" FontSize="12" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Left}" FontSize="12" />
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Page}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Left}" FontSize="{StaticResource StudioSecondaryFontSize}" />
       <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding NewFormFieldPageNumber}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
       <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding NewFormFieldX}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
-      <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Bottom}" FontSize="12" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Width}" FontSize="12" />
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Bottom}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Width}" FontSize="{StaticResource StudioSecondaryFontSize}" />
       <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding NewFormFieldY}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
       <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding NewFormFieldWidth}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
-      <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Height}" FontSize="12" />
+      <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.Height}" FontSize="{StaticResource StudioSecondaryFontSize}" />
       <NumericUpDown Grid.Row="5" Grid.Column="0" Value="{Binding NewFormFieldHeight}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
     </Grid>
     </Expander>
     <StackPanel IsVisible="{Binding IsCreatingTextField}" Spacing="5">
-      <TextBlock Text="{loc:Loc Forms.MaximumLength}" FontSize="12" TextWrapping="Wrap" />
+      <TextBlock Text="{loc:Loc Forms.MaximumLength}" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
       <NumericUpDown x:Name="NewFieldMaximumLength" AutomationProperties.Name="{loc:Loc Forms.MaximumLength}" Value="{Binding NewFormFieldMaxLength}" Minimum="0" Maximum="2147483647" IsEnabled="{Binding CanAuthorForms}" />
-      <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="12" /><TextBox Text="{Binding NewFormFieldValue}" />
+      <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBox Text="{Binding NewFormFieldValue}" />
       <CheckBox IsChecked="{Binding NewFormFieldIsMultiline}" Content="{loc:Loc DocumentWorkspace.Multiline}" />
       <CheckBox IsChecked="{Binding NewFormFieldIsPassword}" Content="{loc:Loc DocumentWorkspace.PasswordField}" />
     </StackPanel>
     <CheckBox IsVisible="{Binding IsCreatingCheckBox}" IsChecked="{Binding NewFormFieldIsChecked}" Content="{loc:Loc DocumentWorkspace.InitiallyChecked}" />
     <StackPanel IsVisible="{Binding IsCreatingChoiceField}" Spacing="5">
-      <TextBlock Text="{loc:Loc DocumentWorkspace.OptionsOnePerLine}" FontSize="12" />
+      <TextBlock Text="{loc:Loc DocumentWorkspace.OptionsOnePerLine}" FontSize="{StaticResource StudioSecondaryFontSize}" />
       <TextBox Text="{Binding NewFormFieldOptions}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
-      <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="12" /><TextBox Text="{Binding NewFormFieldValue}" />
+      <TextBlock Text="{loc:Loc DocumentWorkspace.InitialValue}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBox Text="{Binding NewFormFieldValue}" />
       <StackPanel IsVisible="{Binding IsCreatingChoiceList}" Spacing="5">
         <CheckBox IsChecked="{Binding NewFormFieldIsComboBox}" Content="{loc:Loc DocumentWorkspace.DropDown}" />
         <CheckBox IsChecked="{Binding NewFormFieldAllowsCustomValue}" Content="{loc:Loc DocumentWorkspace.AllowACustomValue}" />
@@ -206,7 +206,7 @@
       </StackPanel>
     </StackPanel>
     <StackPanel IsVisible="{Binding IsCreatingButton}" Spacing="5">
-      <TextBlock Text="{loc:Loc DocumentWorkspace.Caption}" FontSize="12" /><TextBox Text="{Binding NewFormFieldCaption}" />
+      <TextBlock Text="{loc:Loc DocumentWorkspace.Caption}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBox Text="{Binding NewFormFieldCaption}" />
     </StackPanel>
     <Button Classes="tool" Content="{loc:Loc Forms.PreviewNewField}" Command="{Binding PreviewNewFormFieldCommand}" IsEnabled="{Binding CanPreviewNewFormField}" />
     <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CreateField}" Content="{loc:Loc DocumentWorkspace.CreateField}" Command="{Binding CreateFormFieldCommand}" IsEnabled="{Binding CanAuthorForms}" />

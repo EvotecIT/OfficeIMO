@@ -146,7 +146,7 @@ public sealed partial class MainWindowViewModel {
                 return;
             }
         } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) {
-            ErrorMessage = error.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(error);
             return;
         }
 
@@ -205,7 +205,7 @@ public sealed partial class MainWindowViewModel {
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             OperationStatus = UiText("Reader.ComparisonCancelled");
         } catch (Exception ex) {
-            ErrorMessage = ex.Message;
+            ErrorMessage = Infrastructure.StudioMessages.Describe(ex);
         } finally {
             foreach (PdfPageViewModel page in candidatePages) page.Dispose();
             candidateSceneCoordinator?.Dispose();

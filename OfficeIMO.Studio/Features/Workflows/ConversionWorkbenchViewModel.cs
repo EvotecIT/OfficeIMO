@@ -71,7 +71,8 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         SelectedRoute = Routes.Single(route => route.Route.Id == "docx-pdf");
         SelectedProfile = Profiles[0];
         SelectedConflict = ConflictPolicies[0];
-        Status = T("Status.FilesFirst", "Add files or drop them here. Studio lists the conversions available for them.");
+        _introductoryStatus = T("Status.FilesFirst", "Add files or drop them here. Studio lists the conversions available for them.");
+        Status = _introductoryStatus;
     }
 
     public IReadOnlyList<ConversionRouteChoice> Routes { get; }
@@ -118,6 +119,13 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     private string _status = string.Empty;
 
     public bool HasJobs => Jobs.Count > 0;
+
+    private readonly string _introductoryStatus;
+
+    /// <summary>The run bar appears once there is work or news; an empty queue already explains how to start.</summary>
+    public bool HasRunBar => HasJobs || IsBusy || !string.Equals(Status, _introductoryStatus, StringComparison.Ordinal);
+
+    partial void OnStatusChanged(string value) => OnPropertyChanged(nameof(HasRunBar));
     public bool CanRun => CanEditQueue && Jobs.Any(job => job.State == ConversionJobState.Queued);
     public bool CanRetryFailed => CanEditQueue && Jobs.Any(job => job.CanRetry);
     public bool CanCancel => IsBusy;
@@ -132,6 +140,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         : _localizer.Format("Conversion.Queue.Count", Jobs.Count);
 
     partial void OnIsBusyChanged(bool value) {
+        OnPropertyChanged(nameof(HasRunBar));
         BatchExport.RefreshHostState();
         OnPropertyChanged(nameof(CanCancel));
         OnPropertyChanged(nameof(CanEditQueue));
@@ -151,7 +160,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         IReadOnlyList<string> paths = await _pickFiles(cancellationToken).ConfigureAwait(true);
         if (IsBusy) return;
         if (paths.Count == 0) return;
-        AddPaths(_unmatchedInputs.Concat(paths).Distinct(StringComparer.Ordinal).ToArray());
+        // Chosen files work like dropped ones: each file gets the conversion its format supports, and only
+        // formats with several possible results wait for the user to pick one.
+        AddPaths(_unmatchedInputs.Concat(paths).Distinct(StringComparer.Ordinal).ToArray(), matchAnyRoute: true);
     }
 
     [RelayCommand(CanExecute = nameof(CanEditQueue))]
@@ -433,6 +444,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
 
     private void NotifyQueueChanged() {
         OnPropertyChanged(nameof(HasJobs));
+        OnPropertyChanged(nameof(HasRunBar));
         OnPropertyChanged(nameof(CanRun));
         OnPropertyChanged(nameof(CanRetryFailed));
         OnPropertyChanged(nameof(QueueSummary));
