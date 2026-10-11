@@ -203,7 +203,7 @@ function Find-Mentions([string] $code, [string[]] $usings, [string[]] $contextPa
     }
 }
 
-function Get-PageMentions([string] $body, [string[]] $contextPackages) {
+function Get-PageMentions([string] $body, [string[]] $contextPackages, [string] $inlineLanguage = '') {
     $mentions = @{}
     $normalized = $body.Replace("`r`n", "`n")
     $blocks = [regex]::Matches($normalized, '(?ms)^[ \t]*```[ \t]*([\w#+-]*)[^\n]*\n(.*?)^[ \t]*```')
@@ -219,7 +219,7 @@ function Get-PageMentions([string] $body, [string[]] $contextPackages) {
     foreach ($inline in [regex]::Matches($prose, '`([^`\n]+)`')) {
         # Very short spans such as `A1` are cell addresses or values, not type names.
         if ($inline.Groups[1].Value.Trim().Length -lt 4) { continue }
-        Find-Mentions $inline.Groups[1].Value $usings $contextPackages $mentions 3
+        Find-Mentions $inline.Groups[1].Value $usings $contextPackages $mentions 3 $inlineLanguage
     }
     $mentions
 }
@@ -235,7 +235,8 @@ foreach ($collection in $collections) {
         foreach ($docsHome in $packagesByDocsHome.Keys | Sort-Object Length -Descending) {
             if ($route.StartsWith($docsHome)) { $contextPackages = @($packagesByDocsHome[$docsHome]); break }
         }
-        $mentions = Get-PageMentions $parsed.Body $contextPackages
+        $inlineLanguage = if ($route.StartsWith('/docs/pswriteoffice/') -or $contextPackages -contains 'powershell') { 'powershell' } else { '' }
+        $mentions = Get-PageMentions $parsed.Body $contextPackages $inlineLanguage
         if ($mentions.Count -eq 0) { continue }
         $pages.Add([pscustomobject]@{ Route = $route; Title = $parsed.Meta.title; Summary = Get-Summary $parsed.Meta.description; Kind = 'guide'; Mentions = $mentions })
     }
@@ -248,7 +249,7 @@ foreach ($card in @($showcase.cards | Where-Object { $_.walkthrough_url -and $_.
     $source = [IO.File]::ReadAllText($sourcePath).Replace("`r`n", "`n")
     $fence = '```'
     $language = if ($card.source_language -eq 'powershell') { 'powershell' } else { 'csharp' }
-    $mentions = Get-PageMentions "$fence$language`n$source`n$fence`n" $null
+    $mentions = Get-PageMentions "$fence$language`n$source`n$fence`n" $null $language
     if ($mentions.Count -eq 0) { continue }
     $pages.Add([pscustomobject]@{ Route = $card.walkthrough_url; Title = $card.title; Summary = Get-Summary $card.description; Kind = 'sample'; Mentions = $mentions })
 }
@@ -270,11 +271,14 @@ foreach ($page in $pages | Sort-Object Route) {
 # Guides & Samples per API package: each type keeps the pages that use it most.
 $pagesByType = @{}
 foreach ($page in $pages) {
-    foreach ($mention in $page.Mentions.Values) {
-        if ($mention.Kind -eq 'member') { continue }
+    # Aliases remain distinct page links, but a page gets one ranking slot per
+    # canonical API. Sum its uses before applying the bounded guide/sample lists.
+    foreach ($group in ($page.Mentions.Values | Where-Object Kind -NE 'member' | Group-Object { $_.Symbol.Uid })) {
+        $mention = $group.Group[0]
         $uid = $mention.Symbol.Uid
         if (-not $pagesByType.ContainsKey($uid)) { $pagesByType[$uid] = [Collections.Generic.List[object]]::new() }
-        $pagesByType[$uid].Add([pscustomobject]@{ Page = $page; Weight = $mention.Weight; Symbol = $mention.Symbol })
+        $weight = ($group.Group | Measure-Object Weight -Sum).Sum
+        $pagesByType[$uid].Add([pscustomobject]@{ Page = $page; Weight = $weight; Symbol = $mention.Symbol })
     }
 }
 $targetsByPackage = @{}
