@@ -84,6 +84,9 @@ Website/static/downloads/showcase/** -text -diff
 # Showcase generation receipts bind the exact recipe and CSV input bytes.
 OfficeIMO.Examples/PowerShell/*.ps1 text eol=lf
 OfficeIMO.Examples/PowerShell/Data/*.csv text eol=lf
+Website/scripts/Invoke-ShowcasePowerShellExample.ps1 text eol=lf
+Website/scripts/ShowcaseEvidence.Helpers.ps1 text eol=lf
+Website/scripts/ShowcaseEvidence.Provenance.ps1 text eol=lf
 
 # Published benchmark payloads are integrity-checked byte-for-byte against the
 # catalog. Keep their committed line endings unchanged on every platform.

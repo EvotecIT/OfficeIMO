@@ -14,10 +14,20 @@ function Get-ShowcaseSourceBindings {
     }
 }
 
+function Get-ShowcaseEvidenceProducerBinding {
+    param([string] $RepositoryRoot)
+    $paths = @('Website/scripts/Invoke-ShowcasePowerShellExample.ps1', 'Website/scripts/ShowcaseEvidence.Helpers.ps1', 'Website/scripts/ShowcaseEvidence.Provenance.ps1')
+    $files = @(foreach ($path in $paths) {
+        [ordered]@{ path = $path; sha256 = (Get-FileHash -LiteralPath (Resolve-ShowcasePath $RepositoryRoot $path) -Algorithm SHA256).Hash.ToLowerInvariant() }
+    })
+    [ordered]@{ path = $files[0].path; sha256 = $files[0].sha256; dependencies = @($files[1..2]) }
+}
+
 function Complete-ShowcaseGenerationEvidence {
     param([string] $RepositoryRoot, $Catalog, [object[]] $Artifacts, [object[]] $Previous, [hashtable] $Generated, [string[]] $ReviewedExampleId, [string] $ModuleVersion)
     $currentHashes = @{}
     foreach ($artifact in $Artifacts) { $currentHashes[$artifact.path] = $artifact.sha256 }
+    $producer = Get-ShowcaseEvidenceProducerBinding $RepositoryRoot
     foreach ($id in $ReviewedExampleId) {
         if ($id -cnotin @($Catalog.cards | Where-Object source_language -CEQ 'powershell' | ForEach-Object id)) {
             throw "Preview review must name a PowerShell showcase example: $id"
@@ -29,8 +39,12 @@ function Complete-ShowcaseGenerationEvidence {
         $bindings = @($Artifacts | Where-Object { $_.path -cin $urls } | ForEach-Object { [ordered]@{ path = $_.path; sha256 = $_.sha256 } })
         $valid = $null -ne $generation -and $generation.state -ceq 'generated' -and $generation.package.version -ceq $ModuleVersion
         if ($valid) {
+            if ($generation.evidenceProducer.path -cne $producer.path -or $generation.evidenceProducer.sha256 -cne $producer.sha256 -or @($generation.evidenceProducer.dependencies).Count -ne $producer.dependencies.Count) { $valid = $false }
+            foreach ($dependency in $producer.dependencies) {
+                if (@($generation.evidenceProducer.dependencies | Where-Object { $_.path -ceq $dependency.path -and $_.sha256 -ceq $dependency.sha256 }).Count -ne 1) { $valid = $false }
+            }
             $sourceBindings = @(Get-ShowcaseSourceBindings -RepositoryRoot $RepositoryRoot -Catalog $Catalog -Card $card)
-            $valid = $sourceBindings.Count -eq @($generation.sources).Count
+            if ($sourceBindings.Count -ne @($generation.sources).Count) { $valid = $false }
             foreach ($source in $sourceBindings) {
                 if (@($generation.sources | Where-Object { $_.path -ceq $source.path -and $_.sha256 -ceq $source.sha256 }).Count -ne 1) { $valid = $false }
             }

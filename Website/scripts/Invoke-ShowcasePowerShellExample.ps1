@@ -15,6 +15,7 @@ $card = @($catalog.cards | Where-Object id -CEQ $ExampleId)
 if ($card.Count -ne 1 -or $card[0].source_language -cne 'powershell') { throw "Not a PowerShell showcase example: $ExampleId" }
 $card = $card[0]
 $bindings = @(Get-ShowcaseSourceBindings -RepositoryRoot $RepositoryRoot -Catalog $catalog -Card $card)
+$producer = Get-ShowcaseEvidenceProducerBinding -RepositoryRoot (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
 $module = Get-Module PSWriteOffice
 $packageFiles = @(Get-ChildItem -LiteralPath $module.ModuleBase -File -Recurse | Sort-Object FullName | ForEach-Object {
@@ -41,6 +42,11 @@ try {
     foreach ($file in $packageFiles) {
         if ((Get-FileHash -LiteralPath (Resolve-ShowcasePath $module.ModuleBase $file.path)).Hash.ToLowerInvariant() -cne $file.sha256) {
             throw "Showcase package changed during generation: $($file.path)"
+        }
+    }
+    foreach ($file in @($producer) + @($producer.dependencies)) {
+        if ((Get-FileHash -LiteralPath (Resolve-ShowcasePath (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) $file.path)).Hash.ToLowerInvariant() -cne $file.sha256) {
+            throw "Showcase producer changed during generation: $($file.path)"
         }
     }
     $urls = @(Get-ShowcaseCardUrls $card)
@@ -90,7 +96,7 @@ try {
         completedUtc = [datetime]::UtcNow.ToString('o')
         host = [ordered]@{ powershell = $PSVersionTable.PSVersion.ToString(); os = [Runtime.InteropServices.RuntimeInformation]::OSDescription; architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() }
         sources = $bindings
-        evidenceProducer = [ordered]@{ path = 'Website/scripts/Invoke-ShowcasePowerShellExample.ps1'; sha256 = (Get-FileHash -LiteralPath $PSCommandPath).Hash.ToLowerInvariant() }
+        evidenceProducer = $producer
         package = [ordered]@{ name = $module.Name; version = $module.Version.ToString(); files = $packageFiles }
         conversions = @([ordered]@{ routeId = 'docx-pdf'; command = 'Export-OfficeDocumentPdf'; routeEvidence = 'recipe-uses-single-document-DOCX-export'; report = $global:showcasePdfReport; warnings = @($global:showcasePdfWarnings) })
         outputs = @($outputs)
