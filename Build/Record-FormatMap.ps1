@@ -84,10 +84,10 @@ try {
         if ($Still.Count -eq 0) { throw 'Still requires at least one timestamp.' }
         $arguments += "--still=$($Still -join ',')"
     }
-    if ($Cut) { $arguments += "--cut=$($Cut -join ',')" }
+    if ($PSBoundParameters.ContainsKey('Cut')) { $arguments += "--cut=$($Cut -join ',')" }
     if ($Scale -gt 1) { $arguments += "--scale=$Scale" }
     if ($PSBoundParameters.ContainsKey('Fps')) { $arguments += "--fps=$Fps" }
-    if ($Formats) { $arguments += "--formats=$($Formats -join ',')" }
+    if ($PSBoundParameters.ContainsKey('Formats')) { $arguments += "--formats=$($Formats -join ',')" }
     if ($Output) { $arguments += "--output=$Output" }
     Invoke-Step 'Render clips' {
         dotnet run --project $recorder -c Release -- @arguments

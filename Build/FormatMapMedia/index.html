@@ -89,6 +89,9 @@
     '1x1': { cx: W * .5, cy: H * .40, R: W * .235, brand: [W * .06, H * .04], cap: [W * .07, H * .735, W * .86], title: 62, note: 26, kick: 20, pill: 19, brandSize: 38 },
     '4x5': { cx: W * .5, cy: H * .415, R: W * .295, brand: [W * .06, H * .035], cap: [W * .07, H * .76, W * .86], title: 74, note: 30, kick: 22, pill: 22, brandSize: 42 }
   }[layout];
+  // Keep each composition's typography proportional when a cut uses a smaller or larger viewport.
+  const textScale = W / (layout === '16x9' ? 1920 : 1080);
+  ['title', 'note', 'kick', 'pill', 'brandSize'].forEach(key => { COMP[key] *= textScale; });
   const { cx, cy, R } = COMP;
 
   // ---------------------------------------------------------------- data
@@ -404,11 +407,12 @@
     }
     // camera: a slow push in, leaning toward what is lit
     const zoomMax = layout === '16x9' ? .06 : .035;
-    const k = easeInOut(local / scene.dwell);
-    const zoom = 1 + zoomMax * (scene.type === 'outro' ? 0 : k);
-    const target = state.camera ? pos[state.camera] : null;
-    const lean = target ? .12 * k : 0;
-    const tx = target ? (cx - target.x) * lean : 0, ty = target ? (cy - target.y) * lean : 0;
+    const camera = (s, current, elapsed) => {
+      const k = easeInOut(elapsed / s.dwell), target = current.camera ? pos[current.camera] : null;
+      return { zoom: 1 + zoomMax * (s.type === 'outro' ? 0 : k), tx: target ? (cx - target.x) * .12 * k : 0, ty: target ? (cy - target.y) * .12 * k : 0 };
+    };
+    const incoming = camera(scene, state, local), outgoing = prev ? camera(prevScene, prev, prevScene.dwell) : incoming;
+    const zoom = lerp(outgoing.zoom, incoming.zoom, b), tx = lerp(outgoing.tx, incoming.tx, b), ty = lerp(outgoing.ty, incoming.ty, b);
     ring.setAttribute('transform', `translate(${(cx + tx).toFixed(2)} ${(cy + ty).toFixed(2)}) scale(${zoom.toFixed(4)}) translate(${-cx} ${-cy})`);
     // caption
     const fadeIn = easeOut(local / 520), fadeOut = scene.dwell - local < 260 && i < scenes.length - 1 ? clamp((scene.dwell - local) / 260, 0, 1) : 1;

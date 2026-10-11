@@ -35,6 +35,7 @@ internal static class Program {
     }
 
     private static async Task<int> RecordCutsAsync(string[] args) {
+        ValidateArguments(args);
         string root = Directory.GetCurrentDirectory();
         string output = Path.GetFullPath(Option(args, "--output") ?? Path.Combine(root, "Artefacts", "FormatMapVideos"));
         string mediaDir = Path.GetFullPath(Option(args, "--media-dir") ?? Path.Combine(root, "Build", "FormatMapMedia"));
@@ -58,7 +59,9 @@ internal static class Program {
             return 0;
         }
 
-        string[] wanted = (Option(args, "--cut") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        string? selector = Option(args, "--cut");
+        string[] wanted = selector is null ? [] : selector.Split(',', StringSplitOptions.TrimEntries);
+        if (wanted.Any(string.IsNullOrWhiteSpace)) throw new ArgumentException("--cut requires nonempty comma-separated cut names.");
         string[] unknown = wanted.Where(name => !all.Any(cut => string.Equals(cut.Name, name, StringComparison.OrdinalIgnoreCase))).ToArray();
         if (unknown.Length > 0) {
             Console.Error.WriteLine("Unknown cut: " + string.Join(", ", unknown));
@@ -68,8 +71,8 @@ internal static class Program {
         // --scale=2 renders the same layout at twice the pixels (1920x1080 becomes 3840x2160); --formats replaces each cut's formats.
         int scale = ParseIntegerOption(args, "--scale", 1, 4) ?? 1;
         int? fps = ParseIntegerOption(args, "--fps", 10, 120);
-        string[]? formats = Option(args, "--formats")?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (formats is { Length: 0 }) throw new ArgumentException("--formats requires at least one output format.");
+        string[]? formats = Option(args, "--formats")?.Split(',', StringSplitOptions.TrimEntries);
+        if (formats is not null && formats.Any(string.IsNullOrWhiteSpace)) throw new ArgumentException("--formats requires nonempty comma-separated output formats.");
         cuts = cuts.Select(cut => cut with {
             Name = scale > 1 ? $"{cut.Name}-{scale}x" : cut.Name,
             Width = checked(cut.Width * scale), Height = checked(cut.Height * scale), Scale = checked(cut.Scale * scale),
@@ -115,6 +118,22 @@ internal static class Program {
         // Leave no empty scratch folder behind.
         if (Directory.Exists(scratch) && !Directory.EnumerateFileSystemEntries(scratch).Any()) Directory.Delete(scratch);
         return failures == 0 ? 0 : 1;
+    }
+
+    private static void ValidateArguments(string[] args) {
+        string[] valueOptions = ["--output", "--cut", "--scale", "--fps", "--formats", "--still", "--cuts", "--media-dir", "--ffmpeg"];
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string argument in args) {
+            int equals = argument.IndexOf('=');
+            string name = equals < 0 ? argument : argument[..equals];
+            if (name.Equals("--list", StringComparison.OrdinalIgnoreCase)) {
+                if (equals >= 0) throw new ArgumentException("--list does not accept a value.");
+            } else {
+                if (!valueOptions.Contains(name, StringComparer.OrdinalIgnoreCase)) throw new ArgumentException($"Unknown recorder argument: {name}");
+                if (equals < 0 || string.IsNullOrWhiteSpace(argument[(equals + 1)..])) throw new ArgumentException($"{name} requires a value: {name}=<value>.");
+            }
+            if (!seen.Add(name)) throw new ArgumentException($"Duplicate recorder option: {name}");
+        }
     }
 
     private static int? ParseIntegerOption(string[] args, string name, int minimum, int maximum) {
