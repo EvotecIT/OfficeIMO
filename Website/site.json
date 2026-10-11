@@ -357,7 +357,7 @@
     "PathBase": "Website"
   },
   "AssetRegistry": {
-    "CssStrategy": "preload",
+    "CssStrategy": "blocking",
     "Bundles": [
       {
         "Name": "global",

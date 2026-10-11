@@ -4026,7 +4026,7 @@
       "siteRoot": "./_site",
       "config": "./site.json",
       "criticalCss": "./themes/officeimo/critical.css",
-      "cssStrategy": "preload",
+      "cssStrategy": "blocking",
       "minifyHtml": true,
       "htmlExclude": [
         "downloads/showcase/**"
@@ -4053,8 +4053,23 @@
     },
     {
       "task": "exec",
-      "id": "test-browser-converter",
+      "id": "verify-optimized-presentation",
       "dependsOn": "optimize-site",
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-WebsitePresentation.ps1",
+        "-SiteRoot",
+        "./_site"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-browser-converter",
+      "dependsOn": "verify-optimized-presentation",
       "command": "dotnet",
       "argsList": [
         "test",

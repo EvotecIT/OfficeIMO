@@ -18,7 +18,7 @@ string websiteDataPath = GetOption(args, "--website-data")
 bool verify = args.Contains("--verify", StringComparer.OrdinalIgnoreCase);
 // The front-page format map sits beside the route data and is generated from the same catalog.
 string formatMapPath = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(websiteDataPath))!, "format_map.json");
-string formatMap = FormatMapProjection.Create();
+string formatMap = FormatMapProjection.Create(repositoryRoot);
 string converterSamplePath = GetOption(args, "--converter-sample")
     ?? Path.Combine(
         Directory.GetCurrentDirectory(),

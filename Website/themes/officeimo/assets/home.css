@@ -214,7 +214,14 @@
 
 /* ---------- Workbench home ---------- */
 .imo-surfaces { position: relative; z-index: 2; border-block: 1px solid var(--imo-border); background: var(--imo-border); }
+/* Wide: one row. Mid widths: rows of three, and a short last row stretches to fill, so no empty cell shows the border colour. */
 .imo-surfaces__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; max-width: var(--imo-max-width-wide); margin: 0 auto; }
+@media (min-width: 641px) and (max-width: 1099px) {
+  .imo-surfaces__grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .imo-surface { grid-column: span 2; }
+  .imo-surface:nth-child(3n+1):nth-last-child(2), .imo-surface:nth-child(3n+1):nth-last-child(2) + .imo-surface { grid-column: span 3; }
+  .imo-surface:nth-child(3n+1):last-child { grid-column: 1 / -1; }
+}
 .imo-surface { position: relative; display: grid; align-content: start; gap: .5rem; padding: 1.6rem 1.5rem 1.8rem; background: var(--imo-bg-alt); color: var(--imo-text); text-decoration: none; transition: background var(--imo-duration) var(--imo-ease); }
 .imo-surface::before { content: ""; position: absolute; top: 0; left: 1.5rem; right: 1.5rem; height: 2px; background: var(--imo-product); }
 [data-theme="dark"] .imo-surface::before { box-shadow: 0 0 18px var(--imo-product); }
@@ -263,6 +270,7 @@
 }
 @media (max-width: 640px) {
   .imo-surfaces__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .imo-surface:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .imo-surface { padding: 1.25rem 1rem 1.35rem; }
   .imo-surface::before { left: 1rem; right: 1rem; }
   .imo-surface p { font-size: .84rem; }

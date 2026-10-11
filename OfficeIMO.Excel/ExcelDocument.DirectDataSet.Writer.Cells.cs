@@ -257,6 +257,9 @@ namespace OfficeIMO.Excel {
                     case string stringValue:
                         WriteStringCellValue(writer, stringValue, sharedStrings);
                         return;
+                    case byte[] bytes:
+                        WriteStringCellValue(writer, System.Convert.ToBase64String(bytes), sharedStrings);
+                        return;
                     case bool boolValue:
                         writer.Write(boolValue ? " t=\"b\"><v>1</v></c>" : " t=\"b\"><v>0</v></c>");
                         return;
