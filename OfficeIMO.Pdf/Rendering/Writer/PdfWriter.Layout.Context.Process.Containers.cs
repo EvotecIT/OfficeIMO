@@ -2,8 +2,15 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private PdfPanelStyle ResolveContainerStyle(ContainerBlock container) =>
-            container.UseDefaultPanelStyle ? currentOpts.DefaultPanelStyleSnapshot ?? container.Style : container.Style;
+        private PdfPanelStyle ResolveContainerStyle(ContainerBlock container) {
+            PdfPanelStyle style = container.UseDefaultPanelStyle ? currentOpts.DefaultPanelStyleSnapshot ?? container.Style : container.Style;
+            if (style.FrameStartPaddingTopOverride.HasValue && Math.Abs(y - GetCurrentFramePageStartY()) <= .001D) {
+                style = style.Clone();
+                style.PaddingTopOverride = style.FrameStartPaddingTopOverride;
+                style.TopBorder = style.FrameStartTopBorder;
+            }
+            return style;
+        }
 
         private void RenderContainerBlock(
             ContainerBlock container,
@@ -19,7 +26,7 @@ internal static partial class PdfWriter {
             double contentWidth = frame.ContentWidth;
 
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX, contentWidth);
+            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX, contentWidth, GetClosingContainerPadding());
             double firstVisualHeight = firstVisual.Height;
             double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
             if (style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
@@ -32,10 +39,11 @@ internal static partial class PdfWriter {
                 (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())) {
                 NewBlockFrame(forcePhysicalPage: firstVisual.Overflow != PdfKeepTogetherOverflowBehavior.Reject &&
                     (firstVisual.Overflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages || IsPartialPhysicalColumnFrame()));
+                style = ResolveContainerStyle(container);
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 parentLeft = currentOpts.MarginLeft; parentWidth = width;
                 frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
-                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth);
+                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth, GetClosingContainerPadding());
                 firstVisualHeight = firstVisual.Height;
                 minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
                 if (style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
@@ -56,6 +64,7 @@ internal static partial class PdfWriter {
 
                 while (ShouldAdvanceForBlockHeight(keepHeight.Value)) {
                     NewBlockFrame();
+                    style = ResolveContainerStyle(container);
                     spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                     parentLeft = currentOpts.MarginLeft; parentWidth = width;
                     keepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
@@ -74,6 +83,7 @@ internal static partial class PdfWriter {
                 double fullPageHeight = GetMaximumBlockContinuationHeight();
                 while (nextHeight > 0.001D && keepHeight <= fullPageHeight + 0.001D && ShouldAdvanceForBlockHeight(keepHeight)) {
                     NewBlockFrame();
+                    style = ResolveContainerStyle(container);
                     spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                     parentLeft = currentOpts.MarginLeft; parentWidth = width;
                     elementHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize);
@@ -122,6 +132,7 @@ internal static partial class PdfWriter {
                 double bottomPadding = style.AllowTrailingPaddingOverflow ? style.BottomPadding :
                     Math.Min(style.BottomPadding, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
                 y -= bottomPadding;
+                scope.MoveTrailingSeparatorToNextFrame = ShouldMoveJoinedContainerSeparator(scope, blockList, blockIndex);
                 FinalizeContainerFragment(scope);
                 // Nested margin options can resolve new fallback mappings as well
                 // as glyphs. Transfer both to the page's font resource owner.
@@ -137,9 +148,12 @@ internal static partial class PdfWriter {
             }
 
             if (style.SpacingAfter > 0D) {
-                ConsumeSpacer(style.SpacingAfter);
+                ConsumeSpacer(GetContainerSpacingAfter(style, y - currentOpts.MarginBottom));
             }
         }
+
+        private static double GetContainerSpacingAfter(PdfPanelStyle style, double available) =>
+            style.ClipSpacingAfterAtFrameEnd ? Math.Min(style.SpacingAfter, Math.Max(0D, available)) : style.SpacingAfter;
 
         private static (double X, double Width, double ContentWidth) ResolveContainerFrame(PdfPanelStyle style, double parentLeft, double parentWidth) {
             double outerWidth = style.MaxWidth.HasValue ? Math.Min(parentWidth, style.MaxWidth.Value) : parentWidth;
@@ -213,6 +227,7 @@ internal static partial class PdfWriter {
         private void FinalizeContainerFragment(ContainerRenderScope scope, double bottom, bool continues = false) {
             if (scope.Container?.FrameTable is { } table) tableFrameScopes.Remove(table);
             bottom = ResolveContainerTableFrameBottom(scope, bottom, continues);
+            if (!continues && scope.MoveTrailingSeparatorToNextFrame) bottom += scope.Style.BottomPadding;
             double fragmentHeight = scope.FragmentTop - bottom;
             if (fragmentHeight <= 0.001D) {
                 return;
@@ -225,7 +240,8 @@ internal static partial class PdfWriter {
                 DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, top, top, end, end, emitGeneratedStructure);
             }
 
-            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure, top, end);
+            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure,
+                top, end && !scope.MoveTrailingSeparatorToNextFrame);
             DrawContainerTableFrame(decoration, scope, bottom, fragmentHeight, top, end);
             if (decoration.Length > 0) {
                 sb.Insert(scope.InsertionIndex, decoration.ToString());
@@ -235,6 +251,7 @@ internal static partial class PdfWriter {
 
         private sealed class ContainerRenderScope {
             public double? TableContentBottom;
+            public bool MoveTrailingSeparatorToNextFrame { get; set; }
             public ContainerRenderScope(PdfPanelStyle style, double outerX, double outerWidth, PdfOptions pageOptions,
                 PdfOptions parentOptions, PdfOptions nestedOptions, ContainerBlock? container = null) {
                 Style = style;

@@ -43,6 +43,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private readonly record struct NativeParagraphBorderSide(W.BorderValues? Style, string? ColorHex, uint? Size, uint? Space) {
+            public bool Shadow { get; init; }
+            public bool Frame { get; init; }
             public bool IsEmpty => Style == null && string.IsNullOrWhiteSpace(ColorHex) && Size == null && Space == null;
         }
 
@@ -51,6 +53,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphBorderSide Right,
             NativeParagraphBorderSide Bottom,
             NativeParagraphBorderSide Left) {
+            public NativeParagraphBorderSide Between { get; init; }
             public static NativeParagraphBorders Empty { get; } = new(default, default, default, default);
         }
 
@@ -417,7 +420,8 @@ namespace OfficeIMO.Word.Pdf {
                 Top = ReadNativeParagraphBorderSide(borders.TopBorder) ?? current.Top,
                 Right = ReadNativeParagraphBorderSide(borders.RightBorder) ?? current.Right,
                 Bottom = ReadNativeParagraphBorderSide(borders.BottomBorder) ?? current.Bottom,
-                Left = ReadNativeParagraphBorderSide(borders.LeftBorder) ?? current.Left
+                Left = ReadNativeParagraphBorderSide(borders.LeftBorder) ?? current.Left,
+                Between = ReadNativeParagraphBorderSide(borders.BetweenBorder) ?? current.Between
             };
         }
 
@@ -430,7 +434,10 @@ namespace OfficeIMO.Word.Pdf {
                 border.Val?.Value,
                 NormalizeNativeBorderColor(border.Color?.Value),
                 border.Size?.Value,
-                border.Space?.Value);
+                border.Space?.Value) {
+                Shadow = border.Shadow?.Value == true,
+                Frame = border.Frame?.Value == true
+            };
         }
 
         private static double? GetNativeStyleParagraphLineHeight(
