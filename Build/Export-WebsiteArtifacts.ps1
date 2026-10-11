@@ -166,32 +166,37 @@ function Get-QualifiedSourceRevision {
     if ($packageRevision.ExitCode -ne 0) {
         throw "Package source revision $($packageCommits[0]) is unavailable locally. Fetch this revision or deepen the checkout before exporting."
     }
-    $packageManifestResult = Invoke-SourceGit @('show', "$($packageCommits[0]):PSWriteOffice.psd1")
-    if ($packageManifestResult.ExitCode -ne 0) { throw 'The package source revision lacks its module manifest.' }
-    $parseErrors = $null
-    $tokens = $null
-    $manifestAst = [System.Management.Automation.Language.Parser]::ParseInput(
-        ($packageManifestResult.Output -join "`n").TrimStart([char]0xfeff), [ref]$tokens, [ref]$parseErrors)
-    if ($parseErrors.Count -gt 0) { throw 'The package source manifest could not be parsed safely.' }
-    $manifestExpression = if ($manifestAst.EndBlock.Statements.Count -eq 1 -and
-        $manifestAst.EndBlock.Statements[0] -is [System.Management.Automation.Language.PipelineAst]) {
-        $manifestAst.EndBlock.Statements[0].GetPureExpression()
-    }
-    if ($manifestExpression -isnot [System.Management.Automation.Language.HashtableAst]) {
-        throw 'The package source manifest must contain a data hashtable.'
-    }
-    $packageManifest = $manifestExpression.SafeGetValue()
-    # PowerForge resolves ModuleVersion during a normal build; every other field
-    # must still describe the manifest from which the package was built.
-    if ((Get-ComparableManifest $packageManifest -IgnoreVersion) -cne
-        (Get-ComparableManifest $manifest -IgnoreVersion)) {
-        throw 'The module bundle source manifest does not match this checkout. Rebuild it from this checkout.'
+    foreach ($manifestRevision in @($packageCommits[0], $head[0], '') | Select-Object -Unique) {
+        $packageManifestResult = Invoke-SourceGit @('show', "${manifestRevision}:PSWriteOffice.psd1")
+        if ($packageManifestResult.ExitCode -ne 0) { throw 'A recorded source revision lacks its module manifest.' }
+        $parseErrors = $null
+        $tokens = $null
+        $manifestAst = [System.Management.Automation.Language.Parser]::ParseInput(
+            ($packageManifestResult.Output -join "`n").TrimStart([char]0xfeff), [ref]$tokens, [ref]$parseErrors)
+        if ($parseErrors.Count -gt 0) { throw 'The package source manifest could not be parsed safely.' }
+        $manifestExpression = if ($manifestAst.EndBlock.Statements.Count -eq 1 -and
+            $manifestAst.EndBlock.Statements[0] -is [System.Management.Automation.Language.PipelineAst]) {
+            $manifestAst.EndBlock.Statements[0].GetPureExpression()
+        }
+        if ($manifestExpression -isnot [System.Management.Automation.Language.HashtableAst]) {
+            throw 'The package source manifest must contain a data hashtable.'
+        }
+        $packageManifest = $manifestExpression.SafeGetValue()
+        # PowerForge resolves ModuleVersion during a normal build; every other field
+        # must still describe the manifest from which the package was built.
+        if ((Get-ComparableManifest $packageManifest -IgnoreVersion) -cne
+            (Get-ComparableManifest $manifest -IgnoreVersion)) {
+            throw 'The module bundle source manifest does not match this checkout. Rebuild it from this checkout.'
+        }
     }
     $apiInputs = @('Sources', 'PSWriteOffice.psm1', 'Directory.Build.props', 'Directory.Build.targets',
         'Directory.Packages.props', 'global.json', 'NuGet.Config', 'nuget.config', 'Build/Build-Module.ps1')
-    $difference = Invoke-SourceGit (@('diff', '--quiet', $packageCommits[0], '--') + $apiInputs)
+    $difference = Invoke-SourceGit (@('diff', '--quiet', $packageCommits[0], $head[0], '--') + $apiInputs)
+    $workingDifference = Invoke-SourceGit (@('diff', '--quiet', 'HEAD', '--') + $apiInputs)
+    $indexDifference = Invoke-SourceGit (@('diff', '--cached', '--quiet', 'HEAD', '--') + $apiInputs)
     $untrackedInputs = Invoke-SourceGit (@('ls-files', '--others', '--exclude-standard', '--') + $apiInputs)
-    if ($difference.ExitCode -ne 0 -or $untrackedInputs.ExitCode -ne 0 -or $untrackedInputs.Output.Count -gt 0) {
+    if ($difference.ExitCode -ne 0 -or $workingDifference.ExitCode -ne 0 -or $indexDifference.ExitCode -ne 0 -or
+        $untrackedInputs.ExitCode -ne 0 -or $untrackedInputs.Output.Count -gt 0) {
         throw 'The module bundle source does not match the selected API and build inputs. Rebuild it from this checkout.'
     }
     [PSCustomObject]@{ SourceCommit = [string]$head[0]; PackageSourceCommit = [string]$packageCommits[0] }
