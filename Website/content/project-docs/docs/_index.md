@@ -39,6 +39,7 @@ PSWriteOffice is the PowerShell surface for OfficeIMO. Use these guides to choos
 - [Reader, extraction, and OCR](/docs/pswriteoffice/reader/)
   - [Search a mixed document corpus](/docs/pswriteoffice/reader-search-corpus/)
   - [Extract chunks, tables, and assets](/docs/pswriteoffice/reader-chunks-tables/)
+- [Choose a conversion route](/docs/pswriteoffice/conversion-routes/)
 - [Confluence Cloud publishing](/docs/pswriteoffice/confluence/)
 - [Visio diagrams](/docs/pswriteoffice/visio/)
 - [Markdown, RTF, CSV, OpenDocument, email, AsciiDoc, and LaTeX](/docs/pswriteoffice/open-text-formats/)
