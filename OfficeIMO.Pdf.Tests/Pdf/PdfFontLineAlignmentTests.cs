@@ -41,6 +41,52 @@ public sealed class PdfFontLineAlignmentTests {
     }
 
     [Theory]
+    [InlineData(0, 0, 54D, 13D)]
+    [InlineData(0, 1, 60D, 15D)]
+    [InlineData(0, 2, 54D, 13D)]
+    [InlineData(1, 0, 60D, 15D)]
+    [InlineData(1, 1, 60D, 15D)]
+    [InlineData(1, 2, 54D, 13D)]
+    public void DeviceMetricsRespectVersionSpecificCharacterSets(int version, int characterSet, double ascent, double descent) {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics();
+        var reader = OfficeOpenTypeReader.TryCreate(font)!;
+        Assert.True(reader.TryGetTable("VDMX", out int offset, out _));
+        font[offset + 1] = (byte)version;
+        font[offset + 6] = (byte)characterSet;
+        var metrics = OfficeOpenTypeLineMetrics.TryRead(font);
+        Assert.True(metrics.HasValue);
+        metrics!.Value.GetDeviceMetrics(8, .12D, out double actualAscent, out double actualDescent);
+        Assert.Equal(ascent, actualAscent);
+        Assert.Equal(descent, actualDescent);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 2)]
+    public void DeviceMetricsSkipUnsupportedCharacterSetsBeforeAMatchingGroup(int version, int firstCharacterSet) {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics();
+        var reader = OfficeOpenTypeReader.TryCreate(source)!;
+        Assert.True(reader.TryGetTable("VDMX", out int offset, out _));
+        var table = new byte[50];
+        table[1] = (byte)version;
+        table[3] = 2;
+        table[5] = 2;
+        table[6] = (byte)firstCharacterSet;
+        table[7] = table[8] = table[9] = 1;
+        table[10] = table[11] = table[12] = table[13] = 1;
+        table[15] = 18;
+        table[17] = 34;
+        Array.Copy(source, offset + 12, table, 18, 16);
+        Array.Copy(source, offset + 12, table, 34, 16);
+        table[25] = 64;
+        var metrics = OfficeOpenTypeLineMetrics.TryRead(ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics(table));
+        Assert.True(metrics.HasValue);
+        metrics!.Value.GetDeviceMetrics(8, .12D, out double ascent, out double descent);
+        Assert.Equal(60D, ascent);
+        Assert.Equal(15D, descent);
+    }
+
+    [Theory]
     [InlineData(5)]
     [InlineData(11)]
     [InlineData(15)]

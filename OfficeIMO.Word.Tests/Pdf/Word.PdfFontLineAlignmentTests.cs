@@ -10,6 +10,33 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData("top")]
+    [InlineData("center")]
+    [InlineData("bottom")]
+    [InlineData("baseline")]
+    public void SaveAsPdf_ExactLineAlignmentKeepsUniformListMarkersWithTheirBody(string alignment) {
+        const string family = "OfficeIMO list device alignment";
+        using WordDocument document = WordDocument.Create();
+        var list = document.AddCustomList();
+        var level = new WordListLevel(WordListLevelKind.DecimalDot) { LevelText = "A", LevelSuffix = WordListLevelSuffix.Tab };
+        level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
+            new RunFonts { Ascii = family, HighAnsi = family }, new FontSize { Val = "16" });
+        list.Numbering.AddLevel(level);
+        var paragraph = list.AddItem("B");
+        paragraph.FontFamily = family; paragraph.FontSize = 8;
+        paragraph.LineSpacingPoints = 30; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph._paragraph.ParagraphProperties!.TextAlignment = new TextAlignment { Val = new VerticalTextAlignmentValues(alignment) };
+        var options = new PdfOptions();
+        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options
+        }));
+        var letters = pdf.GetPage(1).Letters;
+        Assert.Equal(Assert.Single(letters, x => x.Value == "A").StartBaseLine.Y,
+            Assert.Single(letters, x => x.Value == "B").StartBaseLine.Y, 3);
+    }
+
+    [Theory]
     [InlineData(false, false, "top", 7.08D)]
     [InlineData(false, true, "top", 7.08D)]
     [InlineData(true, false, "top", 7.08D)]

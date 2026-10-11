@@ -27,6 +27,10 @@ internal sealed class OfficeOpenTypeDeviceMetrics {
         if (version > 1 || groups == 0 || ratios == 0 || headerLength > length) return null;
         for (int index = 0; index < ratios; index++) {
             int ratio = start + 6 + index * 4;
+            int characterSet = reader.Data[ratio];
+            // Version 0 accepts the Windows ANSI subset; version 1 accepts
+            // either defined whole-font value. Ignore reserved character sets.
+            if (characterSet > 1 || (version == 0 && characterSet != 1)) continue;
             int x = reader.Data[ratio + 1];
             int minimumY = reader.Data[ratio + 2];
             int maximumY = reader.Data[ratio + 3];
