@@ -9,7 +9,12 @@ public sealed class PublisherTableCell {
         RowIndex = row; ColumnIndex = column; RowSpan = rowSpan; ColumnSpan = columnSpan;
         X = x; Y = y; Width = width; Height = height;
         Paragraphs = Array.AsReadOnly(paragraphs.ToArray());
-        Text = string.Join("\n", paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
+        Text = string.Join("\n", paragraphs.Select(ParagraphText));
+    }
+    private static string ParagraphText(OfficeRichTextParagraph paragraph) {
+        string label = paragraph.Label == null ? string.Empty : paragraph.Label.Run.Text
+            + (paragraph.Label.FollowedBy == OfficeTextParagraphLabelFollowedBy.Nothing ? string.Empty : " ");
+        return label + string.Concat(paragraph.Runs.Select(run => run.Text));
     }
     /// <summary>Zero-based first row occupied by this cell.</summary>
     public int RowIndex { get; }
@@ -29,6 +34,6 @@ public sealed class PublisherTableCell {
     public double Height { get; }
     /// <summary>Recovered paragraphs and styled runs. Empty when the owning table has no resolved text mapping.</summary>
     public IReadOnlyList<OfficeRichTextParagraph> Paragraphs { get; }
-    /// <summary>Recovered cell text with paragraphs separated by newlines. Empty when text mapping is unresolved.</summary>
+    /// <summary>Recovered cell text including paragraph labels, with paragraphs separated by newlines. Empty when text mapping is unresolved.</summary>
     public string Text { get; }
 }

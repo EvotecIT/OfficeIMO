@@ -36,9 +36,45 @@ internal static class PublisherTableFixture {
         quill[descriptor + 4] = (byte)'X'; // TCD becomes TCX, leaving complete stories intact.
     });
 
-    internal static byte[] ChangeTableStory(byte[] publication, uint objectId, uint storyId) => Rewrite(publication, streams => {
+    internal static byte[] ChangeTableStory(byte[] publication, uint objectId, uint? storyId) => Rewrite(publication, streams => {
         byte[] contents = streams["Contents"];
-        WriteScalar(contents, Chunk(contents, ChunkOffset(contents, objectId)).Single(field => field.Id == 0x27), storyId);
+        Block field = Chunk(contents, ChunkOffset(contents, objectId)).Single(item => item.Id == 0x27);
+        if (storyId.HasValue) WriteScalar(contents, field, storyId.Value);
+        else contents[field.Offset - 2] = 0xFE; // An unrelated scalar, leaving no story reference.
+    });
+
+    internal static byte[] WithBulletParagraphs(byte[] publication) => Rewrite(publication, streams => {
+        byte[] quill = streams["Quill/QuillSub/CONTENTS"];
+        (int descriptor, int data) = QuillChunk(quill, "FDPP");
+        int count = BitConverter.ToUInt16(quill, data);
+        using var output = new MemoryStream(); using var writer = new BinaryWriter(output);
+        writer.Write(quill, data, 8 + count * 6);
+        var rewritten = new Dictionary<ushort, ushort>();
+        var offsets = new ushort[count];
+        for (int i = 0; i < count; i++) {
+            ushort original = BitConverter.ToUInt16(quill, data + 8 + count * 4 + i * 2);
+            if (!rewritten.TryGetValue(original, out ushort offset)) {
+                offset = checked((ushort)output.Position); rewritten.Add(original, offset);
+                using var style = new MemoryStream(); using var fields = new BinaryWriter(style);
+                fields.Write(0);
+                foreach (Block field in Chunk(quill, data + original).Where(field => field.Id != 0x57))
+                    fields.Write(quill, field.Offset - 2, field.Length + 2);
+                fields.Write((byte)0x57); fields.Write((byte)0x88); fields.Write(16);
+                fields.Write((byte)0); fields.Write((byte)0x20); fields.Write(0xFFU);
+                fields.Write((byte)1); fields.Write((byte)0x20); fields.Write(0x2022U);
+                byte[] value = style.ToArray(); Write(value, 0, checked((uint)value.Length)); writer.Write(value);
+            }
+            offsets[i] = offset;
+        }
+        byte[] replacement = output.ToArray();
+        for (int i = 0; i < count; i++) {
+            int offset = 8 + count * 4 + i * 2;
+            replacement[offset] = (byte)offsets[i]; replacement[offset + 1] = (byte)(offsets[i] >> 8);
+        }
+        byte[] combined = quill.Concat(replacement).ToArray();
+        Write(combined, descriptor + 16, checked((uint)quill.Length));
+        Write(combined, descriptor + 20, checked((uint)replacement.Length));
+        streams["Quill/QuillSub/CONTENTS"] = combined;
     });
 
     internal static byte[] EmptyMergedTableStory(byte[] publication) => Rewrite(publication, streams => {
