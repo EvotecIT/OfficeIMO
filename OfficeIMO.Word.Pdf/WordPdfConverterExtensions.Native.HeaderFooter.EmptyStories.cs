@@ -37,12 +37,18 @@ public static partial class WordPdfConverterExtensions {
                 else if (index == 2) header.EvenPagesContent(content, distance);
                 else header.Content(content, distance);
             });
-            if (isFooter) page.Options.RetainRunningContentTextProjection(isHeader: false,
+            if (isFooter) RetainNativeImplicitFooterTextProjection(page.Options, story,
                 index == 1 ? PdfCore.PdfRunningContentVariant.FirstPage
                     : index == 2 ? PdfCore.PdfRunningContentVariant.EvenPages : PdfCore.PdfRunningContentVariant.Default);
         }
         ReserveNativeEmptyRunningContentDistances(page.Options, !isFooter, defaultStory, firstStory, evenStory);
         page.Options.AllowRunningContentTextFallback(!isFooter);
+    }
+
+    private static void RetainNativeImplicitFooterTextProjection(PdfCore.PdfOptions options, WordHeaderFooter? story,
+        PdfCore.PdfRunningContentVariant variant) {
+        if (story != null && !story.ChildElements.Any())
+            options.RetainRunningContentTextProjection(isHeader: false, variant);
     }
 
     private static void RenderNativeImplicitRunningParagraph(INativePdfFlow flow, WordHeaderFooter story,

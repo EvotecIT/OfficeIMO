@@ -98,10 +98,11 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningHeader(section, options)) {
             double distance = section.Margins.HeaderDistance / 20D;
             page.Header(header => {
-                header.Content(CreateNativeRunningStory(section.Header?.Default, section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DifferentFirstPage)
+                if (section.Header?.Default != null)
+                    header.Content(CreateNativeRunningStory(section.Header.Default, section, options, fontMap, listMarkers, defaults, false), distance);
+                if (section.DifferentFirstPage && section.Header?.First != null)
                     header.FirstPageContent(CreateNativeRunningStory(section.Header?.First, section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DocumentOddEvenSettingEnabled)
+                if (section.DocumentOddEvenSettingEnabled && section.Header?.Even != null)
                     header.EvenPagesContent(CreateNativeRunningStory(section.Header?.Even, section, options, fontMap, listMarkers, defaults, false), distance);
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.Header?.Default,
@@ -114,15 +115,21 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
             page.Footer(footer => {
-                footer.Content(CreateNativeRunningStory(section.Footer?.Default, section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DifferentFirstPage)
+                if (section.Footer?.Default != null)
+                    footer.Content(CreateNativeRunningStory(section.Footer.Default, section, options, fontMap, listMarkers, defaults, true), distance);
+                if (section.DifferentFirstPage && section.Footer?.First != null)
                     footer.FirstPageContent(CreateNativeRunningStory(section.Footer?.First, section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DocumentOddEvenSettingEnabled)
+                if (section.DocumentOddEvenSettingEnabled && section.Footer?.Even != null)
                     footer.EvenPagesContent(CreateNativeRunningStory(section.Footer?.Even, section, options, fontMap, listMarkers, defaults, true), distance);
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null);
+            RetainNativeImplicitFooterTextProjection(page.Options, section.Footer?.Default, PdfCore.PdfRunningContentVariant.Default);
+            if (section.DifferentFirstPage)
+                RetainNativeImplicitFooterTextProjection(page.Options, section.Footer?.First, PdfCore.PdfRunningContentVariant.FirstPage);
+            if (section.DocumentOddEvenSettingEnabled)
+                RetainNativeImplicitFooterTextProjection(page.Options, section.Footer?.Even, PdfCore.PdfRunningContentVariant.EvenPages);
             if (!new[] { section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
                     section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
@@ -142,8 +149,12 @@ public static partial class WordPdfConverterExtensions {
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>()))
                 RecordNativeMixedTextBoxDiagnostic(GetNativeRuns(new WordParagraph(story.Document, source)), options,
                     "header/footer paragraph");
+        // A childless source footer owns blank geometry; its generated number
+        // keeps the established text projection and physical margin. Missing
+        // variants have no native story and must not acquire an exclusion.
         bool addPageNumber = includeGeneratedPageNumber && isFooter && options?.IncludePageNumbers == true &&
-            (story == null || GetNativeHeaderFooterText(story, listMarkers, fontMap)?.HasPageTokens != true);
+            story != null && story.ChildElements.Any() &&
+            GetNativeHeaderFooterText(story, listMarkers, fontMap)?.HasPageTokens != true;
         return context => content => {
             options?.CancellationToken.ThrowIfCancellationRequested();
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
