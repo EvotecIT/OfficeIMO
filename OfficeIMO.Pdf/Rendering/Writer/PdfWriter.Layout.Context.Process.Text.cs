@@ -282,16 +282,18 @@ internal static partial class PdfWriter {
             bool firstLogicalLine = true;
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             void NewParagraphPage() {
+                double firstBodyHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
+                if (lineIndex == lines.Count - 1) firstBodyHeight += GetClosingTextPadding(spacingAfter);
+                firstBodyHeight += GetRunningBodyContinuationReservation();
+                bool forcePhysicalPage = SkipColumnsForParagraphOverflow() || AdvancePastPartialColumn(firstBodyHeight);
                 if (activeColumnFlow?.Options.BalanceLastPage == true) {
                     PdfParagraphStyle continuationStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
                     if (!firstLogicalLine) { continuationStyle.SpacingBefore = 0D; continuationStyle.FirstLineIndent = 0D; }
                     var remainingRuns = firstLogicalLine ? rpb.Runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
-                    QueueColumnBalanceRemainder(new RichParagraphBlock(remainingRuns, rpb.Align, rpb.DefaultColor, continuationStyle), blockList, blockIndex);
+                    QueueColumnBalanceRemainder(new RichParagraphBlock(remainingRuns, rpb.Align, rpb.DefaultColor, continuationStyle), blockList, blockIndex,
+                        forcePhysicalPage);
                 }
-                double firstBodyHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
-                if (lineIndex == lines.Count - 1) firstBodyHeight += GetClosingTextPadding(spacingAfter);
-                firstBodyHeight += GetRunningBodyContinuationReservation();
-                NewPage(forcePhysicalPage: SkipColumnsForParagraphOverflow() || AdvancePastPartialColumn(firstBodyHeight), firstBodyHeight: firstBodyHeight,
+                NewPage(forcePhysicalPage: forcePhysicalPage, firstBodyHeight: firstBodyHeight,
                     firstBodyAllowsFooterOverlap: paragraphStyle?.AllowFirstLineOverlapWithRunningFooter == true && activeColumnFlow == null,
                     firstBodyAllowsExactOverflow: CanOverflowImportedExactLine(paragraphStyle));
                 frameStart = GetCurrentFramePageStartY();

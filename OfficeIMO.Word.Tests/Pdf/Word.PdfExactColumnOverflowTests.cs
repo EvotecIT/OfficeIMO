@@ -78,8 +78,10 @@ public partial class Word {
 
     }
 
-    [Fact]
-    public void SaveAsPdf_ExactColumnOverflowResetsBeforeOrdinaryColumnContinuation() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_ExactColumnOverflowResetsBeforeOrdinaryColumnContinuation(bool balanced) {
         using WordDocument source = WordDocument.Create();
         source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         source.Sections[0].ColumnCount = 2;
@@ -97,6 +99,14 @@ public partial class Word {
         ordinary.LineSpacingRule = WordLineSpacingRule.Exact;
         ordinary.LineSpacingBeforePoints = ordinary.LineSpacingAfterPoints = 0;
         ordinary._paragraph.ParagraphProperties!.WidowControl = new W.WidowControl { Val = false };
+        if (balanced) {
+            source.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
+            WordParagraph after = source.AddParagraph();
+            after._paragraph.Append(TextLine("Z", 12, false));
+            after.LineSpacingPoints = 12;
+            after.LineSpacingRule = WordLineSpacingRule.Exact;
+            after.LineSpacingBeforePoints = after.LineSpacingAfterPoints = 0;
+        }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
@@ -105,10 +115,15 @@ public partial class Word {
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Equal("A", Assert.Single(pdf.GetPage(1).Letters).Value);
         var letters = pdf.GetPage(2).Letters;
-        Assert.Equal("BCDEFGHIJK", string.Concat(letters.Select(letter => letter.Value)));
-        Assert.All(letters.Take(8), letter => Assert.Equal(30D, letter.StartBaseLine.X, 3));
-        Assert.All(letters.Skip(8), letter => Assert.Equal(136D, letter.StartBaseLine.X, 3));
-        Assert.Equal(letters[0].StartBaseLine.Y, letters[8].StartBaseLine.Y, 3);
+        Assert.Equal(balanced ? "BCDEFGHIJKZ" : "BCDEFGHIJK", string.Concat(letters.Select(letter => letter.Value)));
+        int split = balanced ? 5 : 8;
+        Assert.All(letters.Take(split), letter => Assert.Equal(30D, letter.StartBaseLine.X, 3));
+        Assert.All(letters.Skip(split).Take(10 - split), letter => Assert.Equal(136D, letter.StartBaseLine.X, 3));
+        Assert.Equal(letters[0].StartBaseLine.Y, letters[split].StartBaseLine.Y, 3);
+        if (balanced) {
+            Assert.Equal(30D, letters[10].StartBaseLine.X, 3);
+            Assert.Equal(12D, letters[9].StartBaseLine.Y - letters[10].StartBaseLine.Y, 3);
+        }
     }
 
     private static void SetColumnStory(WordHeaderFooter story) {
