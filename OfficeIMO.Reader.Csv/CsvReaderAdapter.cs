@@ -261,30 +261,8 @@ internal static class CsvReaderAdapter {
         return sb.ToString().TrimEnd();
     }
 
-    private static string BuildMarkdown(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows) {
-        var sb = new StringBuilder();
-
-        sb.Append("| ");
-        sb.Append(string.Join(" | ", headers.Select(EscapeMarkdownCell)));
-        sb.AppendLine(" |");
-
-        sb.Append("| ");
-        sb.Append(string.Join(" | ", headers.Select(static _ => "---")));
-        sb.AppendLine(" |");
-
-        foreach (var row in rows) {
-            sb.Append("| ");
-            sb.Append(string.Join(" | ", row.Select(EscapeMarkdownCell)));
-            sb.AppendLine(" |");
-        }
-
-        return sb.ToString().TrimEnd();
-    }
-
-    private static string EscapeMarkdownCell(string value) {
-        if (string.IsNullOrEmpty(value)) return string.Empty;
-        return value.Replace("\\", "\\\\").Replace("|", "\\|");
-    }
+    private static string BuildMarkdown(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows) =>
+        ReaderMarkdownTableWriter.Write(headers, rows, ReaderMarkdownTableWriter.CellStyle.Csv);
 
     private static CsvReadOptions Normalize(CsvReadOptions? options) {
         var source = options ?? new CsvReadOptions();
