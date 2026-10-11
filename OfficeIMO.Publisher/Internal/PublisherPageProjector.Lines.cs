@@ -28,7 +28,11 @@ internal sealed partial class PublisherPageProjector {
                 OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Id));
         shape.StrokeStartMarker = ProjectLineMarker(style.LineStartArrowhead, style.LineStartArrowWidth, style.LineStartArrowLength, source, shape, reportLoss);
         shape.StrokeEndMarker = ProjectLineMarker(style.LineEndArrowhead, style.LineEndArrowWidth, style.LineEndArrowLength, source, shape, reportLoss);
-        if (reportLoss && (shape.StrokeStartMarker != null || shape.StrokeEndMarker != null))
+        bool hasMarkers = shape.StrokeStartMarker != null || shape.StrokeEndMarker != null;
+        if (visibleShadow && hasMarkers)
+            _context.Add("PUB_LINE_MARKER_SHADOW_OMITTED", "Native line marker shadows are omitted; the line shaft shadow is retained.",
+                OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id));
+        if (visibleStroke && hasMarkers)
             _context.Add("PUB_LINE_MARKER_APPROXIMATED", "Native line marker kinds and relative sizes use shared geometry and stroke-relative dimensions; Publisher-rendered sizing is not qualified.",
                 OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(source.Id));
     }
