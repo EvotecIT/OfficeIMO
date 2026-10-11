@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
+            var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
             int width = c2 - c1 + 1;
             int currentWindow = -1;
@@ -27,7 +28,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                if (!worksheetRows.IsRowElement(reader)) {
                     continue;
                 }
 
@@ -93,6 +94,7 @@ namespace OfficeIMO.Excel {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 while (reader.Read()) {
@@ -100,7 +102,7 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 
@@ -194,13 +196,14 @@ namespace OfficeIMO.Excel {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 if (canCancel) {
                     while (reader.Read()) {
                         ct.ThrowIfCancellationRequested();
 
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        if (!worksheetRows.IsRowElement(reader)) {
                             continue;
                         }
 
@@ -227,7 +230,7 @@ namespace OfficeIMO.Excel {
                     }
                 } else {
                     while (reader.Read()) {
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        if (!worksheetRows.IsRowElement(reader)) {
                             continue;
                         }
 

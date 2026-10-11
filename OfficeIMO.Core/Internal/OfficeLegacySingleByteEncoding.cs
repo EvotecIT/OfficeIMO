@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Core.Internal;
 
@@ -9,8 +11,15 @@ internal static class OfficeLegacySingleByteEncoding {
     internal static string Decode(byte[] bytes, int offset, int count, int codePage) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         if (offset < 0 || count < 0 || offset > bytes.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
-        string map = Map(codePage); var result = new char[count];
-        for (int i = 0; i < count; i++) { byte value = bytes[offset + i]; result[i] = value < 128 ? (char)value : map[value - 128]; }
+        return Decode(new OfficeByteView(bytes).Slice(offset, count), codePage);
+    }
+    /// <summary>Decodes a bounded source view without copying it, observing cancellation during large fields.</summary>
+    internal static string Decode(OfficeByteView bytes, int codePage, CancellationToken cancellation = default) {
+        string map = Map(codePage); var result = new char[bytes.Length];
+        for (int i = 0; i < result.Length; i++) {
+            if ((i & 4095) == 0) cancellation.ThrowIfCancellationRequested();
+            byte value = bytes[i]; result[i] = value < 128 ? (char)value : map[value - 128];
+        }
         return new string(result);
     }
     internal static byte[] Encode(string value, int codePage) {

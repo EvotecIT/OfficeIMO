@@ -10,15 +10,20 @@ namespace OfficeIMO.Markdown.Html;
 /// </summary>
 internal sealed partial class HtmlToMarkdownConverter {
     private readonly List<HtmlDiagnostic> _diagnostics = new();
+    private readonly System.Threading.CancellationToken _cancellationToken;
+
+    internal HtmlToMarkdownConverter(System.Threading.CancellationToken cancellationToken = default) => _cancellationToken = cancellationToken;
 
     internal IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
 
     internal sealed class ConversionContext {
-        public ConversionContext(HtmlToMarkdownOptions options) {
+        public ConversionContext(HtmlToMarkdownOptions options, System.Threading.CancellationToken cancellationToken = default) {
             Options = options ?? throw new ArgumentNullException(nameof(options));
+            CancellationToken = cancellationToken;
         }
 
         public HtmlToMarkdownOptions Options { get; }
+        public System.Threading.CancellationToken CancellationToken { get; }
         public List<HtmlDiagnostic> Diagnostics { get; } = new();
         public int SavedBase64ImageCount { get; set; }
         public int DefinitionListEntryExpansionCount { get; set; }
@@ -32,7 +37,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// </summary>
     public string Convert(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
         var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
-        return ConvertToDocument(document, effectiveOptions).ToMarkdown(effectiveOptions.MarkdownWriteOptions);
+        return ConvertToDocument(document, effectiveOptions).ToMarkdown(effectiveOptions.MarkdownWriteOptions, _cancellationToken);
     }
 
     /// <summary>
@@ -41,7 +46,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     public MarkdownDoc ConvertToDocument(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
-        IHtmlDocument filteredDocument = PrepareDocument(document, effectiveOptions);
+        IHtmlDocument filteredDocument = PrepareDocument(document, effectiveOptions, _cancellationToken);
         return ConvertFilteredDocument(filteredDocument, effectiveOptions);
     }
 
@@ -55,8 +60,9 @@ internal sealed partial class HtmlToMarkdownConverter {
         int sourceLength) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
+        _cancellationToken.ThrowIfCancellationRequested();
         ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
-        ApplyHtmlFilters(document.DocumentElement, effectiveOptions);
+        ApplyHtmlFilters(document.DocumentElement, effectiveOptions, _cancellationToken);
         return ConvertFilteredDocument(document, effectiveOptions);
     }
 
@@ -69,11 +75,12 @@ internal sealed partial class HtmlToMarkdownConverter {
         int sourceLength) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
+        _cancellationToken.ThrowIfCancellationRequested();
         ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
         // Native table materialization changes the DOM. Clone only when this
         // read-only projection actually contains an ARIA table candidate.
         IHtmlDocument conversionDocument = HasRoleTableCandidate(document)
-            ? HtmlDocumentParser.CloneDocument(document)
+            ? HtmlDocumentParser.CloneDocument(document, _cancellationToken)
             : document;
         return ConvertFilteredDocument(conversionDocument, effectiveOptions);
     }
@@ -82,17 +89,19 @@ internal sealed partial class HtmlToMarkdownConverter {
     /// Creates the filtered, caller-independent DOM used by the converter and internal
     /// projection consumers without introducing a second HTML parsing path.
     /// </summary>
-    internal static IHtmlDocument PrepareDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions) {
+    internal static IHtmlDocument PrepareDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions, System.Threading.CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
-        IHtmlDocument filteredDocument = HtmlDocumentParser.CloneDocument(document);
+        cancellationToken.ThrowIfCancellationRequested();
+        IHtmlDocument filteredDocument = HtmlDocumentParser.CloneDocument(document, cancellationToken);
         int sourceLength = (filteredDocument.DocumentElement?.OuterHtml ?? string.Empty).Length;
         ValidateInputLength(sourceLength, effectiveOptions.MaxInputCharacters, nameof(document));
-        ApplyHtmlFilters(filteredDocument.DocumentElement, effectiveOptions);
+        ApplyHtmlFilters(filteredDocument.DocumentElement, effectiveOptions, cancellationToken);
         return filteredDocument;
     }
 
     private MarkdownDoc ConvertFilteredDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions) {
+        _cancellationToken.ThrowIfCancellationRequested();
         _diagnostics.Clear();
         if (HasRoleTableCandidate(document)) {
             HtmlRoleTableNormalizer.Normalize(
@@ -108,19 +117,21 @@ internal sealed partial class HtmlToMarkdownConverter {
                 retainOriginalCellElement: false);
         }
         effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
-        var context = new ConversionContext(effectiveOptions);
+        var context = new ConversionContext(effectiveOptions, _cancellationToken);
 
         INode root = HtmlDocumentParser.GetConversionRoot(document, effectiveOptions.UseBodyContentsOnly);
-        context.Footnotes = HtmlFootnoteConversionState.Create(root);
+        context.Footnotes = HtmlFootnoteConversionState.Create(root, _cancellationToken);
 
         var markdown = MarkdownDoc.Create();
         markdown.AddRange(ConvertNodesToBlocks(root.ChildNodes, context));
         _diagnostics.AddRange(context.Diagnostics);
 
-        return MarkdownDocumentTransformPipeline.Apply(
+        MarkdownDoc result = MarkdownDocumentTransformPipeline.Apply(
             markdown,
             effectiveOptions.DocumentTransforms,
-            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions));
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions), _cancellationToken);
+        _cancellationToken.ThrowIfCancellationRequested();
+        return result;
     }
 
     private static bool HasRoleTableCandidate(IHtmlDocument document) =>
@@ -311,7 +322,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 PreserveStyleElements = true,
                 RemoveEventHandlerAttributes = true,
                 CollapseTextWhitespace = false
-            });
+            }, context?.CancellationToken ?? default);
     }
 
     private static string NormalizeBlockText(string? value) {

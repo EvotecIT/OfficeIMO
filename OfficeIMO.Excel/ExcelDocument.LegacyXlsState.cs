@@ -500,7 +500,8 @@ namespace OfficeIMO.Excel {
                 sheet.SheetName,
                 sheet.Table,
                 sheet.IncludeHeaders,
-                preserveMissingValues: sheet.OmitBlankCells);
+                preserveMissingValues: sheet.OmitBlankCells,
+                useCellValueNumberFormats: sheet.UseCellValueNumberFormats);
             return true;
         }
 

@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides access to section property settings.
-    /// </summary>
+    // Provides access to section property settings.
     public partial class WordSection {
         /// <summary>
         /// Gets or sets the page orientation of the section.

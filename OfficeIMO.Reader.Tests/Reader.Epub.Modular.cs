@@ -10,6 +10,7 @@ internal static class ReaderCurrentDirectoryLock {
     internal static readonly object Gate = new();
 }
 
+[Collection(ReaderCurrentDirectoryCollection.Name)]
 public sealed partial class ReaderEpubModularTests {
     [Fact]
     public async Task EpubDocument_LoadAsync_MatchesSynchronousFileSharing() {

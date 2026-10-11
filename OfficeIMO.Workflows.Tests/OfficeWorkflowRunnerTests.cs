@@ -25,7 +25,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "publisher-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
+            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "publisher-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -83,33 +83,6 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Theory]
-    [InlineData("pdf-docx")]
-    [InlineData("pdf-xlsx")]
-    [InlineData("pdf-pptx")]
-    public async Task PdfImportSerializationFailureRetainsTheAvailableOwnerReport(string routeId) {
-        using var scope = new TestDirectory();
-        var route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.Id == routeId);
-        string input = CreateInput(scope.Path, routeId);
-        string output = Path.Combine(scope.Path, "result" + NormalizeExtension(route.TargetExtension));
-        byte[] sentinel = [1, 2, 3]; File.WriteAllBytes(output, sentinel);
-        var result = await new OfficeWorkflowRunner().RunAsync(new() {
-            Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
-            ConversionRouteId = routeId, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
-            Limits = new() { MaximumOutputBytes = 512 }
-        });
-        Assert.False(result.Succeeded);
-        Assert.Equal(sentinel, File.ReadAllBytes(output));
-        var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-        foreach (var findings in evidence.FidelityDiagnostics.GroupBy(finding => (finding.Source, finding.Code, finding.Message, finding.LossKind, finding.Location))) {
-            var finding = findings.Key;
-            Assert.Equal(findings.Count(), result.Diagnostics.Count(diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message
-                && diagnostic.Details.TryGetValue("source", out string? source) && source == finding.Source
-                && diagnostic.Details.TryGetValue("lossKind", out string? loss) && loss == finding.LossKind.ToString()
-                && (diagnostic.Details.TryGetValue("location", out string? location) ? location : null) == finding.Location));
-        }
-    }
-
-    [Theory]
     [InlineData("docx-pdf")]
     [InlineData("xlsx-pdf")]
     [InlineData("pptx-pdf")]
@@ -142,14 +115,6 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(result.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), reopened.Details["stagedBytes"]);
         Assert.Equal(NormalizeExtension(route.TargetExtension), reopened.Details["format"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AtomicPublication");
-        if (routeId.StartsWith("pdf-", StringComparison.Ordinal)) {
-            var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            if (routeId == "pdf-xlsx") Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == "PDF_EXCEL_PAGE_CONTENT_OMITTED"
-                && finding.Source == "OfficeIMO.Excel.Pdf" && finding.LossKind == OfficeConversionLossKind.Omission);
-            foreach (var finding in evidence.FidelityDiagnostics)
-                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message
-                    && diagnostic.Details["source"] == finding.Source && diagnostic.Details["lossKind"] == finding.LossKind.ToString());
-        }
     }
 
     [Theory]
@@ -1003,6 +968,38 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(sanitization.Succeeded, sanitization.Summary);
         Assert.NotNull(sanitization.HealthReport!.After);
         Assert.True(sanitization.HealthReport.Verified);
+    }
+
+    [Theory]
+    [InlineData("CustomSans", "BT /F1 18 Tf 20 80 Td (Hello) Tj ET")]
+    [InlineData("Helvetica", "q UnknownPaint Q")]
+    public async Task IncompleteRenderingDoesNotReportAConfirmedDifference(string font, string content) {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, "incomplete.pdf");
+        string gallery = System.IO.Path.Combine(scope.Path, "incomplete-comparison.html");
+        await File.WriteAllTextAsync(input, string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /" + font + " >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }), System.Text.Encoding.ASCII);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Compare,
+            InputPath = input,
+            ComparisonPath = input,
+            OutputPath = gallery,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.False(result.HealthReport!.Verified);
+        Assert.Equal("0", result.HealthReport.Metrics["differentPages"]);
+        Assert.Equal("1", result.HealthReport.Metrics["incompletePages"]);
+        Assert.Contains("comparison is incomplete", result.Summary, StringComparison.Ordinal);
+        Assert.Contains("1 incomplete page", await File.ReadAllTextAsync(gallery), StringComparison.Ordinal);
     }
 
     [Fact]

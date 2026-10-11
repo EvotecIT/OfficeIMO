@@ -1,9 +1,7 @@
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides enumerators for traversing document content.
-    /// </summary>
+    // Provides enumerators for traversing document content.
     public partial class WordDocument {
         private static readonly TimeSpan DefaultRegexMatchTimeout = TimeSpan.FromSeconds(2);
         internal IEnumerable<WordParagraph> EnumerateBodyParagraphs() {

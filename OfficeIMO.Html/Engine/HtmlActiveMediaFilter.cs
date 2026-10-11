@@ -59,11 +59,17 @@ public static class HtmlActiveMediaFilter {
     }
 
     /// <summary>Filters a prepared DOM while reporting CSS parser or transformation failures.</summary>
-    internal static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) {
+    internal static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) =>
+        Filter(document, mediaContext, diagnostics, CancellationToken.None);
+
+    internal static bool Filter(IHtmlDocument document, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics, CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         try {
-            return FilterDocument(document, mediaContext, diagnostics);
-        } catch (Exception exception) when (diagnostics != null) {
+            bool changed = FilterDocument(document, mediaContext, diagnostics, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return changed;
+        } catch (Exception exception) when (diagnostics != null && exception is not OperationCanceledException) {
             ReportFailure(diagnostics, "document", exception);
             return false;
         }
@@ -81,10 +87,12 @@ public static class HtmlActiveMediaFilter {
     /// Removes picture source formats that OfficeIMO converters cannot consume while preserving
     /// art-direction sources for structural adapters such as Markdown.
     /// </summary>
-    internal static bool FilterUnsupportedPictureSources(IHtmlDocument document) {
+    internal static bool FilterUnsupportedPictureSources(IHtmlDocument document, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         bool changed = false;
         foreach (IElement sourceElement in document.QuerySelectorAll("picture > source")) {
+            cancellationToken.ThrowIfCancellationRequested();
             bool hasLazySourceSet = !string.IsNullOrWhiteSpace(sourceElement.GetAttribute("data-srcset"))
                 || !string.IsNullOrWhiteSpace(sourceElement.GetAttribute("data-original-srcset"))
                 || !string.IsNullOrWhiteSpace(sourceElement.GetAttribute("data-lazy-srcset"));
@@ -95,12 +103,15 @@ public static class HtmlActiveMediaFilter {
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return changed;
     }
 
-    private static bool FilterDocument(IHtmlDocument parsed, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics) {
+    private static bool FilterDocument(IHtmlDocument parsed, HtmlCssMediaContext mediaContext, HtmlDiagnosticReport? diagnostics, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool changed = false;
         foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(linkElement.Relation, "stylesheet", StringComparison.OrdinalIgnoreCase)
                 && !HtmlComputedStyleEngine.IsApplicableMedia(linkElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
                 linkElement.Remove();
@@ -109,6 +120,7 @@ public static class HtmlActiveMediaFilter {
         }
 
         foreach (IElement sourceElement in parsed.QuerySelectorAll("picture > source")) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!HtmlComputedStyleEngine.IsApplicableMedia(sourceElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
                 sourceElement.Remove();
                 changed = true;
@@ -122,6 +134,7 @@ public static class HtmlActiveMediaFilter {
         }
 
         foreach (IHtmlStyleElement styleElement in parsed.QuerySelectorAll("style").OfType<IHtmlStyleElement>()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!IsCssStyleElement(styleElement)
                 || !HtmlComputedStyleEngine.IsApplicableMedia(styleElement.GetAttribute("media") ?? string.Empty, mediaContext)) {
                 styleElement.Remove();
@@ -129,7 +142,7 @@ public static class HtmlActiveMediaFilter {
                 continue;
             }
 
-            string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, diagnostics, out bool stylesheetChanged);
+            string expanded = ExpandActiveMediaStyleRules(styleElement.TextContent, mediaContext, diagnostics, out bool stylesheetChanged, cancellationToken);
             if (stylesheetChanged) {
                 styleElement.TextContent = expanded;
                 changed = true;
@@ -184,7 +197,8 @@ public static class HtmlActiveMediaFilter {
         string css,
         HtmlCssMediaContext mediaContext,
         HtmlDiagnosticReport? diagnostics,
-        out bool changed) {
+        out bool changed, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         changed = false;
         if (string.IsNullOrWhiteSpace(css)) {
             return css;
@@ -193,13 +207,14 @@ public static class HtmlActiveMediaFilter {
         try {
             var parser = new CssParser();
             var stylesheet = parser.ParseStyleSheet(css);
+            cancellationToken.ThrowIfCancellationRequested();
             var builder = new StringBuilder();
             foreach (ICssRule rule in stylesheet.Rules) {
-                AppendActiveMediaStyleRule(builder, rule, mediaContext, ref changed);
+                AppendActiveMediaStyleRule(builder, rule, mediaContext, ref changed, cancellationToken);
             }
 
             return changed ? builder.ToString() : css;
-        } catch (Exception exception) {
+        } catch (Exception exception) when (exception is not OperationCanceledException) {
             ReportFailure(diagnostics, "style", exception);
             return css;
         }
@@ -216,7 +231,8 @@ public static class HtmlActiveMediaFilter {
             OfficeConversionLossKind.Approximation);
     }
 
-    private static void AppendActiveMediaStyleRule(StringBuilder builder, ICssRule rule, HtmlCssMediaContext mediaContext, ref bool changed) {
+    private static void AppendActiveMediaStyleRule(StringBuilder builder, ICssRule rule, HtmlCssMediaContext mediaContext, ref bool changed, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (rule is ICssStyleRule styleRule) {
             builder.AppendLine(styleRule.CssText);
             return;
@@ -226,7 +242,7 @@ public static class HtmlActiveMediaFilter {
             changed = true;
             if (HtmlComputedStyleEngine.IsApplicableMedia(mediaRule.ConditionText, mediaContext)) {
                 foreach (ICssRule childRule in mediaRule.Rules) {
-                    AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed);
+                    AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed, cancellationToken);
                 }
             }
 
@@ -237,7 +253,7 @@ public static class HtmlActiveMediaFilter {
             changed = true;
             if (HtmlComputedStyleEngine.IsApplicableSupports(supportsRule.ConditionText)) {
                 foreach (ICssRule childRule in supportsRule.Rules) {
-                    AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed);
+                    AppendActiveMediaStyleRule(builder, childRule, mediaContext, ref changed, cancellationToken);
                 }
             }
 
