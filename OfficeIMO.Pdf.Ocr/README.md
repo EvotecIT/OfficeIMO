@@ -46,6 +46,37 @@ The image source is a private snapshot. Source files and caller-owned bytes are 
 
 Excel contains detected tables only. Headers require structural evidence or caller confirmation; the default preserves every row and does not guess column names. Markdown follows canonical reading order and emits detected tables once. JSON retains positioned lines and adds canonical page text and detected table rows. OCR cannot recover hidden formulas, original workbook structure, or content absent from the pixels. Review typed values, missing words and table boundaries before using an export. The independently labelled English ledger and column fixtures exercise recognition geometry, density metadata, saved Excel cell types, Word tables and searchable PDF readback; broader photo, handwriting and complex-table accuracy is not established by those fixtures.
 
+## Review values for existing form fields
+
+`PrepareFormOcrAsync` matches recognized words to visible existing text and choice widgets. It captures the source bytes and original page geometry and returns proposals without filling, adding a searchable layer, creating fields or saving a file. Low-confidence words, conflicting widget assignments and rejected fields remain visible in the review evidence.
+
+Repeated or overlapping selections recognize each physical page once, in its first selected order, without changing caller options. Cancellation and the provider deadline request that work stop; preparation waits for started provider calls and cancellation callbacks to settle. A provider that ignores cancellation can delay completion indefinitely. This keeps a host's operation and execution admission attached to actual cleanup.
+
+```csharp
+using OfficeIMO.Ocr;
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
+
+static async Task<PdfDocument> FillReviewedValueAsync(
+    PdfDocument source, IOcrEngine engine, string fieldName, string reviewedValue) {
+    PdfFormOcrReview review = await source.PrepareFormOcrAsync(engine);
+    PdfFormOcrProposal proposal = review.Proposals.Single(item => item.Field.Name == fieldName);
+    // Supply this value only after a person checks review.RenderPage(...), evidence and constraints.
+    var accepted = new Dictionary<PdfFormOcrProposal, PdfFormFieldValue> {
+        [proposal] = PdfFormFieldValue.From(reviewedValue)
+    };
+    return review.Apply(source, accepted);
+}
+```
+
+The accepted dictionary is the explicit human decision boundary. Empty acceptance returns an unchanged source copy; foreign proposals, changed source bytes, invalid corrections and cancellation fail without publication. Hosts must also check their document revision before applying and use their usual guarded save-copy workflow. Studio applies accepted values as one undoable workspace edit; saving remains a separate action.
+
+When the canonical mutation plan requires an append-only fill, the result retains the original byte prefix and writes updated normal appearance streams with `NeedAppearances` disabled. Readers can display the saved values without generating replacement appearances themselves.
+
+Field metadata validation owns read-only, text length/comb, choice export/display mapping and numeric review constraints. The inert numeric profile recognizes only complete `AFNumber_Keystroke`/`AFNumber_Format` calls with zero negative/currency styles and empty currency, and `AFRange_Validate` with literal limits. Decimal precision must be 0–15 and separator styles 0–3. Accepted numeric values must use that recovered notation and stay within its precision/range; this review policy does not emulate Acrobat's rounding or formatting. Extra script statements, unreadable scripts, unsupported currency/negative profiles and other helpers are rejected without execution. Buttons and signatures stay in the manual form/signing workflows.
+
+Native-overlap words are useful form evidence even when excluded from searchable-layer creation. Original provider confidence and transformed geometry remain attached to every matched word. Word-to-widget comparison and correction character budgets are bounded. OCR inside widget rectangles does not infer values from labels elsewhere on the page or prove handwriting accuracy.
+
 ## Read scanned and mixed PDFs
 
 ```csharp

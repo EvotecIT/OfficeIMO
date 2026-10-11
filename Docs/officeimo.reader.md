@@ -15,6 +15,7 @@ Install the adapters an application actually uses. Every adapter brings Core and
 | Excel | `OfficeIMO.Reader.Excel` |
 | PowerPoint | `OfficeIMO.Reader.PowerPoint` |
 | Markdown | `OfficeIMO.Reader.Markdown` |
+| Compiled HTML Help topics, contents and resources | [OfficeIMO.Reader.Chm](../OfficeIMO.Reader.Chm/README.md) |
 | Email, Outlook stores, and OAB | `OfficeIMO.Reader.Email` |
 | PDF | `OfficeIMO.Reader.Pdf` |
 | Every local managed adapter | `OfficeIMO.Reader.All` |

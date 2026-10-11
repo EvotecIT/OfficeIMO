@@ -47,7 +47,12 @@ public sealed class PdfVisualComparisonOptions {
     public OfficeColor Background { get; set; } = OfficeColor.White;
     /// <summary>Ignored comparison regions in output pixel coordinates. At most 4096 regions are accepted.</summary>
     public IList<PdfPixelRegion> IgnoredRegions => _ignoredRegions;
-    /// <summary>Maximum pages compared by one call.</summary>
+    /// <summary>Optional ordered, document-relative expected-page selection. Null selects every expected page.</summary>
+    /// <remarks>When either side is selected, the two selected sequences are paired by position. Extra selected pages are unmatched; no semantic alignment is inferred.</remarks>
+    public PdfPageSelector? ExpectedPages { get; set; }
+    /// <summary>Optional ordered, document-relative actual-page selection. Null selects every actual page.</summary>
+    public PdfPageSelector? ActualPages { get; set; }
+    /// <summary>Maximum selected pages on either side, including repeated pages.</summary>
     public int MaxPages { get; set; } = 100;
     /// <summary>Maximum raster pixels allocated for one expected, actual, or diff page image.</summary>
     public long MaxPixelsPerImage { get; set; } = 20_000_000L;

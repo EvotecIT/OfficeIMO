@@ -1,5 +1,6 @@
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
+using OfficeIMO.Reader.Chm;
 using OfficeIMO.Reader.Dbf;
 using OfficeIMO.Reader.DocBook;
 using OfficeIMO.Reader.Email;
@@ -21,6 +22,7 @@ using OfficeIMO.Reader.Rtf;
 using OfficeIMO.Reader.Subtitles;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xps;
+using OfficeIMO.Reader.DjVu;
 using OfficeIMO.Reader.Word;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
@@ -53,8 +55,10 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddPlainTextHandlers()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
+            .AddChmHandler(configured.Chm)
             .AddDbfHandler(configured.Dbf)
             .AddDocBookHandler(configured.DocBook)
+            .AddDjVuHandler(configured.DjVu)
             .AddEmailHandlers(configured.Email)
             .AddEpubHandler(configured.Epub)
             .AddExcelHandler(configured.Excel);

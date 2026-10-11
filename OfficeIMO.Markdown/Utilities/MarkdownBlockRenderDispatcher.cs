@@ -75,21 +75,27 @@ internal static class MarkdownBlockRenderDispatcher {
     }
 
     internal static string RenderMarkdown(IMarkdownBlock block, MarkdownWriteContext context) {
+        context.CancellationToken.ThrowIfCancellationRequested();
         if (block == null) {
             return string.Empty;
         }
 
         var overridden = TryRenderSyntaxBlockMarkdownOverride(block, context);
         if (overridden != null) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             return overridden;
         }
 
         overridden = TryRenderBlockMarkdownOverride(block, context);
         if (overridden != null) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             return overridden;
         }
 
-        return block.RenderMarkdown();
+        context.CancellationToken.ThrowIfCancellationRequested();
+        string rendered = block.RenderMarkdown();
+        context.CancellationToken.ThrowIfCancellationRequested();
+        return rendered;
     }
 
     private static string? TryRenderSyntaxBlockHtmlOverride(IMarkdownBlock block, MarkdownBodyRenderContext context) {
@@ -151,12 +157,14 @@ internal static class MarkdownBlockRenderDispatcher {
         }
 
         for (int i = extensions.Count - 1; i >= 0; i--) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             var extension = extensions[i];
             if (extension == null || !extension.Matches(syntaxNode)) {
                 continue;
             }
 
             var rendered = extension.RenderMarkdown(block, syntaxNode, context);
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (rendered != null) {
                 return rendered;
             }
@@ -172,12 +180,14 @@ internal static class MarkdownBlockRenderDispatcher {
         }
 
         for (int i = extensions.Count - 1; i >= 0; i--) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             var extension = extensions[i];
             if (extension == null || !extension.Matches(block)) {
                 continue;
             }
 
             var rendered = extension.RenderMarkdown(block, context);
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (rendered != null) {
                 return rendered;
             }

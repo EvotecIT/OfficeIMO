@@ -3,7 +3,7 @@ using System.Collections;
 namespace OfficeIMO.Access {
     /// <summary>An object identity belongs to a document and survives update rollback for pre-existing objects.</summary>
     public abstract class AccessNamedObject {
-        internal AccessNamedObject(AccessDocument document, string name) { Document = document; Name = ValidateName(name); }
+        internal AccessNamedObject(AccessDocument document, string name, Guid? identity = null) { Document = document; Name = ValidateName(name); Id = identity ?? Guid.NewGuid(); }
         internal AccessDocument Document { get; }
         internal bool Attached = true;
         internal void EnsureAttached() {
@@ -15,7 +15,7 @@ namespace OfficeIMO.Access {
             return name;
         }
         /// <summary>Stable model identity; it is separate from native page numbers and names.</summary>
-        public Guid Id { get; } = Guid.NewGuid();
+        public Guid Id { get; }
         /// <summary>Containing document identity.</summary>
         public Guid DocumentId => Document.Id;
         /// <summary>Object name. Rename semantics are introduced with qualified reference updates.</summary>
@@ -91,7 +91,7 @@ namespace OfficeIMO.Access {
         public IReadOnlyList<AccessQueryRecord> NativeRecords { get; }
         /// <summary>Persisted query object flags.</summary>
         public int NativeFlags { get; internal set; }
-        /// <summary>Declared native parameters, without execution or supplied values.</summary>
+        /// <summary>Declared native parameters, without execution or supplied values. Unqualified name encodings leave this inventory unavailable with query diagnostics; exact records remain available.</summary>
         public IReadOnlyList<AccessQueryParameter> Parameters { get; internal set; } = Array.AsReadOnly(Array.Empty<AccessQueryParameter>());
     }
 }

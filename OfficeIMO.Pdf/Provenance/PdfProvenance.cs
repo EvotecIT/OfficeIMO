@@ -13,14 +13,16 @@ public static partial class PdfProvenance {
         byte[] pdf,
         OfficeProvenanceOptions? options = null,
         PdfLoadOptions? readOptions = null) {
-        return InspectCore(pdf, options, readOptions, out _);
+        return InspectCore(pdf, options, readOptions, out _, out _, out _);
     }
 
     private static OfficeProvenanceReport InspectCore(
         byte[] pdf,
         OfficeProvenanceOptions? options,
         PdfLoadOptions? readOptions,
-        out PdfReadDocument document) {
+        out PdfReadDocument document,
+        out List<HistoricalCarrier> historicalCarriers,
+        out Dictionary<PdfExtractedAttachment, CurrentCarrier> currentCarriers) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
@@ -29,6 +31,7 @@ public static partial class PdfProvenance {
 
         long maximumManifestBytes = GetMaximumManifestBytes(options);
         PdfLoadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
+        var inspectionTimer = System.Diagnostics.Stopwatch.StartNew();
         document = OpenReadDocument(pdf, effectiveReadOptions, options.CancellationToken);
         options.CancellationToken.ThrowIfCancellationRequested();
         foreach (PdfOutputIntentInfo outputIntent in document.OutputIntents) {
@@ -36,49 +39,23 @@ public static partial class PdfProvenance {
             _ = outputIntent.DestinationOutputProfileSizeBytes;
             _ = outputIntent.DestinationOutputProfileDeviceClass;
         }
-        HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.MaxContainerEntries);
-        PdfC2paAssociationProfile associations = CollectAssociationProfile(
-            document,
-            pageTreeObjectNumbers,
-            options.MaxContainerEntries,
-            out HashSet<int> reachableObjectNumbers);
-        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
-            document,
-            IsCandidate,
-            maximumManifestBytes,
-            options.MaxManifestBytes,
-            options.MaxCarriers,
-            options.MaxContainerEntries,
-            requireSuccessfulDecoding: true,
-            allowedObjectNumbers: reachableObjectNumbers,
-            cancellationToken: options.CancellationToken);
         var evidence = new List<OfficeProvenanceEvidence>();
-        foreach (PdfExtractedAttachment attachment in attachments) {
-            options.CancellationToken.ThrowIfCancellationRequested();
-            if (!IsCandidate(attachment)) continue;
-            byte[] manifest = attachment.Bytes;
-            if (manifest.LongLength > options.MaxManifestBytes) throw new InvalidDataException("A PDF provenance manifest exceeds the configured manifest limit.");
-            bool valid = attachment.Relationship == PdfAssociatedFileRelationship.C2paManifest &&
-                string.Equals(attachment.MimeType, C2paMimeType, StringComparison.OrdinalIgnoreCase) &&
-                attachment.FileSpecObjectNumber > 0 &&
-                HasEmbeddedFileStreamType(document.Objects, attachment) &&
-                IsFileSpecificationObject(document.Objects, attachment.FileSpecObjectNumber, pageTreeObjectNumbers, associations.StructuralObjectNumbers) &&
-                HasOnlySelectedEmbeddedFileVariants(document.Objects, attachment) &&
-                associations.IsValid(attachment.FileSpecObjectNumber) &&
-                OfficeC2paManifestStore.IsValid(
-                    manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
-            if (evidence.Count >= options.MaxCarriers) throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.MaxCarriers}.");
-            evidence.Add(new OfficeProvenanceEvidence(
-                OfficeProvenanceCarrierKind.C2paManifest,
-                $"PDF/Filespec[{attachment.FileSpecObjectNumber}]/{attachment.FileName}",
-                valid,
-                manifest.LongLength));
-        }
+        var stores = new List<ManifestOccurrence>();
+        var occurrences = new Dictionary<AssociationIdentity, ManifestOccurrence>();
+        int[] revisionEnds = PdfSyntax.GetHistoricalRevisionEnds(pdf, document, options.CancellationToken);
+        historicalCarriers = new List<HistoricalCarrier>();
+        var seen = new Dictionary<CarrierIdentity, int>();
+        currentCarriers = new Dictionary<PdfExtractedAttachment, CurrentCarrier>();
+        InspectRevisionCarriers(document, options, maximumManifestBytes, evidence, stores, occurrences,
+            revisionEnds.Length + 1, seen, null, currentCarriers);
+        long historicalBytes = InspectHistoricalCarriers(pdf, document, options, effectiveReadOptions, inspectionTimer,
+            maximumManifestBytes, evidence, stores, occurrences, revisionEnds, seen, historicalCarriers);
+        IReadOnlyList<string> diagnostics = SelectActiveManifest(stores);
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Pdf,
             evidence.AsReadOnly(),
-            diagnostics: null,
-            expandedInspectionBytes: document.DecodedStreamBudget.UsedBytes);
+            diagnostics: diagnostics,
+            expandedInspectionBytes: checked(document.DecodedStreamBudget.UsedBytes + historicalBytes));
     }
 
     /// <summary>Inspects a bounded PDF file.</summary>
@@ -111,7 +88,9 @@ public static partial class PdfProvenance {
             options.Limits.MaxManifestBytes,
             maximumManifestBytes,
             readOptions);
-        OfficeProvenanceReport before = InspectCore(pdf, options.Limits, effectiveReadOptions, out PdfReadDocument document);
+        OfficeProvenanceReport before = InspectCore(pdf, options.Limits, effectiveReadOptions, out PdfReadDocument document,
+            out var historicalCarriers, out var currentCarriers);
+        long initialCurrentExpandedBytes = document.DecodedStreamBudget.UsedBytes;
         if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult(
                 OfficeProvenanceBinary.CloneForOutput(pdf, options.EffectiveMaxOutputBytes),
@@ -128,26 +107,14 @@ public static partial class PdfProvenance {
             pageTreeObjectNumbers,
             options.Limits.MaxContainerEntries,
             out HashSet<int> reachableObjectNumbers);
-        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(
-            document,
-            IsCandidate,
-            maximumManifestBytes,
-            options.Limits.MaxManifestBytes,
-            options.Limits.MaxCarriers,
-            options.Limits.MaxContainerEntries,
-            requireSuccessfulDecoding: true,
-            allowedObjectNumbers: reachableObjectNumbers,
-            cancellationToken: options.Limits.CancellationToken);
         var removeFileSpecifications = new HashSet<int>();
         var removeEmbeddedFiles = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
-        int evidenceIndex = 0;
-        for (int index = 0; index < attachments.Count; index++) {
+        foreach (var current in currentCarriers) {
             options.Limits.CancellationToken.ThrowIfCancellationRequested();
-            PdfExtractedAttachment attachment = attachments[index];
-            if (!IsCandidate(attachment)) continue;
-            OfficeProvenanceEvidence evidence = before.Evidence[evidenceIndex++];
-            if (!evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
+            PdfExtractedAttachment attachment = current.Key;
+            OfficeProvenanceEvidence evidence = before.Evidence[current.Value.EvidenceIndex];
+            if (!current.Value.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
             if (attachment.FileSpecObjectNumber <= 0) {
                 throw new InvalidDataException("A direct PDF provenance filespec cannot be removed without risking unrelated associations.");
             }
@@ -158,7 +125,20 @@ public static partial class PdfProvenance {
                 evidence.Location,
                 removedBytes: 0));
         }
-        if (removeFileSpecifications.Count == 0) {
+        bool rewriteHistory = false;
+        foreach (var historical in historicalCarriers) {
+            if (!historical.Evidence.IsStructurallyValid && options.RequireStructurallyValidCarrier) continue;
+            rewriteHistory = true;
+            // Object numbers may have been reused by an unrelated later definition. Only
+            // delete still-retained objects with the same physical definition identity.
+            if (document.Objects.ContainsKey(historical.Spec) &&
+                GetCarrierDefinition(document, historical.Spec, options.Limits).Identity == historical.Definition)
+                removeFileSpecifications.Add(historical.Spec);
+            if (document.Objects.TryGetValue(historical.Stream, out var stream) && stream.SourceOffset == historical.StreamOffset)
+                removeEmbeddedFiles.Add(historical.Stream);
+            changes.Add(new OfficeProvenanceChange(OfficeProvenanceCarrierKind.C2paManifest, historical.Evidence.Location, removedBytes: 0));
+        }
+        if (removeFileSpecifications.Count == 0 && !rewriteHistory) {
             return new OfficeProvenanceRemovalResult(
                 OfficeProvenanceBinary.CloneForOutput(pdf, options.EffectiveMaxOutputBytes),
                 before,
@@ -190,13 +170,14 @@ public static partial class PdfProvenance {
             effectiveReadOptions,
             options.EffectiveMaxOutputBytes,
             removeEmbeddedFiles,
+            rewriteHistory,
             options.Limits.CancellationToken);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
         before = new OfficeProvenanceReport(
             before.Format,
             before.Evidence,
             before.Diagnostics,
-            document.DecodedStreamBudget.UsedBytes);
+            checked(before.ExpandedInspectionBytes + document.DecodedStreamBudget.UsedBytes - initialCurrentExpandedBytes));
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
         long remainingExpandedBytes = options.Limits.MaxExpandedContainerBytes - before.ExpandedInspectionBytes;
         if (remainingExpandedBytes <= 0L) {
@@ -293,7 +274,7 @@ public static partial class PdfProvenance {
     private static HashSet<int> CollectReachableObjectNumbers(
         Dictionary<int, PdfIndirectObject> objects,
         PdfReference root,
-        int maximumContainerEntries) {
+        int maximumContainerEntries, CancellationToken cancellationToken = default) {
         var result = new HashSet<int>();
         var visitedDirectObjects = new HashSet<PdfObject>();
         var indirectValues = new HashSet<PdfObject>(objects.Values.Select(static item => item.Value));
@@ -301,6 +282,7 @@ public static partial class PdfProvenance {
         var pending = new Stack<PdfObject>();
         pending.Push(root);
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject value = pending.Pop();
             if (value is PdfReference reference) {
                 if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||

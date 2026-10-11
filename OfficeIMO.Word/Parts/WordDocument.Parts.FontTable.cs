@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Creates the default font table part.
-    /// </summary>
+    // Creates the default font table part.
     public partial class WordDocument {
         // Generates content of fontTablePart1.
         private static void GenerateFontTablePart1Content(FontTablePart fontTablePart1) {

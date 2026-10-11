@@ -97,6 +97,7 @@ internal static partial class PdfAnnotationEditor {
             }
         }
 
+        DetachRemovedAnnotationRelationships(objects, removedObjectNumbers, changedObjectNumbers);
         int affectedCount = removedObjectNumbers.Count + directRemovalCount;
         if (changedObjectNumbers.Count == 0) {
             return new PdfAnnotationEditResult((byte[])pdf.Clone(), 0, mutationPlan, readOptions: readOptions);

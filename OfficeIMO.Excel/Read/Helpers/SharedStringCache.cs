@@ -7,9 +7,10 @@ using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
-    internal sealed partial class SharedStringCache {
+    internal sealed partial class SharedStringCache : IDisposable {
         internal const int Utf8CacheSlotCount = ExcelUtf8TextCache.SlotCount;
         internal const int MaximumCachedUtf8ItemBytes = ExcelUtf8TextCache.MaximumCachedItemBytes;
+        internal const int MaximumIndexedPartBytes = 64 * 1024 * 1024;
         private const int MaximumRetainedRunTextCapacity = 64 * 1024;
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
 
@@ -20,8 +21,11 @@ namespace OfficeIMO.Excel {
         private readonly int _maxSharedStringItemCharacters;
         private readonly long _maxSharedStringCharacters;
         private readonly CancellationToken _cancellationToken;
-        private readonly Lazy<List<string>> _items;
+        private readonly Lazy<bool> _initialized;
+        private readonly object _lifetimeLock = new object();
         private List<string>? _loadedItems;
+        private IndexedAsciiItems? _indexedItems;
+        private volatile bool _disposed;
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
         private ExcelUtf8TextCache? _utf8Cache;
@@ -34,7 +38,7 @@ namespace OfficeIMO.Excel {
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
             _maxSharedStringCharacters = options.MaxSharedStringCharacters;
             _cancellationToken = options.CancellationToken;
-            _items = new Lazy<List<string>>(LoadItems, LazyThreadSafetyMode.ExecutionAndPublication);
+            _initialized = new Lazy<bool>(Initialize, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         private SharedStringCache(Func<Stream> openPartStream, ExcelReadOptions options) {
@@ -45,7 +49,7 @@ namespace OfficeIMO.Excel {
             _maxSharedStringItemCharacters = options.MaxSharedStringItemCharacters;
             _maxSharedStringCharacters = options.MaxSharedStringCharacters;
             _cancellationToken = options.CancellationToken;
-            _items = new Lazy<List<string>>(LoadItems, LazyThreadSafetyMode.ExecutionAndPublication);
+            _initialized = new Lazy<bool>(Initialize, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         private SharedStringCache(List<string> items, ExcelReadOptions options) {
@@ -57,7 +61,7 @@ namespace OfficeIMO.Excel {
             _maxSharedStringCharacters = options.MaxSharedStringCharacters;
             _cancellationToken = options.CancellationToken;
             _loadedItems = items ?? throw new ArgumentNullException(nameof(items));
-            _items = new Lazy<List<string>>(() => items, LazyThreadSafetyMode.ExecutionAndPublication);
+            _initialized = new Lazy<bool>(() => true, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         public static SharedStringCache Build(SpreadsheetDocument doc, ExcelReadOptions? options = null) {
@@ -70,20 +74,36 @@ namespace OfficeIMO.Excel {
         internal static SharedStringCache Empty(ExcelReadOptions options) =>
             new(new List<string>(), options);
 
-        private List<string> LoadItems() {
+        private bool Initialize() {
+            // Disposal and initial loading share a gate so a late load cannot retain
+            // a package buffer after its workbook has closed.
+            lock (_lifetimeLock) {
+                ThrowIfDisposed();
+                _loadedItems = LoadItems();
+                return true;
+            }
+        }
+
+        private List<string>? LoadItems() {
             _cancellationToken.ThrowIfCancellationRequested();
             if (_openPartStream != null) {
-                using Stream stream = _openPartStream();
-                if (stream is OpenXmlPooledPartStream pooled
-                    && TryLoadSimpleAsciiItems(pooled, out List<string> simpleItems)) {
-                    return simpleItems;
-                }
-                if (TryLoadItemsXmlFast(stream, out List<string> nativeItems)) {
-                    return nativeItems;
-                }
+                Stream? stream = _openPartStream();
+                try {
+                    if (stream is OpenXmlPooledPartStream pooled
+                        && TryIndexSimpleAsciiItems(pooled, out IndexedAsciiItems? indexedItems)) {
+                        _indexedItems = indexedItems;
+                        stream = null; // The validated index now owns the pooled stream.
+                        return null;
+                    }
+                    if (TryLoadItemsXmlFast(stream, out List<string> nativeItems)) {
+                        return nativeItems;
+                    }
 
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "The shared-string table requires the Open XML SDK fallback path.");
+                    throw new XlsxTabularFastPathNotSupportedException(
+                        "The shared-string table requires the Open XML SDK fallback path.");
+                } finally {
+                    stream?.Dispose();
+                }
             }
 
             SharedStringTablePart? part = GetSharedStringTablePart();
@@ -142,13 +162,20 @@ namespace OfficeIMO.Excel {
             try {
                 using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(SharedStringXmlReaderSettings));
                 int nodesRead = 0;
+                int tableDepth = -1;
                 while (reader.Read()) {
                     CheckCancellation(nodesRead++);
                     if (reader.NodeType != XmlNodeType.Element) {
                         continue;
                     }
 
-                    if (reader.LocalName == "sst") {
+                    if (tableDepth < 0) {
+                        if (reader.Depth != 0 || !SpreadsheetXmlContent.IsSpreadsheetElement(reader, "sst")) {
+                            items = null!;
+                            return false;
+                        }
+
+                        tableDepth = reader.Depth;
                         int capacity = GetBoundedCapacity(ParsePositiveLongAttribute(reader.GetAttribute("uniqueCount")));
                         if (capacity <= 0) {
                             capacity = GetBoundedCapacity(ParsePositiveLongAttribute(reader.GetAttribute("count")));
@@ -161,7 +188,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (reader.LocalName == "si") {
+                    if (SpreadsheetXmlContent.IsDirectChildElement(reader, tableDepth, "si")) {
                         EnsureCanAddSharedString(items);
                         string value = ReadSharedStringItemXml(
                             reader,
@@ -173,7 +200,9 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                return true;
+                if (tableDepth >= 0) return true;
+                items = null!;
+                return false;
             } catch (XmlException) {
                 items = null!;
                 return false;
@@ -211,11 +240,11 @@ namespace OfficeIMO.Excel {
             int depth = reader.Depth;
             string? first = null;
             StringBuilder? builder = null;
-            int phoneticRunDepth = -1;
+            int richRunDepth = -1;
 
             bool hasNode = reader.Read();
             int nodesRead = 0;
-            if (hasNode && reader.NodeType == XmlNodeType.Element && reader.LocalName == "t") {
+            if (hasNode && SpreadsheetXmlContent.IsDirectChildElement(reader, depth, "t")) {
                 first = reader.ReadElementContentAsString();
                 EnsureItemCharacterBudget(0, first.Length, maxItemCharacters);
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
@@ -233,25 +262,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (phoneticRunDepth >= 0) {
-                    if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == phoneticRunDepth && reader.LocalName == "rPh") {
-                        phoneticRunDepth = -1;
-                    }
-
-                    hasNode = reader.Read();
-                    continue;
-                }
-
-                if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "rPh") {
-                    if (!reader.IsEmptyElement) {
-                        phoneticRunDepth = reader.Depth;
-                    }
-
-                    hasNode = reader.Read();
-                    continue;
-                }
-
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "t") {
+                if (!SpreadsheetXmlContent.IsRichTextElement(reader, depth, ref richRunDepth)) {
                     hasNode = reader.Read();
                     continue;
                 }
@@ -321,13 +332,17 @@ namespace OfficeIMO.Excel {
         }
 
         public string? Get(int index) {
-            var items = GetLoadedItems();
+            EnsureLoaded();
+            if (_indexedItems != null) return _indexedItems.Get(index);
+            var items = _loadedItems!;
             if ((uint)index < (uint)items.Count) return items[index];
             return null;
         }
 
         internal bool TryGetUtf8(int index, out ArraySegment<byte> value) {
-            var items = GetLoadedItems();
+            EnsureLoaded();
+            if (_indexedItems != null) return _indexedItems.TryGetUtf8(index, out value);
+            var items = _loadedItems!;
             if ((uint)index >= (uint)items.Count) {
                 value = default;
                 return false;
@@ -343,12 +358,16 @@ namespace OfficeIMO.Excel {
             return Interlocked.CompareExchange(ref _utf8Cache, cache, null) ?? cache;
         }
 
-        internal List<string> GetItems() {
-            return GetLoadedItems();
+        internal int Count {
+            get {
+                EnsureLoaded();
+                return _indexedItems?.Count ?? _loadedItems!.Count;
+            }
         }
 
         internal void EnsureLoaded() {
-            _ = GetLoadedItems();
+            _ = _initialized.Value;
+            ThrowIfDisposed();
         }
 
         internal HashSet<int>? FindIndexesContaining(string text, StringComparison comparison) {
@@ -363,10 +382,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var items = GetLoadedItems();
+            int count = Count;
+            IndexedAsciiItems? indexedItems = _indexedItems;
+            List<string>? loadedItems = _loadedItems;
             HashSet<int>? indexes = null;
-            for (int i = 0; i < items.Count; i++) {
-                if (items[i].IndexOf(text, comparison) >= 0) {
+            for (int i = 0; i < count; i++) {
+                string value = indexedItems != null ? indexedItems.Get(i)! : loadedItems![i];
+                if (value.IndexOf(text, comparison) >= 0) {
                     indexes ??= new HashSet<int>();
                     indexes.Add(i);
                 }
@@ -384,8 +406,20 @@ namespace OfficeIMO.Excel {
             return indexes;
         }
 
-        private List<string> GetLoadedItems() {
-            return _loadedItems ??= _items.Value;
+        public void Dispose() {
+            lock (_lifetimeLock) {
+                if (_disposed) return;
+                _disposed = true;
+                _indexedItems?.Dispose();
+                _indexedItems = null;
+                _loadedItems = null;
+                _utf8Cache = null;
+                _containsCache = null;
+            }
+        }
+
+        private void ThrowIfDisposed() {
+            if (_disposed) throw new ObjectDisposedException(nameof(SharedStringCache));
         }
 
         private int GetBoundedCapacity(uint? uniqueCount, uint? count) {
@@ -404,22 +438,28 @@ namespace OfficeIMO.Excel {
             return declaredCount > _maxSharedStringItems ? _maxSharedStringItems : (int)declaredCount;
         }
 
-        private void EnsureCanAddSharedString(List<string> items) {
-            if (items.Count >= _maxSharedStringItems) {
+        private void EnsureCanAddSharedString(List<string> items) => EnsureCanAddSharedString(items.Count);
+
+        private void EnsureCanAddSharedString(int itemCount) {
+            if (itemCount >= _maxSharedStringItems) {
                 throw new InvalidDataException($"Shared string table exceeds the configured limit of {_maxSharedStringItems} entries.");
             }
         }
 
         private void ValidateSharedStringText(string value, ref long totalCharacters) {
-            if (value.Length > _maxSharedStringItemCharacters) {
+            ValidateSharedStringLength(value.Length, ref totalCharacters);
+        }
+
+        private void ValidateSharedStringLength(int length, ref long totalCharacters) {
+            if (length > _maxSharedStringItemCharacters) {
                 throw new InvalidDataException($"Shared string item exceeds the configured limit of {_maxSharedStringItemCharacters} characters.");
             }
 
-            if (totalCharacters > _maxSharedStringCharacters - value.Length) {
+            if (totalCharacters > _maxSharedStringCharacters - length) {
                 throw new InvalidDataException($"Shared string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
             }
 
-            totalCharacters += value.Length;
+            totalCharacters += length;
         }
 
         private static void EnsureItemCharacterBudget(int currentLength, int additionalLength, int maxItemCharacters) {

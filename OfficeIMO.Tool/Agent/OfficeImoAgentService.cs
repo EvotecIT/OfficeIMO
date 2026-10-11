@@ -27,12 +27,24 @@ internal sealed partial class OfficeImoAgentService {
 
     private readonly AgentPathPolicy _pathPolicy;
     private readonly AgentSourceRegistry _registry;
+    private readonly OfficeIMO.Ocr.OcrEngineCatalog _pdfOcrCatalog;
+    private readonly IReadOnlyDictionary<string, string> _pdfOcrProviderOptions;
+    private readonly HashSet<string> _pdfPasswordEnvironmentVariables;
 
     internal OfficeImoAgentService(
         AgentPathPolicy? pathPolicy = null,
-        AgentSourceRegistry? registry = null) {
+        AgentSourceRegistry? registry = null,
+        OfficeIMO.Ocr.OcrEngineCatalog? pdfOcrCatalog = null,
+        IReadOnlyDictionary<string, string>? pdfOcrProviderOptions = null,
+        IReadOnlyCollection<string>? pdfPasswordEnvironmentVariables = null) {
         _pathPolicy = pathPolicy ?? AgentPathPolicy.FromEnvironment();
         _registry = registry ?? new AgentSourceRegistry();
+        _pdfOcrCatalog = pdfOcrCatalog ?? new OfficeIMO.Ocr.OcrEngineCatalog();
+        _pdfOcrProviderOptions = new Dictionary<string, string>(pdfOcrProviderOptions ?? new Dictionary<string, string>(), StringComparer.Ordinal);
+        _pdfPasswordEnvironmentVariables = new(pdfPasswordEnvironmentVariables ?? [],
+            OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+        if (_pdfPasswordEnvironmentVariables.Count > 32 || _pdfPasswordEnvironmentVariables.Any(name => !PdfWorkflowSettings.IsPasswordEnvironmentVariableName(name)))
+            throw new AgentUsageException("Admit at most 32 simple PDF password environment-variable names.");
     }
 
     internal async Task<AgentInspectResult> InspectAsync(

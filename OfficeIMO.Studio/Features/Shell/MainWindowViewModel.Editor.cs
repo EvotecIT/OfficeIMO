@@ -146,7 +146,8 @@ public sealed partial class MainWindowViewModel {
 
     public PdfEditorTool ActiveEditorTool => SelectedEditorToolChoice.Tool;
 
-    public string EditorInstruction => SelectedEditorToolChoice.Hint;
+    public string EditorInstruction => DocumentMode == StudioDocumentMode.Annotate && ActiveEditorTool == PdfEditorTool.Select
+        ? UiText("AnnotationSelection.Instruction") : SelectedEditorToolChoice.Hint;
 
     public bool HasPendingRedaction => !string.IsNullOrWhiteSpace(PendingRedactionSummary);
 
@@ -154,7 +155,7 @@ public sealed partial class MainWindowViewModel {
 
     public bool HasSelectedObject => SelectedObject is not null;
 
-    public bool HasSelectedAnnotation => SelectedObject?.Kind == PdfEditorSelectionKind.Annotation;
+    public bool HasSelectedAnnotation => SelectedObject?.Kind == PdfEditorSelectionKind.Annotation && SelectedAnnotations.Count <= 1;
 
     public bool HasSelectedImage => SelectedObject?.Kind == PdfEditorSelectionKind.Image;
 
@@ -382,6 +383,15 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void OnPageObjectSelected(PdfEditorSelection? selection) {
+        if (selection is { Kind: PdfEditorSelectionKind.Annotation, ObjectNumber: not null }) {
+            OnPageAnnotationsSelected(new([selection], false));
+            return;
+        }
+        SelectedAnnotations = Array.Empty<PdfEditorSelection>();
+        ApplyObjectSelection(selection);
+    }
+
+    private void ApplyObjectSelection(PdfEditorSelection? selection) {
         if (_workspace is null || selection is null) {
             ClearObjectSelection();
             return;
@@ -398,7 +408,7 @@ public sealed partial class MainWindowViewModel {
         }
 
         if (selection.Kind == PdfEditorSelectionKind.Annotation) {
-            PdfAnnotation? annotation = _workspace.DocumentInfo?.Annotations.FirstOrDefault(candidate =>
+            PdfAnnotation? annotation = _workspace.AnnotationMetadata.FirstOrDefault(candidate =>
                 candidate.ObjectNumber == selection.ObjectNumber && candidate.PageNumber == selection.PageNumber);
             if (annotation is null) {
                 ClearObjectSelection();
@@ -712,6 +722,7 @@ public sealed partial class MainWindowViewModel {
 
     private void ClearObjectSelection() {
         ClearTextReview();
+        SelectedAnnotations = Array.Empty<PdfEditorSelection>();
         SelectedObject = null;
         SelectedObjectSummary = null;
         SelectedAnnotationSummary = null;

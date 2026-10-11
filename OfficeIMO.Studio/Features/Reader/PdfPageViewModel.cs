@@ -63,6 +63,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private PdfEditorSelection? _selectedObject;
 
     [ObservableProperty]
+    private IReadOnlyList<PdfEditorSelection> _selectedAnnotations = Array.Empty<PdfEditorSelection>();
+
+    [ObservableProperty]
     private int? _commentAnchorObjectNumber;
 
     [ObservableProperty]
@@ -132,6 +135,8 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal event Action<PdfEditorGesture>? EditorGestureCompleted;
 
     internal event Action<PdfEditorSelection?>? ObjectSelected;
+    internal event Action<PdfAnnotationSelectionRequest>? AnnotationSelectionRequested;
+    internal event Action<Avalonia.Input.Key, Avalonia.Input.KeyModifiers>? AnnotationKeyRequested;
     internal event Action<PdfObjectTransformGesture>? ObjectTransformCompleted;
 
     internal void AttachToViewport() {
@@ -189,6 +194,8 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal void RequestMarkup(PdfEditorTool tool, PdfEditorGesture gesture) => MarkupRequested?.Invoke(tool, gesture);
 
     internal void SelectObject(PdfEditorSelection? selection) => ObjectSelected?.Invoke(selection);
+    internal void SelectAnnotations(PdfAnnotationSelectionRequest request) => AnnotationSelectionRequested?.Invoke(request);
+    internal void RequestAnnotationKey(Avalonia.Input.Key key, Avalonia.Input.KeyModifiers modifiers) => AnnotationKeyRequested?.Invoke(key, modifiers);
     internal void TransformObject(PdfObjectTransformGesture gesture) => ObjectTransformCompleted?.Invoke(gesture);
 
     internal async Task EnsureRenderedAsync() {

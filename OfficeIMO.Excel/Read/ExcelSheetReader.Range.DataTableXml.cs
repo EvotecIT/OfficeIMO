@@ -73,6 +73,7 @@ namespace OfficeIMO.Excel {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 bool headerRead = !headersInFirstRow;
@@ -84,7 +85,7 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 
@@ -169,7 +170,7 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
+                if (!SpreadsheetXmlContent.IsDirectChildElement(rowReader, depth, "c")) {
                     continue;
                 }
 
@@ -265,6 +266,7 @@ namespace OfficeIMO.Excel {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
                 RewindWorksheetStream(stream);
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 bool advanceReader = true;
@@ -274,7 +276,7 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 

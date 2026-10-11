@@ -4,6 +4,59 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class PdfPrintRendererTests {
+    [Theory]
+    [InlineData(PdfPrintAlignment.TopLeft, false)]
+    [InlineData(PdfPrintAlignment.TopRight, true)]
+    public void CustomScaleCropsTheChosenSourceEdgeAndKeepsPaperMarginsWhite(PdfPrintAlignment alignment, bool showsRightStripe) {
+        OfficeShape background = OfficeShape.Rectangle(100, 100), stripe = OfficeShape.Rectangle(20, 100);
+        background.FillColor = OfficeColor.Red; background.StrokeWidth = 0;
+        stripe.FillColor = OfficeColor.Blue; stripe.StrokeWidth = 0;
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+            PageWidth = 100, PageHeight = 100, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
+        }).Canvas(canvas => canvas.Shape(background, 0, 0).Shape(stripe, 80, 0));
+        PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new() {
+            InputPath = "snapshot.pdf", PaperSize = new PageSize(150, 180), Margin = 10,
+            ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = 250, Alignment = alignment
+        }, new() { Dpi = 72 });
+        PdfRenderedPrintSheet sheet = Assert.Single(prepared.Sheets);
+        Assert.True(Assert.Single(sheet.Plan.Placements).IsClipped);
+        OfficeRasterImage raster = sheet.Decode(CancellationToken.None);
+        Assert.Equal(showsRightStripe ? OfficeColor.Blue : OfficeColor.Red, raster.GetPixel(120, 60));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(5, 60));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(145, 60));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(60, 5));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(60, 175));
+    }
+
+    [Fact]
+    public void GrayscalePreparedSheetsPreserveLayoutAndSourceAndContainOnlyNeutralPixels() {
+        OfficeShape marker = OfficeShape.Rectangle(20, 20);
+        marker.FillColor = OfficeColor.Red;
+        marker.StrokeWidth = 0;
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+            PageWidth = 100, PageHeight = 100, MarginLeft = 0, MarginRight = 0, MarginTop = 0, MarginBottom = 0
+        }).Canvas(canvas => canvas.Shape(marker, 0, 0));
+        byte[] source = document.ToBytes();
+        var request = new PdfPrintPlanRequest {
+            InputPath = "snapshot.pdf", PaperSize = new PageSize(200, 200), Margin = 10,
+            ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = 50, Alignment = PdfPrintAlignment.BottomRight
+        };
+        OfficeRasterImage color = Assert.Single(PdfPrintRenderer.Prepare(document, request,
+            new() { Dpi = 72 }).Sheets).Decode(CancellationToken.None);
+        Assert.Equal(OfficeColor.Red, color.GetPixel(145, 145));
+        Assert.Equal(OfficeColor.White, color.GetPixel(15, 15));
+        request.ColorMode = PdfPrintColorMode.Grayscale;
+        PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, request, new() { Dpi = 72 });
+        OfficeRasterImage gray = Assert.Single(prepared.Sheets).Decode(CancellationToken.None);
+        Assert.Equal(PdfPrintColorMode.Grayscale, prepared.Plan.ColorMode);
+        Assert.Equal(OfficeColorTransforms.Grayscale(OfficeColor.Red), gray.GetPixel(145, 145));
+        for (int y = 0; y < gray.Height; y++) for (int x = 0; x < gray.Width; x++) {
+            OfficeColor pixel = gray.GetPixel(x, y);
+            Assert.Equal(pixel.R, pixel.G); Assert.Equal(pixel.G, pixel.B);
+        }
+        Assert.Equal(source, document.ToBytes());
+    }
+
     [Fact]
     public void PreparationRejectsSheetOutsideTheDeliveryWorkingSetBudget() {
         OfficeShape marker = OfficeShape.Rectangle(20, 20);

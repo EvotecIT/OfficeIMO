@@ -1,17 +1,96 @@
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioDocumentTabsTests {
+    [Fact]
+    public async Task PlainTextWithPdfExtensionDoesNotReplaceTheActiveDocumentOrLeaveATab() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-tab-invalid-input-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string invalid = Path.Combine(root, "plain-text.pdf");
+        File.WriteAllText(invalid, "This is not a PDF document.");
+        try {
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                var window = new MainWindow();
+                try {
+                    window.Show();
+                    string valid = Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
+                    await window.TabHost.OpenDocumentAsync(valid);
+                    var selected = Assert.Single(window.TabHost.Tabs);
+                    var document = selected.Document;
+                    byte[] sourceBytes = await File.ReadAllBytesAsync(valid);
+                    int originalCommentCount = document.CommentThreads.Count;
+                    const string retainedNote = "Retain this review note after rejected input";
+                    document.EditorText = retainedNote;
+                    await document.ApplyPageMarkupAsync(PdfEditorTool.Note, new PdfEditorGesture(1, 24, 24, 48, 48, []));
+                    Assert.Null(document.ErrorMessage);
+                    var editedComment = Assert.Single(document.CommentThreads, thread => thread.Contents == retainedNote);
+                    Assert.Equal(originalCommentCount + 1, document.CommentThreads.Count);
+                    Assert.True(document.IsDirty, document.ErrorMessage);
+                    Assert.True(document.CanUndo);
+                    var editedPage = Assert.Single(document.ReaderPages);
+
+                    await window.TabHost.OpenDocumentAsync(invalid);
+
+                    Assert.Same(selected, Assert.Single(window.TabHost.Tabs));
+                    Assert.Same(selected, window.TabHost.SelectedTab);
+                    Assert.Same(document, window.ViewModel);
+                    Assert.Equal(valid, document.DocumentPath);
+                    Assert.Same(editedPage, Assert.Single(document.ReaderPages));
+                    Assert.Same(editedComment, Assert.Single(document.CommentThreads, thread => thread.Contents == retainedNote));
+                    Assert.Equal(originalCommentCount + 1, document.CommentThreads.Count);
+                    Assert.True(document.IsDirty);
+                    Assert.True(document.CanUndo);
+                    Assert.False(document.IsOpening);
+                    Assert.Contains("no readable indirect objects", document.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+                    Layout(window, 1280);
+                    await editedPage.EnsureRenderedAsync();
+                    Assert.True(editedPage.HasScene);
+                    Assert.False(editedPage.HasRenderError);
+                    Assert.False(editedPage.IsRendering);
+                    Layout(window, 1280);
+                    Capture(window, "invalid-input-preserves-document-wide");
+                    Layout(window, 390);
+                    var workspace = window.FindControl<DocumentWorkspaceView>("DocumentWorkspace")!;
+                    var inspectorToggle = workspace.FindControl<ToggleButton>("InspectorToggle")!;
+                    inspectorToggle.IsChecked = false;
+                    inspectorToggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Layout(window, 390);
+                    await editedPage.EnsureRenderedAsync();
+                    Assert.True(editedPage.HasScene);
+                    Assert.False(editedPage.HasRenderError);
+                    Assert.False(editedPage.IsRendering);
+                    Layout(window, 390);
+                    Capture(window, "invalid-input-preserves-document-compact");
+                    await document.UndoCommand.ExecuteAsync(null);
+                    Assert.Equal(originalCommentCount, document.CommentThreads.Count);
+                    Assert.False(document.IsDirty);
+                    Assert.False(document.CanUndo);
+                    Assert.Equal(valid, document.DocumentPath);
+                    Assert.Equal(sourceBytes, await File.ReadAllBytesAsync(valid));
+                } finally {
+                    if (window.ViewModel.CanUndo) await window.ViewModel.UndoCommand.ExecuteAsync(null);
+                    window.Close();
+                }
+                return true;
+            }, CancellationToken.None);
+        } finally { Directory.Delete(root, true); }
+    }
+
     [Fact]
     public async Task DocumentTabsExposeSelectionAndKeepKeyboardNavigationVisible() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-tab-controls-" + Guid.NewGuid().ToString("N"));

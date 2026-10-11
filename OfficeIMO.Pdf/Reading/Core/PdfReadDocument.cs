@@ -60,6 +60,10 @@ public sealed partial class PdfReadDocument {
         PdfLoadOptions? options,
         long decodedStreamBytes,
         System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (objects.Count == 0) {
+            throw new PdfParseException("NoIndirectObjects", "The PDF contains no readable indirect objects and cannot be opened.", null);
+        }
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfLoadOptions();
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);

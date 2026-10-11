@@ -384,6 +384,7 @@ public sealed partial class MainWindowViewModel {
     internal void CancelCurrentOperation() {
         _operationCancellation?.Cancel();
         _openCancellation?.Cancel();
+        _formOcrCancellation?.Cancel();
         CancelComparisonOpen();
         if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
         if (ConversionWorkbench.BatchExport.IsBusy) ConversionWorkbench.BatchExport.CancelCommand.Execute(null);
@@ -430,6 +431,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyWorkspaceStateChanged() {
+        NotifyFormOcrState();
         _assistant?.CheckSource();
         OnPropertyChanged(nameof(CanSearchDocument));
         OnPropertyChanged(nameof(ReaderHint));
@@ -446,6 +448,9 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(CanEditAnnotations));
+        OnPropertyChanged(nameof(CanEditSelectedAnnotations));
+        OnPropertyChanged(nameof(CanGroupAnnotations));
+        OnPropertyChanged(nameof(CanUngroupAnnotations));
         OnPropertyChanged(nameof(CanEditPageContent));
         OnPropertyChanged(nameof(CanReplaceSelectedText));
         OnPropertyChanged(nameof(CanReplaceSelectedImage));

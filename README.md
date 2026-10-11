@@ -339,6 +339,23 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
+#### [OfficeIMO.Chm](OfficeIMO.Chm/README.md)
+
+Compiled HTML Help reading with exact entry extraction, topics, embedded resources,
+hierarchical contents, and the keyword index. Optional [Markdown](OfficeIMO.Chm.Markdown/README.md),
+[EPUB](OfficeIMO.Chm.Epub/README.md), and [PDF](OfficeIMO.Chm.Pdf/README.md) adapters reuse
+the existing conversion engines and expose fidelity reports. [Reader ingestion](OfficeIMO.Reader.Chm/README.md)
+retains archive hashes and topic citations. See [supported profiles](OfficeIMO.Chm/SUPPORT.md)
+for ITSF/LZX coverage and export limits. Loading is inert and needs no Windows help viewer.
+
+#### [OfficeIMO.DjVu](OfficeIMO.DjVu/README.md)
+
+Managed DjVu scanned-book reading, stored UTF-8 text and word geometry, bounded
+page rendering, and source navigation. [OfficeIMO.DjVu.Pdf](OfficeIMO.DjVu.Pdf/README.md)
+adds searchable scanned-page PDFs and explicit OCR for missing text;
+[OfficeIMO.Reader.DjVu](OfficeIMO.Reader.DjVu/README.md) projects the native document
+into Reader. See the [codec and independent qualification contract](OfficeIMO.DjVu/SUPPORT.md).
+
 #### [OfficeIMO.Xps](OfficeIMO.Xps/README.md)
 
 Portable XPS/OpenXPS package reading, native page editing, and writing, with

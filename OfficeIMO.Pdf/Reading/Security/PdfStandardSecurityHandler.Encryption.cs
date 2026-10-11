@@ -1,9 +1,11 @@
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfStandardSecurityHandler {
-    internal PdfObject EncryptObject(int objectNumber, int generation, PdfObject value) {
+    internal PdfObject EncryptObject(int objectNumber, int generation, PdfObject value, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStringObj text) {
             return new PdfStringObj(EncryptData(objectNumber, generation, text.RawBytes, _stringMethod), text.UseTextStringEncoding) {
                 HasIncompleteSyntax = text.HasIncompleteSyntax
@@ -13,19 +15,20 @@ internal sealed partial class PdfStandardSecurityHandler {
         if (value is PdfArray array) {
             var encrypted = new PdfArray { HasIncompleteSyntax = array.HasIncompleteSyntax };
             for (int i = 0; i < array.Items.Count; i++) {
-                encrypted.Items.Add(EncryptObject(objectNumber, generation, array.Items[i]));
+                encrypted.Items.Add(EncryptObject(objectNumber, generation, array.Items[i], cancellationToken));
             }
 
             return encrypted;
         }
 
         if (value is PdfDictionary dictionary) {
-            return EncryptDictionary(objectNumber, generation, dictionary);
+            return EncryptDictionary(objectNumber, generation, dictionary, cancellationToken);
         }
 
         if (value is PdfStream stream) {
             bool skipData = ShouldSkipStreamData(stream.Dictionary);
-            PdfDictionary encryptedDictionary = EncryptDictionary(objectNumber, generation, stream.Dictionary);
+            PdfDictionary encryptedDictionary = EncryptDictionary(objectNumber, generation, stream.Dictionary, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] encryptedData = skipData
                 ? stream.Data
                 : EncryptData(objectNumber, generation, stream.Data, _streamMethod);
@@ -37,12 +40,13 @@ internal sealed partial class PdfStandardSecurityHandler {
         return value;
     }
 
-    private PdfDictionary EncryptDictionary(int objectNumber, int generation, PdfDictionary dictionary) {
+    private PdfDictionary EncryptDictionary(int objectNumber, int generation, PdfDictionary dictionary, CancellationToken cancellationToken) {
         var encrypted = new PdfDictionary { HasIncompleteSyntax = dictionary.HasIncompleteSyntax };
         foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             encrypted.Items[item.Key] = IsSignatureContents(dictionary, item.Key)
                 ? item.Value
-                : EncryptObject(objectNumber, generation, item.Value);
+                : EncryptObject(objectNumber, generation, item.Value, cancellationToken);
         }
 
         return encrypted;

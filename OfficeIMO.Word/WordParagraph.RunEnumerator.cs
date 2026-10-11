@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides run enumeration helpers for <see cref="WordParagraph"/>.
-    /// </summary>
+    // Provides run enumeration helpers for WordParagraph.
     public partial class WordParagraph {
         /// <summary>
         /// Enumerates visible runs in paragraph order, including cached simple-field results and hyperlink runs.

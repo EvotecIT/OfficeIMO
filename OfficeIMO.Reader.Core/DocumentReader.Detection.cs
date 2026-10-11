@@ -536,6 +536,20 @@ internal static partial class DocumentReaderEngine {
         if (prefix.Length == 0) {
             return DetectionCandidate.Unknown("content:empty");
         }
+        if (StartsWith(prefix, new byte[] { 0x49, 0x54, 0x53, 0x46 })) {
+            return DetectionCandidate.High(ReaderInputKind.Chm, "application/vnd.ms-htmlhelp", "signature:itsf");
+        }
+        if (prefix.Length >= 16 && StartsWith(prefix, new byte[] { 65, 84, 38, 84, 70, 79, 82, 77 }) &&
+            prefix[12] == 'D' && prefix[13] == 'J' && prefix[14] == 'V' && (prefix[15] == 'U' || prefix[15] == 'M')) {
+            return DetectionCandidate.High(ReaderInputKind.DjVu, "image/vnd.djvu", "signature:djvu");
+        }
+        int iw44Offset = StartsWith(prefix, new byte[] { 65, 84, 38, 84 }) ? 4 : 0;
+        if (prefix.Length >= iw44Offset + 12 && prefix[iw44Offset] == 'F' && prefix[iw44Offset + 1] == 'O' &&
+            prefix[iw44Offset + 2] == 'R' && prefix[iw44Offset + 3] == 'M' &&
+            (prefix[iw44Offset + 8] == 'P' || prefix[iw44Offset + 8] == 'B') &&
+            prefix[iw44Offset + 9] == 'M' && prefix[iw44Offset + 10] == '4' && prefix[iw44Offset + 11] == '4') {
+            return DetectionCandidate.High(ReaderInputKind.DjVu, "image/vnd.djvu", "signature:iw44");
+        }
         if (StartsWith(prefix, new byte[] { 0xE4, 0x52, 0x5C, 0x7B, 0x8C, 0xD8, 0xA7, 0x4D, 0xAE, 0xB1, 0x53, 0x78, 0xD0, 0x29, 0x96, 0xD3 })) {
             return DetectionCandidate.High(ReaderInputKind.OneNote, "application/onenote", "signature:onenote-section");
         }
@@ -918,6 +932,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.PowerPoint => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             ReaderInputKind.Markdown => "text/markdown",
             ReaderInputKind.Pdf => "application/pdf",
+            ReaderInputKind.DjVu => "image/vnd.djvu",
             ReaderInputKind.Email => "message/rfc822",
             ReaderInputKind.Calendar => "text/calendar",
             ReaderInputKind.VCard => "text/vcard",
@@ -930,6 +945,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Json => "application/json",
             ReaderInputKind.Xml => "application/xml",
             ReaderInputKind.Html => "text/html",
+            ReaderInputKind.Chm => "application/vnd.ms-htmlhelp",
             ReaderInputKind.Zip => "application/zip",
             ReaderInputKind.Epub => "application/epub+zip",
             ReaderInputKind.Visio => "application/vnd.ms-visio.drawing.main+xml",

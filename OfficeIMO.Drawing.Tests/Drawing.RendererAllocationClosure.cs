@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                 OfficePathCommand.LineTo(0D, 4D), OfficePathCommand.Close());
             var drawing = new OfficeDrawing(8D, 8D).AddClippedImage(png, "image/png", projection, left, top, clip);
 
-            Assert.Equal(OfficeColor.Black, OfficeDrawingRasterRenderer.Render(drawing,
+            Assert.Equal(OfficeColor.FromRgba(0, 0, 0, 128), OfficeDrawingRasterRenderer.Render(drawing,
                 new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 64L }).GetPixel(0, 0));
         }
 
@@ -298,14 +298,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(.018D)]
-        [InlineData(.13D)]
-        public void SubpixelPeriodicTilesRetainOpaqueCoverage(double density) {
+        [InlineData(.018D, false)]
+        [InlineData(.13D, false)]
+        [InlineData(.018D, true)]
+        [InlineData(.13D, true)]
+        public void SubpixelPeriodicTilesRetainOpaqueCoverage(double density, bool imagePattern) {
             var tile = new OfficeDrawing(10D, 10D);
             AddRectangle(tile, 0D, 0D, 10D, 10D, OfficeColor.Black);
-            var drawing = new OfficeDrawing(10D, 10D).AddTilingPattern(tile,
-                new OfficeImagePlacement(0D, 0D, 10D, 10D), 10D, 10D,
-                transform: OfficeTransform.Scale(density, density));
+            var drawing = new OfficeDrawing(10D, 10D);
+            var area = new OfficeImagePlacement(0D, 0D, 10D, 10D);
+            if (imagePattern) drawing.AddImagePattern(OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Black)),
+                "image/png", new OfficeImagePatternLayout(area, new OfficeImagePlacement(0D, 0D, 10D * density, 10D * density)));
+            else drawing.AddTilingPattern(tile, area, 10D, 10D, transform: OfficeTransform.Scale(density, density));
 
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
 

@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Dependency-free rendered PDF comparison with structural evidence and review artifacts.</summary>
 public static class PdfVisualComparer {
-    /// <summary>Compares all common pages or a selected page set.</summary>
+    /// <summary>Compares whole documents, a shared page set, or independent ordered page selections.</summary>
     public static PdfVisualComparisonReport Compare(
         byte[] expectedPdf,
         byte[] actualPdf,
@@ -15,7 +15,7 @@ public static class PdfVisualComparer {
         PdfLoadOptions? actualReadOptions = null) =>
         Compare(expectedPdf, actualPdf, CancellationToken.None, selection, options, expectedReadOptions, actualReadOptions);
 
-    /// <summary>Compares all common pages or a selected page set with cooperative cancellation.</summary>
+    /// <summary>Compares whole documents, a shared page set, or independent ordered page selections with cooperative cancellation.</summary>
     public static PdfVisualComparisonReport Compare(
         byte[] expectedPdf,
         byte[] actualPdf,
@@ -38,38 +38,45 @@ public static class PdfVisualComparer {
             structural.Add("PageCount: expected " + expected.Pages.Count + ", actual " + actual.Pages.Count + ".");
         }
 
-        int commonPageCount = Math.Min(expected.Pages.Count, actual.Pages.Count);
-        int[] pageNumbers = selection?.ToPageNumbers(expected.Pages.Count, nameof(selection)) ?? Enumerable.Range(1, commonPageCount).ToArray();
-        if (pageNumbers.Length > effectiveOptions.MaxPages) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, effectiveOptions.MaxPages, pageNumbers.Length);
-        }
-        var pages = new List<PdfVisualPageComparison>(pageNumbers.Length);
+        if (selection is not null && (effectiveOptions.ExpectedPages is not null || effectiveOptions.ActualPages is not null))
+            throw new ArgumentException("Choose the shared page selection or independent expected/actual selectors, not both.", nameof(selection));
+        bool independentSelection = effectiveOptions.ExpectedPages is not null || effectiveOptions.ActualPages is not null;
+        int[] expectedPages = ResolvePages(effectiveOptions.ExpectedPages, selection, expected.Pages.Count, effectiveOptions.MaxPages);
+        int[] actualPages = selection is null
+            ? ResolvePages(effectiveOptions.ActualPages, null, actual.Pages.Count, effectiveOptions.MaxPages)
+            : expectedPages.Where(page => page <= actual.Pages.Count).ToArray();
+        if (independentSelection) structural.Clear(); // Document totals remain context; selected sequences define the comparison scope.
+        int pairCount = selection is null ? Math.Min(expectedPages.Length, actualPages.Length) : actualPages.Length;
+        int[] unmatchedExpected = selection is null ? expectedPages.Skip(pairCount).ToArray()
+            : expectedPages.Where(page => page > actual.Pages.Count).ToArray();
+        int[] unmatchedActual = selection is null ? actualPages.Skip(pairCount).ToArray() : Array.Empty<int>();
+        foreach (int page in unmatchedExpected) structural.Add("Expected page " + page + " has no selected actual partner.");
+        foreach (int page in unmatchedActual) structural.Add("Actual page " + page + " has no selected expected partner.");
+        var pages = new List<PdfVisualPageComparison>(pairCount);
         long totalPixels = 0;
         long totalOutputBytes = 0;
-        for (int i = 0; i < pageNumbers.Length; i++) {
+        for (int i = 0; i < pairCount; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            int pageNumber = pageNumbers[i];
-            if (pageNumber > actual.Pages.Count) {
-                structural.Add("Page " + pageNumber + " is missing from the actual document.");
-                continue;
-            }
-
-            PdfVisualPageComparison page = ComparePage(
-                expected,
-                actual,
-                pageNumber,
-                effectiveOptions,
-                structural,
-                ref totalPixels,
-                cancellationToken);
+            int expectedPageNumber = selection is null ? expectedPages[i] : actualPages[i];
+            PdfVisualPageComparison page = ComparePage(expected, actual, expectedPageNumber, actualPages[i],
+                effectiveOptions, structural, ref totalPixels, cancellationToken);
             totalOutputBytes = checked(totalOutputBytes + page.OutputByteLength);
             if (totalOutputBytes > effectiveOptions.MaxTotalOutputBytes) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, effectiveOptions.MaxTotalOutputBytes, totalOutputBytes);
             }
             pages.Add(page);
         }
+        return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly(), expected.Pages.Count, actual.Pages.Count,
+            expectedPages, actualPages, unmatchedExpected, unmatchedActual,
+            PdfArtifactSnapshot.CaptureKnownPageCount(expectedPdf, expected.Pages.Count, cancellationToken).Sha256,
+            PdfArtifactSnapshot.CaptureKnownPageCount(actualPdf, actual.Pages.Count, cancellationToken).Sha256, independentSelection || selection is not null);
+    }
 
-        return new PdfVisualComparisonReport(pages.AsReadOnly(), structural.AsReadOnly(), expected.Pages.Count, actual.Pages.Count);
+    private static int[] ResolvePages(PdfPageSelector? selector, PdfPageSelection? selection, int count, int maximum) {
+        if (selector is not null) return selector.Resolve(count, maximum).ToArray();
+        long selectedCount = selection is null ? count : selection.Ranges.Sum(range => (long)range.LastPage - range.FirstPage + 1);
+        if (selectedCount > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, maximum, selectedCount);
+        return selection?.ToPageNumbers(count, nameof(selection)) ?? Enumerable.Range(1, count).ToArray();
     }
 
     /// <summary>Compares any two one-based pages, including pages aligned after insertion or reordering.</summary>
@@ -107,10 +114,6 @@ public static class PdfVisualComparer {
         var structural = new List<string>();
         PdfVisualPageComparison page = ComparePage(expected, actual, expectedPageNumber, actualPageNumber, options, structural, ref totalPixels, cancellationToken);
         return page;
-    }
-
-    private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int pageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {
-        return ComparePage(expectedDocument, actualDocument, pageNumber, pageNumber, options, structural, ref totalPixels, cancellationToken);
     }
 
     private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int expectedPageNumber, int actualPageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {

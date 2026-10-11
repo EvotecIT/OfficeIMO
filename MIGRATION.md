@@ -1,5 +1,16 @@
 # Upgrading OfficeIMO
 
+## PDF form value assessment
+
+`PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
+precision and range checks from the supported inert field/widget action profile.
+Unsupported script constraints produce assessment errors without executing code.
+Applications that previously displayed only length and choice errors must also
+display these errors and block acceptance until the assessment succeeds. Correct
+numeric values to the recovered rules; use a qualified form application for
+unsupported script constraints.
+The [form review contract](OfficeIMO.Pdf.Ocr/README.md#review-values-for-existing-form-fields)
+defines the supported helper calls; the policy does not emulate Acrobat formatting.
 ## Shared raster workflow contracts
 
 `OfficeRasterEncodingOptions` uses an explicit nullable `Resolution` override in place of the shared `DpiX` and `DpiY` setters. Replace an explicit 300 DPI override with `Resolution = new OfficeImageResolution(300, 300)`. Null keeps a plain encoder's selected codec settings in control; metadata-aware encoding takes density from the supplied `OfficeImageMetadata` when the override is null. Format-specific density settings remain available on the PNG, JPEG, TIFF, and WebP option objects.
@@ -7,6 +18,12 @@
 Use `OfficeRasterDecodeOptions.FrameLossPolicy` and `OfficeRasterFrameLossPolicy` in place of `AnimationPolicy` and `OfficeRasterAnimationPolicy`. The policy describes discarded TIFF pages and icon entries as well as animation frames. `DecodeFrames` returns complete supported sequences; `Decode` selects one frame or page. Throwing and best-effort entry points share the same decoder and limits.
 
 Raster text effects move from the long positional `OfficeRasterText.Draw` overload to `OfficeRasterTextOptions`. Pass the same options to `Measure` and `Draw` for consistent font, style, language, shaping, and wrapping. The short plain-text primitives retain their distinct convenience role.
+
+`OfficeRasterText.Draw` places the complete layout measured by `Measure`, including fractional line spacing. Rectangle height no longer removes lines. `Clip` controls glyph and effect clipping at the rectangle edges; `Wrap = false` preserves authored line breaks without adding soft wraps.
+
+Common raster decoding interpolates subsampled JPEG chroma by default. Set `OfficeRasterDecodeOptions.JpegHighQualityChroma = false` to select nearest-sample chroma reconstruction, including when reproducing pixels decoded with the earlier common default. This setting does not change EXIF orientation or acceptance of truncated input.
+
+Rotated and affine canvas images use fractional coverage at their outer boundaries. Edge pixels can therefore have partial alpha where the earlier renderer selected fully opaque pixels by their centers. Identity placement keeps the source pixels unchanged. Periodic image and vector fills assign shared tile boundaries by pixel center while retaining interpolation within each tile, avoiding seams between opaque tiles.
 
 The raster constructor now enforces the existing 50-million-pixel limit before allocation. `GetPixels` applies the same source-plus-copy managed-storage limit as `Clone`; applications retaining a large decoded image may need a smaller result before making another complete copy. Pixel setters retain clipping behavior. Canvas drawing onto its own image samples a guarded snapshot of the original pixels.
 
@@ -47,6 +64,15 @@ Replace `pdf.AssessMutations(default)` with
 `pdf.AssessMutations(operations: default)`. The cancellation-token overload makes
 the positional `default` literal ambiguous. Parameterless calls and calls with
 an explicit operation collection retain their existing behavior.
+
+## PDF inputs without readable objects
+
+Lenient typed reading throws `PdfParseException` with code `NoIndirectObjects`
+when an input contains no recoverable indirect objects. Reject these inputs
+instead of treating their former empty page collection as an opened PDF.
+`PdfDocument.Load` still captures the source lazily; call `Read`, `Inspect`, or
+`InspectForViewing` to require a typed read. `Preflight` retains read blockers,
+and zero-page catalogs and recoverable object fragments keep their existing behavior.
 
 ## EPUB XHTML image export
 
@@ -136,24 +162,55 @@ TIFF images retain their declared sample encoding.
 
 Register `.AddXpsHandler()` from `OfficeIMO.Reader.Xps` to ingest native `.xps` and
 `.oxps` files. Reader results use `ReaderInputKind.Xps` (`26`) and document transport
-schema version 10 or later. Exhaustive kind switches and transport bindings must accept
+schema version 10. Exhaustive kind switches and transport bindings must accept
 this value and version. Versions 5 through 9 remain readable; they cannot carry
 XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## Publisher Reader identity and transport
+
+`ReaderInputKind.Publisher` (`30`) requires document transport schema version 14.
+Update exhaustive input-kind switches and transport bindings. Schemas 5 through
+13 remain readable but cannot carry Publisher input kinds. CHM (`27`), DjVu (`28`)
+and DBF (`29`) retain their existing identities and minimum schema versions.
+Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the current artifact.
+
+## DBF Reader identity and transport
+
+Register `.AddDbfHandler()` from `OfficeIMO.Reader.Dbf`, or use the all-adapters
+preset, to ingest DBF/xBase tables. `ReaderInputKind.Dbf` (`29`) requires document
+transport schema v13. Update exhaustive input-kind switches and transport bindings;
+schemas v5 through v12 remain readable but cannot carry DBF input kinds. CHM (`27`)
+and DjVu (`28`) retain their existing identities and minimum schema versions.
+Memo sidecar reads require explicit opt-in through `ReaderDbfOptions` or
+`ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
+
+## DjVu Reader identity and transport
+
+Register `.AddDjVuHandler()` from `OfficeIMO.Reader.DjVu` for `.djvu` and `.djv`,
+or use the all-adapters preset. Results use `ReaderInputKind.DjVu` (`28`) and
+transport schema v12. Update exhaustive input-kind switches and transport bindings
+to accept the new value and version. Historical schemas remain readable; v11 and
+earlier cannot carry DjVu input kinds. Schema v11 and `ReaderInputKind.Chm` (`27`)
+retain their existing CHM contract. Obtain the current artifact through
+`OfficeDocumentReadResultSchema.GetJsonSchema()`. Native source page numbers remain
+stable when selected pages are reordered. Page images and new OCR are explicit
+options; corrupt stored text is a parsing diagnostic.
+
 `XpsPage.ExtractText()` excludes glyphs inside resources and brush visuals. Use
 `XpsDocument.ToOfficeDocumentModel()` for native story order or the Reader adapter
 for bounded chunks, tables, page citations and diagnostics.
 
-## Reader identities for CHM, DBF, and Publisher
+## CHM Reader identity
 
-Document transport schema version 11 declares `ReaderInputKind.Chm` (`27`),
-`ReaderInputKind.Dbf` (`28`), and `ReaderInputKind.Publisher` (`29`). Update
-exhaustive kind switches and transport bindings when registering these format
-handlers. Earlier input-kind numbers (`0` through `26`) retain their values.
-Versions 5 through 10 remain readable for their existing formats; they cannot
-carry these three kinds in roots, chunks, or nested documents.
+Register `.AddChmHandler()` from `OfficeIMO.Reader.Chm` to ingest compiled HTML Help,
+or use the all-adapters preset. Results use `ReaderInputKind.Chm` (`27`) and document
+transport schema version 11. Update exhaustive kind switches and transport bindings
+to accept this value and version. Versions 5 through 10 remain readable; they cannot
+carry CHM input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the
+current artifact. CHM citations identify archive/topic paths rather than physical
+page numbers, and source hashes cover the original archive bytes.
 
 ## XPS PDF reading order
 
@@ -2835,6 +2892,32 @@ inspect the resulting worksheet/table when row or column counts are needed. `Del
 reports the actual delimiter used, including one selected by detection.
 
 CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReadOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
+
+XML streaming Excel data readers also enforce `MaxXmlDataReaderBufferedCharacters`
+(32 Mi characters by default) while completing a physical row, or across all
+buffered out-of-order rows. Decoded raw, formula and inline text plus resolved
+strings count conservatively, including duplicate records. If intentionally
+larger trusted rows exceed this limit, close the failed reader and reopen with
+a higher value. After a limit failure, that range reader's `Read` and value
+getters continue throwing `InvalidDataException` until it is closed. XML
+preparation also bounds text used to validate shared-string indices and shared
+formula followers. Indexed UTF-8 and SDK worksheet-chunk caches keep their
+existing limits. This option does not cap framework XML parser memory; a CDATA
+or attribute node can be buffered before its decoded text is charged.
+
+XLSX numeric cells and cached numeric formula results now retain their invariant
+wire values under a configured reader culture. For example, `1.5` reads as `1.5`
+under `de-DE` instead of `15`, including decimal overflow fallback and typed object
+mapping. Legacy localized numeric text still uses the configured culture fallback.
+Culture-aware conversion of string cells and custom converter precedence
+remain unchanged. Re-read affected files if earlier imports persisted altered values.
+
+XML inline and shared strings include visible text and rich runs while excluding
+phonetic guidance and extension payloads. Only direct worksheet rows and cells
+contribute values, and only direct shared-string items contribute indexes. Cell
+extensions cannot replace a cell's value or formula. Re-read imports that included
+extension content. XML streaming data readers reject child markup inside individual
+text elements; valid rich runs, CDATA and preserved whitespace remain supported.
 
 The shared `OfficeRenderingProfile` and Excel structural mutation planning APIs are additive. Existing callers do not need compatibility wrappers for them. Use a rendering profile when multiple conversion packages must share one quality policy. Use `PlanInsertRows(...)` / `PlanDeleteRows(...)`, `PlanInsertColumns(...)` / `PlanDeleteColumns(...)`, or the range mutation plans when an application must inspect workbook impact before a transactional change; existing direct mutation calls remain available.
 

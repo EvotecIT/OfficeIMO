@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf.Ocr;
 
 /// <summary>Controls canonical parsing, OCR rendering, confidence filtering, and native-text overlap removal.</summary>
 public sealed class PdfOcrMergeOptions {
+    // Form review hosts retain their operation/admission ownership through actual provider cleanup.
+    internal bool AwaitProviderSettlement { get; set; }
     /// <summary>
     /// Canonical semantic-read settings, including page selection, layout, stage customization,
     /// and understanding budgets. OCR evidence is processed by this same read pipeline.
@@ -85,6 +87,7 @@ public sealed class PdfOcrMergeOptions {
     public PdfOcrMergeOptions Clone() {
         Guard.NotNull(ReadOptions, nameof(ReadOptions));
         return new PdfOcrMergeOptions {
+            AwaitProviderSettlement = AwaitProviderSettlement,
             ReadOptions = ReadOptions.Clone(),
             ReconstructLayout = ReconstructLayout,
             Language = Language,

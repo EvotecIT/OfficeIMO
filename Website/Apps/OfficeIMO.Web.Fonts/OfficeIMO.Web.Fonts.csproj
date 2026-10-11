@@ -4,7 +4,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <EmbeddedResource Include="../OfficeIMO.Web.Converter/Assets/Fonts/*.ttf;../OfficeIMO.Web.Converter/Assets/Fonts/font-pack.json"
+    <EmbeddedResource Include="../OfficeIMO.Web.Converter/Assets/Fonts/Carlito*.ttf;../OfficeIMO.Web.Converter/Assets/Fonts/font-pack.json"
                       Link="Assets/Fonts/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

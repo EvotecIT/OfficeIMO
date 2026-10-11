@@ -3,9 +3,9 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool TryCreateNativeCellInlineImage(WordImage image, out PdfCore.PdfTextRun? run) {
+        private static bool TryCreateNativeCellInlineImage(WordImage image, out PdfCore.PdfTextRun? run, WordToPdfOptions? options = null) {
             run = null;
-            byte[] bytes = ImageEmbedder.GetImageBytes(image);
+            if (!TryGetNativeBodyImageBytes(image, options, "table cell image", out byte[] bytes)) return false;
             if (!TryPrepareNativePdfImageBytes(bytes, out byte[] prepared, out _)) return false;
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;

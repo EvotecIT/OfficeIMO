@@ -26,6 +26,9 @@ internal static class OfficeConversionSupportAssessments {
                 "Modern IWA support is a bounded read-only source adapter; unsupported records, advanced layout, media, formulas, and producer-specific effects may require visual fallbacks or remain diagnostic evidence.");
         }
         return routeId switch {
+        "chm-pdf" or "chm-markdown" or "chm-epub" => Targeted(
+            "A Microsoft-compiled book matches an independent decoder byte-for-byte across every entry. Contract fixtures cover contents, index, encodings, bounded reads, topic links, rich Reader results and reopened PDF/EPUB output.",
+            "ITSF 2/3 with uncompressed or standard LZX storage. ActiveX, scripts, merged-help books, the compiled search engine and Windows viewer behavior are not reproduced. Reflow can change CSS scope; multi-topic PDF is untagged and does not rebuild cross-topic links or the keyword index. See OfficeIMO.Chm/SUPPORT.md."),
         "book-project-epub" => Targeted(
             "Book-project batch contracts verify review gating, EPUB reopen, output limits, conflict handling and checkpoint reuse through the shared workflow runner.",
             "Exports the current publication only; project revisions and review records remain in the source project. Import failures block export, and non-fatal import losses require saved author acknowledgment. Reader presentation and comprehensive accessibility qualification remain separate."),
@@ -38,6 +41,9 @@ internal static class OfficeConversionSupportAssessments {
         "txt-pdf" => Targeted(
             "Literal text conversion uses the canonical PDF flow engine, strict decoding, source whitespace and bounded pagination.",
             "Long lines wrap to page width. Unicode appearance depends on supplied fonts; no Markdown, HTML or ANSI interpretation occurs."),
+        "djvu-pdf" => Targeted(
+            "Archival text and geometry, independent scanned-page comparisons, bounded malformed-input tests, and searchable PDF/OCR artifacts qualify the managed profile.",
+            "JB2, MMR, IW44 1.2, palettes and managed JPEG profiles only. Annotations are reported without active rendering; indirect components require an explicit native resolver. OCR is caller-supplied and absent/empty-text-only. See OfficeIMO.DjVu/SUPPORT.md."),
         "xps-pdf" => Targeted(
             "Native package, drawing and PDF contracts cover both dialects, positioned Unicode, navigation and authored logical structure; representative artifacts are checked by independent PDF readers and renderers.",
             "Strict export rejects unsupported paint and semantic reconstruction. Search requires literal UnicodeString; glyph IDs, figure descriptions and PDF/UA conformance are not inferred. Native print tickets, metadata and signatures are not PDF preservation contracts."),
