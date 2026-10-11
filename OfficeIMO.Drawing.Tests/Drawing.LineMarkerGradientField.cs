@@ -6,6 +6,21 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClosedPathGradientFieldDoesNotChangeForAnInapplicableMarker(bool radial) {
+        var shape = OfficeShape.Path(80, 40, OfficePathCommand.MoveTo(20, 10),
+            OfficePathCommand.LineTo(60, 10), OfficePathCommand.LineTo(60, 30), OfficePathCommand.Close());
+        shape.StrokeWidth = 2;
+        if (radial) shape.StrokeRadialGradient = new OfficeRadialGradient(.5, .5, 0, .5, .5, 1,
+            new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue));
+        else shape.StrokeGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+        string before = OfficeDrawingSvgExporter.ToSvg(new OfficeDrawing(100, 60).AddShape(shape, 10, 10));
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 12, 12);
+        string after = OfficeDrawingSvgExporter.ToSvg(new OfficeDrawing(100, 60).AddShape(shape, 10, 10));
+        Assert.Equal(before, after);
+    }
     [Fact]
     public void OpenFreeformShapeClipUsesItsImplicitlyClosedFill() {
         var commands = new[] { OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(40, 0), OfficePathCommand.LineTo(40, 40) };
