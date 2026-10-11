@@ -1441,7 +1441,7 @@ jobs:
           }
 
           run_publisher_tests() {
-            dotnet test OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+            dotnet test OfficeIMO.Publisher.Tests/OfficeIMO.Publisher.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx
           }
 
           run_rtf_tests() {
