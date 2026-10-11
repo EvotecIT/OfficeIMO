@@ -127,6 +127,8 @@ internal static partial class PdfWriter {
         public sealed class Page {
             public PdfOptions Options { get; set; } = null!;
             public int PageGroupId { get; set; }
+            public int? RunningContentSectionId { get; set; }
+            public HashSet<int>? RunningContentSections { get; set; }
             public PdfPageContentHandle Content { get; set; }
             public System.Collections.Generic.List<LinkAnnotation> Annotations { get; } = new();
             public System.Collections.Generic.List<TextAnnotation> TextAnnotations { get; } = new();

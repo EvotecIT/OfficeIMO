@@ -220,6 +220,7 @@ namespace OfficeIMO.Word.Pdf {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
                 WordSection firstSection = sections[sectionIndex];
+                bool preserveSectionPageCounts = UsesNativeSectionPageCounts(firstSection);
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
@@ -237,6 +238,7 @@ namespace OfficeIMO.Word.Pdf {
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         WordSection section = sections[currentSectionIndex];
+                        if (preserveSectionPageCounts) pdf.BeginRunningContentSection(currentSectionIndex);
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
