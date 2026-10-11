@@ -108,6 +108,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
+            style.KeepTogetherOverflow = UsesModernNativeWordLayout(paragraph._document)
+                ? PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossPages : PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossFrames;
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
             style.WidowControl = ReadNativeDirectParagraphOnOff<W.WidowControl>(paragraph) ?? styleDefaults.WidowControl ?? nativeDefaults.ParagraphWidowControl;
             return style;
@@ -314,6 +316,7 @@ namespace OfficeIMO.Word.Pdf {
                 PaddingX = 0D,
                 PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 0D),
                 RepeatFragmentDecoration = !hasParagraphBorder,
+                AllowTrailingPaddingOverflow = hasParagraphBorder,
                 FragmentBottomInset = hasParagraphBorder && !UsesModernNativeWordLayout(paragraph._document)
                     ? ResolveNativeParagraphPanelPaddingY(borders, 0D) : 0D,
                 SpacingBefore = paragraphStyle.SpacingBefore,

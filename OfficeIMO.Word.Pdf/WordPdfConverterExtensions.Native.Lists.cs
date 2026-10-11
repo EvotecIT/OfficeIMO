@@ -30,7 +30,8 @@ namespace OfficeIMO.Word.Pdf {
             var paragraphs = new List<WordParagraph> { firstParagraph };
             int nextIndex = index + 1;
             int expectedNumber = startNumber + 1;
-            while (nextIndex < elements.Count &&
+            // A Word keep-lines constraint applies to one numbered paragraph, not the whole list.
+            while (style?.KeepTogether != true && nextIndex < elements.Count &&
                    elements[nextIndex] is WordParagraph paragraph &&
                    TryGetNativeListItem(paragraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, out bool nextOrdered, out int nextLevel, out int nextNumber, out PdfCore.PdfListItem? nextItem, out PdfCore.PdfAlign nextAlign, out PdfCore.PdfColor? nextColor, out PdfCore.PdfListStyle? nextStyle) &&
                    nextOrdered == ordered &&
@@ -276,6 +277,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             style.KeepTogether = ReadNativeDirectParagraphOnOff<W.KeepLines>(paragraph) ?? styleDefaults.KeepTogether ?? false;
+            style.KeepTogetherOverflow = UsesModernNativeWordLayout(paragraph._document)
+                ? PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossPages : PdfCore.PdfKeepTogetherOverflowBehavior.SplitAcrossFrames;
             style.KeepWithNext = ReadNativeDirectParagraphOnOff<W.KeepNext>(paragraph) ?? styleDefaults.KeepWithNext ?? false;
             return style;
         }
@@ -437,6 +440,7 @@ namespace OfficeIMO.Word.Pdf {
                    left.MarkerItalic == right.MarkerItalic &&
                    left.Color.Equals(right.Color) &&
                    left.KeepTogether == right.KeepTogether &&
+                   left.KeepTogetherOverflow == right.KeepTogetherOverflow &&
                    left.KeepWithNext == right.KeepWithNext;
         }
 

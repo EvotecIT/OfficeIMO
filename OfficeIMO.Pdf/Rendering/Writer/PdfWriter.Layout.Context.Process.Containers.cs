@@ -19,21 +19,24 @@ internal static partial class PdfWriter {
             double contentWidth = frame.ContentWidth;
 
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            double firstVisualHeight = container.Blocks.Count == 0
-                ? 0D
-                : MeasureWithContainerPaddingReservation(style, () =>
-                    MeasureNextBlockFirstVisualHeight(container.Blocks[0], outerX + style.PaddingX, contentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
+            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX, contentWidth);
+            double firstVisualHeight = firstVisual.Height;
             double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
             if (style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + 0.001D) {
                 throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
             }
-            while (ShouldAdvanceForBlockHeight(minimumStartHeight)) {
-                NewBlockFrame();
+            // Move an oversized kept paragraph before opening its decoration,
+            // so an unused panel is not mistaken for an already painted fragment.
+            while (ShouldAdvanceForBlockHeight(minimumStartHeight) ||
+                firstVisual.Overflow != PdfKeepTogetherOverflowBehavior.Reject &&
+                (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())) {
+                NewBlockFrame(forcePhysicalPage: firstVisual.Overflow != PdfKeepTogetherOverflowBehavior.Reject &&
+                    (firstVisual.Overflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages || IsPartialPhysicalColumnFrame()));
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 parentLeft = currentOpts.MarginLeft; parentWidth = width;
                 frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
-                firstVisualHeight = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style, () =>
-                    MeasureNextBlockFirstVisualHeight(container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth, currentOpts.DefaultFontSize, allowTableFragments: true));
+                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth);
+                firstVisualHeight = firstVisual.Height;
                 minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
                 if (style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("Element padding and its first content cannot fit within the available page height.");
@@ -113,9 +116,11 @@ internal static partial class PdfWriter {
             BeginContainerFragment(scope);
             try {
                 ProcessBlocks(contentBlocks, container);
-                if (!style.RepeatFragmentDecoration && style.BottomPadding > y - scope.ParentOptions.MarginBottom + .001D)
+                if (!style.RepeatFragmentDecoration && !style.AllowTrailingPaddingOverflow &&
+                    style.BottomPadding > y - scope.ParentOptions.MarginBottom + .001D)
                     throw new ArgumentException("Element closing padding cannot fit within the available page height.");
-                double bottomPadding = Math.Min(style.BottomPadding, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
+                double bottomPadding = style.AllowTrailingPaddingOverflow ? style.BottomPadding :
+                    Math.Min(style.BottomPadding, Math.Max(0D, y - scope.ParentOptions.MarginBottom));
                 y -= bottomPadding;
                 FinalizeContainerFragment(scope);
                 // Nested margin options can resolve new fallback mappings as well

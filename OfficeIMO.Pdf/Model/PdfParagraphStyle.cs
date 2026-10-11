@@ -91,6 +91,8 @@ public class PdfParagraphStyle {
 
     /// <summary>When true, the paragraph starts on a new page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
+    /// <summary>Imported document policy when kept or minimum orphan lines exceed a complete continuation frame.</summary>
+    internal PdfKeepTogetherOverflowBehavior KeepTogetherOverflow { get; set; }
     /// <summary>When true, the paragraph moves to the next page when it would otherwise be separated from the following paragraph.</summary>
     public bool KeepWithNext { get; set; }
     /// <summary>When true, paragraph page splits avoid single-line widows and orphans where the page frame allows it.</summary>
@@ -132,6 +134,7 @@ public class PdfParagraphStyle {
             SpacingAfter = SpacingAfter,
             DefaultTabStopWidth = DefaultTabStopWidth,
             KeepTogether = KeepTogether,
+            KeepTogetherOverflow = KeepTogetherOverflow,
             KeepWithNext = KeepWithNext,
             WidowControl = WidowControl,
             MinimumOrphanLines = MinimumOrphanLines,

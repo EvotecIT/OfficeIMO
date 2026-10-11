@@ -100,7 +100,28 @@ internal static partial class PdfWriter {
         private PdfParagraphStyle? EffectiveParagraphStyle(RichParagraphBlock paragraph) => paragraph.Style ?? currentOpts.DefaultParagraphStyleSnapshot;
 
         private double MeasureNextParagraphFirstVisualHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize,
-            bool suppressSpacingBefore = false) {
+            bool suppressSpacingBefore = false) =>
+            MeasureParagraphFirstVisual(paragraph, frameX, frameWidth, fontSize, suppressSpacingBefore).Height;
+
+        private static double MeasureParagraphFirstLinesFrameFitHeight(
+            IReadOnlyList<List<RichSeg>> lines, IReadOnlyList<double> heights, double leading, int count) {
+            if (count == 0) return 0D;
+            double advance = GetRichLineHeight(heights, count - 1, leading);
+            return MeasureRichLinesHeight(heights, count, leading) - advance +
+                GetRichLineFrameFitHeight(lines[count - 1], advance);
+        }
+
+        private PdfKeepTogetherOverflowBehavior ResolveParagraphConstraintOverflow(
+            PdfParagraphStyle? style, IReadOnlyList<List<RichSeg>> lines, IReadOnlyList<double> heights, double leading) {
+            if (style == null || style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.Reject)
+                return PdfKeepTogetherOverflowBehavior.Reject;
+            int minimumLines = style.KeepTogether ? lines.Count : Math.Min(ResolveMinimumOrphanLines(style), lines.Count);
+            return minimumLines > 1 && MeasureParagraphFirstLinesFrameFitHeight(lines, heights, leading, minimumLines) >
+                GetMaximumBlockContinuationHeight() + .001D ? style.KeepTogetherOverflow : PdfKeepTogetherOverflowBehavior.Reject;
+        }
+
+        private (double Height, PdfKeepTogetherOverflowBehavior Overflow) MeasureParagraphFirstVisual(
+            RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool suppressSpacingBefore = false) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
             fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
@@ -108,11 +129,13 @@ internal static partial class PdfWriter {
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
             var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
             if (wrap.LineHeights.Count == 0) {
-                return spacingBefore;
+                return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             int linesToReserve = 1;
-            if (paragraphStyle?.KeepTogether == true) {
+            PdfKeepTogetherOverflowBehavior overflow = ResolveParagraphConstraintOverflow(paragraphStyle, wrap.Lines, wrap.LineHeights, leading);
+            bool keepAllLines = paragraphStyle?.KeepTogether == true && overflow == PdfKeepTogetherOverflowBehavior.Reject;
+            if (keepAllLines) {
                 linesToReserve = wrap.LineHeights.Count;
             } else if (paragraphStyle != null) {
                 int minimumOrphanLines = ResolveMinimumOrphanLines(paragraphStyle);
@@ -121,13 +144,22 @@ internal static partial class PdfWriter {
                 }
             }
 
-            double height = spacingBefore;
-            for (int i = 0; i < linesToReserve; i++) {
-                double advance = GetRichLineHeight(wrap.LineHeights, i, leading);
-                height += i == linesToReserve - 1 ? GetRichLineFrameFitHeight(wrap.Lines[i], advance) : advance;
-            }
+            double height = MeasureParagraphFirstLinesFrameFitHeight(wrap.Lines, wrap.LineHeights, leading, linesToReserve);
+            // The renderer yields unavoidable widow constraints on a fresh frame.
+            // Its preflight must not reject a breakable paragraph before that fallback.
+            while (!keepAllLines && linesToReserve > 1 && height > GetMaximumBlockContinuationHeight() + .001D)
+                height = MeasureParagraphFirstLinesFrameFitHeight(wrap.Lines, wrap.LineHeights, leading, --linesToReserve);
+            return (spacingBefore + height, overflow);
+        }
 
-            return height;
+        private (double Height, PdfKeepTogetherOverflowBehavior Overflow) MeasureContainerFirstVisual(
+            ContainerBlock container, PdfPanelStyle style, double contentX, double contentWidth) {
+            if (container.Blocks.Count == 0) return (0D, PdfKeepTogetherOverflowBehavior.Reject);
+            return MeasureWithContainerPaddingReservation(style, () =>
+                container.Blocks[0] is RichParagraphBlock paragraph
+                    ? MeasureParagraphFirstVisual(paragraph, contentX, contentWidth, currentOpts.DefaultFontSize)
+                    : (MeasureNextBlockFirstVisualHeight(container.Blocks[0], contentX, contentWidth,
+                        currentOpts.DefaultFontSize, allowTableFragments: true), PdfKeepTogetherOverflowBehavior.Reject));
         }
 
         private const int MaxKeepWithNextChainBlocks = 256;

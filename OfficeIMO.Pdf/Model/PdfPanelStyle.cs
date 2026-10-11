@@ -32,6 +32,9 @@ public class PdfPanelStyle {
     internal double? PaddingTopOverride { get; set; }
     internal double? ContinuationPaddingTopOverride { get; set; }
     internal double? PaddingBottomOverride { get; set; }
+    // Imported paragraph decoration follows the final line advance even when
+    // that advance extends below the frame after its visible text has fitted.
+    internal bool AllowTrailingPaddingOverflow { get; set; }
     internal double TopPadding => PaddingTopOverride ?? PaddingY;
     internal double BottomPadding => PaddingBottomOverride ?? PaddingY;
 
@@ -180,6 +183,7 @@ public class PdfPanelStyle {
             PaddingTopOverride = PaddingTopOverride,
             ContinuationPaddingTopOverride = ContinuationPaddingTopOverride,
             PaddingBottomOverride = PaddingBottomOverride,
+            AllowTrailingPaddingOverflow = AllowTrailingPaddingOverflow,
             BorderWidth = BorderWidth,
             CornerRadius = CornerRadius,
             TopBorder = _topBorder,

@@ -36,12 +36,15 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
+            bool splitKeptItemAcrossPages = prepared.Style?.KeepTogether == true &&
+                prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages &&
+                MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D;
             void NewListFrame() {
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     QueueColumnBalanceRemainder(MeasureListColumnBalanceUnits(prepared, itemIndex, lineIndex, lineHeights,
                         includeSpacingBefore: false), prepared.Block, blockList, blockIndex);
                 }
-                NewPage();
+                NewPage(forcePhysicalPage: splitKeptItemAcrossPages);
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - width) > 0.001D) {
                     textWidth = width - textOffset - rightInset;
                     var remainingRuns = firstSegment ? runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);

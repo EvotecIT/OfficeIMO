@@ -210,11 +210,11 @@ internal static partial class PdfWriter {
             pageDirty = false;
         }
 
-        private void NewPage(bool preserveEmptyPage = false) {
+        private void NewPage(bool preserveEmptyPage = false, bool forcePhysicalPage = false) {
             cancellationToken.ThrowIfCancellationRequested();
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
             if (activeColumnFlow != null) {
-                AdvanceColumnFrame(forcePhysicalPage: false, preserveEmptyPage);
+                AdvanceColumnFrame(forcePhysicalPage, preserveEmptyPage);
                 return;
             }
             PrepareActiveContainerScopesForPageBreak();

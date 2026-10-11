@@ -14,24 +14,28 @@ internal static partial class PdfWriter {
                 topLevelSpacing: true);
             double preparedWidth = width;
             double listHeight = MeasurePreparedListHeight(prepared);
-            if (prepared.Style?.KeepTogether == true) {
-                double availableHeight = GetMaximumBlockContinuationHeight();
-                double fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
-                if (fitHeight > availableHeight + 0.001D) {
-                    throw new ArgumentException("List height exceeds the available page content height.");
+            void NewListStartFrame(bool forcePhysicalPage = false) {
+                NewBlockFrame(forcePhysicalPage);
+                if (Math.Abs(preparedWidth - width) > .001D) {
+                    prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
+                    preparedWidth = width;
                 }
-
-                while (ShouldAdvanceForBlockHeight(fitHeight)) {
-                    NewBlockFrame();
-                    if (Math.Abs(preparedWidth - width) > .001D) {
-                        prepared = PrepareListLayout(list, width, currentOpts.DefaultFontSize, topLevelSpacing: true);
-                        preparedWidth = width;
+                prepared.SpacingBefore = 0D;
+                listHeight = MeasurePreparedListHeight(prepared);
+            }
+            if (prepared.Style?.KeepTogether == true) {
+                while (true) {
+                    double fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
+                    if (fitHeight > GetMaximumBlockContinuationHeight() + .001D) {
+                        if (prepared.Style?.KeepTogetherOverflow is null or PdfKeepTogetherOverflowBehavior.Reject)
+                            throw new ArgumentException("List height exceeds the available page content height.");
+                        if (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())
+                            NewListStartFrame(IsPartialPhysicalColumnFrame() ||
+                                prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages);
+                        break;
                     }
-                    prepared.SpacingBefore = 0D;
-                    listHeight = MeasurePreparedListHeight(prepared);
-                    fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
-                    if (fitHeight > GetMaximumBlockContinuationHeight() + .001D)
-                        throw new ArgumentException("List height exceeds the available page content height.");
+                    if (!ShouldAdvanceForBlockHeight(fitHeight)) break;
+                    NewListStartFrame();
                 }
             }
 

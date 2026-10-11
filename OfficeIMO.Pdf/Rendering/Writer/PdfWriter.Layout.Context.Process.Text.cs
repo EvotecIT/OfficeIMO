@@ -140,13 +140,17 @@ internal static partial class PdfWriter {
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
             double wrappedWidth = textFrame.Width;
             var (lines, lineHeights) = WrapRichRunsCoreWithFirstLineOrigin(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing);
+            bool splittingConstrainedParagraph = ResolveParagraphConstraintOverflow(paragraphStyle, lines, lineHeights, leading) !=
+                PdfKeepTogetherOverflowBehavior.Reject;
+            bool SkipColumnsForParagraphOverflow() => splittingConstrainedParagraph &&
+                paragraphStyle?.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages;
             if (activeColumnFlow is { Options.BalanceParagraphLines: false, Options.BalanceLastPage: true } &&
                 lineHeights.Sum() <= GetMaximumBlockContinuationHeight() + 0.001D) {
                 paragraphStyle = paragraphStyle?.Clone() ?? new PdfParagraphStyle();
                 paragraphStyle.KeepTogether = true;
             }
-            void NewParagraphStartFrame() {
-                NewBlockFrame();
+            void NewParagraphStartFrame(bool forcePhysicalPage = false) {
+                NewBlockFrame(forcePhysicalPage: forcePhysicalPage || SkipColumnsForParagraphOverflow());
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
                 if (Math.Abs(wrappedWidth - textFrame.Width) > .001D) {
@@ -156,9 +160,16 @@ internal static partial class PdfWriter {
                     wrappedWidth = textFrame.Width;
                 }
             }
-            bool IsKeptInCurrentFrame() => paragraphStyle?.KeepTogether == true &&
-                !(activeColumnFlow is { Options.BalanceKeptParagraphLines: true } && IsBalancedColumnFrame() &&
-                  lineHeights.Sum() > GetCurrentFramePageStartY() - currentOpts.MarginBottom + .001D);
+            bool IsKeptInCurrentFrame() {
+                if (paragraphStyle?.KeepTogether != true) return false;
+                if (paragraphStyle.KeepTogetherOverflow != PdfKeepTogetherOverflowBehavior.Reject &&
+                    MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D) {
+                    splittingConstrainedParagraph = true;
+                    return false;
+                }
+                return !(activeColumnFlow is { Options.BalanceKeptParagraphLines: true } && IsBalancedColumnFrame() &&
+                    lineHeights.Sum() > GetCurrentFramePageStartY() - currentOpts.MarginBottom + .001D);
+            }
             if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0 &&
                 (ReservesWholeKeepGroup() || IsKeptInCurrentFrame())) {
                 double paragraphHeight = ResolveTopLevelSpacingBefore(spacingBefore) + lineHeights.Sum() + spacingAfter;
@@ -184,6 +195,8 @@ internal static partial class PdfWriter {
                     NewParagraphStartFrame();
                 }
             }
+            if (splittingConstrainedParagraph && (y < frameStart - .001D || IsPartialPhysicalColumnFrame()))
+                NewParagraphStartFrame(forcePhysicalPage: IsPartialPhysicalColumnFrame());
 
             List<double>? floatingLineOffsets = null;
             textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
@@ -251,7 +264,7 @@ internal static partial class PdfWriter {
                 bool simulatedPageBreak = floatingPageStarts.Count > 0;
                 double fitHeight = (y < frameStart - 0.001 ? spacingBefore : 0D) +
                     MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, floatingLineGaps);
-                bool mustMove = paragraphStyle?.KeepTogether == true &&
+                bool mustMove = IsKeptInCurrentFrame() &&
                     (simulatedPageBreak || fitHeight > y - currentOpts.MarginBottom + 0.001);
                 mustMove |= nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - currentOpts.MarginBottom + 0.001) &&
                     originalLineHeights.Sum() + spacingAfter + nextHeight <= frameStart - currentOpts.MarginBottom + 0.001;
@@ -269,7 +282,7 @@ internal static partial class PdfWriter {
                     var remainingRuns = firstLogicalLine ? rpb.Runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
                     QueueColumnBalanceRemainder(new RichParagraphBlock(remainingRuns, rpb.Align, rpb.DefaultColor, continuationStyle), blockList, blockIndex);
                 }
-                NewPage();
+                NewPage(forcePhysicalPage: SkipColumnsForParagraphOverflow());
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
                 if (activeColumnFlow != null && Math.Abs(wrappedWidth - textFrame.Width) > 0.001D) {
