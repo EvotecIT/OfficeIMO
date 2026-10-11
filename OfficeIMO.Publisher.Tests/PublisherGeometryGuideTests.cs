@@ -3,10 +3,64 @@ using OfficeIMO.Drawing.Binary;
 using OfficeIMO.Pdf;
 using OfficeIMO.Publisher.Internal;
 using OfficeIMO.Publisher.Pdf;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherGeometryGuideTests {
+    [Fact]
+    public void Drawing_default_application_is_bounded_without_recounting_container_headers() {
+        byte[] Record(ushort kind, ushort initial, byte[] body) => BitConverter.GetBytes(initial)
+            .Concat(BitConverter.GetBytes(kind)).Concat(BitConverter.GetBytes(body.Length)).Concat(body).ToArray();
+        byte[] properties = BitConverter.GetBytes((ushort)0x0148).Concat(BitConverter.GetBytes(40U))
+            .Concat(BitConverter.GetBytes((ushort)0x01FF)).Concat(BitConverter.GetBytes(0x00080000U)).ToArray();
+        byte[] group = Record(0xF000, 15, Record(0xF00B, 0x23, properties));
+        byte[] shape = Record(0xF004, 15, Record(0xF00A, 2, BitConverter.GetBytes(1U).Concat(BitConverter.GetBytes(1U)).ToArray()));
+        byte[] bytes = group.Concat(new byte[4]).Concat(shape).Concat(shape).ToArray();
+        var context = new PublisherParseContext(new PublisherReadOptions {
+            Limits = new OfficeLegacyImportLimits { MaxRecords = 12 }
+        }, default);
+        new PublisherEscherReader(new PublisherBinaryData(bytes, "controlled defaults"), null, context).Read();
+        Assert.Equal(12, context.Records);
+        var limited = new PublisherParseContext(new PublisherReadOptions {
+            Limits = new OfficeLegacyImportLimits { MaxRecords = 11 }
+        }, default);
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            new PublisherEscherReader(new PublisherBinaryData(bytes, "controlled defaults"), null, limited).Read());
+        Assert.Contains("native record limit", error.Message);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Native_guides_inherit_drawing_group_defaults_and_keep_local_boolean_overrides(bool tertiary, bool localStroke) {
+        byte[] input = Input(new[] { ((ushort)0x2000, (ushort)0x01FC, (ushort)0, (ushort)0),
+            ((ushort)0x2000, (ushort)0x0148, (ushort)0, (ushort)0) });
+        var local = new Dictionary<ushort, uint> { [0x01FF] = localStroke ? 0x00080008U : 0x00400000U };
+        if (localStroke) local[0x0148] = 45;
+        input = PublisherDrawingFixture.Mutate(input, local, 0);
+        Assert.True(OfficeCompoundFileReader.TryRead(input, out OfficeCompoundFile? source, out string? error), error);
+        byte[] escher = source!.Streams["Escher/EscherStm"];
+        int length = checked((int)BitConverter.ToUInt32(escher, 4));
+        Assert.Equal(0xF000, BitConverter.ToUInt16(escher, 2));
+        using var data = new MemoryStream(); using var writer = new BinaryWriter(data);
+        writer.Write((ushort)0x23); writer.Write((ushort)(tertiary ? 0xF122 : 0xF00B)); writer.Write(12);
+        writer.Write((ushort)0x0148); writer.Write((uint)40);
+        writer.Write((ushort)0x01FF); writer.Write((uint)0x00080000);
+        byte[] defaults = data.ToArray();
+        byte[] replacement = escher.Take(8 + length).Concat(defaults).Concat(escher.Skip(8 + length)).ToArray();
+        Array.Copy(BitConverter.GetBytes(length + defaults.Length), 0, replacement, 4, 4);
+        input = OfficeCompoundFileWriter.Rewrite(source, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = replacement });
+        PublisherDocument publication = PublisherDocument.Load(input);
+        OfficeShape shape = Artwork(publication);
+        Assert.Equal(OfficeShapeKind.Path, shape.Kind);
+        Assert.Equal(shape.Width / 100 * (localStroke ? 1 : 0), shape.PathCommands[0].Point.X, 10);
+        Assert.Equal(shape.Width * (localStroke ? 0.45 : 0.4), shape.PathCommands[1].Point.X, 10);
+        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_GUIDES_INVALID");
+    }
+
     [Fact]
     public void Native_frame_guides_preserve_subpoint_extents_and_odd_emu_halves() {
         const int nativeWidth = 19051, nativeHeight = 31751;

@@ -20,7 +20,7 @@ internal static class OfficeArtGeometryGuides {
         int count = U16(bytes, 0);
         int storedSize = U16(bytes, 4) switch { 8 => 8, 0xFFF0 => 4, _ => 0 };
         if (count is < 1 or > 128 || count > U16(bytes, 2) || storedSize == 0
-            || 6 + count * storedSize > bytes.Length) return false;
+            || 6 + count * storedSize != bytes.Length) return false;
         accountItems(count);
         token.ThrowIfCancellationRequested();
         var calculated = new int[count];
@@ -105,18 +105,26 @@ internal static class OfficeArtGeometryGuides {
 
     private static double Sine(int angle) {
         int turn = angle % (360 * 65536);
+        int normalized = turn < 0 ? turn + 360 * 65536 : turn;
         if (turn % (90 * 65536) == 0) {
             int quadrant = (turn / (90 * 65536) + 4) % 4;
             return quadrant == 1 ? 1 : quadrant == 3 ? -1 : 0;
         }
+        // These rational values are exact. Converting their angles to radians
+        // first can put an integral product just below its floor boundary.
+        if (normalized is 30 * 65536 or 150 * 65536) return 0.5;
+        if (normalized is 210 * 65536 or 330 * 65536) return -0.5;
         return Math.Sin(turn * (Math.PI / (180D * 65536)));
     }
     private static double Cosine(int angle) {
         int turn = angle % (360 * 65536);
+        int normalized = turn < 0 ? turn + 360 * 65536 : turn;
         if (turn % (90 * 65536) == 0) {
             int quadrant = (turn / (90 * 65536) + 4) % 4;
             return quadrant == 0 ? 1 : quadrant == 2 ? -1 : 0;
         }
+        if (normalized is 60 * 65536 or 300 * 65536) return 0.5;
+        if (normalized is 120 * 65536 or 240 * 65536) return -0.5;
         return Math.Cos(turn * (Math.PI / (180D * 65536)));
     }
     private static double Tangent(int angle) {

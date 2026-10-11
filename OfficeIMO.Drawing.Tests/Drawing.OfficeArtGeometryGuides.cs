@@ -7,6 +7,43 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(9, 2, 30 * 65536, 1)]
+    [InlineData(9, -2, 30 * 65536, -1)]
+    [InlineData(9, 2, 150 * 65536, 1)]
+    [InlineData(9, 2, 210 * 65536, -1)]
+    [InlineData(9, -2, 210 * 65536, 1)]
+    [InlineData(9, 2, -330 * 65536, 1)]
+    [InlineData(10, 2, 60 * 65536, 1)]
+    [InlineData(10, -2, 60 * 65536, -1)]
+    [InlineData(10, 2, 120 * 65536, -1)]
+    [InlineData(10, 2, -120 * 65536, -1)]
+    [InlineData(9, 2, 30 * 65536 - 1, 0)]
+    [InlineData(9, -2, 30 * 65536 + 1, -2)]
+    public void OfficeArtGeometryGuides_ExactHalfAngleProductsPreserveIntegersAndAdjacentFloors(
+        ushort operation, int magnitude, int angle, int expected) {
+        var properties = Guides(((ushort)(operation | 0x6000), (ushort)0x0147, (ushort)0x0148, (ushort)0));
+        properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)magnitude)));
+        properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)angle)));
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.Equal(expected, Assert.Single(values));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtGeometryGuides_UnderstatedFullAndCompactArraysRejectExtraRecords(bool compact) {
+        byte[] bytes = compact ? new byte[] { 1, 0, 1, 0, 0xF0, 0xFF, 0, 0, 5, 0, 0, 0, 6, 0 }
+            : GuideArray(new[] { ((ushort)0, (ushort)5, (ushort)0, (ushort)0),
+                ((ushort)0, (ushort)6, (ushort)0, (ushort)0) });
+        bytes[0] = bytes[2] = 1;
+        int charged = 0;
+        var properties = new[] { new OfficeArtProperty(0, 0x8156, (uint)bytes.Length, bytes.Length, complexData: bytes) };
+        Assert.False(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, count => charged += count,
+            default, out var values, out var failure));
+        Assert.Empty(values); Assert.Equal(OfficeArtCustomPathFailure.InvalidGuide, failure); Assert.Equal(0, charged);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void OfficeArtGeometryGuides_TruncatedRecordsZeroExtendAndKeepTheNextComplexProperty(bool lengthIncludesHeader) {
