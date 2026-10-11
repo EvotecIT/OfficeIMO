@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OfficeIMO.Core.Internal.Cabinet;
 
 namespace OfficeIMO.Archives;
 
@@ -10,6 +11,7 @@ internal sealed class ArchiveLimits {
         Cabinets = checked((int)Positive(options.MaxCabinetCount, nameof(options.MaxCabinetCount)));
         Entry = Positive(options.MaxEntryBytes, nameof(options.MaxEntryBytes));
         Expanded = Positive(options.MaxExpandedBytes, nameof(options.MaxExpandedBytes));
+        DecompressionWork = new OfficeCabinetWorkBudget(Positive(options.MaxDecompressionWorkBytes, nameof(options.MaxDecompressionWorkBytes)));
         Metadata = Positive(options.MaxMetadataBytes, nameof(options.MaxMetadataBytes));
         Rows = checked((int)Positive(options.MaxTableRows, nameof(options.MaxTableRows)));
         Depth = checked((int)Positive(options.MaxPathDepth, nameof(options.MaxPathDepth)));
@@ -21,6 +23,7 @@ internal sealed class ArchiveLimits {
     internal int Cabinets { get; }
     internal long Entry { get; }
     internal long Expanded { get; }
+    internal OfficeCabinetWorkBudget DecompressionWork { get; }
     internal long Metadata { get; }
     internal int Rows { get; }
     internal int Depth { get; }

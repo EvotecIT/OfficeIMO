@@ -82,7 +82,9 @@ internal sealed class ArchiveFixtures : IDisposable {
             foreach (string value in strings) {
                 byte[] bytes = Encoding.UTF8.GetBytes(value);
                 poolWriter.Write(bytes.Length > ushort.MaxValue ? (ushort)0 : (ushort)bytes.Length);
-                poolWriter.Write((ushort)1);
+                // Native Windows Installer stores [0, references] followed by the UInt32 length.
+                // For 70,000 bytes, keep references (2) unequal to the length high word (1).
+                poolWriter.Write(bytes.Length > ushort.MaxValue ? (ushort)2 : (ushort)1);
                 if (bytes.Length > ushort.MaxValue) poolWriter.Write((uint)bytes.Length);
                 data.Write(bytes, 0, bytes.Length);
             }

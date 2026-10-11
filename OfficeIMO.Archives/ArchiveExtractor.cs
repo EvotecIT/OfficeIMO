@@ -78,7 +78,7 @@ public static partial class ArchiveExtractor {
                 string path = paths.Add(name);
                 if (!limits.Select(path)) return false;
                 selected.Add(name, path); return true;
-            });
+            }, limits.DecompressionWork);
         foreach (OfficeCabinetEntry entry in entries) {
             token.ThrowIfCancellationRequested();
             WriteBytes(staging, selected[entry.Name], entry.Data, limits, files, ref total, token);

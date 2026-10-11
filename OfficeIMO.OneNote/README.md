@@ -14,7 +14,7 @@
 
 Both desktop and FSSHTTP `.one` inputs project into the same typed model. File-format logic stays in this package; Reader and conversion packages are thin consumers.
 
-The `.onepkg` reader supports single Cabinet archives with uncompressed, MSZIP, or LZX folders through the shared `OfficeIMO.Core` Cabinet parser. It validates data-block checksums and bounds input, expanded folders, entry sizes, and entry counts. Quantum compression, cabinet sets, and split data blocks are unsupported. The package writer emits uncompressed Cabinet folders.
+The `.onepkg` reader supports single Cabinet archives with uncompressed, MSZIP, or LZX folders through the shared `OfficeIMO.Core` Cabinet parser. It validates data-block checksums and bounds input, expanded folders, entry sizes, and entry counts. The shared reader also applies a 2 GiB decompression-work budget per package, with a minimum 32 KiB charge per data frame and larger charges for complete record bytes or MSZIP history replay. This processing bound is separate from expanded content; exceeding it reports `ONENOTE_CAB_WORK_LIMIT`. Quantum compression, cabinet sets, and split data blocks are unsupported. The package writer emits uncompressed Cabinet folders.
 
 Encrypted current revisions are detected but not decrypted. Reading fails with `OneNoteFormatException` code `ONENOTE_ENCRYPTED_CURRENT_REVISION`; OfficeIMO never substitutes an older plaintext revision for the encrypted current state.
 

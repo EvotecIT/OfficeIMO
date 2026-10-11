@@ -33,7 +33,7 @@ public static partial class ArchiveExtractor {
                         throw new InvalidDataException("MSI cabinet contains a member absent from its File/Media mapping.");
                     if (!found.Add(name)) throw new InvalidDataException("MSI cabinet repeats a File identifier.");
                     return file.Selected;
-                });
+                }, limits.DecompressionWork);
             if (found.Count != expected.Count) throw new InvalidDataException("MSI cabinet is missing a declared File member.");
             foreach (OfficeCabinetEntry entry in entries) {
                 MsiPayloadFile file = expected[entry.Name];

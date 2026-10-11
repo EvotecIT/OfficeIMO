@@ -11,13 +11,14 @@ internal static class OfficeCabinetArchiveReader {
     /// <summary>Reads from the start of a seekable stream and restores its original position without closing it.</summary>
     internal static IReadOnlyList<OfficeCabinetEntry> Read(Stream stream, long? maxInputBytes,
         long maxExpandedBytes, long maxEntryBytes, int maxEntries, CancellationToken cancellationToken = default,
-        Func<string, bool>? entryFilter = null) =>
-        Read(stream, maxInputBytes, maxExpandedBytes, maxEntryBytes, maxEntries, out _, cancellationToken, entryFilter);
+        Func<string, bool>? entryFilter = null, OfficeCabinetWorkBudget? workBudget = null) =>
+        Read(stream, maxInputBytes, maxExpandedBytes, maxEntryBytes, maxEntries, out _, cancellationToken, entryFilter, workBudget);
 
     /// <summary>Also returns all validated decoded folder bytes, including unselected members and folder gaps.</summary>
     internal static IReadOnlyList<OfficeCabinetEntry> Read(Stream stream, long? maxInputBytes,
         long maxExpandedBytes, long maxEntryBytes, int maxEntries, out long expandedBytes,
-        CancellationToken cancellationToken = default, Func<string, bool>? entryFilter = null) {
+        CancellationToken cancellationToken = default, Func<string, bool>? entryFilter = null,
+        OfficeCabinetWorkBudget? workBudget = null) {
         expandedBytes = 0;
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("The CAB stream must be readable.", nameof(stream));
@@ -40,7 +41,7 @@ internal static class OfficeCabinetArchiveReader {
                 if (read == 0) throw new OfficeCabinetException("CAB_TRUNCATED", "The CAB stream ended unexpectedly.", offset);
                 offset += read;
             }
-            return Read(data, maxExpandedBytes, maxEntryBytes, maxEntries, out expandedBytes, cancellationToken, entryFilter);
+            return Read(data, maxExpandedBytes, maxEntryBytes, maxEntries, out expandedBytes, cancellationToken, entryFilter, workBudget);
         } finally {
             stream.Position = originalPosition;
         }
@@ -49,17 +50,18 @@ internal static class OfficeCabinetArchiveReader {
     /// <summary>Validates all members and folder data; a filter only controls which decoded members are retained.</summary>
     internal static IReadOnlyList<OfficeCabinetEntry> Read(byte[] data, long maxExpandedBytes,
         long maxEntryBytes, int maxEntries, CancellationToken cancellationToken = default,
-        Func<string, bool>? entryFilter = null) =>
-        Read(data, maxExpandedBytes, maxEntryBytes, maxEntries, out _, cancellationToken, entryFilter);
+        Func<string, bool>? entryFilter = null, OfficeCabinetWorkBudget? workBudget = null) =>
+        Read(data, maxExpandedBytes, maxEntryBytes, maxEntries, out _, cancellationToken, entryFilter, workBudget);
 
     internal static IReadOnlyList<OfficeCabinetEntry> Read(byte[] data, long maxExpandedBytes,
         long maxEntryBytes, int maxEntries, out long expandedBytes, CancellationToken cancellationToken = default,
-        Func<string, bool>? entryFilter = null) {
+        Func<string, bool>? entryFilter = null, OfficeCabinetWorkBudget? workBudget = null) {
         expandedBytes = 0;
         if (data == null) throw new ArgumentNullException(nameof(data));
         ValidateLimits(maxExpandedBytes, maxEntryBytes, maxEntries);
         cancellationToken.ThrowIfCancellationRequested();
-        return new Reader(data, maxExpandedBytes, maxEntryBytes, maxEntries, cancellationToken).Read(entryFilter, out expandedBytes);
+        return new Reader(data, maxExpandedBytes, maxEntryBytes, maxEntries,
+            cancellationToken, workBudget ?? new OfficeCabinetWorkBudget()).Read(entryFilter, out expandedBytes);
     }
 
     private static void ValidateLimits(long maxExpandedBytes, long maxEntryBytes, int maxEntries) {
@@ -74,15 +76,18 @@ internal static class OfficeCabinetArchiveReader {
         private readonly long _maxEntryBytes;
         private readonly int _maxEntries;
         private readonly CancellationToken _cancellationToken;
+        private readonly OfficeCabinetWorkBudget _workBudget;
         private int _length;
 
-        internal Reader(byte[] data, long maxExpandedBytes, long maxEntryBytes, int maxEntries, CancellationToken cancellationToken) {
+        internal Reader(byte[] data, long maxExpandedBytes, long maxEntryBytes, int maxEntries,
+            CancellationToken cancellationToken, OfficeCabinetWorkBudget workBudget) {
             _data = data;
             _length = data.Length;
             _maxExpandedBytes = maxExpandedBytes;
             _maxEntryBytes = maxEntryBytes;
             _maxEntries = maxEntries;
             _cancellationToken = cancellationToken;
+            _workBudget = workBudget;
         }
 
         internal IReadOnlyList<OfficeCabinetEntry> Read(Func<string, bool>? entryFilter, out long expandedBytes) {
@@ -209,6 +214,10 @@ internal static class OfficeCabinetArchiveReader {
                     _data[dataOffset] != 0x43 || _data[dataOffset + 1] != 0x4B)) {
                     throw Error("CAB_MSZIP_HEADER", "The CAB contains an invalid MSZIP frame header or size.", dataOffset);
                 }
+                // Charge every validated CFDATA record, including repeated folder offsets,
+                // unselected members and gaps. MSZIP replays prior history for each new frame.
+                int dictionaryLength = method == 1 ? (int)Math.Min(total, OfficeMsZipDecoder.WindowBytes) : 0;
+                _workBudget.ConsumeFrame(compressedLength, expandedLength, dataReserve, dictionaryLength, offset);
                 if (checksum != 0) {
                     // MS-CAB section 3.1 checks payload bytes first, then the header
                     // and reserve bytes. Each region has its own remainder alignment.
