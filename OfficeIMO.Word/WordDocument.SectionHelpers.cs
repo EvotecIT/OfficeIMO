@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Convenience helpers for addressing section-scoped headers/footers from the document root.
-    /// </summary>
+    // Convenience helpers for addressing section-scoped headers/footers from the document root.
     public partial class WordDocument {
         /// <summary>
         /// Returns the header for a specific section index (use -1 to target the last section).

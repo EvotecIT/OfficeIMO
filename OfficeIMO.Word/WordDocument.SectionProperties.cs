@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Exposes section-level properties.
-    /// </summary>
+    // Exposes section-level properties.
     public partial class WordDocument {
         /// <summary>
         /// Gets or sets the orientation of the pages in the first section.

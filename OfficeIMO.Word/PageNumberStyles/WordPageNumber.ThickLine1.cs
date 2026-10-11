@@ -9,9 +9,7 @@ using Wvml = DocumentFormat.OpenXml.Vml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
-/// <summary>
-/// Represents a page-numbering building block.
-/// </summary>
+// Represents a page-numbering building block.
 public partial class WordPageNumber {
     private static SdtBlock ThickLine1 {
         get {

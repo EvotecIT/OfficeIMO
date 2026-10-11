@@ -4,6 +4,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
@@ -280,12 +281,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             ["expectedSha256"] = comparison.ExpectedSha256,
             ["actualSha256"] = comparison.ActualSha256,
             ["pagesCompared"] = comparison.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["differentPages"] = comparison.Pages.Count(page => !page.IsMatch).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["differentPages"] = comparison.DifferentPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["incompletePages"] = comparison.IncompletePageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["structuralDifferences"] = comparison.StructuralDifferences.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
         };
         string summary = comparison.IsMatch
             ? "The compared page pairs match within managed rendering thresholds. Pages outside the selected scope were not compared."
-            : "The selected page sequences differ; review the ordinal rendered comparison gallery. No semantic or moved-page alignment is inferred.";
+            : comparison.HasDifferences
+                ? "The selected page sequences differ; review the ordinal rendered comparison gallery. No semantic or moved-page alignment is inferred."
+                : "The comparison is incomplete; review the rendering limitations in the gallery.";
         var report = new PdfHealthReport(
             OfficeWorkflowOperation.Compare,
             before,
@@ -582,6 +586,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     stagingPath,
                     encoding: Encoding.UTF8,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
+                break;
+            case ".md":
+                await using (FileStream stream = OpenStagedArtifact(stagingPath)) {
+                    using var reader = new StreamReader(stream, new UTF8Encoding(false, true));
+                    _ = MarkdownDoc.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
+                }
                 break;
             default:
                 throw new NotSupportedException("No output validator is registered for '" + extension + "'.");

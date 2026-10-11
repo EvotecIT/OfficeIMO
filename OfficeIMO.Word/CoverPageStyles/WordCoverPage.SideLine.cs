@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Represents a cover page within a Word document.
-    /// </summary>
+    // Represents a cover page within a Word document.
     public partial class WordCoverPage {
 
         private static SdtBlock CoverPageSideLine {

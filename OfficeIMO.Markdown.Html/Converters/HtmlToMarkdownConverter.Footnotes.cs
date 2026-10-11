@@ -24,12 +24,14 @@ internal sealed partial class HtmlToMarkdownConverter {
             new Dictionary<IElement, string>(),
             new Dictionary<string, string>(StringComparer.Ordinal));
 
-        internal static HtmlFootnoteConversionState Create(INode root) {
+        internal static HtmlFootnoteConversionState Create(INode root, System.Threading.CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (root == null) return Empty;
 
-            List<IElement> elements = EnumerateElements(root).ToList();
+            List<IElement> elements = EnumerateElements(root, cancellationToken).ToList();
             var referencedIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (IElement element in elements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!LooksLikeFootnoteReference(element)) continue;
                 string? targetId = GetLocalFragmentId(element.GetAttribute("href"));
                 if (!string.IsNullOrWhiteSpace(targetId)) referencedIds.Add(targetId!);
@@ -37,6 +39,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
             var definitions = new List<IElement>();
             foreach (IElement element in elements) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (IsSemanticFootnoteDefinition(element)
                     || IsRecognizedIdDefinition(element, referencedIds)) {
                     definitions.Add(element);
@@ -48,6 +51,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             var labelsByTargetId = new Dictionary<string, string>(StringComparer.Ordinal);
             var usedLabels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int index = 0; index < definitions.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 IElement definition = definitions[index];
                 string? definitionId = definition.Id;
                 string label = CreateUniqueLabel(definitionId, index + 1, usedLabels);
@@ -134,7 +138,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             return NormalizeBlockText(builder.ToString());
         }
 
-        private static IEnumerable<IElement> EnumerateElements(INode root) {
+        private static IEnumerable<IElement> EnumerateElements(INode root, System.Threading.CancellationToken cancellationToken) {
             var pending = new Stack<INode>();
             INodeList rootChildren = root.ChildNodes;
             for (int i = rootChildren.Length - 1; i >= 0; i--) {
@@ -142,6 +146,7 @@ internal sealed partial class HtmlToMarkdownConverter {
             }
 
             while (pending.Count > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
                 INode node = pending.Pop();
                 if (node is IElement element) {
                     yield return element;

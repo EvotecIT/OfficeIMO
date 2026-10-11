@@ -1,7 +1,5 @@
 namespace OfficeIMO.Excel.Fluent {
-    /// <summary>
-    /// Legend block for SheetComposer.
-    /// </summary>
+    // Legend block for SheetComposer.
     public sealed partial class SheetComposer {
         /// <summary>
         /// Renders a compact legend block with an optional title, column headers, and rows.

@@ -31,7 +31,16 @@ $refreshArtifacts = @($catalog.artifacts | Where-Object {
 if (-not $SkipGeneration -and -not $ManifestOnly) {
     Invoke-ShowcaseDotNet @('build', (Join-Path $repoRoot 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'), '-c', $Configuration, '-f', $Framework, '--nologo')
     $examplesAssembly = Join-Path $repoRoot "OfficeIMO.Examples/bin/$Configuration/$Framework/OfficeIMO.Examples.dll"
-    foreach ($exampleSwitch in ($selectedCards.generator_switch | Select-Object -Unique)) {
+    # PowerShell examples are scripts, not switches of the .NET example runner: run each one against the PSWriteOffice
+    # version the command catalog was generated from and write its outputs under the shared Documents folder.
+    foreach ($card in @($selectedCards | Where-Object { $_.source_path -and $_.source_path.EndsWith('.ps1', [StringComparison]::Ordinal) })) {
+        $moduleVersion = [regex]::Match((Get-Content -LiteralPath (Join-Path $repoRoot 'Website/data/apidocs/powershell/command-metadata.json') -Raw), '/blob/v(\d+\.\d+\.\d+)/').Groups[1].Value
+        if (-not $moduleVersion) { throw 'The PowerShell command catalog does not name a module version.' }
+        $scriptOutput = Join-Path $documentsRoot 'PowerShell'
+        & pwsh -NoProfile -File (Resolve-ShowcasePath $repoRoot $card.source_path) -OutputDirectory $scriptOutput -ModuleVersion $moduleVersion
+        if ($LASTEXITCODE -ne 0) { throw "PowerShell showcase example failed: $($card.id)" }
+    }
+    foreach ($exampleSwitch in ($selectedCards.generator_switch | Where-Object { $_ } | Select-Object -Unique)) {
         $generatorCards = @($selectedCards | Where-Object generator_switch -CEQ $exampleSwitch)
         if ($ExampleId.Count -gt 0 -and $exampleSwitch -ceq '--showcase-workflows') {
             foreach ($card in $generatorCards) {

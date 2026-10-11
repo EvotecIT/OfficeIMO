@@ -4,6 +4,23 @@ using System.Xml.Linq;
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherNativeTests {
+    [Fact]
+    public void Publisher_authored_frames_keep_native_no_line_style_and_page_geometry() {
+        PublisherDocument document = PublisherDocument.Load(Fixture("native-authored.pub"));
+        PublisherPage page = Assert.Single(document.Pages);
+        Assert.Equal(612, page.Width);
+        Assert.Equal(792, page.Height);
+        Assert.Contains(document.TextStories, story => story.Text.Contains("Native Publisher qualification"));
+        Assert.Contains(document.TextStories, story => story.Text.Contains("Alpha") && story.Text.Contains("Beta"));
+        OfficeDrawingRichText[] text = Elements(page.Drawing).OfType<OfficeDrawingRichText>().ToArray();
+        Assert.Contains(text, frame => Text(frame).Contains("Native Publisher qualification"));
+        Assert.Contains(text, frame => Text(frame).Contains("Alpha"));
+        string[] textIds = text.SelectMany(frame => frame.SourceElementIds ?? Array.Empty<string>()).Distinct().ToArray();
+        OfficeDrawingShape[] frames = Elements(page.Drawing).OfType<OfficeDrawingShape>()
+            .Where(shape => shape.SourceElementIds?.Any(id => textIds.Contains(id)) == true).ToArray();
+        Assert.DoesNotContain(frames, frame => frame.Shape.StrokeColor.HasValue);
+    }
+
     [Theory]
     [InlineData("Simple.pub", 1, 2, 2)]
     [InlineData("Sample.pub", 2, 6, 7)]
