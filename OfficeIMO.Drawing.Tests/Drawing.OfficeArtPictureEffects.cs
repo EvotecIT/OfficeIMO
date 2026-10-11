@@ -6,6 +6,25 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(0x00040004U, 0x00040000U)]
+    [InlineData(0x00020002U, 0x00020000U)]
+    public void OfficeArtBooleanInheritance_PictureDisplayEffectsSurviveIndependentSecondaryBits(uint enabled, uint cleared) {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x013F, enabled),
+            new OfficeArtProperty(0, 0x013F, 0x00400040U)
+        };
+        var source = OfficeArtPictureProperties.Decode(properties);
+        Assert.True(source.PreserveGrays);
+        var projection = OfficeArtPictureEffectProjector.Create(source, _ => null);
+        Assert.True(projection.HasProjection);
+        source = OfficeArtPictureProperties.Decode(properties.Concat(new[] {
+            new OfficeArtProperty(0, 0x013F, cleared)
+        }).ToArray());
+        Assert.True(source.PreserveGrays);
+        Assert.False(OfficeArtPictureEffectProjector.Create(source, _ => null).HasProjection);
+    }
+
+    [Theory]
     [InlineData(-32768, 0, 0, 0)]
     [InlineData(32768, 255, 255, 255)]
     [InlineData(-16384, 10, 50, 110)]
