@@ -58,7 +58,9 @@ public enum OfficeDocumentFormat {
     /// <summary>Apple Pages, Numbers, or Keynote content.</summary>
     IWork,
     /// <summary>Native XPS or OpenXPS fixed-page content.</summary>
-    Xps
+    Xps,
+    /// <summary>Microsoft Publisher publication content.</summary>
+    Publisher = 29
 }
 
 /// <summary>

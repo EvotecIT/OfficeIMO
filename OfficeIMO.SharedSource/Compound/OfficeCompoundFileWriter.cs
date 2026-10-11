@@ -528,12 +528,16 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private sealed class MiniStreamLayout : IDisposable {
-            private MiniStreamLayout(string? streamPath, int streamByteLength, byte[] fatBytes, int streamLength) {
+            private MiniStreamLayout(string? streamPath, int streamByteLength, byte[] fatBytes, int streamLength,
+                PaddedStream[]? memoryStreams = null) {
                 StreamPath = streamPath;
                 StreamByteLength = streamByteLength;
                 FatBytes = fatBytes;
                 StreamLength = streamLength;
+                _memoryStreams = memoryStreams;
             }
+
+            private readonly PaddedStream[]? _memoryStreams;
 
             internal string? StreamPath { get; }
 
@@ -552,38 +556,41 @@ namespace OfficeIMO.Core.Internal {
                 }
 
                 int miniSectorCount = 0;
+                foreach (PaddedStream stream in miniStreams) {
+                    stream.StartSector = unchecked((uint)miniSectorCount);
+                    miniSectorCount = checked(miniSectorCount + stream.SectorCount);
+                }
+
+                byte[] miniFat = new byte[(((miniSectorCount * 4) + SectorSize - 1) / SectorSize) * SectorSize];
+                for (int offset = 0; offset < miniFat.Length; offset += 4) {
+                    WriteUInt32(miniFat, offset, FreeSect);
+                }
+                foreach (PaddedStream stream in miniStreams) {
+                    for (int i = 0; i < stream.SectorCount; i++) {
+                        bool lastSector = i + 1 == stream.SectorCount;
+                        uint sector = unchecked(stream.StartSector + (uint)i);
+                        WriteUInt32(miniFat, checked((int)sector * 4), lastSector ? EndOfChain : unchecked(sector + 1));
+                    }
+                }
+
+                int streamLength = checked(miniSectorCount * MiniSectorSize);
+                int byteLength = checked((streamLength + SectorSize - 1) / SectorSize * SectorSize);
+                // Already-owned byte arrays need no disk staging or second aggregate buffer.
+                if (miniStreams.All(stream => stream.Payload.TryGetBuffer(out _, out _, out _))) {
+                    return new MiniStreamLayout(null, byteLength, miniFat, streamLength, miniStreams);
+                }
+
                 string path = Path.Combine(Path.GetTempPath(),
                     string.Concat("OfficeIMO.Cfb.", Guid.NewGuid().ToString("N"), ".mini"));
                 try {
                     using (var miniStream = new FileStream(path, FileMode.CreateNew, FileAccess.Write,
                                FileShare.Read, 81920, FileOptions.SequentialScan)) {
                         foreach (PaddedStream stream in miniStreams) {
-                            stream.StartSector = unchecked((uint)miniSectorCount);
-                            miniSectorCount = checked(miniSectorCount + stream.SectorCount);
                             WritePaddedStream(miniStream, stream, MiniSectorSize, cancellationToken);
                         }
-                        int streamByteLength = checked(((miniSectorCount * MiniSectorSize) + SectorSize - 1) /
-                            SectorSize * SectorSize);
-                        WriteZeros(miniStream, streamByteLength - miniStream.Position);
+                        WriteZeros(miniStream, byteLength - miniStream.Position);
                     }
-
-                    byte[] miniFat = new byte[(((miniSectorCount * 4) + SectorSize - 1) / SectorSize) * SectorSize];
-                    for (int offset = 0; offset < miniFat.Length; offset += 4) {
-                        WriteUInt32(miniFat, offset, FreeSect);
-                    }
-
-                    foreach (PaddedStream stream in miniStreams) {
-                        for (int i = 0; i < stream.SectorCount; i++) {
-                            bool lastSector = i + 1 == stream.SectorCount;
-                            uint sector = unchecked(stream.StartSector + (uint)i);
-                            WriteUInt32(miniFat, checked((int)sector * 4), lastSector ? EndOfChain : unchecked(sector + 1));
-                        }
-                    }
-
-                    int byteLength = checked(((miniSectorCount * MiniSectorSize) + SectorSize - 1) /
-                        SectorSize * SectorSize);
-                    return new MiniStreamLayout(path, byteLength, miniFat,
-                        checked(miniSectorCount * MiniSectorSize));
+                    return new MiniStreamLayout(path, byteLength, miniFat, streamLength);
                 } catch {
                     if (File.Exists(path)) File.Delete(path);
                     throw;
@@ -591,6 +598,13 @@ namespace OfficeIMO.Core.Internal {
             }
 
             internal void WriteTo(Stream output, CancellationToken cancellationToken) {
+                if (_memoryStreams != null) {
+                    foreach (PaddedStream stream in _memoryStreams) {
+                        WritePaddedStream(output, stream, MiniSectorSize, cancellationToken);
+                    }
+                    WriteZeros(output, StreamByteLength - StreamLength);
+                    return;
+                }
                 if (StreamPath == null) return;
                 using (var input = new FileStream(StreamPath, FileMode.Open, FileAccess.Read,
                            FileShare.Read, 81920, FileOptions.SequentialScan)) {
