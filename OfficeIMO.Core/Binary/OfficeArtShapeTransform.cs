@@ -31,19 +31,10 @@ public sealed class OfficeArtShapeTransform {
             ? null
             : unchecked((int)rotation.Value) / 65536D;
 
-        bool flipHorizontal = (fspFlags & FlipHorizontalFlag) != 0;
-        bool flipVertical = (fspFlags & FlipVerticalFlag) != 0;
-        OfficeArtProperty? shapeBooleans = source.LastOrDefault(property =>
-            property.PropertyId == 0x033F && !property.IsComplex);
-        if (shapeBooleans != null) {
-            uint value = shapeBooleans.Value;
-            if ((value & UseFlipHorizontalOverride) != 0) {
-                flipHorizontal = (value & FlipHorizontalOverride) != 0;
-            }
-            if ((value & UseFlipVerticalOverride) != 0) {
-                flipVertical = (value & FlipVerticalOverride) != 0;
-            }
-        }
+        bool flipHorizontal = OfficeArtProperty.GetBoolean(source, 0x033F, UseFlipHorizontalOverride, FlipHorizontalOverride)
+            ?? (fspFlags & FlipHorizontalFlag) != 0;
+        bool flipVertical = OfficeArtProperty.GetBoolean(source, 0x033F, UseFlipVerticalOverride, FlipVerticalOverride)
+            ?? (fspFlags & FlipVerticalFlag) != 0;
 
         return new OfficeArtShapeTransform(rotationDegrees, flipHorizontal, flipVertical);
     }

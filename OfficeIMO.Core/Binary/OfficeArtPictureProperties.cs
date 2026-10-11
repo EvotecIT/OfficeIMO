@@ -126,12 +126,8 @@ public sealed class OfficeArtPictureProperties {
         return property == null ? null : new OfficeArtColorReference(property.Value);
     }
 
-    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) {
-        OfficeArtProperty? property = Properties.LastOrDefault(item =>
-            item.PropertyId == propertyId && !item.IsComplex);
-        if (property == null || (property.Value & useMask) == 0) return null;
-        return (property.Value & valueMask) != 0;
-    }
+    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) =>
+        OfficeArtProperty.GetBoolean(Properties, propertyId, useMask, valueMask);
 
     private static double? ToFraction(int? value) => value.HasValue
         ? value.Value / 65536D

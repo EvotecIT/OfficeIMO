@@ -61,12 +61,6 @@ public sealed class OfficeArtShapeProtection {
     /// <summary>Gets whether grouping with other shapes is explicitly locked.</summary>
     public bool? LockAgainstGrouping { get; }
 
-    private bool? GetBoolean(int useBit) {
-        OfficeArtProperty? property = Properties.LastOrDefault(item =>
-            item.PropertyId == 0x007F && !item.IsComplex);
-        if (property == null || (property.Value & (1U << useBit)) == 0) {
-            return null;
-        }
-        return (property.Value & (1U << checked(useBit + 16))) != 0;
-    }
+    private bool? GetBoolean(int useBit) => OfficeArtProperty.GetBoolean(Properties,
+        0x007F, 1U << useBit, 1U << checked(useBit + 16));
 }
