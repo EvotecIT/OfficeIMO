@@ -230,9 +230,31 @@ if (-not $ArtifactsOnly) {
 $metadata = [ordered]@{
     schemaVersion = 1
     moduleName = $moduleName
+    moduleVersion = [string]$manifest.ModuleVersion
     commands = @($commandMetadata)
 }
 $metadata | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $apiRoot 'command-metadata.json') -Encoding utf8
+
+# Bind the generated components together so a consumer can detect a mixed release
+# even when old and current help happen to contain the same command names.
+$sourceCommitLines = @(& git -C $RepositoryRoot rev-parse HEAD 2>$null)
+$sourceCommit = if ($LASTEXITCODE -eq 0 -and $sourceCommitLines.Count -eq 1) { [string]$sourceCommitLines[0] } else { $null }
+$components = [ordered]@{}
+foreach ($component in @(
+    @{ Key = 'manifest'; Path = (Join-Path $apiRoot "$moduleName.psd1") },
+    @{ Key = 'help'; Path = $apiHelpPath },
+    @{ Key = 'metadata'; Path = (Join-Path $apiRoot 'command-metadata.json') }
+)) {
+    $components[$component.Key] = [ordered]@{
+        bytes = (Get-Item -LiteralPath $component.Path).Length
+        sha256 = (Get-FileHash -LiteralPath $component.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    }
+}
+[ordered]@{
+    schemaVersion = 1; moduleName = $moduleName
+    moduleVersion = [string]$manifest.ModuleVersion; sourceCommit = $sourceCommit
+    components = $components
+} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $apiRoot 'bundle-manifest.json') -Encoding utf8
 
 & (Join-Path $PSScriptRoot 'Export-WebsiteDocumentationCatalog.ps1') `
     -RepositoryRoot $RepositoryRoot `
