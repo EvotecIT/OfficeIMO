@@ -1,10 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
 
+  <!--
+    Browser-local OfficeIMO engine. It has no UI: the website's static tool pages start engine-worker.js,
+    which boots this app inside a Web Worker and calls Engine/EngineExports through JSExport.
+    Published to /apps/officeimo-converter/ by Website/pipeline.json.
+  -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Hosts serve gzip on the fly; precompressed siblings would only add publish time. -->
     <CompressionEnabled>false</CompressionEnabled>
     <!-- HarfBuzz WebAssembly ships as a native archive and must be linked into dotnet.native.wasm. -->
     <WasmBuildNative>true</WasmBuildNative>
@@ -13,15 +20,13 @@
   <!-- Link unused optional workflows and invoice dependencies out of the browser app. -->
   <ItemGroup>
     <TrimmableAssembly Include="OfficeIMO.Workflows;OfficeIMO.Invoicing;OfficeIMO.Invoicing.Pdf;OfficeIMO.Invoicing.Validation" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.9" PrivateAssets="all" />
+    <!-- Resource-only: found by name at run time (BrowserFallbackFonts), so nothing references it statically. -->
+    <TrimmerRootAssembly Include="OfficeIMO.Web.Fonts.Fallback" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Web.Fonts\OfficeIMO.Web.Fonts.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Web.Fonts.Fallback\OfficeIMO.Web.Fonts.Fallback.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\..\..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
@@ -48,35 +53,39 @@
              Link="wwwroot\licenses\OfficeIMO.Core-THIRD-PARTY-NOTICES.md"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <!-- The workspace loads the selected format family before mounting its tool. -->
-  <ItemGroup>
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Web.Fonts.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Excel.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.PowerPoint.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Visio.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Workflows.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Html.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Markdown.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Project.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Reader.Core.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="DocumentFormat.OpenXml.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="AngleSharp.wasm" />
-    <BlazorWebAssemblyLazyLoad Include="AngleSharp.Css.wasm" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="..\..\static\downloads\showcase\pdf\showcase-dashboard.pdf"
              Link="wwwroot\samples\showcase-dashboard.pdf"
              CopyToOutputDirectory="PreserveNewest"
              CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!--
+    Engines load on demand. Each tool in Website/data/browser_tools.json names the assemblies it needs;
+    BrowserToolCatalogTests keeps that list and this one in sync.
+  -->
   <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Web.Fonts.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Web.Fonts.Fallback.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Excel.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.PowerPoint.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Html.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Markdown.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="DocumentFormat.OpenXml.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="AngleSharp.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="AngleSharp.Css.wasm" />
+    <!-- Format bridges: small, but each belongs to only a few tools. -->
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Excel.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.PowerPoint.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Html.Pdf.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.Html.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Word.Markdown.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Markdown.Html.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.MarkdownRenderer.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Html.Core.wasm" />
+    <BlazorWebAssemblyLazyLoad Include="OfficeIMO.Html.AngleSharp.wasm" />
   </ItemGroup>
 
 </Project>

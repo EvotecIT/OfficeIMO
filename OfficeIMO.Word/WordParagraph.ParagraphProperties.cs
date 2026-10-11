@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides accessors for paragraph formatting.
-    /// </summary>
+    // Provides accessors for paragraph formatting.
     public partial class WordParagraph {
         /// <summary>
         /// Provides access to the borders applied to this paragraph.

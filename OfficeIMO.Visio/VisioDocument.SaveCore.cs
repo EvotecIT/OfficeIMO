@@ -11,9 +11,7 @@ using System.Xml.Linq;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Save core implementation for <see cref="VisioDocument"/>.
-    /// </summary>
+    // Save core implementation for VisioDocument.
     public partial class VisioDocument {
         /// <summary>
         /// Core save routine that writes the VSdx structure.

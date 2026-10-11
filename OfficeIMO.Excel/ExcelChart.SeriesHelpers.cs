@@ -9,9 +9,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Represents a chart on a worksheet.
-    /// </summary>
+    // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
         private bool ApplySeriesByIndex(int seriesIndex, Action<OpenXmlCompositeElement> apply) {
             C.Chart chart = GetChart();

@@ -26,6 +26,9 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets CSV and TSV adapter options.</summary>
     public Csv.CsvReadOptions? Csv { get; set; }
 
+    /// <summary>Gets or sets DBF/xBase adapter options. Memo sidecar reads are disabled by default.</summary>
+    public Dbf.ReaderDbfOptions? Dbf { get; set; }
+
     /// <summary>Gets or sets DocBook adapter options.</summary>
     public DocBook.ReaderDocBookOptions? DocBook { get; set; }
 
@@ -79,6 +82,9 @@ public sealed class ReaderAllOptions {
 
     /// <summary>Gets or sets PowerPoint adapter options.</summary>
     public PowerPoint.ReaderPowerPointOptions? PowerPoint { get; set; }
+
+    /// <summary>Gets or sets native Publisher adapter options.</summary>
+    public Publisher.ReaderPublisherOptions? Publisher { get; set; }
 
     /// <summary>Gets or sets RTF adapter options.</summary>
     public Rtf.ReaderRtfOptions? Rtf { get; set; }

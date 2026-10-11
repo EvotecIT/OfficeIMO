@@ -50,7 +50,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
 | Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
-| Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
+| Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, bounded legacy binary import, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | Optional document AI | [OfficeIMO.AI](OfficeIMO.AI/README.md) and [IntelligenceX adapter](OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
@@ -339,6 +339,16 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
+#### [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md)
+
+Native Publisher publication recovery into positioned pages, styled text stories,
+table cells and embedded image assets, with SVG export and explicit fidelity
+reports. [OfficeIMO.Publisher.Pdf](OfficeIMO.Publisher.Pdf/README.md) adds multi-page
+PDF conversion through the shared drawing and PDF engines. The
+[support contract](OfficeIMO.Publisher/SUPPORT.md) identifies profile and rendering
+limits. The reader references only `OfficeIMO.Core` and does not require Publisher.
+The [Reader adapter](OfficeIMO.Reader.Publisher/README.md) retains complete stories,
+physical page inventory and image descriptors for semantic ingestion.
 #### [OfficeIMO.Chm](OfficeIMO.Chm/README.md)
 
 Compiled HTML Help reading with exact entry extraction, topics, embedded resources,
@@ -978,6 +988,14 @@ _Dependency footprint:_ only OfficeIMO.Reader.Core, AsciiDoc, and AsciiDoc.Markd
 
 _Dependency footprint:_ only OfficeIMO.Reader.Core and CSV.
 
+#### [OfficeIMO.Reader.Dbf](OfficeIMO.Reader.Dbf/README.md)
+
+- [x] Bounded DBF/xBase table chunks through the DbaClientX codec
+- [x] Opt-in path memo sidecars, physical record locations and inert Base64 binary values
+- [x] CSV/XLSX conversion through the codec's typed reader and existing exporters
+
+_Dependency footprint:_ OfficeIMO.Reader.Core and DBAClientX.Dbf; no database driver.
+
 #### [OfficeIMO.Reader.DocBook](OfficeIMO.Reader.DocBook/README.md)
 
 - [x] Dedicated `.dbk` and `.docbook` registration while generic `.xml` remains with Reader.Xml
@@ -1017,6 +1035,13 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeI
 - [x] Slide, notes, table, image, metadata, diagnostic, and password-aware projection
 
 _Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.PowerPoint`.
+
+#### [OfficeIMO.Reader.Publisher](OfficeIMO.Reader.Publisher/README.md)
+
+Complete native `.pub` story extraction, bullet markers, physical page inventory
+and optional embedded-image payloads, with explicit semantic projection losses.
+
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Publisher`.
 
 #### [OfficeIMO.Reader.Markdown](OfficeIMO.Reader.Markdown/README.md)
 

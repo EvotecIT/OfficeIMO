@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace OfficeIMO.OneNote.Html;
 
-/// <summary>Native rectangular table projection and bounded column sizing.</summary>
+//Native rectangular table projection and bounded column sizing.
 public static partial class HtmlOneNoteConverterExtensions {
     private static void ImportTable(
         HtmlSemanticBlock source,

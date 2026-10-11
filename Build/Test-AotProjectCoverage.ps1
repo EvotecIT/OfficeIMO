@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $nonNativeValidated = @(
     [ordered]@{
+        name = 'OfficeIMO.Reader.Dbf'
+        classification = 'managed-cross-platform'
+        evidence = 'DBF ingestion is qualified through managed .NET 8 and 10 extraction and CSV/XLSX conversion tests; the DBAClientX.Dbf owner and Reader adapter are not rooted in a NativeAOT qualification host.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Chm'
         classification = 'managed-cross-platform'
         evidence = 'Bounded CHM archive reading is qualified through managed .NET 8 and 10 contracts and independent entry extraction; no dedicated NativeAOT qualification host is claimed.'
@@ -82,6 +87,21 @@ $nonNativeValidated = @(
         name = 'OfficeIMO.Access'
         classification = 'managed-cross-platform'
         evidence = 'Native MDB/ACCDB reading, inert application inspection, unchanged preservation and Jet 4/ACE 12 creation are qualified through managed .NET tests and independent Access/DAO evidence; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Publisher'
+        classification = 'managed-cross-platform'
+        evidence = 'Bounded native Publisher decoding, styled text flow and page SVG reconstruction are qualified through managed .NET tests and independent-producer fixtures; no dedicated whole-library NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Publisher.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The Publisher PDF bridge is qualified through managed conversion tests and packed .NET consumers; the PDF owner NativeAOT host does not qualify the complete bridge.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.Publisher'
+        classification = 'managed-cross-platform'
+        evidence = 'The modular Publisher Reader adapter is qualified through managed extraction, registration, transport and packed-consumer tests; no dedicated NativeAOT qualification host is claimed.'
     }
     [ordered]@{
         name = 'OfficeIMO.DjVu'

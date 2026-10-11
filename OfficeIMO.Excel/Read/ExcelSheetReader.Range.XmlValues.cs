@@ -34,7 +34,26 @@ namespace OfficeIMO.Excel {
             return ReadXmlCellValue(cellReader, ReadXmlCellTypeAttribute(cellReader));
         }
 
-        private object? ReadXmlCellValue(XmlReader cellReader, string? cellType, bool preserveDateSerial = false) {
+        private object? ReadXmlCellValue(XmlReader cellReader, string? cellType, bool preserveDateSerial = false,
+            XmlDataReaderTextBudget? textBudget = null) {
+            if (textBudget != null) {
+                if (cellReader.IsEmptyElement) {
+                    bool hasValueMetadata = cellType == "e" && cellReader.MoveToAttribute("vm");
+                    if (hasValueMetadata) cellReader.MoveToElement();
+                    else return null;
+                }
+                CellRaw boundedRaw = ReadXmlCellRaw(cellReader, 0, 0, ParseXmlCellKind(cellType),
+                    readStyleIndex: true, textBudget: textBudget);
+                object? value = preserveDateSerial ? ConvertRawForDataReader(boundedRaw) : ConvertRaw(boundedRaw).TypedValue;
+                if (value is string text && !ReferenceEquals(text, boundedRaw.RawText)
+                    && !ReferenceEquals(text, boundedRaw.InlineText) && !ReferenceEquals(text, boundedRaw.FormulaText)) {
+                    // Shared strings and converter results need their own charge;
+                    // the raw XML index or input text is not their retained size.
+                    textBudget.Charge(text);
+                }
+                return value;
+            }
+
             if (cellType == "e" && cellReader.GetAttribute("vm") != null) {
                 var raw = ReadXmlCellRaw(cellReader, 0, 0, ParseXmlCellKind(cellType), readStyleIndex: true);
                 return ConvertRaw(raw).TypedValue;
@@ -88,7 +107,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             rawText = ReadXmlValueTextAndSkipCell(cellReader, depth);
@@ -204,7 +223,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             if (TryReadXmlSimpleDoubleAndSkipCell(cellReader, depth, out double simpleNumber, out rawText)) {
@@ -375,7 +394,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (cellReader.NodeType == XmlNodeType.Element) {
+                if (IsXmlCellChildElement(cellReader, depth)) {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             return ReadXmlSharedStringTextAndSkipCell(cellReader, depth);

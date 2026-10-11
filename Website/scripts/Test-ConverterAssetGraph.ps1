@@ -98,33 +98,15 @@ function Assert-Sha256Integrity {
     }
 }
 
-$index = [System.Text.Encoding]::UTF8.GetString((Get-AssetBytes -RelativePath 'index.html'))
-$importMapMatch = [regex]::Match(
-    $index,
-    '<script\s+type=["'']importmap["'']\s*>(?<json>.*?)</script>',
-    [System.Text.RegularExpressions.RegexOptions]::Singleline -bor [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
-if (-not $importMapMatch.Success) {
-    throw 'Converter index does not contain a parseable import map.'
-}
-$importMap = $importMapMatch.Groups['json'].Value | ConvertFrom-Json -AsHashtable
-$dotnetPath = [string] $importMap.imports['./_framework/dotnet.js']
-if ([string]::IsNullOrWhiteSpace($dotnetPath)) {
-    throw 'Converter import map does not resolve ./_framework/dotnet.js.'
-}
-
+# The engine worker imports ./_framework/dotnet.js directly; its embedded boot manifest lists every other resource.
 $verified = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
-foreach ($resolvedPath in $importMap.imports.Values) {
-    $path = [string] $resolvedPath
-    if (-not $verified.Add($path)) {
-        continue
-    }
-    $bytes = Get-AssetBytes -RelativePath $path
-    $integrity = [string] $importMap.integrity[$path]
-    if ([string]::IsNullOrWhiteSpace($integrity)) {
-        throw "Converter import-map asset '$path' has no integrity value."
-    }
-    Assert-Sha256Integrity -Bytes $bytes -Expected $integrity -Asset $path
+$dotnetPath = './_framework/dotnet.js'
+$worker = [System.Text.Encoding]::UTF8.GetString((Get-AssetBytes -RelativePath 'engine-worker.js'))
+if ($worker -notmatch [regex]::Escape($dotnetPath)) {
+    throw "The engine worker does not import $dotnetPath."
 }
+[void] $verified.Add('engine-worker.js')
+[void] $verified.Add($dotnetPath)
 
 $dotnet = [System.Text.Encoding]::UTF8.GetString((Get-AssetBytes -RelativePath $dotnetPath))
 $configMatch = [regex]::Match(
