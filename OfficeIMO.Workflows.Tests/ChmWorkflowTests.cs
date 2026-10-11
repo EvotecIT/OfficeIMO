@@ -46,6 +46,9 @@ public sealed class ChmWorkflowTests {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("ITSF", evidence.Facts["sourceContainer"]); Assert.Equal("2", evidence.Facts["topicCount"]);
             Assert.Contains(result.Diagnostics, item => item.Code == "OutputReopened");
+            foreach (var finding in evidence.FidelityDiagnostics)
+                Assert.Equal(evidence.FidelityDiagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message),
+                    result.Diagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message));
             byte[] bytes = File.ReadAllBytes(output);
             if (extension == ".pdf") { Assert.Equal(2, PdfReadDocument.Open(bytes).Pages.Count); Assert.Contains("Café", PdfReadDocument.Open(bytes).ExtractText()); }
             else if (extension == ".epub") { using var stream = new MemoryStream(bytes); Assert.Contains(EpubDocument.Load(stream).Chapters, item => item.Text.Contains("Café")); }

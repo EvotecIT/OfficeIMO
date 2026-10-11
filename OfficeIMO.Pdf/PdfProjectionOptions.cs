@@ -6,7 +6,10 @@ namespace OfficeIMO.Pdf;
 public enum PdfProjectionPagePolicy {
     /// <summary>Start a new PDF page between normalized source pages.</summary>
     PreserveSourcePages,
-    /// <summary>Compose all normalized pages into one continuous PDF flow.</summary>
+    /// <summary>
+    /// Compose all normalized pages into one continuous PDF flow. Explicit logical reading order
+    /// takes precedence over physical page order; automatic page headings are then omitted with a diagnostic.
+    /// </summary>
     ContinuousFlow
 }
 

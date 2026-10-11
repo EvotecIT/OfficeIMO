@@ -22,6 +22,8 @@ foreach (var report in conversion.SourceConversionReports)
 
 Pass `lossPolicy: OfficeIMO.OfficeConversionLossPolicy.Allow` only when accepting the reported import reductions. Import errors still block output. The adapter always collects unsupported-content findings, even if the supplied import options disable reporting. Its fidelity is limited by both the legacy importer and the Word PDF renderer; it does not guarantee exact Microsoft Word pagination or rendering of every binary DOC feature. Supported binary DOC SECTIONPAGES fields retain their editable instruction and cached result during import; PDF header/footer fields use calculated section counts during pagination.
 
+Rejected imports throw `OfficeConversionException`; its `Report` retains the available import findings. Catch that exception to inspect a blocked conversion without rendering a PDF.
+
 ## Install
 
 ```powershell
