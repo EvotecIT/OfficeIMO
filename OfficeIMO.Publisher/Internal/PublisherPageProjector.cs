@@ -141,10 +141,16 @@ internal sealed partial class PublisherPageProjector {
                     OfficeConversionLossKind.Approximation, "Quill");
             } else _context.Add("PUB_TEXT_REFERENCE_UNRESOLVED", "A text frame refers to an unavailable story.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
         }
+        if (local.Elements.Count == 0) {
+            // A valid empty frame remains recovered without a retained raster surface.
+            _projected.Add(shape.Id);
+            return;
+        }
         TagSourceElements(local, new[] { "publisher-object-" + shape.Id });
         var transform = new OfficeImageFrameTransform(rotation, x + width / 2, y + height / 2, shape.Transform.FlipHorizontal, shape.Transform.FlipVertical);
         _context.AccountProjection(local);
-        if (shape.GroupTransform == OfficeTransform.Identity) page.AddDrawingForClippedRendering(local, x, y, transform);
+        if (shape.GroupTransform == shape.LayoutTransform && (rotation == 0 || shape.LayoutTransform.M11 == shape.LayoutTransform.M22))
+            page.AddDrawingForClippedRendering(local, x, y, transform);
         else {
             OfficeTransform groupTransform = GroupPageTransform(shape);
             if (!groupTransform.TryInvert(out _))
@@ -156,7 +162,7 @@ internal sealed partial class PublisherPageProjector {
                     double.MaxValue, double.MaxValue, out OfficeDrawing retained, out double left, out double top))
                 throw new InvalidDataException("Publisher group projection produced invalid viewport geometry.");
             page.AddEffectDrawing(retained, OfficeTransform.Translate(left + x, top + y)
-                .Then(transform.CreateDestinationTransform()).Then(groupTransform));
+                .Then(PageTransform(shape, bounds)));
         }
         if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id) || _tables.ContainsKey(shape.Id)) _projected.Add(shape.Id);
     }

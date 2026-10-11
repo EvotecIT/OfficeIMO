@@ -31,10 +31,13 @@ internal readonly struct PublisherGroupSpace {
     private readonly PublisherNativeRectangle? _coordinates;
     private readonly PublisherNativeRectangle? _absolute;
 
-    internal PublisherGroupSpace(PublisherEscherShape group, PublisherGroupSpace? parent) {
+    internal PublisherGroupSpace(PublisherEscherShape group) {
         _coordinates = group.GroupCoordinates;
         _absolute = group.Bounds?.Unrotated(group.Transform.RotationDegrees.GetValueOrDefault());
-        Transform = parent?.Transform ?? OfficeTransform.Identity;
+        Transform = group.GroupTransform;
+        ClientTransform = Transform;
+        LayoutTransform = group.LayoutTransform;
+        ClientLayoutTransform = LayoutTransform;
         Hidden = group.Hidden;
         if (_absolute.HasValue) {
             PublisherNativeRectangle bounds = _absolute.Value;
@@ -42,25 +45,36 @@ internal readonly struct PublisherGroupSpace {
                 (bounds.X1 + bounds.X2) / 2, (bounds.Y1 + bounds.Y2) / 2,
                 group.Transform.FlipHorizontal, group.Transform.FlipVertical);
             Transform = frame.CreateDestinationTransform().Then(Transform);
+            ClientTransform = Transform;
+            if (_coordinates.HasValue) {
+                PublisherNativeRectangle coordinates = _coordinates.Value;
+                double width = coordinates.X2 - coordinates.X1, height = coordinates.Y2 - coordinates.Y1;
+                if (width == 0 || height == 0) throw new InvalidDataException("Publisher group coordinate system is degenerate.");
+                Transform = OfficeTransform.Translate(-coordinates.X1, -coordinates.Y1)
+                    .Then(OfficeTransform.Scale((bounds.X2 - bounds.X1) / width, (bounds.Y2 - bounds.Y1) / height))
+                    .Then(OfficeTransform.Translate(bounds.X1, bounds.Y1)).Then(Transform);
+                // Keep layout dimensions in page-sized units without rotating
+                // them. The full affine map remains independent for placement.
+                LayoutTransform = OfficeTransform.Translate(-Math.Min(coordinates.X1, coordinates.X2), -Math.Min(coordinates.Y1, coordinates.Y2))
+                    .Then(OfficeTransform.Scale(Math.Abs((bounds.X2 - bounds.X1) / width), Math.Abs((bounds.Y2 - bounds.Y1) / height)))
+                    .Then(OfficeTransform.Translate(Math.Min(bounds.X1, bounds.X2), Math.Min(bounds.Y1, bounds.Y2))).Then(LayoutTransform);
+            }
         }
     }
 
-    // Child anchors are mapped into the unrotated, page-centred EMU space.
-    // Inherited rotations/reflections remain a separate affine map, so nested
-    // groups do not replace rotated rectangles with enlarged bounding boxes.
+    // Child anchors stay in their parent's coordinate space. Rotate each child
+    // there before applying this group's scale, rotation and ancestor maps.
     internal OfficeTransform Transform { get; }
+    internal OfficeTransform LayoutTransform { get; }
+    // Publisher client anchors already use the enclosing anchor units.
+    internal OfficeTransform ClientTransform { get; }
+    internal OfficeTransform ClientLayoutTransform { get; }
     internal bool Hidden { get; }
 
     internal bool TryResolve(PublisherNativeRectangle relative, out PublisherNativeRectangle resolved) {
         resolved = default;
         if (!_coordinates.HasValue || !_absolute.HasValue) return false;
-        PublisherNativeRectangle coordinates = _coordinates.Value, absolute = _absolute.Value;
-        double width = coordinates.X2 - coordinates.X1, height = coordinates.Y2 - coordinates.Y1;
-        if (width == 0 || height == 0) throw new InvalidDataException("Publisher group coordinate system is degenerate.");
-        double sx = (absolute.X2 - absolute.X1) / width, sy = (absolute.Y2 - absolute.Y1) / height;
-        resolved = new PublisherNativeRectangle(absolute.X1 + (relative.X1 - coordinates.X1) * sx,
-            absolute.Y1 + (relative.Y1 - coordinates.Y1) * sy,
-            absolute.X1 + (relative.X2 - coordinates.X1) * sx, absolute.Y1 + (relative.Y2 - coordinates.Y1) * sy);
+        resolved = relative;
         return true;
     }
 }
