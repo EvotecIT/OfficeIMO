@@ -1,10 +1,47 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.Binary;
 using OfficeIMO.Pdf;
+using OfficeIMO.Publisher.Internal;
 using OfficeIMO.Publisher.Pdf;
 
 namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherGeometryGuideTests {
+    [Fact]
+    public void Native_frame_guides_preserve_subpoint_extents_and_odd_emu_halves() {
+        const int nativeWidth = 19051, nativeHeight = 31751;
+        byte[] guides = GuideArray(new[] { ((ushort)0x2000, (ushort)0x04FC, (ushort)0, (ushort)0),
+            ((ushort)0x2000, (ushort)0x04FD, (ushort)0, (ushort)0),
+            ((ushort)0x2000, (ushort)0x04FE, (ushort)0, (ushort)0),
+            ((ushort)0x2000, (ushort)0x04FF, (ushort)0, (ushort)0) });
+        byte[] vertices = PublisherCustomPathTests.Vertices(new[] {
+            (Guide(0), Guide(1)), (Guide(2), Guide(3)), (0, 0) });
+        var source = new PublisherContents(612, 792, new Dictionary<uint, PublisherContentChunk>());
+        source.Pages.Add(new PublisherSourcePage(1, "", null, null));
+        source.Shapes.Add(2, new PublisherSourceShape(new PublisherContentChunk(2, 1, 0, 1), Array.Empty<PublisherBlock>()));
+        source.ObjectPages.Add(2, 1);
+        var escher = new PublisherEscherData();
+        escher.Shapes.Add(new PublisherEscherShape(2, 0, 0, new[] {
+            new OfficeArtProperty(0, 0x140, 0), new OfficeArtProperty(1, 0x141, 0),
+            new OfficeArtProperty(2, 0x142, nativeWidth), new OfficeArtProperty(3, 0x143, nativeHeight),
+            new OfficeArtProperty(4, 0x144, 1),
+            new OfficeArtProperty(5, 0x8145, (uint)vertices.Length, vertices.Length, complexData: vertices),
+            new OfficeArtProperty(6, 0x8156, (uint)guides.Length, guides.Length, complexData: guides),
+            new OfficeArtProperty(7, 0x181, 0x000000FF), new OfficeArtProperty(8, 0x1BF, 0x00100010)
+        }) { Bounds = new PublisherNativeRectangle(0, 0, nativeWidth, nativeHeight) });
+        PublisherDocument publication = new PublisherPageProjector(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
+        OfficeShape shape = PublisherNativeTests.Elements(publication.Pages[0].Drawing).OfType<OfficeDrawingShape>()
+            .Single(item => item.SourceElementIds?.Contains("publisher-object-2") == true).Shape;
+        Assert.Equal(OfficeShapeKind.Path, shape.Kind);
+        Assert.Equal(nativeWidth / 12700D, shape.Width, 10);
+        Assert.Equal(nativeHeight / 12700D, shape.Height, 10);
+        Assert.Equal(shape.Width, shape.PathCommands[0].Point.X, 10);
+        Assert.Equal(shape.Height, shape.PathCommands[0].Point.Y, 10);
+        Assert.Equal((nativeWidth / 2) / 12700D, shape.PathCommands[1].Point.X, 10);
+        Assert.Equal((nativeHeight / 2) / 12700D, shape.PathCommands[1].Point.Y, 10);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
