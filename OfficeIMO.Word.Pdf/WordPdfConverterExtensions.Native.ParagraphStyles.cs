@@ -316,11 +316,13 @@ namespace OfficeIMO.Word.Pdf {
                 BorderColor = border?.Color,
                 BorderWidth = border?.Width ?? 0D,
                 PaddingX = 0D,
-                PaddingY = backgroundOnly ? 0D : ResolveNativeParagraphPanelPaddingY(borders, 0D),
+                PaddingY = 0D,
+                PaddingTopOverride = backgroundOnly ? 0D : ResolveNativeParagraphPanelPadding(borders.Top),
+                PaddingBottomOverride = backgroundOnly ? 0D : ResolveNativeParagraphPanelPadding(borders.Bottom),
                 RepeatFragmentDecoration = !hasParagraphBorder,
                 AllowTrailingPaddingOverflow = hasParagraphBorder,
                 FragmentBottomInset = hasParagraphBorder && !UsesModernNativeWordLayout(paragraph._document)
-                    ? ResolveNativeParagraphPanelPaddingY(borders, 0D) : 0D,
+                    ? ResolveNativeParagraphPanelPadding(borders.Bottom) : 0D,
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
                 KeepWithNext = paragraphStyle.KeepWithNext,
@@ -465,17 +467,10 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static double ResolveNativeParagraphPanelPaddingY(NativeParagraphBorders borders, double defaultPadding) {
-            double? top = HasNativeBorder(borders.Top.Style)
-                ? Math.Min(borders.Top.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + (borders.Top.Size ?? 4U) / 8D : null;
-            double? bottom = HasNativeBorder(borders.Bottom.Style)
-                ? Math.Min(borders.Bottom.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + (borders.Bottom.Size ?? 4U) / 8D : null;
-            if (!top.HasValue && !bottom.HasValue) {
-                return defaultPadding;
-            }
-
-            return Math.Max(top.GetValueOrDefault(), bottom.GetValueOrDefault());
-        }
+        private static double ResolveNativeParagraphPanelPadding(NativeParagraphBorderSide border) =>
+            HasNativeBorder(border.Style)
+                ? Math.Min(border.Space ?? 0D, MaxNativeParagraphBorderSpacingPoints) + (border.Size ?? 4U) / 8D
+                : 0D;
 
         private static bool HasNativeOnlyBottomParagraphBorder(NativeParagraphBorders borders) =>
             HasNativeBorder(borders.Bottom.Style) &&
