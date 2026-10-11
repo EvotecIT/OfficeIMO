@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true, 1)]
         [InlineData(false, 2)]
         [InlineData(true, 2)]
-        public void ReflectedImageRetainsPixelCentreOnIncludedPolygonBoundary(bool vertical, int route) {
+        public void ReflectedImageRetainsPartialCoverageOnIncludedPolygonBoundary(bool vertical, int route) {
             OfficeRasterImage image = new OfficeRasterImage(8, 8);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
             OfficeRasterImage source = new OfficeRasterImage(1, 1, OfficeColor.Black);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
                     route == 1 ? OfficeBlendMode.Normal : OfficeBlendMode.Multiply);
             }
 
-            Assert.Equal(OfficeColor.Black, image.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.FromRgba(0, 0, 0, 128), image.GetPixel(0, 0));
         }
 
         [Theory]
@@ -172,12 +172,12 @@ namespace OfficeIMO.Tests {
         [InlineData(true, OfficeBlendMode.Normal)]
         [InlineData(false, OfficeBlendMode.Multiply)]
         [InlineData(true, OfficeBlendMode.Multiply)]
-        public void ReflectedEffectRetainsPixelCentreOnIncludedPolygonBoundary(bool vertical, OfficeBlendMode blend) {
+        public void ReflectedEffectRetainsPartialCoverageOnIncludedPolygonBoundary(bool vertical, OfficeBlendMode blend) {
             OfficeDrawing drawing = ClippedBoundaryEffect(vertical, blend, magnified: false);
 
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing);
 
-            Assert.Equal(OfficeColor.Black, image.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.FromRgba(0, 0, 0, 128), image.GetPixel(0, 0));
         }
 
         [Theory]

@@ -99,9 +99,14 @@ The libmspub 0.1.5 reader independently confirms page dimensions, text-frame
 coordinates, text styling and table semantics for the simple/table sample
 family. It produces no output for the brochure/newsletter fixtures in the
 qualification environment; those corpus tests therefore do not claim an
-independent-reader rendering comparison. Publisher-produced PDF exports and
-pixel comparisons against native Publisher remain an explicit qualification
-gap. No external program is required by normal builds or runtime conversions.
+independent-reader rendering comparison. Microsoft Publisher 16.0 opens all
+seven supplied corpus files and exports PDFs with their expected page counts.
+Visual comparisons of supported publications confirm page geometry and expose
+the reported metafile placeholders, text-fitting and layout differences; they
+do not establish pixel fidelity. A Publisher-authored fixture and reference PDF
+also qualify modern page geometry, story recovery and borderless text/table
+frames. The opt-in producer script and fixture hashes are retained with the
+tests. No external program is required by normal builds or runtime conversions.
 
 The default resource limits are 64 MiB input, 4 million source/projected text
 characters, 1 million inspected records, 250,000 source/projected items,

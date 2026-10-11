@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
         private int _maxXlsbLogicalRows = 1_048_576;
         private int _maxWorksheets = 16_384;
         private int _maxMetadataPartBytes = 16 * 1024 * 1024;
+        private long _maxXmlDataReaderBufferedCharacters = 32L * 1024L * 1024L;
 
         /// <summary>
         /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenDataReader(string, ExcelReadOptions?)"/>.
@@ -119,6 +120,32 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Maximum cells materialized by a data-reader chunk or schema sample.</summary>
         public long MaxDataReaderBufferedCells { get; set; } = 1_000_000L;
+
+        /// <summary>
+        /// Maximum decoded characters charged during XML data-reader preparation or
+        /// streaming in one physical row, or across all buffered out-of-order rows.
+        /// Default: 32 Mi characters.
+        /// </summary>
+        /// <remarks>
+        /// Raw values, formula text, inline text, and resolved string values count
+        /// conservatively, including replaced cell records. Exceeding this limit throws
+        /// <see cref="InvalidDataException"/> and makes that range reader unusable until closed.
+        /// This is not a total memory limit: the framework XML parser can buffer an
+        /// individual CDATA or attribute node before these characters are charged.
+        /// Indexed UTF-8 and SDK worksheet-chunk
+        /// caches retain their existing limits; objects created by a custom converter
+        /// are not bounded by this option.
+        /// </remarks>
+        public long MaxXmlDataReaderBufferedCharacters {
+            get => _maxXmlDataReaderBufferedCharacters;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "XML data-reader character limit must be greater than zero.");
+                }
+
+                _maxXmlDataReaderBufferedCharacters = value;
+            }
+        }
 
         /// <summary>
         /// Maximum populated cell records accepted across one XLSB workbook. Default: 4,000,000.

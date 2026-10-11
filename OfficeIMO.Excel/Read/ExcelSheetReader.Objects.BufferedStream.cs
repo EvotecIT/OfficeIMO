@@ -56,10 +56,11 @@ namespace OfficeIMO.Excel {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
+            var worksheetRows = new WorksheetXmlRowSelector();
             int nextRowIndex = 1;
             while (reader.Read()) {
                 ct.ThrowIfCancellationRequested();
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") continue;
+                if (!worksheetRows.IsRowElement(reader)) continue;
                 int rowIndex = ParsePositiveIntAttribute(ReadXmlReferenceAttribute(reader).Text);
                 if (rowIndex <= 0) rowIndex = ResolveImplicitXmlRowIndex(reader, nextRowIndex, ct);
                 nextRowIndex = rowIndex + 1;
@@ -77,7 +78,7 @@ namespace OfficeIMO.Excel {
                 while (reader.Read()) {
                     if ((++visitedNodes & 1023) == 0) ct.ThrowIfCancellationRequested();
                     if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "row") break;
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") continue;
+                    if (!SpreadsheetXmlContent.IsDirectChildElement(reader, depth, "c")) continue;
                     int columnIndex = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
                     if (columnIndex < c1 || columnIndex > c2) {
                         SkipXmlElement(reader, "c");

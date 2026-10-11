@@ -146,14 +146,20 @@ public static partial class HtmlImageSourceResolver {
     }
 
     /// <summary>Resolves and normalizes allowed candidates up to the supplied parsing limit.</summary>
-    public static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) {
+    public static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates) =>
+        ResolveNormalizedSrcSet(rawSrcSet, baseUri, policy, maxCandidates, CancellationToken.None);
+
+    internal static string ResolveNormalizedSrcSet(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy, int? maxCandidates, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(rawSrcSet)) {
             return string.Empty;
         }
 
         var parts = new List<string>();
-        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(rawSrcSet, maxCandidates)) {
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Enumerate(rawSrcSet, maxCandidates, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
             string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.IsNullOrWhiteSpace(resolved)) {
                 parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor) ? resolved : resolved + " " + candidate.Descriptor);
             }

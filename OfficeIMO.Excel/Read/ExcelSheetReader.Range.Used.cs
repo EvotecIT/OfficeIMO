@@ -63,6 +63,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 using var reader = OpenWorksheetXmlReader(stream);
+                var worksheetRows = new WorksheetXmlRowSelector();
                 bool canCancel = ct.CanBeCanceled;
                 int nextRowIndex = 1;
                 while (reader.Read()) {
@@ -70,7 +71,7 @@ namespace OfficeIMO.Excel {
                         ct.ThrowIfCancellationRequested();
                     }
 
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    if (!worksheetRows.IsRowElement(reader)) {
                         continue;
                     }
 
@@ -98,7 +99,7 @@ namespace OfficeIMO.Excel {
                             break;
                         }
 
-                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                        if (!SpreadsheetXmlContent.IsDirectChildElement(reader, rowDepth, "c")) {
                             continue;
                         }
 

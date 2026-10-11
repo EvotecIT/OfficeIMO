@@ -111,9 +111,17 @@ public static partial class DbDataReaderArrowExtensions {
         ArrowReadOptions options,
         IReadOnlyList<Type>? columnTypes) {
         var columns = new ArrowColumnFactory[reader.FieldCount];
+        IDataReaderUtf8TextSource? utf8TextSource = reader as IDataReaderUtf8TextSource;
         for (int ordinal = 0; ordinal < columns.Length; ordinal++) {
             Type type = columnTypes?[ordinal] ?? reader.GetFieldType(ordinal);
-            columns[ordinal] = ArrowColumnFactory.Create(type, options);
+            IDataReaderUtf8TextSource? columnTextSource = utf8TextSource;
+            // An explicit string projection of a scalar still uses invariant
+            // GetValue conversion, rather than the provider's formatted text.
+            if (columnTypes != null && type == typeof(string) && columnTextSource != null &&
+                reader.GetFieldType(ordinal) != typeof(string)) {
+                columnTextSource = null;
+            }
+            columns[ordinal] = ArrowColumnFactory.Create(type, options, columnTextSource);
         }
         return columns;
     }
@@ -212,7 +220,10 @@ public static partial class DbDataReaderArrowExtensions {
             IDataReaderFastValueSource? fastValueSource) =>
             _createFastBuilder?.Invoke(capacity, fastValueSource) ?? _createBuilder(capacity);
 
-        internal static ArrowColumnFactory Create(Type sourceType, ArrowReadOptions options) {
+        internal static ArrowColumnFactory Create(
+            Type sourceType,
+            ArrowReadOptions options,
+            IDataReaderUtf8TextSource? utf8TextSource) {
             Type type = Nullable.GetUnderlyingType(sourceType) ?? sourceType;
             if (type == typeof(bool)) return Primitive<BooleanArray.Builder, BooleanArray, bool>(
                 new BooleanType(), static () => new BooleanArray.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetBoolean(i));
@@ -362,7 +373,16 @@ public static partial class DbDataReaderArrowExtensions {
                     return new ArrowColumnBuilder(
                         () => builder.AppendNull(),
                         (reader, ordinal) => {
-                            if (type == typeof(string) && fastValueSource != null) {
+                            if (type == typeof(string) && utf8TextSource != null &&
+                                utf8TextSource.TryGetUtf8Text(ordinal, out ReadOnlySpan<byte> text)) {
+                                // Append copies the borrowed bytes before another field or row
+                                // can reuse the reader's buffer; the built batch owns its values.
+                                if (reader.IsDBNull(ordinal)) {
+                                    builder.AppendNull();
+                                } else {
+                                    builder.Append(text);
+                                }
+                            } else if (type == typeof(string) && fastValueSource != null) {
                                 if (fastValueSource.TryGetUtf8Value(ordinal, out ArraySegment<byte> value)) {
                                     builder.Append(value.Array!.AsSpan(value.Offset, value.Count));
                                 } else if (reader.IsDBNull(ordinal)) {

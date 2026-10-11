@@ -11,9 +11,7 @@ using V = DocumentFormat.OpenXml.Vml;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Contains public methods for editing paragraphs.
-    /// </summary>
+    // Contains public methods for editing paragraphs.
     public partial class WordParagraph {
         /// <summary>
         /// Add image from file with ability to provide width and height of the image
