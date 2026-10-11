@@ -408,7 +408,7 @@
     while (defs.firstChild) defs.removeChild(defs.firstChild);
     gradientSeq = 0;
     if (prev && b < 1) drawEdges(prev, 1e9, 1 - b, false, t);
-    drawEdges(state, local, 1, true, t);
+    drawEdges(state, local, b, true, t);
     if (state.focus) {
       const p = pos[state.focus];
       const ringR = nodeEls[state.focus].r * (1.9 + .25 * Math.sin(local / 380));

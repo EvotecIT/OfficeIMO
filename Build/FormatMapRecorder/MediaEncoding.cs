@@ -16,33 +16,20 @@ internal static class MediaEncoding {
         if (missing.Length > 0) throw new ArgumentException("FFmpeg is missing required video encoders: " + string.Join(", ", missing));
     }
 
-    internal static async Task EncodeAsync(Cut cut, string output, string frames, int count, string ffmpeg) {
-        // A unique sibling directory keeps partial artifacts away from publishable names and on the same volume.
-        string staging = Path.Combine(output, ".format-map-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(staging);
-        var artifacts = new List<string>();
-        try {
+    internal static async Task EncodeAsync(Cut cut, string output, string frames, string ffmpeg) {
+        var formats = cut.Formats.Select(f => Settings(f.ToLowerInvariant(), cut)).DistinctBy(f => f.Extension).ToArray();
+        string poster = cut.Name + ".png";
+        string[] names = formats.Select(f => cut.Name + f.Extension).Append(poster).ToArray();
+        await MediaArtifacts.PublishAsync(output, names, async staging => {
             string[] input = ["-framerate", cut.Fps.ToString(CultureInfo.InvariantCulture), "-i", Path.Combine(frames, "%06d.jpg")];
-            foreach (string format in cut.Formats.Select(f => f.ToLowerInvariant()).Distinct()) {
-                (string extension, string[] encode) = Settings(format, cut);
+            foreach ((string extension, string[] encode) in formats) {
                 string name = cut.Name + extension;
                 await RunAsync(ffmpeg, ["-y", "-hide_banner", "-loglevel", "error", .. input, "-an", .. encode, Path.Combine(staging, name)]).ConfigureAwait(false);
-                artifacts.Add(name);
             }
-            int posterFrame = Math.Clamp((int)(cut.PosterMs / 1000.0 * cut.Fps), 0, count - 1);
-            string poster = cut.Name + ".png";
+            int posterFrame = (int)(cut.PosterMs / 1000.0 * cut.Fps);
             await RunAsync(ffmpeg, ["-y", "-hide_banner", "-loglevel", "error", "-i", Path.Combine(frames, $"{posterFrame:D6}.jpg"), "-c:v", "png", Path.Combine(staging, poster)]).ConfigureAwait(false);
-            artifacts.Add(poster);
-            // No final output is touched until every encoder and the poster have succeeded.
-            foreach (string name in artifacts) {
-                string target = Path.Combine(output, name);
-                File.Move(Path.Combine(staging, name), target, overwrite: true);
-                Console.WriteLine($"  {name,-38} {new FileInfo(target).Length / 1024.0 / 1024.0,7:0.00} MB");
-            }
-            Directory.Delete(frames, recursive: true);
-        } finally {
-            Directory.Delete(staging, recursive: true);
-        }
+        }).ConfigureAwait(false);
+        Directory.Delete(frames, recursive: true);
     }
 
     /// <summary>File extension and explicit FFmpeg encoder arguments for each supported format.</summary>

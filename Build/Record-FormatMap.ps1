@@ -8,7 +8,8 @@
       2. Renders every cut in Build/FormatMapMedia/cuts.json frame by frame and encodes it with ffmpeg.
     The diagram (Build/FormatMapMedia/index.html) reads the generated data directly, so no website build is needed.
     Clips and poster frames land in Artefacts/FormatMapVideos (not tracked). Video encoding needs ffmpeg with the selected codecs;
-    PNG stills need only the shared browser. Encoder availability is checked before rendering. Failed encodes preserve existing clips and posters.
+    PNG stills need only the shared browser. Encoder availability is checked before rendering. Rendering or encoding failures preserve existing clips, posters and stills.
+    Custom cuts must set posterMs within their duration; poster timestamps are checked before frame capture.
 
 .PARAMETER Cut
     Only these cuts (names from cuts.json). Default: all.

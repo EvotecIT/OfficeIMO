@@ -164,8 +164,8 @@ internal static class Program {
             "16x9" => (16, 9), "1x1" => (1, 1), "4x5" => (4, 5), "9x16" => (9, 16),
             _ => throw new ArgumentException($"Invalid ratio for cut '{cut.Name}': use 16x9, 1x1, 4x5 or 9x16.")
         };
-        if (cut.Width < 2 || cut.Height < 2 || (long)cut.Width * height != (long)cut.Height * width || cut.Scale < 1 || cut.Width % cut.Scale != 0 || cut.Height % cut.Scale != 0 || cut.Fps < 10 || cut.Fps > 120 || cut.GifWidth < 2 || cut.GifFps < 1 || cut.GifFps > 120 || !double.IsFinite(cut.Speed) || cut.Speed < .4 || cut.Speed > 3)
-            throw new ArgumentException($"Cut '{cut.Name}' has invalid dimensions, scale, frame rate or speed.");
+        if (cut.Width < 2 || cut.Height < 2 || (long)cut.Width * height != (long)cut.Height * width || cut.Scale < 1 || cut.Width % cut.Scale != 0 || cut.Height % cut.Scale != 0 || cut.Fps < 10 || cut.Fps > 120 || cut.GifWidth < 2 || cut.GifFps < 1 || cut.GifFps > 120 || cut.PosterMs < 0 || !double.IsFinite(cut.Speed) || cut.Speed < .4 || cut.Speed > 3)
+            throw new ArgumentException($"Cut '{cut.Name}' has invalid dimensions, scale, frame rate, speed or poster timestamp.");
         if (cut.Formats is not { Length: > 0 }) throw new ArgumentException($"Cut '{cut.Name}' needs an output format.");
         foreach (string format in cut.Formats) {
             if (string.IsNullOrWhiteSpace(format)) throw new ArgumentException($"Cut '{cut.Name}' has an empty output format.");
@@ -201,16 +201,18 @@ internal static class Program {
             string[] skipped = await page.EvaluateAsync<string[]>("() => window.imoMedia.skipped").ConfigureAwait(false);
             if (skipped.Length > 0) throw new InvalidOperationException($"The page has nothing to show for: {string.Join(", ", skipped)}. Update the scenes of cut '{cut.Name}' in Build/FormatMapMedia/cuts.json.");
             double duration = await page.EvaluateAsync<double>("() => window.imoMedia.duration").ConfigureAwait(false);
+            if (stills.Length == 0 && cut.PosterMs > duration) throw new ArgumentException($"Cut '{cut.Name}' lasts {duration.ToString("R", CultureInfo.InvariantCulture)} ms; posterMs must not exceed its duration.");
             if (stills.Length > 0) {
                 if (stills.Any(at => at > duration)) throw new ArgumentException($"Cut '{cut.Name}' lasts {duration.ToString("R", CultureInfo.InvariantCulture)} ms; --still timestamps must not exceed its duration.");
 
-                foreach (double at in stills) {
-                    await page.EvaluateAsync("(t) => window.imoMedia.render(t)", at).ConfigureAwait(false);
-                    string still = Path.Combine(output, $"{cut.Name}-t{at.ToString("R", CultureInfo.InvariantCulture)}.png");
-
-                    await page.ScreenshotAsync(new() { Type = ScreenshotType.Png, Path = still }).ConfigureAwait(false);
-                    Report(still);
-                }
+                string[] names = stills.Select(at => $"{cut.Name}-t{at.ToString("R", CultureInfo.InvariantCulture)}.png").ToArray();
+                await MediaArtifacts.PublishAsync(output, names, async staging => {
+                    for (int i = 0; i < stills.Length; i++) {
+                        await page.EvaluateAsync("(t) => window.imoMedia.render(t)", stills[i]).ConfigureAwait(false);
+                        await page.ScreenshotAsync(new() { Type = ScreenshotType.Png, Path = Path.Combine(staging, names[i]) }).ConfigureAwait(false);
+                    }
+                    if (problems.Count > 0) throw new InvalidOperationException("The media page raised an error while capturing stills: " + problems[0]);
+                }).ConfigureAwait(false);
                 Console.WriteLine($"  (duration {duration / 1000.0:0.0}s)");
                 Directory.Delete(frames, recursive: true);
                 return;
@@ -224,11 +226,9 @@ internal static class Program {
             }
             if (problems.Count > 0) throw new InvalidOperationException("The media page raised an error while rendering: " + problems[0]);
         }
-        await MediaEncoding.EncodeAsync(cut, output, frames, count, ffmpeg).ConfigureAwait(false);
+        await MediaEncoding.EncodeAsync(cut, output, frames, ffmpeg).ConfigureAwait(false);
         Console.WriteLine($"  rendered in {timer.Elapsed.TotalSeconds:0}s");
     }
-
-    private static void Report(string path) => Console.WriteLine($"  {Path.GetFileName(path),-38} {new FileInfo(path).Length / 1024.0 / 1024.0,7:0.00} MB");
 
     private static string? Option(string[] args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.OrdinalIgnoreCase))?[(name.Length + 1)..];
