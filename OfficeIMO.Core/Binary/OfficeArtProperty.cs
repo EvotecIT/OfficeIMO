@@ -82,6 +82,10 @@ public sealed class OfficeArtProperty {
     /// <summary>Returns a defensive copy of the complex-data payload, when present.</summary>
     public byte[]? CopyComplexData() => _complexData == null ? null : (byte[])_complexData.Clone();
 
+    // Core decoders borrow the owned immutable payload. Inherited properties
+    // can serve many shapes without cloning rejected or bounded arrays.
+    internal OfficeArtComplexData ComplexData => new(_complexData);
+
     // The raw length of a native array may exclude its header. Keep completeness
     // checks on the same length contract as the property-table reader.
     internal bool HasCompleteComplexData => IsComplex && AvailableComplexDataLength.HasValue
@@ -171,4 +175,13 @@ public sealed class OfficeArtProperty {
         >= 0x0380 and <= 0x03BF => "GroupShape",
         _ => "Unknown"
     };
+}
+
+// A read-only view over OfficeArtProperty's defensive copy. Keep the view
+// available on legacy targets without adding a memory-package dependency.
+internal readonly struct OfficeArtComplexData {
+    private readonly byte[]? _bytes;
+    internal OfficeArtComplexData(byte[]? bytes) { _bytes = bytes; }
+    internal int Length => _bytes?.Length ?? 0;
+    internal byte this[int index] => _bytes![index];
 }
