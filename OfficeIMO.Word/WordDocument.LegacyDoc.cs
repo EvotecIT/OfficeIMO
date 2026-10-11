@@ -1350,19 +1350,19 @@ namespace OfficeIMO.Word {
         private static bool TryMapVerticalCharacterAlignment(byte alignment, out VerticalTextAlignmentValues verticalCharacterAlignment) {
             switch (alignment) {
                 case 0:
-                    verticalCharacterAlignment = VerticalTextAlignmentValues.Auto;
-                    return true;
-                case 1:
-                    verticalCharacterAlignment = VerticalTextAlignmentValues.Baseline;
-                    return true;
-                case 2:
                     verticalCharacterAlignment = VerticalTextAlignmentValues.Top;
                     return true;
-                case 3:
+                case 1:
                     verticalCharacterAlignment = VerticalTextAlignmentValues.Center;
                     return true;
-                case 4:
+                case 2:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Baseline;
+                    return true;
+                case 3:
                     verticalCharacterAlignment = VerticalTextAlignmentValues.Bottom;
+                    return true;
+                case 4:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Auto;
                     return true;
                 default:
                     verticalCharacterAlignment = VerticalTextAlignmentValues.Auto;
