@@ -284,7 +284,7 @@ internal static partial class PdfWriter {
                 }
                 double firstBodyHeight = GetRichLineFrameFitHeight(lines[lineIndex], lineHeights[lineIndex], floatingLineGaps?[lineIndex] ?? 0D);
                 if (lineIndex == lines.Count - 1) firstBodyHeight += GetClosingTextPadding(spacingAfter);
-                firstBodyHeight += Math.Max(0D, yStart - currentOpts.MarginBottom - GetMeasuredContinuationFrameHeight());
+                firstBodyHeight += GetRunningBodyContinuationReservation();
                 NewPage(forcePhysicalPage: SkipColumnsForParagraphOverflow(), firstBodyHeight: firstBodyHeight);
                 frameStart = GetCurrentFramePageStartY();
                 textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);

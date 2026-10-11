@@ -134,22 +134,35 @@ internal static partial class PdfWriter {
                 int start = sequence.Index + (depth == activeBlockSequences.Count - 1 ? 0 : 1);
                 if (depth == activeBlockSequences.Count - 1 && start < sequence.Blocks.Count &&
                     sequence.Blocks[start] is PageBreakBlock) start++;
-                double? height = FirstVisual(PendingBlocks(sequence.Blocks, start));
-                if (height.HasValue) return height.Value;
+                var frame = GetRunningBodyContinuationFrame(source, depth);
+                double? height = FirstVisual(PendingBlocks(sequence.Blocks, start), frame.X, frame.Width,
+                    GetClosingContainerPadding(depth));
+                if (height.HasValue) return height.Value <= .001D ? height.Value : height.Value + frame.ReservedHeight;
                 // Do not look through the end of an explicit page/section.
                 if (depth > 0 && activeBlockSequences[depth - 1].Blocks[activeBlockSequences[depth - 1].Index] is PageBlock) break;
             }
             return 0D;
 
-            double? FirstVisual(IEnumerable<IPdfBlock> blocks) {
-                foreach (IPdfBlock block in ExpandTransparentMeasurementBlocks(blocks)) {
+            double? FirstVisual(IEnumerable<IPdfBlock> blocks, double frameX, double frameWidth, double closingPadding) {
+                using var pending = ExpandTransparentMeasurementBlocks(blocks).GetEnumerator();
+                while (pending.MoveNext()) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    IPdfBlock block = pending.Current;
                     if (block is BookmarkBlock or ColumnBreakBlock) continue;
                     if (block is PageBreakBlock) return 0D;
-                    if (block is PageBlock page) return FirstVisual(page.Blocks) ?? 0D;
-                    double height = MeasureNextBlockFirstVisualHeight(block, source.MarginLeft, width, source.DefaultFontSize,
+                    if (block is PageBlock page) return FirstVisual(page.Blocks, frameX, frameWidth, closingPadding) ?? 0D;
+                    double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
                         allowTableFragments: true, suppressParagraphSpacingBefore: true);
                     if (height <= .001D && block is ContainerBlock or SpacerBlock) continue;
+                    if (closingPadding > 0D) {
+                        bool closesSequence = true;
+                        while (pending.MoveNext()) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            if (!IsNonVisualFlowMarker(pending.Current)) { closesSequence = false; break; }
+                        }
+                        if (closesSequence) height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
+                            allowTableFragments: true, suppressParagraphSpacingBefore: true, closingPadding: closingPadding);
+                    }
                     return height;
                 }
                 return null;

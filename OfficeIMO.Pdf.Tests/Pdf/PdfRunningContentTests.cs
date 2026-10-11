@@ -7,6 +7,54 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
     [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public void ImportedHeaderFitReservesActiveContainerPaddingAcrossExplicitBreaks(bool breakEndsPanel, bool repeatDecoration) {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT")
+            .Content(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), 18)
+            .FirstPageContent(content => content.Table(new[] { new[] { "FIRST HEADER" } }, style: TableStyle(24)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Panel(panel => {
+            panel.Paragraph(paragraph => paragraph.Text("FIRST")).PageBreak();
+            if (!breakEndsPanel) panel.Paragraph(paragraph => paragraph.FontSize(20).Text("BODY"));
+        }, new PdfPanelStyle { PaddingX = 12, PaddingY = 20, RepeatFragmentDecoration = repeatDecoration, SpacingBefore = 0, SpacingAfter = 0 });
+        if (breakEndsPanel) document.Paragraph(paragraph => paragraph.FontSize(20).Text("BODY"));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("FIRST", pdf.GetPage(1).Text);
+        Assert.Contains("TEXT", pdf.GetPage(2).Text);
+        Assert.Contains("BODY", pdf.GetPage(2).Text);
+        Assert.DoesNotContain("TALL", pdf.GetPage(2).Text);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImportedHeaderFitReservesActiveContainerBottomInsetForContinuationLines(bool nested) {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("TEXT").Content(content =>
+            content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        var style = new PdfPanelStyle { PaddingX = 12, PaddingY = 0, FragmentBottomInset = nested ? 10 : 20, SpacingBefore = 0, SpacingAfter = 0 };
+        document.Panel(panel => {
+            if (nested) panel.Panel(inner => inner.Paragraph(paragraph =>
+                paragraph.Text("SMALL").LineBreak().FontSize(20).Text("LARGE")), style);
+            else panel.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(20).Text("LARGE"));
+        }, style);
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("TALL", pdf.GetPage(1).Text);
+        Assert.Contains("SMALL", pdf.GetPage(1).Text);
+        Assert.Contains("TEXT", pdf.GetPage(2).Text);
+        Assert.Contains("LARGE", pdf.GetPage(2).Text);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
