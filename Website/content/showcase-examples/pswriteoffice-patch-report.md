@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Patch compliance report from PowerShell"
-description: "Turn a list of PowerShell objects into a Word report with a headline figure, a conditionally highlighted table, a chart, numbered steps and a numbered footer, then export a PDF."
+description: "Turn patch status objects into an editable Word report with compliance figures, highlighted exceptions, a chart and follow-up steps, then export a PDF."
 layout: showcase-example
 meta.showcase_id: pswriteoffice-patch-report
 meta.seo_title: "Patch compliance report from PowerShell | OfficeIMO"
