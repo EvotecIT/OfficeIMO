@@ -6,6 +6,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtCustomPath_UnderstatedArraysDoNotSilentlyDiscardVerticesOrCommands(bool segments) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) },
+            new ushort[] { 0x4000, 0x0001, 0x8000 });
+        int index = segments ? 1 : 0;
+        byte[] original = properties[index].CopyComplexData()!;
+        byte[] bytes = original.Concat(segments ? new byte[] { 0, 0xC0 } : new byte[8]).ToArray();
+        properties[index] = new OfficeArtProperty(index, segments ? (ushort)0x8146 : (ushort)0x8145,
+            (uint)bytes.Length, bytes.Length, complexData: bytes);
+        int charged = 0;
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, count => charged += count,
+            default, out var result, out var failure));
+        Assert.Null(result); Assert.Equal(OfficeArtCustomPathFailure.InvalidData, failure);
+        Assert.Equal(0, charged);
+    }
+
     [Fact]
     public void OfficeArtBooleanInheritance_CustomPathPaintFlagsKeepIndependentBitsAndAllowExplicitClearing() {
         var properties = CustomPath(new[] { (0, 0), (21600, 21600) });

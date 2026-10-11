@@ -115,7 +115,7 @@ internal static class OfficeArtCustomPathProjector {
         stride = isPoints && elementSize == 0xFFF0 ? 4 : elementSize;
         count = U16(bytes, 0);
         if (count > U16(bytes, 2) || (isPoints ? stride is not (4 or 8) : stride != 2)
-            || 6L + (long)count * stride > bytes.Length) return false;
+            || 6L + (long)count * stride != bytes.Length) return false;
         data = bytes; return true;
     }
 
