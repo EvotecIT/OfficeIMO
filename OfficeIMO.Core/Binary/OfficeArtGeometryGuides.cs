@@ -64,6 +64,12 @@ internal static class OfficeArtGeometryGuides {
     private static bool TryCalculate(int kind, int first, int second, int third, out int value) {
         value = 0;
         if (kind == 1) return Product(first, second, third, out value);
+        if (kind == 7) {
+            ulong magnitude = MagnitudeFloor(MagnitudeSquared(first, second, third));
+            if (magnitude > int.MaxValue) return false;
+            value = (int)magnitude; return true;
+        }
+        if (kind is 11 or 12) return NormalizedProduct(first, second, third, kind == 12, out value);
         double result = kind switch {
             0 => (long)first + second - third,
             2 => ((long)first + second) / 2,
@@ -71,12 +77,9 @@ internal static class OfficeArtGeometryGuides {
             4 => Math.Min(first, second),
             5 => Math.Max(first, second),
             6 => first > 0 ? second : third,
-            7 => Math.Sqrt((double)first * first + (double)second * second + (double)third * third),
             8 => first == 0 && second == 0 ? double.NaN : Math.Atan2(second, first) * (180D * 65536 / Math.PI),
             9 => first * Sine(second),
             10 => first * Cosine(second),
-            11 => first * (double)second / Math.Sqrt((double)second * second + (double)third * third),
-            12 => first * (double)third / Math.Sqrt((double)second * second + (double)third * third),
             13 => Math.Sqrt(first),
             14 => (long)first + (long)second * 65536 + (long)third * 65536,
             15 => third * Math.Sqrt(1D - (double)first * first / ((double)second * second)),
@@ -88,6 +91,33 @@ internal static class OfficeArtGeometryGuides {
         result = Math.Floor(result);
         if (double.IsNaN(result) || result < int.MinValue || result > int.MaxValue) return false;
         value = (int)result; return true;
+    }
+
+    private static ulong MagnitudeSquared(int first, int second, int third) =>
+        (ulong)((long)first * first) + (ulong)((long)second * second) + (ulong)((long)third * third);
+
+    private static bool NormalizedProduct(int first, int second, int third, bool sine, out int value) {
+        value = 0;
+        ulong squared = MagnitudeSquared(0, second, third), root = MagnitudeFloor(squared);
+        if (squared == 0) return false;
+        long product = (long)first * (sine ? third : second);
+        double result;
+        if (root * root == squared) {
+            long quotient = product / (long)root;
+            if (product % (long)root < 0) quotient--;
+            result = quotient;
+        } else result = Math.Floor(product / Math.Sqrt(squared));
+        if (result < int.MinValue || result > int.MaxValue) return false;
+        value = (int)result; return true;
+    }
+
+    private static ulong MagnitudeFloor(ulong squared) {
+        // Three signed-int squares fit in UInt64. Verify the floating estimate
+        // against the exact sum so neither side of an integer boundary is lost.
+        ulong root = (ulong)Math.Sqrt(squared);
+        while (root != 0 && root > squared / root) root--;
+        while (root + 1 <= squared / (root + 1)) root++;
+        return root;
     }
 
     private static bool Product(int first, int second, int third, out int value) {

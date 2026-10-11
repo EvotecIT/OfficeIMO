@@ -6,6 +6,33 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(11, -2147482428, 825954780, 1982291472, -825954780)]
+    [InlineData(12, -2147482428, 825954780, 1982291472, -1982291472)]
+    [InlineData(11, 2147482428, 825954780, 1982291472, 825954780)]
+    public void OfficeArtGeometryGuides_NormalizedProductsKeepIntegralSignedResults(ushort operation, int first, int second, int third, int expected) {
+        var properties = Guides(((ushort)(operation | 0xE000), (ushort)0x0147, (ushort)0x0148, (ushort)0x0149));
+        properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
+        properties.Add(new OfficeArtProperty(3, 0x0149, unchecked((uint)third)));
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.Equal(expected, Assert.Single(values));
+    }
+
+    [Theory]
+    [InlineData(825954780, 1982291472, 0, 2147482428)]
+    [InlineData(-825954780, 0, 1982291472, 2147482428)]
+    [InlineData(2147483646, 1, 0, 2147483646)]
+    [InlineData(2147483646, 65535, 0, 2147483646)]
+    public void OfficeArtGeometryGuides_ModulusKeepsExactIntegralAndAdjacentFractionalFloors(int first, int second, int third, int expected) {
+        var properties = Guides(((ushort)0xE007, (ushort)0x0147, (ushort)0x0148, (ushort)0x0149));
+        properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
+        properties.Add(new OfficeArtProperty(3, 0x0149, unchecked((uint)third)));
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.Equal(expected, Assert.Single(values));
+    }
+
     [Fact]
     public void OfficeArtGeometryGuides_MalformedEffectiveAdjustmentDoesNotReviveAnOlderValue() {
         var properties = new[] { new OfficeArtProperty(0, 0x0147, 37),
