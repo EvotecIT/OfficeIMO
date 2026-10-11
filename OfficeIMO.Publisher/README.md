@@ -80,7 +80,7 @@ than stored native break positions. A null range means placement is unresolved;
 
 Frame `X`, `Y`, `Width` and `Height` describe the unrotated rectangle in points.
 `PageTransform` maps frame-local points into the page, including the frame's own
-rotation/reflection and enclosing group transforms. Use it when placing an
+rotation/reflection and enclosing group transforms, including non-uniform scale. Use it when placing an
 annotation or inspecting the visible frame corners.
 
 ```csharp

@@ -42,7 +42,7 @@ internal sealed class PublisherEscherReader {
             if (record.Kind == 0xF003 && child.Kind == 0xF004) {
                 PublisherEscherShape? shape = ReadShape(child, childSpace);
                 if (shape != null && shape.IsGroup) {
-                    childSpace = new PublisherGroupSpace(shape, space);
+                    childSpace = new PublisherGroupSpace(shape);
                     if (!shape.Bounds.HasValue && (shape.Transform.RotationDegrees.GetValueOrDefault() != 0
                         || shape.Transform.FlipHorizontal || shape.Transform.FlipVertical))
                         _context.Add("PUB_GROUP_TRANSFORM_UNRESOLVED", "A transformed group has no resolved anchor. Its inherited transform remains unavailable.",
@@ -71,11 +71,12 @@ internal sealed class PublisherEscherReader {
             Dictionary<ushort, uint> values = ClientValues(client);
             if (!values.TryGetValue(0x6801, out id)) return null;
         }
-        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties) {
-            GroupTransform = space?.Transform ?? OfficeTransform.Identity,
+        PublisherEscherRecord? anchor = Single(children, 0xF010), childAnchor = Single(children, 0xF00F), coordinates = Single(children, 0xF009);
+        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties, relativeToParent: anchor == null && childAnchor != null) {
+            GroupTransform = (anchor != null ? space?.ClientTransform : space?.Transform) ?? OfficeTransform.Identity,
+            LayoutTransform = (anchor != null ? space?.ClientLayoutTransform : space?.LayoutTransform) ?? OfficeTransform.Identity,
             HiddenByGroup = space?.Hidden ?? false
         };
-        PublisherEscherRecord? anchor = Single(children, 0xF010), childAnchor = Single(children, 0xF00F), coordinates = Single(children, 0xF009);
         if (anchor != null) {
             Dictionary<ushort, uint> values = ClientValues(anchor);
             if (values.TryGetValue(0x2001, out uint x1) && values.TryGetValue(0x2002, out uint y1)
@@ -210,9 +211,9 @@ internal sealed class PublisherEscherData {
 }
 
 internal sealed class PublisherEscherShape {
-    internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties) {
+    internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties, bool relativeToParent = false) {
         Id = id; Type = type; Flags = flags; Properties = properties;
-        Style = OfficeArtShapeStyle.Decode(properties); Transform = OfficeArtShapeTransform.Decode(flags, properties);
+        Style = OfficeArtShapeStyle.Decode(properties); Transform = OfficeArtShapeTransform.Decode(flags, properties, relativeToParent);
     }
     internal uint Id { get; }
     internal int Type { get; }
@@ -222,6 +223,7 @@ internal sealed class PublisherEscherShape {
     internal OfficeArtShapeStyle Style { get; }
     internal OfficeArtShapeTransform Transform { get; }
     internal OfficeTransform GroupTransform { get; set; } = OfficeTransform.Identity;
+    internal OfficeTransform LayoutTransform { get; set; } = OfficeTransform.Identity;
     internal bool HiddenByGroup { get; set; }
     internal bool Hidden => HiddenByGroup || Style.Hidden == true;
     internal PublisherNativeRectangle? Bounds { get; set; }
