@@ -313,7 +313,7 @@ internal static partial class PdfWriter {
         }
 
         if (!TryDistributeImportedPercentageColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
-                autoFit?.PaddingWidths, tableInnerWidth) &&
+                autoFitWeights, autoFit?.PaddingWidths, tableInnerWidth) &&
             !TryDistributeImportedPreferredColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
             autoFitWeights, autoFit?.PaddingWidths, remainingWidth))
             DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);

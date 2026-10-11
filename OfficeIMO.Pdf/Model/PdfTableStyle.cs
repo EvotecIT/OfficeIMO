@@ -88,9 +88,9 @@ public partial class PdfTableStyle {
     /// <summary>Authored automatic-column preferences remain distinct from their measured content minimums.</summary>
     internal System.Collections.Generic.List<double?>? AutoFitColumnPreferredWidthPoints { get; set; }
     /// <summary>Source cells whose own absolute preference permits wrapped content instead of an unwrapped span preference.</summary>
-    internal System.Collections.Generic.HashSet<(int Row, int Column)>? AutoFitCellsWithAbsolutePreferences { get; set; }
-    /// <summary>Original fractions for an imported automatic frame whose cells all specify percentage widths.</summary>
-    internal System.Collections.Generic.List<double>? ImportedAutomaticColumnWidthFractions { get; set; }
+    internal System.Collections.Generic.Dictionary<(int Row, int Column), double>? AutoFitCellPreferredWidthPoints { get; set; }
+    /// <summary>Original imported percentage preferences; null columns share the remaining width.</summary>
+    internal System.Collections.Generic.List<double?>? ImportedColumnWidthFractions { get; set; }
     /// <summary>Optional floating placement. A positioned table reserves space for surrounding text without advancing the flow cursor.</summary>
     public PdfTablePosition? Position { get; set; }
     /// <summary>Stroke width, in points, for table borders and cell grid lines.</summary>
@@ -742,8 +742,8 @@ public partial class PdfTableStyle {
             RowAllowBreakAcrossPages = RowAllowBreakAcrossPages
         };
         if (BodyColumnFills != null) clone.BodyColumnFills = new System.Collections.Generic.List<PdfColor?>(BodyColumnFills);
-        if (AutoFitCellsWithAbsolutePreferences != null)
-            clone.AutoFitCellsWithAbsolutePreferences = new System.Collections.Generic.HashSet<(int Row, int Column)>(AutoFitCellsWithAbsolutePreferences);
+        if (AutoFitCellPreferredWidthPoints != null)
+            clone.AutoFitCellPreferredWidthPoints = new System.Collections.Generic.Dictionary<(int Row, int Column), double>(AutoFitCellPreferredWidthPoints);
         if (CellFills != null) clone.CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>(CellFills);
         if (CellDataBars != null) {
             clone.CellDataBars = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellDataBar>();
@@ -776,7 +776,7 @@ public partial class PdfTableStyle {
         if (ColumnWidthPoints != null) clone.ColumnWidthPoints = new System.Collections.Generic.List<double?>(ColumnWidthPoints);
         if (ColumnMinWidthPoints != null) clone.ColumnMinWidthPoints = new System.Collections.Generic.List<double?>(ColumnMinWidthPoints);
         if (AutoFitColumnPreferredWidthPoints != null) clone.AutoFitColumnPreferredWidthPoints = new System.Collections.Generic.List<double?>(AutoFitColumnPreferredWidthPoints);
-        if (ImportedAutomaticColumnWidthFractions != null) clone.ImportedAutomaticColumnWidthFractions = new System.Collections.Generic.List<double>(ImportedAutomaticColumnWidthFractions);
+        if (ImportedColumnWidthFractions != null) clone.ImportedColumnWidthFractions = new System.Collections.Generic.List<double?>(ImportedColumnWidthFractions);
         if (ColumnMaxWidthPoints != null) clone.ColumnMaxWidthPoints = new System.Collections.Generic.List<double?>(ColumnMaxWidthPoints);
         if (ColumnWidthWeights != null) clone.ColumnWidthWeights = new System.Collections.Generic.List<double>(ColumnWidthWeights);
         return clone;

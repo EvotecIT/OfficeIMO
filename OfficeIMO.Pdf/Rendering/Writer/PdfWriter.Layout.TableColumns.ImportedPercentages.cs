@@ -5,40 +5,73 @@ internal static partial class PdfWriter {
     private static bool TryResolveImportedPercentageFrameWidth(PdfTableStyle style, double[]? preferredWidths,
         double[]? minimumWidths, int columns, double gap, out double width) {
         width = 0D;
-        var fractions = style.ImportedAutomaticColumnWidthFractions;
-        if (style.PreferredWidth.HasValue || fractions == null || fractions.Count != columns) return false;
-        double minimumTotal = 0D;
+        var fractions = style.ImportedColumnWidthFractions;
+        if (!style.AutoFitUnspecifiedWidthToContent || style.PreferredWidth.HasValue ||
+            fractions == null || fractions.Count != columns) return false;
+        double minimumTotal = 0D, remainingPreference = 0D, preferredTotal = 0D, fractionTotal = 0D;
+        bool hasRemainingColumns = false;
         for (int column = 0; column < columns; column++) {
-            double fraction = fractions[column];
-            if (fraction <= 0D || double.IsNaN(fraction) || double.IsInfinity(fraction))
-                throw new ArgumentException("Imported percentage column widths must be positive finite values.");
             double minimum = minimumWidths != null && column < minimumWidths.Length ? minimumWidths[column] : 0D;
             minimum = Math.Max(minimum, GetOptionalColumnWidth(style.ColumnMinWidthPoints, column,
                 "Table minimum column widths must be positive finite values.") ?? 0D);
-            double preferred = preferredWidths != null && column < preferredWidths.Length ? preferredWidths[column] : 0D;
+            double preferred = preferredWidths != null && column < preferredWidths.Length ? preferredWidths[column] :
+                GetOptionalColumnWidth(style.AutoFitColumnPreferredWidthPoints, column,
+                    "Table preferred column widths must be positive finite values.") ?? 0D;
             minimumTotal += minimum;
+            preferredTotal += preferred;
+            if (!fractions[column].HasValue) {
+                hasRemainingColumns = true;
+                remainingPreference += Math.Max(preferred, minimum);
+                continue;
+            }
+            double fraction = fractions[column]!.Value;
+            if (fraction <= 0D || double.IsNaN(fraction) || double.IsInfinity(fraction))
+                throw new ArgumentException("Imported percentage column widths must be positive finite values.");
+            fractionTotal += fraction;
             width = Math.Max(width, Math.Max(preferred, minimum) / fraction);
         }
+        if (hasRemainingColumns)
+            width = fractionTotal < 1D ? Math.Max(width, remainingPreference / (1D - fractionTotal)) : double.MaxValue;
+        // Absolute preferences from other rows still provide the minimum
+        // preferred extent of a fixed automatic table, even on percentage columns.
+        if (!style.AutoFitColumns) width = Math.Max(width, preferredTotal);
         width = Math.Max(width, minimumTotal) + Math.Max(0, columns - 1) * gap;
+        // Fixed automatic frames retain source twips. A fractional frame
+        // below that boundary can split a word that fits in the source cell.
+        if (!style.AutoFitColumns && width < double.MaxValue / 20D)
+            width = Math.Ceiling(width * 20D - 1e-9D) / 20D;
         return width > .001D;
     }
 
     /// <summary>Overcommitted imported percentages reserve later cell minima while consuming width in column order.</summary>
     private static bool TryDistributeImportedPercentageColumns(PdfTableStyle style, double[] widths, bool[] fixedColumns,
-        double?[] minimums, double?[] maximums, double[]? paddingWidths, double available) {
-        var fractions = style.ImportedAutomaticColumnWidthFractions;
+        double?[] minimums, double?[] maximums, double[]? preferences, double[]? paddingWidths, double available) {
+        var fractions = style.ImportedColumnWidthFractions;
         if (fractions == null || fractions.Count != widths.Length ||
             fixedColumns.Any(value => value) || maximums.Any(value => value.HasValue)) return false;
         if (TryCompressImportedColumnMinimums(style, widths, minimums, paddingWidths, available)) return true;
-        if (fractions.Sum() <= 1D) return false;
+        bool hasRemainingColumns = fractions.Any(value => !value.HasValue);
+        double fractionTotal = fractions.Sum(value => value ?? 0D);
+        if (!hasRemainingColumns && fractionTotal <= 1D) return false;
+        var remainingColumns = fractions.Select(value => !value.HasValue).ToArray();
+        double remainingMinimum = minimums.Where((_, column) => remainingColumns[column]).Sum(value => value ?? 0D);
+        double percentagePool = hasRemainingColumns && fractionTotal >= 1D ? available - remainingMinimum : available;
         double reserved = minimums.Sum(value => value ?? 0D);
         double remaining = available;
         for (int column = 0; column < widths.Length; column++) {
+            if (!fractions[column].HasValue) continue;
             double minimum = minimums[column] ?? 0D;
             reserved -= minimum;
-            widths[column] = column == widths.Length - 1 ? remaining :
-                Math.Min(Math.Max(minimum, available * fractions[column]), Math.Max(minimum, remaining - reserved));
+            widths[column] = !hasRemainingColumns && column == widths.Length - 1 ? remaining :
+                Math.Min(Math.Max(minimum, percentagePool * fractions[column]!.Value), Math.Max(minimum, remaining - reserved));
             remaining = Math.Max(0D, remaining - widths[column]);
+        }
+        if (hasRemainingColumns) {
+            preferences ??= Enumerable.Range(0, widths.Length).Select(column =>
+                GetOptionalColumnWidth(style.AutoFitColumnPreferredWidthPoints, column,
+                    "Table preferred column widths must be positive finite values.") ?? minimums[column] ?? 1D).ToArray();
+            return DistributeImportedPreferredColumnSubset(style, widths, remainingColumns, minimums, maximums,
+                preferences, paddingWidths, remaining);
         }
         return true;
     }
