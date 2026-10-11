@@ -30,7 +30,7 @@ function Get-ComponentCategory {
         '^OfficeIMO\.(Pdf|Html|Markdown|Rtf|AsciiDoc|Latex|Invoicing)' { return 'Publishing and conversion' }
         '^OfficeIMO\.(Email|OneNote|OpenDocument|Epub|CSV|Visio|IWork|Chm)' { return 'Formats and interoperability' }
         '^OfficeIMO\.GoogleWorkspace|Google(Docs|Sheets|Slides)$' { return 'Google Workspace' }
-        '^OfficeIMO\.(Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
+        '^OfficeIMO\.(Archives|Drawing|Ocr|Provenance|Security|Zip|Markup|Adf|Confluence)' { return 'Foundations and integrations' }
         default { return 'Specialized components' }
     }
 }

@@ -35,6 +35,36 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  archives-contracts:
+    name: 'Managed archive contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        framework: [net8.0, net10.0]
+        include:
+          - os: windows-latest
+            framework: net472
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test bounded Cabinet and passive MSI extraction
+        run: dotnet test OfficeIMO.Archives.Tests/OfficeIMO.Archives.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --artifacts-path "${{ runner.temp }}/officeimo-archives/artifacts" -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=archives.trx' --results-directory "${{ runner.temp }}/officeimo-archives/results"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: archives-tests-${{ matrix.os }}-${{ matrix.framework }}
+          path: ${{ runner.temp }}/officeimo-archives/results
+          if-no-files-found: ignore
+          retention-days: 7
+
   chm-contracts:
     name: 'CHM archive and conversion contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
     runs-on: ${{ matrix.os }}

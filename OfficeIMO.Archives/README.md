@@ -1,0 +1,30 @@
+# OfficeIMO.Archives
+
+OfficeIMO.Archives extracts Microsoft Cabinet archives and payloads embedded in ordinary Windows Installer databases. It runs in managed .NET and uses OfficeIMO.Core for compound storage, CAB decoding and shared archive validation. Extraction does not execute an installer, scripts or custom actions.
+
+```csharp
+using OfficeIMO.Archives;
+
+var result = ArchiveExtractor.Extract(
+    "AdministrativeTemplates.msi",
+    "extracted-templates",
+    new ArchiveExtractionOptions {
+        IncludeFile = path => path.EndsWith(".admx", StringComparison.OrdinalIgnoreCase)
+                           || path.EndsWith(".adml", StringComparison.OrdinalIgnoreCase),
+        MaxInputBytes = 128L * 1024 * 1024,
+        MaxExpandedBytes = 256L * 1024 * 1024
+    });
+
+foreach (var file in result.Files)
+    Console.WriteLine($"{file.RelativePath}: {file.Length} bytes");
+```
+
+The destination must be absent or empty. Member paths and collisions are checked before files are written. The extractor writes selected files into a fresh sibling staging directory, verifies complete lengths and applicable checksums, then moves the completed directory into place. A failure or cancellation removes the staging directory and preserves an occupied destination.
+
+Results preserve authored filename case and use forward slashes. MSI results describe the authored target layout; standard Windows folder properties and installation conditions are not evaluated. For example, a package may expose `PFiles/Product/Templates/en-US/Example.adml`. The caller chooses any application-specific root or layout after extraction.
+
+Each call opens one container. A nested archive remains a file in that result. The caller owns ZIP processing, any deliberate nesting and overall collection limits; OfficeIMO.Zip provides shared ZIP traversal primitives.
+
+`ArchiveExtractionOptions` bounds input bytes, member count, per-file and aggregate expansion, MSI metadata and rows, and path length/depth. `IncludeFile` receives each normalized relative file path; safety and collision checks still apply to unselected members. CAB folder decompression counts toward the expansion bound even when its files are filtered out. The reader buffers bounded input, one decoded folder at a time and selected entry arrays. Cancellation is observed during parsing, decoding and file writes.
+
+See [SUPPORT.md](SUPPORT.md) for supported compression and MSI profiles. There are no native archive executables to install or download.
