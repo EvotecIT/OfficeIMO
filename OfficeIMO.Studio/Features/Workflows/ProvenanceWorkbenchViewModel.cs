@@ -54,6 +54,10 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     public ObservableCollection<string> Findings { get; } = new();
     public ObservableCollection<string> Changes { get; } = new();
     public ObservableCollection<string> Diagnostics { get; } = new();
+    /// <summary>Active credential statements for the current assessment or resulting copy.</summary>
+    public ObservableCollection<ProvenanceCredentialViewModel> Credentials { get; } = new();
+    /// <summary>Whether the current report contains a readable credential summary.</summary>
+    public bool HasCredentials => Credentials.Count > 0;
     public bool CanAssess => !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(InputPath);
     public bool CanCreateCopy => CanAssess && _review?.Succeeded == true && _review.InputSha256 != null &&
         OfficeProvenanceWorkflowCatalog.FindByPath(InputPath)?.CanRemove == true && (RemoveManifests || RemoveReferences || RemoveDeclarations);
@@ -62,6 +66,7 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
     partial void OnInputPathChanged(string value) {
         _revision++; _review = _lastResult = null;
         Findings.Clear(); Changes.Clear(); Diagnostics.Clear(); OutputPath = ReportPath = InputHash = OutputHash = Coverage = "";
+        ClearCredentials();
         Checks = "Structural: NotRequested · Text integrity: NotRequested · Verification: NotConfigured · Providers: NotConfigured";
         OnPropertyChanged(nameof(CanExportReport));
     }
@@ -104,6 +109,11 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         request.Removal.RemoveExternalC2paReferences = RemoveReferences;
         request.Removal.RemoveAiSourceMetadata = RemoveDeclarations;
         request.Removal.SignatureMutationPolicy = OfficeSignatureMutationPolicy.BlockSave;
+        _lastResult = null;
+        if (!remove) _review = null;
+        Findings.Clear(); Changes.Clear(); Diagnostics.Clear(); ClearCredentials();
+        OutputPath = ReportPath = InputHash = OutputHash = Coverage = "";
+        Checks = "Structural: NotRequested · Text integrity: NotRequested · Verification: NotConfigured · Providers: NotConfigured";
         IsBusy = true; Status = remove ? "Creating and re-inspecting a separate copy…" : "Assessing local file…";
         using var cancellation = new CancellationTokenSource(); _cancellation = cancellation;
         StudioJobRecord? job = null;
@@ -132,6 +142,11 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
             Coverage = document.CoverageNotes;
             Findings.Clear(); Changes.Clear(); Diagnostics.Clear();
             OfficeProvenanceReport? report = result.Assessment?.Structural ?? result.Inspection ?? result.After;
+            ProvenanceReportDto? transport = document.Assessment?.Structural ?? document.Inspection ?? document.After;
+            foreach (ProvenanceEvidenceDto evidence in transport?.Evidence ?? Array.Empty<ProvenanceEvidenceDto>()) {
+                if (evidence.Manifest is { } manifest) Credentials.Add(new ProvenanceCredentialViewModel(evidence.Location, manifest));
+            }
+            OnPropertyChanged(nameof(HasCredentials));
             foreach (OfficeProvenanceEvidence evidence in report?.Evidence ?? Array.Empty<OfficeProvenanceEvidence>())
                 Findings.Add($"{evidence.Carrier} · {evidence.Location} · {(evidence.IsStructurallyValid ? "Structurally recognized" : "Malformed or ambiguous")}");
             foreach (OfficeTextIntegrityFinding finding in result.Assessment?.TextIntegrity?.Findings ?? Array.Empty<OfficeTextIntegrityFinding>())
@@ -152,12 +167,12 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
             string message = remove && ownerStarted ? "Cancelled. Check the output folder before retrying." : "Cancelled.";
             job?.Complete(remove && ownerStarted ? OfficeWorkflowStatus.Unconfirmed : OfficeWorkflowStatus.Cancelled, null, message);
-            if (!_disposed) Status = message;
+            if (!_disposed) { Status = message; _review = null; }
         }
         catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
             string message = "Provenance workflow failed: " + error.Message;
             job?.Complete(remove && ownerStarted ? OfficeWorkflowStatus.Unconfirmed : OfficeWorkflowStatus.Failed, null, message);
-            if (!_disposed) Status = message;
+            if (!_disposed) { Status = message; _review = null; }
         }
         finally { _cancellation = null; IsBusy = false; OnPropertyChanged(nameof(CanCreateCopy)); OnPropertyChanged(nameof(CanExportReport)); }
     }
@@ -202,5 +217,6 @@ public sealed partial class ProvenanceWorkbenchViewModel : ObservableObject, IDi
         finally { _cancellation = null; IsBusy = false; }
     }
     [RelayCommand] private void Cancel() => _cancellation?.Cancel();
+    private void ClearCredentials() { Credentials.Clear(); OnPropertyChanged(nameof(HasCredentials)); }
     public void Dispose() { if (_disposed) return; _disposed = true; _revision++; _cancellation?.Cancel(); }
 }

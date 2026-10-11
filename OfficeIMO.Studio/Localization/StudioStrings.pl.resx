@@ -5548,4 +5548,34 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="FormOcr.Constraint.AmbiguousChoice" xml:space="preserve"><value>Etykieta odpowiada kilku opcjom. Wpisz dokładną wartość eksportu.</value></data>
   <data name="Comparison.UnmatchedExpected" xml:space="preserve"><value>Bez pary w bieżącym wyborze</value></data>
   <data name="Comparison.UnmatchedActual" xml:space="preserve"><value>Bez pary w wyborze porównania</value></data>
+  <data name="Provenance.Credentials" xml:space="preserve"><value>Content Credentials</value></data>
+  <data name="Provenance.CredentialHint" xml:space="preserve"><value>To oświadczenia zapisane w pliku. Odczytanie wpisu nie weryfikuje jego podpisu, zaufania do certyfikatu ani powiązania z treścią. Wyniki weryfikacji są pokazane osobno.</value></data>
+  <data name="Provenance.Timeline" xml:space="preserve"><value>Zapisane działania</value></data>
+  <data name="Provenance.TimelineHint" xml:space="preserve"><value>Działania z aktywnej deklaracji w kolejności zapisu. Wcześniejsze manifesty są zliczane, ale nie są tutaj rozwijane; brakujące czasy pozostają nieznane.</value></data>
+  <data name="Provenance.WatermarkHint" xml:space="preserve"><value>Wpis deklaruje dodanie znaku wodnego do treści. Usunięcie poświadczenia nie usuwa tego znaku wodnego.</value></data>
+  <data name="Provenance.RecordDetails" xml:space="preserve"><value>Szczegóły wpisu</value></data>
+  <data name="Provenance.NotRecorded" xml:space="preserve"><value>Nie zapisano</value></data>
+  <data name="Provenance.SoftwareNotRecorded" xml:space="preserve"><value>Nie zapisano oprogramowania</value></data>
+  <data name="Provenance.TimeNotRecorded" xml:space="preserve"><value>Nie zapisano czasu</value></data>
+  <data name="Provenance.RecordedTime" xml:space="preserve"><value>Zapisany czas: {0}</value></data>
+  <data name="Provenance.CertificateSubjectFormat" xml:space="preserve"><value>Podmiot certyfikatu (niezweryfikowany): {0}</value></data>
+  <data name="Provenance.CertificateIssuerFormat" xml:space="preserve"><value>Wystawca certyfikatu (niezweryfikowany): {0}</value></data>
+  <data name="Provenance.SourceAssetFormat" xml:space="preserve"><value>Zasób źródłowy: {0}</value></data>
+  <data name="Provenance.ManifestCountFormat" xml:space="preserve"><value>Manifesty w magazynie: {0}</value></data>
+  <data name="Provenance.ActionCreated" xml:space="preserve"><value>Utworzono</value></data>
+  <data name="Provenance.ActionOpened" xml:space="preserve"><value>Otwarto</value></data>
+  <data name="Provenance.ActionEdited" xml:space="preserve"><value>Edytowano</value></data>
+  <data name="Provenance.ActionConverted" xml:space="preserve"><value>Przekonwertowano</value></data>
+  <data name="Provenance.ActionCropped" xml:space="preserve"><value>Przycięto</value></data>
+  <data name="Provenance.ActionResized" xml:space="preserve"><value>Zmieniono rozmiar</value></data>
+  <data name="Provenance.ActionPlaced" xml:space="preserve"><value>Umieszczono inną treść</value></data>
+  <data name="Provenance.ActionPublished" xml:space="preserve"><value>Opublikowano</value></data>
+  <data name="Provenance.ActionWatermarked" xml:space="preserve"><value>Dodano znak wodny do treści</value></data>
+  <data name="Provenance.SourceGenerativeAi" xml:space="preserve"><value>Zadeklarowano użycie generatywnej AI</value></data>
+  <data name="Provenance.SourceCompositeAi" xml:space="preserve"><value>Zadeklarowano połączenie treści wygenerowanej przez AI z inną treścią</value></data>
+  <data name="Provenance.SourceAlgorithmic" xml:space="preserve"><value>Zadeklarowano treść wygenerowaną przez oprogramowanie</value></data>
+  <data name="Provenance.SourceDigitalCapture" xml:space="preserve"><value>Zadeklarowano przechwycenie aparatem lub skanerem</value></data>
+  <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Zadeklarowano kompozycję przechwyconych materiałów</value></data>
+  <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Zapisany typ źródła: {0}</value></data>
+  <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Nie zapisano typu źródła</value></data>
 </root>

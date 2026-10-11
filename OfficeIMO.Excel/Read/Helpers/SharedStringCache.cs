@@ -162,13 +162,20 @@ namespace OfficeIMO.Excel {
             try {
                 using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(SharedStringXmlReaderSettings));
                 int nodesRead = 0;
+                int tableDepth = -1;
                 while (reader.Read()) {
                     CheckCancellation(nodesRead++);
                     if (reader.NodeType != XmlNodeType.Element) {
                         continue;
                     }
 
-                    if (reader.LocalName == "sst") {
+                    if (tableDepth < 0) {
+                        if (reader.Depth != 0 || !SpreadsheetXmlContent.IsSpreadsheetElement(reader, "sst")) {
+                            items = null!;
+                            return false;
+                        }
+
+                        tableDepth = reader.Depth;
                         int capacity = GetBoundedCapacity(ParsePositiveLongAttribute(reader.GetAttribute("uniqueCount")));
                         if (capacity <= 0) {
                             capacity = GetBoundedCapacity(ParsePositiveLongAttribute(reader.GetAttribute("count")));
@@ -181,7 +188,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    if (reader.LocalName == "si") {
+                    if (SpreadsheetXmlContent.IsDirectChildElement(reader, tableDepth, "si")) {
                         EnsureCanAddSharedString(items);
                         string value = ReadSharedStringItemXml(
                             reader,
@@ -193,7 +200,9 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                return true;
+                if (tableDepth >= 0) return true;
+                items = null!;
+                return false;
             } catch (XmlException) {
                 items = null!;
                 return false;
@@ -231,11 +240,11 @@ namespace OfficeIMO.Excel {
             int depth = reader.Depth;
             string? first = null;
             StringBuilder? builder = null;
-            int phoneticRunDepth = -1;
+            int richRunDepth = -1;
 
             bool hasNode = reader.Read();
             int nodesRead = 0;
-            if (hasNode && reader.NodeType == XmlNodeType.Element && reader.LocalName == "t") {
+            if (hasNode && SpreadsheetXmlContent.IsDirectChildElement(reader, depth, "t")) {
                 first = reader.ReadElementContentAsString();
                 EnsureItemCharacterBudget(0, first.Length, maxItemCharacters);
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "si") {
@@ -253,25 +262,7 @@ namespace OfficeIMO.Excel {
                     break;
                 }
 
-                if (phoneticRunDepth >= 0) {
-                    if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == phoneticRunDepth && reader.LocalName == "rPh") {
-                        phoneticRunDepth = -1;
-                    }
-
-                    hasNode = reader.Read();
-                    continue;
-                }
-
-                if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "rPh") {
-                    if (!reader.IsEmptyElement) {
-                        phoneticRunDepth = reader.Depth;
-                    }
-
-                    hasNode = reader.Read();
-                    continue;
-                }
-
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "t") {
+                if (!SpreadsheetXmlContent.IsRichTextElement(reader, depth, ref richRunDepth)) {
                     hasNode = reader.Read();
                     continue;
                 }

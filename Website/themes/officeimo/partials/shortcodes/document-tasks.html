@@ -1,12 +1,29 @@
+{{~ jobs = data.document_tasks ~}}
 <section class="imo-document-tasks" aria-labelledby="document-tasks-title">
-  <h2 id="document-tasks-title">{{ data.document_tasks.title }}</h2>
+  <header class="imo-document-tasks__head">
+    {{~ if jobs.eyebrow ~}}<p class="imo-section__eyebrow">{{ jobs.eyebrow }}</p>{{~ end ~}}
+    <h2 id="document-tasks-title">{{ jobs.title }}</h2>
+    {{~ if jobs.lede ~}}<p>{{ jobs.lede }}</p>{{~ end ~}}
+  </header>
   <div class="imo-document-tasks__grid">
-    {{~ for task in data.document_tasks.tasks ~}}
-    <article id="task-{{ task.id }}">
+    {{~ for task in jobs.tasks ~}}
+    <article id="task-{{ task.id }}" class="imo-job imo-job--{{ task.accent }}">
+      <span class="imo-job__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        {{~ if task.icon == "report" ~}}<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h4"/>
+        {{~ else if task.icon == "convert" ~}}<path d="M4 7h11l-3-3M20 17H9l3 3"/><rect x="15" y="4" width="5" height="6" rx="1"/><rect x="4" y="14" width="5" height="6" rx="1"/>
+        {{~ else if task.icon == "pages" ~}}<rect x="4" y="3" width="10" height="14" rx="1.5"/><path d="M10 7h8.5A1.5 1.5 0 0 1 20 8.5V19.5A1.5 1.5 0 0 1 18.5 21H11.5A1.5 1.5 0 0 1 10 19.5z"/>
+        {{~ else if task.icon == "extract" ~}}<circle cx="10.5" cy="10.5" r="6"/><path d="m20 20-5-5M8 9h5M8 12h3"/>
+        {{~ else if task.icon == "table" ~}}<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 9v11"/>
+        {{~ else ~}}<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>
+        {{~ end ~}}</svg></span>
       <h3><a href="{{ task.guide }}">{{ task.title }}</a></h3>
-      <p>{{ task.summary }}</p>
-      <ul>{{~ for path in task.paths ~}}<li><a href="{{ path.url }}">{{ path.label }}</a></li>{{~ end ~}}</ul>
-      <p class="imo-document-tasks__boundary">{{ task.boundary }}</p>
+      <p class="imo-job__summary">{{ task.summary }}</p>
+      <ul class="imo-job__paths" aria-label="Ways to do it">
+        {{~ for path in task.paths ~}}
+        <li><a class="imo-job__path imo-job__path--{{ path.surface }}" href="{{ path.url }}"><i aria-hidden="true"></i>{{ path.label }}</a></li>
+        {{~ end ~}}
+      </ul>
+      <p class="imo-job__note"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>{{ task.boundary }}</span></p>
     </article>
     {{~ end ~}}
   </div>

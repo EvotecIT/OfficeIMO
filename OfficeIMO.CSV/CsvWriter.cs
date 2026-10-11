@@ -785,6 +785,8 @@ internal static partial class CsvWriter
             return nullValue ?? string.Empty;
         }
 
+        if (value is byte[] bytes) return Convert.ToBase64String(bytes);
+
         if (value is DateTime dateTime)
         {
             if (useUtc)
