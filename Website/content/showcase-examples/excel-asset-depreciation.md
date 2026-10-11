@@ -1,7 +1,7 @@
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
 title: "Asset depreciation schedule"
-description: "Build an Excel straight-line planning register with residual values, useful lives and a total annual charge."
+description: "Build an editable Excel straight-line depreciation register with residual values, useful lives, per-asset formulas and a total annual charge."
 layout: showcase-example
 meta.showcase_id: excel-asset-depreciation
 meta.seo_title: "Asset depreciation schedule in C# | OfficeIMO"

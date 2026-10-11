@@ -5989,7 +5989,7 @@
       "image_height": 1123,
       "image_alt": "Generated Word example: Business case with cost options",
       "title": "Business case with cost options",
-      "description": "Compare estimated costs, savings and payback assumptions in an editable Word decision brief.",
+      "description": "Compare estimated costs, savings and payback assumptions in an editable Word business case, with a recommendation and named next actions.",
       "input": "Options, estimated cost and expected saving",
       "output": "DOCX + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -6049,7 +6049,7 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Business case with cost options Compare estimated costs, savings and payback assumptions in an editable Word decision brief. Word .NET C# walkthrough code sample Options, estimated cost and expected saving",
+      "search_text": "Business case with cost options Compare estimated costs, savings and payback assumptions in an editable Word business case, with a recommendation and named next actions. Word .NET C# walkthrough code sample Options, estimated cost and expected saving",
       "source_language": "csharp"
     },
     {
@@ -6072,7 +6072,7 @@
       "image_height": 1123,
       "image_alt": "Generated Word example: Managed service renewal proposal",
       "title": "Managed service renewal proposal",
-      "description": "Prepare a Word renewal proposal with service coverage, fees, review evidence and explicit exclusions.",
+      "description": "Prepare an editable Word renewal proposal with service coverage, fees, review evidence and exclusions, then export a PDF for the client.",
       "input": "Service commitments and proposed commercial terms",
       "output": "DOCX + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -6132,7 +6132,7 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Managed service renewal proposal Prepare a Word renewal proposal with service coverage, fees, review evidence and explicit exclusions. Word .NET C# walkthrough code sample Service commitments and proposed commercial terms",
+      "search_text": "Managed service renewal proposal Prepare an editable Word renewal proposal with service coverage, fees, review evidence and exclusions, then export a PDF for the client. Word .NET C# walkthrough code sample Service commitments and proposed commercial terms",
       "source_language": "csharp"
     },
     {
@@ -6155,7 +6155,7 @@
       "image_height": 1123,
       "image_alt": "Generated Word example: Post-incident review timeline",
       "title": "Post-incident review timeline",
-      "description": "Build a Word incident review with a UTC timeline, evidence references, contributing conditions and follow-up owners.",
+      "description": "Build a Word incident review with a UTC timeline, evidence references, contributing conditions and named follow-up owners. Download the DOCX and PDF.",
       "input": "Incident events and corrective actions",
       "output": "DOCX + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -6215,7 +6215,7 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Post-incident review timeline Build a Word incident review with a UTC timeline, evidence references, contributing conditions and follow-up owners. Word .NET C# walkthrough code sample Incident events and corrective actions",
+      "search_text": "Post-incident review timeline Build a Word incident review with a UTC timeline, evidence references, contributing conditions and named follow-up owners. Download the DOCX and PDF. Word .NET C# walkthrough code sample Incident events and corrective actions",
       "source_language": "csharp"
     },
     {
@@ -6238,7 +6238,7 @@
       "image_height": 1123,
       "image_alt": "Generated Word example: Statement of work and acceptance",
       "title": "Statement of work and acceptance",
-      "description": "Create a Word scope document with deliverables, owners, acceptance evidence and a concise change-control boundary.",
+      "description": "Create an editable Word scope document with deliverables, owners, acceptance evidence and change-control boundaries. Export the finished brief to PDF.",
       "input": "Deliverables and acceptance criteria",
       "output": "DOCX + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -6298,7 +6298,7 @@
           "word-meeting-minutes"
         ]
       },
-      "search_text": "Statement of work and acceptance Create a Word scope document with deliverables, owners, acceptance evidence and a concise change-control boundary. Word .NET C# walkthrough code sample Deliverables and acceptance criteria",
+      "search_text": "Statement of work and acceptance Create an editable Word scope document with deliverables, owners, acceptance evidence and change-control boundaries. Export the finished brief to PDF. Word .NET C# walkthrough code sample Deliverables and acceptance criteria",
       "source_language": "csharp"
     },
     {
@@ -6321,7 +6321,7 @@
       "image_height": 468,
       "image_alt": "Generated Excel example: Rolling cash-flow forecast",
       "title": "Rolling cash-flow forecast",
-      "description": "Calculate opening cash, monthly net flow and closing cash in a six-month Excel planning workbook.",
+      "description": "Calculate opening cash, monthly net flow and closing cash in a six-month Excel forecast, with editable inputs and visible planning formulas.",
       "input": "Opening cash, receipts and payments",
       "output": "XLSX",
       "proof": "The C# source generates the downloadable file. The runner validates the workbook and supported formulas, cached results and dependencies. The PNG is a native range export.",
@@ -6377,7 +6377,7 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Rolling cash-flow forecast Calculate opening cash, monthly net flow and closing cash in a six-month Excel planning workbook. Excel .NET C# walkthrough code sample Opening cash, receipts and payments",
+      "search_text": "Rolling cash-flow forecast Calculate opening cash, monthly net flow and closing cash in a six-month Excel forecast, with editable inputs and visible planning formulas. Excel .NET C# walkthrough code sample Opening cash, receipts and payments",
       "source_language": "csharp"
     },
     {
@@ -6400,7 +6400,7 @@
       "image_height": 468,
       "image_alt": "Generated Excel example: Asset depreciation schedule",
       "title": "Asset depreciation schedule",
-      "description": "Build an Excel straight-line planning register with residual values, useful lives and a total annual charge.",
+      "description": "Build an editable Excel straight-line depreciation register with residual values, useful lives, per-asset formulas and a total annual charge.",
       "input": "Asset cost, residual value and useful life",
       "output": "XLSX",
       "proof": "The C# source generates the downloadable file. The runner validates the workbook and supported formulas, cached results and dependencies. The PNG is a native range export.",
@@ -6456,7 +6456,7 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Asset depreciation schedule Build an Excel straight-line planning register with residual values, useful lives and a total annual charge. Excel .NET C# walkthrough code sample Asset cost, residual value and useful life",
+      "search_text": "Asset depreciation schedule Build an editable Excel straight-line depreciation register with residual values, useful lives, per-asset formulas and a total annual charge. Excel .NET C# walkthrough code sample Asset cost, residual value and useful life",
       "source_language": "csharp"
     },
     {
@@ -6479,7 +6479,7 @@
       "image_height": 468,
       "image_alt": "Generated Excel example: Weighted vendor scorecard",
       "title": "Weighted vendor scorecard",
-      "description": "Compare synthetic vendor offers using explicit criteria, 1-5 scores and a visible weighted-score formula.",
+      "description": "Compare synthetic vendor offers in Excel using explicit criteria, 1-5 scores and visible weighted-score formulas. Download the editable workbook.",
       "input": "Criterion scores and agreed weights",
       "output": "XLSX",
       "proof": "The C# source generates the downloadable file. The runner validates the workbook and supported formulas, cached results and dependencies. The PNG is a native range export.",
@@ -6535,7 +6535,7 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Weighted vendor scorecard Compare synthetic vendor offers using explicit criteria, 1-5 scores and a visible weighted-score formula. Excel .NET C# walkthrough code sample Criterion scores and agreed weights",
+      "search_text": "Weighted vendor scorecard Compare synthetic vendor offers in Excel using explicit criteria, 1-5 scores and visible weighted-score formulas. Download the editable workbook. Excel .NET C# walkthrough code sample Criterion scores and agreed weights",
       "source_language": "csharp"
     },
     {
@@ -6558,7 +6558,7 @@
       "image_height": 468,
       "image_alt": "Generated Excel example: Weekly support rota and coverage",
       "title": "Weekly support rota and coverage",
-      "description": "Create a colour-coded Excel rota with desk-day totals and daily coverage counts calculated from shift codes.",
+      "description": "Create a colour-coded Excel support rota with desk-day totals and daily coverage counts calculated from shift codes. Download the editable workbook.",
       "input": "Team members and daily shift codes",
       "output": "XLSX",
       "proof": "The C# source generates the downloadable file. The runner validates the workbook and supported formulas, cached results and dependencies. The PNG is a native range export.",
@@ -6614,7 +6614,7 @@
           "excel-named-range-pricing"
         ]
       },
-      "search_text": "Weekly support rota and coverage Create a colour-coded Excel rota with desk-day totals and daily coverage counts calculated from shift codes. Excel .NET C# walkthrough code sample Team members and daily shift codes",
+      "search_text": "Weekly support rota and coverage Create a colour-coded Excel support rota with desk-day totals and daily coverage counts calculated from shift codes. Download the editable workbook. Excel .NET C# walkthrough code sample Team members and daily shift codes",
       "source_language": "csharp"
     },
     {
@@ -6635,7 +6635,7 @@
       "image_height": 1123,
       "image_alt": "Generated PDF example: Travel itinerary and arrival brief",
       "title": "Travel itinerary and arrival brief",
-      "description": "Create a PDF itinerary with local-time labels, an arrival schedule, departure notes and a preparation checklist.",
+      "description": "Create a PDF itinerary with local-time labels, an arrival schedule, departure notes and a preparation checklist. Adapt the runnable C# example.",
       "input": "Travel plan and workshop arrangements",
       "output": "PDF",
       "proof": "The C# source generates the downloadable file. The runner checks PDF text and pages; Poppler renders the page previews.",
@@ -6691,7 +6691,7 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Travel itinerary and arrival brief Create a PDF itinerary with local-time labels, an arrival schedule, departure notes and a preparation checklist. PDF .NET C# walkthrough code sample Travel plan and workshop arrangements",
+      "search_text": "Travel itinerary and arrival brief Create a PDF itinerary with local-time labels, an arrival schedule, departure notes and a preparation checklist. Adapt the runnable C# example. PDF .NET C# walkthrough code sample Travel plan and workshop arrangements",
       "source_language": "csharp"
     },
     {
@@ -6712,7 +6712,7 @@
       "image_height": 843,
       "image_alt": "Generated PDF example: Small-format workshop badges",
       "title": "Small-format workshop badges",
-      "description": "Generate two individual 340-by-255-point PDF badge pages with participant names, roles and event details.",
+      "description": "Generate two individual 340-by-255-point PDF workshop badges with participant names, roles and event details. Preview both pages and adapt the C# source.",
       "input": "Participant names, roles and event details",
       "output": "PDF",
       "proof": "The C# source generates the downloadable file. The runner checks PDF text and pages; Poppler renders the page previews.",
@@ -6778,7 +6778,7 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Small-format workshop badges Generate two individual 340-by-255-point PDF badge pages with participant names, roles and event details. PDF .NET C# walkthrough code sample Participant names, roles and event details",
+      "search_text": "Small-format workshop badges Generate two individual 340-by-255-point PDF workshop badges with participant names, roles and event details. Preview both pages and adapt the C# source. PDF .NET C# walkthrough code sample Participant names, roles and event details",
       "source_language": "csharp"
     },
     {
@@ -6799,7 +6799,7 @@
       "image_height": 1123,
       "image_alt": "Generated PDF example: Fillable maintenance job card",
       "title": "Fillable maintenance job card",
-      "description": "Create a PDF work record with named fields for planned work, completed work, outcome and handover.",
+      "description": "Create a fillable PDF maintenance record with named fields for planned work, completed work, outcome and handover. Adapt the runnable C# example.",
       "input": "Work order and completion record",
       "output": "PDF",
       "proof": "The C# source generates the downloadable file. The runner checks PDF text and pages; Poppler renders the page previews.",
@@ -6855,7 +6855,7 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Fillable maintenance job card Create a PDF work record with named fields for planned work, completed work, outcome and handover. PDF .NET C# walkthrough code sample Work order and completion record",
+      "search_text": "Fillable maintenance job card Create a fillable PDF maintenance record with named fields for planned work, completed work, outcome and handover. Adapt the runnable C# example. PDF .NET C# walkthrough code sample Work order and completion record",
       "source_language": "csharp"
     },
     {
@@ -6876,7 +6876,7 @@
       "image_height": 1123,
       "image_alt": "Generated PDF example: Pilot delivery risk review",
       "title": "Pilot delivery risk review",
-      "description": "Present delivery risks, likelihood, impact, controls and owners in a PDF review with an explicit expansion decision.",
+      "description": "Present delivery risks, likelihood, impact, controls and owners in a PDF review, with an explicit expansion decision and runnable C# source.",
       "input": "Delivery risks and proposed controls",
       "output": "PDF",
       "proof": "The C# source generates the downloadable file. The runner checks PDF text and pages; Poppler renders the page previews.",
@@ -6932,7 +6932,7 @@
           "pdf-branded-invoice"
         ]
       },
-      "search_text": "Pilot delivery risk review Present delivery risks, likelihood, impact, controls and owners in a PDF review with an explicit expansion decision. PDF .NET C# walkthrough code sample Delivery risks and proposed controls",
+      "search_text": "Pilot delivery risk review Present delivery risks, likelihood, impact, controls and owners in a PDF review, with an explicit expansion decision and runnable C# source. PDF .NET C# walkthrough code sample Delivery risks and proposed controls",
       "source_language": "csharp"
     },
     {
@@ -6955,7 +6955,7 @@
       "image_height": 540,
       "image_alt": "Generated PowerPoint example: Board decision brief",
       "title": "Board decision brief",
-      "description": "Build a two-slide PowerPoint brief with three investment options, trade-offs and a bounded approval request.",
+      "description": "Build a two-slide PowerPoint decision brief with three investment options, trade-offs and a bounded approval request. Download the editable slides.",
       "input": "Investment options and approval conditions",
       "output": "PPTX + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -7025,7 +7025,7 @@
           "powerpoint-training-quiz"
         ]
       },
-      "search_text": "Board decision brief Build a two-slide PowerPoint brief with three investment options, trade-offs and a bounded approval request. PowerPoint .NET C# walkthrough code sample Investment options and approval conditions",
+      "search_text": "Board decision brief Build a two-slide PowerPoint decision brief with three investment options, trade-offs and a bounded approval request. Download the editable slides. PowerPoint .NET C# walkthrough code sample Investment options and approval conditions",
       "source_language": "csharp"
     },
     {
@@ -7048,7 +7048,7 @@
       "image_height": 540,
       "image_alt": "Generated PowerPoint example: Sales pipeline review",
       "title": "Sales pipeline review",
-      "description": "Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions.",
+      "description": "Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions. Preview both slides and use the C# source.",
       "input": "Opportunity value by current stage",
       "output": "PPTX + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -7118,7 +7118,7 @@
           "powerpoint-training-quiz"
         ]
       },
-      "search_text": "Sales pipeline review Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions. PowerPoint .NET C# walkthrough code sample Opportunity value by current stage",
+      "search_text": "Sales pipeline review Create an editable PowerPoint chart of opportunity value by stage and a second slide of review actions. Preview both slides and use the C# source. PowerPoint .NET C# walkthrough code sample Opportunity value by current stage",
       "source_language": "csharp"
     },
     {
@@ -7141,7 +7141,7 @@
       "image_height": 540,
       "image_alt": "Generated PowerPoint example: Pilot retrospective and experiments",
       "title": "Pilot retrospective and experiments",
-      "description": "Create a PowerPoint keep-change-try board followed by two owned experiments and observable review checks.",
+      "description": "Create a PowerPoint keep-change-try board followed by two owned experiments and observable review checks. Download and adapt the editable slides.",
       "input": "Team observations and proposed experiments",
       "output": "PPTX + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -7211,7 +7211,7 @@
           "powerpoint-training-quiz"
         ]
       },
-      "search_text": "Pilot retrospective and experiments Create a PowerPoint keep-change-try board followed by two owned experiments and observable review checks. PowerPoint .NET C# walkthrough code sample Team observations and proposed experiments",
+      "search_text": "Pilot retrospective and experiments Create a PowerPoint keep-change-try board followed by two owned experiments and observable review checks. Download and adapt the editable slides. PowerPoint .NET C# walkthrough code sample Team observations and proposed experiments",
       "source_language": "csharp"
     },
     {
@@ -7234,7 +7234,7 @@
       "image_height": 994,
       "image_alt": "Generated Visio example: Support triage flow",
       "title": "Support triage flow",
-      "description": "Create an editable Visio flowchart with an investigation loop and an explicit requester-acceptance decision.",
+      "description": "Create an editable Visio support flowchart with an investigation loop and a requester-acceptance decision. Download the diagram, previews and C# source.",
       "input": "Support states and acceptance decision",
       "output": "VSDX",
       "proof": "The C# source generates the downloadable file. The runner validates the diagram and exports native PNG and SVG previews.",
@@ -7294,7 +7294,7 @@
           "visio-team-organisation"
         ]
       },
-      "search_text": "Support triage flow Create an editable Visio flowchart with an investigation loop and an explicit requester-acceptance decision. Visio .NET C# walkthrough code sample Support states and acceptance decision",
+      "search_text": "Support triage flow Create an editable Visio support flowchart with an investigation loop and a requester-acceptance decision. Download the diagram, previews and C# source. Visio .NET C# walkthrough code sample Support states and acceptance decision",
       "source_language": "csharp"
     },
     {
@@ -7400,7 +7400,7 @@
       "image_height": 1123,
       "image_alt": "Generated Markdown example: Release readiness checklist",
       "title": "Release readiness checklist",
-      "description": "Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision.",
+      "description": "Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision. Download the source document and PDF preview.",
       "input": "Readiness checks and release ownership",
       "output": "MD + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -7460,7 +7460,7 @@
           "markdown-decision-record"
         ]
       },
-      "search_text": "Release readiness checklist Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision. Markdown .NET C# walkthrough code sample Readiness checks and release ownership",
+      "search_text": "Release readiness checklist Create portable Markdown task lists, an evidence-gate table and a rollback record for a release decision. Download the source document and PDF preview. Markdown .NET C# walkthrough code sample Readiness checks and release ownership",
       "source_language": "csharp"
     },
     {
@@ -7483,7 +7483,7 @@
       "image_height": 1123,
       "image_alt": "Generated OpenDocument example: Client appointment letter",
       "title": "Client appointment letter",
-      "description": "Create an editable ODT letter with a dated appointment, preparation notes, follow-up commitment and clear typography.",
+      "description": "Create an editable ODT client letter with a dated appointment, preparation notes, follow-up commitment and clear typography. Export a PDF copy.",
       "input": "Recipient, appointment and preparation details",
       "output": "ODT + PDF",
       "proof": "The C# source generates the downloadable file. The runner reopens the editable document, validates Open XML where applicable and exports a PDF. Page previews come from the generated output.",
@@ -7540,7 +7540,7 @@
         "adapt": "Replace the invented appointment and contact route with confirmed arrangements.",
         "related": []
       },
-      "search_text": "Client appointment letter Create an editable ODT letter with a dated appointment, preparation notes, follow-up commitment and clear typography. OpenDocument .NET C# walkthrough code sample Recipient, appointment and preparation details",
+      "search_text": "Client appointment letter Create an editable ODT client letter with a dated appointment, preparation notes, follow-up commitment and clear typography. Export a PDF copy. OpenDocument .NET C# walkthrough code sample Recipient, appointment and preparation details",
       "source_language": "csharp"
     },
     {
