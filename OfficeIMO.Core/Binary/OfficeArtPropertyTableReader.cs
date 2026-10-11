@@ -23,12 +23,7 @@ public static class OfficeArtPropertyTableReader {
 
         int endOffset = checked(offset + length);
         int complexOffset = checked(offset + fixedLength);
-        ulong followingDeclaredLength = 0;
-        for (int index = 0; index < propertyCount; index++) {
-            int propertyOffset = offset + index * 6;
-            if ((ReadUInt16(payload, propertyOffset) & 0x8000) != 0)
-                followingDeclaredLength += ReadUInt32(payload, propertyOffset + 2);
-        }
+        ulong[] followingLengths = FollowingComplexLengths(payload, offset, propertyCount, complexOffset, endOffset);
         var properties = new List<OfficeArtProperty>(propertyCount);
         for (int index = 0; index < propertyCount; index++) {
             int propertyOffset = checked(offset + index * 6);
@@ -39,10 +34,9 @@ public static class OfficeArtPropertyTableReader {
             byte[]? complexData = null;
             string? complexText = null;
             if (isComplex) {
-                followingDeclaredLength -= value;
                 ushort propertyId = checked((ushort)(rawOperationId & 0x3fff));
                 availableLength = GetAvailableComplexDataLength(payload, propertyId, value, complexOffset, endOffset,
-                    followingDeclaredLength);
+                    followingLengths[index]);
                 if (availableLength.Value > 0) {
                     complexData = new byte[availableLength.Value];
                     Buffer.BlockCopy(payload, complexOffset, complexData, 0, complexData.Length);
@@ -71,6 +65,36 @@ public static class OfficeArtPropertyTableReader {
         | payload[offset + 1] << 8
         | payload[offset + 2] << 16
         | payload[offset + 3] << 24));
+
+    private static ulong[] FollowingComplexLengths(byte[] payload, int offset, int count, int complexStart, int end) {
+        var following = new ulong[count];
+        ulong required = 0;
+        int boundary = end;
+        for (int index = count - 1; index >= 0; index--) {
+            following[index] = required;
+            int propertyOffset = offset + index * 6;
+            ushort operation = ReadUInt16(payload, propertyOffset);
+            if ((operation & 0x8000) == 0) continue;
+            uint declared = ReadUInt32(payload, propertyOffset + 2), length = declared;
+            ushort id = (ushort)(operation & 0x3fff);
+            int remaining = boundary - complexStart;
+            if (declared > 0 && declared <= remaining) {
+                int start = boundary - (int)declared;
+                // Prefer a recognizable header-inclusive suffix. Otherwise a
+                // complete header-excluded suffix reserves its extra six bytes.
+                bool includesHeader = declared >= 6 && ExpectedComplexDataLength(id, declared - 6,
+                    payload, start, (int)declared) == declared;
+                if (!includesHeader && declared <= remaining - 6 && ExpectedComplexDataLength(id, declared,
+                        payload, start - 6, (int)declared + 6) == declared + 6)
+                    length += 6;
+            }
+            // Zero-length arrays can be absent; a reverse scan cannot establish
+            // their header without risking bytes owned by the preceding payload.
+            required += length;
+            boundary = required <= (ulong)(end - complexStart) ? end - (int)required : complexStart;
+        }
+        return following;
+    }
 
     private static int GetAvailableComplexDataLength(byte[] payload, ushort propertyId,
         uint declaredLength, int offset, int endOffset, ulong followingDeclaredLength) {
