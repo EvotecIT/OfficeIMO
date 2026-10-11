@@ -6,11 +6,13 @@ namespace OfficeIMO.Excel {
         private bool RequiresDeferredMaterialization
             => HasPendingDirectCellValues || HasUnmaterializedDirectDataSetRows;
 
-        internal T ExecuteReadAfterMaterializing<T>(Func<T> read) {
+        internal T ExecuteReadAfterMaterializing<T>(Func<T> read, CancellationToken cancellationToken = default) {
             if (read == null) throw new ArgumentNullException(nameof(read));
+            cancellationToken.ThrowIfCancellationRequested();
             ReaderWriterLockSlim lck = EnsureLock();
             if (Locking.IsNoLock || lck.IsWriteLockHeld) {
-                MaterializeDeferredDataSetImportLocked(CancellationToken.None);
+                MaterializeDeferredDataSetImportLocked(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 return read();
             }
 
@@ -19,12 +21,16 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException(
                         "Deferred worksheet data must be materialized before entering a workbook read scope.");
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 return read();
             }
 
             lck.EnterReadLock();
             try {
-                if (!RequiresDeferredMaterialization) return read();
+                if (!RequiresDeferredMaterialization) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return read();
+                }
             } finally {
                 lck.ExitReadLock();
             }
@@ -34,11 +40,12 @@ namespace OfficeIMO.Excel {
                 if (RequiresDeferredMaterialization) {
                     lck.EnterWriteLock();
                     try {
-                        MaterializeDeferredDataSetImportLocked(CancellationToken.None);
+                        MaterializeDeferredDataSetImportLocked(cancellationToken);
                     } finally {
                         lck.ExitWriteLock();
                     }
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 return read();
             } finally {
                 lck.ExitUpgradeableReadLock();
