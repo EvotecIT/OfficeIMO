@@ -7,9 +7,11 @@ Exports only the bundle returned by that build, from a new staging directory. Bo
 assemblies, the manifest and help must match the source. -ArtifactsOnly limits the export
 writes to ArtifactsRoot; the native build still regenerates Docs. BuildOutputRoot holds
 the retained build staging directory. Command metadata uses a clean child process of the
-same PowerShell host. Requires PSPublishModule 3.0.168 or newer.
+same PowerShell host. BuildOutputRoot and custom ArtifactsRoot must be outside the
+source checkout. The default WebsiteArtifacts target refreshes the tracked snapshot;
+commit that output before another export. Requires PSPublishModule 3.0.168 or newer.
 .EXAMPLE
-./Build/Export-WebsiteArtifacts.ps1 -RepositoryRoot ./release-source -ArtifactsRoot ./out/website-api -BuildOutputRoot ./out/builds -ArtifactsOnly
+./Build/Export-WebsiteArtifacts.ps1 -RepositoryRoot ./release-source -ArtifactsRoot ../website-api -BuildOutputRoot ../website-builds -ArtifactsOnly
 #>
 param(
     [string] $RepositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path,
@@ -25,6 +27,20 @@ if ([string]::IsNullOrWhiteSpace($ArtifactsRoot)) {
     $ArtifactsRoot = Join-Path $RepositoryRoot 'WebsiteArtifacts'
 }
 $ArtifactsRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ArtifactsRoot)
+$buildRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($BuildOutputRoot)
+$pathComparison = if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+    [StringComparison]::OrdinalIgnoreCase
+} else { [StringComparison]::Ordinal }
+$sourceBoundary = $RepositoryRoot.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+foreach ($output in @(@{Name='BuildOutputRoot';Path=$buildRoot}, @{Name='ArtifactsRoot';Path=$ArtifactsRoot})) {
+    $insideSource = [string]::Equals($output.Path.TrimEnd('\', '/'), $RepositoryRoot.TrimEnd('\', '/'), $pathComparison) -or
+        $output.Path.StartsWith($sourceBoundary, $pathComparison)
+    $trackedSnapshot = $output.Name -eq 'ArtifactsRoot' -and
+        [string]::Equals($output.Path.TrimEnd('\', '/'), (Join-Path $RepositoryRoot 'WebsiteArtifacts'), $pathComparison)
+    if ($insideSource -and -not $trackedSnapshot) {
+        throw "$($output.Name) must be outside the source checkout; ArtifactsRoot may also use the tracked WebsiteArtifacts target."
+    }
+}
 
 $moduleName = 'PSWriteOffice'
 $manifestPath = Join-Path $RepositoryRoot "$moduleName.psd1"
@@ -184,10 +200,17 @@ function Get-QualifiedSourceRevision {
 }
 
 $sourceBeforeBuild = Get-QualifiedSourceRevision -BeforeBuild
-$buildRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($BuildOutputRoot)
 $stagingPath = Join-Path $buildRoot ('PSWriteOffice-website-export-' + [guid]::NewGuid().ToString('N'))
-$buildResults = @(& (Join-Path $RepositoryRoot 'Build\Build-Module.ps1') `
-    -RunMode Build -SignModule $false -SkipInstall -PassThru -StagingPath $stagingPath)
+# Benchmark workflows intentionally enable sibling project references. This export
+# qualifies the committed package pins, so do not inherit that process preference.
+$previousProjectReferences = $env:UseOfficeIMOProjectReferences
+try {
+    $env:UseOfficeIMOProjectReferences = 'false'
+    $buildResults = @(& (Join-Path $RepositoryRoot 'Build\Build-Module.ps1') `
+        -RunMode Build -SignModule $false -SkipInstall -PassThru -StagingPath $stagingPath)
+} finally {
+    $env:UseOfficeIMOProjectReferences = $previousProjectReferences
+}
 if (-not $? -or $buildResults.Count -ne 1 -or -not $buildResults[0].BuildResult) {
     throw 'PSWriteOffice module build did not return one completed build result.'
 }
