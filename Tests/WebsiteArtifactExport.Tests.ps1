@@ -33,7 +33,7 @@ AfterAll {
 Describe 'Explicit website API bundle qualification' {
     BeforeEach {
         'public class Example { }' | Set-Content $sourceInput
-        "@{ ModuleVersion = '3.0.8' }" | Set-Content $bundleManifest
+        Copy-Item $sourceManifest $bundleManifest
         '<helpItems><command><details><name>Get-OfficeExample</name></details></command></helpItems>' | Set-Content $bundleHelp
     }
 
@@ -54,6 +54,20 @@ Describe 'Explicit website API bundle qualification' {
         '<helpItems><command><details><name>Get-OfficeOther</name></details></command></helpItems>' | Set-Content $bundleHelp
         { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
             Should -Throw '*help for every exported command*'
+        Test-Path $outputRoot | Should -BeFalse
+    }
+
+    It 'rejects extra commands in the package manifest before importing or writing output' {
+        "@{ ModuleVersion = '3.0.8'; CmdletsToExport = @('Get-OfficeExample', 'Get-OfficeOther') }" | Set-Content $bundleManifest
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
+            Should -Throw '*complete bundle*'
+        Test-Path $outputRoot | Should -BeFalse
+    }
+
+    It 'rejects package manifest metadata that differs from the selected source' {
+        "@{ ModuleVersion = '3.0.8'; CmdletsToExport = @('Get-OfficeExample'); RootModule = 'Other.psm1' }" | Set-Content $bundleManifest
+        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -SkipBuild -BuiltModuleManifestPath $bundleManifest } |
+            Should -Throw '*complete bundle*'
         Test-Path $outputRoot | Should -BeFalse
     }
 

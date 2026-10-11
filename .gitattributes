@@ -32,6 +32,7 @@ WebsiteArtifacts/apidocs/powershell/PSWriteOffice.psd1 -text -diff
 WebsiteArtifacts/apidocs/powershell/PSWriteOffice-help.xml -text -diff
 WebsiteArtifacts/apidocs/powershell/command-metadata.json -text -diff
 WebsiteArtifacts/apidocs/powershell/bundle-manifest.json text eol=lf
+Docs/Generated/PSWriteOffice-help.xml -text -diff
 
 # Office and archive formats are binary.
 *.png binary
