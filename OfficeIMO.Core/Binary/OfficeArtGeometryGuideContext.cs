@@ -25,8 +25,7 @@ internal sealed class OfficeArtGeometryGuideContext {
             case 0x0153:
             case 0x0154: result = Scalar(id, int.MinValue); break;
             case 0x01FC:
-                uint flags = unchecked((uint)Scalar(0x01FF, 0));
-                result = (flags & 0x00080000) == 0 || (flags & 0x00000008) != 0 ? 1 : 0; break;
+                result = OfficeArtProperty.GetBoolean(_properties, 0x01FF, 0x00080000, 0x00000008) != false ? 1 : 0; break;
             case 0x04FC:
             case 0x04FD:
             case 0x04FE:

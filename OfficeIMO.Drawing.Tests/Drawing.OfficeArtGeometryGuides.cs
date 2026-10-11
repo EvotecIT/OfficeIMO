@@ -6,6 +6,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void OfficeArtBooleanInheritance_GuideStrokeOperandKeepsIndependentBitsAndAllowsExplicitOverride() {
+        var properties = Guides(((ushort)0x2000, (ushort)0x01FC, (ushort)0, (ushort)0));
+        properties.Add(new OfficeArtProperty(0, 0x01FF, 0x00080000U));
+        properties.Add(new OfficeArtProperty(0, 0x01FF, 0x00400000U));
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var result, out _));
+        Assert.Equal(0, Assert.Single(result));
+        properties.Add(new OfficeArtProperty(0, 0x01FF, 0x00080008U));
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out result, out _));
+        Assert.Equal(1, Assert.Single(result));
+    }
+
     [Theory]
     [InlineData(0, 10, 20, 5, 0, 25)]
     [InlineData(1, 3, 5, 2, 0, 8)]
