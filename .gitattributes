@@ -27,6 +27,12 @@
 .gitattributes text eol=lf
 .gitignore text eol=lf
 
+# API exports carry fingerprints of the producer's exact component bytes.
+WebsiteArtifacts/apidocs/powershell/PSWriteOffice.psd1 -text -diff
+WebsiteArtifacts/apidocs/powershell/PSWriteOffice-help.xml -text -diff
+WebsiteArtifacts/apidocs/powershell/command-metadata.json -text -diff
+WebsiteArtifacts/apidocs/powershell/bundle-manifest.json text eol=lf
+
 # Office and archive formats are binary.
 *.png binary
 *.jpg binary
