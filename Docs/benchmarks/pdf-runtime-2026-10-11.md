@@ -1,8 +1,10 @@
 # PDF runtime operations (2026-10-11)
 
+The integrated source qualifies five rendering boundaries, first successful destination-write observations and authored closed-ruling geometry recovery. All 234 new non-profile samples and 100 separately profiled measured calls passed their output contracts. Stronger grid recovery increases measured allocation and latency; rendering and destination results retain substantial timing variation and memory losses.
+
 Region replacement and movement reuse source readers within one operation. In the full-matrix confirmation, mean managed allocation fell by 1.4–2.4% in all 12 edit cases. Eleven edit medians improved; one median and two observed tails became slower. The shared host also produced large timing changes in unchanged operations, so these results support a bounded allocation reduction and observed latency differences, without establishing a causal or universal speedup.
 
-The [companion JSON](pdf-runtime-2026-10-11.json) retains the original baseline, the initial edit comparison, the complete confirmation, structured-read and destination cohorts, all measured latency/allocation samples, input fingerprints, binary identities and raw-report hashes. It separates the two processor domains and preserves every measured loss. These are local source measurements; package publication and deployment are separate evidence.
+The [companion JSON](pdf-runtime-2026-10-11.json) retains the original baseline, the initial edit comparison, the complete confirmation, structured-read, destination, rendering-stage, first-write, sampled-memory and closed-ledger cohorts, all measured latency/allocation samples, input fingerprints, binary identities and raw-report hashes. It separates the two processor domains and preserves every measured loss. These are local source measurements; package publication and deployment are separate evidence.
 
 ## Work and measurement boundaries
 
@@ -105,7 +107,106 @@ A separate five-millisecond memory cohort ran three measurements per strategy/do
 | B / 100 | 22.35 → 21.90 | 260.88 → 260.09 |
 | B / 500 | 59.37 → 57.62 | 257.91 → 254.33 |
 
-Lower sampled heap growth does not imply uniformly lower resident memory: A's sampled working set is higher for direct output. The companion preserves per-iteration sampler counts, baselines, sampled maxima and every instrumented latency loss. Instrumented timings belong to this separate cohort. First-byte latency, cancellation latency, durable storage and constant-space layout are outside these measurement contracts.
+Lower sampled heap growth does not imply uniformly lower resident memory: A's sampled working set is higher for direct output. The companion preserves per-iteration sampler counts, baselines, sampled maxima and every instrumented latency loss. Instrumented timings belong to this separate cohort. These historical destination cohorts exclude first-byte latency, cancellation latency, durable storage and constant-space layout. The later instrumented cohort below separately observes first successful destination-write completion.
+
+## Rendering boundaries on the integrated source
+
+The current-head evidence uses clean product source `90e061551cee67b9b92443e273ffc2e81316c416` and a matched 37-file Release/net10.0 binary snapshot. Its PDF/Core source matches the preceding `184cd966` correctness candidate; the later integration changes the native DOC codec. The frozen phase harness is `2ed26d029163294b5b2113c979ea59530bd895ff`. Its 13 source/spec/wrapper files have the same canonical Git content as the integrated checkout; their physical CRLF/LF hashes remain separately recorded. Historical cohorts above keep their original compilation identities.
+
+The final combined build passed a new eight-operation, 20-page functional smoke. Five rendering, two first-write and two closed-ledger smoke cases also passed. The first first-write attempt failed when Poppler tried to create XHTML at a 261-character Windows path; both 259-character PDF outputs existed and passed managed validation. The same frozen code and inputs passed full independent readback under a shorter task output root. Both failed samples and exact diagnostics remain excluded from performance statistics.
+
+Rendering uses the same 20-page, 60,732-byte embedded-Carlito business source and four 384 × 512 previews. `SourceOpen` measures public source opening; `Projection` starts from a freshly opened reader and produces four drawings; `Rasterization` starts from newly projected drawings; `PngEncoding` starts from newly rendered RGBA rasters. Preparation and downstream artifact completion occur outside the measured operation. `RenderPng` includes source loading and the complete public render call. Inputs are fresh per sample, while process-wide JIT, font and codec caches remain warmable.
+
+All 70 measured outputs passed zero-diagnostic, scene-geometry and complete PNG-byte/RGBA agreement checks against a fresh public `RenderPng` control. Poppler independently checked all 20 source pages and their text/geometry. PNG/control equality establishes managed representation consistency; it does not establish independent visual fidelity.
+
+| Operation | A median / p95, ms | B median / p95, ms | A / B mean allocation, MiB |
+| --- | ---: | ---: | ---: |
+| SourceOpen | 0.59 / 1.70 | 0.90 / 1.69 | 2.65 / 2.63 |
+| Projection, four pages | 15.19 / 66.04 | 34.54 / 41.09 | 18.74 / 18.71 |
+| Rasterization, four pages | 15.76 / 189.79 | 31.20 / 151.53 | 11.49 / 11.49 |
+| PngEncoding, four rasters | 15.28 / 25.95 | 19.94 / 36.15 | 2.91 / 2.90 |
+| Complete RenderPng, four previews | 50.14 / 226.42 | 104.03 / 365.02 | 36.50 / 36.49 |
+
+These separate prepared-stage medians are not additive. They do not partition one end-to-end execution or support residual-overhead subtraction. Seven samples per cell showed population coefficients of variation from 27% to 123%; the large tails remain in the companion. Fresh pre-run counts ranged from 41 to 98 `dotnet` processes, with Java and compiler processes present. The coordinator held this goal's other heavy work, but those counts do not establish CPU utilization or a contention-free host. The native cache query refreshed both 96 MiB L3 affinity domains immediately before this window.
+
+## Sampled managed-stack attribution
+
+A single separate domain-A profile requested ten warmups and 100 measured public `RenderPng` calls through the same PowerForge runner. All 100 measured outputs passed artifact validation; ten completed warmups are inferred from successful runner completion and have no individual readback/export. The captured EventPipe session lasted 36.008 seconds within a 45-second bound. Collection and measured work completed before the cap. The child exit code was not independently captured; qualified artifacts establish the measured scope. This profiled cohort is excluded from standard timing comparisons.
+
+The Windows `dotnet-sampled-thread-time` capture contains 215,091 typed sample events from one PowerShell process. Of these, 3,180 have `PdfRenderStageWorkload.Execute` on their stack: 3,030 are classified Managed and 150 External. Another 211,911 samples lack that root; zero decoded samples lack a stack. Filtering excludes setup and untimed controls where the relevant frames resolve. It does not assign samples to individual iterations or establish complete native/worker-thread coverage.
+
+| Method family present in a matched stack | Matched sample count |
+| --- | ---: |
+| PDF font-resource creation | 874 |
+| Drawing font-family creation | 129 |
+| Drawing TrueType-font methods | 360 |
+| PDF TrueType Unicode cmap | 223 |
+| PDF ToUnicode cmap | 277 |
+| Raster RenderCore | 1,092 |
+| Contour filling | 735 |
+| PNG writer | 552 |
+| Deflater | 355 |
+
+Counts are inclusive unions within each explicitly named method family and overlap across rows. They are not exclusive phase shares or CPU percentages. Font preparation/cmap handling, raster contour filling and PNG compression appear in the controlled render stacks; those are concrete targets for a subsequent bounded profile/optimization. The corpus produces one named Arabic logical-text-shaper sample and no named HarfBuzz sample; absence of a named frame is not evidence of zero shaping cost.
+
+Exactly 500 matched samples (15.7%) contain an unresolved frame: 323 have a resolved deflater caller and 177 an inflater caller. The decoder reports zero lost events and `Truncated=false`; these are parser observations, not proof of perfect collection or symbol coverage. The trace records a 1 ms sample interval, so raw counts are retained without conversion from a nominal sampling frequency into CPU time. All 2,071 distinct matched stacks, complete frames, leaf/inclusive counts, method-resolution flags and scope/tool/source hashes survive in an entry-verified lossless archive. The separate 23,722,030-byte raw trace remains retained.
+
+## First successful destination-write observations
+
+This separate instrumented cohort composes and closes complete direct/copied PDF 1.7 forward outputs at 20, 100 and 500 pages. It measures the first successful nonempty underlying `FileStream.Write` completion. That event is an upper-bound observable proxy for stream/OS-cache acceptance; it does not establish first physical-byte arrival, durable persistence or network delivery. PowerForge supplies total elapsed time and allocation. Benchmark-local event timestamps retain method entry, Save start, first write call start and completion, plus the call interval and payload.
+
+All 84 standard samples passed exact reference-output digests, byte/write-count checks and independent Poppler readback of every persisted page. Direct output first accepts a 15-byte header and makes 112/432/2,032 nonempty writes. Copied output first accepts the whole 60,732/150,879/604,948-byte artifact in one write. Those payloads are different delivery milestones, even though both strategies finish with identical complete files.
+
+| Domain / pages | Strategy | Total median / p95, ms | Method entry → first write completion, ms | Save start → first write completion, ms | First payload, bytes |
+| --- | --- | ---: | ---: | ---: | ---: |
+| A / 20 | Direct | 122.41 / 193.16 | 57.12 | 4.06 | 15 |
+| A / 20 | Copied | 159.90 / 206.51 | 114.85 | 51.33 | 60,732 |
+| A / 100 | Direct | 160.47 / 223.57 | 78.12 | 15.03 | 15 |
+| A / 100 | Copied | 131.50 / 403.43 | 101.88 | 63.65 | 150,879 |
+| A / 500 | Direct | 325.63 / 435.96 | 160.58 | 124.80 | 15 |
+| A / 500 | Copied | 421.48 / 531.75 | 381.90 | 211.89 | 604,948 |
+| B / 20 | Direct | 80.77 / 101.51 | 42.63 | 3.08 | 15 |
+| B / 20 | Copied | 101.30 / 147.98 | 75.04 | 29.34 | 60,732 |
+| B / 100 | Direct | 113.34 / 191.97 | 58.58 | 10.78 | 15 |
+| B / 100 | Copied | 131.15 / 154.74 | 99.77 | 64.64 | 150,879 |
+| B / 500 | Direct | 189.96 / 290.32 | 115.09 | 73.46 | 15 |
+| B / 500 | Copied | 226.66 / 265.41 | 186.67 | 142.41 | 604,948 |
+
+Direct Save-start to first-write completion grows from 3.08–4.06 ms at 20 pages to 73.46–124.80 ms at 500 pages. A small first header does not establish a constant-time first-write boundary or incremental layout; both strategies still compose and save the complete document.
+
+All event medians are from the unsampled instrumented cohort. Named memory observations call `GC.GetTotalMemory(false)` and query the current process working set inside the measured operation. Direct first-write completion is captured before its memory callback. Copied output additionally observes `SaveComplete` and `BeforeDestinationWrite` before its first destination write. These observations add overhead and differ by strategy; the table does not estimate uninstrumented production latency, isolated composition cost or a causal cost of copying. The first call-start/completion interval and every raw timestamp remain in the companion.
+
+Direct output used 1.74–2.19% less mean managed allocation in the six standard comparisons. Its A/100-page total median rose 22.0%; B/100- and B/500-page p95 rose 24.1% and 9.4%. The separate sampled-memory cohort also retained an A/100-page p95 increase of 0.09%, and B/100-page median/p95 increases of 0.33%/0.58%. These observations are comparisons of the instrumented strategies, without a product before/after change.
+
+## Named and periodically sampled memory
+
+The event cohort retains six named snapshots for direct output and seven for copied output, including copied `BeforeDestinationWrite` after `ToArray`. Their actual order, absolute heap/working-set values and signed deltas from the same iteration's entry snapshot remain in the JSON. Boundaries have no phase timestamps, and heap differences are not phase allocation. At 500 pages, median heap growth at `CompositionComplete` was about 7.26–7.27 MiB for both strategies/domains; at `DestinationClosed` it was 28.98–28.99 MiB for direct and 30.71–30.73 MiB for copied. Collection and host activity can reduce later observations.
+
+A separate 5 ms periodic-memory cohort ran two warmups and three measured samples per strategy/domain at 100 and 500 pages. All 24 passed, with 6–11 observations per operation and zero recorded sampler failures. These are medians of sampled heap growth above each operation's baseline and sampled absolute working-set maxima, in MiB.
+
+| Domain / pages | Copied → direct sampled heap growth, MiB | Copied → direct sampled working-set maximum, MiB |
+| --- | ---: | ---: |
+| A / 100 | 12.73 → 23.28 | 240.84 → 264.50 |
+| A / 500 | 54.33 → 43.01 | 266.64 → 255.38 |
+| B / 100 | 23.75 → 23.30 | 261.05 → 268.44 |
+| B / 500 | 48.88 → 55.48 | 272.70 → 271.58 |
+
+Direct output has higher observed heap growth in A/100 and B/500, and higher working-set maxima in both 100-page cases. The companion preserves all 24 sampler counts, errors, baselines, maxima/deltas and named snapshots. These observations can miss peaks and include observer effects; they establish neither retained heap, true peak memory, native allocation attribution nor constant-space layout. Their latency/allocation distributions remain separate from the preceding unsampled event cohort and the historical ordinary destination cohort.
+
+## Cost of authored closed-ruling geometry recovery
+
+The closed-ledger workload freshly loads each immutable independent-producer fixture at page rotations 0 and 90, then calls public structured reading. Baseline product source is `e8c8321b3dc3baca01d84aaab38333266fcc7e66` with the same benchmark-only harness. Its actual assemblies have plain informational versions; source/build and all 37 binary hashes establish its identity separately. The integrated after source is `90e061551cee67b9b92443e273ffc2e81316c416`, including the reviewed overpaint-safe grid repair and other qualified product changes. The comparison therefore describes observed cost of stronger recovery and has no causal attribution to the grid patch alone.
+
+All 56 measurements preserve the same ordered 4 × 4 labels and semantic digest. Baseline detects column widths 166.338/164/100/81.662 points and a text-derived bounding grid. The repaired output recovers authored widths 240/72/96/120 points and the authored bounding grid. Geometry and its output digest intentionally differ; equivalent-output speedup is not the contract. Poppler independently qualifies source text and rotated word order, while producer metadata and exact managed geometry assertions qualify the grid.
+
+| Domain / rotation | Median before → after, ms | p95 before → after, ms | Mean allocation before → after, KiB | Median / allocation change |
+| --- | ---: | ---: | ---: | ---: |
+| A / 0 | 4.56 → 6.43 | 5.23 → 7.81 | 3,206.75 → 3,470.10 | +41.1% / +8.2% |
+| A / 90 | 4.44 → 4.56 | 6.71 → 6.10 | 3,204.56 → 3,470.57 | +2.6% / +8.3% |
+| B / 0 | 2.87 → 3.45 | 3.44 → 3.80 | 3,176.48 → 3,477.11 | +20.2% / +9.5% |
+| B / 90 | 2.84 → 4.05 | 3.62 → 5.65 | 3,174.30 → 3,471.62 | +42.8% / +9.4% |
+
+All four medians and allocation means increase. Three p95 values increase; A/90 improves 9.0%. Runs use A before → after and B after → before, with matching fixture, parser/work limits, harness, rotation cadence and seven retained samples per cell. Broader integration, finite samples and shared-host effects limit interpretation.
 
 ## Reproduce
 
@@ -121,6 +222,14 @@ dotnet build OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release
 ./Build/Benchmarks/Run-PdfRuntimeEvidenceBenchmarks.ps1 -Family StructuredRead -OutputRoot ./Ignore/Benchmarks/PdfEvidence/A -ProcessorAffinityMask 0xFFFF
 ./Build/Benchmarks/Run-PdfRuntimeEvidenceBenchmarks.ps1 -Family Destination -OutputRoot ./Ignore/Benchmarks/PdfEvidence/A -ProcessorAffinityMask 0xFFFF
 ./Build/Benchmarks/Run-PdfRuntimeEvidenceBenchmarks.ps1 -Family Destination -Pages 100,500 -IterationCount 3 -MemorySamplingIntervalMilliseconds 5 -OutputRoot ./Ignore/Benchmarks/PdfMemory/A -ProcessorAffinityMask 0xFFFF
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family RenderStages -Plan
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family FirstWrite -Plan
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family ClosedLedger -ExpectedGeometry ClosedRuling -Plan
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family RenderStages -OutputRoot (Join-Path $env:TEMP 'pdf-phase/A') -ProcessorAffinityMask 0xFFFF
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family FirstWrite -Pages 20,100,500 -OutputRoot (Join-Path $env:TEMP 'pdf-write/A') -ProcessorAffinityMask 0xFFFF
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family FirstWrite -Pages 100,500 -IterationCount 3 -MemorySamplingIntervalMilliseconds 5 -OutputRoot (Join-Path $env:TEMP 'pdf-memory/A') -ProcessorAffinityMask 0xFFFF
 ```
 
 Supply `-EnvironmentEvidence` with a fresh host snapshot and discover the actual CPU topology before choosing affinity masks. The displayed masks describe this host. Retain raw reports and decisive output hashes; repeated full-document rendering, stronger independent visual fidelity, retained/peak-memory qualification and contention-free capacity measurements require their own evidence.
+
+Use a short output root for native Windows Poppler readback; the failed 261-character XHTML path is retained as excluded qualification evidence. Historical binary/TRX copies are preserved in entry-verified archives through the companion's retention mapping. Current profile evidence retains the raw trace and a lossless complete-frame archive.

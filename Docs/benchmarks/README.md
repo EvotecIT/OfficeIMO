@@ -473,10 +473,14 @@ contender ceiling without a runtime optimization in this slice.
 
 The [11 October 2026 runtime evidence](pdf-runtime-2026-10-11.md) measures generation,
 repeated inspection, rendering, region editing, structured reading, and file
-destinations through the shared PowerForge runner. Its [raw companion](pdf-runtime-2026-10-11.json)
+destinations through the shared PowerForge runner. It also records prepared
+rendering stages, first successful destination-write observations, a separate
+sampled-memory cohort, sampled managed render stacks, and the cost of recovering
+authored closed-grid geometry. Its [raw companion](pdf-runtime-2026-10-11.json)
 retains exact inputs, binary identities, samples, allocation changes, and observed
 timing losses. The results describe frozen source/binary snapshots and named
-workloads on a shared Windows host.
+workloads on a shared Windows host; sampled stacks are not CPU percentages,
+and destination-write completion does not establish physical or durable delivery.
 
 ## PDF comparisons
 
