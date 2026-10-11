@@ -3,21 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    /// <summary>Measures bounded running flow through the same paragraph and container layout used during serialization.</summary>
-    internal static double? MeasureRunningContentHeight(PdfOptions options, IReadOnlyList<IPdfBlock> blocks,
-        double contentWidth, System.Threading.CancellationToken cancellationToken) {
-        using var measure = new LayoutContext(options, isRunningContent: true, cancellationToken: cancellationToken);
-        return measure.MeasureRunningContentAdmission(blocks, contentWidth);
-    }
-
     private sealed partial class LayoutContext {
-        public double? MeasureRunningContentAdmission(IReadOnlyList<IPdfBlock> blocks, double contentWidth) {
-            cancellationToken.ThrowIfCancellationRequested();
-            width = contentWidth;
-            yStart = currentOpts.PageHeight - currentOpts.MarginTop;
-            return MeasureBlockSequence(blocks, currentOpts.MarginLeft, contentWidth, currentOpts.DefaultFontSize, initialY: yStart);
-        }
-
         private readonly RunningContentImageAssets runningAssets;
         private readonly IReadOnlyList<PageNumberInfo>? previousRunningPages;
         private readonly int previousDocumentPages;
@@ -70,30 +56,86 @@ internal static partial class PdfWriter {
             PdfOptions source = currentOpts;
             IReadOnlyList<IPdfBlock>? headerBlocks = header == null ? null : MaterializeRunningContent(header, context);
             IReadOnlyList<IPdfBlock>? footerBlocks = footer == null ? null : MaterializeRunningContent(footer, context);
-            double headerHeight = header == null ? 0D : MeasureRunningContent(source, header, headerBlocks!);
-            double footerHeight = footer == null ? 0D : MeasureRunningContent(source, footer, footerBlocks!);
-            double top = headerHeight <= 0D ? source.MarginTop
-                : Math.Max(source.MarginTop, header!.DistanceFromEdge + headerHeight + header.BodyGap);
-            double bottom = footerHeight <= 0D ? source.MarginBottom
-                : Math.Max(source.MarginBottom, footer!.DistanceFromEdge + footerHeight + footer.BodyGap);
+            bool usesPageContext = header?.UsesPageContext == true || footer?.UsesPageContext == true;
+            double? measuredHeader = header == null ? 0D : MeasureRunningContent(source, header, headerBlocks!);
+            double? measuredFooter = footer == null ? 0D : MeasureRunningContent(source, footer, footerBlocks!);
+            bool fallbackHeader = !measuredHeader.HasValue;
+            bool fallbackFooter = !measuredFooter.HasValue;
+            if (fallbackHeader) header = null;
+            if (fallbackFooter) footer = null;
+            double headerHeight = measuredHeader ?? 0D;
+            double footerHeight = measuredFooter ?? 0D;
+            double top = Exclusion(header, headerHeight, source.MarginTop);
+            double bottom = Exclusion(footer, footerHeight, source.MarginBottom);
+            if (header?.AllowTextFallback == true && top > source.MarginTop + .001D) {
+                double firstBodyHeight = MeasureRunningContentFirstBodyHeight(source);
+                if (firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
+                    source.PageHeight - top - bottom + .001D < firstBodyHeight) {
+                    fallbackHeader = true;
+                    header = null;
+                    headerHeight = 0D;
+                    top = source.MarginTop;
+                }
+            }
+            if (source.PageHeight - top - bottom <= .001D) {
+                // Ordinary imported stories retain styled text projections. Use
+                // them when this page's actual fields and opposite story leave
+                // no body frame; required native flow keeps its strict contract.
+                if (header?.AllowTextFallback == true) {
+                    fallbackHeader = true;
+                    header = null;
+                    headerHeight = 0D;
+                    top = source.MarginTop;
+                }
+                if (footer?.AllowTextFallback == true) {
+                    fallbackFooter = true;
+                    footer = null;
+                    footerHeight = 0D;
+                    bottom = source.MarginBottom;
+                }
+            }
             if (source.PageHeight - top - bottom <= .001D)
                 throw new InvalidOperationException("Running PDF content must leave a positive body content frame.");
-            currentOpts = GetRunningFrameOptions(source, top, bottom);
+            // A fallback is local to this page and variant. Never remove a
+            // definition from the shared source or cached geometry frames.
+            currentOpts = fallbackHeader || fallbackFooter
+                ? source.CreateRunningContentFrame(top, bottom) : GetRunningFrameOptions(source, top, bottom);
+            if (fallbackHeader) currentOpts.ClearRunningContentForPage(variant, isHeader: true);
+            if (fallbackFooter) currentOpts.ClearRunningContentForPage(variant, isHeader: false);
             currentPage!.Options = currentOpts;
             currentPage.RunningContentContext = context;
-            currentPage.HasDynamicRunningContent = header?.UsesPageContext == true || footer?.UsesPageContext == true;
+            currentPage.HasDynamicRunningContent = usesPageContext;
             yStart = source.PageHeight - top;
             y = yStart;
             if (header != null && headerHeight > 0D)
                 RenderRunningContent(source, headerBlocks!, source.PageHeight - header.DistanceFromEdge, headerHeight, isHeader: true);
             if (footer != null && footerHeight > 0D)
                 RenderRunningContent(source, footerBlocks!, footer.DistanceFromEdge + footerHeight, footerHeight, isHeader: false);
+
+            static double Exclusion(PdfRunningContent? content, double height, double physicalMargin) =>
+                content == null || height <= 0D ? physicalMargin
+                    : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
 
-        private double MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks) {
+        private double MeasureRunningContentFirstBodyHeight(PdfOptions source) {
+            if (activeBlockSequences.Count == 0) return 0D;
+            BlockSequenceScope sequence = activeBlockSequences[activeBlockSequences.Count - 1];
+            if (sequence.Index >= sequence.Blocks.Count) return 0D;
+            IPdfBlock block = sequence.Blocks[sequence.Index];
+            return block is PageBlock page
+                ? MeasureFirstNestedVisualHeight(page.Blocks, source.MarginLeft, width, source.DefaultFontSize,
+                    allowTableFragments: true, suppressParagraphSpacingBefore: true)
+                : MeasureNextBlockFirstVisualHeight(block, source.MarginLeft, width, source.DefaultFontSize,
+                    allowTableFragments: true, suppressParagraphSpacingBefore: true);
+        }
+
+        private double? MeasureRunningContent(PdfOptions source, PdfRunningContent definition, IReadOnlyList<IPdfBlock> blocks) {
             if (blocks.Count == 0) return 0D;
             double start = source.PageHeight - definition.DistanceFromEdge;
-            if (start <= 0D) throw new InvalidOperationException("Running PDF content starts outside the page.");
+            if (start <= 0D) {
+                if (definition.AllowTextFallback) return null;
+                throw new InvalidOperationException("Running PDF content starts outside the page.");
+            }
             PdfOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
             using var measure = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true);
@@ -102,10 +144,14 @@ internal static partial class PdfWriter {
             measure.yStart = start;
             measure.y = start;
             double? height = measure.MeasureBlockSequence(blocks, frame.MarginLeft, width, frame.DefaultFontSize);
-            if (!height.HasValue)
+            if (!height.HasValue) {
+                if (definition.AllowTextFallback) return null;
                 throw new NotSupportedException("Running PDF content must contain bounded, measurable flow; page breaks, deferred flow and page canvases are unsupported.");
-            if (height.Value > start + .001D)
+            }
+            if (height.Value > start + .001D) {
+                if (definition.AllowTextFallback) return null;
                 throw new InvalidOperationException("Running PDF content exceeds the physical page height.");
+            }
             return height.Value;
         }
 

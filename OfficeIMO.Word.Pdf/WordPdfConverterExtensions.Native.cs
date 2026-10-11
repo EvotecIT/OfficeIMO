@@ -181,7 +181,6 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, WordToPdfOptions? options) {
             CancellationToken cancellationToken = options?.CancellationToken ?? CancellationToken.None;
             cancellationToken.ThrowIfCancellationRequested();
-            if (options != null) options.RunningStoryFits = null;
             ResetNativeStyleLookupCache(document);
             WordBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap(options?.Report);
@@ -214,7 +213,6 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
-            PrepareNativeRunningStoryAdmission(document, options, pdf.Options, nativeFontMap, listMarkers, nativeDefaults);
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
             IReadOnlyList<WordSection> sections = document.Sections;
             var documentEndnotes = new List<PdfFootnote>();

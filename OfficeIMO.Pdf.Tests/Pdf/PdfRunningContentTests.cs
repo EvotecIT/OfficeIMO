@@ -6,6 +6,28 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
+    [Fact]
+    public void ImportedTextFallbackIsLocalToThePageVariantAndReservesTheBodyLine() {
+        var document = PdfDocument.Create(Options());
+        document.Header(header => header.Text("DEFAULT TEXT").FirstPageText("FIRST TEXT")
+            .Content(content => content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(24)), 18)
+            .FirstPageContent(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(246)), 18));
+        document.Options.AllowRunningContentTextFallback(isHeader: true);
+        document.Paragraph(paragraph => paragraph.Text("BODY").FontSize(40)).PageBreak()
+            .Paragraph(paragraph => paragraph.Text("BODY"));
+
+        for (int pass = 0; pass < 2; pass++) {
+            using var pdf = PdfPigDocument.Open(document.ToBytes());
+            Assert.Equal(2, pdf.NumberOfPages);
+            Assert.Contains("FIRST TEXT", pdf.GetPage(1).Text);
+            Assert.Contains("BODY", pdf.GetPage(1).Text);
+            Assert.DoesNotContain("TALL", pdf.GetPage(1).Text);
+            Assert.Contains("FLOW", pdf.GetPage(2).Text);
+            Assert.Contains("BODY", pdf.GetPage(2).Text);
+            Assert.DoesNotContain("DEFAULT TEXT", pdf.GetPage(2).Text);
+        }
+    }
+
     private static PdfOptions Options(long memoryLimit = 1024 * 1024) => new() {
         PageWidth = 240, PageHeight = 320, MarginTop = 32, MarginBottom = 32,
         MarginLeft = 24, MarginRight = 24, DefaultFont = PdfStandardFont.Helvetica,

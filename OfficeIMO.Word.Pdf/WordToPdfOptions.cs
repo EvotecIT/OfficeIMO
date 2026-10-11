@@ -9,7 +9,6 @@ namespace OfficeIMO.Word.Pdf {
     /// </summary>
     public class WordToPdfOptions {
         internal CancellationToken CancellationToken { get; set; }
-        internal Func<WordSection, bool, bool>? RunningStoryFits { get; set; }
 
         /// <summary>Maximum images collected from one Word paragraph during PDF export.</summary>
         public int MaxImagesPerParagraph { get; set; } = 1_000;

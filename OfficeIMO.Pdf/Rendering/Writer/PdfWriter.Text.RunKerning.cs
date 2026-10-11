@@ -28,7 +28,8 @@ internal static partial class PdfWriter {
             int start = line.Count - 1;
             while (start > 0 && Compatible(line[start - 1], line[start])) start--;
             SpendWork(line.Count - start);
-            RichSeg[] tail = line.Skip(start).ToArray();
+            var tail = new RichSeg[line.Count - start];
+            for (int index = 0; index < tail.Length; index++) tail[index] = line[start + index];
             return MeasureJoin(tail, new[] { right });
         }
 
