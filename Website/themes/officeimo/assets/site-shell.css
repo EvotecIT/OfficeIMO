@@ -758,11 +758,14 @@ body.imo-body::after {
 .imo-t-muted { color: #71809a; }
 @media (max-width: 1023px) {
   .imo-workbench__intro { grid-template-columns: minmax(0, 1fr); }
+  /* The screenshot takes the full row; the two code cards sit side by side beneath it. */
   .imo-workbench__stage { display: grid; gap: 14px; min-height: 0; padding-bottom: 2rem; }
-  .imo-workbench__window { width: 100%; border-bottom: 1px solid var(--imo-border-strong); border-radius: 12px; }
-  .imo-workbench__float { position: static; width: auto; }
+  .imo-workbench__stage:not(.imo-workbench__stage--single) { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .imo-workbench__window { grid-column: 1 / -1; width: 100%; border-bottom: 1px solid var(--imo-border-strong); border-radius: 12px; }
+  .imo-workbench__float { position: static; width: auto; min-width: 0; }
 }
 @media (max-width: 640px) {
+  .imo-workbench__stage:not(.imo-workbench__stage--single) { grid-template-columns: minmax(0, 1fr); }
   .imo-workbench__float--ps { display: none; }
 }
 
