@@ -9,6 +9,33 @@ namespace OfficeIMO.Tests;
 
 public sealed class PdfStrokeContractTests {
     [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public void ExplicitMiterLimitSurvivesPdfPaintingOfSolidShapeShadows(int placement, bool transformedDash) {
+        var shape = OfficeShape.Path(40, 40, OfficePathCommand.MoveTo(14, 40), OfficePathCommand.LineTo(20, 0), OfficePathCommand.LineTo(26, 40));
+        shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 2;
+        shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+        shape.Shadow = new OfficeShadow(OfficeColor.Green, 1, 10, 0, 0);
+        if (transformedDash) {
+            shape.Transform = OfficeTransform.Identity;
+            shape.SetStrokeDashArray(new[] { 4D, 2D });
+        }
+        var options = new PdfOptions { CompressContentStreams = false, PageWidth = 100, PageHeight = 100,
+            MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0, FooterOffsetY = 0 };
+        byte[] bytes = PaintAtPlacement(options, shape, placement);
+        var shadows = Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Where(item => item.Shape.StrokeColor == OfficeColor.Green).ToArray();
+        Assert.NotEmpty(shadows);
+        Assert.All(shadows, item => Assert.Empty(item.Shape.StrokeDashArray));
+        // The two independent stroke scopes must both declare their limit.
+        // The PDF reader explicitly reports simplified M-operator rendering.
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?m)^4 M\r?$").Count);
+    }
+
+    [Theory]
     [InlineData(false, OfficeStrokeDashStyle.Dot)]
     [InlineData(true, OfficeStrokeDashStyle.Dot)]
     [InlineData(false, OfficeStrokeDashStyle.DashDot)]
@@ -53,10 +80,7 @@ public sealed class PdfStrokeContractTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 8, 25);
         var options = new PdfOptions { CompressContentStreams = false, PageWidth = 100, PageHeight = 100,
             MarginLeft = 10, MarginRight = 10, MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0, FooterOffsetY = 0 };
-        byte[] bytes = placement == 0
-            ? PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Canvas(canvas =>
-                canvas.Drawing(new OfficeDrawing(100, 100).AddShape(shape, 10, 50), 0, 0, 100, 100)))).ToBytes()
-            : Running(options, shape, placement == 2);
+        byte[] bytes = PaintAtPlacement(options, shape, placement);
         Assert.Contains("4 M", Encoding.ASCII.GetString(bytes));
         var strokes = Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Where(item => item.Shape.StrokeColor == OfficeColor.Red).ToArray();
         Assert.True(strokes.Length >= 2);
@@ -68,6 +92,11 @@ public sealed class PdfStrokeContractTests {
         else page.Header(content => content.Shape(shape));
         page.Content(content => content.Spacer(10));
     })).ToBytes();
+
+    private static byte[] PaintAtPlacement(PdfOptions options, OfficeShape shape, int placement) => placement == 0
+        ? PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Canvas(canvas =>
+            canvas.Drawing(new OfficeDrawing(100, 100).AddShape(shape, 10, 50), 0, 0, 100, 100)))).ToBytes()
+        : Running(options, shape, placement == 2);
 
     private static IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing drawing) {
         foreach (OfficeDrawingElement item in drawing.Elements) {
