@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private static ColumnLayoutData? ReadColumnLayoutData(ExcelSheet? workbookSheet, string normalizedRange, int columnCount, bool enabled, VisibilityLayoutData? visibility = null) {
+        private static ColumnLayoutData? ReadColumnLayoutData(ExcelSheet? workbookSheet, string normalizedRange, int columnCount, bool enabled, System.Threading.CancellationToken cancellationToken, VisibilityLayoutData? visibility = null) {
             if (!enabled || workbookSheet == null || columnCount == 0) {
                 return null;
             }
@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions = workbookSheet.GetColumnDefinitions();
+            IReadOnlyList<ExcelColumnSnapshot> columnDefinitions = workbookSheet.GetColumnDefinitions(cancellationToken);
             if (columnDefinitions.Count == 0) {
                 return null;
             }

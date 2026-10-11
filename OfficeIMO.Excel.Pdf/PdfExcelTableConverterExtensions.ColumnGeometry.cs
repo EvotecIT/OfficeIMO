@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel.Pdf {
             double defaultWidth = sheet.DefaultColumnWidth ?? 8.43D;
             if (!IsPositiveFiniteWidth(defaultWidth)) return false;
             var destinationWidths = Enumerable.Repeat(defaultWidth, columnCount).ToArray();
-            foreach (ExcelColumnSnapshot definition in sheet.GetColumnDefinitions()) {
+            foreach (ExcelColumnSnapshot definition in sheet.GetColumnDefinitions(options.CancellationToken)) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 if (!definition.CustomWidth || !definition.Width.HasValue) continue;
                 double width = definition.Width.Value;
