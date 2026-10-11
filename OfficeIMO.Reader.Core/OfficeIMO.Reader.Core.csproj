@@ -115,6 +115,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Markdown" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.AsciiDoc" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Dbf" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Chm" />
