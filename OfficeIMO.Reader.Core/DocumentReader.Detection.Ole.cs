@@ -61,6 +61,9 @@ internal static partial class DocumentReaderEngine {
                 DetectionCandidate.High(ReaderInputKind.Visio, "application/vnd.visio", "container:ole-visio-document"),
             OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage =>
                 DetectionCandidate.Unknown(EncryptedOpenXmlEvidence),
+            OfficeCompoundDocumentDetector.DocumentKind.PublisherPublication =>
+                DetectionCandidate.High(ReaderInputKind.Publisher, "application/x-mspublisher",
+                    "container:ole-publisher-quill"),
             _ => DetectionCandidate.Unknown("container:ole-compound-unrecognized")
         };
 

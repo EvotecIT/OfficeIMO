@@ -81,6 +81,10 @@ OfficeIMO.TestAssets/Documents/Epub/IdpfPublishing/childrens-literature/** -text
 # so the committed manifest hashes remain stable across platforms and checkouts.
 Website/static/downloads/showcase/** -text -diff
 
+# Showcase generation receipts bind the exact recipe and CSV input bytes.
+OfficeIMO.Examples/PowerShell/*.ps1 text eol=lf
+OfficeIMO.Examples/PowerShell/Data/*.csv text eol=lf
+
 # Published benchmark payloads are integrity-checked byte-for-byte against the
 # catalog. Keep their committed line endings unchanged on every platform.
 Website/static/data/benchmarks/library-comparisons/*.json text eol=lf -diff

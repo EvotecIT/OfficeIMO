@@ -34,8 +34,13 @@ function Complete-ShowcaseGenerationEvidence {
             foreach ($source in $sourceBindings) {
                 if (@($generation.sources | Where-Object { $_.path -ceq $source.path -and $_.sha256 -ceq $source.sha256 }).Count -ne 1) { $valid = $false }
             }
-            foreach ($output in $generation.outputs) {
-                if ($currentHashes[$output.path] -cne $output.sha256) { $valid = $false }
+            $expectedOutputs = @($Catalog.artifacts | Where-Object {
+                $_.sourceRoot -ceq 'documents' -and -not $_.previewSource -and ('/downloads/showcase/' + $_.destination) -cin $urls
+            } | ForEach-Object { '/downloads/showcase/' + $_.destination })
+            if ($expectedOutputs.Count -eq 0 -or @($generation.outputs).Count -ne $expectedOutputs.Count) { $valid = $false }
+            foreach ($path in $expectedOutputs) {
+                $output = @($generation.outputs | Where-Object path -CEQ $path)
+                if ($output.Count -ne 1 -or -not $currentHashes.ContainsKey($path) -or $currentHashes[$path] -cne $output[0].sha256) { $valid = $false }
             }
             # Fresh receipts bind previews below; retained receipts must still bind the whole download set.
             if (-not $Generated.ContainsKey($card.id)) {

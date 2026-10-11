@@ -62,15 +62,15 @@ public static class ReaderTableExport {
         }
 
         var builder = new StringBuilder();
-        AppendMarkdownRow(builder, BuildHeaders(table, columnCount, cancellationToken), cancellationToken);
+        ReaderMarkdownTableWriter.AppendRow(builder, BuildHeaders(table, columnCount, cancellationToken), ReaderMarkdownTableWriter.CellStyle.Export, cancellationToken);
         builder.AppendLine();
-        AppendMarkdownSeparator(builder, columnCount, cancellationToken);
+        ReaderMarkdownTableWriter.AppendSeparator(builder, columnCount, cancellationToken);
 
         IReadOnlyList<IReadOnlyList<string>> rows = table.Rows ?? Array.Empty<IReadOnlyList<string>>();
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             builder.AppendLine();
-            AppendMarkdownRow(builder, NormalizeRow(rows[rowIndex], columnCount, cancellationToken), cancellationToken);
+            ReaderMarkdownTableWriter.AppendRow(builder, NormalizeRow(rows[rowIndex], columnCount, cancellationToken), ReaderMarkdownTableWriter.CellStyle.Export, cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -211,24 +211,6 @@ public static class ReaderTableExport {
         builder.Append('"');
     }
 
-    private static void AppendMarkdownRow(StringBuilder builder, IReadOnlyList<string> cells, CancellationToken cancellationToken) {
-        builder.Append('|');
-        for (int i = 0; i < cells.Count; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            builder.Append(' ');
-            builder.Append(EscapeMarkdownCell(cells[i], cancellationToken));
-            builder.Append(" |");
-        }
-    }
-
-    private static void AppendMarkdownSeparator(StringBuilder builder, int columnCount, CancellationToken cancellationToken) {
-        builder.Append('|');
-        for (int i = 0; i < columnCount; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            builder.Append(" --- |");
-        }
-    }
-
     private static void WriteStringArray(Utf8JsonWriter writer, string name, IReadOnlyList<string> values, CancellationToken cancellationToken) {
         writer.WritePropertyName(name);
         writer.WriteStartArray();
@@ -277,32 +259,4 @@ public static class ReaderTableExport {
         writer.WriteEndArray();
     }
 
-    private static string EscapeMarkdownCell(string? value, CancellationToken cancellationToken) {
-        if (string.IsNullOrEmpty(value)) {
-            return string.Empty;
-        }
-
-        string text = value!;
-        var builder = new StringBuilder(text.Length);
-        for (int i = 0; i < text.Length; i++) {
-            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            char c = text[i];
-            if (c == '|') {
-                builder.Append(@"\|");
-            } else if (c == '\r') {
-                if (i + 1 < text.Length && text[i + 1] == '\n') {
-                    i++;
-                }
-
-                builder.Append("<br>");
-            } else if (c == '\n') {
-                builder.Append("<br>");
-            } else {
-                builder.Append(c);
-            }
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        return builder.ToString();
-    }
 }
