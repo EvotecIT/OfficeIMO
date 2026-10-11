@@ -520,8 +520,11 @@ internal static partial class PdfWriter {
                 for (int next = index + 1; next < blocks.Count; next++) {
                     if (!IsNonVisualFlowMarker(blocks[next])) { closesSequence = false; break; }
                 }
-                return MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize, allowTableFragments,
+                double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize, allowTableFragments,
                     suppressParagraphSpacingBefore, closesSequence ? closingPadding : 0D);
+                if (height <= .001D && (block is SemanticBlock or LayerBlock or ContainerBlock or SpacerBlock ||
+                    block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null)) continue;
+                return height;
             }
 
             return 0D;

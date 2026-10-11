@@ -1244,6 +1244,8 @@ PDF-to-Word now stops image/text overlap analysis after one million comparisons 
 
 Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordToPdfOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
 
+PDF text layout rejects excessive cumulative cross-run kerning work with `InvalidDataException`. A very long word split across thousands of formatting runs can reach this limit even on a wide page. Reduce unnecessary run fragmentation or split the paragraph; supported layouts retain their kerning and formatting.
+
 Invoice PDF presentation now caps source XML, line text, line count, generated pages, and output bytes through `InvoicePdfLayoutOptions`. Pass explicit higher limits for known large invoices. `PdfInvoiceDocument.ToPdfBytes` and `ToPresentationPdfBytes` also accept a cancellation token. CII XML loading rejects documents with more than 100,000 nodes or 200,000 attributes before constructing an XML tree.
 
 ### Word image rotation uses DrawingML degrees

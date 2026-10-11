@@ -6,6 +6,8 @@ internal static partial class PdfWriter {
     // Position compatible glyph spans through Core before distributing them back
     // to their paint owners. GPOS lookup consumption belongs to the whole span.
     private sealed class RichRunKerning {
+        private const long MaximumKerningWork = 1_000_000;
+        private long _work;
         private readonly PdfOptions? _options;
         private readonly Dictionary<RichSeg, PdfTextShowCommand> _commands = new();
         private readonly Dictionary<(PdfStandardFont, PdfNamedFontFace?), RunKerningFont?> _fonts = new();
@@ -13,17 +15,28 @@ internal static partial class PdfWriter {
 
         public RichRunKerning(PdfOptions? options) => _options = options;
 
+        private void SpendWork(long amount) {
+            // Charge before scanning/copying a compatible span or positioning its glyphs.
+            // Repeated whole-prefix measurements must remain bounded even on a very wide page.
+            if (amount > MaximumKerningWork - _work)
+                throw new System.IO.InvalidDataException("PDF text layout exceeds the cross-run kerning work limit.");
+            _work += amount;
+        }
+
         public double MeasureBoundary(IReadOnlyList<RichSeg> line, RichSeg right) {
             if (line.Count == 0 || !Compatible(line[line.Count - 1], right)) return 0D;
             int start = line.Count - 1;
             while (start > 0 && Compatible(line[start - 1], line[start])) start--;
-            RichSeg[] tail = line.Skip(start).ToArray();
+            SpendWork(line.Count - start);
+            var tail = new RichSeg[line.Count - start];
+            for (int index = 0; index < tail.Length; index++) tail[index] = line[start + index];
             return MeasureJoin(tail, new[] { right });
         }
 
         public double MeasureJoin(IReadOnlyList<RichSeg>? left, IReadOnlyList<RichSeg>? right) {
             if (left == null || right == null || left.Count == 0 || right.Count == 0
                 || !Compatible(left[left.Count - 1], right[0])) return 0D;
+            SpendWork((long)left.Count + right.Count);
             return GetAdjustment(left.Concat(right).ToArray()) - GetAdjustment(left) - GetAdjustment(right);
         }
 
@@ -31,6 +44,7 @@ internal static partial class PdfWriter {
 
         public double MeasureWordAdjustment(RichSeg first, IReadOnlyList<RichSeg>? remaining) {
             if (remaining == null || remaining.Count == 0) return 0D;
+            SpendWork((long)remaining.Count + 1);
             var segments = new RichSeg[remaining.Count + 1];
             segments[0] = first;
             for (int index = 0; index < remaining.Count; index++) segments[index + 1] = remaining[index];
@@ -47,7 +61,8 @@ internal static partial class PdfWriter {
             return adjustment;
         }
 
-        private bool Compatible(RichSeg left, RichSeg right) => _options != null
+        private bool Compatible(RichSeg left, RichSeg right) {
+            bool compatible = _options != null
             && left.InlineElement == null && right.InlineElement == null
             && !left.EndsWithHardBreak && !left.EndsWithTextSeparator && !right.LeadingSpace && !right.LeadingIsTab
             && left.Text.Length > 0 && right.Text.Length > 0
@@ -61,8 +76,11 @@ internal static partial class PdfWriter {
             && left.FeatureSettings.TryGetValue("kern", out int kern) && kern > 0
             && left.TextDirection is OfficeTextDirection.Auto or OfficeTextDirection.LeftToRight
             && right.TextDirection is OfficeTextDirection.Auto or OfficeTextDirection.LeftToRight
-            && (_options.TextShapingProviderSnapshot == null || ReferenceEquals(_options.TextShapingProviderSnapshot, OfficeManagedTextShapingProvider.Instance))
-            && !OfficeManagedTextShaper.RequiresComplexLayout(left.Text) && !OfficeManagedTextShaper.RequiresComplexLayout(right.Text);
+            && (_options.TextShapingProviderSnapshot == null || ReferenceEquals(_options.TextShapingProviderSnapshot, OfficeManagedTextShapingProvider.Instance));
+            if (!compatible) return false;
+            SpendWork((long)left.Text.Length + right.Text.Length);
+            return !OfficeManagedTextShaper.RequiresComplexLayout(left.Text) && !OfficeManagedTextShaper.RequiresComplexLayout(right.Text);
+        }
 
         private double PositionSpans(IReadOnlyList<RichSeg> segments, bool apply) {
             double adjustment = 0D;
@@ -80,6 +98,7 @@ internal static partial class PdfWriter {
             RichSeg first = segments[start];
             RunKerningFont? font = GetFont(first);
             if (font == null) return 0D;
+            SpendWork(end - start);
             var commands = new PdfTextShowCommand[end - start];
             var glyphIds = new List<int>();
             var scalars = new List<int>();
@@ -87,6 +106,7 @@ internal static partial class PdfWriter {
                 PdfTextShowCommand command = GetCommand(segments[index]);
                 if (command.VisualGlyphs == null) return 0D;
                 commands[index - start] = command;
+                SpendWork(command.VisualGlyphs.Count);
                 foreach (PdfGlyphInfo glyph in command.VisualGlyphs) {
                     glyphIds.Add(glyph.GlyphId);
                     // Multiple substitutions retain the source character even when
@@ -96,11 +116,13 @@ internal static partial class PdfWriter {
                         ? ReadScalar(segments[index].Text, ref sourceIndex) : glyph.UnicodeScalar);
                 }
             }
+            SpendWork(glyphIds.Count);
             OfficeOpenTypeGlyphPositioning[] positions = font.Kerning.PositionRun(glyphIds, scalars);
             double adjustment = 0D;
             int glyphIndex = 0;
             for (int index = start; index < end; index++) {
                 PdfTextShowCommand command = commands[index - start];
+                SpendWork(command.VisualGlyphs!.Count);
                 PdfGlyphInfo[] glyphs = command.VisualGlyphs!.ToArray();
                 int advanceDelta = 0;
                 double fontUnitAdvance = 0D;

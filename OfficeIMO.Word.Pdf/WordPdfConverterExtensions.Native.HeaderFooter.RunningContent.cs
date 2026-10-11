@@ -103,6 +103,9 @@ public static partial class WordPdfConverterExtensions {
                 if (section.DocumentOddEvenSettingEnabled)
                     header.EvenPagesContent(CreateNativeRunningStory(section.Header?.Even, section, options, fontMap, listMarkers, defaults, false), distance);
             });
+            if (!new[] { section.Header?.Default, section.DifferentFirstPage ? section.Header?.First : null,
+                    section.DocumentOddEvenSettingEnabled ? section.Header?.Even : null }.Any(RequiresNativeRunningStory))
+                page.Options.AllowRunningContentTextFallback(isHeader: true);
         }
         if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
@@ -113,6 +116,9 @@ public static partial class WordPdfConverterExtensions {
                 if (section.DocumentOddEvenSettingEnabled)
                     footer.EvenPagesContent(CreateNativeRunningStory(section.Footer?.Even, section, options, fontMap, listMarkers, defaults, true), distance);
             });
+            if (!new[] { section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
+                    section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null }.Any(RequiresNativeRunningStory))
+                page.Options.AllowRunningContentTextFallback(isHeader: false);
         }
     }
 

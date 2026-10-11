@@ -210,17 +210,23 @@ internal static partial class PdfWriter {
             pageDirty = false;
         }
 
-        private void NewPage(bool preserveEmptyPage = false, bool forcePhysicalPage = false) {
+        private void NewPage(bool preserveEmptyPage = false, bool forcePhysicalPage = false, double? firstBodyHeight = null) {
             cancellationToken.ThrowIfCancellationRequested();
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
-            if (activeColumnFlow != null) {
-                AdvanceColumnFrame(forcePhysicalPage, preserveEmptyPage);
-                return;
+            double? previousBodyHeight = runningFirstBodyHeight;
+            runningFirstBodyHeight = firstBodyHeight;
+            try {
+                if (activeColumnFlow != null) {
+                    AdvanceColumnFrame(forcePhysicalPage, preserveEmptyPage);
+                    return;
+                }
+                PrepareActiveContainerScopesForPageBreak();
+                FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
+                StartPage(currentPageBaseOptions);
+                ResumeActiveContainerScopesOnNewPage();
+            } finally {
+                runningFirstBodyHeight = previousBodyHeight;
             }
-            PrepareActiveContainerScopesForPageBreak();
-            FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
-            StartPage(currentPageBaseOptions);
-            ResumeActiveContainerScopesOnNewPage();
         }
 
         private double ResolveTopLevelSpacingBefore(double spacingBefore) {
