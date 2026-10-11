@@ -16,6 +16,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Project document API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent XML, native MPP/MPT, MPX, advanced calculation, portable reports, mapped data exchange, and producer-specific limits.
 - [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) — release notes, version history, and downloadable artifacts.
 - [Website guide](officeimo.website.md) — local build and publication workflow.
+- [Format-map videos and social exports](officeimo.format-map-media.md) — recorder commands, output formats, platform presets and updating scenes as the catalog grows.
 - [Website search and answer-engine operations](officeimo.website-seo-geo-operations.md) — publication and discovery checks.
 - [CI and test strategy](officeimo.ci-test-strategy.md) — test ownership and validation lanes.
 - [Native OCR quality corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) — independently labelled forms and scans, bounded retries, confidence false passes, source hashes, and platform scorecards.
