@@ -25,7 +25,8 @@ public static partial class WordPdfConverterExtensions {
             // An implicit source paragraph still owns its blank line geometry
             // when visible story text uses the caller-configured projection.
             // Configure only this variant; its siblings retain their overrides.
-            var content = CreateNativeRunningStory(story, section, options, fontMap, listMarkers, defaults, isFooter);
+            var content = CreateNativeRunningStory(story, section, options, fontMap, listMarkers, defaults, isFooter,
+                includeGeneratedPageNumber: false);
             if (isFooter) page.Footer(footer => {
                 if (index == 1) footer.FirstPageContent(content, distance);
                 else if (index == 2) footer.EvenPagesContent(content, distance);
@@ -36,6 +37,9 @@ public static partial class WordPdfConverterExtensions {
                 else if (index == 2) header.EvenPagesContent(content, distance);
                 else header.Content(content, distance);
             });
+            if (isFooter) page.Options.RetainRunningContentTextProjection(isHeader: false,
+                index == 1 ? PdfCore.PdfRunningContentVariant.FirstPage
+                    : index == 2 ? PdfCore.PdfRunningContentVariant.EvenPages : PdfCore.PdfRunningContentVariant.Default);
         }
         ReserveNativeEmptyRunningContentDistances(page.Options, !isFooter, defaultStory, firstStory, evenStory);
         page.Options.AllowRunningContentTextFallback(!isFooter);

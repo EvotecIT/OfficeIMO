@@ -210,11 +210,14 @@ internal static partial class PdfWriter {
             pageDirty = false;
         }
 
-        private void NewPage(bool preserveEmptyPage = false, bool forcePhysicalPage = false, double? firstBodyHeight = null) {
+        private void NewPage(bool preserveEmptyPage = false, bool forcePhysicalPage = false, double? firstBodyHeight = null,
+            bool firstBodyAllowsFooterOverlap = false) {
             cancellationToken.ThrowIfCancellationRequested();
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
             double? previousBodyHeight = runningFirstBodyHeight;
+            bool previousFooterOverlap = runningFirstBodyAllowsFooterOverlap;
             runningFirstBodyHeight = firstBodyHeight;
+            runningFirstBodyAllowsFooterOverlap = firstBodyAllowsFooterOverlap;
             try {
                 if (activeColumnFlow != null) {
                     AdvanceColumnFrame(forcePhysicalPage, preserveEmptyPage);
@@ -226,6 +229,7 @@ internal static partial class PdfWriter {
                 ResumeActiveContainerScopesOnNewPage();
             } finally {
                 runningFirstBodyHeight = previousBodyHeight;
+                runningFirstBodyAllowsFooterOverlap = previousFooterOverlap;
             }
         }
 

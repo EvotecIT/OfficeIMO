@@ -9,6 +9,7 @@ internal static partial class PdfWriter {
         private readonly int previousDocumentPages;
         private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
         private double? runningFirstBodyHeight;
+        private bool runningFirstBodyAllowsFooterOverlap;
 
         // A paragraph continuation can reclaim an optional imported header's
         // exclusion. Preserve footer and active-container reservations.
@@ -79,13 +80,19 @@ internal static partial class PdfWriter {
             double top = Exclusion(header, headerHeight, source.MarginTop);
             double bottom = Exclusion(footer, footerHeight, source.MarginBottom);
             if (header?.AllowTextFallback == true && top > source.MarginTop + .001D) {
-                double measuredFirstBodyHeight = MeasureRunningContentFirstBodyHeight(source, out double? footerOverlapHeight);
-                double firstBodyHeight = runningFirstBodyHeight ?? measuredFirstBodyHeight;
+                double? footerOverlapHeight;
+                double firstBodyHeight;
+                if (runningFirstBodyHeight is double continuationHeight) {
+                    // Paragraph flow already wrapped and measured this actual
+                    // continuation line, including its container reservation.
+                    firstBodyHeight = continuationHeight;
+                    footerOverlapHeight = runningFirstBodyAllowsFooterOverlap ? continuationHeight : null;
+                } else firstBodyHeight = MeasureRunningContentFirstBodyHeight(source, out footerOverlapHeight);
                 // A supported imported paragraph can retain its header and put
                 // its first line beside the footer. Admission must use the same
                 // physical bottom bound as paragraph flow before dropping it.
                 bool fitsBesideFooter = footerOverlapHeight.HasValue && bottom > source.MarginBottom + .001D &&
-                    (runningFirstBodyHeight ?? footerOverlapHeight.Value) <= source.PageHeight - top - source.MarginBottom + .001D;
+                    footerOverlapHeight.Value <= source.PageHeight - top - source.MarginBottom + .001D;
                 if (!fitsBesideFooter && firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
                     source.PageHeight - top - bottom + .001D < firstBodyHeight) {
                     fallbackHeader = true;
@@ -115,10 +122,23 @@ internal static partial class PdfWriter {
                 throw new InvalidOperationException("Running PDF content must leave a positive body content frame.");
             // A fallback is local to this page and variant. Never remove a
             // definition from the shared source or cached geometry frames.
-            currentOpts = fallbackHeader || fallbackFooter
+            bool retainHeaderProjection = header?.RetainTextProjection == true;
+            bool retainFooterProjection = footer?.RetainTextProjection == true;
+            currentOpts = fallbackHeader || fallbackFooter || retainHeaderProjection || retainFooterProjection
                 ? source.CreateRunningContentFrame(top, bottom) : GetRunningFrameOptions(source, top, bottom);
             if (fallbackHeader) currentOpts.ClearRunningContentForPage(variant, isHeader: true);
             if (fallbackFooter) currentOpts.ClearRunningContentForPage(variant, isHeader: false);
+            // Geometry and visible text have different owners here. Keep the
+            // measured body frame, but draw projected text from its original
+            // physical margin, without mutating shared or cached options.
+            if (retainHeaderProjection) {
+                currentOpts.ClearRunningContentForPage(variant, isHeader: true);
+                currentOpts.HeaderOffsetY += top - source.MarginTop;
+            }
+            if (retainFooterProjection) {
+                currentOpts.ClearRunningContentForPage(variant, isHeader: false);
+                currentOpts.FooterOffsetY += bottom - source.MarginBottom;
+            }
             currentPage!.Options = currentOpts;
             currentPage.RunningContentContext = context;
             currentPage.HasDynamicRunningContent = usesPageContext;

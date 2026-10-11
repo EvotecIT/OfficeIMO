@@ -131,7 +131,8 @@ public static partial class WordPdfConverterExtensions {
 
     private static Func<PdfCore.PdfRunningContentContext, Action<PdfCore.PdfContentBuilder>> CreateNativeRunningStory(
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,
-        IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults, bool isFooter) {
+        IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults, bool isFooter,
+        bool includeGeneratedPageNumber = true) {
         IReadOnlyList<WordElement> elements = story == null ? Array.Empty<WordElement>() : CollapseNativeParagraphElements(story.Elements);
         RecordNativeRunningStoryJoinDiagnostics(elements, listMarkers, defaults, fontMap, options);
         // Running callbacks are evaluated while the PDF is written, after the
@@ -141,7 +142,7 @@ public static partial class WordPdfConverterExtensions {
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>()))
                 RecordNativeMixedTextBoxDiagnostic(GetNativeRuns(new WordParagraph(story.Document, source)), options,
                     "header/footer paragraph");
-        bool addPageNumber = isFooter && options?.IncludePageNumbers == true &&
+        bool addPageNumber = includeGeneratedPageNumber && isFooter && options?.IncludePageNumbers == true &&
             (story == null || GetNativeHeaderFooterText(story, listMarkers, fontMap)?.HasPageTokens != true);
         return context => content => {
             options?.CancellationToken.ThrowIfCancellationRequested();

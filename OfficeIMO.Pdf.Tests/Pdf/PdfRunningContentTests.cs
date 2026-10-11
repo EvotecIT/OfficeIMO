@@ -6,6 +6,39 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfRunningContentTests {
+    [Fact]
+    public void GeometryOnlyFooterRetainsProjectedNumbersAtTheirPhysicalAnchorAcrossVariantsAndReplays() {
+        var source = PdfDocument.Create(Options());
+        source.Footer(footer => footer.Text("F{page}").Content(content => content.Spacer(60), 36)
+            .FirstPageText("F{page}").FirstPageContent(content => content.Spacer(80), 36)
+            .EvenPagesText("F{page}").EvenPagesContent(content => content.Spacer(40), 36));
+        foreach (PdfRunningContentVariant variant in Enum.GetValues(typeof(PdfRunningContentVariant))) {
+            source.Options.RetainRunningContentTextProjection(isHeader: false, variant);
+            source.Options.ReserveEmptyRunningContentDistance(isHeader: false, variant);
+        }
+        source.Options.AllowRunningContentTextFallback(isHeader: false);
+        // The imported definition survives the public options snapshot, and its
+        // page-local projection must leave that snapshot unchanged on replay.
+        var document = PdfDocument.Create(source.Options.Clone());
+        document.Paragraph(paragraph => {
+            for (int index = 0; index < 12; index++) {
+                if (index > 0) paragraph.LineBreak();
+                paragraph.Text("A");
+            }
+        }, style: new PdfParagraphStyle { FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(40), WidowControl = false });
+        for (int replay = 0; replay < 2; replay++) {
+            using var pdf = PdfPigDocument.Open(document.ToBytes());
+            Assert.Equal(3, pdf.NumberOfPages);
+            Assert.Equal(new[] { 4, 5, 3 }, pdf.GetPages().Select(page => page.Letters.Count(letter => letter.Value == "A")));
+            for (int page = 1; page <= 3; page++) {
+                Assert.Contains("F" + page, pdf.GetPage(page).Text);
+                Assert.Equal(14D, pdf.GetPage(page).Letters.Single(letter => letter.Value == "F").StartBaseLine.Y, 3);
+            }
+        }
+        Assert.Equal(32D, document.Options.MarginBottom);
+        Assert.Equal(18D, document.Options.FooterOffsetY);
+    }
+
     [Theory]
     [InlineData(false, 1)]
     [InlineData(true, 2)]
