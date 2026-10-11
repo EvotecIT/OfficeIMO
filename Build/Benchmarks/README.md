@@ -126,6 +126,55 @@ owns all timing and allocation measurement. Use sampled memory in a separate
 cohort. These calls pass `CancellationToken.None` through the public APIs;
 cancellation latency and storage durability are outside this measurement contract.
 
+## PDF rendering stages and first-write observations
+
+The phase suite uses the same Release build, shared PowerForge runner and Poppler
+prerequisites. Each family is explicitly selected:
+
+```powershell
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family RenderStages
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family FirstWrite -Pages 20,100,500
+./Build/Benchmarks/Run-PdfPhaseBenchmarks.ps1 -Family ClosedLedger -ExpectedGeometry ClosedRuling
+```
+
+`RenderStages` uses one 20-page embedded-Carlito business source and previews pages
+1–4 at scale 0.64, producing 384×512 pixels per page. `SourceOpen`, `Projection`,
+`Rasterization` and `PngEncoding` measure public boundaries with their preceding
+inputs prepared outside measurement; `RenderPng` measures the complete public
+call. Every stage completes its remaining pipeline outside measurement and must
+match the control's complete PNG bytes and decoded pixels, with zero diagnostics
+and complete source text. Prepared-stage medians are not additive, and process
+font/JIT/codec caches remain warm. These checks establish representation
+consistency for the exact corpus; independent visual fidelity is a separate proof.
+
+`FirstWrite` is an instrumented destination cohort. Direct and copied strategies
+use identical forward PDF options and the same delegating stream around the actual
+destination FileStream. Event metrics record method-entry and Save-start intervals
+to the first successful nonempty write call's start and completion, its payload
+length and total accepted bytes. The copied strategy saves to memory and calls
+`ToArray` before writing; its first destination write contains the complete
+artifact. Completion is an upper-bound observable proxy for acceptance by the
+stream and OS cache, without proving the first physical byte, durable persistence
+or network delivery. PowerForge alone measures total operation duration. Every
+file must match the prepared digest and pass complete Poppler content readback.
+Named noncollecting managed-heap/working-set boundaries and optional separate
+`-MemorySamplingIntervalMilliseconds 5` observations may miss peaks and include
+observer effects; they do not establish retained heap or constant-space layout.
+
+`ClosedLedger` loads either exact independent ReportLab ledger fixture afresh and
+runs public structured reading. `-Rotation 0,90` selects page rotations. Geometry
+expectations are explicit: `DetectedProportions` qualifies the recorded baseline
+text-derived bounds; `ClosedRuling` requires authored grid bounds and widths.
+Both require the complete ordered 4×4 cell content and exact producer/input
+fingerprints. Comparing these modes measures the cost of stronger recovery;
+output geometry equality is deliberately outside that comparison.
+
+Use `-Plan`, `-Operation`, paths, placement and host evidence options as in the
+runtime suite. Keep these diagnostics separate from ordinary runtime cohorts and
+retain losses and raw samples. Any sampled stack profile of the render control
+must identify its actual tool, process and sampling semantics; font work spans
+projection and glyph rasterization rather than a separate public font phase.
+
 ## AI request packing
 
 Build `OfficeIMO.AI` in Release and run from a fresh PowerShell process on .NET 10 or newer with PSPublishModule installed:
