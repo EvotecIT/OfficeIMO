@@ -7331,13 +7331,13 @@
     {
       "id": "opendocument-client-letter",
       "format": "OpenDocument",
-      "format_id": "opendocument",
+      "format_id": "open-document",
       "operations": [
         "create",
         "convert"
       ],
       "operation_tags": "create convert",
-      "tags": "dotnet csharp opendocument create convert",
+      "tags": "dotnet csharp open-document create convert",
       "badge_tags": [
         "Create",
         "Convert"
@@ -7359,8 +7359,8 @@
       "evidence_label": "Preview client appointment letter",
       "source_url": "/downloads/showcase/workflows/opendocument-client-letter/ClientLetter.cs.txt",
       "source_path": "OfficeIMO.Examples/Showcase/Workflows/ClientLetter.cs",
-      "guide_url": "/docs/opendocument/",
-      "api_url": "/api/opendocument/",
+      "guide_url": "/docs/open-document/",
+      "api_url": "/api/open-document/",
       "generator_switch": "--showcase-workflows",
       "run_command": "dotnet run --project OfficeIMO.Examples -f net10.0 -- --showcase-workflows --showcase-example opendocument-client-letter",
       "downloads": [
@@ -7403,7 +7403,10 @@
           }
         ],
         "adapt": "Replace the invented appointment and contact route with confirmed arrangements.",
-        "related": []
+        "related": [
+          "opendocument-service-proposal",
+          "opendocument-workshop-agenda"
+        ]
       },
       "search_text": "Client appointment letter Create an editable ODT client letter with a dated appointment, preparation notes, follow-up commitment and clear typography. Export a PDF copy. OpenDocument .NET C# walkthrough code sample Recipient, appointment and preparation details"
     },
