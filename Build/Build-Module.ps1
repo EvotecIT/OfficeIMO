@@ -11,7 +11,7 @@ param(
     [switch] $PassThru
 )
 
-Import-Module PSPublishModule -Force -ErrorAction Stop
+Import-Module PSPublishModule -MinimumVersion 3.0.168 -Force -ErrorAction Stop
 
 Build-Module -ModuleName 'PSWriteOffice' -RunMode $RunMode {
     # Usual defaults as per standard module

@@ -4,8 +4,9 @@ Exports the PowerShell API help, command metadata and examples for the website.
 .DESCRIPTION
 Builds an unsigned module from committed source using PowerForge, without installing it.
 Exports only the bundle returned by that build, from a new staging directory. Both host
-assemblies, the manifest and help must match the source. -ArtifactsOnly leaves repository
-documentation unchanged. BuildOutputRoot holds the retained build staging directory.
+assemblies, the manifest and help must match the source. -ArtifactsOnly limits the export
+writes to ArtifactsRoot; the native build still regenerates Docs. BuildOutputRoot holds
+the retained build staging directory. Requires PSPublishModule 3.0.168 or newer.
 .EXAMPLE
 ./Build/Export-WebsiteArtifacts.ps1 -RepositoryRoot ./release-source -ArtifactsRoot ./out/website-api -BuildOutputRoot ./out/builds -ArtifactsOnly
 #>
