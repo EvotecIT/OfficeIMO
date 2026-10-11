@@ -6,6 +6,18 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(0x0182)]
+    [InlineData(0x0184)]
+    public void OfficeArtBooleanInheritance_MalformedEffectiveOpacityDoesNotReviveAnOlderInvalidValue(int id) {
+        var properties = new[] { new OfficeArtProperty(0, 0x0180, 4),
+            new OfficeArtProperty(1, (ushort)id, 65537),
+            new OfficeArtProperty(2, (ushort)(id | 0x8000), 1, 1, complexData: new byte[] { 0 }) };
+        Assert.True(OfficeArtLinearGradientProjector.TryProject(OfficeArtShapeStyle.Decode(properties),
+            80, 40, _ => null, out var fill, out _));
+        Assert.NotNull(fill);
+    }
+
+    [Theory]
     [InlineData(0U, false)]
     [InlineData(1U, true)]
     public void OfficeArtShapeStyle_GradientStopsHonorTheFinalNonComplexOverride(uint replacement, bool invalid) {
