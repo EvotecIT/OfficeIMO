@@ -117,6 +117,7 @@ namespace OfficeIMO.Word {
             }
 
             WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit);
+            ApplyLegacyDocParagraphDefaults(document);
             ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
             AddLegacyDocNumberingDefinitions(document, legacyDocument.Numbering, legacyDocument.StyleSheet);
             AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);

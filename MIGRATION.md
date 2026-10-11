@@ -3269,6 +3269,12 @@ Profiles configure output behavior but do not grant local-file, remote-resource,
 
 Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNoteToPdfOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
 
+### Native DOC paragraph spacing and alignment inheritance
+
+Loading a binary `.doc` file uses single line spacing and zero paragraph spacing when the source omits those values. Imported built-in styles inherit omitted spacing from their source base styles. Explicit source spacing remains in effect. This changes layout for files that previously acquired DOCX authoring spacing during import; remove any compensating spacing overrides that are no longer needed.
+
+Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine` to `null` removes that direct paragraph setting and restores style inheritance. Set `WordParagraphAlignment.Left` or `WordVerticalCharacterAlignment.Auto` explicitly when an inherited setting should be overridden.
+
 ## Upgrade checklist
 
 - Upgrade every OfficeIMO package in the application together.
