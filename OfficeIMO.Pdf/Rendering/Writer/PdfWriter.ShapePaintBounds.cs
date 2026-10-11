@@ -25,10 +25,11 @@ internal static partial class PdfWriter {
             } else {
                 var paint = new List<List<OfficePoint>>();
                 var contours = OfficeStrokeGeometry.FlattenShape(shape, 4D);
-                IReadOnlyList<double>? dash = shape.StrokeDashArray.Count > 0 ? shape.StrokeDashArray : shape.StrokeDashStyle.GetDashPattern(shape.StrokeWidth);
+                bool customDash = shape.StrokeDashArray.Count > 0;
+                IReadOnlyList<double>? dash = customDash ? shape.StrokeDashArray : PdfPresetDashPattern(shape.StrokeDashStyle, shape.StrokeWidth);
                 foreach (var ring in OfficeStrokeGeometry.Create(contours, shape.StrokeWidth,
-                    shape.StrokeLineCap ?? OfficeStrokeLineCap.Butt, shape.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter,
-                    shape.StrokeMiterLimit, dash, shape.StrokeDashOffset, 4D,
+                    shape.StrokeLineCap ?? (customDash ? OfficeStrokeLineCap.Butt : PdfPresetLineCap(shape.StrokeDashStyle)), shape.StrokeLineJoin ?? OfficeStrokeLineJoin.Miter,
+                    PdfPaintMiterLimit(shape), dash, shape.StrokeDashOffset, 4D,
                     double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity))
                     paint.Add(Map(ring, shape));
                 Measure(paint, OfficeFillRule.NonZero);
