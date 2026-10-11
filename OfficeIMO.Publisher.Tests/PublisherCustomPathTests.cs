@@ -7,6 +7,33 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherCustomPathTests {
     [Theory]
+    [InlineData(0x02000000U, true)]
+    [InlineData(0x00400000U, false)]
+    [InlineData(0x02400000U, true)]
+    public void Native_fallback_geometry_keeps_disabled_paint_controls(uint flags, bool missingGuide) {
+        byte[] input = Input(1, new[] { (missingGuide ? unchecked((int)0x8000007F) : 10, -20), (110, -20), (10, 80) },
+            missingGuide ? null : new ushort[] { 0x4000, 0xC000, 0x8000 }, extra: new() {
+                [0x017F] = flags, [0x180] = 4, [0x183] = 0x00FF0000,
+                [0x1C0] = 0x0000FF00, [0x1FF] = 0x00080008
+            });
+        PublisherDocument publication = PublisherDocument.Load(input);
+        var artwork = PublisherNativeTests.Elements(publication.Pages[0].Drawing).OfType<OfficeDrawingShape>()
+            .Where(item => item.SourceElementIds?.Contains("publisher-object-293") == true).ToArray();
+        bool noFill = (flags & 0x02000000) != 0, noLine = (flags & 0x00400000) != 0;
+        if (noFill && noLine) Assert.Empty(artwork);
+        else {
+            OfficeShape shape = Assert.Single(artwork).Shape;
+            Assert.Equal(OfficeShapeKind.Rectangle, shape.Kind);
+            Assert.Equal(noFill, shape.FillColor == null);
+            Assert.Equal(noFill, shape.FillGradient == null);
+            Assert.Equal(noLine, shape.StrokeColor == null);
+        }
+        Assert.Contains(publication.ReadReport.FidelityDiagnostics, item => item.Code == (missingGuide
+            ? "PUB_CUSTOM_PATH_GUIDES_INVALID" : "PUB_CUSTOM_PATH_COMMAND_UNSUPPORTED"));
+        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => noFill && item.Code.StartsWith("PUB_GRADIENT_"));
+    }
+
+    [Theory]
     [InlineData(4)]
     [InlineData(0xFFF0)]
     public void Native_compact_vertices_keep_positive_coordinates_above_the_signed_word_boundary(int elementSize) {

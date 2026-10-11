@@ -8,11 +8,13 @@ internal sealed partial class PublisherPageProjector {
         OfficeArtCustomPathProjection? custom = CustomPath(source, geometryWidth, geometryHeight);
         OfficeShape shape = custom?.Shape ?? Geometry(source, geometryWidth, geometryHeight);
         OfficeArtShapeStyle style = source.Style;
-        shape.FillColor = style.FillEnabled != false && custom?.NoFill != true ? Resolve(style.FillColor, source.Id) : null;
-        shape.StrokeColor = style.LineEnabled != false && custom?.NoLine != true ? Resolve(style.LineColor, source.Id) : null;
+        bool noFill = custom?.NoFill ?? OfficeArtCustomPathProjector.IsFillDisabled(source.Properties);
+        bool noLine = custom?.NoLine ?? OfficeArtCustomPathProjector.IsLineDisabled(source.Properties);
+        shape.FillColor = style.FillEnabled != false && !noFill ? Resolve(style.FillColor, source.Id) : null;
+        shape.StrokeColor = style.LineEnabled != false && !noLine ? Resolve(style.LineColor, source.Id) : null;
         shape.StrokeWidth = Math.Max(0, (style.LineWidthEmus ?? 9525) / 12700D);
         shape.FillOpacity = style.FillOpacity; shape.StrokeOpacity = style.LineOpacity;
-        if (custom?.NoFill != true) ProjectFill(source, shape, geometryWidth, geometryHeight);
+        if (!noFill) ProjectFill(source, shape, geometryWidth, geometryHeight);
         ProjectLineDetails(source, shape);
         if (style.HasProjectableShadow) {
             shape.Shadow = new OfficeShadow(Resolve(style.ShadowColor, source.Id) ?? OfficeColor.Black, style.ShadowOpacity ?? 1,

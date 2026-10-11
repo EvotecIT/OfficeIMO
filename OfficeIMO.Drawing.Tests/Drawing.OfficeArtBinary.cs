@@ -6,6 +6,25 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(0U, false)]
+    [InlineData(1U, true)]
+    public void OfficeArtShapeStyle_GradientStopsHonorTheFinalNonComplexOverride(uint replacement, bool invalid) {
+        byte[] colors = { 2, 0, 2, 0, 8, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 1, 0 };
+        var original = new OfficeArtProperty(0, 0x8197, (uint)colors.Length, colors.Length, complexData: colors);
+        Assert.Equal(2, OfficeArtShapeStyle.Decode(new[] { original }).FillGradientStops.Count);
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] { original, new OfficeArtProperty(1, 0x0197, replacement) });
+        Assert.Empty(style.FillGradientStops);
+        Assert.Equal(invalid, style.IsFillGradientStopTableTruncated);
+    }
+
+    [Fact]
+    public void OfficeArtShapeStyle_ClearedBlipReferenceDoesNotReviveAnEarlierTable() {
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x4186, 7), new OfficeArtProperty(1, 0x0186, 0) });
+        Assert.Null(style.FillBlipStoreIndex);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void OfficeArtShapeStyle_UnderstatedFullAndCompactColorArraysDoNotHideExtraStops(bool compact) {
