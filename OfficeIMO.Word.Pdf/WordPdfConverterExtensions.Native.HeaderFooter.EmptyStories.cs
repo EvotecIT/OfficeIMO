@@ -48,14 +48,10 @@ public static partial class WordPdfConverterExtensions {
     private static void RetainNativeTextFreeFooterProjection(PdfCore.PdfOptions options, WordHeaderFooter? story,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeFontMap fontMap,
         PdfCore.PdfRunningContentVariant variant) {
-        // Only blank paragraph geometry can share the flat number projection.
-        // Tables and drawing-bearing stories must keep their native definition,
-        // which also prevents their images from being projected a second time.
-        if (story != null && story.ChildElements.All(element => element is W.Paragraph &&
-                !element.Descendants<W.Drawing>().Any() && !element.Descendants<W.Picture>().Any() &&
-                !element.Descendants<W.EmbeddedObject>().Any() && !element.Descendants<W.TextBoxContent>().Any() &&
-                !element.Descendants<DocumentFormat.OpenXml.AlternateContent>().Any()) &&
-            GetNativeHeaderFooterText(story, listMarkers, fontMap) == null)
+        // Keep generated default numbers at their physical margin. The native
+        // definition still owns table/object drawing and its body exclusion;
+        // retaining text does not enable a second flat image/shape projection.
+        if (story != null && GetNativeHeaderFooterText(story, listMarkers, fontMap) == null)
             options.RetainRunningContentTextProjection(isHeader: false, variant);
     }
 

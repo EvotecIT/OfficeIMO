@@ -46,4 +46,33 @@ public partial class Word {
         Assert.Contains("S2A", pdf.GetPage(boundary == "empty-first" ? 1 : boundary == "new-page" ? 3 : 2).Text);
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_ContinuousRunningStoryCountsBlankBodyFlow(bool footer, bool explicitBreak) {
+        using WordDocument source = WordDocument.Create();
+        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordParagraph field = story.AddParagraph("COUNT ");
+        SetInheritedRunningControlStyle(field);
+        field.AddField(WordFieldType.SectionPages);
+        SetInheritedRunningControlStyle(source.AddParagraph("S1A"));
+        source.AddSection(WordSectionBreakType.Continuous);
+        if (explicitBreak) source.AddParagraph().AddBreak(WordBreakType.Page);
+        else for (int index = 0; index < 60; index++)
+            SetInheritedRunningControlStyle(source.AddParagraph());
+        SetInheritedRunningControlStyle(source.AddParagraph("S2A"));
+
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("S1A", pdf.GetPage(1).Text);
+        Assert.Contains("COUNT 1", pdf.GetPage(1).Text);
+        Assert.Contains("S2A", pdf.GetPage(2).Text);
+        Assert.Contains("COUNT 2", pdf.GetPage(2).Text);
+        Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+    }
 }

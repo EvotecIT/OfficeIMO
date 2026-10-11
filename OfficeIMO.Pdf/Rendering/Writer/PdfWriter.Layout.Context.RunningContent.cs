@@ -132,11 +132,9 @@ internal static partial class PdfWriter {
             // measured body frame, but draw projected text from its original
             // physical margin, without mutating shared or cached options.
             if (retainHeaderProjection) {
-                currentOpts.ClearRunningContentForPage(variant, isHeader: true);
                 currentOpts.HeaderOffsetY += top - source.MarginTop;
             }
             if (retainFooterProjection) {
-                currentOpts.ClearRunningContentForPage(variant, isHeader: false);
                 currentOpts.FooterOffsetY += bottom - source.MarginBottom;
             }
             currentPage!.Options = currentOpts;

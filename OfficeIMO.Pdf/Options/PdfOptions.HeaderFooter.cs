@@ -225,7 +225,7 @@ public sealed partial class PdfOptions {
     }
 
     internal bool HasHeaderTextContentForPage(int pageNumber) {
-        if (GetRunningContentForPage(pageNumber, isHeader: true) != null) return false;
+        if (GetRunningContentForPage(pageNumber, isHeader: true) is { RetainTextProjection: false }) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
                 (_firstPageHeaderSegments != null && _firstPageHeaderSegments.Count > 0) ||
@@ -263,7 +263,7 @@ public sealed partial class PdfOptions {
     }
 
     internal bool HasFooterTextContentForPage(int pageNumber) {
-        if (GetRunningContentForPage(pageNumber, isHeader: false) != null) return false;
+        if (GetRunningContentForPage(pageNumber, isHeader: false) is { RetainTextProjection: false }) return false;
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
                 (_firstPageFooterSegments != null && _firstPageFooterSegments.Count > 0) ||
