@@ -44,13 +44,19 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(0, true)]
-    [InlineData(1, true)]
-    [InlineData(2, true)]
-    [InlineData(0, false)]
-    [InlineData(1, false)]
-    [InlineData(2, false)]
-    public void SaveAsPdf_EmptyRunningFooterSiblingPreservesAbsentAndEmptyNumberVariants(int variant, bool absent) {
+    [InlineData(0, "absent")]
+    [InlineData(1, "absent")]
+    [InlineData(2, "absent")]
+    [InlineData(0, "implicit")]
+    [InlineData(1, "implicit")]
+    [InlineData(2, "implicit")]
+    [InlineData(0, "explicit")]
+    [InlineData(1, "explicit")]
+    [InlineData(2, "explicit")]
+    [InlineData(0, "hidden")]
+    [InlineData(1, "hidden")]
+    [InlineData(2, "hidden")]
+    public void SaveAsPdf_EmptyRunningFooterSiblingPreservesAbsentAndEmptyNumberVariants(int variant, string kind) {
         using WordDocument source = CreateEmptyRunningStoryDocument("absent", footer: true);
         WordHeaderFooter[] stories = { source.FooterFirstOrCreate, source.FooterEvenOrCreate, source.FooterDefaultOrCreate };
         foreach (WordHeaderFooter story in stories)
@@ -58,11 +64,20 @@ public partial class Word {
         // Creating first/even stories also creates header peers. This control
         // isolates footer admission from those implicit header line boxes.
         source.Sections[0]._sectionProperties.RemoveAllChildren<W.HeaderReference>();
-        W.HeaderFooterValues kind = variant == 0 ? W.HeaderFooterValues.First
+        W.HeaderFooterValues footerKind = variant == 0 ? W.HeaderFooterValues.First
             : variant == 1 ? W.HeaderFooterValues.Even : W.HeaderFooterValues.Default;
+        bool absent = kind == "absent";
         if (absent)
             foreach (var reference in source.Sections[0]._sectionProperties.Elements<W.FooterReference>()
-                .Where(reference => reference.Type?.Value == kind).ToArray()) reference.Remove();
+                .Where(reference => reference.Type?.Value == footerKind).ToArray()) reference.Remove();
+        else if (kind == "explicit" || kind == "hidden") {
+            WordParagraph empty = stories[variant].AddParagraph();
+            if (kind == "hidden") {
+                empty._paragraph.ParagraphProperties = new W.ParagraphProperties(
+                    new W.ParagraphMarkRunProperties(new W.Vanish()));
+                empty._paragraph.Append(new W.Run(new W.RunProperties(new W.Vanish()), new W.Text("HIDDEN")));
+            }
+        }
         int targetLines = absent ? 60 : 40;
         for (int index = 0; index < 3; index++) {
             WordParagraph body = source.AddParagraph("A");
@@ -90,6 +105,7 @@ public partial class Word {
                 // variants blank. Neither case gains a body exclusion.
                 if (index == 2) Assert.Contains("NUMBER 3/3", page.Text);
                 else Assert.DoesNotContain("NUMBER", page.Text);
+                Assert.DoesNotContain("HIDDEN", page.Text);
             }
         }
         Assert.Equal(before, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);

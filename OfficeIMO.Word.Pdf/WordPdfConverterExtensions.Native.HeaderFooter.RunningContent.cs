@@ -125,11 +125,14 @@ public static partial class WordPdfConverterExtensions {
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.Footer?.Default,
                 section.DifferentFirstPage ? section.Footer?.First : null,
                 section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null);
-            RetainNativeImplicitFooterTextProjection(page.Options, section.Footer?.Default, PdfCore.PdfRunningContentVariant.Default);
+            RetainNativeTextFreeFooterProjection(page.Options, section.Footer?.Default, listMarkers, fontMap,
+                PdfCore.PdfRunningContentVariant.Default);
             if (section.DifferentFirstPage)
-                RetainNativeImplicitFooterTextProjection(page.Options, section.Footer?.First, PdfCore.PdfRunningContentVariant.FirstPage);
+                RetainNativeTextFreeFooterProjection(page.Options, section.Footer?.First, listMarkers, fontMap,
+                    PdfCore.PdfRunningContentVariant.FirstPage);
             if (section.DocumentOddEvenSettingEnabled)
-                RetainNativeImplicitFooterTextProjection(page.Options, section.Footer?.Even, PdfCore.PdfRunningContentVariant.EvenPages);
+                RetainNativeTextFreeFooterProjection(page.Options, section.Footer?.Even, listMarkers, fontMap,
+                    PdfCore.PdfRunningContentVariant.EvenPages);
             if (!new[] { section.Footer?.Default, section.DifferentFirstPage ? section.Footer?.First : null,
                     section.DocumentOddEvenSettingEnabled ? section.Footer?.Even : null }.Any(RequiresNativeRunningStory))
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
@@ -149,12 +152,11 @@ public static partial class WordPdfConverterExtensions {
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>()))
                 RecordNativeMixedTextBoxDiagnostic(GetNativeRuns(new WordParagraph(story.Document, source)), options,
                     "header/footer paragraph");
-        // A childless source footer owns blank geometry; its generated number
+        // A text-free source footer owns blank geometry; its generated number
         // keeps the established text projection and physical margin. Missing
         // variants have no native story and must not acquire an exclusion.
         bool addPageNumber = includeGeneratedPageNumber && isFooter && options?.IncludePageNumbers == true &&
-            story != null && story.ChildElements.Any() &&
-            GetNativeHeaderFooterText(story, listMarkers, fontMap)?.HasPageTokens != true;
+            GetNativeHeaderFooterText(story, listMarkers, fontMap) is { HasPageTokens: false };
         return context => content => {
             options?.CancellationToken.ThrowIfCancellationRequested();
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,

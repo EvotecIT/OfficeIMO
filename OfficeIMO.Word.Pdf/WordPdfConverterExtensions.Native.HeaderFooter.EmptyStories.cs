@@ -37,7 +37,7 @@ public static partial class WordPdfConverterExtensions {
                 else if (index == 2) header.EvenPagesContent(content, distance);
                 else header.Content(content, distance);
             });
-            if (isFooter) RetainNativeImplicitFooterTextProjection(page.Options, story,
+            if (isFooter) RetainNativeTextFreeFooterProjection(page.Options, story, listMarkers, fontMap,
                 index == 1 ? PdfCore.PdfRunningContentVariant.FirstPage
                     : index == 2 ? PdfCore.PdfRunningContentVariant.EvenPages : PdfCore.PdfRunningContentVariant.Default);
         }
@@ -45,9 +45,10 @@ public static partial class WordPdfConverterExtensions {
         page.Options.AllowRunningContentTextFallback(!isFooter);
     }
 
-    private static void RetainNativeImplicitFooterTextProjection(PdfCore.PdfOptions options, WordHeaderFooter? story,
+    private static void RetainNativeTextFreeFooterProjection(PdfCore.PdfOptions options, WordHeaderFooter? story,
+        IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeFontMap fontMap,
         PdfCore.PdfRunningContentVariant variant) {
-        if (story != null && !story.ChildElements.Any())
+        if (story != null && GetNativeHeaderFooterText(story, listMarkers, fontMap) == null)
             options.RetainRunningContentTextProjection(isHeader: false, variant);
     }
 
