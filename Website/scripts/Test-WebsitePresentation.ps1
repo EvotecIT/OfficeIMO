@@ -77,7 +77,12 @@ $showcase = Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/showcase.j
 $galleryHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'showcase/index.html')
 Assert-ContainsAttribute -Text $galleryHtml -Name 'id' -Value 'showcase-language' -Contract 'showcase language selection'
 foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
-    $galleryCard = [regex]::Match($galleryHtml, '<article\b[^>]*\bid="' + [regex]::Escape($card.id) + '"[^>]*>').Value
+    $cardId = [regex]::Escape($card.id)
+    $cardIdValue = '(?:"' + $cardId + '"|''' + $cardId + '''|' + $cardId + '(?=\s|/?>))'
+    $galleryCard = [regex]::Match($galleryHtml, '<article\b(?=[^>]*\sid\s*=\s*' + $cardIdValue + ')[^>]*>').Value
+    if ([string]::IsNullOrWhiteSpace($galleryCard)) {
+        throw "Showcase gallery is missing walkthrough card '$($card.id)'."
+    }
     Assert-ContainsPattern -Text $galleryCard -Pattern 'data-showcase-search="[^"]*\bwalkthrough\b' -Contract "$($card.id) walkthrough discovery"
     $languageLabel = ($showcase.source_languages | Where-Object id -CEQ $card.source_language).label
     $walkthroughHtml = Get-RequiredText -Path (Join-Path $siteRootPath "showcase/$($card.id)/index.html")
