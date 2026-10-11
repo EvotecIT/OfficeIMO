@@ -165,13 +165,15 @@ public sealed partial class IWorkWorkflowTests {
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task Input_and_output_limits_keep_existing_destination_intact(bool inputLimit) {
-        using var files = new Files("numbers", "xlsx");
+    [InlineData("numbers", "numbers-xlsx", "xlsx", true)]
+    [InlineData("numbers", "numbers-xlsx", "xlsx", false)]
+    [InlineData("pages", "pages-docx", "docx", false)]
+    [InlineData("key", "keynote-pptx", "pptx", false)]
+    public async Task Input_and_output_limits_keep_existing_destination_intact(string source, string route, string target, bool inputLimit) {
+        using var files = new Files(source, target);
         byte[] existing = [1, 2, 3];
         File.WriteAllBytes(files.Output, existing);
-        OfficeWorkflowRequest request = files.Request("numbers-xlsx");
+        OfficeWorkflowRequest request = files.Request(route);
         request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
         if (inputLimit) request.Limits.MaximumInputBytes = 1;
         else request.Limits.MaximumOutputBytes = 32;
@@ -179,6 +181,33 @@ public sealed partial class IWorkWorkflowTests {
         Assert.False(result.Succeeded);
         Assert.Equal(existing, File.ReadAllBytes(files.Output));
         Assert.Equal(2, Directory.GetFiles(files.Root).Length);
+        if (!inputLimit) {
+            var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+            Assert.NotEmpty(evidence.FidelityDiagnostics);
+            Assert.True(int.Parse(evidence.Facts["totalRecordCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
+            foreach (var finding in evidence.FidelityDiagnostics)
+                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Details["source"] == finding.Source
+                    && diagnostic.Details["lossKind"] == finding.LossKind.ToString());
+        }
+    }
+
+    [Fact]
+    public async Task Cancellation_after_registered_conversion_retains_completed_evidence() {
+        using var files = new Files("pages", "docx");
+        using var cancellation = new CancellationTokenSource();
+        var converter = new OfficeWorkflowConversionRegistration("pages-docx", (input, output, limits, token) => {
+            using var document = OfficeIMO.Word.WordDocument.Create();
+            document.AddParagraph("Completed registered conversion");
+            document.SaveAsync(output, token).GetAwaiter().GetResult();
+            cancellation.Cancel();
+            return new(new EmptyReport(), new Dictionary<string, string> { ["producer"] = "registered-converter" });
+        });
+        var request = files.Request("pages-docx"); request.RegisteredConversionSettings = null;
+        var result = await new OfficeWorkflowRunner(null, null, conversions: [converter]).RunAsync(request, cancellationToken: cancellation.Token);
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
+        Assert.Equal("registered-converter", evidence.Facts["producer"]);
+        Assert.False(File.Exists(files.Output));
     }
 
     [Fact]

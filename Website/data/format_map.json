@@ -227,6 +227,10 @@
       "family": "other"
     },
     {
+      "name": "Publisher",
+      "family": "other"
+    },
+    {
       "name": "VSDX",
       "family": "other"
     },
@@ -2491,6 +2495,20 @@
       ],
       "cmdlet": "Export-OfficePowerPointImage",
       "example": "Export-OfficePowerPointImage -Path ./in.pptx -OutputPath ./Slides -Format Webp"
+    },
+    {
+      "id": "publisher-pdf",
+      "source": "Publisher",
+      "target": "PDF",
+      "package": "OfficeIMO.Publisher.Pdf",
+      "support": "Targeted",
+      "fidelity": "FixedLayout",
+      "api": "PublisherDocument.Load(stream, readOptions).ToPdfDocumentResult(pdfOptions)",
+      "surfaces": [
+        "dotnet",
+        "cli",
+        "studio"
+      ]
     },
     {
       "id": "rtf-docx",

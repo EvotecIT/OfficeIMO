@@ -716,6 +716,19 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
 - [ ] Widen the [DbaClientX-backed DBF/xBase integration](../OfficeIMO.Reader.Dbf/README.md) with native dBASE/FoxPro application acceptance and independent fixtures for Visual FoxPro `31`/`32`, broader memo/field profiles and code pages. Qualify any additional HTML/PDF projections through the existing table/rendering owners; keep DBF parsing, memo handling and typed streaming in DbaClientX.
 - [ ] Broaden the [CHM read-and-convert profile](../OfficeIMO.Chm/SUPPORT.md) with additional independently compiled multilingual archives and rendered-output qualification; improve CSS scope and identifier rebasing for reflowable exports, and add preserved tagged structure and cross-topic destinations through the shared PDF owner before extending multi-topic PDF guarantees.
 
+### Publisher publication recovery
+
+Current native decoding, public API and evidence boundaries are owned by the
+[Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md). Keep one native
+codec and shared drawing projection; PDF and Reader surfaces remain
+thin consumers. Native `.pub` authoring is outside the read-and-convert product.
+
+- [ ] Qualify native frame breaks, column balancing and tight/through picture wrapping; complete style-library metadata, numbering sequences, additional tab alignments/leaders, drop caps and dynamic-field display against independently produced publications.
+- [ ] Extend native shape geometry, group transforms, non-solid fills, individual table styling, picture effects and background/master inheritance with precise per-feature loss reporting.
+- [ ] Qualify later Publisher producers and native Publisher PDF/SVG comparisons across brochures, newsletters, labels, custom page sizes and multilingual fonts. Keep producer fixtures, independent-reader evidence and pixel fidelity distinct.
+- [ ] Add separately qualified Publisher 97/98 and 2000 native decoders without routing them through text salvage or weakening current resource limits.
+- [ ] Qualify remaining host routes and richer semantic Reader output, carrying source recovery losses into every downstream artifact and keeping native active content inert.
+
 ### Future integration decisions
 
 - [ ] Decide whether Word bibliography interoperability should ship as an optional `OfficeIMO.Word.Bibliography` bridge after the standalone citation-data contract has consumer evidence. If added, map Word bibliography sources to and from `OfficeIMO.Bibliography`, keep Open XML types out of the canonical model, require strict conversion diagnostics and reopen fixtures, and do not add a direct `OfficeIMO.Word` dependency unless a core Word workflow demonstrably requires it.
