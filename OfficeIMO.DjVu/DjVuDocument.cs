@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.DjVu;
 
@@ -52,16 +53,13 @@ public sealed class DjVuDocument {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("DjVu input stream must be readable.", nameof(stream));
         var snapshot = (options ?? new DjVuReadOptions()).Snapshot();
-        using var buffer = new MemoryStream();
-        byte[] transfer = new byte[81920];
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int count = stream.Read(transfer, 0, (int)Math.Min(transfer.Length, snapshot.MaxSourceBytes - buffer.Length + 1));
-            if (count == 0) break;
-            CheckSource(buffer.Length + count, snapshot);
-            buffer.Write(transfer, 0, count);
+        byte[] source;
+        try {
+            source = OfficeStreamReader.ReadForwardBytes(stream, cancellationToken, snapshot.MaxSourceBytes);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxSourceBytes));
         }
-        return new DjVuDocument(buffer.ToArray(), snapshot, cancellationToken);
+        return new DjVuDocument(source, snapshot, cancellationToken);
     }
 
     /// <summary>Loads a file and closes its handle before returning. Component IDs never trigger implicit file access.</summary>
