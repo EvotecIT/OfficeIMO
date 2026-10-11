@@ -139,7 +139,7 @@ namespace OfficeIMO.Core.Internal {
                 while ((expandedRead = await source.ReadAsync(
                     expandedBuffer,
                     0,
-                    expandedBuffer.Length,
+                    GetReadSize(expandedTotal, maxBytes),
                     cancellationToken).ConfigureAwait(false)) > 0) {
                     expandedTotal = checked(expandedTotal + expandedRead);
                     EnsureWithinLimit(expandedTotal, maxBytes);
@@ -152,7 +152,7 @@ namespace OfficeIMO.Core.Internal {
             var buffer = new byte[BufferSize];
             long total = 0;
             int read;
-            while ((read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0) {
+            while ((read = await source.ReadAsync(buffer, 0, GetReadSize(total, maxBytes), cancellationToken).ConfigureAwait(false)) > 0) {
                 total = checked(total + read);
                 EnsureWithinLimit(total, maxBytes);
                 await output.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
@@ -196,7 +196,7 @@ namespace OfficeIMO.Core.Internal {
                 expanded.WriteByte(checked((byte)trailingByte));
                 var expandedBuffer = new byte[BufferSize];
                 int expandedRead;
-                while ((expandedRead = source.Read(expandedBuffer, 0, expandedBuffer.Length)) > 0) {
+                while ((expandedRead = source.Read(expandedBuffer, 0, GetReadSize(expandedTotal, maxBytes))) > 0) {
                     cancellationToken.ThrowIfCancellationRequested();
                     expandedTotal = checked(expandedTotal + expandedRead);
                     EnsureWithinLimit(expandedTotal, maxBytes);
@@ -205,13 +205,24 @@ namespace OfficeIMO.Core.Internal {
                 return expanded.ToArray();
             }
 
+            return ReadForwardBytes(source, cancellationToken, maxBytes);
+        }
+
+        /// <summary>
+        /// Reads forward without inspecting length or seeking, consuming at most one byte beyond a configured limit.
+        /// Leaves caller-owned streams open, including when a limit or cancellation stops the read.
+        /// </summary>
+        internal static byte[] ReadForwardBytes(Stream source, CancellationToken cancellationToken, long? maxBytes = null) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
+            if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             using var output = new MemoryStream();
             var buffer = new byte[BufferSize];
             long total = 0;
             int read;
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
-                read = source.Read(buffer, 0, buffer.Length);
+                read = source.Read(buffer, 0, GetReadSize(total, maxBytes));
                 cancellationToken.ThrowIfCancellationRequested();
                 if (read == 0) break;
                 total = checked(total + read);
@@ -219,6 +230,12 @@ namespace OfficeIMO.Core.Internal {
                 output.Write(buffer, 0, read);
             }
             return output.ToArray();
+        }
+
+        private static int GetReadSize(long total, long? maxBytes) {
+            if (!maxBytes.HasValue) return BufferSize;
+            long remaining = maxBytes.Value - total;
+            return remaining >= BufferSize ? BufferSize : checked((int)remaining + 1);
         }
 
         private static void ValidateSource(Stream source, long? maxBytes) {
