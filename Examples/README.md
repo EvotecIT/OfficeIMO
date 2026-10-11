@@ -6,9 +6,15 @@ These recipes create, read, update, combine, or convert real files. Start with t
 Install-Module PSWriteOffice -Scope CurrentUser
 ```
 
-Each `Recipe-*` script uses simple paths such as `.\Project-Status.docx`. Run a recipe from the folder where you want its documents, or copy the composition block into your own script and change only the file names.
+Most `Recipe-*` scripts use paths relative to the current folder. Parameterized recipes expose an output directory; inspect their script help and supply it when required. For example, the patch-compliance recipe requires PSWriteOffice 3.0.9 or later and an explicit destination:
 
-Creation blocks in the `Recipe-*` scripts use the short DSL aliases consistently, including `WordNew`, `ExcelNew`, `PptNew`, `PdfNew`, and `MarkdownNew`. Recipes that read, update, merge, split, or convert existing files use canonical cmdlet names so those operations are easy to discover in command help. The [DSL cookbook](https://officeimo.com/docs/pswriteoffice/dsl-cookbook/) shows composition in alias and canonical forms so you can choose one style for your own script.
+```powershell
+./Examples/Word/Recipe-Word-PatchCompliance.ps1 -OutputDirectory ./Output/PatchCompliance
+```
+
+You can also copy a composition block into your own script and choose its inputs and file paths there.
+
+Creation recipes demonstrate short DSL aliases such as `WordNew`, `ExcelNew`, `PptNew`, `PdfNew`, and `MarkdownNew`, as well as their canonical cmdlet names. Recipes that read, update, merge, split, or convert existing files use operation-specific cmdlets. The [DSL cookbook](https://officeimo.com/docs/pswriteoffice/dsl-cookbook/) shows composition in alias and canonical forms so you can choose one style for your own script.
 
 Saved DSL constructors are quiet by default. Add `-PassThru` only when the next command needs the saved file.
 
