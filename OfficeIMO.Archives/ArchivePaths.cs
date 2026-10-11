@@ -68,6 +68,7 @@ internal sealed class ArchivePaths {
         return trimmed.Length < rootLength ? full.Substring(0, rootLength) : trimmed;
     }
     private static bool IsDevice(string value) => value.Equals("CON", StringComparison.OrdinalIgnoreCase)
+        || value.Equals("CONIN$", StringComparison.OrdinalIgnoreCase) || value.Equals("CONOUT$", StringComparison.OrdinalIgnoreCase)
         || value.Equals("PRN", StringComparison.OrdinalIgnoreCase) || value.Equals("AUX", StringComparison.OrdinalIgnoreCase)
         || value.Equals("NUL", StringComparison.OrdinalIgnoreCase)
         || value.Length == 4 && (value.StartsWith("COM", StringComparison.OrdinalIgnoreCase) || value.StartsWith("LPT", StringComparison.OrdinalIgnoreCase))
