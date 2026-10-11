@@ -128,10 +128,8 @@ internal static class OfficeArtCustomPathProjector {
         OfficeArtProperty? property = properties.LastOrDefault(item => item.PropertyId == id && !item.IsComplex);
         return property == null ? fallback : unchecked((int)property.Value);
     }
-    private static bool Disabled(IReadOnlyList<OfficeArtProperty> properties, uint valueBit) {
-        uint flags = unchecked((uint)Scalar(properties, 0x017F, 0));
-        return (flags & (valueBit << 16)) != 0 && (flags & valueBit) == 0;
-    }
+    private static bool Disabled(IReadOnlyList<OfficeArtProperty> properties, uint valueBit) =>
+        OfficeArtProperty.GetBoolean(properties, 0x017F, valueBit << 16, valueBit) == false;
     private static ushort U16(byte[] bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
     private static int I32(byte[] bytes, int offset) => bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24;
 }
