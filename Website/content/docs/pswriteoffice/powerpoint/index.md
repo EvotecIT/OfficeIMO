@@ -28,7 +28,7 @@ Use `New-OfficePowerPointDeckPlan` and the `Add-OfficePowerPointPlan*` commands 
 
 - [Quarterly business review](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1): title slide, performance chart, priorities table, bullets, and speaker notes.
 - [Training workshop](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/PowerPoint/Recipe-PowerPoint-TrainingWorkshop.ps1): learning objectives, agenda, call-to-action layout, and presenter notes.
-- [Service brief](https://github.com/EvotecIT/PSWriteOffice/blob/840ab293b932a568c6528d586a864267cda9fa27/Examples/Showcase/ServiceBrief.md): turn quarterly location demand from CSV into an editable eight-slide review with comparable ticket counts, a priority review and dated actions.
+- [Service brief](https://github.com/EvotecIT/PSWriteOffice/blob/f28d09d2ff157925598d9396bf0f2c8ef19a2b25/Examples/Showcase/ServiceBrief.md): turn quarterly location demand from CSV into an editable eight-slide review with comparable ticket counts, a priority review and dated actions.
 
 ## Other PowerPoint workflows
 
