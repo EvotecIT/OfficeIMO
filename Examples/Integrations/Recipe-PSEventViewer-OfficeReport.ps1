@@ -42,14 +42,20 @@ if ($CollectLive) {
 }
 $records = @($Event | Select-Object -First $MaxEvents | ForEach-Object {
     # Typed rule results retain the same raw snapshot under SourceEvent.
-    $source = if ($null -ne $_.SourceEvent) { $_.SourceEvent } else { $_ }
+    $envelope = $_.PSObject.Properties['SourceEvent']
+    $source = if ($null -ne $envelope -and $null -ne $envelope.Value) { $envelope.Value } else { $_ }
     if (-not $source.TimeCreated -or -not $source.ProviderName -or $null -eq $source.Id -or $null -eq $source.Level) {
         throw 'Supply raw events with TimeCreated, Id, ProviderName and numeric Level, or typed results with that SourceEvent snapshot.'
     }
+    $computer = $source.PSObject.Properties['MachineName']
+    $log = $source.PSObject.Properties['LogName']
+    $message = $source.PSObject.Properties['Message']
     [pscustomobject]@{
         TimeCreated = [datetime] $source.TimeCreated; EventId = [int] $source.Id
         Provider = [string] $source.ProviderName; Level = [int] $source.Level
-        Computer = [string] $source.MachineName; Log = [string] $source.LogName; Message = [string] $source.Message
+        Computer = if ($computer) { [string] $computer.Value } else { '' }
+        Log = if ($log) { [string] $log.Value } else { '' }
+        Message = if ($message) { [string] $message.Value } else { '' }
     }
 })
 $computerCount = @($records | Where-Object Computer | Select-Object -ExpandProperty Computer -Unique).Count
