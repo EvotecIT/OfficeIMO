@@ -68,6 +68,19 @@ meta.data_mode: override
 Browse [the showcase](/showcase/) for generated documents and source code.
 "@ + "`n"
 }
+# Code excerpts shown beside previews (product pages). A card's source marks the lines with `#region Excerpt:<card id>` and `#endregion`,
+# so what the page shows is always cut from the file that produced the document next to it.
+$excerpts = [ordered]@{}
+foreach ($card in @($catalog.cards | Where-Object source_path)) {
+    $sourcePath = Resolve-ShowcasePath $repoRoot $card.source_path
+    $text = [IO.File]::ReadAllText($sourcePath).Replace("`r`n", "`n")
+    $match = [regex]::Match($text, '(?ms)^[ \t]*#region Excerpt:' + [regex]::Escape($card.id) + '[ \t]*\n(?<body>.*?)^[ \t]*#endregion[^\n]*$')
+    if (-not $match.Success) { continue }
+    $lines = @($match.Groups['body'].Value.TrimEnd("`n").Split("`n"))
+    $indent = ($lines | Where-Object { $_.Trim() } | ForEach-Object { $_.Length - $_.TrimStart().Length } | Measure-Object -Minimum).Minimum
+    $excerpts[$card.id] = (($lines | ForEach-Object { if ($_.Length -ge $indent) { $_.Substring($indent) } else { $_.TrimStart() } }) -join "`n")
+}
+$expected[(Join-Path $websiteRoot 'data/showcase_excerpts.json')] = ($excerpts | ConvertTo-Json -Depth 3).Replace("`r`n", "`n") + "`n"
 $expected[(Join-Path $websiteRoot 'data/showcase_sources.json')] = ($sources | ConvertTo-Json -Depth 4).Replace("`r`n", "`n") + "`n"
 $expected[(Join-Path $websiteRoot 'data/showcase_browser_tools.json')] = ($browserLinks | ConvertTo-Json -Depth 5).Replace("`r`n", "`n") + "`n"
 foreach ($file in Get-ChildItem -LiteralPath $pageRoot -Filter '*.md' -File -ErrorAction SilentlyContinue) {
@@ -81,4 +94,4 @@ foreach ($entry in $expected.GetEnumerator()) {
     New-Item -ItemType Directory -Path (Split-Path -Parent $entry.Key) -Force | Out-Null
     [IO.File]::WriteAllText($entry.Key, $content, [Text.UTF8Encoding]::new($false))
 }
-Write-Host "Showcase walkthroughs verified: $($cards.Count) pages with code from their generating C# files."
+Write-Host "Showcase walkthroughs verified: $($cards.Count) pages with code from their generating files, $($excerpts.Count) product-page excerpts."
