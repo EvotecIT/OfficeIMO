@@ -244,7 +244,8 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Resolves an inherited body family without replacing explicit presentation slots or their resources.</summary>
-    internal bool TryUseInheritedOfficeFontFamily(string? familyName, bool embedSystemFont, bool requireEmbeddedFont) {
+    internal bool TryUseInheritedOfficeFontFamily(string? familyName, bool embedSystemFont, bool requireEmbeddedFont,
+        bool replaceBodyResources = false) {
         if (string.IsNullOrWhiteSpace(familyName)) return false;
         bool mapped = PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfStandardFont standardFont);
         PdfEmbeddedFontFamily? embeddedFamily = null;
@@ -253,7 +254,10 @@ public sealed partial class PdfOptions {
 
         PdfStandardFont family = mapped ? PdfStandardFontMapper.GetFontFamily(standardFont) : PdfStandardFont.Helvetica;
         if (embeddedFamily != null) {
-            var reserved = CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
+            // An explicit converter body override may replace an unused body
+            // resource. Header and footer selections retain their own slots.
+            var reserved = replaceBodyResources ? new HashSet<PdfStandardFont>() :
+                CreateRegisteredFontFamilySlots(includeDocumentFontSlots: false);
             if (_hasExplicitHeaderFont) AddRegisteredFontFamilySlot(reserved, HeaderFont);
             if (_hasExplicitFooterFont) AddRegisteredFontFamilySlot(reserved, FooterFont);
             // A presentation slot can retain a standard face while the body

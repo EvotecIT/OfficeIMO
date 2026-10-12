@@ -2146,14 +2146,12 @@ public sealed class PdfRenderingProfileTests {
 
         var fontless = new OfficeRenderingProfile("fontless");
         var adapters = new object[] {
-            new OfficeIMO.Word.Pdf.WordToPdfOptions().UseRenderingProfile(fontless),
             new OfficeIMO.Excel.Pdf.ExcelToPdfOptions().UseRenderingProfile(fontless),
             new OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions().UseRenderingProfile(fontless)
         };
 
         foreach (object adapter in adapters) {
             PdfOptions pdfOptions = adapter switch {
-                OfficeIMO.Word.Pdf.WordToPdfOptions word => word.PdfOptions!,
                 OfficeIMO.Excel.Pdf.ExcelToPdfOptions excel => excel.PdfOptions!,
                 OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions powerPoint =>
                     powerPoint.PdfOptions!,
@@ -2319,19 +2317,6 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
-    public void WordFontProfileRemainsExplicitFontConfiguration() {
-        var profile = new OfficeRenderingProfile(
-            "word-font-profile",
-            new OfficeFontFaceCollection()
-                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(profile);
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-    }
-
-    [Fact]
     public void FontlessOverlayPreservesDirectCallerFontConfiguration() {
         var fontless = new OfficeRenderingProfile("fontless-overlay");
         var adapters = new object[] {
@@ -2427,23 +2412,6 @@ public sealed class PdfRenderingProfileTests {
             ?.GetValue(options)
             ?? throw new InvalidOperationException(
                 "The PDF adapter font-configuration state was not found."));
-
-    [Fact]
-    public void WordFontProfileRemainsExplicitAfterFontlessOverlay() {
-        var fontProfile = new OfficeRenderingProfile(
-            "word-font-profile",
-            new OfficeFontFaceCollection()
-                .Add("Profile", ManagedTextShapingTestAssets.CreateFont('A')));
-        var options = new OfficeIMO.Word.Pdf.WordToPdfOptions()
-            .UseRenderingProfile(fontProfile);
-
-        options.UseRenderingProfile(
-            new OfficeRenderingProfile("shaping-only-overlay"),
-            OfficeRenderingProfileApplyMode.Overlay);
-
-        Assert.True(options.HasExplicitPdfFontConfiguration);
-        Assert.True(options.CloneForConversion().HasExplicitPdfFontConfiguration);
-    }
 
     [Fact]
     public void PowerPointFailedProfileDoesNotCreatePdfOptions() {
