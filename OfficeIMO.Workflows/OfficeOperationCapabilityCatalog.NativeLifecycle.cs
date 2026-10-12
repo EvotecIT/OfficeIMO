@@ -151,25 +151,25 @@ public static partial class OfficeOperationCapabilityCatalog {
             limitedSupported: new[] { OfficeOperationKind.Read, OfficeOperationKind.Inspect, OfficeOperationKind.Preserve },
             limitation: "Modern IWA snapshots are immutable. Unchanged native ZIP saves preserve all captured file-entry payloads, including nested Index.zip; ZIP carrier/filesystem metadata is rewritten or omitted. Native acceptance is fixture-specific; opaque preservation does not establish semantic fidelity.");
         AddNativeLifecycle(rows, "iwork-native", "OfficeIMO.IWork", "IWork.Native",
-            "IWorkSourceDocument.Open / project to Pages or Numbers",
-            "OfficeIMO.IWork.Tests immutable source and unchanged native preservation contracts",
+            "IWorkSourceDocument.BeginEdit / SetPagesBodyParagraphText / SetNumbersCellNumber / SetNumbersCellBoolean / SaveBytesResult / Save",
+            "OfficeIMO.IWork.Tests native text/scalar preservation contracts; native-exports/pages-preserved-paragraphs-v15.4-raw-preservation.json and numbers-preserved-scalars-v14.5.json Apple edit/save/reopen evidence",
             new[] { ".pages", ".numbers" }, Array.Empty<OfficeOperationKind>(),
-            unsupported: new[] { OfficeOperationKind.Edit }, limitation: "Semantic and structural editing of loaded Pages/Numbers sources is unsupported; unchanged native saving uses BeginEdit().Save.");
+            partial: new[] { OfficeOperationKind.Edit }, limitation: "Pages replaces uniform plain body paragraphs and qualified non-tiered decimal items in complete single-section body-only sources, retaining UTF-16 and UTF-8 lengths. Numbers replaces existing finite Decimal128 numeric or boolean cells in complete sources without selected formulas or unsupported cell features. Structural changes, type changes and nested Index.zip edits are unsupported. Edited saves require explicit AllowUnassessedVisualCaches; retained previews and cache metadata remain unrefreshed.");
         AddNativeLifecycle(rows, "iwork-native", "OfficeIMO.IWork", "IWork.Native",
-            "IWorkPagesDocument.Create / AddParagraph / AddRichParagraph; IWorkNumbersDocument.Create / AddSheet / AddTable / SaveBytes / Save",
-            "OfficeIMO.IWork.Tests creation contracts; native-exports/pages-created-v15.4.json and numbers-created-v14.5.json independent decoding and Apple open/edit/save/export evidence",
+            "IWorkPagesDocument.Create / AddParagraph / AddRichParagraph / CreateNumberedList / AddTable / AddImage / SetHeader / SetFooter; IWorkNumbersDocument.Create / AddSheet / AddTable / SaveBytes / Save",
+            "OfficeIMO.IWork.Tests creation contracts; native-exports/pages-created-v15.4.json, Pages table/image/list/header references and numbers-created-v14.5.json independent decoding and Apple open/edit/save/export evidence",
             new[] { ".pages", ".numbers" }, Array.Empty<OfficeOperationKind>(),
-            limitedSupported: new[] { OfficeOperationKind.Create }, limitation: "Template-free Pages body paragraphs and Numbers scalar tables use bounded native models. Lists, broader Pages objects/sections, Numbers formulas/formats/comments/merges and loaded-source semantic editing are unsupported. Native acceptance is fixture-specific to Pages 15.4 and Numbers 14.5.");
+            limitedSupported: new[] { OfficeOperationKind.Create }, limitation: "Template-free Pages supports body paragraphs, decimal lists at levels zero through eight, scalar inline tables, PNG/JPEG inline images and one left header/footer in a single section. Numbers supports scalar tables with qualified numeric formats. Broader sections/objects, bullets/tiered numbering, Numbers formulas/comments/merges and general loaded-source editing are unsupported. Native acceptance is fixture-specific to Pages 15.4 and Numbers 14.5.");
         AddNativeLifecycle(rows, "keynote-native-creation", "OfficeIMO.IWork", "IWork.Keynote",
             "IWorkKeynoteDocument.Create / AddSlide / AddText / AddRichText / AddImage / AddTable / SaveBytes / Save",
             "OfficeIMO.IWork.Tests creation contracts; native-exports/keynote-created-v15.4.json and rich-run/image/table references with independent decoding and Apple reopen/export/edit evidence",
             new[] { ".key" }, Array.Empty<OfficeOperationKind>(), limitedSupported: new[] { OfficeOperationKind.Create },
             limitation: "Template-free static slides support positioned rich text, PNG/JPEG images and scalar tables. Broader formatting, crops/masks/rotation, transitions/builds, fonts/scripts and producer versions remain unqualified. Loaded-source preservation and image translations use a separate edit session.");
         AddNativeLifecycle(rows, "keynote-native-image-edit", "OfficeIMO.IWork", "IWork.Keynote",
-            "IWorkSourceDocument.BeginEdit / IWorkNativeEditSession.MoveKeynoteImage / SaveBytesResult / Save",
-            "OfficeIMO.IWork.Tests native preservation contracts; native-exports/native-preservation-macos.json exact position-byte changes, native edit/save/reopen and all-slide PDF evidence",
+            "IWorkSourceDocument.BeginEdit / IWorkNativeEditSession.MoveKeynoteImage / ResizeKeynoteImage / SetKeynoteTextBoxParagraphText / SaveBytesResult / Save",
+            "OfficeIMO.IWork.Tests native preservation contracts; native-exports/native-preservation-macos.json and Keynote resized-image/paragraph references with exact byte changes, native edit/save/reopen and all-slide PDF evidence",
             new[] { ".key" }, Array.Empty<OfficeOperationKind>(), partial: new[] { OfficeOperationKind.Edit },
-            limitation: "Only direct unlocked unrotated unmasked images inside a known canvas can move. Other raw payload/header/resource bytes remain intact. Edited saves require explicit AllowUnassessedVisualCaches and report retained unrefreshed previews/cache metadata as unassessed. Other semantic/structural and nested-index edits are unsupported.");
+            limitation: "Direct unlocked unrotated unmasked images can move or resize inside a known canvas. Direct unlocked text boxes with unshared storage support fixed-length uniform plain paragraph replacements without hyperlinks or inline content. Other raw payload/header/resource bytes remain intact. Edited saves require explicit AllowUnassessedVisualCaches and report retained unrefreshed previews/cache metadata as unassessed. Other semantic/structural and nested-index edits are unsupported.");
         AddEmailStoreLifecycleRows(rows);
         AddProjectLifecycleRows(rows);
         AddNativeLifecycle(rows, "epub-native", "OfficeIMO.Epub", "Epub.Native",

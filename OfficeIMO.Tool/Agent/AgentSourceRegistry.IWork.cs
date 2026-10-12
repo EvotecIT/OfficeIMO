@@ -4,6 +4,18 @@ using OfficeIMO.Tool.Commands.Reader;
 namespace OfficeIMO.Tool.Agent;
 
 internal sealed partial class AgentSourceRegistry {
+    internal AgentSourceRegistration RegisterIWorkFile(string path, long maximumPackageBytes, CancellationToken token) {
+        if (!IsIWorkPackagePath(path)) throw new ArgumentException("An iWork package path is required.", nameof(path));
+        if (maximumPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPackageBytes));
+        var source = Create(path, token, iworkMaximumPackageBytes: maximumPackageBytes);
+        _sources[source.SourceId] = source;
+        return source;
+    }
+
+    internal long? GetRegisteredIWorkMaximumPackageBytes(string sourceId) =>
+        !string.IsNullOrWhiteSpace(sourceId) && _sources.TryGetValue(sourceId, out var source)
+            ? source.IWorkMaximumPackageBytes : null;
+
     // Reader and conversion supply the format owner's captured-content hash.
     // Identity construction never reopens the package after that capture.
     internal AgentSourceRegistration RegisterIWorkDirectorySnapshot(string path, string contentHash,

@@ -418,8 +418,12 @@ public sealed class OfficeOperationCapabilityCatalogTests {
                 Assert.Single(rows, row => row.Operation == operation).State));
 
         OfficeOperationCapability edit = Assert.Single(rows, row => row.Operation == OfficeOperationKind.Edit);
-        Assert.Equal(extension == ".key" ? OfficeOperationSupportState.Partial : OfficeOperationSupportState.Unsupported,
-            edit.State);
+        Assert.Equal(OfficeOperationSupportState.Partial, edit.State);
+        Assert.Contains(extension switch {
+            ".pages" => "SetPagesBodyParagraphText",
+            ".numbers" => "SetNumbersCellNumber",
+            _ => "SetKeynoteTextBoxParagraphText"
+        }, edit.PublicApi);
         Assert.DoesNotContain(rows, row => row.Operation == OfficeOperationKind.Edit &&
             row.State == OfficeOperationSupportState.Supported);
     }

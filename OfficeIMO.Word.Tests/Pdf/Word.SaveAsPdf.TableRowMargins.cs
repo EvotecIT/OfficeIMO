@@ -92,12 +92,13 @@ public partial class Word {
 
     [Theory]
     [InlineData(false, false, false, 129D)]
-    [InlineData(true, false, false, 135D)]
+    [InlineData(true, false, false, 135.5D)]
     [InlineData(false, true, false, 129D)]
-    [InlineData(true, true, false, 135D)]
+    [InlineData(true, true, false, 135.5D)]
     [InlineData(false, true, true, 120D)]
     public void SaveAsPdf_VerticalMergeContinuationMarginsContributeToPhysicalRowHeight(
         bool minimum, bool conditional, bool clear, double advance) {
+        // Minimum rows include both half-width TableGrid border insets, as in the unmerged control.
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 3, 2, 0);
         foreach (WordTableRow row in table.Rows) {

@@ -374,12 +374,13 @@ internal sealed partial class OfficeImoAgentService {
     private static async Task<OfficeDocumentReadResult> ReadDocumentAsync(
         string path,
         CancellationToken cancellationToken,
-        bool computeHashes = false) {
+        bool computeHashes = false,
+        long maximumInputBytes = ReaderToolArguments.DefaultMaxInputBytes) {
         OfficeDocumentReader reader = CreateReader();
         return await reader.ReadDocumentAsync(
             path,
             new ReaderOptions {
-                MaxInputBytes = ReaderToolArguments.DefaultMaxInputBytes,
+                MaxInputBytes = maximumInputBytes,
                 MaxChars = DefaultFetchOutputCharacters,
                 ComputeHashes = computeHashes
             },

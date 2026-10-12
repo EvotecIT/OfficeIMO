@@ -23,8 +23,9 @@ internal sealed partial class OfficeImoAgentService {
         string route = runner.ConversionRoutes.SingleOrDefault(item => item.SourceExtensions.Contains(extension)
             && item.TargetExtension == target && item.Engine.Contains("IWork", StringComparison.Ordinal))?.Id
             ?? throw new AgentUsageException("Choose a Pages-to-DOCX, Numbers-to-XLSX, Keynote-to-PPTX, or iWork-to-PDF conversion.");
-        AgentSourceRegistration? source = directoryPackage ? null : _registry.Register(input, token);
         var settings = new IWorkWorkflowSettings { ConversionOptions = options ?? new() };
+        long maximumPackageBytes = Math.Min(maximumInputBytes, settings.ReadOptions.MaximumPackageBytes);
+        AgentSourceRegistration? source = directoryPackage ? null : _registry.RegisterIWorkFile(input, maximumPackageBytes, token);
         var request = new OfficeWorkflowRequest {
             InputPath = input, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route,
@@ -38,7 +39,7 @@ internal sealed partial class OfficeImoAgentService {
             // Result construction binds already captured evidence, including cancellation.
             // It performs no filesystem read and must not discard the workflow's result.
             source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, CancellationToken.None,
-                Math.Min(maximumInputBytes, settings.ReadOptions.MaximumPackageBytes));
+                maximumPackageBytes);
         return new AgentConvertResult {
             SourceId = source?.SourceId ?? string.Empty, SourcePath = input, OutputPath = workflow.OutputPath ?? string.Empty,
             Format = format.ToLowerInvariant(), LengthBytes = workflow.OutputBytes, Sha256 = workflow.OutputSha256 ?? string.Empty,

@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.IWork;
+using System.IO.Compression;
 using OfficeIMO.Tool.Agent;
 using OfficeIMO.Tool.Commands.Reader;
 using Xunit;
@@ -7,19 +8,42 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed partial class AgentIWorkConversionTests {
-    [Fact]
-    public async Task Conversion_source_ids_retain_the_admitted_directory_package_limit() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Conversion_source_ids_retain_the_admitted_package_limit(bool directoryPackage) {
         using var files = new Files(true);
-        string member = Path.Combine(files.Input, "extra.bin");
-        using (var padding = File.Create(member)) padding.SetLength(ReaderToolArguments.DefaultMaxInputBytes + 1);
+        string input = directoryPackage ? files.Input : Path.Combine(files.Root, "transport.pages");
+        if (!directoryPackage) ZipFile.CreateFromDirectory(files.Input, input, CompressionLevel.NoCompression, false);
         var registry = new AgentSourceRegistry();
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
-        AgentConvertResult result = await service.ConvertAsync(files.Input, files.Output("docx"), "docx");
+        var hit = Assert.Single((await service.SearchAsync(input, "hello")).Results);
+        string member = Path.Combine(files.Input, "extra.bin");
+        using (var padding = File.Create(member)) padding.SetLength(ReaderToolArguments.DefaultMaxInputBytes + 1);
+        RefreshTransport();
+        const long maximum = 96L * 1024 * 1024;
+        AgentConvertResult result = await service.ConvertAsync(input, files.Output("docx"), "docx", maximumInputBytes: maximum);
         Assert.True(result.Workflow!.Succeeded, result.Workflow.Summary);
         Assert.Equal(result.SourceId, registry.Resolve(result.SourceId).SourceId);
-        Assert.Equal(result.SourceId, registry.Resolve(result.SourceId, files.Input).SourceId);
+        Assert.Equal(result.SourceId, registry.Resolve(result.SourceId, input).SourceId);
+        Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id)));
+        Assert.Equal(result.SourceId, registry.Resolve(result.SourceId).SourceId);
+        Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id, sourcePath: input)));
+        using (var padding = File.OpenWrite(member)) padding.SetLength(maximum + 1);
+        RefreshTransport();
+        if (directoryPackage)
+            await Assert.ThrowsAsync<InvalidDataException>(() => service.FetchAsync(result.SourceId, hit.Id));
+        else
+            await Assert.ThrowsAsync<AgentUsageException>(() => service.FetchAsync(result.SourceId, hit.Id));
         File.WriteAllText(member, "changed");
+        RefreshTransport();
         Assert.Throws<AgentUsageException>(() => registry.Resolve(result.SourceId));
+
+        void RefreshTransport() {
+            if (directoryPackage) return;
+            File.Delete(input);
+            ZipFile.CreateFromDirectory(files.Input, input, CompressionLevel.NoCompression, false);
+        }
     }
 
     [Theory]
