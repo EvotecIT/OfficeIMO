@@ -102,8 +102,12 @@ internal static class OfficeArtCustomPathProjector {
                         int escape = (word >> 8) & 31;
                         if (escape == 10) noFill = true;
                         else if (escape == 11) noLine = true;
-                        // Editing-only join metadata does not consume vertices or alter the stored artwork.
-                        else if (escape < 12 || escape > 20) { failure = OfficeArtCustomPathFailure.Command; return false; }
+                        else if (escape is >= 12 and <= 20) {
+                            // Editing-only metadata references POINT entries without adding drawing commands.
+                            int metadataPoints = word & 0xFF;
+                            if (metadataPoints > pointCount - nextPoint) return false;
+                            nextPoint += metadataPoints;
+                        } else { failure = OfficeArtCustomPathFailure.Command; return false; }
                         break;
                     default:
                         failure = OfficeArtCustomPathFailure.Command; return false;

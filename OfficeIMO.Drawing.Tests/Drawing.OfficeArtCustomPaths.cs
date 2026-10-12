@@ -7,6 +7,47 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(12)]
+    [InlineData(13)]
+    [InlineData(14)]
+    [InlineData(15)]
+    [InlineData(16)]
+    [InlineData(17)]
+    [InlineData(18)]
+    [InlineData(19)]
+    [InlineData(20)]
+    public void OfficeArtCustomPath_EditingEscapesConsumeOnlyTheirDeclaredMetadataVertices(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (5400, 21600), (10800, 21600), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 2), 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Equal(2, result!.Shape.PathCommands.Count);
+        Assert.Equal(OfficePathCommandKind.LineTo, result.Shape.PathCommands[1].Kind);
+        Assert.Equal(new OfficePoint(80, 0), result.Shape.PathCommands[1].Point);
+    }
+
+    [Theory]
+    [InlineData(12)]
+    [InlineData(20)]
+    public void OfficeArtCustomPath_EditingEscapesRejectUnavailableMetadataVertices(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 255), 0x0001, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(11)]
+    public void OfficeArtCustomPath_PaintEscapesDoNotSkipGeometricVertices(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 2), 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Equal(new OfficePoint(80, 0), result!.Shape.PathCommands[1].Point);
+        Assert.Equal(escape == 10, result.NoFill);
+        Assert.Equal(escape == 11, result.NoLine);
+    }
+
+    [Theory]
     [InlineData(0x0145, 8)]
     [InlineData(0x0146, 2)]
     public void OfficeArtCustomPath_CompleteEmptyArraysDoNotDeclareGeometry(int id, int stride) {
