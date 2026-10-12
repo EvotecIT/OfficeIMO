@@ -90,10 +90,15 @@ foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
     Assert-ContainsLiteral -Text $walkthroughHtml -Expected "Copy $languageLabel source" -Contract "$($card.id) code copy label"
     Assert-ContainsAttribute -Text $walkthroughHtml -Name 'class' -Value "language-$($card.source_language)" -Contract "$($card.id) syntax highlighting"
     if ($card.source_language -eq 'powershell') {
-        $moduleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $sourceRootPath 'data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
-        $runCommand = $card.run_command.Replace('{moduleVersion}', $moduleVersion)
+        $runCommand = "Install-Module PSWriteOffice -Scope CurrentUser`n" + $card.run_command
         Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand)) -Contract "$($card.id) executable command"
         Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand.Replace('pwsh -NoProfile', 'powershell -NoProfile'))) -Contract "$($card.id) Windows PowerShell command"
+        foreach ($download in @($card.downloads | Where-Object file_name)) {
+            $href = [regex]::Escape($download.url)
+            $fileName = [regex]::Escape($download.file_name)
+            $anchor = [regex]::Match($walkthroughHtml, '<a\b(?=[^>]*\shref=["'']?' + $href + '["'']?(?=\s|>))[^>]*>').Value
+            Assert-ContainsAttribute -Text $anchor -Name 'download' -Value $download.file_name -Contract "$($card.id) saved download filename"
+        }
         $commandMetadata = Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/apidocs/powershell/command-metadata.json') -Raw | ConvertFrom-Json
         $aliases = @{}
         foreach ($command in $commandMetadata.commands) {
