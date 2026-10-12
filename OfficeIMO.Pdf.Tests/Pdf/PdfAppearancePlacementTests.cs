@@ -26,7 +26,7 @@ public sealed class PdfAppearancePlacementTests {
         var dictionary = new PdfDictionary();
         dictionary.Items["BBox"] = Numbers(10, 20, 190, 42);
         dictionary.Items["Matrix"] = Numbers(a, b, c, d, e, f);
-        Matrix2D outer = PdfAppearancePlacement.Read(dictionary, value => value, 30, 300, 180, 22, out Matrix2D matrix);
+        Assert.True(PdfAppearancePlacement.TryRead(dictionary, value => value, 30, 300, 180, 22, out Matrix2D outer, out Matrix2D matrix));
         Matrix2D combined = Matrix2D.Multiply(outer, matrix);
         var corners = new[] { combined.Transform(10, 20), combined.Transform(190, 20),
             combined.Transform(10, 42), combined.Transform(190, 42) };
@@ -42,8 +42,7 @@ public sealed class PdfAppearancePlacementTests {
     public void OverflowedExtentsCannotCollapseAnAppearanceToZeroScale() {
         var dictionary = new PdfDictionary();
         dictionary.Items["BBox"] = Numbers(-double.MaxValue, 0, double.MaxValue, 22);
-        Assert.Throws<InvalidOperationException>(() => PdfAppearancePlacement.Read(dictionary,
-            value => value, 30, 300, 180, 22, out _));
+        Assert.False(PdfAppearancePlacement.TryRead(dictionary, value => value, 30, 300, 180, 22, out _, out _));
     }
 
     [Fact]
@@ -51,8 +50,7 @@ public sealed class PdfAppearancePlacementTests {
         var dictionary = new PdfDictionary();
         dictionary.Items["BBox"] = Numbers(0, 0, 180, 22);
         dictionary.Items["Matrix"] = Numbers(0, 0, 0, 0, 0, 0);
-        Assert.Throws<InvalidOperationException>(() => PdfAppearancePlacement.Read(dictionary,
-            value => value, 30, 300, 180, 22, out _));
+        Assert.False(PdfAppearancePlacement.TryRead(dictionary, value => value, 30, 300, 180, 22, out _, out _));
     }
 
     private static PdfArray Numbers(params double[] values) {

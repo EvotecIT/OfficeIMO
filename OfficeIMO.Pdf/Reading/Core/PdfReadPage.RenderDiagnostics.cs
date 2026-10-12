@@ -1583,6 +1583,7 @@ public sealed partial class PdfReadPage {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.SynthesizedAnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
             }
             if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
+                !TryCreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary, out Matrix2D placementTransform) ||
                 !activeForms.Add(appearance)) continue;
             try {
                 PdfDictionary appearanceResources = ResolveDictionary(appearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
@@ -1591,9 +1592,7 @@ public sealed partial class PdfReadPage {
                 string appearanceContent = WrapFormContentWithBoundingBoxClip(
                     PdfEncoding.Latin1GetString(pageContentBudget.Decode(appearance)),
                     appearance.Dictionary);
-                Matrix2D appearanceTransform = Matrix2D.Multiply(
-                    GetVisualPageTransform(),
-                    CreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary));
+                Matrix2D appearanceTransform = Matrix2D.Multiply(GetVisualPageTransform(), placementTransform);
                 CollectRenderCapabilityDiagnostics(
                     appearanceContent,
                     appearanceResources,
