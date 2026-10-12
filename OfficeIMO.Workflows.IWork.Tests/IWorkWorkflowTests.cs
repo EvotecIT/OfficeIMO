@@ -180,13 +180,12 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
         Assert.Equal(existing, File.ReadAllBytes(files.Output));
-        // Input capture or bounded serialization fails before the registered
-        // operation returns completed conversion evidence.
-        Assert.Null(result.ConversionEvidence);
+        if (inputLimit) Assert.Null(result.ConversionEvidence);
         Assert.Equal(2, Directory.GetFiles(files.Root).Length);
         if (!inputLimit) {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.NotEmpty(evidence.FidelityDiagnostics);
+            Assert.Matches("^[a-f0-9]{64}$", evidence.Facts["packageContentSha256"]);
             Assert.True(int.Parse(evidence.Facts["totalRecordCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
             foreach (var finding in evidence.FidelityDiagnostics)
                 Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Details["source"] == finding.Source
