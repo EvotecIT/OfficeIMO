@@ -48,6 +48,7 @@
     {{ include "showcase-run-command" }}
     <div class="imo-walkthrough__command"><pre tabindex="0" aria-label="Run command"><code>{{ run_command | html.escape }}</code></pre><button type="button" data-copy="{{ run_command | html.escape }}" aria-label="Copy run command">Copy</button></div>
     {{ if source_language == "powershell" }}<details><summary>Run in Windows PowerShell 5.1</summary><pre tabindex="0"><code>{{ desktop_run_command | html.escape }}</code></pre></details>{{ end }}
+    {{ if source_language == "powershell" }}<p>If Windows blocks the downloaded script, read its code first, then run <code>Unblock-File -LiteralPath ./{{ card.source_download_name | html.escape }}</code> and try again.</p>{{ end }}
     <p>The files are written to <code>{{ if card.output_directory }}{{ card.output_directory }}{{ else }}OfficeIMO.Examples/bin/Debug/net10.0/Documents/Workflows/{{ card.id }}/{{ end }}</code>. Start with the <a href="{{ card.guide_url }}">{{ if source_language == "powershell" }}PSWriteOffice{{ else }}{{ card.format }}{{ end }} guide</a> for package setup and more examples.</p>
   </section>
   <section id="downloads" class="imo-walkthrough__section imo-walkthrough__downloads">
