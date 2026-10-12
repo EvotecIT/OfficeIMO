@@ -158,7 +158,6 @@ Phases 1-3 are the first desktop usability scope. Phase 5 supplies its platform 
 ### Phase 1: consistent workspace
 
 - [ ] Finish the visual system: move the OCR review, conversion option, and editor inspector panels from literal font sizes and spacing onto the shared type ramp, spacing scale, and surface tokens, and validate the result at 125-200% display scaling and with expanded translations.
-- [ ] Preserve selection, zoom, scroll position, and unsaved work when changing document modes, with a test for each mode change.
 - [ ] Replace long property forms with reusable contextual inspectors for text, images, annotations, forms, crop, and signature placement. Keep numeric geometry in an Advanced section, provide keyboard alternatives to dragging, and make preview, Apply, Cancel, and Undo behavior consistent. Distinguish replacement of existing text from adding a text overlay.
 - [ ] Route conversion loss and missing OCR prerequisites through the shared notice bar used for failures, restrictions, storage problems, and page rendering limitations. Give each notice a next action and optional page-linked details. Use consistent states for unsaved work, saved output, partial completion, cancellation, and failed publication while retaining the local diagnostics privacy contract.
 

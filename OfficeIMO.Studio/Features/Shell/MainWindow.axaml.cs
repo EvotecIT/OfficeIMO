@@ -77,7 +77,7 @@ public sealed partial class MainWindow : Window {
             }
         };
         OrganizerList.SelectionChanged += (_, eventArgs) => {
-            if (_changingActiveDocument) return;
+            if (_changingActiveDocument || DocumentWorkspace.IsOrganizerPanelChanging) return;
             ViewModel.UpdateOrganizerSelection(
                 eventArgs.AddedItems.OfType<PdfOrganizerPageViewModel>(),
                 eventArgs.RemovedItems.OfType<PdfOrganizerPageViewModel>());
