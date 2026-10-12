@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "capturedUtc": "2026-10-12T20:39:49.604225+00:00",
+  "baseCommit": "b059fcc2767fe5b3ea272c53e04fd291bfe46d0a",
+  "qualifiedSourceFingerprintSha256": "8e74de1f875b335ddb49de54bb2b32bb96f21af153d010b0d56df53a3ffc4898",
+  "sourceFiles": [
+    {
+      "path": "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.cs",
+      "bytes": 31042,
+      "sha256": "671e68df8fd5f1339301f45d6e434c530ac1bd2d055172020675d52c8db88288"
+    },
+    {
+      "path": "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.Baselines.cs",
+      "bytes": 2927,
+      "sha256": "1cc53fac0537c17d03ddeb7126c632a8fcd73aedee74fdf9c254c002a5b0f9e6"
+    },
+    {
+      "path": "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.InlineScripts.cs",
+      "bytes": 13735,
+      "sha256": "24e3e25a1d31bb9e3d29197ca78f736acc2fcf4cb56bd5edebb3cf37b5249afc"
+    },
+    {
+      "path": "OfficeIMO.Pdf/Reading/Layout/PdfTextLayoutOptions.cs",
+      "bytes": 3724,
+      "sha256": "73624bf6e1b08a7c68ed0f5995cc4ce41b8952c90d79fa1748555b690da9a545"
+    },
+    {
+      "path": "OfficeIMO.Pdf.Tests/Pdf/PdfInlineScriptExtractionTests.cs",
+      "bytes": 15549,
+      "sha256": "fa6eee98fa8eb9633cf3424499c4809cf70e503e13abb8019b9396aeaefa5057"
+    }
+  ],
+  "owner": "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine",
+  "contract": {
+    "publicPaths": [
+      "PdfReadPage.ExtractText()",
+      "PdfReadPage.ExtractTextWithColumns(PdfTextLayoutOptions)"
+    ],
+    "behavior": "Adjacent smaller-font raised and lowered runs attach conservatively to a unique base line. Existing baseline clustering is retained.",
+    "transforms": "Attachment thresholds use effective page-space normal and along-baseline em dimensions; authored public FontSize and span geometry remain unchanged.",
+    "breaks": "Run formation and attachment respect explicit breaks in logical content/paint order, with direction-aware conservative fallback.",
+    "limits": "Stricter-than-default line merge caps retain baseline-only grouping. Ambiguous anchors, distant runs, unsupported geometry and ordinary neighboring rows are not attached. Work charging and cancellation cover new scans and sorts.",
+    "newPublicSymbols": false,
+    "newDependencies": false
+  },
+  "causalPublicApi": {
+    "baseline": {
+      "expected": "m-1 tail\nH2O",
+      "actual": "-1\nm tail\nH O\n2",
+      "matches": false
+    },
+    "corrected": {
+      "expected": "m-1 tail\nH2O",
+      "actual": "m-1 tail\nH2O",
+      "matches": true
+    },
+    "route": "PdfDocument.Create().Compose(document.Content(paragraphs)).ToBytes() -> PdfReadDocument.Open(bytes).Pages[0].ExtractText()",
+    "redObservations": {
+      "bytes": 50854,
+      "sha256": "6bb5ecab1d0384b8bbbaacfb308c8400cc51e529eca749baa9e42886d66a44c3"
+    },
+    "finalGreenObservations": {
+      "bytes": 50009,
+      "sha256": "f500765783b588ce1b5330dd5e066e6b42ad7e3c8155c155f9eb9ff2befb1da7"
+    },
+    "normalProjectReferences": true,
+    "loadedFinalOwner": {
+      "assembly": "OfficeIMO.Pdf",
+      "sha256": "3df154c1736700e559a35c1f413a96c149d092ba0946ebbe0c921d901ef2ef22",
+      "moduleVersionId": "7028faba-09b2-46b5-aaba-a459be0d36a6",
+      "informationalVersion": "3.4.5+b059fcc2767fe5b3ea272c53e04fd291bfe46d0a"
+    },
+    "executingFramework": ".NET 10.0.12"
+  },
+  "frameworkValidation": [
+    {
+      "framework": "net8.0",
+      "filter": "Category!=Performance",
+      "total": 10217,
+      "passed": 10217,
+      "failed": 0,
+      "notExecuted": 0,
+      "trx": {
+        "bytes": 17089625,
+        "sha256": "7c8124b070541b910b855d1b018c68ec170fb39ab2224922544cd363f3b371f3"
+      },
+      "command": {
+        "bytes": 1320,
+        "sha256": "7dbffe2afb9e722eeb795c8bd505d6c2f10ea344feba6f95da6f44fe8401071d"
+      }
+    },
+    {
+      "framework": "net10.0",
+      "filter": "Category!=Performance",
+      "total": 10217,
+      "passed": 10217,
+      "failed": 0,
+      "notExecuted": 0,
+      "trx": {
+        "bytes": 17110060,
+        "sha256": "9982a55577d49d5cf9c53ec80da19cefd4f517e2c775153f047230de380a5b56"
+      },
+      "command": {
+        "bytes": 1323,
+        "sha256": "1712ef8741724c4e6d744baea2a29070c572a6e7584ff30cc8af938d39db35d9"
+      }
+    }
+  ],
+  "netstandardCompatibility": {
+    "framework": "netstandard2.0",
+    "exitCode": 0,
+    "normalProjectReferences": true,
+    "compileOnly": true,
+    "command": {
+      "bytes": 846,
+      "sha256": "6ecb2f5001d4479427a3909ad7f8fbbbd07e7a3ccb9ada59c4013991f2ecf084"
+    }
+  },
+  "regressions": {
+    "newCases": 31,
+    "focusedFinal": {
+      "total": 150,
+      "passed": 150,
+      "failed": 0,
+      "notExecuted": 0,
+      "trx": {
+        "bytes": 252783,
+        "sha256": "f381acc186404dfc6b0618e7852d3dabf878ed26079222fd1122240cd6a9b625"
+      },
+      "command": {
+        "bytes": 1734,
+        "sha256": "0014bb51441979da72864fb879fb54f2ff968ccf69994a27f7c82739ddb88e4b"
+      }
+    },
+    "reviewCausalRed": {
+      "total": 150,
+      "passed": 140,
+      "failed": 10,
+      "notExecuted": 0,
+      "trx": {
+        "bytes": 274415,
+        "sha256": "59497005b09ad05f0706574555240df213d328339abcca1e69a3345f652250f2"
+      },
+      "command": {
+        "bytes": 1730,
+        "sha256": "3a30df1ba54e055dea0f84f9e95eddf6155780a9a8172f3bb96e8e49cc8a9ee6"
+      }
+    },
+    "causalReviewDefectClasses": [
+      "Transformed text size versus authored Tf size",
+      "Logical RTL/source break side versus geometric side"
+    ],
+    "publicCanvasCases": [
+      "Downscaled neighboring rows remain separate",
+      "Uniformly scaled raised script stays adjacent",
+      "Anisotropically scaled raised script stays adjacent",
+      "Scaled and rotated raised script stays adjacent"
+    ],
+    "siblingContracts": [
+      "Mixed font script fragments",
+      "Rotated span geometry",
+      "Separate rows and columns",
+      "Ambiguous anchors",
+      "Explicit breaks within runs and at attachment boundaries",
+      "Tighter merge caps",
+      "Operation budgets and cancellation",
+      "Structured export, table reuse, duplicate glyphs and line-wrap search"
+    ]
+  },
+  "declaredFontNist": {
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pdfSha256": "e6c1fdccaef18ff10c9be894d03ddb75dcbd150712b7fe09903d26ad3badd574",
+        "pages": 9,
+        "changedTextPages": 7,
+        "everyPageNonWhitespaceScalarsPreserved": true,
+        "minusCount": 105,
+        "selectedInlineScriptExamples": [
+          {
+            "page": 3,
+            "text": "wavenumber reciprocal meter m\u22121"
+          }
+        ]
+      },
+      {
+        "profile": "screen-media-paged",
+        "pdfSha256": "0c2b6c6b561e14f2ac9e44c99a3dc03810dff11adc6293315cb784644ea84356",
+        "pages": 10,
+        "changedTextPages": 8,
+        "everyPageNonWhitespaceScalarsPreserved": true,
+        "minusCount": 105,
+        "selectedInlineScriptExamples": [
+          {
+            "page": 3,
+            "text": "wavenumber reciprocal meter m\u22121"
+          }
+        ]
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pdfSha256": "c50786feda054dcced539c30f9b36b467a74d6b308a7abf8666f54e243877f34",
+        "pages": 9,
+        "changedTextPages": 7,
+        "everyPageNonWhitespaceScalarsPreserved": true,
+        "minusCount": 105,
+        "selectedInlineScriptExamples": [
+          {
+            "page": 2,
+            "text": "wavenumber reciprocal meter m\u22121"
+          }
+        ]
+      }
+    ],
+    "originalPdfBytesUnchanged": true,
+    "all28PageNonWhitespaceScalarMultisetsPreserved": true,
+    "changedExtractionPages": 22,
+    "qualifiedSubset": "The selected wavenumber m-minus-1 line becomes adjacent in all three profiles. This does not qualify every captured formula.",
+    "sourceRenderingEvidence": "normal-inline-font-geometry-20261012.json",
+    "originalPdfRenderingLimitsPreserved": true
+  },
+  "localReview": {
+    "fullReadOnlyPass": true,
+    "oneTargetedConfirmation": true,
+    "initialFindings": 2,
+    "initialFindingPriority": "P2",
+    "bothFindingsReproducedAndFixed": true,
+    "finalRecommendation": "Accept revised product/API shape; no concrete remaining remediation defect. Root framework/package/document gates remain separate.",
+    "record": {
+      "bytes": 1187,
+      "sha256": "8b3a3c7b681e55baf4fac381c89a8c9cc24b8f454ede969fe4f515560768a02c"
+    }
+  },
+  "qualificationBoundaries": [
+    "Low-level shared text layout only; the separate IPdfLineGroupingStage semantic understanding route used by PdfDocument.Read() is unchanged.",
+    "Stored NIST PDF bytes are replayed; this correction does not qualify wider formula appearance, clipped-row extraction or all-web fidelity.",
+    "The original missing-font/loss reports and snapshot clipping remain retained.",
+    "NET472 runtime, AOT, WASM and three-platform performance are not qualified by these runs.",
+    "Earlier private package qualification belongs to its recorded producer; these source/framework checks do not claim newly packed or published packages."
+  ]
+}

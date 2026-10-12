@@ -647,6 +647,33 @@ The target-framework support remains `netstandard2.0`, `net8.0`, and
 `net10.0`. See the [OfficeIMO migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md)
 for the OfficeIMO 3.4 authoring changes and old-to-new API map.
 
+### Low-level text extraction with inline scripts
+
+`PdfReadPage.ExtractText()` keeps adjacent, smaller-font superscripts and
+subscripts with a unique base line. For example, the following document extracts
+as `m-1 tail` followed by `H2O`:
+
+```csharp
+using OfficeIMO.Pdf;
+
+byte[] bytes = PdfDocument.Create(new PdfOptions { DefaultFontSize = 18 })
+    .Compose(document => document.Content(content => content
+        .Paragraph(p => p.Text("m").Superscript("-1").Text(" tail"))
+        .Paragraph(p => p.Text("H").Subscript("2").Text("O"))))
+    .ToBytes();
+
+string text = PdfReadDocument.Open(bytes).Pages[0].ExtractText();
+```
+
+The shared layout uses transformed text dimensions for script attachment and
+respects explicit breaks in logical fragment order. It leaves ambiguous anchors,
+distant runs and ordinary neighboring rows separate. Setting either
+`PdfTextLayoutOptions.LineMergeToleranceEm` below `0.6` or
+`LineMergeMaxPoints` below `2.5` retains baseline-only grouping. This is a
+conservative reading-order rule, not mathematical reconstruction. The separate
+semantic understanding pipeline used by `PdfDocument.Read()` retains its own
+line grouping.
+
 ## Examples
 
 ### Export PDF pages as images

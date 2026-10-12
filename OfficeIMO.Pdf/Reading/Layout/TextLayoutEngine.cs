@@ -19,9 +19,9 @@ internal static partial class TextLayoutEngine {
         public double BinWidth { get; set; } = 5;
         /// <summary>Minimum gutter width to consider split into two columns. Default: 24 pt.</summary>
         public double MinGutterWidth { get; set; } = 24;
-        /// <summary>Maximum Y delta (as fraction of font size) to group spans into the same line. Default: 0.6.</summary>
+        /// <summary>Maximum baseline-normal delta as a fraction of font size for ordinary clustering. Default: 0.6. A stricter value disables conservative inline-script attachment.</summary>
         public double LineMergeToleranceEm { get; set; } = 0.6;
-        /// <summary>Maximum absolute Y delta (points) to merge spans into the same line. Default: 2.5.</summary>
+        /// <summary>Maximum absolute baseline-normal delta for ordinary clustering. Default: 2.5 points. With both merge limits at least their defaults, adjacent smaller-font scripts may attach to a unique base line; a stricter value retains baseline-only grouping.</summary>
         public double LineMergeMaxPoints { get; set; } = 2.5;
         /// <summary>Force single column when true; skip gutter detection.</summary>
         public bool ForceSingleColumn { get; set; }
@@ -46,14 +46,15 @@ internal static partial class TextLayoutEngine {
         internal double BaselineNormal { get; }
         internal double BaselineStart { get; }
         internal double BaselineEnd { get; }
-        public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto) {
+        public TextLine(double y, double xs, double xe, string text, List<PdfTextSpan> spans, PdfReadingDirection readingDirection = PdfReadingDirection.Auto,
+            double? baselineNormal = null) {
             Y = y; XStart = xs; XEnd = xe; Text = text; Spans = spans;
             LogicalLineBreaksBefore = spans.Count == 0 ? 0 : spans.Max(span => span.LogicalLineBreaksBefore);
             ReadingDirection = readingDirection;
             if (spans.Count > 0) {
                 // Compatible directions use one common basis for duplicate comparison.
                 var coordinates = new PdfTextBaselineCoordinates(RotationKey(spans[0]));
-                BaselineNormal = spans.Average(coordinates.Normal);
+                BaselineNormal = baselineNormal ?? spans.Average(coordinates.Normal);
                 BaselineStart = spans.Min(coordinates.Along);
                 BaselineEnd = spans.Max(span => coordinates.Along(span) + Math.Max(0D, span.Advance));
             }
@@ -119,7 +120,7 @@ internal static partial class TextLayoutEngine {
         if (spans.Count == 0) return new List<TextLine>();
         cancellationCheck?.Invoke();
         consumeWork?.Invoke(spans.Count);
-        var lines = BuildBaselineLines(spans, options, cancellationCheck);
+        var lines = BuildBaselineLines(spans, options, consumeWork, cancellationCheck);
         // Drop obvious duplicate lines drawn twice at the same Y (e.g., shadow/overprint)
         lines = DeduplicateLines(lines, consumeWork, cancellationCheck);
         PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
@@ -272,14 +273,16 @@ internal static partial class TextLayoutEngine {
         return System.Text.RegularExpressions.Regex.Replace(text, "\u00AD\n", string.Empty);
     }
 
-    private static void AddBuiltLines(List<TextLine> lines, List<PdfTextSpan> spans, Options options) {
+    private static void AddBuiltLines(List<TextLine> lines, List<PdfTextSpan> spans, Options options,
+        IReadOnlyList<PdfTextSpan>? baselineSpans = null) {
         if (!options.SplitWideSameBaselineRuns || spans.Count <= 1) {
-            lines.Add(BuildLine(spans, options));
+            lines.Add(BuildLine(spans, options, baselineSpans));
             return;
         }
 
+        var original = baselineSpans is null ? null : new HashSet<PdfTextSpan>(baselineSpans);
         foreach (var run in SplitWideSameBaselineRuns(spans, options)) {
-            lines.Add(BuildLine(run, options));
+            lines.Add(BuildLine(run, options, original is null ? null : run.Where(original.Contains).ToList()));
         }
     }
 
@@ -310,7 +313,8 @@ internal static partial class TextLayoutEngine {
         return runs;
     }
 
-    internal static TextLine BuildLine(List<PdfTextSpan> spans, Options? options) {
+    internal static TextLine BuildLine(List<PdfTextSpan> spans, Options? options,
+        IReadOnlyList<PdfTextSpan>? baselineSpans = null) {
         List<PdfTextSpan> sourceOrder = spans
             .OrderBy(static span => span.ContentOrderKey)
             .ThenBy(static span => span.PaintOrder)
@@ -321,6 +325,10 @@ internal static partial class TextLayoutEngine {
         // Keep stored geometry left-to-right for table/cell detection while emitting line text
         // in the resolved writing direction.
         var coordinates = new PdfTextBaselineCoordinates(spans[0].RotationDegrees);
+        double? baseY = baselineSpans is { Count: > 0 }
+            ? baselineSpans.OrderBy(static span => span.X).First().Y : null;
+        double? baseNormal = baselineSpans is { Count: > 0 }
+            ? baselineSpans.Average(new PdfTextBaselineCoordinates(RotationKey(baselineSpans[0])).Normal) : null;
         spans.Sort(static (left, right) => left.X.CompareTo(right.X));
         var visualOrder = spans.OrderBy(coordinates.Along).ToList();
         IReadOnlyList<PdfTextSpan> textSpans = options?.ReadingDirection == PdfReadingDirection.LeftToRight
@@ -404,7 +412,8 @@ internal static partial class TextLayoutEngine {
                 ? System.Text.RegularExpressions.Regex.Replace(outText, "\\s+", " ").Trim()
                 : NormalizeLineText(outText);
         }
-        return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans), options?.ReadingDirection ?? PdfReadingDirection.Auto);
+        return new TextLine(baseY ?? spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans),
+            options?.ReadingDirection ?? PdfReadingDirection.Auto, baseNormal);
     }
 
     private static bool ContainsWhitespace(string value) {
