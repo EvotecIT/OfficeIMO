@@ -273,6 +273,24 @@ public sealed class PdfDrawingLineMarkerTests {
         Assert.True(image.GetPixel(43, 31).R > 200 && image.GetPixel(43, 31).G < 50);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DrawingAfterCloseRetainsItsImplicitOpenContourMarkers(bool svg) {
+        var shape = OfficeShape.Path(40, 40, OfficePathCommand.MoveTo(10, 10), OfficePathCommand.LineTo(20, 10),
+            OfficePathCommand.Close(), OfficePathCommand.LineTo(30, 10), OfficePathCommand.LineTo(30, 30));
+        shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 1;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
+        if (svg) {
+            var xml = System.Xml.Linq.XElement.Parse(OfficeDrawingSvgExporter.ToSvg(new OfficeDrawing(40, 40).AddShape(shape, 0, 0)));
+            Assert.Equal(2, xml.Descendants().Count(element => element.Name.LocalName == "polygon"));
+        } else {
+            byte[] bytes = PdfDocument.Create().Shape(shape).ToBytes();
+            Assert.Equal(2, Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Count(item => item.Shape.FillColor == OfficeColor.Red));
+        }
+    }
+
     [Fact]
     public void NativeCurvedMarkersDoNotRequirePhysicalResolutionFlattening() {
         var commands = new List<OfficePathCommand> { OfficePathCommand.MoveTo(0, 1) };
@@ -289,19 +307,23 @@ public sealed class PdfDrawingLineMarkerTests {
         Assert.DoesNotContain("/Subtype /Image", text);
     }
 
-    [Fact]
-    public void UnmeasuredRadialMarkerPaintStillExpandsTheLinkGeometry() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnmeasuredRadialMarkerPaintStillExpandsTheLinkGeometry(bool shaft) {
         var shape = OfficeShape.Line(0, 0, 80, 0);
-        shape.StrokeWidth = 2;
+        shape.StrokeWidth = shaft ? 20 : 2;
+        shape.StrokeLineCap = OfficeStrokeLineCap.Round;
         shape.StrokeRadialGradient = new OfficeRadialGradient(0, 0, 0, .5, .5, 1,
             new OfficeGradientStop(0, OfficeColor.Transparent),
             new OfficeGradientStop(1, new OfficeColor(0, 0, 255, 128)));
-        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, 40, 40);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, shaft ? 2 : 40, shaft ? 2 : 40);
         var options = new PdfOptions { PageWidth = 200, PageHeight = 200, MarginLeft = 30, MarginRight = 30,
             MarginTop = 30, MarginBottom = 30 };
         byte[] bytes = PdfDocument.Create(options).Shape(shape, linkUri: "https://example.test/marker").ToBytes();
         PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
-        Assert.True(link.Y2 - link.Y1 >= 39.99);
+        Assert.True(link.Y2 - link.Y1 >= (shaft ? 19.99 : 39.99));
+        if (shaft) { Assert.True(link.X1 <= 20.01); Assert.True(link.X2 >= 119.99); }
     }
 
     private static IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing drawing) {

@@ -58,34 +58,10 @@ internal static class OfficePathGeometry {
 
     /// <summary>Gets exact endpoint tangent directions for one open contour, skipping zero-length segments.</summary>
     internal static bool TryOpenEndpoints(IReadOnlyList<OfficePathCommand> commands, out OfficePoint start, out OfficePoint startInward, out OfficePoint end, out OfficePoint endInward) {
-        return TryOpenEndpoints(commands, 0, commands.Count, out start, out startInward, out end, out endInward);
-    }
-
-    /// <summary>Gets endpoint tangents of the first and last nondegenerate open contours.</summary>
-    internal static bool TryOpenMarkerEndpoints(IReadOnlyList<OfficePathCommand> commands, out OfficePoint start, out OfficePoint startInward, out OfficePoint end, out OfficePoint endInward) {
-        start = end = startInward = endInward = default;
-        bool found = false; int offset = -1;
-        for (int index = 0; index <= commands.Count; index++) {
-            bool finished = index == commands.Count;
-            if (!finished && commands[index].Kind is not (OfficePathCommandKind.MoveTo or OfficePathCommandKind.Close)) continue;
-            bool closed = !finished && commands[index].Kind == OfficePathCommandKind.Close;
-            if (offset >= 0 && !closed && TryOpenEndpoints(commands, offset, index - offset,
-                    out var first, out var inwardFirst, out var last, out var inwardLast)) {
-                if (!found) { start = first; startInward = inwardFirst; }
-                end = last; endInward = inwardLast; found = true;
-            }
-            offset = !finished && commands[index].Kind == OfficePathCommandKind.MoveTo ? index : -1;
-        }
-        return found;
-    }
-
-    private static bool TryOpenEndpoints(IReadOnlyList<OfficePathCommand> commands, int offset, int count,
-        out OfficePoint start, out OfficePoint startInward, out OfficePoint end, out OfficePoint endInward) {
         start = end = startInward = endInward = default;
         bool moved = false, hasSegment = false;
         OfficePoint current = default;
-        for (int index = offset; index < offset + count; index++) {
-            OfficePathCommand command = commands[index];
+        foreach (OfficePathCommand command in commands) {
             if (command.Kind == OfficePathCommandKind.MoveTo) {
                 if (moved) return false;
                 current = start = command.Point; moved = true; continue;
@@ -105,6 +81,19 @@ internal static class OfficePathGeometry {
         }
         return hasSegment && !Zero(endInward);
     }
+    /// <summary>Gets endpoint tangents from the canonical first and last eligible open contours.</summary>
+    internal static bool TryOpenMarkerEndpoints(IReadOnlyList<OfficePathCommand> commands, out OfficePoint start, out OfficePoint startInward, out OfficePoint end, out OfficePoint endInward) {
+        start = end = startInward = endInward = default;
+        bool found = false;
+        foreach (OfficePathContour contour in OfficePathContour.Split(commands)) {
+            if (contour.IsClosed || !TryOpenEndpoints(contour.Commands,
+                    out var first, out var inwardFirst, out var last, out var inwardLast)) continue;
+            if (!found) { start = first; startInward = inwardFirst; }
+            end = last; endInward = inwardLast; found = true;
+        }
+        return found;
+    }
+
     private static OfficePoint Difference(OfficePoint a, OfficePoint b) => new OfficePoint(a.X - b.X, a.Y - b.Y);
     private static bool Zero(OfficePoint p) => p.X == 0 && p.Y == 0;
 }

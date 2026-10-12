@@ -493,7 +493,7 @@ internal static partial class PdfWriter {
             }
 
             if (TryGetShapePaintBounds(shape.Shape, x, topY - shape.Shape.Height, null, "Body", "shape",
-                    out double paintX, out double paintY, out double paintWidth, out double paintHeight)) {
+                    out double paintX, out double paintY, out double paintWidth, out double paintHeight, conservativeWhenUnmeasured: true)) {
                 x1 = Math.Min(x1, paintX); x2 = Math.Max(x2, paintX + paintWidth);
                 y1 = Math.Min(y1, paintY); y2 = Math.Max(y2, paintY + paintHeight);
             }
