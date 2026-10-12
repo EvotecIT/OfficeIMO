@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel.Utilities {
         /// <summary>Uses authored worksheet geometry, retaining the export fallback for unspecified widths.</summary>
         internal double GetExportColumnWidthPixels(int columnIndex, double fallbackPixels) {
             X.Column? column = columnIndex > 0 && columnIndex < _columns.Length ? _columns[columnIndex] : null;
-            if (!(column?.Width?.Value > 0D && column.CustomWidth?.Value == true) &&
+            if (!(column?.Width?.Value > 0D) &&
                 !(_sheetFormat?.DefaultColumnWidth?.Value > 0D) && !(_sheetFormat?.BaseColumnWidth?.Value > 0U))
                 return fallbackPixels;
             return ExcelColumnGeometry.GetWidthPixels(column, _sheetFormat, _maximumDigitWidth, includeHidden: true);

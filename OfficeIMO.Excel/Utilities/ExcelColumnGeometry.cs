@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.Utilities {
         /// </summary>
         internal static int GetWidthPixels(Column? column, SheetFormatProperties? format, double maximumDigitWidth, bool includeHidden = false) {
             if (!includeHidden && column?.Hidden?.Value == true) return 0;
-            double? stored = column?.Width?.Value > 0D && column.CustomWidth?.Value == true
+            double? stored = column?.Width?.Value > 0D
                 ? column.Width.Value : format?.DefaultColumnWidth?.Value;
             double pixels;
             if (stored is double width && width > 0D) {

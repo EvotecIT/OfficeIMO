@@ -58,6 +58,41 @@ namespace OfficeIMO.Tests {
             Assert.Equal(288, after.WidthPixels);
         }
 
+        [Theory]
+        [InlineData(null)]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ExcelDrawing_StoredColumnWidthAppliesRegardlessOfCustomWidthFlag(bool? customWidth) {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("StoredWidth");
+            SetMissingGridFont(document);
+            sheet.SetDefaultRowHeight(15D);
+            sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!.BaseColumnWidth = 8U;
+            sheet.WorksheetPart.Worksheet.AddChild(new X.Columns(new X.Column {
+                Min = 1U, Max = 1U, Width = 20D,
+                CustomWidth = customWidth.HasValue ? new DocumentFormat.OpenXml.BooleanValue(customWidth.Value) : null
+            }), true);
+            sheet.CellValue(1, 1, "Category");
+            sheet.CellValue(1, 2, "Value");
+            sheet.CellValue(2, 1, "Only");
+            sheet.CellValue(2, 2, 1);
+            ExcelImage image = sheet.AddImageToRange("A1:A2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
+            ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
+            ReplaceChartAnchorWithTwoCell(document,
+                new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("2"), new Xdr.RowOffset("0")));
+
+            Assert.Equal(140, image.WidthPixels);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot before));
+            Assert.Equal(140, before.WidthPixels);
+            Assert.Equal(140, sheet.Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
+            using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes(ExcelFileFormat.Xlsx)));
+            Assert.Equal(140, reopened.Sheets[0].Images.Single().WidthPixels);
+            Assert.True(reopened.Sheets[0].Charts.Single().TryGetSnapshot(out ExcelChartSnapshot after));
+            Assert.Equal(140, after.WidthPixels);
+            Assert.Equal(140, reopened.Sheets[0].Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
+        }
+
         private static void SetMissingGridFont(ExcelDocument document) {
             // This exercises the supported seven-pixel missing-font fallback on every host;
             // installed-face measurements are independently compared with native Excel.
