@@ -1,0 +1,39 @@
+using OfficeIMO.Rtf;
+
+namespace OfficeIMO.Examples.Showcase.Workflows {
+    /// <summary>Creates an editable RTF desk reference for clear, privacy-conscious service handovers.</summary>
+    internal static class DeskReference {
+        internal static void Create(string folder) {
+            var document = RtfDocument.Create();
+            document.Info.Title = "Service desk handover reference";
+            document.Info.Author = "OfficeIMO";
+            int navy = document.AddColor(23, 54, 93), pale = document.AddColor(234, 241, 251);
+            Heading("Service desk handover", 24);
+            document.AddParagraph("QUICK REFERENCE / SYNTHETIC SERVICE WORKFLOW");
+            Heading("Before you hand over");
+            document.AddParagraph("Confirm the request identifier, the current owner and the next action. A handover is complete when the receiving team acknowledges it.");
+            Heading("Include these four fields");
+            string[][] values = {
+                new[] { "Field", "Useful example" },
+                new[] { "Request", "SR-2048 / access question" },
+                new[] { "State", "Waiting for the owning team" },
+                new[] { "Next action", "Confirm the supported access path" },
+                new[] { "Next update", "Thursday, 15:00 local time" }
+            };
+            var table = document.AddTable(values.Length, 2);
+            table.Rows[0].RepeatHeader = true; table.Rows[0].SetBackgroundColor(pale);
+            for (int row = 0; row < values.Length; row++)
+                for (int column = 0; column < 2; column++) table.Rows[row].Cells[column].AddParagraph(values[row][column]);
+            Heading("Avoid");
+            foreach (string item in new[] { "Copying credentials or private message content", "Assigning an action without an owner", "Closing the record before the handover is acknowledged" })
+                document.AddParagraph(item).SetList(kind: RtfListKind.Bullet).SetIndentation(leftTwips: 540, firstLineTwips: -240);
+            Heading("Use a clear final message");
+            document.AddParagraph("Your request is with the access team. They will confirm the next step by Thursday at 15:00. Use the original request identifier if you need to follow up.");
+            File.WriteAllText(Path.Combine(folder, "example.rtf"), document.ToRtf());
+            void Heading(string text, double size = 14) {
+                var paragraph = document.AddParagraph(text); paragraph.SpaceBeforeTwips = 220; paragraph.SpaceAfterTwips = 140;
+                foreach (var run in paragraph.Runs) { run.FontSize = size; run.Bold = true; run.ForegroundColorIndex = navy; }
+            }
+        }
+    }
+}

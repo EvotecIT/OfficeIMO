@@ -1,0 +1,5 @@
+{{~ source_language = card.source_language ~}}
+{{~ source_language_label = "" ~}}
+{{~ for language in data.showcase.source_languages ~}}
+{{~ if language.id == source_language ~}}{{~ source_language_label = language.label ~}}{{~ end ~}}
+{{~ end ~}}
