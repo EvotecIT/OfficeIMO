@@ -31,6 +31,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private string GetCanonicalText(int ordinal) {
             string? value = _strings[ordinal];
 #if NET8_0_OR_GREATER
+            if (value == null && _borrowableText.Length != 0 && _borrowableText[ordinal]
+                && _utf8TextCacheKeys[ordinal] >= 0) {
+                return _strings[ordinal] = _sharedStrings[_utf8TextCacheKeys[ordinal]];
+            }
             if (value == null && _inlineTextSlices.Length != 0) {
                 InlineTextSlice slice = _inlineTextSlices[ordinal];
                 if (slice.IsPresent) {

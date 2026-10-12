@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int key = _utf8TextCacheKeys[ordinal];
             if (_useSharedStringUtf8Cache && key >= 0) {
                 _utf8TextCache ??= new ExcelUtf8TextCache();
-                text = _utf8TextCache.Get(key, _strings[ordinal]!).AsSpan();
+                text = _utf8TextCache.Get(key, GetCanonicalText(ordinal)).AsSpan();
                 return true;
             }
 
@@ -100,7 +100,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ref Utf8FieldBuffer buffer = ref buffers[ordinal];
             if (!buffer.Ready) {
                 InlineTextSlice slice = _inlineTextSlices[ordinal];
-                if (key < 0 && slice.IsPresent && BitConverter.IsLittleEndian) {
+                if (key >= 0 && BitConverter.IsLittleEndian && _sharedStringOwner != null
+                    && _sharedStringOwner.TryGetUtf16(key, out ArraySegment<byte> sharedText)) {
+                    EncodeUtf8Field(ref buffer, MemoryMarshal.Cast<byte, char>(sharedText.AsSpan()));
+                } else if (key < 0 && slice.IsPresent && BitConverter.IsLittleEndian) {
                     // The immutable payload is UTF-16LE. UTF8's replacement fallback matches
                     // Unicode decoding followed by UTF8 encoding for unmatched surrogates.
                     EncodeUtf8Field(ref buffer, MemoryMarshal.Cast<byte, char>(

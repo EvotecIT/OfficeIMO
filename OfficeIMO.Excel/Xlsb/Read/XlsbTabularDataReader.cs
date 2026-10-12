@@ -112,6 +112,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _logicalRowBudget = logicalRowBudget ?? throw new ArgumentNullException(nameof(logicalRowBudget));
             _cancellationToken = cancellationToken;
             _activeReadCancellationToken = cancellationToken;
+            _sharedStringOwner = sharedStrings as XlsbSharedStringTable;
             if (worksheetPart == null) {
                 throw new ArgumentNullException(nameof(worksheetPart));
             }
@@ -121,6 +122,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int actualFirstDataRow = -1;
             int actualLastDataRow = -1;
             try {
+                AcquireSharedStringReference();
                 DiscoverDataColumns(
                     worksheetPart,
                     limits,
@@ -138,6 +140,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     out _validatedRowPlan);
             } catch {
                 worksheetPart.Dispose();
+                ReleaseSharedStringReference();
                 throw;
             }
 
@@ -232,6 +235,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     : null;
             } catch {
                 worksheetPart.Dispose();
+                ReleaseSharedStringReference();
                 throw;
             }
         }
@@ -338,6 +342,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _closed = true;
             ReleaseUtf8TextState();
             _worksheetPart.Dispose();
+            ReleaseSharedStringReference();
             _schemaRows?.Clear();
         }
 

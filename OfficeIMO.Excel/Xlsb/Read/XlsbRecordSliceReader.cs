@@ -435,7 +435,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         /// Validates and advances over a wide string without materializing its text.
         /// Uses the same Unicode decoder and fallback policy as delivery.
         /// </summary>
-        internal void ValidateWideString(int maxCharacters) {
+        internal int ValidateWideString(int maxCharacters) {
             uint count = ReadUInt32();
             if (count > maxCharacters) {
                 throw new InvalidDataException(
@@ -444,8 +444,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             int byteCount = checked((int)count * 2);
             EnsureAvailable(byteCount);
-            Encoding.Unicode.GetCharCount(_bytes, Position, byteCount);
+            int characterCount = Encoding.Unicode.GetCharCount(_bytes, Position, byteCount);
             Position += byteCount;
+            return characterCount;
         }
 
         internal void Skip(int count) {
