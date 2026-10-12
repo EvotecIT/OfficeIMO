@@ -22,7 +22,7 @@ internal sealed partial class MsiPackageReader {
                 throw new InvalidDataException("MSI table has duplicate column definitions.");
             char kind = (type & 0x800) != 0 ? 's' : (type & 0xff) == 4 ? 'I' : (type & 0xff) == 2 ? 'i' : '?';
             if ((type & ~0x1000) == 0x900) kind = 'b';
-            columns.Add(new MsiColumn(name, kind, position));
+            columns.Add(new MsiColumn(name, kind, position, kind == 's' ? type & 0xff : 0));
         }
         _schemas = schemas.ToDictionary(pair => pair.Key, pair => pair.Value.OrderBy(column => column.Position).ToArray(), StringComparer.OrdinalIgnoreCase);
     }
@@ -67,7 +67,11 @@ internal sealed partial class MsiPackageReader {
             if (value == 0 || field.Kind == 'b') continue;
             if (field.Kind == 's') {
                 if (value >= _strings.Length) throw new InvalidDataException("MSI table references an absent string: " + name);
-                rows[row][column] = _strings[value];
+                // Standard columns may be widened by their authored schema; zero is unbounded.
+                string text = _strings[value] ?? throw new InvalidDataException("MSI table references an absent string: " + name);
+                if (field.StringLength != 0 && text.Length > field.StringLength)
+                    throw new InvalidDataException("MSI string exceeds its authored column length: " + name + "." + field.Name);
+                rows[row][column] = text;
             } else rows[row][column] = field.Kind == 'I' ? (int)(value ^ 0x80000000) : (int)(short)(value ^ 0x8000);
         }
         return rows;
@@ -77,7 +81,7 @@ internal sealed partial class MsiPackageReader {
     private static string RequiredIdentifier(object? value, string field) {
         string text = RequiredString(value, field);
         bool Letter(char character) => character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z';
-        if (text.Length > 72 || !(Letter(text[0]) || text[0] == '_') || text.Any(character =>
+        if (!(Letter(text[0]) || text[0] == '_') || text.Any(character =>
             !Letter(character) && !(character >= '0' && character <= '9') && character != '_' && character != '.'))
             throw new InvalidDataException("MSI contains an invalid identifier in " + field + ".");
         return text;

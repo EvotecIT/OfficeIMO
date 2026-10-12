@@ -50,7 +50,7 @@ internal sealed partial class ArchiveFixtures : IDisposable {
         bool twoCabinets = false, bool backwardMedia = false, bool lowercaseCabinetKey = false,
         int cabinetCount = 0, bool emptyPayloads = false, bool emptySecondPayload = false, int emptySecondCompression = 0,
         byte[]? unmappedCabinet = null, string? extraColumnTable = null, char extraColumnKind = 's',
-        string fileKey = "PayloadKey",
+        string fileKey = "PayloadKey", int stringColumnLength = 72,
         Action<Dictionary<string, (string Name, char Kind)[]>, Dictionary<string, object?[][]>>? editDatabase = null) {
         string key = fileKey;
         byte[] payload = Encoding.UTF8.GetBytes("hello");
@@ -100,7 +100,7 @@ internal sealed partial class ArchiveFixtures : IDisposable {
             rows[extraColumnTable] = rows[extraColumnTable].Select(row => row.Concat(new[] { extra }).ToArray()).ToArray();
         }
         editDatabase?.Invoke(schemas, rows);
-        return WriteMsi(schemas, rows, streams, longStrings);
+        return WriteMsi(schemas, rows, streams, longStrings, stringColumnLength);
     }
     internal static byte[] EmptyStoredCab(string name, int compression = 0) {
         // With no folder bytes there are no CFDATA records; cbUncomp=0 would denote split data instead.

@@ -11,11 +11,11 @@ internal sealed partial class ArchiveFixtures {
     };
 
     private static byte[] WriteMsi(Dictionary<string, (string Name, char Kind)[]> schemas,
-        Dictionary<string, object?[][]> rows, List<OfficeCompoundStream> streams, bool longStrings = false) {
+        Dictionary<string, object?[][]> rows, List<OfficeCompoundStream> streams, bool longStrings = false, int stringColumnLength = 72) {
         var columns = new List<object?[]>();
         foreach (var table in schemas) for (int column = 0; column < table.Value.Length; column++) {
             var field = table.Value[column];
-            columns.Add(new object?[] { table.Key, column + 1, field.Name, field.Kind == 's' ? 0x0d48 : field.Kind == 'b' ? 0x1900 : field.Kind == 'I' ? 0x104 : 0x102 });
+            columns.Add(new object?[] { table.Key, column + 1, field.Name, field.Kind == 's' ? 0x0d00 | stringColumnLength : field.Kind == 'b' ? 0x1900 : field.Kind == 'I' ? 0x104 : 0x102 });
         }
         schemas.Add("_Columns", new[] { ("Table", 's'), ("Number", 'i'), ("Name", 's'), ("Type", 'i') });
         rows.Add("_Columns", columns.ToArray());

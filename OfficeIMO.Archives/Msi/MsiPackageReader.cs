@@ -90,9 +90,12 @@ internal sealed partial class MsiPackageReader : IDisposable {
     }
     private static uint UInt32(byte[] bytes, int offset) => (uint)(UInt16(bytes, offset) | UInt16(bytes, offset + 2) << 16);
     private sealed class MsiColumn {
-        internal MsiColumn(string name, char kind, int position) { Name = name; Kind = kind; Position = position; }
+        internal MsiColumn(string name, char kind, int position, int stringLength = 0) {
+            Name = name; Kind = kind; Position = position; StringLength = stringLength;
+        }
         internal string Name { get; }
         internal char Kind { get; }
         internal int Position { get; }
+        internal int StringLength { get; }
     }
 }

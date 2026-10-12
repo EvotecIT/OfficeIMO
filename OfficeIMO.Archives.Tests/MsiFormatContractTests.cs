@@ -52,8 +52,17 @@ public sealed class MsiFormatContractTests {
     [Theory]
     [InlineData(72, true)]
     [InlineData(73, false)]
-    public void StandardIdentifierColumnsRetainTheirMaximumLength(int length, bool accepted) {
+    public void IdentifierColumnsRetainTheirAuthoredLength(int length, bool accepted) {
         byte[] package = RenameIdentifier("PayloadKey", new string('A', length));
+        if (accepted) AssertValid(package); else AssertInvalid(package);
+    }
+
+    [Theory]
+    [InlineData(80, 80, true)]
+    [InlineData(81, 80, false)]
+    [InlineData(200, 0, true)]
+    public void IdentifierLengthCanBeWidenedOrUnboundedByItsSchema(int length, int columnLength, bool accepted) {
+        byte[] package = RenameIdentifier("PayloadKey", new string('A', length), columnLength);
         if (accepted) AssertValid(package); else AssertInvalid(package);
     }
 
@@ -74,8 +83,8 @@ public sealed class MsiFormatContractTests {
         AssertInvalid(package);
     }
 
-    private static byte[] RenameIdentifier(string oldId, string newId) => ArchiveFixtures.Msi(
-        fileKey: oldId == "PayloadKey" ? newId : "PayloadKey", editDatabase: (_, rows) => {
+    private static byte[] RenameIdentifier(string oldId, string newId, int columnLength = 72) => ArchiveFixtures.Msi(
+        fileKey: oldId == "PayloadKey" ? newId : "PayloadKey", stringColumnLength: columnLength, editDatabase: (_, rows) => {
             foreach (object?[][] table in rows.Values) foreach (object?[] row in table)
                 for (int index = 0; index < row.Length; index++)
                     if (row[index] is string value && value == oldId) row[index] = newId;
