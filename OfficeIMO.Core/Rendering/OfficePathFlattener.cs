@@ -33,9 +33,20 @@ internal static class OfficePathFlattener {
     internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenNativeStroke(IReadOnlyList<OfficePathCommand> commands,
         double pixelsPerUnit) => FlattenCore(commands, 0D, 0D, 1D, 0, pixelsPerUnit, true);
 
+    /// <summary>Bounds adaptive curve expansion across a complete native stroke projection.</summary>
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenStrokeProjection(
+        IReadOnlyList<OfficePathCommand> commands, double pixelsPerUnit) {
+        const int expandedPointBudget = 65536;
+        int curves = 0;
+        foreach (OfficePathCommand command in commands)
+            if (command.Kind is OfficePathCommandKind.QuadraticBezierTo or OfficePathCommandKind.CubicBezierTo) curves++;
+        int cap = curves == 0 ? int.MaxValue : Math.Max(1, (expandedPointBudget - Math.Min(commands.Count, expandedPointBudget)) / curves);
+        return FlattenCore(commands, 0, 0, 1, 0, pixelsPerUnit, false, cap);
+    }
+
     private static IReadOnlyList<OfficeFlattenedPathContour> FlattenCore(IReadOnlyList<OfficePathCommand> commands,
         double offsetX, double offsetY, double scale, int curveSegments, double pixelsPerUnit,
-        bool retainSinglePointClosedContours) {
+        bool retainSinglePointClosedContours, int maximumCurveSegments = int.MaxValue) {
         if (commands == null) {
             throw new ArgumentNullException(nameof(commands));
         }
@@ -71,8 +82,8 @@ internal static class OfficePathFlattener {
                         currentPoint,
                         Transform(command.ControlPoint1, offsetX, offsetY, scale),
                         Transform(command.Point, offsetX, offsetY, scale),
-                        curveSegments > 0 ? curveSegments : OfficeCurveFlattening.QuadraticSegments(currentPoint,
-                            Transform(command.ControlPoint1, offsetX, offsetY, scale), Transform(command.Point, offsetX, offsetY, scale), pixelsPerUnit)));
+                        curveSegments > 0 ? curveSegments : Math.Min(maximumCurveSegments, OfficeCurveFlattening.QuadraticSegments(currentPoint,
+                            Transform(command.ControlPoint1, offsetX, offsetY, scale), Transform(command.Point, offsetX, offsetY, scale), pixelsPerUnit))));
                     currentPoint = Transform(command.Point, offsetX, offsetY, scale);
                     hasCurrentPoint = true;
                     break;
@@ -83,16 +94,17 @@ internal static class OfficePathFlattener {
                         Transform(command.ControlPoint1, offsetX, offsetY, scale),
                         Transform(command.ControlPoint2, offsetX, offsetY, scale),
                         Transform(command.Point, offsetX, offsetY, scale),
-                        curveSegments > 0 ? curveSegments : OfficeCurveFlattening.CubicSegments(currentPoint,
+                        curveSegments > 0 ? curveSegments : Math.Min(maximumCurveSegments, OfficeCurveFlattening.CubicSegments(currentPoint,
                             Transform(command.ControlPoint1, offsetX, offsetY, scale), Transform(command.ControlPoint2, offsetX, offsetY, scale),
-                            Transform(command.Point, offsetX, offsetY, scale), pixelsPerUnit)));
+                            Transform(command.Point, offsetX, offsetY, scale), pixelsPerUnit))));
                     currentPoint = Transform(command.Point, offsetX, offsetY, scale);
                     hasCurrentPoint = true;
                     break;
                 case OfficePathCommandKind.Close:
+                    if (current != null && current.Count > 0) currentPoint = current[0];
                     AddClosedContour(contours, current, retainSinglePointClosedContours);
                     current = null;
-                    hasCurrentPoint = false;
+                    // A subsequent drawing command starts at the closed contour's origin.
                     break;
             }
             pointCount += Math.Max(1, (current?.Count ?? 0) - previousCount);

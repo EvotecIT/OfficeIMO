@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
     /// <summary>Projects a stroke to fill geometry for the shared native gradient writer.</summary>
     private static OfficeShape? CreateGradientStrokeShape(OfficeShape shape) {
         double density = OfficeStrokeGeometry.LocalFlatteningDensity(shape.Transform, 4D);
-        var contours = OfficeStrokeGeometry.FlattenShape(shape, density);
+        var contours = OfficeStrokeGeometry.FlattenShape(shape, density, boundCurveExpansion: true);
         IReadOnlyList<double>? pattern = shape.StrokeDashArray.Count > 0
             ? shape.StrokeDashArray : shape.StrokeDashStyle.GetDashPattern(shape.StrokeWidth);
         var outlines = OfficeStrokeGeometry.Create(contours, shape.StrokeWidth,
