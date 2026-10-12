@@ -2998,4 +2998,5 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="ObjectEdit.ScalePreviewHint" xml:space="preserve"><value>The dashed outline shows the new size. The image keeps its centre.</value></data>
   <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Cancel resize</value></data>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Discard changes</value></data>
+  <data name="Errors.ReadOnly" xml:space="preserve"><value>The destination file is read-only, so it was left unchanged. Choose another name or folder, or clear its read-only setting.</value></data>
 </root>

@@ -102,7 +102,7 @@ public sealed class StudioScaledLayoutTests {
         using var bitmap = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(window);
         if (bitmap is null) return;
         Directory.CreateDirectory(output);
-        bitmap.Save(Path.Combine(output, name + ".png"));
+        bitmap.Save(Path.Combine(output, name + ".png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 
     private static void Layout(Window window, int width, int height) {

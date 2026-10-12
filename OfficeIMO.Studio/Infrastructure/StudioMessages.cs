@@ -22,6 +22,7 @@ internal static class StudioMessages {
         // Providers and engines raise these types with specific, readable text; only the runtime's generic
         // wording (which also exposes full paths) is replaced.
         string? key = error switch {
+            UnauthorizedAccessException when OfficeIMO.Core.Internal.OfficeFileCommit.IsReadOnlyDestination(error) => "Errors.ReadOnly",
             UnauthorizedAccessException when IsRuntimeMessage(error) => "Errors.AccessDenied",
             FileNotFoundException or DirectoryNotFoundException or DriveNotFoundException when IsRuntimeMessage(error) => "Errors.NotFound",
             PathTooLongException when IsRuntimeMessage(error) => "Errors.PathTooLong",

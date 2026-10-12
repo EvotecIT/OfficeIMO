@@ -17,6 +17,8 @@ internal sealed class TestStorageFile {
     internal bool DenyRead { get; set; }
     internal bool DenyBookmark { get; set; }
     internal bool FailWrite { get; set; }
+    /// <summary>The error a failing write raises; an interrupted provider write by default.</summary>
+    internal Func<Exception>? WriteFailure { get; set; }
     internal bool CorruptWrite { get; set; }
     internal Action? BeforeRead { get; set; }
     internal Func<Task<Stream>>? OpenReadOverride { get; set; }
@@ -61,7 +63,8 @@ internal sealed class TestStorageFile {
     private Task<Stream> OpenWrite() {
         Writes++;
         Bytes = [];
-        return Task.FromResult<Stream>(new WriteStream(bytes => Bytes = CorruptWrite ? [.. bytes, 0x21] : bytes, FailWrite));
+        return Task.FromResult<Stream>(new WriteStream(bytes => Bytes = CorruptWrite ? [.. bytes, 0x21] : bytes, FailWrite,
+            WriteFailure ?? (() => new IOException("Provider write interrupted."))));
     }
 
     private object? Release() { Disposals++; return null; }
@@ -75,19 +78,19 @@ internal sealed class TestStorageFile {
         }
     }
 
-    private sealed class WriteStream(Action<byte[]> close, bool fail) : MemoryStream {
+    private sealed class WriteStream(Action<byte[]> close, bool fail, Func<Exception> failure) : MemoryStream {
         private bool _closed;
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken token = default) {
             token.ThrowIfCancellationRequested();
             if (!fail) return base.WriteAsync(buffer, token);
             base.Write(buffer.Span[..Math.Min(16, buffer.Length)]);
-            throw new IOException("Provider write interrupted.");
+            throw failure();
         }
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken token) {
             token.ThrowIfCancellationRequested();
             if (!fail) return base.WriteAsync(buffer, offset, count, token);
             base.Write(buffer, offset, Math.Min(16, count));
-            throw new IOException("Provider write interrupted.");
+            throw failure();
         }
         protected override void Dispose(bool disposing) {
             if (!_closed) { _closed = true; close(ToArray()); }
