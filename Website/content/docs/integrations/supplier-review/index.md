@@ -12,14 +12,23 @@ Compare four supplier offers for two items. PSParseHTML extracts the HTML table;
 
 ## Run the example
 
-Install PSParseHTML and PSWriteOffice, then run from a PSWriteOffice checkout:
+Download the [supplier review example ZIP](/downloads/integrations/supplier-review.zip) to your working folder. It contains the script and an `Input` folder with the sample HTML. Open PowerShell in that folder and run:
 
 ```powershell
 Install-Module PSParseHTML, PSWriteOffice -Scope CurrentUser
-./Examples/Integrations/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
+Expand-Archive -LiteralPath ./supplier-review.zip -DestinationPath ./SupplierReviewExample
+./SupplierReviewExample/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 ```
 
-Read the [complete script](https://github.com/EvotecIT/PSWriteOffice/blob/2ca77f6b772cd954f553124fb801bed087213986/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) and [sample HTML](https://github.com/EvotecIT/PSWriteOffice/blob/2ca77f6b772cd954f553124fb801bed087213986/Examples/Integrations/Input/SupplierOffers.html). For a small standalone run, download the [script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and save the [HTML input](/downloads/integrations/source/Input/SupplierOffers.html) as `Input/SupplierOffers.html` beside it.
+Open `Output/SupplierReview` to find the DOCX, PDF and XLSX. The example requires PSWriteOffice 3.0.8 and PSParseHTML 3.0.3 or later. If older copies are installed, run `Update-Module PSWriteOffice, PSParseHTML` and start a fresh PowerShell session.
+
+If Windows blocks the downloaded script, read it first, then unblock that file with `Unblock-File -LiteralPath ./SupplierReviewExample/Recipe-HtmlSupplierReview.ps1`. Keep your normal execution policy.
+
+You can also download the [standalone script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and [sample HTML](/downloads/integrations/source/Input/SupplierOffers.html) separately. Keep the HTML in an `Input` folder beside the script, or pass your own file with `-HtmlPath`:
+
+```powershell
+./SupplierReviewExample/Recipe-HtmlSupplierReview.ps1 -HtmlPath ./MyOffers.html -OutputDirectory ./Output/MyReview
+```
 
 ## Adapt the data
 
@@ -30,3 +39,9 @@ Keep table `id="offers"` and the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDay
 Word uses semantic paragraph spacing and cell padding to separate the heading, offer table and decision steps. Excel retains editable numbers for sorting, filtering and calculations. PDF pagination is produced by OfficeIMO and can differ from Microsoft Word.
 
 Continue with the [email review package](/docs/integrations/report-email/) to attach the PDF and XLSX without sending them.
+
+## Complete PowerShell script
+
+The code below is the same script included in the ZIP and standalone download. PSParseHTML reads the table; PSWriteOffice formats the review and preserves numeric values in Excel.
+
+{{< integration-example id="supplier-review" >}}

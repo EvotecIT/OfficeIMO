@@ -600,6 +600,15 @@
         ]
       },
       {
+        "Match": "/docs/integrations/**",
+        "Bundles": [
+          "global",
+          "docs",
+          "experience",
+          "showcase"
+        ]
+      },
+      {
         "Match": "/docs/**",
         "Bundles": [
           "global",

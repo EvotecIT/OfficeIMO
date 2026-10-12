@@ -12,6 +12,8 @@ Start with the input you already have. These examples pass ordinary objects and 
 | A bounded Windows event snapshot | [Event incident brief](/docs/integrations/event-brief/) | Word/PDF handoff and full Excel register |
 | Existing report attachments | [Local email review package](/docs/integrations/report-email/) | EML with embedded attachments |
 
-Each page includes real generated files and the complete source that produced them. The downloads contain synthetic data. The recipes run with published modules and add no required dependencies to PSWriteOffice.
+Each page shows the complete PowerShell script alongside its generated documents. Download an example ZIP, extract it to any folder, install the listed modules and run the script. The ZIP contains the script and any sample input it needs. You can also copy the code from the page or download the script separately.
 
-Use the [integration guide](https://github.com/EvotecIT/PSWriteOffice/tree/2ca77f6b772cd954f553124fb801bed087213986/Examples/Integrations) for module requirements and input contracts. The [download manifest](/downloads/integrations/manifest.json) records the source revision, module versions and file hashes.
+The samples use synthetic data and run with published modules. Start with the offline examples, then substitute your HTML, event records or report attachments. If you have an older module installed, run `Update-Module` for that module and start a fresh PowerShell session before using the examples.
+
+The [download manifest](/downloads/integrations/manifest.json) records the generating source revision, module versions and file hashes for reproducibility.

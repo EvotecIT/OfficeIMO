@@ -1,6 +1,6 @@
 {
   "sourceRepository": "EvotecIT/PSWriteOffice",
-  "sourceCommit": "2ca77f6b772cd954f553124fb801bed087213986",
+  "sourceCommit": "130d9f1d65d59a8c027318b3a9bbbd85b20526bb",
   "modules": {
     "PSWriteOffice": "3.0.8",
     "PSParseHTML": "3.0.3",
@@ -10,7 +10,7 @@
     "PSEventViewer": "4.0.1"
   },
   "inputs": "Bundled synthetic supplier and incident data; example.invalid mail recipients.",
-  "generation": "Run the linked scripts from PSWriteOffice with explicit OutputDirectory. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeExcelRangeImage, Offers A1:D10 and Events A1:G10.",
+  "generation": "Run a downloaded example from any folder with published modules and explicit OutputDirectory. ZIPs and displayed source: scripts/Sync-IntegrationExamples.ps1. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeExcelRangeImage, Offers A1:D10 and Events A1:G10.",
   "artifacts": [
     {
       "path": "/downloads/integrations/supplier/SupplierReview.docx",
@@ -79,23 +79,39 @@
     },
     {
       "path": "/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1",
-      "bytes": 6432,
-      "sha256": "5bfae8347be3144abc176b4c216c5c08a9d4ef046228e4d720ff08e91c611eb9"
+      "bytes": 6579,
+      "sha256": "ff568087fb8f9bbf1d747e587f7de2cf58426f2ea5da708d1974e61bffe3f3f9"
     },
     {
       "path": "/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1",
-      "bytes": 8187,
-      "sha256": "88b9b2de3dd9adf2804815e05167749c97cd51c234df0e682c3ffb4b1e584ab9"
+      "bytes": 8302,
+      "sha256": "8968683da1897706022ec501813f73b4a136b3725f66ed0710122673d842b75e"
     },
     {
       "path": "/downloads/integrations/source/Recipe-Mailozaurr-PdfDelivery.ps1",
-      "bytes": 3468,
-      "sha256": "5ab9be9b9568d83a94af74545daa2917b56cc5dbf9cae5c6f78af5d8997ea6aa"
+      "bytes": 3583,
+      "sha256": "10477c55875040db61521cfc1db34459bced774b80c35def18907c102088a432"
     },
     {
       "path": "/downloads/integrations/source/Input/SupplierOffers.html",
       "bytes": 688,
       "sha256": "420c968f3621fce301a5ce961a345c80826d6f502cb4f5921fc8c50f38b33fc8"
+    },
+    {
+      "path": "/downloads/integrations/supplier-review.zip",
+      "bytes": 3021,
+      "sha256": "85084dde08ca61ae5971053a91d11d0470e6278a465b7171dc522c62657bc019"
+    },
+    {
+      "path": "/downloads/integrations/event-brief.zip",
+      "bytes": 2963,
+      "sha256": "42063e5797f402efacd8d7d2404ff1d251c65572b2c23bbb2a7866ec81d1bd5c"
+    },
+    {
+      "path": "/downloads/integrations/report-email.zip",
+      "bytes": 1640,
+      "sha256": "6ca8e05262d3d11c50e63974ef0e2884584922d2153348ba1c9793ebaf1a822d"
     }
-  ]
+  ],
+  "documentGenerationSourceCommit": "2ca77f6b772cd954f553124fb801bed087213986"
 }

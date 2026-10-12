@@ -1,0 +1,6 @@
+{{~ example = data.integration_examples[shortcode.attrs.id] ~}}
+{{~ source_html = example.source | html.escape | string.replace "\n" "&#10;" ~}}
+<div class="imo-walkthrough">
+  <div class="imo-walkthrough__section-heading"><a href="{{ example.download | html.escape }}">Download script</a><button class="imo-btn imo-btn-ghost" type="button" data-copy="{{ source_html }}" aria-label="Copy complete PowerShell script">Copy code</button></div>
+  <pre class="language-powershell" tabindex="0" aria-label="Scrollable complete PowerShell script"><code class="language-powershell">{{ source_html }}</code></pre>
+</div>
