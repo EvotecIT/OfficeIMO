@@ -2186,6 +2186,14 @@
       "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs#L19"
     },
     {
+      "name": "Get-OfficeConversionRoute",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/GetOfficeConversionRouteCommand.cs",
+      "sourceLine": 35,
+      "sourceUrl": "https://github.com/EvotecIT/PSWriteOffice/blob/main/Sources/PSWriteOffice/Cmdlets/Conversion/GetOfficeConversionRouteCommand.cs#L35"
+    },
+    {
       "name": "Get-OfficeCsv",
       "kind": "Cmdlet",
       "aliases": [],
