@@ -169,18 +169,8 @@ internal sealed partial class HtmlRenderStyleResolver {
         _activeCharacterAdvance = ContainsCharacterUnit(fontSizeValue)
             ? _measureCharacterAdvance(parent ?? new HtmlRenderBoxStyle { Font = new OfficeFontInfo(_options.DefaultFontFamily, _options.DefaultFontSize) })
             : double.NaN;
-        double fontSize = computed.IsOriginRevertedValue("font-size")
-            ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
-            : computed.IsResetValue("font-size")
-            ? _options.DefaultFontSize
-            : computed.IsImplicitlyInheritedValue("font-size")
-            ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
-            : computed.IsInheritedValue("font-size")
-            ? parentFontSize
-            : string.IsNullOrWhiteSpace(fontSizeValue)
-            ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
-            : ResolveFontSize(fontSizeValue, parentFontSize,
-                tag == "html" && !pseudoElement ? _options.DefaultFontSize : _rootFontSize);
+        double fontSize = ResolveComputedFontSize(tag, computed, fontSizeValue, parentFontSize,
+            pseudoElement, pseudoSemanticRole);
         string fontTag = pseudoElement ? string.Empty : tag;
         OfficeFontFaceDescriptor fontDescriptor = ResolveFontFaceDescriptor(
             fontTag,

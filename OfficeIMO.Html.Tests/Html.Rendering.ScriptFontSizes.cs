@@ -111,10 +111,13 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("", 11.2D, true)]
+    [InlineData("font-size:70%", 11.2D, true)]
+    [InlineData("font-size:revert", 11.2D, true)]
     [InlineData("font-size:16px", 16D, true)]
     [InlineData("font-size:16px;vertical-align:baseline", 16D, false)]
     [InlineData("font-size:initial;vertical-align:initial", 16D, false)]
     [InlineData("font-size:inherit;vertical-align:baseline", 16D, false)]
+    [InlineData("font-size:unset;vertical-align:baseline", 16D, false)]
     [InlineData("font-size:16px;vertical-align:unset", 16D, false)]
     public void HtmlFootnoteCall_PaintsItsDefaultOrAuthoredFontOnceAndRaisesItsBaseline(
         string callStyle, double expectedSize, bool raised) {
