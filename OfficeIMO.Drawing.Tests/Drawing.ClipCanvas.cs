@@ -5,6 +5,26 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(OfficeStrokeLineCap.Round)]
+    [InlineData(OfficeStrokeLineCap.Square)]
+    public void ClipPath_MoveOnlyClosuresDoNotAcquireSvgStrokeCaps(OfficeStrokeLineCap cap) {
+        string Svg(params OfficePathCommand[] commands) {
+            var shape = OfficeShape.Path(20, 20, commands);
+            shape.StrokeColor = OfficeColor.Blue; shape.StrokeWidth = 8; shape.StrokeLineCap = cap;
+            return OfficeDrawingSvgExporter.ToSvg(new OfficeDrawing(20, 20).AddShape(shape, 0, 0));
+        }
+        string empty = Svg(OfficePathCommand.MoveTo(10, 10), OfficePathCommand.Close());
+        Assert.Equal("M10 10Z", OfficeSvgFormatting.FormatPathData(new[] { OfficePathCommand.MoveTo(10, 10), OfficePathCommand.Close() }));
+        Assert.Contains("d=\"M10 10\"", empty);
+        Assert.DoesNotContain("M10 10Z", empty);
+        string drawn = Svg(OfficePathCommand.MoveTo(10, 10), OfficePathCommand.LineTo(10, 10), OfficePathCommand.Close());
+        Assert.Contains("M10 10L10 10Z", drawn);
+        string mixed = Svg(OfficePathCommand.MoveTo(5, 5), OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(10, 10), OfficePathCommand.LineTo(15, 15), OfficePathCommand.Close());
+        Assert.Contains("M5 5M10 10L15 15Z", mixed);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ClipPath_DeclaredCanvasMoveOnlyPathsNeitherPaintNorRevealClippedContent(bool close) {
