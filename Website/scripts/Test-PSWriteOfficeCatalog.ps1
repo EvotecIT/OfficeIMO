@@ -95,7 +95,8 @@ try {
     foreach ($item in Get-ChildItem -LiteralPath $temporaryRoot -Force -Recurse) {
         $item.Attributes = $item.Attributes -band (-bnot ([IO.FileAttributes]::Hidden -bor [IO.FileAttributes]::ReadOnly))
     }
-    Remove-Item -LiteralPath $temporaryRoot -Recurse
+    # Directory.Delete also handles dot-prefixed Git metadata on Unix.
+    [IO.Directory]::Delete($temporaryRoot, $true)
 }
 
 [PSCustomObject]@{ Status = 'passed'; CatalogCases = @($cases); CommandCount = $expected.ExpectedCommandCount }
