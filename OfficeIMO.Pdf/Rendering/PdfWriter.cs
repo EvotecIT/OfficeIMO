@@ -1890,6 +1890,7 @@ internal static partial class PdfWriter {
         int nextSequenceId = 0;
         int currentSequenceId = -1;
         int currentVisiblePageNumber = 0;
+        var logicalPageNumbers = new Dictionary<int, int>();
 
         foreach (var page in pages) {
             seen.TryGetValue(page.PageGroupId, out int pageNumber);
@@ -1903,7 +1904,17 @@ internal static partial class PdfWriter {
             currentVisiblePageNumber = ResolveNextVisiblePageNumber(pending.Count, firstPageOfGroup,
                 currentVisiblePageNumber, page.Options);
 
-            pending.Add((pageNumber, currentVisiblePageNumber, currentSequenceId, page.PageGroupId));
+            // A continuous source section can share its first page with the
+            // preceding section. Count that page in both sections, while the
+            // running variants belong to the section whose body owns the page.
+            if (page.RunningContentSections != null)
+                foreach (int sectionId in page.RunningContentSections) {
+                    logicalPageNumbers.TryGetValue(sectionId, out int logicalPage);
+                    logicalPageNumbers[sectionId] = logicalPage + 1;
+                }
+            int variantPage = page.RunningContentSectionId is int owner && logicalPageNumbers.TryGetValue(owner, out int ownerPage)
+                ? ownerPage : pageNumber;
+            pending.Add((variantPage, currentVisiblePageNumber, currentSequenceId, page.PageGroupId));
         }
 
         var totals = new Dictionary<int, int>();

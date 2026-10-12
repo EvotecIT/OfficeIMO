@@ -33,6 +33,11 @@ public static partial class WordPdfConverterExtensions {
         section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
 
     private static bool UsesNativeRunningStories(WordSection section, WordToPdfOptions? options, bool isFooter, params WordHeaderFooter?[] variants) {
+        // Admission switches all active variants, including an explicitly authored
+        // sibling of an inherited table or SECTIONPAGES story. Keep mixed and nested
+        // text boxes on the path that preserves their positioning and source order.
+        if (variants.Any(story => story != null && story.ChildElements
+                .Any(element => element.Descendants<W.TextBoxContent>().Any()))) return false;
         if (variants.Any(RequiresNativeRunningStory)) return true;
         bool hasNumberedParagraph = false;
         bool hasParagraph = false;
@@ -45,9 +50,6 @@ public static partial class WordPdfConverterExtensions {
             double minimumHeight = 0D;
             double joinedLineHeight = double.PositiveInfinity;
             ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph);
-            // Admission switches all active variants. Preserve the source-order
-            // text-box path until flow can retain its mixed and nested content.
-            if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any())) return false;
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
                 var paragraph = new WordParagraph(story.Document, source);

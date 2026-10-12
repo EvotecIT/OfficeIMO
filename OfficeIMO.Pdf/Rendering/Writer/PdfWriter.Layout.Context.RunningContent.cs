@@ -40,7 +40,8 @@ internal static partial class PdfWriter {
 
         private PdfRunningContentContext GetRunningPageContext() {
             emittedPageGroupCounts.TryGetValue(currentPageGroupId, out int groupCount);
-            int sectionPage = groupCount + 1;
+            int sectionPage = previousRunningPages != null && pages.Count < previousRunningPages.Count
+                ? previousRunningPages[pages.Count].VariantPageNumber : groupCount + 1;
             int total = previousRunningPages != null && pages.Count < previousRunningPages.Count
                 ? previousRunningPages[pages.Count].TotalPages : Math.Max(1, currentVisiblePageNumber);
             int sectionPages = previousRunningPages != null && pages.Count < previousRunningPages.Count

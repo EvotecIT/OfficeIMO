@@ -220,7 +220,7 @@ namespace OfficeIMO.Word.Pdf {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
                 WordSection firstSection = sections[sectionIndex];
-                bool preserveSectionPageCounts = UsesNativeSectionPageCounts(firstSection);
+                bool preserveLogicalRunningSections = UsesNativeSectionPageCounts(firstSection) || firstSection.DifferentFirstPage;
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
@@ -238,7 +238,7 @@ namespace OfficeIMO.Word.Pdf {
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         WordSection section = sections[currentSectionIndex];
-                        if (preserveSectionPageCounts) pdf.BeginRunningContentSection(currentSectionIndex);
+                        if (preserveLogicalRunningSections) pdf.BeginRunningContentSection(currentSectionIndex);
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
@@ -412,6 +412,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool NativeSectionHeaderFooterReferencesEquivalent(WordSection first, WordSection second) =>
             first.DifferentFirstPage == second.DifferentFirstPage &&
+            NativeDoubleEquals(first.Margins.HeaderDistance, second.Margins.HeaderDistance) &&
+            NativeDoubleEquals(first.Margins.FooterDistance, second.Margins.FooterDistance) &&
             ReferenceEquals(first.ResolveDefaultHeader()?._header, second.ResolveDefaultHeader()?._header) &&
             ReferenceEquals(first.ResolveDefaultFooter()?._footer, second.ResolveDefaultFooter()?._footer) &&
             (!first.DifferentFirstPage ||
