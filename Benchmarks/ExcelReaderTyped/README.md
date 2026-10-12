@@ -427,6 +427,17 @@ version and SHA-256 hash are printed and checked against saved inputs.
 The CSV suite covers raw, materialized, typed, async, 32-column text, and writing
 work. `--validate-csv` checks every field and count outside timing. The parallel
 suite compares complete typed records separately from native aggregate work.
+`CsvBorrowedAsyncReadBenchmarks` consumes the same headerless four-field ASCII
+fixture through a native asynchronous UTF-8 row loop and OfficeIMO's public
+`AggregateRowsAsParallelAsync(Stream, ...)` callback at DOP 1. OfficeIMO consumes
+borrowed UTF-16 spans and scalar getters; its headerless initialization may
+materialize the first row. Both methods acquire a fresh `MemoryStream` inside
+the measured call. `--validate-csv-borrowed-async` verifies every name byte/span,
+scalar and row order, including Unicode, escaped quotes and multiline names,
+outside timing. The materialized async companion remains a separate workload.
+These memory-backed streams measure API and parsing work, without establishing
+asynchronous disk throughput or zero allocation.
+
 `--validate-csv-parallel` uses bounded 50,000-row fixtures across the upstream
 degrees of parallelism; measured cases retain their original 4.3M, 8M, and 3M
 sizes. `OFFICEIMO_CSV_PARALLEL_BENCHMARK_ROWS` and
@@ -520,6 +531,7 @@ this opt-in comparison project.
 
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv-borrowed-async
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -- --validate-csv-parallel
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkCsv=true -p:OfficeIMOBenchmarkNewApis=true -p:OfficeIMOBenchmarkArrow=true -- --validate-arrow
 ```

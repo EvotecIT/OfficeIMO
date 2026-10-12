@@ -119,6 +119,10 @@ if (args is ["--validate-shared-stages"]) {
 
 #if OFFICEIMO_BENCHMARK_CSV
 #if OFFICEIMO_BENCHMARK_NEW_APIS
+if (args is ["--validate-csv-borrowed-async"]) {
+    await CsvBenchmarkQualification.ValidateBorrowedAsyncReadAsync();
+    return;
+}
 if (args is ["--validate-csv-direct-aggregate-scale"]) {
     await CsvBenchmarkQualification.ValidateDirectAggregateScaleAsync();
     return;
