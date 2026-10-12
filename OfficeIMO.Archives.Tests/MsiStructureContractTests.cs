@@ -102,6 +102,37 @@ public sealed class MsiStructureContractTests {
         Assert.Single(ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination).Files);
     }
 
+    [Fact]
+    public void DirectoryChainMustEndWithEndOfChainRatherThanFreeSector() {
+        byte[] package = ArchiveFixtures.Msi();
+        int fat = checked(((int)BitConverter.ToUInt32(package, 76) + 1) * 512);
+        uint last = BitConverter.ToUInt32(package, 48);
+        while (BitConverter.ToUInt32(package, fat + (int)last * 4) != 0xfffffffeU)
+            last = BitConverter.ToUInt32(package, fat + (int)last * 4);
+        Buffer.BlockCopy(BitConverter.GetBytes(uint.MaxValue), 0, package, fat + (int)last * 4, 4);
+        AssertInvalid(package);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DifatAllocationMarkersAreValidatedWithoutOpeningAuxiliaryPayloads(bool corrupt) {
+        byte[] package = Rewrite(streams => streams.Add("AuxA", new byte[8 * 1024 * 1024]));
+        uint difat = BitConverter.ToUInt32(package, 68);
+        Assert.True(BitConverter.ToUInt32(package, 72) > 0);
+        if (corrupt) {
+            int fatIndex = (int)difat / 128;
+            uint fatSector = fatIndex < 109 ? BitConverter.ToUInt32(package, 76 + fatIndex * 4)
+                : BitConverter.ToUInt32(package, checked(((int)difat + 1) * 512 + (fatIndex - 109) * 4));
+            int entry = checked(((int)fatSector + 1) * 512 + (int)(difat % 128) * 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(0xfffffffeU), 0, package, entry, 4);
+            AssertInvalid(package);
+        } else {
+            using var fixture = new ArchiveFixtures();
+            Assert.Single(ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination).Files);
+        }
+    }
+
     private static void AssertInvalid(byte[] package) {
         using var fixture = new ArchiveFixtures();
         Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination));
