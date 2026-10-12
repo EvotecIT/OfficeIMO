@@ -4,7 +4,9 @@ description: "A deep dive into OfficeIMO.Markdown's typed model, builder API, so
 date: 2025-08-01
 tags: [markdown, design, aot]
 categories: [Deep Dive]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 Markdown is everywhere: README files, documentation sites, CMS content, and chat messages. OfficeIMO needs Markdown as an editable document model as well as an interchange format, so `OfficeIMO.Markdown` owns parsing, a typed semantic tree, source-aware editing, writing, and HTML projection in one first-party package.

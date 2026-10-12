@@ -28,6 +28,12 @@
         <h1>{{ data.showcase.title }}</h1>
         <p>{{ data.showcase.description }}</p>
       </header>
+      <nav class="imo-gallery__integrations" aria-label="Cross-module reporting examples">
+        <span>PowerShell workflows:</span>
+        <a href="/docs/integrations/supplier-review/">PSParseHTML supplier review</a>
+        <a href="/docs/integrations/event-brief/">PSEventViewer incident brief</a>
+        <a href="/docs/integrations/report-email/">Mailozaurr email package</a>
+      </nav>
       {{ walkthrough_count = 0 }}{{ for card in data.showcase.cards }}{{ if card.walkthrough_url }}{{ walkthrough_count = walkthrough_count + 1 }}{{ end }}{{ end }}
       {{ if walkthrough_count > 0 }}<a class="imo-gallery__walkthroughs" href="/showcase/?q=walkthrough"><strong>{{ walkthrough_count }} code walkthroughs</strong><span>Follow runnable source from a practical task to its generated document <span aria-hidden="true">&rarr;</span></span></a>{{ end }}
       <form id="showcase-controls" class="imo-gallery__controls" role="search" aria-label="Find a showcase example">

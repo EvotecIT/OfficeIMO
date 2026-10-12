@@ -31,7 +31,7 @@ references do not report missing images.
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | `PublisherPage.Tables` exposes native tracks, spans, styled paragraphs, text and placement; master tables remain on their owner | Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
-| Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Guide references, advanced commands and separate paint groups retain an explicit fallback; shared nonzero winding and native appearance remain unqualified |
+| Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; marker shadows and decorations on unsupported open geometry are omitted with diagnostics |
 | Groups | Native child coordinate spaces, non-uniform scale after child rotation, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
@@ -115,7 +115,9 @@ Native line-property mutations check caps, joins, fixed-point miter limits,
 dash order and spacing, all five supported marker kinds, disabled strokes,
 unknown values and scene copying. SVG, raster and PDF retain open arrows as
 outlines and other markers as filled geometry. Marker dimensions and native dash
-rendering remain unqualified against Publisher-produced output.
+rendering use approximation reports. The Publisher-authored fixture independently
+confirms the visible dash and endpoint decorations; exact marker sizing and
+device-dependent dash spacing remain unqualified.
 Custom-path record mutations check coordinate offsets, compact vertices,
 line/cubic command consumption, subpaths, paint controls, malformed arrays,
 and counted AutoLine, CornerLine, AutoCurve, CornerCurve and SymmetricCurve
@@ -124,12 +126,34 @@ SmoothCurve, SymmetricLine and Freeform runs retain an unsupported-command
 fallback; their drawing semantics remain unqualified. These record checks cover
 guide/command fallback reports and inset picture masks. One-point and move-only
 paths retain empty geometry and empty picture masks rather than revealing the
-unmasked image. High-coordinate
+unmasked image. SG guide checks cover
+all 17 stored formula identifiers, unsigned constants, signed adjustment values,
+geometry-space centres and dimensions, inherited document defaults, local scalar
+and stroke-use overrides, physical frame EMUs,
+backward references, fixed-point degrees and the 128-record ceiling.
+Only guides referenced by path vertices and their backward dependencies are
+evaluated; unrelated formulas do not force otherwise valid paths or picture
+masks to fall back. Referenced device-pixel operands require an output-device
+context and retain a reported fallback. Referenced malformed dependencies,
+division by zero, invalid square roots and 32-bit overflow also retain fallback
+evidence without partial custom artwork.
+Integer rounding follows the corresponding [VML formula contract](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.vml.formula):
+products round to nearest with ties toward positive infinity, averages truncate
+toward zero, and inexact operations floor their results. Exact half-angle sine
+and cosine products retain their integral values; adjacent fractional angles
+retain flooring. These managed checks
+do not qualify Publisher's rounding or discontinuous guide behaviour.
+Trigonometric calculations use directed bounds to preserve the floor near
+integer boundaries. An unresolved bound retains the reported guide fallback.
+High-coordinate
 shape/mask checks retain the full unsigned compact range;
 eight-byte coordinates retain signed negative values. Shared array decoding
 preserves following complex properties when native lengths exclude their
-six-byte headers, including empty arrays. Cumulative limits account for decoded vertices/segments,
-expanded commands and copied shape/mask paths. The producer corpus has no custom
+six-byte headers, including empty arrays. Path, guide and gradient-stop consumers
+reject extra element bytes beyond their declared counts. Document-wide primary
+and tertiary defaults apply before local properties, with native record limits
+bounding property decoding and inherited copies. Cumulative limits account for decoded vertices/segments,
+declared guides, expanded commands and copied shape/mask paths. The producer corpus has no custom
 paths; these managed scene and SVG/raster/PDF checks do not establish native
 Publisher winding or mask fidelity.
 Native linear-fill mutations check physical and aspect-scaled angles, positive
@@ -142,8 +166,10 @@ sRGB interpolation. Custom fill rectangles and view-origin anchors retain their
 primary color with a mapping diagnostic; non-rotating fills on transformed
 frames report approximation. Other gradient, pattern, texture and background
 fill modes retain their current approximation boundary. The five supported
-producer fixtures contain no declared non-solid fills, so these record checks
-and managed SVG/raster/PDF outputs do not establish native gradient fidelity.
+original producer fixtures contain no declared non-solid fills. The additional
+Publisher-authored fixture confirms a horizontal two-color fill's direction and
+endpoint colors against Publisher's PDF export. Its interpolation differs and
+retains the approximation report; other gradient cases remain managed evidence.
 Picture-control mutations exercise transparency keys before tone changes,
 brightness endpoints, contrast, preserve-grays, grayscale and two-color
 precedence. Controlled raster output in original native picture frames is
