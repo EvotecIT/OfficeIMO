@@ -90,9 +90,11 @@ foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
     Assert-ContainsLiteral -Text $walkthroughHtml -Expected "Copy $languageLabel source" -Contract "$($card.id) code copy label"
     Assert-ContainsAttribute -Text $walkthroughHtml -Name 'class' -Value "language-$($card.source_language)" -Contract "$($card.id) syntax highlighting"
     if ($card.source_language -eq 'powershell') {
-        $runCommand = "Install-Module PSWriteOffice -Scope CurrentUser`n" + $card.run_command
-        Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand)) -Contract "$($card.id) executable command"
-        Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand.Replace('pwsh -NoProfile', 'powershell -NoProfile'))) -Contract "$($card.id) Windows PowerShell command"
+        Assert-ContainsLiteral -Text $walkthroughHtml -Expected 'Import-Module PSWriteOffice' -Contract "$($card.id) ordinary module usage"
+        $source = (Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/showcase_sources.json') -Raw | ConvertFrom-Json).($card.id)
+        $codeBlocks = [regex]::Matches($walkthroughHtml, '(?s)<code\b[^>]*>(?<code>.*?)</code>')
+        $matchingCode = @($codeBlocks | Where-Object { [Net.WebUtility]::HtmlDecode($_.Groups['code'].Value) -ceq $source })
+        if ($matchingCode.Count -ne 1) { throw "Walkthrough '$($card.id)' must display its complete report code without changing whitespace or content." }
         foreach ($download in @($card.downloads | Where-Object file_name)) {
             $href = [regex]::Escape($download.url)
             $anchor = [regex]::Match($walkthroughHtml, '<a\b(?=[^>]*\shref=["'']?' + $href + '["'']?(?=\s|>))[^>]*>').Value
