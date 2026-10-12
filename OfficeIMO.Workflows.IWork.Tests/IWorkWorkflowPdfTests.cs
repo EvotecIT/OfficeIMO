@@ -82,7 +82,7 @@ public sealed partial class IWorkWorkflowTests {
     }
 
     [Fact]
-    public async Task Complete_pdf_rejects_dropped_internal_slide_links_with_omission_evidence() {
+    public async Task Complete_pdf_publishes_resolved_internal_slide_links_and_reopens_them() {
         using var files = new Files("key", "pdf");
         byte[] link = System.Text.Encoding.UTF8.GetBytes("#slide-2");
         byte[] tree = Join(R(2, 3), R(2, 4));
@@ -96,11 +96,41 @@ public sealed partial class IWorkWorkflowTests {
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
-        Assert.False(result.Succeeded);
+        Assert.True(result.Succeeded, result.Summary);
         Assert.Equal("0", result.ConversionEvidence!.Facts["omittedSourceUnitCount"]);
-        Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.Code == "relative-hyperlink"
-            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Equal("keep existing", File.ReadAllText(files.Output));
+        Assert.DoesNotContain(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
+        Assert.Equal(2, pdf.Pages.Count);
+        Assert.Equal(2, Assert.Single(pdf.NamedDestinations, d => d.Name == "powerpoint-slide-2").PageNumber);
+        PdfLinkAnnotation[] links = pdf.Pages.SelectMany(page => page.GetLinkAnnotations()).ToArray();
+        Assert.NotEmpty(links);
+        Assert.All(links, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task Native_Keynote_slide_links_pass_the_complete_pdf_route_with_every_slide_and_text() {
+        using var files = new Files("key", "pdf");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", "slide-links.key"), files.Input, true);
+        OfficeWorkflowRequest request = files.Request("keynote-pdf");
+        request.RegisteredConversionSettings = new IWorkWorkflowSettings();
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("False", result.ConversionEvidence!.Facts["partialEditableReconstruction"]);
+        Assert.Equal("0", result.ConversionEvidence.Facts["omittedSourceUnitCount"]);
+        Assert.DoesNotContain(result.ConversionEvidence.FidelityDiagnostics,
+            diagnostic => diagnostic.LossKind is OfficeConversionLossKind.Omission or OfficeConversionLossKind.Failure);
+        PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(files.Output));
+        Assert.Equal(3, pdf.Pages.Count);
+        string text = pdf.ExtractText();
+        foreach (string expected in new[] { "Slide links", "Go to slide two", "Frame to next slide", "Back to slide one", "Final slide" })
+            Assert.Contains(expected, text);
+        PdfLinkAnnotation[] links = pdf.Pages.SelectMany(page => page.GetLinkAnnotations()).ToArray();
+        Assert.Equal(3, links.Length);
+        Assert.Equal(new int?[] { 2, 2, 1 }, links.Select(link => pdf.NamedDestinations.Single(
+            destination => destination.Name == link.DestinationName).PageNumber));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
 

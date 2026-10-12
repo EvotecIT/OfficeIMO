@@ -29,7 +29,7 @@ public static partial class WordIWorkConverter {
         IWorkPagesProjection projection = source.ReadPages();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction);
+            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -39,7 +39,7 @@ public static partial class WordIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection)) {
+        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection, cancellationToken)) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_DOCX_PRECISION",
                     "Source geometry, spacing, or font sizes were rounded to the nearest supported DOCX measurement unit; original values remain available on the projection.")
@@ -58,6 +58,13 @@ public static partial class WordIWorkConverter {
         int reconstructedSectionCount = 1 + projection.Body.Paragraphs.Count(paragraph =>
             paragraph.BreakKind == IWorkParagraphBreakKind.Section);
         if (editable) {
+            if (projection.Tables.Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
+                destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                    new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_MERGED_TABLE_BORDERS_APPROXIMATED",
+                        "Merged DOCX cells use the first recovered segment of each outer edge; varying native perimeter segments remain on the source projection.",
+                        lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+                }).ToArray();
+            }
             if (AllPagesText(projection).SelectMany(content => content.Paragraphs).Any(paragraph => paragraph.ListLayout != null
                     && !CanApplyQualifiedListLayout(paragraph))) {
                 destinationDiagnostics = destinationDiagnostics.Concat(new[] {

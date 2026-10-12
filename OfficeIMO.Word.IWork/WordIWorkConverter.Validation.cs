@@ -1,10 +1,11 @@
+using System.Threading;
 using OfficeIMO.IWork;
 
 namespace OfficeIMO.Word.IWork;
 
 public static partial class WordIWorkConverter {
     private static string? FindWordProjectionLimitation(IWorkPagesProjection projection,
-        bool allowPartialEditableReconstruction) {
+        bool allowPartialEditableReconstruction, CancellationToken cancellationToken) {
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
         string? inlineLimitation = FindInlineObjectLimitation(projection);
@@ -93,6 +94,11 @@ public static partial class WordIWorkConverter {
             if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                 return "Pages tables exceed the bounded DOCX destination cell budget.";
             }
+            if (TableBorderWidths(table, cancellationToken).Any(width => width < 0.25d || width > 12d
+                || !allowPartialEditableReconstruction && !IsExactDestinationUnit(width, 8d)))
+                return $"Pages table '{table.Name}' has border widths outside the DOCX quarter-to-twelve-point range or eighth-point precision.";
+            if (!allowPartialEditableReconstruction && table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))
+                return $"Pages table '{table.Name}' has varying borders along a merged perimeter that requires explicit partial reconstruction.";
             if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
                 && (cell.Value == null || !cell.CachedValueIsComplete))) {
                 return $"Pages table '{table.Name}' contains a formula without a complete cached value that the DOCX owner cannot evaluate.";
@@ -186,8 +192,9 @@ public static partial class WordIWorkConverter {
         yield return padding.BottomPoints;
     }
 
-    private static bool RequiresWordRounding(IWorkPagesProjection projection) =>
+    private static bool RequiresWordRounding(IWorkPagesProjection projection, CancellationToken cancellationToken) =>
         WordTwipMeasurements(projection).Any(value => value.HasValue && !IsExactDestinationUnit(value.Value, 20d))
+        || projection.Tables.SelectMany(table => TableBorderWidths(table, cancellationToken)).Any(width => !IsExactDestinationUnit(width, 8d))
         || AllPagesParagraphStyles(projection).Any(style => style.LineSpacingMultiplier is double multiplier
             && !IsExactDestinationUnit(multiplier, 240d))
         || AllPagesRunStyles(projection)

@@ -319,7 +319,7 @@ namespace OfficeIMO.PowerPoint {
                 case GroupShape g:
                     return new PowerPointGroupShape(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                    return new PowerPointTable(g, ownerPart as SlidePart);
+                    return new PowerPointTable(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
                     return new PowerPointChart(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null && ownerPart is SlidePart smartArtSlidePart:

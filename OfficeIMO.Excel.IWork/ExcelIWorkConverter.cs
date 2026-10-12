@@ -22,7 +22,8 @@ public static partial class ExcelIWorkConverter {
         IWorkNumbersProjection projection = source.ReadNumbers();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindExcelProjectionLimitation(projection, settings.NormalizeWorksheetNames);
+            : FindExcelProjectionLimitation(projection, settings.NormalizeWorksheetNames,
+                settings.AllowPartialEditableReconstruction, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -82,6 +83,22 @@ public static partial class ExcelIWorkConverter {
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(FractionFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DurationFormatDiagnostics(projection)).ToArray();
         if (editable) destinationDiagnostics = destinationDiagnostics.Concat(DateTimeFormatDiagnostics(projection)).ToArray();
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables)
+            .Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_MERGED_TABLE_BORDERS_APPROXIMATED",
+                    "Merged XLSX cells use the first recovered segment of each outer edge; varying native perimeter segments remain on the source projection.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => TableBorderWidths(table, cancellationToken))
+            .Any(width => width is not (0.5d or 1d or 2d or 3d))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED",
+                    "Native border widths outside the portable 0.5, 1, 2 and 3 point profile use the nearest XLSX hair, thin, medium or thick style; colors and explicit invisible edges are retained.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
         if (editable && settings.FindUnacceptedDestinationOmission(destinationDiagnostics) is { } omission) {
             destinationLimitation = omission;
             editable = false;
@@ -202,11 +219,7 @@ public static partial class ExcelIWorkConverter {
                                     sheet.SetHyperlink(cell.Row, cell.Column, hyperlink,
                                         display: null, style: false);
                                 }
-                                bool headerCell = IsHeaderCell(table, cell);
-                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell && defaultStyle?.TextStyle.Bold == null, cancellationToken, defaultStyle?.TextStyle));
-                            }
-                            if (IsHeaderCell(table, cell)) {
-                                if (defaultStyle?.TextStyle.Bold == null) targetCell.SetBold();
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText, false, cancellationToken, defaultStyle?.TextStyle));
                             }
                             if (cell.Kind == IWorkCellKind.Formula && formula != null
                                 && !string.IsNullOrEmpty(formula) && !formulaWritten) {
@@ -214,7 +227,7 @@ public static partial class ExcelIWorkConverter {
                             }
                             if (cell.Kind == IWorkCellKind.Formula && cell.RichText is { } formulaText) {
                                 ApplyUniformFormulaTextStyle(sheet, targetCell, formulaText,
-                                    IsHeaderCell(table, cell) && defaultStyle?.TextStyle.Bold == null, defaultStyle);
+                                    false, defaultStyle);
                             }
                             if (cell.VerticalAlignment is { } vertical) sheet.CellVerticalAlign(cell.Row, cell.Column, vertical switch {
                                 IWorkCellVerticalAlignment.Top => ExcelVerticalAlignment.Top,
@@ -224,6 +237,12 @@ public static partial class ExcelIWorkConverter {
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
                             if (cell.NumberFormat is { } numberFormat)
                                 sheet.FormatCell(cell.Row, cell.Column, numberFormat.ToSpreadsheetFormatCode());
+                        }
+                        foreach (var merge in table.ResolveMergedBorders(cancellationToken)) {
+                            var anchor = sheet.CellAt(merge.Range.FirstRow, merge.Range.FirstColumn);
+                            // An absent perimeter edge must clear any physical interior edge already applied to this anchor.
+                            anchor.SetBorder(ExcelCellBorders.All, ExcelBorderStyle.None);
+                            ApplyTableBorders(anchor, merge.Borders);
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -284,11 +303,12 @@ public static partial class ExcelIWorkConverter {
                 or "#NUM!" or "#N/A" or "#GETTING_DATA";
 
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection,
-        bool normalizeWorksheetNames) {
+        bool normalizeWorksheetNames, bool allowPartialEditableReconstruction, CancellationToken cancellationToken) {
         long styledCellCount = 0;
         var commentAuthors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!FitsTextBoxesInWorksheet(sheet.TextBoxes.Count)) {
                 return $"Numbers sheet '{sheet.Name}' contains more text boxes than the XLSX row limit of 1,048,576.";
             }
@@ -301,6 +321,7 @@ public static partial class ExcelIWorkConverter {
                 return $"Numbers sheet '{sheet.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
             }
             for (int tableIndex = 0; tableIndex < sheet.Tables.Count; tableIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 IWorkTable table = sheet.Tables[tableIndex];
                 string tableSheetName = sheet.Tables.Count == 1 && sheet.TextBoxes.Count == 0
                     ? sheet.Name
@@ -315,7 +336,7 @@ public static partial class ExcelIWorkConverter {
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
-                if (TableParagraphStyles(table).Any() || HasTableFillDefaults(table)) {
+                if (HasTableDefaultStyles(table)) {
                     long area = (long)table.RowCount * table.ColumnCount;
                     if (area > 100_000 || styledCellCount > 1_000_000 - area)
                         return "Numbers table style defaults exceed the bounded XLSX styled-cell budget.";
@@ -329,6 +350,8 @@ public static partial class ExcelIWorkConverter {
                 if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";
                 }
+                if (!allowPartialEditableReconstruction && table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))
+                    return $"Numbers table '{table.Name}' has varying borders along a merged perimeter that requires explicit partial reconstruction.";
                 if (table.DefaultRowHeight is double rowHeight
                     && (!IsFinite(rowHeight) || rowHeight > 409d
                         || rowHeight <= 0d)) {

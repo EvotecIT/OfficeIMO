@@ -9,6 +9,32 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointTableCellFormatting {
         [Fact]
+        public void Hidden_borders_can_be_restored_without_conflicting_fills_or_changing_other_edges() {
+            using var presentation = PowerPointPresentation.Create();
+            var cell = presentation.AddSlide().AddTable(1, 1).GetCell(0, 0);
+            cell.Text = "Preserved"; cell.FillColor = "ABCDEF";
+            cell.SetBorders(PowerPointTableCellBorders.All, "123456", 1);
+            cell.HideBorders(PowerPointTableCellBorders.Right | PowerPointTableCellBorders.Bottom);
+            cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", 3);
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(PowerPointTableCellBorders.Top, "00FF00", 1584.25));
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.HideBorders((PowerPointTableCellBorders)128));
+            using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
+            using (var reopened = PowerPointPresentation.Load(saved)) {
+                Assert.Empty(reopened.ValidateDocument());
+                var output = reopened.Slides.Single().Tables.Single().GetCell(0, 0);
+                Assert.Equal("Preserved", output.Text); Assert.Equal("ABCDEF", output.FillColor);
+            }
+            saved.Position = 0; using var package = PresentationDocument.Open(saved, false);
+            var properties = package.PresentationPart!.SlideParts.Single().Slide.Descendants<A.TableCell>().Single().TableCellProperties!;
+            Assert.NotNull(properties.RightBorderLineProperties!.GetFirstChild<A.NoFill>());
+            Assert.Null(properties.BottomBorderLineProperties!.GetFirstChild<A.NoFill>());
+            Assert.Equal("FF0000", properties.BottomBorderLineProperties.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+            Assert.Equal(38100, properties.BottomBorderLineProperties.Width!.Value);
+            Assert.Equal("123456", properties.TopBorderLineProperties!.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+            Assert.Equal(12700, properties.TopBorderLineProperties.Width!.Value);
+        }
+
+        [Fact]
         public void CanSetTableCellBordersAndPadding() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

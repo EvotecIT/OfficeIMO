@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint.IWork;
 
 public static partial class PowerPointIWorkConverter {
     private static void AddEditableTable(PowerPointSlide slide, IWorkTable source,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, Func<string?, string?> resolveHyperlink) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;
         double left = source.Geometry?.LeftPoints ?? 72d;
         double top = source.Geometry?.TopPoints ?? 72d;
@@ -19,13 +19,20 @@ public static partial class PowerPointIWorkConverter {
             left, top, width, height);
         table.AltText = source.AccessibilityDescription;
         table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
-        table.FirstRow = source.HeaderRowCount > 0;
-        table.FirstColumn = source.HeaderColumnCount > 0;
-        table.LastRow = source.FooterRowCount > 0;
+        // Native region styles are expanded below. Destination heading and
+        // banding flags would add a different theme over those declarations.
+        table.ApplyStyle(PowerPointTableStylePreset.Plain);
+        table.StyleId = null;
+        var mergedBorders = source.ResolveMergedBorders(cancellationToken).ToDictionary(
+            merge => (merge.Range.FirstRow, merge.Range.FirstColumn), merge => merge.Borders);
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int column = 1; column <= source.ColumnCount; column++) {
                 PowerPointTableCell fillTarget = table.GetCell(row - 1, column - 1);
+                fillTarget.NoFill = true;
+                fillTarget.HideBorders(PowerPointTableCellBorders.All);
+                ApplyTableBorders(fillTarget, mergedBorders.TryGetValue((row, column), out var perimeter)
+                    ? perimeter : source.GetBorders(row, column));
                 if (source.GetFill(row, column) is { } fill) {
                     if (fill.IsNone) fillTarget.NoFill = true;
                     else fillTarget.FillColor = fill.Color!.RgbHex;
@@ -52,8 +59,6 @@ public static partial class PowerPointIWorkConverter {
                 _ => PowerPointTextVerticalAlignment.Bottom
             };
             IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
-            bool header = sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount;
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
                     richText.Paragraphs.Select(_ => string.Empty));
@@ -64,12 +69,11 @@ public static partial class PowerPointIWorkConverter {
                     if (defaultStyle != null) ApplyParagraphStyle(paragraphs[index], defaultStyle, sourceParagraph.Text);
                     ApplyParagraphStyle(paragraphs[index], sourceParagraph,
                         listState.StartsAtSourceLabel(sourceParagraph));
-                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, defaultStyle?.TextStyle, header);
+                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken, resolveHyperlink, defaultStyle?.TextStyle);
                 }
             } else {
                 sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);
                 target.Text = cellText;
-                if (header) target.Bold = true;
                 if (defaultStyle != null) {
                     foreach (PowerPointParagraph paragraph in target.Paragraphs) {
                         ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);

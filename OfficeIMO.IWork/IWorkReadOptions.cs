@@ -65,8 +65,11 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum combined string and formula catalog entries decoded across one iWork source.</summary>
     public int MaximumTableCatalogEntries { get; set; } = 100_000;
 
-    /// <summary>Gets or sets the maximum combined table dimension headers, bucket references, bounded modern row offset slots, hidden-state declarations, selected UUID position maps and filter references inspected across one iWork source.</summary>
+    /// <summary>Gets or sets the maximum combined table dimension headers, bucket references, bounded modern row offset slots, hidden-state declarations, selected UUID position maps, grouping metadata and filter references inspected across one iWork source.</summary>
     public int MaximumTableDimensionEntries { get; set; } = 1_100_000;
+
+    /// <summary>Gets or sets the maximum combined table stroke layer and run declarations inspected across one semantic projection.</summary>
+    public int MaximumTableBorderEntries { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>
     public int MaximumProjectedSheets { get; set; } = 4096;
@@ -135,6 +138,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumMaterializedCells, nameof(MaximumMaterializedCells));
         ValidatePositive(MaximumTableCatalogEntries, nameof(MaximumTableCatalogEntries));
         ValidatePositive(MaximumTableDimensionEntries, nameof(MaximumTableDimensionEntries));
+        ValidatePositive(MaximumTableBorderEntries, nameof(MaximumTableBorderEntries));
         ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
         ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
         ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));

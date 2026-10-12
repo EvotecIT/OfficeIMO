@@ -23,15 +23,20 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
 
     internal string DocumentIdentifier => IWorkKeynoteIdentity.Create(_modelHash, "document").Text;
     private IWorkProtoWriter P() => new(_limits.MaximumPackageBytes, _cancellationToken);
-    private ulong Allocate() => _nextId++;
+    private ulong Allocate() {
+        // Apple reserves 71/72 for document/support metadata during unarchiving.
+        // Using either ID for a style or storage makes larger decks unreadable.
+        if (_nextId is 71 or 72) _nextId = 73;
+        return _nextId++;
+    }
     private void Add(ulong id, uint type, IWorkProtoWriter message) => _records.Add((id, type, message));
 
     internal (byte[] Document, byte[] Metadata) Build(IWorkCanvasSize size,
-        IReadOnlyList<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteTextBox[] Boxes)> slides) {
+        IReadOnlyList<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)> slides) {
         _cancellationToken.ThrowIfCancellationRequested();
         Add(DocumentId, 1, P().Message(3, P().Message(1, P().String(4, "en_US")).String(3, "en")).Reference(2, ShowId));
         AddDefaultStyles();
-        AddTheme();
+        if (slides.Any(slide => slide.Drawables.Any(drawable => drawable is IWorkKeynoteImage))) AddImageStyle();
         Add(BlankSlideId, 5, P().Reference(1, BlankBackgroundId).Message(4, Transition())
             .String(10, "Blank").Bool(19, true).Bool(41, false));
         Add(BlankNodeId, 4, Node(BlankSlideId, "blank-node"));
@@ -45,13 +50,34 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             // Field 10 (name) identifies a KNTemplateSlide to Apple. Ordinary show slides must omit it.
             var slide = P().Reference(1, backgroundId).Message(4, Transition()).Bool(19, true)
                 .Bool(41, false).Reference(17, BlankSlideId);
-            foreach (IWorkKeynoteTextBox box in input.Boxes) {
+            foreach (IWorkKeynoteCreationDrawable drawable in input.Drawables) {
                 _cancellationToken.ThrowIfCancellationRequested();
+                if (drawable is IWorkKeynoteImage image) {
+                    ulong imageId = AddImage(slideId, image);
+                    slide.Reference(7, imageId).Reference(42, imageId);
+                    continue;
+                }
+                if (drawable is IWorkKeynoteTable table) {
+                    ulong tableId = AddTable(slideId, table);
+                    slide.Reference(7, tableId).Reference(42, tableId);
+                    continue;
+                }
+                var box = (IWorkKeynoteTextBox)drawable;
                 ulong characterId = Allocate(), paragraphId = Allocate(), frameStyleId = Allocate();
                 ulong frameId = Allocate(), storageId = Allocate();
-                AddTextStyles(characterId, paragraphId, frameStyleId, box.FontName, box.FontSizePoints, box.Color);
+                bool rich = box.Runs.Count > 1 || box.Runs[0].HasDecoration;
+                AddTextStyles(characterId, paragraphId, frameStyleId, box.FontName, box.FontSizePoints, box.Color,
+                    rich ? box.Runs[0] : null);
                 Add(frameId, 2011, Frame(slideId, frameStyleId, storageId, box.Geometry));
-                Add(storageId, 2001, Storage(paragraphId, characterId, box.Text));
+                var characters = new List<(int Offset, ulong Style)> { (0, characterId) };
+                int offset = box.Runs[0].Text.Length;
+                foreach (IWorkKeynoteTextRun run in box.Runs.Skip(1)) {
+                    ulong runStyle = Allocate();
+                    AddCharacterStyle(runStyle, CharacterProperties(run));
+                    characters.Add((offset, runStyle));
+                    offset = checked(offset + run.Text.Length);
+                }
+                Add(storageId, 2001, Storage(paragraphId, characters, box.Text));
                 slide.Reference(7, frameId).Reference(42, frameId);
             }
             Add(slideId, 5, slide);
@@ -60,6 +86,8 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         }
         Add(ShowId, 2, P().Reference(2, ThemeId).Reference(5, StylesheetId).Message(4, Size(size.WidthPoints, size.HeightPoints))
             .Message(3, tree).Bool(6, false).Bool(8, false).UInt(9, 0).Bool(18, false));
+        // Table style presets are registered while building their typed drawables.
+        AddTheme();
 
         var stylesheet = P().Bool(4, false);
         foreach (var style in _styles) {
@@ -69,7 +97,9 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         var component = P().UInt(1, DocumentId).String(2, "Document");
         Version(component, 4, 2, 4, 0);
         Version(component, 5, 11, 2, 4);
+        AddImageComponentReferences(component);
         var metadata = P().UInt(1, _nextId - 1).Message(3, component).UInt(9, 2);
+        AddImageMetadata(metadata);
         Version(metadata, 5, 2, 4, 0);
         Version(metadata, 6, 11, 2, 4);
         Version(metadata, 7, 14, 4, 1);
@@ -87,6 +117,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             var info = P().UInt(1, record.Type).UInt(3, (ulong)payload.Length);
             Version(info, 2, 1, 0, 5);
             foreach (ulong reference in record.Message.References) info.UInt(5, reference);
+            foreach (ulong reference in record.Message.DataReferences) info.UInt(6, reference);
             byte[] header = P().UInt(1, record.Id).Message(2, info).ToArray();
             output.AppendLength(header.Length);
             output.Append(header);
@@ -131,9 +162,12 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         return P().Message(1, shape).Reference(2, storageId).Reference(4, storageId).Bool(6, true);
     }
 
-    private IWorkProtoWriter Storage(ulong paragraphId, ulong characterId, string text) {
+    private IWorkProtoWriter Storage(ulong paragraphId, IReadOnlyList<(int Offset, ulong Style)> characters, string text) {
         var storage = P().UInt(1, 3).Reference(2, StylesheetId).String(3, text + "\n").Bool(10, true);
-        storage.Message(5, Attribute(paragraphId)).Message(8, Attribute(characterId)).Message(7, Attribute(ListId));
+        var characterTable = P();
+        foreach (var character in characters)
+            characterTable.Message(1, P().UInt(1, (ulong)character.Offset).Reference(2, character.Style));
+        storage.Message(5, Attribute(paragraphId)).Message(8, characterTable).Message(7, Attribute(ListId));
         // These tables are necessary for native paragraph editing and export, even with no lists or bidi overrides.
         foreach (int field in new[] { 6, 14, 24 }) storage.Message(field, P().Message(1, P().UInt(1, 0).UInt(2, 0).UInt(3, 0)));
         storage.Message(28, P().Message(1, P().UInt(1, 0)));

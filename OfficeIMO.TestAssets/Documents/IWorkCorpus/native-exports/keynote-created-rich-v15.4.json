@@ -1,0 +1,127 @@
+{
+  "title": "Native Keynote rich character-run creation",
+  "recordedUtc": "2026-10-09T15:51:35.834712+00:00",
+  "license": "Newly authored OfficeIMO documents and evidence use the repository MIT license; no seed package or standalone font files are distributed.",
+  "producer": {
+    "application": "Keynote Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "operatingSystem": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "canvasPoints": [
+      960,
+      540
+    ],
+    "slides": 3,
+    "textBoxes": 2,
+    "runs": 11,
+    "characters": "Latin, Polish, LF paragraphs and a non-BMP emoji",
+    "colors": [
+      "000000",
+      "003366",
+      "008000",
+      "660066"
+    ],
+    "fonts": [
+      "Helvetica Neue",
+      "Arial",
+      "Times New Roman"
+    ],
+    "fontSizesPoints": [
+      24,
+      30,
+      32
+    ],
+    "decorations": [
+      "bold",
+      "italic",
+      "single underline",
+      "single strikethrough"
+    ],
+    "layout": "Fixed frames; zero padding, left alignment; application performs font selection and wrapping"
+  },
+  "files": [
+    {
+      "path": "native-exports/keynote-created-rich-v15.4.key",
+      "sha256": "aa1a3834b31716024420f37b808ae0e8a164bd5bfdcc59719c0b17f5cc1f6654",
+      "bytes": 8281,
+      "role": "OfficeIMO template-free creation"
+    },
+    {
+      "path": "native-exports/keynote-created-rich-edited-v15.4.key",
+      "sha256": "8780ef134af9b5f5a10d55e0230b6c3db44e15fea84d45eda7681dd72a5981af",
+      "bytes": 57401,
+      "role": "Keynote native edit plain to reset; saved, closed and reopened"
+    },
+    {
+      "path": "native-exports/keynote-created-rich-v15.4.pdf",
+      "sha256": "dc7b4147fa601ab4e12c1e0f5c3df8bcff684c05fb6db160f8f5855459acb840",
+      "bytes": 82603,
+      "role": "Keynote best-quality PDF before native edit; all three slides"
+    },
+    {
+      "path": "native-exports/keynote-created-rich-v15.4.pptx",
+      "sha256": "1697326499ba4e1e394f26209dd5780325c508bbd7824afef93b48cf89605738",
+      "bytes": 15054,
+      "role": "Keynote PPTX before native edit; password off"
+    },
+    {
+      "path": "native-exports/keynote-created-rich-v15.4-slide1.png",
+      "sha256": "44bfe2f6c3d807ccc23b1bbee389bcc99d13db0fd5fad1820f35d25510a96d43",
+      "bytes": 10665,
+      "role": "Inspected native PDF slide 1, rendered with Poppler at 1200 pixels"
+    },
+    {
+      "path": "native-exports/keynote-created-rich-v15.4-slide2.png",
+      "sha256": "3771b3891f758b209280cd55ccbdee3fba508a3e39e3eec767d44f1f7e5f7139",
+      "bytes": 17592,
+      "role": "Inspected native PDF slide 2, rendered with Poppler at 1200 pixels"
+    },
+    {
+      "path": "native-exports/keynote-created-rich-v15.4-slide3.png",
+      "sha256": "fad336f593b861d22977ac996619a8593cd3ead9296ee8c16cc252603276eff6",
+      "bytes": 3392,
+      "role": "Inspected native PDF slide 3, rendered with Poppler at 1200 pixels"
+    },
+    {
+      "path": "native-exports/keynote-created-rich-ranges-v15.4.json",
+      "sha256": "24919fd6836a161760a002eb916fae9aeb690329078cfe28a4168d4b26234f2f",
+      "bytes": 21969,
+      "role": "Independent numbers-parser native ranges and Apple PPTX effective run properties"
+    }
+  ],
+  "independentDecode": {
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaOriginal": "https://github.com/obriensp/iwork-converter",
+    "schemaLicense": "MIT, Steve Dunham",
+    "descriptorSha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216",
+    "numbersParserVersion": "4.19.0",
+    "records": 41,
+    "requiredFieldsComplete": true,
+    "referencesComplete": true,
+    "characterRangesComplete": true,
+    "explicitDecorationResets": true,
+    "deterministicZipProfile": true
+  },
+  "nativeAcceptance": {
+    "openedWithoutRepair": true,
+    "allThreeSlidesVisuallyInspected": true,
+    "PDFPages": 3,
+    "PPTXSlides": 3,
+    "nativeEdit": "plain to reset in the second slide, keeping its plain formatting",
+    "savedClosedReopened": true,
+    "formattingRetainedAfterEdit": true,
+    "ownedApplicationClosed": true
+  },
+  "fontProvenance": "Installed macOS and Microsoft fonts; Apple PDF has embedded subsets of Helvetica Neue regular/bold/italic, Arial regular/bold italic, Times New Roman italic and Apple Color Emoji. This environment and fixture are qualified.",
+  "reproduction": "Generate the RichExample model in IWorkKeynoteRichTextWritingTests. Open a working copy in Keynote 15.4, export PDF with best quality, all slides and optional content/password off, then export PPTX without a password. In the second slide change plain to reset, save, close and reopen. Independently decode the frozen creation with verify-keynote-creation.py and extract the selected native ranges/PPTX with extract-keynote-rich-runs.py.",
+  "boundaries": [
+    "Native application export is separate from direct OfficeIMO PDF rendering.",
+    "The native PPTX expresses plain Arial ranges through +mn-lt; both recorded theme font schemes use ArialMT, the Arial PostScript name.",
+    "PDF text extraction and rendered appearance have separate font and Unicode boundaries.",
+    "This does not qualify other application versions, fonts, scripts, images, tables, transitions, builds or loaded-source save-back."
+  ]
+}

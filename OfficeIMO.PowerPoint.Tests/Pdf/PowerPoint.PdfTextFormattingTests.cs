@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
-    public void ShapeAndRunSlideLinksRetainOmissionCategoriesInPdfEvidence() {
+    public void ShapeAndRunSlideLinksResolveToTheExportedPdfPage() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide first = presentation.AddSlide();
         presentation.AddSlide();
@@ -20,10 +20,12 @@ public sealed class PowerPointPdfTextFormattingTests {
         box.Hyperlink = new Uri("#slide-2", UriKind.Relative);
         box.Paragraphs[0].Runs[0].Hyperlink = new Uri("#slide-2", UriKind.Relative);
         PdfCore.PdfDocumentConversionResult conversion = presentation.ToPdfDocumentResult();
-        Assert.Contains(conversion.Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "shape-hyperlink-omitted" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Contains(conversion.Report.FidelityDiagnostics,
-            diagnostic => diagnostic.Code == "relative-hyperlink" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        PdfCore.PdfDocumentInfo pdf = PdfCore.PdfInspector.Inspect(conversion.ToBytes());
+        Assert.Equal(2, Assert.Single(pdf.NamedDestinations, d => d.Name == "powerpoint-slide-2").PageNumber);
+        Assert.Equal(2, pdf.LinkAnnotations.Count);
+        Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
+        Assert.Contains(pdf.LinkAnnotations, link => link.X2 - link.X1 < PowerPointUnits.ToPoints(box.Width));
+        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Theory]

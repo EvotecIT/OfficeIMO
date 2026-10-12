@@ -13,12 +13,18 @@ public static partial class ExcelIWorkConverter {
         table.FillStyles.Body != null || table.FillStyles.HeaderRow != null
         || table.FillStyles.HeaderColumn != null || table.FillStyles.FooterRow != null || table.FillStyles.BandedBody != null;
 
+    private static bool HasTableDefaultStyles(IWorkTable table) =>
+        TableParagraphStyles(table).Any() || HasTableFillDefaults(table) || table.HasBorderDeclarations;
+
     private static void ApplyTableStyles(ExcelSheet sheet, IWorkTable table, CancellationToken token) {
-        if (!TableParagraphStyles(table).Any() && !HasTableFillDefaults(table)) return;
+        if (!HasTableDefaultStyles(table)) return;
         for (int row = 1; row <= table.RowCount; row++) {
             token.ThrowIfCancellationRequested();
             for (int column = 1; column <= table.ColumnCount; column++) {
                 if (table.GetFill(row, column)?.Color is { } fill) sheet.CellAt(row, column).SetFillColor(fill.RgbHex);
+                var borders = table.GetBorders(row, column);
+                if (borders.Left.HasValue || borders.Top.HasValue || borders.Right.HasValue || borders.Bottom.HasValue)
+                    ApplyTableBorders(sheet.CellAt(row, column), borders);
                 if (table.GetParagraphStyle(row, column) is not { } style) continue;
                 ExcelCell cell = sheet.CellAt(row, column);
                 IWorkTextStyle text = style.TextStyle;

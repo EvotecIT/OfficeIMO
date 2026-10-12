@@ -36,6 +36,16 @@ Native Numbers' Cell Format panel shows source A8 as Automatic and A9 as Text. `
 
 ## Keynote multi-slide editable output
 
+`native-exports/keynote-slide-links-v15.4.json` records a three-slide presentation saved in Keynote 15.4 after importing an OfficeIMO-created PPTX and adding a native frame link. Text links use native slide UUIDs and the frame uses the next-slide action. The source, Apple PDF and Apple PPTX exports are hashed. Independent schema decoding identifies selected slide-node UUIDs in package metadata; pypdf 6.10.0 confirms the native and OfficeIMO PDF targets are 2, 2 and 1. Default editable conversion retains the raw source targets, writes stable PPTX links and rounds the native 3.6-point floating insets with a precision diagnostic. The complete workflow reopens every page with all five text labels and all three links. Inspection of all rendered pages confirms complete visible content with the reported Helvetica font substitution and small baseline differences. Native link activation, exact typography and other slideshow actions remain unqualified.
+
+Reproduce the selected native graph facts in the isolated numbers-parser 4.19.0 evidence environment with the pinned descriptor used by native creation checks:
+
+```text
+python Build/IWork/extract-keynote-slide-links.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-slide-links-v15.4.key <keynote-descriptor.pb> <selected-links.json>
+```
+
+The authored content follows the OfficeIMO MIT license. No standalone Apple fonts are distributed. Native exports use all slides, best PDF quality and no password, presenter notes, comments or build stages.
+
 `native-exports/keynote-simple-v15.4.json` pins the unchanged two-slide Keynote 14.5 source, Keynote 15.4 PPTX/PDF exports and native renderings of Apple and OfficeIMO PPTX files. Default conversion requires complete editable reconstruction and checks slide order, text, notes, selected placeholder geometry, four-point margins, vertical alignment, fit settings and 123% character bullets. Open XML geometry differs by at most two EMUs. Both PPTX renderings have identical rasters at the recorded resolution. The original `.key` PDF has a small ligature/word-advance difference also present in Apple's PPTX round trip. The OfficeIMO import shows an unused Aptos theme-font warning; actual text uses the recorded installed fonts. There is no repair prompt. Exact typography, theme/master preservation and other producer versions remain outside this evidence.
 
 Reproduce selected frame and list declarations with the pinned isolated numbers-parser 4.19.0 environment:
@@ -45,6 +55,8 @@ python Build/IWork/extract-keynote-text-layout.py OfficeIMO.TestAssets/Documents
 ```
 
 The optional wrapped probes change only selected body text and keep-lines in a copy of the licensed native fixture. They are test-only derived inputs, not independent producer documents or product writing support. Open working copies in Keynote 15.4 and export PDF with best quality, all slides and optional content/password off; preserve the frozen generated inputs because Keynote can auto-save its working copies. Keep-lines remains true/false after native opening, and both two-slide renders are identical. The strict PPTX retains the same two-line wrapping, with the recorded original-to-PPTX ligature difference. This qualifies only unlinked horizontal single-column fixed frames with the recovered layout. Other pagination contexts retain their strict gates. Existing nim-iwork MIT provenance and attribution apply to the derived probes and exports.
+
+The [native scalar-table creation reference](native-exports/keynote-created-tables-v15.4.json) records a template-free three-slide graph, independent typed-cell and style-network decoding, Keynote 15.4 open/export and edits that survive save/reopen. The fixture includes multilingual text, numbers, booleans, literal equals-sign text and an empty editable table. The [native border reference](native-exports/keynote-table-borders-v15.4.json) adds one header row, one header column, one footer row, hidden region edges and ordered cell overrides. Independent schema decoding, saved/reopened PPTX and inspected all-slide PDF comparisons qualify this border profile. The manifests record locale, font and emoji differences separately.
 
 ## Everyday Apple export references
 
@@ -389,6 +401,24 @@ Compile `KNArchives.proto` and `TSPArchiveMessages.proto` from the manifest's pi
 ```sh
 python Build/IWork/verify-keynote-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.key <descriptor.pb> <evidence.json>
 ```
+
+## Native Keynote rich-run creation evidence
+
+`native-exports/keynote-created-rich-v15.4.json` pins the template-free three-slide creation model in `IWorkKeynoteRichTextWritingTests`, its Keynote 15.4 PPTX/PDF exports, all-slide rasters and the package saved after editing the plain run `plain` to `reset`. These newly authored assets use the repository MIT license. The two text boxes exercise Helvetica Neue, Arial and Times New Roman, 24/30/32-point sizes, opaque colors, bold/italic/single underline/single strikethrough, explicit plain resets, LF paragraphs, Polish text and a non-BMP emoji. The third slide stays blank.
+
+Independent schema decoding checks all 41 created records, required fields, exact declared references, modern color mirrors and character boundaries in UTF-16. Plain rich ranges retain explicit false decoration values. The recorded native PPTX properties and saved/reopened OfficeIMO PPTX agree on complete text/run order, decoration, sizes and geometry; native font aliases and theme-backed Arial are recorded separately. Keynote opens without repair and preserves the native edit after save, close and reopen. Complete native PDF rasters were inspected; direct OfficeIMO PDF appearance remains a separate qualification route. No standalone fonts are distributed.
+
+Reproduce the created package through `RichExample` in the executable writing test, then use the existing pinned-schema verification command above. Extract the selected Apple-saved character tables and native PPTX properties with the isolated numbers-parser 4.19.0 environment:
+
+```sh
+python Build/IWork/extract-keynote-rich-runs.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-edited-v15.4.key OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.pptx <ranges.json>
+```
+
+## Native Keynote image creation evidence
+
+`native-exports/keynote-created-images-v15.4.json` pins the `ImageExample` model in `IWorkKeynoteImageWritingTests`, its native Keynote 15.4 PPTX/PDF exports and all-slide rasters. Three 96 × 64-pixel inputs exercise opaque PNG, PNG alpha 0/128/255 and JPEG stretching. Text/image insertion order includes an obscured label and text in front of the first image. Native accessibility descriptions include a non-BMP emoji. The repository MIT license covers these newly authored documents and images.
+
+The pinned independent decoder checks image-class extension 100, object/data references, payload checksums and reserved metadata IDs. Apple and saved OfficeIMO PPTX retain identical image payloads, frames, descriptions and stacking. The edited native package records a JPEG position change from 60 to 80 points, saved, closed and reopened in Keynote. Direct OfficeIMO PDF inspection covers all three pages, complete visible text, images and stacking with explicit default-policy font substitution; native text-layout equivalence remains unqualified. Empty trailing paragraphs do not report clipped visible content. The [macOS NativeAOT receipt](../../../Docs/Compatibility/iwork-keynote-creation-native-aot-macos-arm64-2026-10-09.json) records identical packages on .NET 8 and 10 using the fixed encoded inputs. Use `verify-keynote-creation.py` with the same pinned descriptor to reproduce graph qualification.
 
 ### Integer-function compatibility boundaries
 

@@ -39,6 +39,11 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < paragraphDrawings.Count; i++) {
                 PowerPointParagraphDrawing paragraph = paragraphDrawings[i];
                 currentY += paragraph.SpaceBefore;
+                if (!paragraph.HasContent) {
+                    // Empty paragraphs affect following origins but have no content to clip.
+                    currentY += paragraph.Height + paragraph.SpaceAfter;
+                    continue;
+                }
                 // Paragraph leading controls the next origin, not a separate clipping frame.
                 // Condensed lines may paint below their final line box inside the text box.
                 double visibleHeight = Math.Max(0D, contentBottom - currentY);
@@ -270,6 +275,8 @@ namespace OfficeIMO.PowerPoint {
             internal string Text { get; }
 
             internal IReadOnlyList<OfficeRichTextRun> RichRuns { get; }
+
+            internal bool HasContent => Text.Length > 0 || RichRuns.Any(run => run.Text.Length > 0);
 
             internal OfficeFontInfo Font { get; }
 

@@ -1,5 +1,11 @@
 # Upgrading OfficeIMO
 
+## PowerPoint font resets and iWork table roles
+
+Setting `Bold = false` or `Italic = false` on a PowerPoint run, text box or table cell writes an explicit regular-font override. It overrides inherited formatting after save/reopen; it no longer removes the declaration and exposes a parent's bold or italic setting.
+
+iWork table conversion applies source fonts, fills and borders without adding bold text from header/footer roles or PowerPoint heading and banding presets. Apply destination styling explicitly when it is desired. PowerPoint PDF export uses resolved cell edges without drawing its default grid over them; an explicitly configured PDF table style retains its caller-selected grid.
+
 ## Excel worksheet page-fit inspection
 
 `ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,
@@ -749,6 +755,9 @@ path also writes directly and can leave a partial append on failure.
 `SaveAsync(Stream, ...)` now throws `ArgumentException` instead of silently
 ignoring it.
 
+## Excel cell color validation
+
+Supply six RGB or eight ARGB hexadecimal digits for cell font, fill and border colors, optionally prefixed with `#`. Invalid colors throw `ArgumentException`; older behavior could substitute white or write invalid style XML. Optional border colors can still be omitted. Correct invalid color inputs before applying styles.
 ## Excel tabular imports preserve missing cells
 
 `InsertDataTable`, `InsertDataSet`, `InsertDataReader`, and projected object

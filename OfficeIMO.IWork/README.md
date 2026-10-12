@@ -24,16 +24,37 @@ var presentation = IWorkKeynoteDocument.Create(); // 960 × 540 points
 var slide = presentation.AddSlide("E6F2FF");
 slide.AddText("Zażółć gęślą jaźń\nA😀B — café", 60, 100, 840, 260,
     fontName: "Arial", fontSizePoints: 40, color: "003366");
+slide.AddRichText(new[] {
+    new IWorkKeynoteTextRun("Bold ", bold: true),
+    new IWorkKeynoteTextRun("then plain"),
+    new IWorkKeynoteTextRun(" and underlined", underline: true)
+}, 60, 400, 840, 80);
 presentation.AddSlide(); // blank white slide
+var imageSlide = presentation.AddSlide();
+imageSlide.AddImage(File.ReadAllBytes("photo.png"), 60, 100, 480, 320,
+    accessibilityDescription: "A photograph of the finished project");
 presentation.Save("created.key"); // rejects an existing destination
 byte[] package = presentation.SaveBytes();
 ```
 
-The writer generates its own native object graph, protobuf archives, Snappy frames and deterministic ZIP package. It needs no seed file, OOXML conversion or installed Apple application. Slides have opaque six-digit sRGB backgrounds. Text boxes have one font, size and opaque color throughout, left and top alignment, zero internal padding and no automatic fitting. Frames must lie within the canvas. CR and CRLF normalize to LF; other control characters and invalid UTF-16 are rejected. Fonts are requested by name and are not embedded. Wrapping, fallback glyphs and appearance depend on the receiving application's fonts.
+The writer generates its own native object graph, protobuf archives, Snappy frames and deterministic ZIP package. It needs no seed file, OOXML conversion or installed Apple application. Slides have opaque six-digit sRGB backgrounds. `AddText` uses one font, size and opaque color throughout. `AddRichText` copies immutable runs with independent fonts, sizes, colors, bold, italic, single underline and single strikethrough. Plain runs clear earlier decoration. Empty ranges are discarded unless the entire box is blank; `Runs` exposes the retained snapshot. Text boxes use left and top alignment, zero internal padding and no automatic fitting. Frames must lie within the canvas. CR and CRLF normalize to LF; other control characters and invalid UTF-16 are rejected. Fonts are requested by name and are not embedded. Wrapping, fallback glyphs and appearance depend on the receiving application's fonts.
 
-`IWorkKeynoteWriteOptions` limits slides, total text boxes, UTF-16 text length and package/intermediate archive size. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
+`AddImage` validates and copies a complete PNG or JPEG. The full image fills its frame, stretching when the frame has a different aspect ratio. PNG transparency is retained. Text boxes, images and tables use their combined insertion order for stacking. Optional accessibility descriptions support up to 4096 UTF-16 code units. Crops, masks, rotation and image adjustments are not authored.
 
-The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. This qualifies that fixture and font environment. Other native versions, rich runs, images, tables, transitions, builds and editing loaded packages remain outside the creation contract. Native Pages and Numbers writing is unsupported.
+`AddTable` snapshots a one-based `IWorkTableData` grid with text, finite numbers, booleans and empty cells:
+
+```csharp
+var values = IWorkTableData.Create(2, 3)
+    .SetText(1, 1, "Product").SetText(1, 2, "Amount").SetText(1, 3, "Active")
+    .SetText(2, 1, "Widget").SetNumber(2, 2, 1200.5).SetBoolean(2, 3, true);
+slide.AddTable(values, 60, 120, 840, 300, "Values", "Arial", 24, "003366");
+```
+
+Each axis supports 1–256 cells. Tables use equal row heights and column widths, a uniform font/size/color, white cell fills, solid black one-point borders, four-point padding and top alignment. Text beginning with `=` remains literal text. Header/footer regions, merges, formulas, comments and per-cell formatting are not authored. `MaximumTables` and `MaximumTableCells` bound aggregate tables and grid positions, including unset cells; table names and set text cells count toward the text budget. The [table reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-tables-v15.4.json) records independent decoding, native style presets, all-slide open/export and text/numeric edits that survive native save/reopen. The reader and destination adapters retain the [qualified solid/invisible border profile](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#table-borders), including borders of unset cells.
+
+`IWorkKeynoteWriteOptions` limits slides, total text boxes and retained character runs, UTF-16 text length, image count, combined encoded/RGBA image bytes and package/intermediate archive size. Image limits count each instance, including repeated payloads; Core image validation also bounds each input. Save operations accept cancellation. Encoding and validation finish before stream copying or file staging. Stream saves leave the caller's stream open and can leave partial data after cancellation or an I/O failure during copying. Path saves use the shared atomic file-commit owner; failed staging preserves the existing destination. Use `overwrite: true` to replace an existing file. Creation instances are not thread safe.
+
+The [native creation evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-v15.4.json) records independent graph decoding and Keynote 15.4 open, PDF export, text edit, save and reopen for a three-slide fixture with Arial, Times New Roman and multilingual text. The [rich-run reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-rich-v15.4.json) adds Helvetica Neue, character decorations and resets, mixed font sizes/colors and Unicode ranges. The [image reference](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-v15.4.json) qualifies PNG alpha, JPEG stretching, stacking and accessibility descriptions, with native PPTX/PDF exports and an image edit/save/reopen check. These qualify their recorded fixtures and font environment. Other native versions, fonts/scripts, image transformations, broader table formatting, transitions, builds and editing loaded packages remain outside this evidence. Native Pages and Numbers writing is unsupported.
 
 ## Read and inspect a source
 
@@ -68,7 +89,9 @@ Pages body runs expose qualified drawable attachments through `IWorkTextRun.Inli
 
 Selected character styles expose font-relative `IWorkTextStyle.CharacterTrackingEm` and computed `CharacterSpacingPoints`. The spacing uses the effective inherited font size; an explicit zero clears inherited tracking. Word and PowerPoint map known spacing to their native run properties and report quantization. XLSX has no equivalent tracking property and requires partial acceptance for nonzero tracking. Missing effective font size or destination range violations remain unsupported. The [Keynote tracking reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-image-tracking-v15.4.json) qualifies a 116-point title with -0.02-em tracking, or -2.32 points, against Apple PPTX properties and a bounded native rendering comparison.
 
-Selected modern cell styles expose `IWorkTableCell.Fill`, including supported solid colors and explicit no-fill overrides. Selected styles also expose `Padding` in points and `VerticalAlignment`. A declared empty padding message resets all four sides to zero. Empty cells carrying supported fills, padding or alignment remain in `Cells` with `Kind == Empty` and count toward the materialized-cell budget. Filter by `Kind` when counting value cells. Missing or unsupported selected fills retain source diagnostics; conditional fills, borders and complete cell styling remain outside this qualified subset.
+Selected modern cell styles expose `IWorkTableCell.Fill`, including supported solid colors and explicit no-fill overrides. Selected styles also expose `Padding` in points, `VerticalAlignment` and `Borders`. A declared empty padding message resets all four sides to zero. Empty cells carrying supported formatting remain in `Cells` with `Kind == Empty` and count toward the materialized-cell budget. Filter by `Kind` when counting value cells. Missing or unsupported selections retain source diagnostics; conditional fills and complete cell styling remain outside this qualified subset.
+
+`table.GetBorders(row, column)` resolves inherited defaults, region visibility and ordered sparse edits into four effective edges for a one-based cell. It uses the shared `OfficeBorderBox`: zero-width sides explicitly hide borders, while null sides are absent or unresolved. Empty source cells remain sparse. `MaximumTableBorderEntries` bounds native layers and runs. The [border contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md#table-borders) defines qualified strokes and regions, destination width limits and independent Keynote evidence.
 
 Shared tables expose explicit `RowHeights` and `ColumnWidths` as read-only maps keyed by one-based positions, measured in points. `GetRowHeight(row)` and `GetColumnWidth(column)` return an explicit size or the table default. Native zero-size entries use the default. `MaximumTableDimensionEntries` bounds dimension headers and bucket references across the source. Unsupported sizing records remain in source evidence and emit a diagnostic.
 

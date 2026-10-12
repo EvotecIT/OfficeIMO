@@ -18,11 +18,11 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
     }
 
     private void AddTextStyles(ulong characterId, ulong paragraphId, ulong frameId, string fontName,
-        float fontSize, IWorkColor color) {
+        float fontSize, IWorkColor color, IWorkKeynoteTextRun? firstRun = null) {
         // Modern Keynote renders tsd_fill; font_color remains its legacy color mirror.
         var character = P().Float(3, fontSize).String(5, fontName).Message(7, Color(color))
             .Message(46, P().Message(1, Color(color)));
-        Add(characterId, 2021, P().Message(1, Style(characterId, "OfficeIMO Text")).Message(11, character).UInt(10, 3));
+        AddCharacterStyle(characterId, firstRun == null ? character : CharacterProperties(firstRun));
         var paragraph = P().UInt(1, 0).Reference(40, ListId).Message(13, P()).Message(25, P()).Float(4, 36);
         Add(paragraphId, 2022, P().Message(1, Style(paragraphId, "OfficeIMO Paragraph"))
             .Message(11, character).Message(12, paragraph).UInt(10, 8));
@@ -33,16 +33,26 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         Add(frameId, 2025, P().Message(1, shape).Message(11, textProperties).UInt(10, 7));
     }
 
+    private IWorkProtoWriter CharacterProperties(IWorkKeynoteTextRun run) =>
+        P().Bool(1, run.Bold).Bool(2, run.Italic).Float(3, run.FontSizePoints).String(5, run.FontName)
+            .Message(7, Color(run.Color)).Bool(11, run.Underline).Bool(12, run.Strikethrough)
+            .Message(46, P().Message(1, Color(run.Color)));
+
+    private void AddCharacterStyle(ulong id, IWorkProtoWriter character) =>
+        Add(id, 2021, P().Message(1, Style(id, "OfficeIMO Text")).Message(11, character).UInt(10, 3));
+
     private void AddBackground(ulong id, IWorkColor color) =>
         Add(id, 9, P().Message(1, Style(id, "OfficeIMO Slide")).Message(11, P().Message(1, P().Message(1, Color(color)))).UInt(10, 1));
 
     private void AddTheme() {
         var drawingPresets = P().Reference(6, DefaultFrameId).Reference(5, DefaultFrameId)
             .Reference(4, DefaultFrameId).Reference(9, DefaultFrameId);
+        if (_hasImageStyle) drawingPresets.Reference(7, ImageStyleId);
         var textPresets = P().Reference(2, TextPresetId).Reference(7, DefaultParagraphId)
             .Reference(6, DefaultCharacterId).Reference(1, ListId);
         var theme = P().Reference(4, StylesheetId).String(3, "OfficeIMO")
             .Message(100, drawingPresets).Message(110, textPresets);
+        AddTableThemePresets(theme);
         // Keynote's color-preset UI addresses a 30-slot palette. Generate our own palette, including the no-fill slot.
         foreach (float grey in new[] { 1f, .8f, .6f, .3f, 0f }) theme.Message(10, PaletteColor(grey, grey, grey, 1));
         theme.Message(10, PaletteColor(0, 0, 0, 0));

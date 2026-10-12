@@ -48,6 +48,10 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
+        for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
+            if (options.IncludeHiddenSlides || !slides[slideIndex].Hidden)
+                options.SlideLinkDestinations.Add(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideIndex + 1));
+        }
         int renderedSlides = 0;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -196,6 +200,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options) {
         pdf.Canvas(canvas => {
+            canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), 0, 0);
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
             RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, groupDepth: 0);
@@ -352,88 +357,6 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
-        foreach (PptCore.PowerPointShape shape in shapes) {
-            if (shape.Hidden) {
-                continue;
-            }
-
-            if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, out double x, out double y, out double width, out double height)) {
-                continue;
-            }
-
-            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
-            if (shape is PptCore.PowerPointGroupShape) {
-                // Establish the page clip before any nested group transforms change coordinates.
-                canvas.Clip(0D, 0D, pageWidth, pageHeight, render);
-            } else if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
-                NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
-                canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
-            } else {
-                render(canvas);
-            }
-        }
-    }
-
-    private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, double pageWidth, double pageHeight, PowerPointToPdfOptions options, bool warnInvalidBounds, int groupDepth) {
-        if (shape is not PptCore.PowerPointPicture && shape.Hyperlink != null)
-            AddWarning(options, slideNumber, "shape-hyperlink-omitted", "The PowerPoint shape hyperlink was not exported as a PDF annotation.", lossKind: OfficeConversionLossKind.Omission);
-        if (shape is PptCore.PowerPointTextBox textBox) {
-            bool renderedGeometry = options.IncludeAutoShapes && RenderTextBoxGeometry(canvas, textBox, x, y, width, height);
-            if (options.IncludeTextBoxes) {
-                RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options, suppressFrame: renderedGeometry);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointPicture picture) {
-            if (options.IncludePictures) {
-                RenderPicture(canvas, picture, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointTable table) {
-            if (options.IncludeTables) {
-                RenderTable(canvas, table, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointChart chart) {
-            if (options.IncludeCharts) {
-                RenderChart(canvas, chart, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointSmartArt smartArt) {
-            if (options.IncludeSmartArt) {
-                RenderSmartArt(canvas, smartArt, x, y, width, height,
-                    slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointAutoShape autoShape) {
-            if (options.IncludeAutoShapes) {
-                RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
-            }
-            return;
-        }
-
-        if (shape is PptCore.PowerPointGroupShape groupShape) {
-            if (shape.OwnerSlide != null) {
-                RenderGroupShape(canvas, groupShape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, groupDepth);
-            } else {
-                AddWarning(options, slideNumber, "unsupported-shape", "Skipped a PowerPoint group shape because its owning slide context could not be resolved.", lossKind: OfficeConversionLossKind.Omission);
-            }
-            return;
-        }
-
-        AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.", lossKind: OfficeConversionLossKind.Omission);
-    }
-
     private static void RenderEmptySlide(PdfCore.PdfDocument pdf, double pageWidth, double pageHeight) {
         pdf.Canvas(canvas => RenderFallbackBackground(canvas, pageWidth, pageHeight));
     }
@@ -502,54 +425,6 @@ public static partial class PowerPointPdfConverterExtensions {
         background.FillGradient = fillGradient?.Clone();
         background.StrokeWidth = 0D;
         canvas.Shape(background, 0, 0);
-    }
-
-    private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointToPdfOptions options, bool suppressFrame = false) {
-        if (!suppressFrame) RenderTextBoxFrame(canvas, textBox, x, y, width, height);
-        var diagnostics = new List<OfficeImageExportDiagnostic>();
-        OfficeDrawing drawing = PptCore.PowerPointSlideImageRenderer.CreateTextBoxDrawing(
-            textBox, width, height, diagnostics, options.NativeTextMeasure!, options.NativeTextDefaultFontFamily);
-        foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) {
-            string code = diagnostic.Code switch {
-                "POWERPOINT_TEXT_OVERFLOW" => "text-box-overflow",
-                "POWERPOINT_TEXT_PADDING" => "text-box-padding",
-                PptCore.PowerPointImageExportDiagnosticCodes.SmallCapsApproximated => "small-caps-approximation",
-                PptCore.PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated => "baseline-percent-approximation",
-                _ => diagnostic.Code
-            };
-            if (code == "text-box-overflow") {
-                AddLayoutWarning(options, slideNumber, code, diagnostic.Message,
-                    PdfCore.PdfLayoutDiagnosticKind.ClippedContent, "PowerPointTextBox",
-                    diagnostic.Message, x, y, width, height);
-            } else {
-                AddWarning(options, slideNumber, code, diagnostic.Message, lossKind: diagnostic.LossKind);
-            }
-        }
-        foreach (PptCore.PowerPointTextRun run in textBox.Paragraphs.SelectMany(paragraph => paragraph.InlineNodes)
-                     .Where(node => node.Run != null).Select(node => node.Run!)) {
-            if (run.Hyperlink is { IsAbsoluteUri: false })
-                AddWarning(options, slideNumber, "relative-hyperlink", "Skipped a relative PowerPoint hyperlink because PDF URI annotations require absolute targets.", lossKind: OfficeConversionLossKind.Omission);
-        }
-        if (drawing.Elements.Count > 0) canvas.Drawing(drawing, x, y, width, height);
-    }
-
-    private static void RenderTextBoxFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
-        OfficeColor? fill = textBox.FillTransparency == 100 ? null : ParseOfficeColor(textBox.FillColor);
-        OfficeColor? outline = ParseOfficeColor(textBox.OutlineColor);
-        if (!fill.HasValue && !outline.HasValue) {
-            return;
-        }
-
-        OfficeShape frame = OfficeShape.Rectangle(width, height);
-        frame.FillColor = fill;
-        if (textBox.FillTransparency.HasValue && textBox.FillTransparency.Value > 0 && textBox.FillTransparency.Value < 100) {
-            frame.FillOpacity = 1D - textBox.FillTransparency.Value / 100D;
-        }
-
-        frame.StrokeColor = outline;
-        frame.StrokeWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D;
-        frame.StrokeDashStyle = MapDash(textBox.OutlineDash.ToOpenXml());
-        canvas.Shape(frame, x, y, rotationAngle: textBox.Rotation ?? 0D);
     }
 
     private static string ApplyPowerPointDisplayCase(
@@ -626,9 +501,8 @@ public static partial class PowerPointPdfConverterExtensions {
             string? linkUri = null;
             if (hyperlink != null && hyperlink.IsAbsoluteUri) {
                 linkUri = hyperlink.AbsoluteUri;
-            } else if (hyperlink != null) {
-                AddWarning(options, slideNumber, "relative-picture-hyperlink", "Skipped a relative PowerPoint picture hyperlink because PDF URI annotations require absolute targets.", lossKind: OfficeConversionLossKind.Omission);
             }
+            string? destination = ResolveSlideLinkDestination(hyperlink, slideNumber, options, "picture");
 
             byte[] imageBytes = picture.GetImageBytes();
             AddPowerPointPictureAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
@@ -646,6 +520,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 rotationAngle: picture.Rotation ?? 0D,
                 horizontalFlip: picture.HorizontalFlip == true,
                 verticalFlip: picture.VerticalFlip == true);
+            if (destination != null) RenderSlideLinkFrame(canvas, picture, destination, x, y, width, height);
         } catch (Exception ex) {
             AddLayoutWarning(
                 options,

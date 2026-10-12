@@ -1,0 +1,676 @@
+{
+  "source": {
+    "Data/image-45.png": {
+      "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+      "size": [
+        96,
+        64
+      ],
+      "mode": "RGB",
+      "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+      "alphaValues": [
+        255
+      ]
+    },
+    "Data/image-60.png": {
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+      "size": [
+        96,
+        64
+      ],
+      "mode": "RGBA",
+      "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+      "alphaValues": [
+        0,
+        128,
+        255
+      ]
+    },
+    "Data/image-78.jpeg": {
+      "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+      "size": [
+        96,
+        64
+      ],
+      "mode": "RGB",
+      "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+      "alphaValues": [
+        255
+      ]
+    }
+  },
+  "pptx": {
+    "keynote-created-images-apple-v15.4.pptx": [
+      [
+        {
+          "kind": "sp",
+          "name": "Native PNG \u2014 image behind text",
+          "description": null,
+          "text": [
+            "Native PNG \u2014 image behind text"
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "Covered source label",
+          "description": null,
+          "text": [
+            "Covered source label"
+          ],
+          "geometryPoints": {
+            "x": 100.0,
+            "y": 200.0,
+            "cx": 500.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Opaque four-color PNG \ud83d\ude00",
+          "description": "Opaque four-color PNG \ud83d\ude00",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 110.0,
+            "cx": 480.0,
+            "cy": 320.0
+          },
+          "media": {
+            "path": "ppt/media/image1.png",
+            "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGB",
+            "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+            "alphaValues": [
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TEXT IN FRONT",
+          "description": null,
+          "text": [
+            "TEXT IN FRONT"
+          ],
+          "geometryPoints": {
+            "x": 100.0,
+            "y": 220.0,
+            "cx": 400.0,
+            "cy": 60.0
+          }
+        }
+      ],
+      [
+        {
+          "kind": "sp",
+          "name": "Native alpha PNG",
+          "description": null,
+          "text": [
+            "Native alpha PNG"
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Transparent, half-alpha, opaque purple",
+          "description": "Transparent, half-alpha, opaque purple",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 120.0,
+            "cx": 480.0,
+            "cy": 320.0
+          },
+          "media": {
+            "path": "ppt/media/image2.png",
+            "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGBA",
+            "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+            "alphaValues": [
+              0,
+              128,
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "0% / 50% / 100% alpha",
+          "description": null,
+          "text": [
+            "0% / 50% / ",
+            "100% alpha"
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 450.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        }
+      ],
+      [
+        {
+          "kind": "sp",
+          "name": "Native JPEG",
+          "description": null,
+          "text": [
+            "Native JPEG"
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Four-color JPEG, intentionally stretched frame",
+          "description": "Four-color JPEG, intentionally stretched frame",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 120.0,
+            "cx": 600.0,
+            "cy": 240.0
+          },
+          "media": {
+            "path": "ppt/media/image1.jpeg",
+            "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGB",
+            "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+            "alphaValues": [
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "JPEG / stretched frame",
+          "description": null,
+          "text": [
+            "JPEG / stretched frame"
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 400.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        }
+      ]
+    ],
+    "keynote-created-images-officeimo.pptx": [
+      [
+        {
+          "kind": "sp",
+          "name": "TextBox 1",
+          "description": null,
+          "text": [
+            "Native PNG \u2014 image behind text",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 2",
+          "description": null,
+          "text": [
+            "Covered source label",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 100.0,
+            "y": 200.0,
+            "cx": 500.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Picture 1",
+          "description": "Opaque four-color PNG \ud83d\ude00",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 110.0,
+            "cx": 480.0,
+            "cy": 320.0
+          },
+          "media": {
+            "path": "ppt/media/image1.png",
+            "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGB",
+            "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+            "alphaValues": [
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 3",
+          "description": null,
+          "text": [
+            "TEXT IN FRONT",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 100.0,
+            "y": 220.0,
+            "cx": 400.0,
+            "cy": 60.0
+          }
+        }
+      ],
+      [
+        {
+          "kind": "sp",
+          "name": "TextBox 1",
+          "description": null,
+          "text": [
+            "Native alpha PNG",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Picture 1",
+          "description": "Transparent, half-alpha, opaque purple",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 120.0,
+            "cx": 480.0,
+            "cy": 320.0
+          },
+          "media": {
+            "path": "ppt/media/image12.png",
+            "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGBA",
+            "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+            "alphaValues": [
+              0,
+              128,
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 2",
+          "description": null,
+          "text": [
+            "0% / 50% / ",
+            "100% alpha",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 450.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        }
+      ],
+      [
+        {
+          "kind": "sp",
+          "name": "TextBox 1",
+          "description": null,
+          "text": [
+            "Native JPEG",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Picture 1",
+          "description": "Four-color JPEG, intentionally stretched frame",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 120.0,
+            "cx": 600.0,
+            "cy": 240.0
+          },
+          "media": {
+            "path": "ppt/media/image12.jpeg",
+            "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGB",
+            "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+            "alphaValues": [
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 2",
+          "description": null,
+          "text": [
+            "JPEG / stretched frame",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 400.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        }
+      ]
+    ],
+    "keynote-created-images-edited-officeimo.pptx": [
+      [
+        {
+          "kind": "sp",
+          "name": "TextBox 1",
+          "description": null,
+          "text": [
+            "Native PNG \u2014 image behind text",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 2",
+          "description": null,
+          "text": [
+            "Covered source label",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 100.0,
+            "y": 200.0,
+            "cx": 500.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Picture 1",
+          "description": "Opaque four-color PNG \ud83d\ude00",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 110.0,
+            "cx": 480.0,
+            "cy": 320.0
+          },
+          "media": {
+            "path": "ppt/media/image1.png",
+            "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGB",
+            "rgbaSha256": "186bf5df7596f086be9920cbcf632cc6b1dc1f9be42a988446894c400ba7280f",
+            "alphaValues": [
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 3",
+          "description": null,
+          "text": [
+            "TEXT IN FRONT",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 100.0,
+            "y": 220.0,
+            "cx": 400.0,
+            "cy": 60.0
+          }
+        }
+      ],
+      [
+        {
+          "kind": "sp",
+          "name": "TextBox 1",
+          "description": null,
+          "text": [
+            "Native alpha PNG",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Picture 1",
+          "description": "Transparent, half-alpha, opaque purple",
+          "text": [],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 120.0,
+            "cx": 480.0,
+            "cy": 320.0
+          },
+          "media": {
+            "path": "ppt/media/image12.png",
+            "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGBA",
+            "rgbaSha256": "0b7e68a13e4e6e583d61ef21ec5eb090f536862df012b335a2d0e8b11dcf7202",
+            "alphaValues": [
+              0,
+              128,
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 2",
+          "description": null,
+          "text": [
+            "0% / 50% / ",
+            "100% alpha",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 450.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        }
+      ],
+      [
+        {
+          "kind": "sp",
+          "name": "TextBox 1",
+          "description": null,
+          "text": [
+            "Native JPEG",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 30.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        },
+        {
+          "kind": "pic",
+          "name": "Picture 1",
+          "description": "Four-color JPEG, intentionally stretched frame",
+          "text": [],
+          "geometryPoints": {
+            "x": 80.0,
+            "y": 120.0,
+            "cx": 600.0,
+            "cy": 240.0
+          },
+          "media": {
+            "path": "ppt/media/image12.jpeg",
+            "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+            "size": [
+              96,
+              64
+            ],
+            "mode": "RGB",
+            "rgbaSha256": "646a9fed80f0c222fa28e742a82fa82003bebb0b5a0afabfa54f56910133738f",
+            "alphaValues": [
+              255
+            ]
+          }
+        },
+        {
+          "kind": "sp",
+          "name": "TextBox 2",
+          "description": null,
+          "text": [
+            "JPEG / stretched frame",
+            ""
+          ],
+          "geometryPoints": {
+            "x": 60.0,
+            "y": 400.0,
+            "cx": 840.0,
+            "cy": 60.0
+          }
+        }
+      ]
+    ]
+  },
+  "pdf": {
+    "keynote-created-images-apple-v15.4.pdf": [
+      {
+        "size": [
+          0.0,
+          0.0,
+          960.0,
+          540.0
+        ],
+        "text": "Native PNG \u2014 image behind text\nCovered source label \nTEXT IN FRONT ",
+        "images": 1
+      },
+      {
+        "size": [
+          0.0,
+          0.0,
+          960.0,
+          540.0
+        ],
+        "text": "Native alpha PNG\n0% / 50% / 100% alpha ",
+        "images": 1
+      },
+      {
+        "size": [
+          0.0,
+          0.0,
+          960.0,
+          540.0
+        ],
+        "text": "Native JPEG\nJPEG / stretched frame ",
+        "images": 1
+      }
+    ],
+    "keynote-created-images-officeimo.pdf": [
+      {
+        "size": [
+          0.0,
+          0.0,
+          960.0,
+          540.0
+        ],
+        "text": "Native PNG \u2014 image behind text\nCovered source label\nTEXT IN FRONT",
+        "images": 1
+      },
+      {
+        "size": [
+          0.0,
+          0.0,
+          960.0,
+          540.0
+        ],
+        "text": "Native alpha PNG\n0% / 50% / 100% alpha",
+        "images": 1
+      },
+      {
+        "size": [
+          0.0,
+          0.0,
+          960.0,
+          540.0
+        ],
+        "text": "Native JPEG\nJPEG / stretched frame",
+        "images": 1
+      }
+    ]
+  }
+}

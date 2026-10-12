@@ -233,6 +233,12 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Sets selected border edges while preserving other edges and cell styles.</summary>
+        public ExcelCell SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null) {
+            Sheet.CellBorder(Row, Column, borders, style, hexColor);
+            return this;
+        }
+
         /// <summary>
         /// Applies diagonal borders to the cell.
         /// </summary>

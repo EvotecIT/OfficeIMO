@@ -4,14 +4,14 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>Creates native Keynote presentations containing positioned, uniformly styled text boxes.</summary>
+/// <summary>Creates native Keynote presentations containing positioned text, PNG/JPEG images and scalar tables.</summary>
 /// <remarks>This creation model does not modify loaded iWork packages. Instances are not thread safe.</remarks>
 public sealed class IWorkKeynoteDocument {
     private readonly List<IWorkKeynoteSlideBuilder> _slides = new();
 
     private IWorkKeynoteDocument(float widthPoints, float heightPoints) {
-        IWorkKeynoteTextBox.ValidatePositive(widthPoints, nameof(widthPoints));
-        IWorkKeynoteTextBox.ValidatePositive(heightPoints, nameof(heightPoints));
+        IWorkCreationValidation.ValidatePositive(widthPoints, nameof(widthPoints));
+        IWorkCreationValidation.ValidatePositive(heightPoints, nameof(heightPoints));
         SlideSize = new IWorkCanvasSize(widthPoints, heightPoints);
         Slides = _slides.AsReadOnly();
     }
@@ -27,7 +27,7 @@ public sealed class IWorkKeynoteDocument {
 
     /// <summary>Adds a blank slide with an opaque six-digit sRGB background color.</summary>
     public IWorkKeynoteSlideBuilder AddSlide(string backgroundColor = "FFFFFF") {
-        var slide = new IWorkKeynoteSlideBuilder(SlideSize, IWorkKeynoteTextBox.ParseColor(backgroundColor));
+        var slide = new IWorkKeynoteSlideBuilder(SlideSize, IWorkCreationValidation.ParseColor(backgroundColor));
         _slides.Add(slide);
         return slide;
     }

@@ -5,15 +5,10 @@ using OfficeIMO.IWork;
 namespace OfficeIMO.Excel.IWork;
 
 public static partial class ExcelIWorkConverter {
-    private static bool IsHeaderCell(IWorkTable table, IWorkTableCell cell) =>
-        cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
-        || cell.Row > table.RowCount - table.FooterRowCount;
-
     private static bool HasUnsupportedRichText(IWorkTable table, IWorkTableCell cell) {
         if (cell.RichText == null) return false;
         IWorkParagraphStyle? defaults = table.GetParagraphStyle(cell.Row, cell.Column);
-        return HasUnsupportedRichText(cell.RichText, cell.Kind == IWorkCellKind.Formula,
-            defaults, IsHeaderCell(table, cell) && defaults?.TextStyle.Bold == null);
+        return HasUnsupportedRichText(cell.RichText, cell.Kind == IWorkCellKind.Formula, defaults);
     }
 
     /// <summary>Separates supported whole-cell formula formatting from unrepresentable result spans and paragraph layout.</summary>

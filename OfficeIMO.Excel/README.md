@@ -46,6 +46,8 @@ rows. Formula calculation, dynamic arrays, and pivot materialization are
 operations on that workbook model when a report needs them; they are not
 alternate ways to open a workbook.
 
+Set selected cell edges with `sheet.CellBorder(1, 1, ExcelCellBorders.Bottom, ExcelBorderStyle.Thick, "FF0000")` or the cell wrapper's `SetBorder(...)`. The other edges, font, fill and number format remain intact. `ExcelBorderStyle.None` explicitly clears the selected edges; the existing `CellBorder(row, column, style, color)` overload applies to all four sides. Cell coordinates are one-based.
+
 `AsFluent()` wraps the same `ExcelDocument`; it does not create a separate
 workbook model. Call `End()` when direct worksheet APIs are more convenient:
 

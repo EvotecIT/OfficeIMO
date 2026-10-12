@@ -58,14 +58,14 @@ namespace OfficeIMO.PowerPoint {
             string? previousRelationshipId = GetInteractionSound(mouseOver)?
                 .Embed?.Value;
             string relationshipId = PowerPointEmbeddedSound.Add(
-                OwnerSlide.SlidePart, audio, contentType, extension);
+                RelationshipOwnerPart ?? OwnerSlide.SlidePart, audio, contentType, extension);
             A.HyperlinkType hyperlink = GetOrCreateInteraction(mouseOver);
             hyperlink.RemoveAllChildren<A.HyperlinkSound>();
             hyperlink.Append(new A.HyperlinkSound {
                 Embed = relationshipId,
                 Name = name
             });
-            PowerPointEmbeddedSound.RemoveIfUnused(OwnerSlide.SlidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? OwnerSlide.SlidePart,
                 previousRelationshipId);
         }
 
@@ -82,14 +82,14 @@ namespace OfficeIMO.PowerPoint {
             string? relationshipId = hyperlink?
                 .GetFirstChild<A.HyperlinkSound>()?.Embed?.Value;
             hyperlink?.RemoveAllChildren<A.HyperlinkSound>();
-            PowerPointEmbeddedSound.RemoveIfUnused(OwnerSlide.SlidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? OwnerSlide.SlidePart,
                 relationshipId);
         }
 
         private byte[]? GetInteractionSoundBytes(bool mouseOver) {
             if (OwnerSlide == null) return null;
             string? relationshipId = GetInteractionSound(mouseOver)?.Embed?.Value;
-            return PowerPointEmbeddedSound.Read(OwnerSlide.SlidePart,
+            return PowerPointEmbeddedSound.Read(RelationshipOwnerPart ?? OwnerSlide.SlidePart,
                 relationshipId);
         }
 

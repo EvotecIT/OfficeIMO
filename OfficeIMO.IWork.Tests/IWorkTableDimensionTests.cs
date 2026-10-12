@@ -190,13 +190,13 @@ public sealed partial class IWorkBoundaryTests {
         bool duplicate = false, bool missingBucket = false, float scale = 1f, bool repeatTable = false,
         byte[]? firstBucketPayload = null, byte[]? secondBucketPayload = null, byte[]? columnBucketPayload = null,
         int repeatBucketCount = 0, uint firstBucketType = 6006,
-        byte[]? tableStyleReference = null, byte[][]? styleRecords = null, int rowCount = 3) {
+        byte[]? tableStyleReference = null, byte[][]? styleRecords = null, int rowCount = 3, byte[]? modelDeclarations = null) {
         byte[] store = Message(
             BytesField(1, Message(VarintField(1, 1), ReferenceField(2, missingBucket ? 99UL : 12UL), ReferenceField(2, 13),
                 Message(Enumerable.Range(0, repeatBucketCount).Select(_ => ReferenceField(2, 12)).ToArray()))),
             ReferenceField(2, 14), BytesField(3, Message()));
         byte[] model = Message(tableStyleReference ?? Array.Empty<byte>(), BytesField(4, store), VarintField(6, (ulong)rowCount), VarintField(7, 2),
-            StringField(8, "Dimensions"), DoubleField(16, 10), DoubleField(17, 20));
+            StringField(8, "Dimensions"), DoubleField(16, 10), DoubleField(17, 20), modelDeclarations ?? Array.Empty<byte>());
         byte[] firstBucket = Message(VarintField(1, 1), BytesField(2, firstRowHeader ?? DimensionHeader(0, 20.25f)),
             BytesField(2, DimensionHeader(1, 0)));
         byte[] secondBucket = Message(VarintField(1, 1), BytesField(2, DimensionHeader(2, 30)),
