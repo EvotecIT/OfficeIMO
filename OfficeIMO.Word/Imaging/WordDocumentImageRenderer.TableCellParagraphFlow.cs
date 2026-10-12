@@ -28,6 +28,7 @@ namespace OfficeIMO.Word {
                 contentWidth,
                 listMarkers,
                 colorScheme,
+                drawing,
                 cancellationToken);
             double flowTop = contentTop + ResolveTableCellVerticalOffset(cell.VerticalAlignment, contentHeight, flowHeight);
             WordImageFlowContext context = CreateFlowContext(
@@ -52,10 +53,11 @@ namespace OfficeIMO.Word {
         private static double EstimateTableCellTextHeight(
             WordTableCell cell,
             IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns,
-            double fontSize,
+            OfficeFontInfo font,
             double width,
             double lineHeight,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             if (paragraphRuns.Count > 1) {
@@ -64,7 +66,15 @@ namespace OfficeIMO.Word {
                     width,
                     listMarkers,
                     GetDocumentColorScheme(cell.Document),
+                    sourceDrawing,
                     cancellationToken);
+            }
+
+            List<OfficeRichTextRun> richRuns = CreateTableCellRichTextRuns(cell, GetDocumentColorScheme(cell.Document),
+                cancellationToken: cancellationToken);
+            if (ShouldRenderTableCellAsRichText(richRuns)) {
+                return EstimateRichTextFrameHeight(richRuns, width,
+                    OfficeDrawingTextLayout.CreateMetrics(sourceDrawing, cancellationToken), cancellationToken);
             }
 
             string text = GetCellText(
@@ -74,9 +84,10 @@ namespace OfficeIMO.Word {
                 ? lineHeight
                 : EstimateTextHeight(
                     text,
-                    fontSize,
+                    font,
                     width,
                     lineHeight,
+                    OfficeDrawingTextLayout.CreateMetrics(sourceDrawing, cancellationToken),
                     cancellationToken);
         }
 
@@ -85,8 +96,9 @@ namespace OfficeIMO.Word {
             double contentWidth,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
             A.ColorScheme? colorScheme,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken = default) {
-            var measurementDrawing = new OfficeDrawing(Math.Max(1D, contentWidth), double.MaxValue);
+            var measurementDrawing = CreateMeasurementDrawing(sourceDrawing, contentWidth);
             WordImageFlowContext measurementContext = CreateFlowContext(
                 measurementDrawing,
                 0D,

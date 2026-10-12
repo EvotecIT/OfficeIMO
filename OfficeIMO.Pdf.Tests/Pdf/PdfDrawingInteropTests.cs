@@ -92,7 +92,8 @@ public class PdfDrawingInteropTests {
             Align = PdfAlign.Center,
             SpacingBefore = 4,
             SpacingAfter = 9,
-            KeepWithNext = true
+            KeepWithNext = true,
+            ConstrainToContentWidth = true
         };
         var options = new PdfOptions {
             DefaultDrawingStyle = style
@@ -102,6 +103,7 @@ public class PdfDrawingInteropTests {
         style.SpacingBefore = 1;
         style.SpacingAfter = 2;
         style.KeepWithNext = false;
+        style.ConstrainToContentWidth = false;
 
         PdfDrawingStyle readback = options.DefaultDrawingStyle!;
         readback.Align = PdfAlign.Left;
@@ -113,9 +115,11 @@ public class PdfDrawingInteropTests {
         Assert.Equal(4, options.DefaultDrawingStyle.SpacingBefore);
         Assert.Equal(9, options.DefaultDrawingStyle.SpacingAfter);
         Assert.True(options.DefaultDrawingStyle.KeepWithNext);
+        Assert.True(options.DefaultDrawingStyle.ConstrainToContentWidth);
         Assert.Equal(PdfAlign.Center, clone.DefaultDrawingStyle!.Align);
         Assert.Equal(9, clone.DefaultDrawingStyle.SpacingAfter);
         Assert.True(clone.DefaultDrawingStyle.KeepWithNext);
+        Assert.True(clone.DefaultDrawingStyle.ConstrainToContentWidth);
     }
 
     [Fact]
