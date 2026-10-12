@@ -2068,7 +2068,7 @@
           },
           {
             "title": "Review the distribution copy",
-            "body": "Download the script and CSV input into one folder, then run the commands below. Inspect the generated PDF and use the editable Word copy for review notes."
+            "body": "Read the recovery actions beside the milestone register, then inspect the PDF before sharing it. Keep the Word copy for decision notes and the workbook for updates; regenerate the written review after the approved snapshot changes."
           }
         ],
         "adapt": "Replace the milestones and owners, set the review date with -AsOfDate, and record the decision in the Word copy. Due today remains on track. Updating the workbook does not refresh an already generated Word/PDF snapshot; update the CSV and regenerate it.",
@@ -2166,7 +2166,7 @@
           },
           {
             "title": "Review the distribution copy",
-            "body": "Download the script and CSV input into one folder, then run the commands below. Inspect the generated PDF and use the editable Word copy for review notes."
+            "body": "Review the departments with a positive forecast variance and agree an action with each owner. Inspect the PDF before distribution, keep the Word copy for decision notes and use the workbook to trace each total back to its department."
           }
         ],
         "adapt": "Replace the synthetic departments and actions with an approved forecast. Keep the currency explicit. Positive variance means overspend; a zero-budget pilot remains a visible exception. Edit the CSV and regenerate the review for distribution.",
