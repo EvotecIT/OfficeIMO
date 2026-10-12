@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Streams rows from an <see cref="IDataReader"/> (including provider-owned DbDataReader implementations) into the worksheet and optionally creates an Excel table.
         /// The caller owns the connection, command, query, and provider.
+        /// Null and DBNull values remain blank cells; an empty string remains text.
         /// </summary>
         /// <param name="reader">Open data reader positioned before the first row.</param>
         /// <param name="startRow">1-based start row.</param>
@@ -635,12 +636,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 object? value = values[offset];
-                var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
-                var cell = new Cell {
-                    CellReference = columnReferencePrefixes[offset] + rowReference,
-                    CellValue = cellValue,
-                    DataType = GetCachedDataTableCellType(cellType)
-                };
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, TabularAppendColumnKind.General, useDirectStringCells, ref sharedStringIndexes);
 
                 if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -668,12 +664,7 @@ namespace OfficeIMO.Excel {
             var row = new Row { RowIndex = (uint)rowIndex };
             for (int offset = 0; offset < values.Count; offset++) {
                 object? value = values[offset];
-                var (cellValue, cellType) = CoerceDataTableAppendValue(value, useDirectStringCells, ref sharedStringIndexes);
-                var cell = new Cell {
-                    CellReference = columnReferencePrefixes[offset] + rowReference,
-                    CellValue = cellValue,
-                    DataType = GetCachedDataTableCellType(cellType)
-                };
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, TabularAppendColumnKind.General, useDirectStringCells, ref sharedStringIndexes);
 
                 if (offset < styleIndexes.Count && styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;

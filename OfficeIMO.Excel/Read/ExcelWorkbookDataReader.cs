@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Package-owned ADO.NET projection for XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS workbook worksheets.
     /// </summary>
-    public sealed class ExcelWorkbookDataReader : DbDataReader, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastValueSource {
+    public sealed partial class ExcelWorkbookDataReader : DbDataReader, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastValueSource {
         private readonly IReadOnlyList<SheetSelection> _sheets;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly Func<int, CancellationToken, DbDataReader> _openSheet;

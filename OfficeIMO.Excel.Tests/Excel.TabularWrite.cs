@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
+using OfficeIMO.SharedSource.IO;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -519,7 +520,8 @@ namespace OfficeIMO.Tests {
                 },
                 new ExcelTabularWriteOptions {
                     SheetName = "Async Rows",
-                    IncludeCellReferences = false
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
                 });
 
             Assert.False(enumerationActive);
@@ -633,7 +635,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WriteRows_DefaultOptionsObjectUsesInlineStringsAndPreservesSettings() {
+        public void WriteRows_DefaultOptionsObjectUsesSharedStringsAndPreservesSettings() {
             using var output = new MemoryStream();
             var options = new ExcelTabularWriteOptions {
                 SheetName = "Configured Rows",
@@ -655,7 +657,7 @@ namespace OfficeIMO.Tests {
             Assert.True(options.UseSharedStrings);
             Assert.Equal("Configured Rows", result.SheetName);
             using var spreadsheet = SpreadsheetDocument.Open(output, false);
-            Assert.Null(spreadsheet.WorkbookPart!.SharedStringTablePart);
+            Assert.NotNull(spreadsheet.WorkbookPart!.SharedStringTablePart);
             var table = spreadsheet.WorkbookPart.WorksheetParts.Single().TableDefinitionParts.Single().Table;
             Assert.Equal("ConfiguredRows", table!.Name?.Value);
         }

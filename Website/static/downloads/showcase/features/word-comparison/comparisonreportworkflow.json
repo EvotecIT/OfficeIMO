@@ -150,8 +150,8 @@
       "detailedLocation": "Body//word/document.xml/comment[0]/comment",
       "sourceIndex": 0,
       "targetIndex": 0,
-      "sourceText": "comment id=1; author=Legal Reviewer; initials=LR; date=2026-09-07T11:40:02.8756136Z; resolved=unknown; target=Review target; text=Confirm this wording before approval.",
-      "targetText": "comment id=1; author=Legal Reviewer; initials=LR; date=2026-09-07T11:40:02.9057743Z; resolved=unknown; target=Review target; text=Approved for the premium contract.",
+      "sourceText": "comment id=1; author=Legal Reviewer; initials=LR; date=2026-10-12T02:32:32.6658101Z; resolved=unknown; target=Review target; text=Confirm this wording before approval.",
+      "targetText": "comment id=1; author=Legal Reviewer; initials=LR; date=2026-10-12T02:32:32.6776920Z; resolved=unknown; target=Review target; text=Approved for the premium contract.",
       "message": "Comment changed."
     },
     {

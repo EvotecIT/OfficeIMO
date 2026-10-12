@@ -62,7 +62,27 @@ internal static class WorkflowShowcase {
         ["opendocument-workshop-agenda"] = new("opendocument", OpenWorkshopAgenda.Create),
         ["rtf-support-bulletin"] = new("rtf", SupportBulletin.Create),
         ["visio-approval-swimlane"] = new("visio", ApprovalSwimlane.Create),
-        ["visio-team-organisation"] = new("visio", TeamOrganisation.Create)
+        ["visio-team-organisation"] = new("visio", TeamOrganisation.Create),
+        ["word-business-case"] = new("word", BusinessCase.Create),
+        ["word-renewal-proposal"] = new("word", RenewalProposal.Create),
+        ["word-post-incident-review"] = new("word", PostIncidentReview.Create),
+        ["word-statement-of-work"] = new("word", StatementOfWork.Create),
+        ["excel-cash-flow-forecast"] = new("excel", CashFlowForecast.Create),
+        ["excel-asset-depreciation"] = new("excel", AssetDepreciation.Create),
+        ["excel-vendor-comparison"] = new("excel", VendorComparison.Create),
+        ["excel-workforce-rota"] = new("excel", WorkforceRota.Create),
+        ["pdf-travel-itinerary"] = new("pdf", TravelItinerary.Create),
+        ["pdf-event-badges"] = new("pdf", EventBadges.Create),
+        ["pdf-maintenance-job-card"] = new("pdf", MaintenanceJobCard.Create),
+        ["pdf-risk-assessment"] = new("pdf", RiskAssessment.Create),
+        ["powerpoint-board-decision"] = new("powerpoint", BoardDecision.Create),
+        ["powerpoint-sales-pipeline"] = new("powerpoint", SalesPipelineBrief.Create),
+        ["powerpoint-retrospective"] = new("powerpoint", Retrospective.Create),
+        ["visio-triage-flow"] = new("visio", TriageFlow.Create),
+        ["visio-onboarding-journey"] = new("visio", OnboardingJourney.Create),
+        ["markdown-release-checklist"] = new("markdown", ReleaseChecklist.Create),
+        ["opendocument-client-letter"] = new("opendocument", ClientLetter.Create),
+        ["rtf-desk-reference"] = new("rtf", DeskReference.Create)
     };
 
     internal static void Run(string documentsRoot, string? exampleId = null) {

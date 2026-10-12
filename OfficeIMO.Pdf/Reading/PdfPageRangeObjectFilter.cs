@@ -197,7 +197,8 @@ internal static class PdfPageRangeObjectFilter {
                 field.RichValue,
                 field.RichValuePlainText,
                 field.RichValueOwnerKey,
-                field.HasRichValueEntry));
+                field.HasRichValueEntry,
+                field.Actions));
         }
 
         return selectedFields.Count == 0 ? Array.Empty<PdfFormField>() : selectedFields.AsReadOnly();

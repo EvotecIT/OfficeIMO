@@ -1,16 +1,18 @@
 ---
-title: Browser Document Workspace
+title: Browser Document Tools
 description: Run supported OfficeIMO conversions and focused PDF workflows locally in your browser through the WebAssembly app on OfficeIMO.com.
 order: 90
 ---
 
-The [browser document workspace](/convert/) is a static Blazor WebAssembly application. Supported conversions and PDF operations execute inside the current tab; selected file bytes are not uploaded to OfficeIMO.
+The [browser tools](/convert/) are static pages, one per task, such as [Word to PDF](/browser/word-to-pdf/) or [Merge PDFs](/browser/merge-pdfs/). Each page is usable straight away. The OfficeIMO engine, compiled to WebAssembly, downloads in the background and runs in a Web Worker, so the page stays responsive while a file is processed. Selected file bytes are not uploaded to OfficeIMO.
+
+Every tool answers in the same way: a one-sentence result, the facts that matter (pages, size, what was removed), a named list of anything worth checking, a preview, and one download button. Reports and extra files sit under **More files and next steps**. The **Continue with** links carry the result into the next tool without downloading it first.
 
 ## ChatGPT Website Tool
 
-Open the [full-screen browser workspace](/apps/officeimo-converter/) in a browser that supports Website Tools to make `convert_selected_document` available on that page. Choose or drop a document and select the route and settings in the visible workspace first. ChatGPT can then invoke the same **Convert** action, and the generated download, warnings, and diagnostics remain visible on the page.
+Open any tool page in a browser that supports Website Tools to make `convert_selected_document` available on that page. Choose or drop a file and set the options on the page first. ChatGPT can then run the same action, and the result, warnings, and download stay visible on the page.
 
-The tool has no file, path, URL, or format arguments. It can act only on the document and settings already selected by the user, and processing remains browser-local. It returns bounded metadata rather than document contents. Closing or navigating away from the workspace unregisters the tool. Cancellation is honored before conversion starts; once the synchronous browser-local conversion has started, it completes atomically.
+The tool has no file, path, URL, or format arguments. It can act only on the file and settings already chosen by the user, and processing remains browser-local. It returns bounded metadata rather than document contents. Leaving the page unregisters the tool. Cancellation is honored before the tool starts; once the browser-local run has started, it completes atomically.
 
 ## Supported browser routes
 
@@ -32,7 +34,7 @@ PDF-to-Office routes reconstruct logical content and return conversion diagnosti
 
 ## PDF tools
 
-Switch to **PDF tools** for twelve task-oriented workflows backed by `OfficeIMO.Pdf`:
+Twelve task-oriented PDF tools are backed by `OfficeIMO.Pdf`. The page tools (extract, delete, reorder, rotate) show page thumbnails: click pages to select them or drag them into a new order. You can still type ranges such as `1-3,5,last`. Redaction searches first and lists every match by page before anything is removed.
 
 | Group | Tools |
 |---|---|
@@ -49,21 +51,23 @@ PDF results include a page-image preview rendered by OfficeIMO, with previous/ne
 
 The app includes sample inputs for every route. Files are limited to 25 MiB. Multi-file PDF tools accept up to ten PDFs and 75 MiB combined. PDF parsing is capped at 500 pages, split at 100 outputs and 64 MiB of serialized PDFs, visual comparison at 25 pages, and any generated artifact at 96 MiB. Before a DOCX, XLSX, or PPTX file is parsed, the app also rejects packages with more than 5,000 parts, an individual expanded part over 32 MiB, more than 128 MiB expanded in total, or a part compression ratio over 200:1.
 
+Text files are limited to 1 MiB. HTML and Markdown conversion accepts up to 500,000 characters; the hidden-character tool accepts up to 1,048,576 UTF-16 code units. Oversized pasted text stays in the editor with an error, so you can shorten it without losing its ending. The directory offers only tools whose input limits the selected file meets.
+
 Excel workbooks that pass those package checks are converted in full while every sheet's used range stays within 50,000 cells. If a sheet exceeds that budget, the app automatically generates a preview of up to 250 rows per sheet. Conversion warnings stay visible with the result instead of being hidden behind a successful download.
 
 ## Privacy and hosting
 
 Browser-local processing is the strongest privacy default for a public demo because document bytes do not cross a server boundary. It is not the right execution model for every production workload.
 
-Passwords are used for the selected operation and cleared from component state when it finishes. Browser-local execution still means the user controls the device, browser extensions, downloads, and local storage policy.
+Passwords stay in the page and the engine worker of the current tab, and are only used for the selected operation. Browser-local execution still means the user controls the device, browser extensions, downloads, and local storage policy.
 
-The workspace does not expose OCR, searchable-PDF generation, lossy scan compression, or cryptographic signing. Those capabilities need provider, quality, identity, or trust decisions that do not belong behind a generic one-click browser action.
+The browser tools do not expose OCR, searchable-PDF generation, lossy scan compression, or cryptographic signing. Those capabilities need provider, quality, identity, or trust decisions that do not belong behind a generic one-click browser action.
 
 Host OfficeIMO in your own service when you need larger inputs, authentication, queues, storage, audit logs, or formats that are not suitable for WebAssembly. In that model, your organization owns the transport, access, logging, and retention policy.
 
 ## Publishing contract
 
-The website pipeline builds the converter from its project source and mounts the published `wwwroot` output under `/apps/officeimo-converter/`. This keeps the deployed WebAssembly assets and integrity metadata aligned with the source in the same build.
+Tools are defined in `Website/data/browser_tools.json`, which drives the tool pages, the `/convert/` directory, and the engine wiring. The website pipeline builds the engine (`Website/Apps/OfficeIMO.Web.Converter`, a WebAssembly app with no UI) from its project source and mounts the published `wwwroot` output under `/apps/officeimo-converter/`. This keeps the deployed WebAssembly assets and integrity metadata aligned with the source in the same build.
 
 The production-shaped publish relinks the converter's native WebAssembly assets, including HarfBuzz. Install the matching SDK's `wasm-tools` workload once before running it:
 
@@ -82,15 +86,15 @@ dotnet test .\Website\Apps\OfficeIMO.Web.Converter.Tests\OfficeIMO.Web.Converter
 
 ## Continue with a result
 
-The workspace keeps original and working files in memory for the current tab. After an operation, select **Use result as working file**, then choose a compatible tool. **Restore originals** returns to the uploaded source files. **Clear session** removes the session selection; downloaded files remain on your device. Archive bundles and reports are downloadable outputs and cannot become working documents. Use **Focus result** to give the preview more space.
+After an operation, choose a compatible tool under **Continue with**. It opens in a new tab and receives the result through an in-memory transfer. Read-only inspections carry the selected input instead. The current tab keeps its input and result; choose a new input on that page to start again. Closing the tab releases its session, while downloaded files remain on your device. Archive bundles and reports are downloads rather than inputs for another tool.
 
 ## Inspect and remove provenance
 
-Choose **Provenance** from the tools menu. JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX files can be inspected locally. The sample image includes a deliberately added AI source declaration for trying the workflow.
+Open [Inspect file origin](/browser/file-origin/) from the browser directory. JPEG, PNG, WebP, PDF, DOCX, XLSX, and PPTX files can be inspected locally. The sample image includes a deliberately added AI source declaration for trying the workflow.
 
 1. Choose a file and inspect its supported provenance carriers.
-2. Select embedded Content Credentials, external credential references, or AI-specific IPTC source declarations.
+2. Select embedded Content Credentials, external credential references, or AI-specific IPTC source declarations. Ordinary camera and software labels are informational and are kept.
 3. Create a separate cleaned copy. Review remaining findings and diagnostics from re-inspection.
-4. Download the copy and report, or reuse the copy as the working file.
+4. Download the copy and report, or carry the cleaned copy into a compatible tool under **Continue with**.
 
 This is structural inspection, not cryptographic authenticity verification or a verdict about AI authorship. External references are not fetched. Cleanup does not remove visible marks or reconstruct image pixels, and it is not a general personal-metadata scrubber. Ambiguous carriers remain preserved; mutations that would invalidate document signatures are blocked. Input and output are capped at 25 MiB, with additional limits on expanded package data and embedded assets.

@@ -10,6 +10,7 @@ public static class PdfPrintRenderer {
         PdfPrintRenderOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(request);
+        string sourcePath = request.InputPath;
         options ??= new();
         double dpi = options.Dpi;
         int maximumPages = options.MaximumPages;
@@ -39,6 +40,15 @@ public static class PdfPrintRenderer {
                 Scale = dpi / 72, Background = OfficeColor.White, MaximumRasterPixels = maximumPixels,
                 ThrowOnImageDecodeFailure = true, CancellationToken = cancellationToken
             });
+            if (plan.ColorMode == PdfPrintColorMode.Grayscale) {
+                for (int y = 0; y < raster.Height; y++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    for (int x = 0; x < raster.Width; x++) {
+                        if ((x & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                        raster.SetPixel(x, y, OfficeColorTransforms.Grayscale(raster.GetPixel(x, y)));
+                    }
+                }
+            }
             byte[] encoded = OfficePngWriter.Encode(raster, cancellationToken);
             _ = new OfficeRasterDecodeOptions { MaximumEncodedBytes = encoded.Length };
             retainedBytes = checked(retainedBytes + encoded.LongLength);
@@ -49,6 +59,6 @@ public static class PdfPrintRenderer {
             _ = renderedSheet.Decode(cancellationToken);
             sheets.Add(renderedSheet);
         }
-        return new PdfPreparedPrintDocument(request.InputPath, plan, sheets, diagnostics);
+        return new PdfPreparedPrintDocument(sourcePath, plan, sheets, diagnostics);
     }
 }

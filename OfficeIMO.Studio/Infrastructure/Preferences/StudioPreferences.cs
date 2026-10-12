@@ -20,6 +20,8 @@ internal sealed record StudioPreferences {
 
     public string UiCulture { get; init; } = "en";
 
+    public string? OcrExecutablePath { get; init; }
+
     public StudioThemePreference Theme { get; init; } = StudioThemePreference.System;
 
     public StudioDensityPreference Density { get; init; } = StudioDensityPreference.Comfortable;
@@ -38,6 +40,7 @@ internal sealed record StudioPreferences {
         return this with {
             SchemaVersion = CurrentSchemaVersion,
             UiCulture = culture,
+            OcrExecutablePath = string.IsNullOrWhiteSpace(OcrExecutablePath) ? null : OcrExecutablePath.Trim(),
             Theme = theme,
             Density = Enum.IsDefined(Density) ? Density : StudioDensityPreference.Comfortable
         };

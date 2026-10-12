@@ -343,6 +343,7 @@ namespace OfficeIMO.Excel.Pdf {
                 linkDestinationName: linkDestinationName,
                 namedDestinationName: cellDestinationName);
             if (span?.Viewport != null) cell = cell.WithViewport(span.Viewport);
+            if (style?.ShrinkToFit == true && style.WrapText != true) cell = cell.WithShrinkTextToFit();
             return preserveWorksheetNoWrap ? cell.WithNoWrap(style?.WrapText != true) : cell;
         }
 

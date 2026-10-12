@@ -15,6 +15,7 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
     private TDocument _emptyDocument;
     private bool _openingDocument;
     private bool _disposed;
+    private readonly HashSet<TDocument> _presentedDocuments = new();
 
     internal StudioDocumentTabs(
         Func<Func<string, CancellationToken, Task>, TDocument> createDocument,
@@ -54,7 +55,15 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
 
     partial void OnSelectedTabChanging(TTab? value) {
         ActiveDocument.Deactivate();
-        ActiveDocument.SetPresentationActive(false);
+        if (!_presentedDocuments.Contains(ActiveDocument)) ActiveDocument.SetPresentationActive(false);
+    }
+
+    /// <summary>Keeps the render caches of documents shown in independent panes alive while focus moves between them.</summary>
+    internal void SetPresentedDocuments(IEnumerable<TDocument> documents) {
+        _presentedDocuments.Clear();
+        foreach (TDocument document in documents) _presentedDocuments.Add(document);
+        foreach (TDocument document in OperationDocuments)
+            document.SetPresentationActive(ReferenceEquals(document, ActiveDocument) || _presentedDocuments.Contains(document));
     }
 
     internal Task CloseSelectedTabAsync() => SelectedTab is null

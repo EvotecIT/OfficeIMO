@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <PackageId>OfficeIMO.Browser</PackageId>
     <Authors>Przemyslaw Klys</Authors>
     <Company>Evotec</Company>

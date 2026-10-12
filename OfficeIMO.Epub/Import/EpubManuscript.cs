@@ -39,6 +39,7 @@ public static partial class EpubManuscript {
         }
         var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
         XElement body = ConvertElement(source.Body!, diagnostics, manuscript, cancellationToken)!;
+        PreserveLegacyNamedAnchors(body, diagnostics, cancellationToken);
         var chapters = SplitChapters(body, options.ChapterHeadingLevel, title, diagnostics, cancellationToken);
         AssignAnchors(chapters, diagnostics);
         RewriteChapterLinks(chapters, manuscript, diagnostics);

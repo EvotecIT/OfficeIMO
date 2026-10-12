@@ -67,10 +67,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
             Array.Clear(_customValues, 0, _customValues.Length);
+            ResetUtf8TextState();
             return rows;
         }
 
         private void LoadBufferedRow(XlsbBufferedRow row) {
+            ResetUtf8TextState();
             Array.Copy(row.Kinds, _kinds, FieldCount);
             Array.Copy(row.Numbers, _numbers, FieldCount);
             Array.Copy(row.Booleans, _booleans, FieldCount);

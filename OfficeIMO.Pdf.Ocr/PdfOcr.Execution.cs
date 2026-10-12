@@ -89,9 +89,7 @@ internal static partial class PdfOcr {
                 if (prepared.HasGeometryTransform) {
                     prepared.RecognitionWidth = request.Region!.Width; prepared.RecognitionHeight = request.Region.Height;
                 }
-                OcrResult recognized = await engine.RecognizeAsync(
-                    request, options.ProviderTimeout,
-                    new OcrResultCaptureLimits(options.MaxOcrSpansPerPage, options.MaxDiagnosticsPerPage, 0), workCancellation.Token).ConfigureAwait(false);
+                OcrResult recognized = await RecognizeWithLifetimeAsync(engine, request, options, workCancellation.Token).ConfigureAwait(false);
                 ProjectedOcrResult projected = ProjectResult(recognized, request, engine.Id, options, workCancellation.Token, prepared);
                 if (renderDiagnostics.Count > 0 || prepared.Diagnostics.Count > 0) {
                     var diagnostics = new List<string>(renderDiagnostics);
@@ -113,6 +111,14 @@ internal static partial class PdfOcr {
                 throw;
             }
         }
+    }
+
+    private static Task<OcrResult> RecognizeWithLifetimeAsync(OcrEngineExecution engine, OcrRequest request,
+        PdfOcrMergeOptions options, CancellationToken token) {
+        var limits = new OcrResultCaptureLimits(options.MaxOcrSpansPerPage, options.MaxDiagnosticsPerPage, 0);
+        return options.AwaitProviderSettlement
+            ? engine.RecognizeAttachedAsync(request, options.ProviderTimeout, limits, token)
+            : engine.RecognizeAsync(request, options.ProviderTimeout, limits, token);
     }
 
     private static PdfPageRenderResult RenderOcrPage(PdfReadDocument document, int pageNumber,

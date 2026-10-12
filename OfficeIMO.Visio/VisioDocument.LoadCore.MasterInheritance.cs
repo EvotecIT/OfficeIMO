@@ -21,11 +21,18 @@ public partial class VisioDocument {
         if (!cells.Contains("PinX")) shape.PinX = source.PinX * scaleX;
         if (!cells.Contains("PinY")) shape.PinY = source.PinY * scaleY;
         if (!cells.Contains("Angle")) shape.Angle = source.Angle;
-        if (!cells.Contains("LineWeight")) shape.LineWeight = source.LineWeight;
-        if (!cells.Contains("LineColor")) shape.LineColor = source.LineColor;
-        if (!cells.Contains("FillForegnd")) shape.FillColor = source.FillColor;
-        if (!cells.Contains("LinePattern")) shape.LinePattern = source.LinePattern;
-        if (!cells.Contains("FillPattern")) shape.FillPattern = source.FillPattern;
+        if (string.IsNullOrEmpty(shape.NativeStyleReferences?.LineStyle)) {
+            if (!cells.Contains("LineWeight")) shape.LineWeight = source.LineWeight;
+            if (!cells.Contains("LineColor")) shape.LineColor = source.LineColor;
+            else if (!cells.Contains("LineColorTrans")) shape.LineColor = VisioNativePaintStyleResolver.InheritTransparency(shape.LineColor, source.LineColor);
+            if (!cells.Contains("LinePattern")) shape.LinePattern = source.LinePattern;
+        }
+        if (string.IsNullOrEmpty(shape.NativeStyleReferences?.FillStyle)) {
+            if (!cells.Contains("FillForegnd")) shape.FillColor = source.FillColor;
+            else if (!cells.Contains("FillForegndTrans")) shape.FillColor = VisioNativePaintStyleResolver.InheritTransparency(shape.FillColor, source.FillColor);
+            if (!cells.Contains("FillPattern")) shape.FillPattern = source.FillPattern;
+        }
+        VisioNativePaintStyleResolver.ApplyLocalTransparency(shape, element);
         shape.Type ??= source.Type;
         if (element.Element(ns + "Text") == null) {
             shape.Text = source.Text;

@@ -57,6 +57,13 @@ internal static partial class HtmlReaderAdapter {
         return BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken);
     }
 
+    // Archive adapters need the parser's source count to enforce a budget across topic projections.
+    internal static OfficeDocumentReadResult ReadContentDocument(string html, string sourceName, ReaderOptions readerOptions,
+        ReaderHtmlOptions htmlOptions, CancellationToken cancellationToken, out int sourceNodeCount) {
+        SourceMetadata source = BuildSourceMetadataFromHtmlString(sourceName, html, readerOptions.ComputeHashes);
+        return BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken, true, out sourceNodeCount);
+    }
+
     /// <summary>Reads an HTML file into the shared rich document JSON envelope.</summary>
     public static string ReadDocumentJson(string htmlPath, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
         return OfficeDocumentReadResultJson.Serialize(ReadDocument(htmlPath, readerOptions, htmlOptions, cancellationToken), indented);
@@ -73,7 +80,11 @@ internal static partial class HtmlReaderAdapter {
     }
 
     private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source,
-        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
+        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) =>
+        BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken, false, out _);
+
+    private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source,
+        ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken, bool countSourceNodes, out int sourceNodeCount) {
         ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
         HtmlToMarkdownOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlToMarkdownOptions.CreateOfficeIMOProfile();
         bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
@@ -81,18 +92,22 @@ internal static partial class HtmlReaderAdapter {
         HtmlConversionDocument conversionDocument = ParseConversionDocument(
             html,
             effectiveHtmlOptions,
-            projectionOptions.BaseUri);
+            projectionOptions.BaseUri,
+            cancellationToken);
+        sourceNodeCount = countSourceNodes ? conversionDocument.CountSourceNodes(cancellationToken) : 0;
         var filtered = HtmlToMarkdownConverter.PrepareDocument(
-            conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen),
-            projectionOptions);
-        projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
-        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false);
+            conversionDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Screen, cancellationToken),
+            projectionOptions, cancellationToken);
+        HtmlLogicalDocument logical = HtmlLogicalDocumentBuilder.FromDocument(filtered, useBodyContentsOnly: false, cancellationToken);
         if (hasProjectionFilters) {
             projectedHtml = filtered.DocumentElement?.OuterHtml ?? html;
         }
         string markdown = hasProjectionFilters
-            ? HtmlMarkdownConverterExtensions.ToMarkdownPreparedDocument(conversionDocument, filtered, projectionOptions)
-            : conversionDocument.ToMarkdown(projectionOptions);
+            ? HtmlMarkdownConverterExtensions.ToMarkdownPreparedDocument(conversionDocument, filtered, projectionOptions, cancellationToken)
+            : conversionDocument.ToMarkdown(projectionOptions, cancellationToken);
+        // Raw-source Markdown resolves its authored base against the source fallback.
+        // Rich references instead use the base already normalized in the projected DOM.
+        projectionOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(filtered, projectionOptions.BaseUri);
         ReaderChunk[] chunks = ChunkMarkdown(markdown, source, readerOptions, effectiveHtmlOptions, cancellationToken).ToArray();
         HtmlProjection projection = ProjectHtml(logical, source.Path, readerOptions.MaxTableRows, projectionOptions, cancellationToken);
         var documentSource = new OfficeDocumentSource {
@@ -120,6 +135,7 @@ internal static partial class HtmlReaderAdapter {
         result.Forms = projection.Forms;
         result.Visuals = projection.Visuals;
         result.Metadata = BuildHtmlMetadata(logical, projection);
+        cancellationToken.ThrowIfCancellationRequested();
         return result;
     }
 
@@ -198,16 +214,16 @@ internal static partial class HtmlReaderAdapter {
             if (asset != null) {
                 assetIndex++;
                 projection.Assets.Add(asset);
-                projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, asset.SourceObjectId));
+                projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, htmlOptions, asset.SourceObjectId));
             } else if (!HasHtmlImageSourceCandidate(node)
                 && !string.IsNullOrWhiteSpace(node.AccessibleName)) {
                 string anchor = "html-image-visual-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
-                projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "image", anchor), null, null));
+                projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "image", anchor), null, null, htmlOptions));
             }
         } else if (node.Kind == HtmlLogicalNodeKind.Media &&
             !string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase)) {
             string anchor = "html-media-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
-            projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null));
+            projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null, htmlOptions));
         }
         if (node.Kind == HtmlLogicalNodeKind.FormControl &&
             !string.Equals(node.Name, "option", StringComparison.OrdinalIgnoreCase)) {
@@ -368,18 +384,19 @@ internal static partial class HtmlReaderAdapter {
     }
 
     private static string ResolveHtmlImageSource(HtmlLogicalNode node, HtmlToMarkdownOptions options) {
+        HtmlUrlPolicy policy = options.ResourceUrlPolicy ?? options.UrlPolicy;
         foreach (string attribute in new[] { "data-src", "data-original", "data-original-src", "data-lazy-src" }) {
             if (!node.Attributes.TryGetValue(attribute, out string? value)) continue;
-            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, options.UrlPolicy);
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(value, options.BaseUri, policy);
             if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
         }
         foreach (string attribute in new[] { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" }) {
             if (!node.Attributes.TryGetValue(attribute, out string? value)) continue;
-            string resolved = HtmlImageSourceResolver.ResolveUrlFromSrcSet(value, options.BaseUri, options.UrlPolicy);
+            string resolved = HtmlImageSourceResolver.ResolveUrlFromSrcSet(value, options.BaseUri, policy);
             if (!string.IsNullOrWhiteSpace(resolved)) return resolved;
         }
         return node.Attributes.TryGetValue("src", out string? source)
-            ? HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, options.UrlPolicy)
+            ? HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, policy)
             : string.Empty;
     }
 
@@ -401,14 +418,17 @@ internal static partial class HtmlReaderAdapter {
         ReaderLocation location,
         string? payloadHash,
         string? mediaType,
+        HtmlToMarkdownOptions options,
         string? sourceOverride = null) {
-        node.Attributes.TryGetValue("src", out string? source);
+        string source = node.Attributes.TryGetValue("src", out string? candidate)
+            ? HtmlUrlPolicyEvaluator.ResolveUrl(candidate, options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy)
+            : string.Empty;
         HtmlLogicalNode? mediaSource = null;
         if (string.IsNullOrWhiteSpace(source) && node.Kind == HtmlLogicalNodeKind.Media) {
-            mediaSource = FindHtmlMediaSource(node);
-            mediaSource?.Attributes.TryGetValue("src", out source);
+            mediaSource = FindHtmlMediaSource(node, options);
+            if (mediaSource != null) source = HtmlUrlPolicyEvaluator.ResolveUrl(mediaSource.Attributes["src"], options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy);
         }
-        if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride;
+        if (!string.IsNullOrWhiteSpace(sourceOverride)) source = sourceOverride!;
         node.Attributes.TryGetValue("alt", out string? altText);
         if (!string.IsNullOrWhiteSpace(node.AccessibleName)) altText = node.AccessibleName;
         node.Attributes.TryGetValue("title", out string? title);
@@ -417,13 +437,13 @@ internal static partial class HtmlReaderAdapter {
             mediaType = sourceType;
         }
         string content = altText ?? title ?? GetHtmlNodeText(node);
-        if (string.IsNullOrWhiteSpace(content)) content = source ?? node.Name;
+        if (string.IsNullOrWhiteSpace(content)) content = string.IsNullOrWhiteSpace(source) ? node.Name : source;
         return new ReaderVisual {
             Kind = node.Kind == HtmlLogicalNodeKind.Image ? "image" : "media",
             Language = node.Name,
             Content = content,
             PayloadHash = payloadHash,
-            SourceName = source,
+            SourceName = string.IsNullOrWhiteSpace(source) ? null : source,
             MimeType = mediaType,
             PlacementCount = 1,
             Location = new ReaderLocation {
@@ -435,15 +455,15 @@ internal static partial class HtmlReaderAdapter {
         };
     }
 
-    private static HtmlLogicalNode? FindHtmlMediaSource(HtmlLogicalNode node) {
+    private static HtmlLogicalNode? FindHtmlMediaSource(HtmlLogicalNode node, HtmlToMarkdownOptions options) {
         foreach (HtmlLogicalNode child in node.Children) {
             if (child.Kind == HtmlLogicalNodeKind.Media
                 && string.Equals(child.Name, "source", StringComparison.OrdinalIgnoreCase)
                 && child.Attributes.TryGetValue("src", out string? source)
-                && !string.IsNullOrWhiteSpace(source)) {
+                && !string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(source, options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy))) {
                 return child;
             }
-            HtmlLogicalNode? descendant = FindHtmlMediaSource(child);
+            HtmlLogicalNode? descendant = FindHtmlMediaSource(child, options);
             if (descendant != null) return descendant;
         }
         return null;

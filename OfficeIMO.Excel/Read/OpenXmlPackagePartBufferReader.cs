@@ -245,7 +245,12 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        internal Stream OpenPart(string partName, int maximumBytes, CancellationToken cancellationToken = default) {
+        internal Stream OpenPart(
+            string partName,
+            int maximumBytes,
+            CancellationToken cancellationToken = default,
+            int maximumBufferedBytes = 8192,
+            Func<byte[], int, bool>? acceptBufferedPrefix = null) {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
@@ -263,9 +268,14 @@ namespace OfficeIMO.Excel {
                     $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
             }
 
-            // Small metadata and shared-string parts can use a seekable pooled stream.
-            // Retain streaming behavior for larger parts.
+            // Small parts use the standard pool. Opted-in larger parts use the exact-size
+            // part pool only when their prefix qualifies for the caller's indexed parser.
             if (entry.Length > 8192) {
+                if (entry.Length <= maximumBufferedBytes
+                    && TryRead(normalizedPartName, Math.Min(maximumBytes, maximumBufferedBytes),
+                        cancellationToken, out byte[]? buffered, out int bufferedLength, acceptBufferedPrefix)) {
+                    return new OpenXmlPooledPartStream(buffered!, bufferedLength, usesPartBufferPool: true);
+                }
                 return new OpenXmlPartLengthStream(entry.Open(), entry.Length, normalizedPartName);
             }
 

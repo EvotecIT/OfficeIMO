@@ -40,7 +40,7 @@ public sealed class CsvSaveOptions
     public CultureInfo Culture { get; set; } = CultureInfo.InvariantCulture;
 
     /// <summary>
-    /// Gets or sets the text encoding used when writing to files. Defaults to UTF-8 without BOM when omitted.
+    /// Gets or sets the text encoding used when writing to files or streams. Defaults to UTF-8 without BOM when omitted.
     /// </summary>
     public Encoding? Encoding { get; set; }
 

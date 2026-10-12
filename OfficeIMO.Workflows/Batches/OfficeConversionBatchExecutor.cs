@@ -4,11 +4,6 @@ using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
 
-/// <summary>Incremental conversion through the existing routes, with optional verified checkpoints.</summary>
-internal interface IOfficeWorkflowStagingGuard {
-    ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken);
-}
-
 internal static partial class OfficeConversionBatchExecutor {
     /// <summary>Runs a bounded local batch, reusing only hash-verified completed work under the same captured configuration.</summary>
     public static async Task<OfficeConversionBatchResult> RunAsync(IOfficeWorkflowRunner runner, OfficeConversionBatchRequest request,

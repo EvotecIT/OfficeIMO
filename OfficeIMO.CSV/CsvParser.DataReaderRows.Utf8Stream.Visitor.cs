@@ -126,6 +126,29 @@ internal static partial class CsvParser
             return _lengths[ordinal] < 0;
         }
 
+        internal bool TryGetUtf8Text(int ordinal, out ReadOnlySpan<byte> text)
+        {
+            ValidateOrdinal(ordinal);
+            int length = _lengths[ordinal];
+            if (length < 0)
+            {
+                text = default;
+                return false;
+            }
+
+            ReadOnlySpan<byte> bytes = _buffer.AsSpan(_starts[ordinal], length);
+            // A permissive decoder replaces malformed bytes. Such a raw segment would not
+            // represent GetString's normalized text and cannot be borrowed as UTF-8.
+            if (!_allFieldsAscii && !System.Text.Unicode.Utf8.IsValid(bytes))
+            {
+                text = default;
+                return false;
+            }
+
+            text = bytes;
+            return true;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ValidateOrdinal(int ordinal)
         {

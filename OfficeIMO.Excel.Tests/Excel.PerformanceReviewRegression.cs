@@ -860,7 +860,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_WriteDataSet_OmitsSparseBlankCellsButPreservesEmptyStrings() {
+        public void PerformanceReview_WriteDataSet_PreservesMissingValuesFormatsAndEmptyStrings() {
             using var memory = new MemoryStream();
             var dataSet = new DataSet("Export");
             var table = new DataTable("Sparse");
@@ -886,7 +886,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(cells.ContainsKey("A3"));
                 Assert.True(cells.ContainsKey("B3"));
                 Assert.False(cells.ContainsKey("C3"));
-                Assert.False(cells.ContainsKey("D3"));
+                AssertMissingSpreadsheetCell(cells, "D3");
+                Assert.Equal(cells["D2"].StyleIndex!.Value, cells["D3"].StyleIndex!.Value);
                 Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
             }
 
@@ -1169,7 +1170,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataSet_SparseNullValuesUseDirectDataSetPackageWithExplicitEmptyCells() {
+        public void PerformanceReview_InsertDataSet_SparseNullValuesUseDirectDataSetPackageWithMissingCells() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetDirectSaveSparseNulls.xlsx");
             var dataSet = new DataSet("Export");
             var table = new DataTable("Items");
@@ -1192,19 +1193,28 @@ namespace OfficeIMO.Tests {
             var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.True(cells.ContainsKey("A2"));
-            Assert.True(cells.ContainsKey("B2"));
             Assert.True(cells.ContainsKey("C2"));
             Assert.True(cells.ContainsKey("B3"));
             Assert.True(cells.ContainsKey("C3"));
-            Assert.Equal(CellValues.String, cells["B2"].DataType!.Value);
-            Assert.Equal(string.Empty, cells["B2"].CellValue!.Text);
-            Assert.Equal(CellValues.String, cells["C3"].DataType!.Value);
-            Assert.Equal(string.Empty, cells["C3"].CellValue!.Text);
+            AssertMissingSpreadsheetCell(cells, "B2");
+            AssertMissingSpreadsheetCell(cells, "C3");
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(filePath));
+            Assert.Equal(3, reader.FieldCount);
+            Assert.True(reader.Read());
+            Assert.Equal("Alpha", reader.GetString(0));
+            Assert.True(reader.IsDBNull(1));
+            Assert.Equal(12.5D, reader.GetDouble(2));
+            Assert.True(reader.Read());
+            Assert.Equal("Beta", reader.GetString(0));
+            Assert.Equal(20, reader.GetInt32(1));
+            Assert.True(reader.IsDBNull(2));
+            Assert.False(reader.Read());
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataSet_AllNullRowsUseDirectDataSetPackageWithExplicitEmptyRows() {
+        public void PerformanceReview_InsertDataSet_AllNullRowsUseDirectDataSetPackageWithExplicitBlankRows() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetDirectSaveAllNullRows.xlsx");
             var dataSet = new DataSet("Export");
             var table = new DataTable("Items");
@@ -1228,13 +1238,23 @@ namespace OfficeIMO.Tests {
             var sheetData = worksheet.GetFirstChild<SheetData>()!;
             Assert.Contains(sheetData.Elements<Row>(), row => row.RowIndex?.Value == 3U);
             var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            Assert.Equal(CellValues.String, cells["A3"].DataType!.Value);
-            Assert.Equal(string.Empty, cells["A3"].CellValue!.Text);
-            Assert.Equal(CellValues.String, cells["B3"].DataType!.Value);
-            Assert.Equal(string.Empty, cells["B3"].CellValue!.Text);
+            AssertMissingSpreadsheetCell(cells, "A3");
+            AssertMissingSpreadsheetCell(cells, "B3");
             var tableDefinition = spreadsheet.WorkbookPart.WorksheetParts.First().TableDefinitionParts.Single().Table!;
             Assert.Equal("A1:B4", tableDefinition.Reference!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(File.ReadAllBytes(filePath));
+            Assert.Equal(2, reader.FieldCount);
+            Assert.True(reader.Read());
+            Assert.Equal("Alpha", reader.GetString(0));
+            Assert.True(reader.Read());
+            Assert.True(reader.IsDBNull(0));
+            Assert.True(reader.IsDBNull(1));
+            Assert.True(reader.Read());
+            Assert.Equal("Gamma", reader.GetString(0));
+            Assert.Equal(30, reader.GetInt32(1));
+            Assert.False(reader.Read());
         }
 
         [Fact]
@@ -2388,7 +2408,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_CellValuesRowSnapshotNondeferredFallback_PreservesSnapshotAndCompactReferences() {
+        public void PerformanceReview_CellValuesLargeReplacement_PreservesInputSnapshot() {
             const int columnCount = 64;
             const int dataRowCount = 7813;
             int totalCellCount = checked((dataRowCount + 1) * columnCount);
@@ -2410,62 +2430,13 @@ namespace OfficeIMO.Tests {
             using (var output = new MemoryStream()) {
                 using (var document = ExcelDocument.Create(new MemoryStream())) {
                     ExcelSheet sheet = document.AddWorksheet("Data");
-                    MethodInfo createCandidate = typeof(ExcelSheet).GetMethod(
-                        "TryCreateDirectCellValuesSaveCandidate",
-                        BindingFlags.Static | BindingFlags.NonPublic)!;
-                    object?[] createArguments = { cells, null, null };
-                    Assert.True((bool)createCandidate.Invoke(null, createArguments)!);
-                    object candidate = createArguments[2]!;
-
                     sheet.CellValue(1, 1, "Column1");
-                    MethodInfo registerDeferred = typeof(ExcelSheet).GetMethod(
-                        "RegisterDeferredDirectCellValuesSaveCandidateIfPossible",
-                        BindingFlags.Instance | BindingFlags.NonPublic)!;
-                    Assert.False((bool)registerDeferred.Invoke(sheet, new[] { candidate })!);
-
-                    // Materialize the same snapshot before exercising the immediate fallback.
-                    // The public path does this through its ordinary cell application stage.
-                    Assert.True((bool)registerDeferred.Invoke(sheet, new[] { candidate })!);
-                    document.MaterializeDeferredDataSetImport();
-                    typeof(ExcelSheet)
-                        .GetMethod("RegisterDirectCellValuesSaveCandidateIfPossible", BindingFlags.Instance | BindingFlags.NonPublic)!
-                        .Invoke(sheet, new[] { candidate });
-
-                    object registeredCandidate = typeof(ExcelDocument)
-                        .GetField("_directDataSetSaveCandidate", BindingFlags.Instance | BindingFlags.NonPublic)!
-                        .GetValue(document)!;
-                    Assert.False((bool)registeredCandidate.GetType()
-                        .GetProperty("IsDeferred", BindingFlags.Instance | BindingFlags.NonPublic)!
-                        .GetValue(registeredCandidate)!);
+                    sheet.CellValues(cells);
                     cells[cells.Length - 1] = (dataRowCount + 1, columnCount, -1);
                     document.Save(output);
-
-                    Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 }
 
                 package = output.ToArray();
-            }
-
-            using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read))
-            using (Stream worksheet = archive.GetEntry("xl/worksheets/sheet1.xml")!.Open())
-            using (XmlReader xml = XmlReader.Create(worksheet)) {
-                int rowCount = 0;
-                bool inspectedFirstDataCell = false;
-                while (xml.Read()) {
-                    if (xml.NodeType != XmlNodeType.Element) {
-                        continue;
-                    }
-
-                    if (xml.LocalName == "row") {
-                        rowCount++;
-                    } else if (rowCount == 2 && xml.LocalName == "c") {
-                        Assert.Null(xml.GetAttribute("r"));
-                        inspectedFirstDataCell = true;
-                        break;
-                    }
-                }
-
-                Assert.True(inspectedFirstDataCell);
             }
 
             using var reader = ExcelDocumentReader.Open(new MemoryStream(package, writable: false));
@@ -3439,7 +3410,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            AssertMissingSpreadsheetCell(cells, "D2");
             Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
             Assert.Equal("20", cells["B3"].CellValue!.Text);
             Assert.Equal("1", cells["D3"].CellValue!.Text);
@@ -3506,7 +3477,7 @@ namespace OfficeIMO.Tests {
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
                 .ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["B3"]));
+            AssertMissingSpreadsheetCell(cells, "B3");
             Assert.Equal("0", cells["C3"].CellValue!.Text);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
@@ -3535,7 +3506,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
             Assert.Equal("name", GetSpreadsheetCellText(spreadsheet, cells["B1"]));
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["B2"]));
+            AssertMissingSpreadsheetCell(cells, "B2");
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["B3"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -3618,7 +3591,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Name", GetSpreadsheetCellText(spreadsheet, cells["A1"]));
             Assert.Equal("Metric32", GetSpreadsheetCellText(spreadsheet, cells["AG1"]));
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["AG2"]));
+            AssertMissingSpreadsheetCell(cells, "AG2");
             Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
             Assert.Equal("32", cells["AG3"].CellValue!.Text);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
@@ -4151,7 +4124,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal(CellValues.Boolean, savedRows[1][2].DataType!.Value);
             Assert.Equal(1U, savedRows[1][3].StyleIndex!.Value);
             Assert.Equal("123.456", savedRows[1][4].CellValue!.Text);
-            Assert.All(savedRows.Skip(1).SelectMany(static row => row), cell => Assert.Null(cell.CellReference));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -4192,18 +4164,15 @@ namespace OfficeIMO.Tests {
             using (var reader = ExcelDocumentReader.Open(memory)) {
                 object?[,] values = reader.GetSheet("Data").ReadRange("A1:C65");
                 Assert.Equal("Id", values[0, 0]);
+                Assert.Equal("Name", values[0, 1]);
+                Assert.Equal("Score", values[0, 2]);
                 Assert.Equal(64D, values[64, 0]);
-                Assert.Equal(string.Empty, values[3, 1]);
+                Assert.Null(values[3, 1]);
                 Assert.Equal(64.25D, values[64, 2]);
             }
 
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
-            Cell[][] savedRows = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet
-                .Descendants<Row>()
-                .Select(row => row.Elements<Cell>().ToArray())
-                .ToArray();
-            Assert.All(savedRows.Skip(1).SelectMany(static row => row), cell => Assert.Null(cell.CellReference));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -4234,7 +4203,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Metric36", GetSpreadsheetCellText(spreadsheet, savedRows[0][39]));
             Assert.Equal("36", savedRows[1][39].CellValue!.Text);
             Assert.Equal("72", savedRows[2][39].CellValue!.Text);
-            Assert.All(savedRows.Skip(1).SelectMany(static row => row), cell => Assert.Null(cell.CellReference));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
 
             static System.Management.Automation.PSObject CreateWidePowerShellObject(int id) {
@@ -6423,8 +6391,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
             Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["A3"]));
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["B3"]));
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["C3"]));
+            AssertMissingSpreadsheetCell(cells, "B3");
+            AssertMissingSpreadsheetCell(cells, "C3");
+            Assert.Equal(cells["C2"].StyleIndex!.Value, cells["C3"].StyleIndex!.Value);
             Assert.Equal("Manual", GetSpreadsheetCellText(spreadsheet, cells["D3"]));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
@@ -7074,8 +7043,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.True(cells["C2"].StyleIndex?.Value > 0U);
             Assert.Equal("Gamma", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
-            Assert.Equal(string.Empty, cells["B4"].CellValue!.Text);
-            Assert.Equal(string.Empty, cells["C4"].CellValue!.Text);
+            AssertMissingSpreadsheetCell(cells, "B4");
+            AssertMissingSpreadsheetCell(cells, "C4");
+            Assert.Equal(cells["C2"].StyleIndex!.Value, cells["C4"].StyleIndex!.Value);
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
             Assert.Equal("A1:C4", tableDefinition.Reference!.Value);
             Assert.Equal("Reader_Table", tableDefinition.Name!.Value);
@@ -7194,7 +7164,7 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
-            Assert.Equal(string.Empty, cells["C3"].CellValue!.Text);
+            AssertMissingSpreadsheetCell(cells, "C3");
         }
 
         [Fact]
@@ -7704,6 +7674,17 @@ namespace OfficeIMO.Tests {
                 49U => "@",
                 _ => null
             };
+        }
+
+        private static void AssertMissingSpreadsheetCell(IReadOnlyDictionary<string, Cell> cells, string reference) {
+            if (!cells.TryGetValue(reference, out Cell? cell)) return;
+
+            // Styles and range boundaries can require a blank record even when
+            // an imported value is missing. Neither form may encode empty text.
+            Assert.Null(cell.DataType);
+            Assert.Null(cell.CellValue);
+            Assert.Null(cell.InlineString);
+            Assert.Null(cell.CellFormula);
         }
 
         private static string? GetSpreadsheetCellText(SpreadsheetDocument spreadsheet, Cell cell) {

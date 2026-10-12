@@ -17,14 +17,14 @@ namespace OfficeIMO.Excel {
                 "IL2072",
                 Justification = "OfficeIMO preserves the DataTable column type supplied by the caller. Framework scalar types used by the AOT-safe tabular APIs are statically rooted; applications that use custom DataColumn types must preserve those model members at the application boundary.")]
 #endif
-            internal DataTable ToDataTable() {
-                if (_sourceTable != null) {
+            internal DataTable ToDataTable(bool preserveMissingValues = true) {
+                if (_sourceTable != null && preserveMissingValues) {
                     return _sourceTable;
                 }
 
                 var table = new DataTable { Locale = CultureInfo.InvariantCulture };
-                foreach (var column in _columns!) {
-                    table.Columns.Add(column.Name, column.DataType);
+                for (int i = 0; i < ColumnCount; i++) {
+                    table.Columns.Add(GetColumnName(i), preserveMissingValues ? GetColumnType(i) : typeof(object));
                 }
 
                 table.BeginLoadData();
@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
                     for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                         var values = new object?[columnCount];
                         for (int i = 0; i < values.Length; i++) {
-                            values[i] = GetValue(rowIndex, i) ?? DBNull.Value;
+                            values[i] = GetValue(rowIndex, i) ?? (preserveMissingValues ? DBNull.Value : string.Empty);
                         }
 
                         table.Rows.Add(values);

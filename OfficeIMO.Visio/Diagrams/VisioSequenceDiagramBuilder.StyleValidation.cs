@@ -5,10 +5,8 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
-    /// <summary>
-    /// High-level builder for UML-style sequence diagrams with deterministic participant,
-    /// lifeline, and message placement.
-    /// </summary>
+    // High-level builder for UML-style sequence diagrams with deterministic participant,
+    // lifeline, and message placement.
     public sealed partial class VisioSequenceDiagramBuilder {
         private VisioTextStyle CreateFragmentLabelTextStyle() {
             VisioTextStyle style = _theme.Container.TextStyle?.Clone() ?? new VisioTextStyle();
@@ -65,6 +63,11 @@ namespace OfficeIMO.Visio.Diagrams {
             connector.BeginArrow = EndArrow.None;
             if (style.TextStyle != null) {
                 connector.TextStyle = style.TextStyle.Clone();
+            }
+            if (_theme.PageBackgroundColor.HasValue && connector.TextStyle?.BackgroundColor == null) {
+                connector.TextStyle ??= new VisioTextStyle();
+                connector.TextStyle.BackgroundColor = _theme.PageBackgroundColor;
+                connector.TextStyle.BackgroundTransparency = 0D;
             }
         }
 

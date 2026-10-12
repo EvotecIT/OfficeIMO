@@ -146,11 +146,16 @@ flattened chunks. Each item supplies its virtual `Path` and complete `Document`,
 forms, metadata, diagnostics and assets. Identifiers inside a child result remain local to that child.
 Asset payload bytes stay in memory when requested and remain excluded from JSON transport.
 
-Document transport schema version 10 adds XPS/OpenXPS input identity and explicit native
-`ReaderLocation.LogicalOrder` across physical containers. Version 9 includes recursive
-`nestedDocuments`; versions 5 through 9 remain readable. Load the matching artifact with
-`OfficeDocumentReadResultSchema.GetJsonSchema(version)`. Versions below 9 cannot carry
-nested documents, and versions below 10 cannot carry XPS input kinds.
+Document transport schema version 14 adds Publisher input identity (`ReaderInputKind.Publisher`, 30).
+Version 13 adds DBF input identity (`ReaderInputKind.Dbf`, 29).
+Version 12 adds DjVu identity (`ReaderInputKind.DjVu`, 28); version 11 adds CHM identity
+(`ReaderInputKind.Chm`, 27). Version 10 adds XPS/OpenXPS identity and explicit native
+`ReaderLocation.LogicalOrder` across physical containers; version 9 includes recursive
+`nestedDocuments`. Versions 5 through 13 remain readable. Load the matching artifact
+with `OfficeDocumentReadResultSchema.GetJsonSchema(version)`. Versions below 9 cannot
+carry nested documents, below 10 cannot carry XPS input kinds, below 11 cannot carry
+CHM input kinds, below 12 cannot carry DjVu input kinds, below 13 cannot carry DBF input kinds,
+and below 14 cannot carry Publisher input kinds.
 
 Capability manifest version 6 includes incremental route flags and per-extension `FormatQualifications`.
 A qualification records a format ID, extraction maturity, profile, preservation, limitations and evidence

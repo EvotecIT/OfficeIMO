@@ -8,9 +8,7 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>
-/// Reads a bounded subset of SVG into the shared dependency-free drawing scene.
-/// </summary>
+// Reads a bounded subset of SVG into the shared dependency-free drawing scene.
 public static partial class OfficeSvgDrawingReader {
     private static void AddChildren(
         XElement parent,

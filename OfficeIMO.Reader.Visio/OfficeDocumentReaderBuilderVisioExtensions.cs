@@ -29,7 +29,14 @@ public static class OfficeDocumentReaderBuilderVisioExtensions {
             DisplayName = "Visio Reader Adapter",
             Description = "Modular Visio adapter using OfficeIMO.Visio inspection snapshots.",
             Kind = ReaderInputKind.Visio,
-            Extensions = new[] { ".vsdx", ".vstx", ".vssx", ".vsdm", ".vstm", ".vssm", ".vdx", ".vsx", ".vtx" },
+            Extensions = new[] { ".vsdx", ".vstx", ".vssx", ".vsdm", ".vstm", ".vssm", ".vdx", ".vsx", ".vtx", ".vsd", ".vss", ".vst" },
+            FormatQualifications = new[] { ".vsd", ".vss", ".vst" }.Select(extension =>
+                new ReaderFormatQualification(extension, "visio-binary-v11", ReaderFormatSupport.ReadConvert,
+                    "Visio binary version 11 cached ShapeSheet projection",
+                    preservation: new[] { "Supported cached shape geometry, nesting, master references and text" },
+                    limitations: new[] { "Formulas, native fields, custom data and binary carriers are not preserved",
+                        "Earlier binary generations are rejected; page-less stencils have no page text chunks" },
+                    evidence: new[] { "OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/producer-manifest.json" })).ToArray(),
             DefaultMaxInputBytes = global::OfficeIMO.Visio.VisioLoadOptions.DefaultMaxInputBytes,
             ReadPath = (path, readerOptions, ct) => VisioReaderAdapter.Read(
                 visioPath: path,

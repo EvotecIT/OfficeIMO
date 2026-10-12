@@ -1,0 +1,470 @@
+[
+  {
+    "runId": "qualified-830951-v1-domain0-main-current",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-v1-domain0-main-current.log",
+    "nativeSidecar": "packets/qualified-830951-v1-domain0-main-current/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 315.652,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-v1-domain1-main-current",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-v1-domain1-main-current.log",
+    "nativeSidecar": "packets/qualified-830951-v1-domain1-main-current/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 239.5409,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain0-main-before",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain0-main-before.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain0-main-before/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 318.2495,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain0-main-published",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain0-main-published.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain0-main-published/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 331.91,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain1-main-published",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain1-main-published.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain1-main-published/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 300.8782,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain1-main-before",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain1-main-before.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain1-main-before/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 307.1818,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain0-main-current",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-e676-v1-domain0-main-current.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain0-main-current/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 320.8025,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain1-main-current",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-e676-v1-domain1-main-current.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain1-main-current/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 307.0952,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain0-crypto-before",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain0-crypto-before.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain0-crypto-before/.powerforge-benchmark-provenance.json",
+    "actuals": 30,
+    "minimumActualIterationMs": 670.1855,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain0-crypto-core-only",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain0-crypto-core-only.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain0-crypto-core-only/.powerforge-benchmark-provenance.json",
+    "actuals": 30,
+    "minimumActualIterationMs": 249.7174,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain1-crypto-before",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain1-crypto-before.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain1-crypto-before/.powerforge-benchmark-provenance.json",
+    "actuals": 30,
+    "minimumActualIterationMs": 646.9013,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-e676-v1-domain1-crypto-core-only",
+    "classification": "primary",
+    "completeLog": "logs/qualified-e676-v1-domain1-crypto-core-only.log",
+    "nativeSidecar": "packets/qualified-e676-v1-domain1-crypto-core-only/.powerforge-benchmark-provenance.json",
+    "actuals": 30,
+    "minimumActualIterationMs": 246.0464,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-v1-domain0-native-attribution-before",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-v1-domain0-native-attribution-before.log",
+    "nativeSidecar": "packets/qualified-830951-v1-domain0-native-attribution-before/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 40.6764,
+    "scope": "Timing-limited short recipe; do not replace longer controlled attribution"
+  },
+  {
+    "runId": "qualified-830951-v1-domain0-native-attribution-current",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-v1-domain0-native-attribution-current.log",
+    "nativeSidecar": "packets/qualified-830951-v1-domain0-native-attribution-current/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 40.6813,
+    "scope": "Timing-limited short recipe; do not replace longer controlled attribution"
+  },
+  {
+    "runId": "qualified-830951-v1-domain1-native-attribution-current",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-v1-domain1-native-attribution-current.log",
+    "nativeSidecar": "packets/qualified-830951-v1-domain1-native-attribution-current/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 37.7916,
+    "scope": "Timing-limited short recipe; do not replace longer controlled attribution"
+  },
+  {
+    "runId": "qualified-830951-v1-domain1-native-attribution-before",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-v1-domain1-native-attribution-before.log",
+    "nativeSidecar": "packets/qualified-830951-v1-domain1-native-attribution-before/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 42.9021,
+    "scope": "Timing-limited short recipe; do not replace longer controlled attribution"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain0-native-attribution-before",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-long-v1-domain0-native-attribution-before.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain0-native-attribution-before/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 933.6226,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain0-native-attribution-current",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-long-v1-domain0-native-attribution-current.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain0-native-attribution-current/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 727.4407,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain1-native-attribution-current",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-long-v1-domain1-native-attribution-current.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain1-native-attribution-current/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 859.8228,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain1-native-attribution-before",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-long-v1-domain1-native-attribution-before.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain1-native-attribution-before/.powerforge-benchmark-provenance.json",
+    "actuals": 60,
+    "minimumActualIterationMs": 638.9118,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain0-recipe-probe",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-long-v1-domain0-recipe-probe.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain0-recipe-probe/.powerforge-benchmark-provenance.json",
+    "actuals": 225,
+    "minimumActualIterationMs": 183.0466,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain1-recipe-probe",
+    "classification": "supplementary",
+    "completeLog": "logs/qualified-830951-long-v1-domain1-recipe-probe.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain1-recipe-probe/.powerforge-benchmark-provenance.json",
+    "actuals": 225,
+    "minimumActualIterationMs": 115.698,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain0-generated",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v1-domain0-generated.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain0-generated/.powerforge-benchmark-provenance.json",
+    "actuals": 810,
+    "minimumActualIterationMs": 157.8138,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain0-real",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v1-domain0-real.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain0-real/.powerforge-benchmark-provenance.json",
+    "actuals": 780,
+    "minimumActualIterationMs": 216.8925,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain0-strings",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v1-domain0-strings.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain0-strings/.powerforge-benchmark-provenance.json",
+    "actuals": 564,
+    "minimumActualIterationMs": 239.2738,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v1-domain0-ado",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v1-domain0-ado.log",
+    "nativeSidecar": "packets/qualified-830951-long-v1-domain0-ado/.powerforge-benchmark-provenance.json",
+    "actuals": 135,
+    "minimumActualIterationMs": 161.0056,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain0-writing",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain0-writing.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain0-writing/.powerforge-benchmark-provenance.json",
+    "actuals": 312,
+    "minimumActualIterationMs": 273.9237,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain0-csv",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain0-csv.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain0-csv/.powerforge-benchmark-provenance.json",
+    "actuals": 555,
+    "minimumActualIterationMs": 661.4125,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain0-csv-large-dop1",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain0-csv-large-dop1.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain0-csv-large-dop1/.powerforge-benchmark-provenance.json",
+    "actuals": 216,
+    "minimumActualIterationMs": 1765.5022,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain0-csv-large-dop4",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain0-csv-large-dop4.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain0-csv-large-dop4/.powerforge-benchmark-provenance.json",
+    "actuals": 168,
+    "minimumActualIterationMs": 421.4114,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain0-arrow",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain0-arrow.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain0-arrow/.powerforge-benchmark-provenance.json",
+    "actuals": 105,
+    "minimumActualIterationMs": 726.5266,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain0-encrypted",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain0-encrypted.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain0-encrypted/.powerforge-benchmark-provenance.json",
+    "actuals": 144,
+    "minimumActualIterationMs": 604.4302,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain0-cold",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain0-cold.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain0-cold/.powerforge-benchmark-provenance.json",
+    "actuals": 96,
+    "minimumActualIterationMs": 23.4032,
+    "scope": "Declared first target use after Setup; subsequent diagnostic allocation. See significant domain1 host observation."
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-generated",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-generated.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-generated/.powerforge-benchmark-provenance.json",
+    "actuals": 810,
+    "minimumActualIterationMs": 136.8291,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-real",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-real.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-real/.powerforge-benchmark-provenance.json",
+    "actuals": 780,
+    "minimumActualIterationMs": 220.7697,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-strings",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-strings.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-strings/.powerforge-benchmark-provenance.json",
+    "actuals": 564,
+    "minimumActualIterationMs": 473.9745,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-ado",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-ado.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-ado/.powerforge-benchmark-provenance.json",
+    "actuals": 135,
+    "minimumActualIterationMs": 854.6389,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-writing",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-writing.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-writing/.powerforge-benchmark-provenance.json",
+    "actuals": 312,
+    "minimumActualIterationMs": 192.6613,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-csv",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-csv.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-csv/.powerforge-benchmark-provenance.json",
+    "actuals": 555,
+    "minimumActualIterationMs": 899.9026,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-csv-large-dop1",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-csv-large-dop1.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-csv-large-dop1/.powerforge-benchmark-provenance.json",
+    "actuals": 216,
+    "minimumActualIterationMs": 1350.4845,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-csv-large-dop4",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-csv-large-dop4.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-csv-large-dop4/.powerforge-benchmark-provenance.json",
+    "actuals": 168,
+    "minimumActualIterationMs": 478.4654,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-arrow",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-arrow.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-arrow/.powerforge-benchmark-provenance.json",
+    "actuals": 105,
+    "minimumActualIterationMs": 668.3467,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-encrypted",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-encrypted.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-encrypted/.powerforge-benchmark-provenance.json",
+    "actuals": 144,
+    "minimumActualIterationMs": 501.5387,
+    "scope": "Warm actual-duration qualification; retain native distribution/outlier warnings, no blanket stability claim"
+  },
+  {
+    "runId": "qualified-830951-long-v2-domain1-cold",
+    "classification": "primary",
+    "completeLog": "logs/qualified-830951-long-v2-domain1-cold.log",
+    "nativeSidecar": "packets/qualified-830951-long-v2-domain1-cold/.powerforge-benchmark-provenance.json",
+    "actuals": 96,
+    "minimumActualIterationMs": 23.7544,
+    "scope": "Declared first target use after Setup; subsequent diagnostic allocation. See significant domain1 host observation."
+  },
+  {
+    "runId": "stable36df-domain0-main-current",
+    "classification": "historical-support",
+    "completeLog": "logs/stable36df-domain0-main-current.log",
+    "nativeSidecar": "packets/stable36df-domain0-main-current/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 241.5206,
+    "scope": "Historical, outside final730"
+  },
+  {
+    "runId": "stable36df-domain1-main-current",
+    "classification": "historical-support",
+    "completeLog": "logs/stable36df-domain1-main-current.log",
+    "nativeSidecar": "packets/stable36df-domain1-main-current/.powerforge-benchmark-provenance.json",
+    "actuals": 120,
+    "minimumActualIterationMs": 240.7495,
+    "scope": "Historical, outside final730"
+  },
+  {
+    "runId": "stable36df-domain0-crypto-before",
+    "classification": "historical-support",
+    "completeLog": "logs/stable36df-domain0-crypto-before.log",
+    "nativeSidecar": "packets/stable36df-domain0-crypto-before/.powerforge-benchmark-provenance.json",
+    "actuals": 20,
+    "minimumActualIterationMs": 532.9449,
+    "scope": "Historical, outside final730"
+  },
+  {
+    "runId": "stable36df-domain1-crypto-before",
+    "classification": "historical-support",
+    "completeLog": "logs/stable36df-domain1-crypto-before.log",
+    "nativeSidecar": "packets/stable36df-domain1-crypto-before/.powerforge-benchmark-provenance.json",
+    "actuals": 20,
+    "minimumActualIterationMs": 520.885,
+    "scope": "Historical, outside final730"
+  },
+  {
+    "runId": "stable36df-domain0-crypto-core-only",
+    "classification": "historical-support",
+    "completeLog": "logs/stable36df-domain0-crypto-core-only.log",
+    "nativeSidecar": "packets/stable36df-domain0-crypto-core-only/.powerforge-benchmark-provenance.json",
+    "actuals": 20,
+    "minimumActualIterationMs": 92.7523,
+    "scope": "Historical, outside final730"
+  },
+  {
+    "runId": "stable36df-domain1-crypto-core-only",
+    "classification": "historical-support",
+    "completeLog": "logs/stable36df-domain1-crypto-core-only.log",
+    "nativeSidecar": "packets/stable36df-domain1-crypto-core-only/.powerforge-benchmark-provenance.json",
+    "actuals": 20,
+    "minimumActualIterationMs": 86.9943,
+    "scope": "Historical, outside final730"
+  },
+  {
+    "runId": "stable36df-domain0-generated",
+    "classification": "historical-exploratory",
+    "completeLog": "logs/stable36df-domain0-generated.log",
+    "nativeSidecar": "packets/stable36df-domain0-generated/.powerforge-benchmark-provenance.json",
+    "actuals": 540,
+    "minimumActualIterationMs": 10.4652,
+    "scope": "Historical, outside final730"
+  },
+  {
+    "runId": "stable36df-domain0-real",
+    "classification": "historical-exploratory",
+    "completeLog": "logs/stable36df-domain0-real.log",
+    "nativeSidecar": "packets/stable36df-domain0-real/.powerforge-benchmark-provenance.json",
+    "actuals": 520,
+    "minimumActualIterationMs": 36.3283,
+    "scope": "Historical, outside final730"
+  }
+]

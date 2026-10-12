@@ -1,8 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-/// <summary>
-/// Inline parsing helpers for <see cref="MarkdownReader"/>.
-/// </summary>
+// Inline parsing helpers for MarkdownReader.
 public static partial class MarkdownReader {
     private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null) {
         InlineSequence sequence;

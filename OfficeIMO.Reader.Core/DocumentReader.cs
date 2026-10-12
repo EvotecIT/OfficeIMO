@@ -51,6 +51,8 @@ internal static partial class DocumentReaderEngine {
             ".md" or ".markdown" => ReaderInputKind.Markdown,
             ".pdf" => ReaderInputKind.Pdf,
             ".xps" or ".oxps" => ReaderInputKind.Xps,
+            ".chm" => ReaderInputKind.Chm,
+            ".djvu" or ".djv" => ReaderInputKind.DjVu,
             ".eml" or ".msg" or ".oft" or ".mbox" or ".mbx" or ".tnef" or ".pst" or ".ost" or ".olm" or ".emlx" or ".oab" => ReaderInputKind.Email,
             ".ics" or ".ical" or ".ifb" or ".vcs" => ReaderInputKind.Calendar,
             ".vcf" or ".vcard" => ReaderInputKind.VCard,

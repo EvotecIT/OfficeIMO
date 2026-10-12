@@ -66,7 +66,7 @@ internal static partial class PdfFormFiller {
             if (isButtonField) {
                 string appearanceState = GetButtonWidgetFlattenAppearanceState(objects, field, value);
                 if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out PdfReference? appearanceReference)) {
-                    EnsureButtonWidgetAppearances(objects, field, appearanceState, isRadioButtonGroup, ref nextObjectNumber);
+                    EnsureButtonWidgetAppearances(objects, field, appearanceState, isRadioButtonGroup, ref nextObjectNumber, cancellationToken);
                     if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out appearanceReference)) {
                         throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
                     }

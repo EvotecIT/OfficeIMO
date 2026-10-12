@@ -98,11 +98,20 @@ public static class OfficeProvenanceReportSerializer {
             evidence.IsStructurallyValid,
             evidence.PayloadLength,
             evidence.Value,
-            evidence.DigitalSourceKind.ToString())).ToArray(),
+            evidence.DigitalSourceKind.ToString()) {
+                Manifest = evidence.Manifest is null ? null : ToDto(evidence.Manifest)
+            }).ToArray(),
         report.Diagnostics,
         report.HasC2paManifest,
         report.HasExternalC2paManifest,
         report.HasGenerativeAiDeclaration);
+
+    private static ProvenanceManifestDto ToDto(OfficeC2paManifestSummary manifest) => new(
+        manifest.Label, manifest.ClaimGenerator, manifest.Title, manifest.Format,
+        manifest.Actions.Select(action => new ProvenanceActionDto(action.Action, action.SoftwareAgent,
+            action.DigitalSourceType, action.DigitalSourceKind.ToString(), action.When)).ToArray(),
+        manifest.Ingredients, manifest.SignedBy, manifest.CertificateIssuer, manifest.ManifestCount,
+        manifest.DeclaresGenerativeAi);
 }
 
 #pragma warning disable CS1591 // Transport fields are documented by their owning report contract.
@@ -136,7 +145,15 @@ public sealed record ProvenanceReportDto(
     bool HasC2paManifest,
     bool HasExternalC2paManifest,
     bool HasGenerativeAiDeclaration);
-public sealed record ProvenanceEvidenceDto(string Carrier, string Location, bool IsStructurallyValid, long PayloadLength, string? Value, string DigitalSourceKind);
+public sealed record ProvenanceEvidenceDto(string Carrier, string Location, bool IsStructurallyValid, long PayloadLength, string? Value, string DigitalSourceKind) {
+    public ProvenanceManifestDto? Manifest { get; init; }
+}
+// Recorded statements, including certificate names, are unverified. The workflow's checks
+// and verification result carry verification status independently of this summary.
+public sealed record ProvenanceManifestDto(string? Label, string? ClaimGenerator, string? Title, string? Format,
+    IReadOnlyList<ProvenanceActionDto> Actions, IReadOnlyList<string> Ingredients, string? SignedBy,
+    string? CertificateIssuer, int ManifestCount, bool DeclaresGenerativeAi);
+public sealed record ProvenanceActionDto(string Action, string? SoftwareAgent, string? DigitalSourceType, string DigitalSourceKind, string? When);
 public sealed record ProvenanceAssessmentDto(ProvenanceReportDto Structural, string TextIntegrityStatus, string VerificationStatus, string ProviderSignalsStatus, ProvenanceVerificationDto? Verification, IReadOnlyList<ProvenanceTextFindingDto>? TextIntegrity, IReadOnlyList<ProvenanceSignalDto> ProviderSignals);
 public sealed record ProvenanceVerificationDto(string ProviderName, string Status, IReadOnlyList<string> Findings, string? RawReport);
 public sealed record ProvenanceTextFindingDto(string Kind, string Risk, int TextOffset, int TextLength, int CodePoint, string UnicodeNotation, string Location);

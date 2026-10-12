@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel {
         /// Rejects settings that require materializing the source rows before writing.
         /// For data readers, disable shared strings and automatic sizing; tables require headers.
         /// For row sequences, disable tables and automatic sizing. Defaults to false.
+        /// Shared-string row exports retain unique text while consuming each source row once.
         /// </summary>
         public bool RequireStreaming { get; set; }
 
@@ -37,10 +38,35 @@ namespace OfficeIMO.Excel {
         /// <summary>Writes explicit row and cell references. Disable for a smaller contiguous worksheet package.</summary>
         public bool IncludeCellReferences { get; set; } = true;
 
-        /// <summary>Stores repeated text in the workbook shared-string table instead of writing inline strings.</summary>
+        /// <summary>
+        /// Stores text in the workbook shared-string table. Row writers honor this setting in a
+        /// single source pass and retain unique text in memory. When row-write options are omitted,
+        /// row writers use inline strings; data-reader exports enable shared-string planning by default.
+        /// </summary>
         public bool UseSharedStrings { get; set; } = true;
 
         /// <summary>Excel date system used for temporal values.</summary>
         public ExcelDateSystem DateSystem { get; set; } = ExcelDateSystem.NineteenHundred;
+
+        /// <summary>
+        /// Named complete styles, copied and compiled before reading source rows or preparing the
+        /// destination. Styles cannot be registered during a row callback. Memory depends on the
+        /// declared catalog and columns, plus unique text when shared strings are enabled.
+        /// </summary>
+        public IReadOnlyDictionary<string, ExcelStyleDefinition>? Styles { get; set; }
+
+        /// <summary>
+        /// Optional declared style used as the default for each data row. Headers are excluded.
+        /// Row defaults override column defaults as complete styles, without merging properties.
+        /// </summary>
+        public string? DefaultRowStyle { get; set; }
+
+        /// <summary>
+        /// Declared defaults for 1-based columns within the exported schema. Column formatting
+        /// applies to the entire worksheet column, including headers and cells outside the data range.
+        /// </summary>
+        public IReadOnlyDictionary<int, string>? ColumnStyles { get; set; }
+
+        internal ExcelTabularStylePlan? StylePlan { get; set; }
     }
 }
