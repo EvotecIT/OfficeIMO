@@ -15,7 +15,7 @@ public sealed class PdfCompactToUnicodeCMapTests {
         var mapping = Assert.Single(cmap!.Mappings);
         Assert.Equal(expectedKey, mapping.Key);
         Assert.Equal("A", mapping.Value);
-        Assert.Equal("A", cmap.MapBytes(Convert.FromHexString(expectedKey)));
+        Assert.Equal("A", cmap.MapBytes(PdfTextString.DecodeHexBytes(expectedKey)));
 
         source = $"1 beginbfrange <{sourceCode}><{sourceCode}>[<0041><0042>] endbfrange";
         Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out cmap));
@@ -32,7 +32,7 @@ public sealed class PdfCompactToUnicodeCMapTests {
             string source = $"1 beginbfrange <{from}><{to}>{destinations} endbfrange";
             Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out ToUnicodeCMap? cmap));
             Assert.Equal(3, cmap!.MappingCount);
-            Assert.Equal("ABC", cmap.MapBytes(Convert.FromHexString(sourceHex)));
+            Assert.Equal("ABC", cmap.MapBytes(PdfTextString.DecodeHexBytes(sourceHex)));
         }
     }
 

@@ -19,7 +19,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         PowerPointShape inherited = CreateSoundConsumer(presentation, master, table);
         OpenXmlPart owner = Owner(presentation.Slides[0], master);
         byte[] original = SoundWave(), replacement = SoundWave();
-        replacement[^1] = 0x70;
+        replacement[replacement.Length - 1] = 0x70;
         SetSound(inherited, original);
         SetSound(inherited, replacement);
         Assert.Single(owner.DataPartReferenceRelationships.OfType<AudioReferenceRelationship>());
