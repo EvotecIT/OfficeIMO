@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace OfficeIMO.Drawing;
 
 /// <summary>Finds locally cached Office fonts without downloading or installing them.</summary>
-internal static class OfficeCloudFontFiles {
+internal static partial class OfficeCloudFontFiles {
     /// <summary>Finds existing versioned cache roots beneath the current user's local application data.</summary>
     internal static IEnumerable<string> GetRoots() {
         string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -30,24 +29,27 @@ internal static class OfficeCloudFontFiles {
     }
 
     internal static IEnumerable<string> EnumerateFamilyFiles(string cloudRoot, string normalizedFamilyKey) {
+        bool matchedFolder = false;
         foreach (string family in EnumerateChildren(cloudRoot, directories: true, maximum: 512)) {
             if (!string.Equals(FamilyKey(Path.GetFileName(family)), normalizedFamilyKey, StringComparison.Ordinal)) continue;
+            matchedFolder = true;
             // Office cache filenames can be numeric. The folder supplies a
             // candidate hint; the font loader must still validate its family.
-            foreach (string file in EnumerateChildren(family, directories: false, maximum: 128)) {
-                string extension = Path.GetExtension(file);
-                if (string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase)) yield return file;
-            }
+            foreach (string file in EnumerateFontFiles(family)) yield return file;
+        }
+        if (!matchedFolder) foreach (string file in GetAliasFiles(cloudRoot, normalizedFamilyKey)) yield return file;
+    }
+
+    private static IEnumerable<string> EnumerateFontFiles(string family) {
+        foreach (string file in EnumerateChildren(family, directories: false, maximum: 128)) {
+            string extension = Path.GetExtension(file);
+            if (string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase)) yield return file;
         }
     }
 
-    private static string FamilyKey(string value) {
-        var result = new StringBuilder(value.Length);
-        foreach (char c in value) if (char.IsLetterOrDigit(c)) result.Append(char.ToLowerInvariant(c));
-        return result.ToString();
-    }
+    private static string FamilyKey(string value) => OfficeFontNameMetadata.FamilyKey(value);
 
     private static bool IsOrdinaryDirectory(string path) {
         try {

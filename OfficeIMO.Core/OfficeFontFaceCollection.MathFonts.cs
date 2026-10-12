@@ -57,7 +57,7 @@ public sealed partial class OfficeFontFaceCollection {
             List<OfficeFontFace>? retained = null;
             if (nativeSelection) _installedMathCffSources.TryGetValue(path, out retained);
             byte[]? data = retained != null ? retained[0].DataSnapshot
-                : ReadInstalledMathFont(path, maximumDecodedBytes, maximumSourceBytes, cancellationToken, out error);
+                : ReadInstalledCffFont(path, maximumDecodedBytes, maximumSourceBytes, cancellationToken, out error);
             if (data == null) {
                 if (error != null) return false;
                 continue;
@@ -96,7 +96,7 @@ public sealed partial class OfficeFontFaceCollection {
         return false;
     }
 
-    private static byte[]? ReadInstalledMathFont(string path, int maximumDecodedBytes,
+    private static byte[]? ReadInstalledCffFont(string path, int maximumDecodedBytes,
         long maximumSourceBytes, CancellationToken cancellationToken, out string? error) {
         error = null;
         try {

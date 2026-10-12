@@ -18,7 +18,17 @@ public sealed partial class OfficeFontFaceCollection {
             requested, maximumDecodedBytes, maximumSourceBytes, cancellationToken, out decodedBytes, out error);
         OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamilyForText(familyName, requested, null, out _);
         cancellationToken.ThrowIfCancellationRequested();
-        if (font == null) return false;
+        if (font == null) {
+            foreach (string family in OfficeSystemFontFamilyAliases.Expand(familyName)) {
+                if (TryAddInstalledCffFamily(family, requested, OfficeTrueTypeFont.CandidateFamilyPaths(family),
+                        maximumDecodedBytes, maximumSourceBytes, cancellationToken, out decodedBytes, out error)) {
+                    if (!string.Equals(family, familyName, StringComparison.OrdinalIgnoreCase)) AddAlias(familyName, family);
+                    return true;
+                }
+                if (error != null) return false;
+            }
+            return false;
+        }
         bool isGenericAlias = OfficeSystemFontFamilyAliases.IsSystemUi(familyName);
         bool nativeSelection = FontProgramProvider == null && FontVariationResolver == null;
         string sourceKey = font.Fingerprint + "#" + requested.Weight + "#" + requested.Slant;

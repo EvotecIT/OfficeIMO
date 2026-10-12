@@ -205,7 +205,9 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static bool TryReadSystemFontFace(string path, byte[] data, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) {
         candidate = null;
         try {
-            _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
+            if (data.Length >= 4 && data[0] == 'O' && data[1] == 'T' && data[2] == 'T' && data[3] == 'O')
+                _ = PdfFontProgramCache.GetOpenTypeCff(data, fontNameOverride: null);
+            else _ = PdfFontProgramCache.GetTrueType(data, fontNameOverride: null);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata, out bool nameTableAbsent) && metadata != null) {
                 int familyScore = GetMetadataFamilyMatchScore(metadata, normalizedMetadataFamily);
                 if (familyScore >= 0) {
@@ -540,6 +542,7 @@ public sealed partial class PdfEmbeddedFontFamily {
 
                     string extension = System.IO.Path.GetExtension(file);
                     if (string.Equals(extension, ".ttf", System.StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".otf", System.StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(extension, ".ttc", System.StringComparison.OrdinalIgnoreCase)) {
                         yield return file;
                     }
