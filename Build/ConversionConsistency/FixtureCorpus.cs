@@ -64,7 +64,8 @@ internal static partial class FixtureCorpus {
         }
         section.Save(Path.Combine(output, "service-review.one"));
         var cases = new List<ConsistencyCase>();
-        foreach (var item in new[] { ("docx",816,1056), ("odt",816,1056), ("xlsx",304,96), ("ods",304,96), ("pptx",480,320), ("odp",480,320), ("one",816,1056) }) {
+        // Stored widths already include column padding: (28 + 14) * 7 = 294px.
+        foreach (var item in new[] { ("docx",816,1056), ("odt",816,1056), ("xlsx",294,96), ("ods",294,96), ("pptx",480,320), ("odp",480,320), ("one",816,1056) }) {
             cases.Add(new ConsistencyCase {
                 Id = "native-" + item.Item1, Format = item.Item1,
                 Source = Path.GetRelativePath(repository, Path.Combine(output, "service-review." + item.Item1)).Replace('\\','/'),
@@ -89,9 +90,9 @@ internal static partial class FixtureCorpus {
                     PdfWidth = item.Item1 is "xlsx" or "ods" ? 816 : null,
                     PdfHeight = item.Item1 is "xlsx" or "ods" ? 1056 : null,
                     SvgTextPositions = item.Item1 is "xlsx" or "ods" ? new() {
-                        new("SERVICE REVIEW " + number, 3, 27.74, 0.1),
-                        new("Availability", 3, 59.74, 0.1),
-                        new("Completed", 3, 91.74, 0.1)
+                        new("SERVICE REVIEW " + number, 8, 27.74, 0.1),
+                        new("Availability", 8, 59.74, 0.1),
+                        new("Completed", 8, 91.74, 0.1)
                     } : new(),
                     Text = new() { "SERVICE REVIEW " + number }
                 }).ToList()
