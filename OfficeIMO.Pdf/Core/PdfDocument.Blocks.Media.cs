@@ -187,7 +187,6 @@ public sealed partial class PdfDocument {
                 throw new System.ArgumentException("Path shapes require commands starting with MoveTo.", nameof(shape));
             }
 
-            bool hasDraw = false;
             for (int i = 0; i < shape.PathCommands.Count; i++) {
                 var command = shape.PathCommands[i];
                 switch (command.Kind) {
@@ -196,18 +195,15 @@ public sealed partial class PdfDocument {
                         break;
                     case OfficePathCommandKind.LineTo:
                         ValidatePointInsideShape(command.Point, shape);
-                        hasDraw = true;
                         break;
                     case OfficePathCommandKind.QuadraticBezierTo:
                         ValidatePointInsideShape(command.ControlPoint1, shape);
                         ValidatePointInsideShape(command.Point, shape);
-                        hasDraw = true;
                         break;
                     case OfficePathCommandKind.CubicBezierTo:
                         ValidatePointInsideShape(command.ControlPoint1, shape);
                         ValidatePointInsideShape(command.ControlPoint2, shape);
                         ValidatePointInsideShape(command.Point, shape);
-                        hasDraw = true;
                         break;
                     case OfficePathCommandKind.Close:
                         break;
@@ -216,9 +212,6 @@ public sealed partial class PdfDocument {
                 }
             }
 
-            if (!hasDraw) {
-                throw new System.ArgumentException("Path shapes require at least one drawing command.", nameof(shape));
-            }
         }
 
         PdfDrawingStyle? drawingStyle = CreateDrawingStyle(align, spacingBefore, spacingAfter, style, "Shape");

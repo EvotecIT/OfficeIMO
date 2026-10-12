@@ -7,11 +7,12 @@ namespace OfficeIMO.Publisher.Tests;
 // codec contract; they are not independently produced Publisher documents.
 internal static class PublisherDrawingFixture {
     internal static byte[] Mutate(Dictionary<ushort, uint> values, int shapeType,
-        Dictionary<ushort, byte[]>? complexValues = null, string fixture = "Simple.pub", uint objectId = 293) =>
-        Mutate(File.ReadAllBytes(PublisherNativeTests.Fixture(fixture)), values, shapeType, complexValues, objectId);
+        Dictionary<ushort, byte[]>? complexValues = null, string fixture = "Simple.pub", uint objectId = 293,
+        bool arrayLengthsExcludeHeader = false) =>
+        Mutate(File.ReadAllBytes(PublisherNativeTests.Fixture(fixture)), values, shapeType, complexValues, objectId, arrayLengthsExcludeHeader);
 
     internal static byte[] Mutate(byte[] publication, Dictionary<ushort, uint> values, int shapeType,
-        Dictionary<ushort, byte[]>? complexValues = null, uint objectId = 293) {
+        Dictionary<ushort, byte[]>? complexValues = null, uint objectId = 293, bool arrayLengthsExcludeHeader = false) {
         Assert.True(OfficeCompoundFileReader.TryRead(publication,
             out OfficeCompoundFile? source, out string? error), error);
         bool found = false;
@@ -26,7 +27,7 @@ internal static class PublisherDrawingFixture {
                         int length = checked((int)BitConverter.ToUInt32(bytes, client + 4));
                         if (BitConverter.ToUInt16(bytes, client + 2) == 0xF011 && length == 10
                             && BitConverter.ToUInt32(bytes, client + 14) == objectId) {
-                            found = true; body = RewriteShape(bytes, content, boundary, values, shapeType, complexValues); break;
+                            found = true; body = RewriteShape(bytes, content, boundary, values, shapeType, complexValues, arrayLengthsExcludeHeader); break;
                         }
                         client += 8 + length;
                     }
@@ -44,7 +45,7 @@ internal static class PublisherDrawingFixture {
     }
 
     private static byte[] RewriteShape(byte[] bytes, int start, int end, Dictionary<ushort, uint> values,
-        int shapeType, Dictionary<ushort, byte[]>? complexValues) {
+        int shapeType, Dictionary<ushort, byte[]>? complexValues, bool arrayLengthsExcludeHeader) {
         using var output = new MemoryStream(); using var writer = new BinaryWriter(output);
         bool wroteProperties = false;
         for (int offset = start; offset < end;) {
@@ -58,7 +59,9 @@ internal static class PublisherDrawingFixture {
                     .Select(item => (Op: item.RawOperationId, Value: item.Value, Data: item.CopyComplexData())).ToList();
                 entries.AddRange(values.Select(item => (item.Key, item.Value, (byte[]?)null)));
                 if (complexValues != null)
-                    entries.AddRange(complexValues.Select(item => ((ushort)(item.Key | 0x8000), (uint)item.Value.Length, (byte[]?)item.Value)));
+                    entries.AddRange(complexValues.Select(item => ((ushort)(item.Key | 0x8000),
+                        (uint)(item.Value.Length - (arrayLengthsExcludeHeader && item.Key is 0x145 or 0x146 or 0x197 ? 6 : 0)),
+                        (byte[]?)item.Value)));
                 entries = entries.OrderBy(item => item.Op & 0x3FFF).ToList();
                 using var data = new MemoryStream(); using var properties = new BinaryWriter(data);
                 foreach (var entry in entries) { properties.Write(entry.Op); properties.Write(entry.Value); }

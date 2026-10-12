@@ -1,7 +1,7 @@
 # Publisher support contract
 
 OfficeIMO.Publisher is a native read-and-convert library. Its public model owns
-publication pages, master definitions, styled source stories, embedded assets
+publication pages, master definitions, styled source stories, native table grids, embedded assets
 and a recovery report. Shared `OfficeDrawing` owns the reconstructed visual scene;
 the optional PDF package consumes that scene without another native decoder.
 
@@ -29,13 +29,14 @@ references do not report missing images.
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
-| Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
+| Tables | `PublisherPage.Tables` exposes native tracks, spans, styled paragraphs, text and placement; master tables remain on their owner | Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
+| Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Guide references, advanced commands and separate paint groups retain an explicit fallback; shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; marker shadows and decorations on unsupported open geometry are omitted with diagnostics |
 | Groups | Native child coordinate spaces, non-uniform scale after child rotation, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
-| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder |
+| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
@@ -45,11 +46,22 @@ file batches and document previews. Source recovery diagnostics survive output
 publication and checkpoint reuse. Strict acceptance and resource-limit failures
 preserve existing destinations.
 
-`OfficeIMO.Reader.Publisher` projects complete stories once, native bullet
-markers, physical page inventory and optional original image bytes. It carries
-native losses into Reader diagnostics. Its semantic output omits table structure,
-typography and page placement explicitly; paragraph locations do not claim
-physical pages. The same adapter is included in `OfficeIMO.Reader.All`.
+`OfficeIMO.Reader.Publisher` projects complete stories once, mapped native table
+rows, bullet markers, physical page inventory and optional original image bytes.
+Ordinary stories use paragraph blocks; mapped table stories use one complete
+table block alongside their structured rows and native page citation. Generic
+column names preserve the first row as data. Merged spans flatten to one anchor
+value with approximation evidence; row limits retain total counts and omission
+reports. Master tables are extracted once without a physical-page citation and
+use document-wide export ordinals. Repeated objects sharing a story retain
+distinct table anchors; the complete story correlates with its first mapped table.
+Shared-story chunks carry a page citation only when all occurrences agree,
+preserving each table's native citation during extraction and JSON transport.
+Unresolved cell text remains in complete stories rather than an empty dataset.
+Native losses survive Reader transport and semantic PDF projection, which
+correlates table blocks and rows to avoid repeated text. Typography, page artwork
+and frame flow remain explicitly omitted from the semantic projection. The same
+adapter is included in `OfficeIMO.Reader.All`.
 
 Source object counts measure recovered descriptors and distinct projected
 objects. They do not measure pixel fidelity or prove that all content of an
@@ -87,6 +99,12 @@ cancellation and caller stream ownership. The native newsletter exercises ten
 linked stories, including chains whose object order differs from story order,
 and declared picture exclusions. Multi-column property and malformed-link
 mutations protect the native codec boundary; they are synthetic evidence.
+The table sample exposes six distinct cells through the native public model and
+Reader rows. Cell-span, missing-text-map and master-ownership mutations protect
+merged geometry, explicit unresolved text, and single-owner extraction. Reader
+checks cover generic headers, row limits, canonical table views, CSV output, JSON
+transport and semantic PDF text deduplication. These mutations do not qualify
+individual cell styling or Publisher-rendered table appearance.
 Group rotation/reflection mutations verify text-frame corners, picture placement,
 hidden-child wrapping and scene copying. A reflected picture starting above the
 page retains its pixels through the group transform and final page clip.
@@ -98,6 +116,22 @@ dash order and spacing, all five supported marker kinds, disabled strokes,
 unknown values and scene copying. SVG, raster and PDF retain open arrows as
 outlines and other markers as filled geometry. Marker dimensions and native dash
 rendering remain unqualified against Publisher-produced output.
+Custom-path record mutations check coordinate offsets, compact vertices,
+line/cubic command consumption, subpaths, paint controls, malformed arrays,
+and counted AutoLine, CornerLine, AutoCurve, CornerCurve and SymmetricCurve
+editing runs. Zero-count joint markers remain inert. Nonzero SmoothLine,
+SmoothCurve, SymmetricLine and Freeform runs retain an unsupported-command
+fallback; their drawing semantics remain unqualified. These record checks cover
+guide/command fallback reports and inset picture masks. One-point and move-only
+paths retain empty geometry and empty picture masks rather than revealing the
+unmasked image. High-coordinate
+shape/mask checks retain the full unsigned compact range;
+eight-byte coordinates retain signed negative values. Shared array decoding
+preserves following complex properties when native lengths exclude their
+six-byte headers, including empty arrays. Cumulative limits account for decoded vertices/segments,
+expanded commands and copied shape/mask paths. The producer corpus has no custom
+paths; these managed scene and SVG/raster/PDF checks do not establish native
+Publisher winding or mask fidelity.
 Native linear-fill mutations check physical and aspect-scaled angles, positive
 and negative focus, reversed ramps, duplicate color positions, transparency,
 fill-use masks and picture layering. Foreground/background opacity uses a
@@ -155,7 +189,8 @@ caller-configurable, reject oversized input and also account for repeated
 projection work. The input byte ceiling also bounds cumulative encoded image
 processing, and unavailable image-store entries consume the item ceiling.
 The item ceiling also bounds cumulative projected gradient-stop work, including
-focus expansion and repeated master-page projection. A native color-stop table
+focus expansion and repeated master-page projection, and recovered table tracks
+and cells. Copied table text consumes a cumulative text ceiling. A native color-stop table
 supports at most 256 entries; malformed or larger tables retain primary paint
 with an invalid-gradient diagnostic.
 Delayed decoding is cached and cancellation is checked between image entries.

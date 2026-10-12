@@ -31,6 +31,8 @@ internal static partial class PdfWriter {
         bool preserveWhitespace = whitespaceMode != PdfTextWhitespaceMode.Collapse;
         bool preformattedWhitespace = whitespaceMode == PdfTextWhitespaceMode.Preformatted;
         System.Collections.Generic.IReadOnlyList<PdfTextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
+        var runKerning = new RichRunKerning(options);
+        PdfTextRun? currentTextRun = null;
         var wordContinuations = MeasureRichWordContinuations(effectiveRuns, baseFont, fontSize, options);
         PdfTabStop[]? explicitTabStops = NormalizeExplicitTabStops(tabStops);
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new RichLine() };
@@ -43,6 +45,7 @@ internal static partial class PdfWriter {
         RichSeg? pendingTabSourceStyle = null;
         int pendingTabSourceLine = -1;
         bool pendingLeadingSeparator = false;
+        bool oversizedWordContinuation = false;
         OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
         PdfColor? pendingLeadingDecorationColor = null;
         double pendingLeadingDecorationFontSize = 0;
@@ -54,16 +57,17 @@ internal static partial class PdfWriter {
         PdfTabStop? pendingLeadingTabStop = null;
         int nextExplicitTabStopIndex = 0;
         double lineHeightRatio = fontSize > 0 ? lineHeight / fontSize : 1.2D;
-        double RunLineHeight(double size) => lineSpacing?.GetAdvance(size) ?? size * lineHeightRatio;
+        bool currentRunContributesDescent = true;
+        double RunLineHeight(double size) => currentRunContributesDescent
+            ? lineSpacing?.GetAdvance(size) ?? size * lineHeightRatio : 0D;
         double completedHeight = 0;
         double currentContentHeight = lineHeight;
-        var currentFrame = lineLayout?.Invoke(0, completedHeight, lineHeight, 0);
-        double currentLineHeight = Math.Max(lineHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
         double currentMinimumWidth = 0;
         PdfNamedFontFace? currentRunNamedFont = null;
         double currentRunAscent = 0;
         double currentRunDescent = 0;
         double currentLineTextAscent = 0;
+        double currentLineBodyTextAscent = 0;
         double currentLineTextDescent = 0;
         double currentLineInlineAscent = 0;
         double currentLineInlineDescent = 0;
@@ -76,6 +80,8 @@ internal static partial class PdfWriter {
         PdfColor? currentRunUnderlineColor = null;
         double currentRunDecorationFontSize = 0;
         double currentRunDecorationTextRise = 0;
+        var currentFrame = lineLayout?.Invoke(0, completedHeight, CurrentFrameFitHeight(lineHeight, includeCurrentRun: false), 0);
+        double currentLineHeight = Math.Max(lineHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
         double CurrentMaxWidth() => currentFrame?.Width ?? (lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts);
         double CurrentLineOriginOffset() => currentFrame?.Origin ?? (lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D);
         void RegisterLineHeight(double runFontSize) {
@@ -91,6 +97,8 @@ internal static partial class PdfWriter {
             } else {
                 currentLineTextAscent = Math.Max(currentLineTextAscent, currentRunAscent);
                 currentLineTextDescent = Math.Max(currentLineTextDescent, currentRunDescent);
+                if (currentRunContributesDescent)
+                    currentLineBodyTextAscent = Math.Max(currentLineBodyTextAscent, currentRunAscent);
             }
             currentLineHasInline |= currentRunIsInline;
             currentLineHeight = Math.Max(currentLineHeight,
@@ -105,12 +113,13 @@ internal static partial class PdfWriter {
             lines.Add(new RichLine());
             lineWidth = 0;
             currentLineTextAscent = 0;
+            currentLineBodyTextAscent = 0;
             currentLineTextDescent = 0;
             currentLineInlineAscent = 0;
             currentLineInlineDescent = 0;
             currentLineHasInline = false;
             currentContentHeight = lineHeight;
-            currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, currentContentHeight, 0);
+            currentFrame = lineLayout?.Invoke(lines.Count - 1, completedHeight, CurrentFrameFitHeight(currentContentHeight, includeCurrentRun: false), 0);
             currentLineHeight = Math.Max(currentContentHeight, minimumLineHeight ?? 0) + (currentFrame?.Gap ?? 0);
             currentMinimumWidth = 0;
             nextExplicitTabStopIndex = 0;
@@ -126,15 +135,15 @@ internal static partial class PdfWriter {
             var oldFrame = currentFrame;
             double height = lines[lines.Count - 1].Count == 0 ? currentContentHeight : Math.Max(oldHeight, contentHeight);
             double requiredWidth = Math.Max(currentMinimumWidth, minimumWidth);
-            var frame = lineLayout(lines.Count - 1, completedHeight, height, requiredWidth);
+            var frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height), requiredWidth);
             if (lines[lines.Count - 1].Count > 0 &&
                 (lineWidth > frame.Width + 0.001 || minimumWidth > 0 && frame.Gap > (oldFrame?.Gap ?? 0) + 0.001)) {
-                lineLayout(lines.Count - 1, completedHeight, oldHeight, currentMinimumWidth);
+                lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(oldHeight, includeCurrentRun: false), currentMinimumWidth);
                 currentFrame = oldFrame;
                 StartNewLine();
                 height = Math.Max(lineHeight, CombinedContentHeight(incomingContentHeight));
                 requiredWidth = minimumWidth;
-                frame = lineLayout(lines.Count - 1, completedHeight, height, requiredWidth);
+                frame = lineLayout(lines.Count - 1, completedHeight, CurrentFrameFitHeight(height), requiredWidth);
             }
             currentFrame = frame;
             currentMinimumWidth = requiredWidth;
@@ -148,6 +157,8 @@ internal static partial class PdfWriter {
                 includeCurrentRun && !currentRunIsInline ? currentRunAscent : 0);
             double textDescent = Math.Max(currentLineTextDescent,
                 includeCurrentRun && !currentRunIsInline ? currentRunDescent : 0);
+            double bodyAscent = Math.Max(currentLineBodyTextAscent,
+                includeCurrentRun && !currentRunIsInline && currentRunContributesDescent ? currentRunAscent : 0);
             double inlineAscent = Math.Max(currentLineInlineAscent,
                 includeCurrentRun && currentRunIsInline ? currentRunAscent : 0);
             double inlineDescent = Math.Max(currentLineInlineDescent,
@@ -156,16 +167,45 @@ internal static partial class PdfWriter {
             if (lineSpacing?.FontLineBoxMultiplier is not double natural)
                 return hasInline ? Math.Max(contentHeight, combined) : contentHeight;
 
+            if (lineSpacing.LineGridPitch.HasValue)
+                return System.Math.Max(contentHeight, lineSpacing.GetGridAdvance(combined));
+
             // Imported spacing scales the visible fonts' natural advance.
             // Horizontal list spacers must not suppress that multiplier.
             double textAdvance = textAscent + textDescent;
+            // Multiple spacing scales body metrics. A label's additional ascent
+            // still enlarges the first line, without multiplying that excess.
             if (lineSpacing.Rule == PdfLineSpacingRule.Multiple)
-                textAdvance *= lineSpacing.Value / natural;
+                textAdvance = bodyAscent == 0D && textDescent == 0D ? 0D
+                    : (bodyAscent + textDescent) * lineSpacing.Value / natural
+                        + Math.Max(0D, textAscent - bodyAscent);
             contentHeight = Math.Max(contentHeight, textAdvance);
             // Inline objects retain their unscaled bounds when they extend
             // beyond the text line box; a spacer inside it adds no height.
             return hasInline && (inlineAscent > textAscent || inlineDescent > textDescent)
                 ? Math.Max(contentHeight, combined) : contentHeight;
+        }
+
+        // Exclusions need the line's occupied box; completedHeight still carries
+        // its full advance so subsequent baselines retain the authored spacing.
+        double CurrentFrameFitHeight(double advance, bool includeCurrentRun = true) {
+            if (lineSpacing?.FontLineBoxMultiplier is not double natural || lineSpacing.Rule != PdfLineSpacingRule.Multiple)
+                return advance;
+            double textAscent = Math.Max(currentLineTextAscent, includeCurrentRun && !currentRunIsInline ? currentRunAscent : 0D);
+            double bodyAscent = Math.Max(currentLineBodyTextAscent,
+                includeCurrentRun && !currentRunIsInline && currentRunContributesDescent ? currentRunAscent : 0D);
+            double textDescent = Math.Max(currentLineTextDescent, includeCurrentRun && !currentRunIsInline ? currentRunDescent : 0D);
+            double inlineAscent = Math.Max(currentLineInlineAscent, includeCurrentRun && currentRunIsInline ? currentRunAscent : 0D);
+            double inlineDescent = Math.Max(currentLineInlineDescent, includeCurrentRun && currentRunIsInline ? currentRunDescent : 0D);
+            double ascent = Math.Max(textAscent, inlineAscent), descent = Math.Max(textDescent, inlineDescent);
+            if (ascent == 0D && descent == 0D) {
+                GetRichRunLineMetrics(baseFont, null, fontSize, PdfTextBaseline.Normal, options, lineSpacing, out ascent, out descent);
+                bodyAscent = ascent;
+            }
+            if (lineSpacing.LineGridPitch.HasValue)
+                ascent += lineSpacing.GetGridBaselineExpansion(ascent + descent);
+            else ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, lineSpacing.Value / natural)));
+            return Math.Min(advance, Math.Max(0D, ascent + descent));
         }
 
         PdfTabStop? ResolveNextExplicitTabStop() {
@@ -227,6 +267,7 @@ internal static partial class PdfWriter {
         }
 
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
+            oversizedWordContinuation = false;
             pendingLeadingSeparator = true;
             if (!hadTab) {
                 if (preserveWhitespace && pendingLeadingIsTab && pendingTabSourceStyle != null)
@@ -285,6 +326,7 @@ internal static partial class PdfWriter {
 
         for (int runIndex = 0; runIndex < effectiveRuns.Count; runIndex++) {
             PdfTextRun run = effectiveRuns[runIndex];
+            currentTextRun = run;
             string text = (run.Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
             bool bold = run.Bold;
             bool underline = run.Underline;
@@ -315,9 +357,21 @@ internal static partial class PdfWriter {
                 ? resolvedNamedFont
                 : null;
             double runFontSize = run.FontSize ?? fontSize;
+            currentRunContributesDescent = run.ContributesLineBoxDescent;
             currentRunIsInline = run.InlineElement != null;
             GetRichRunLineMetrics(fontForRun, currentRunNamedFont, runFontSize, baseline, options, lineSpacing,
                 out currentRunAscent, out currentRunDescent);
+            if (!currentRunContributesDescent) currentRunDescent = 0D;
+            if (run.IsLineBoxStrut) {
+                // An empty numbered paragraph still has its body-font paragraph
+                // mark. It contributes metrics without adding ink or text advance.
+                PrepareLineFrame(RunLineHeight(runFontSize));
+                lines[lines.Count - 1].Add(new RichSeg(string.Empty, bold, italic, false, false,
+                    null, null, null, null, null, fontForRun, runFontSize, baseline, 0D,
+                    namedFont: currentRunNamedFont, isLineBoxStrut: true));
+                RegisterLineHeight(runFontSize);
+                continue;
+            }
             double spaceW = text.IndexOfAny(SoftLineSplitChars) >= 0
                 ? MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
                 : 0D;
@@ -329,8 +383,9 @@ internal static partial class PdfWriter {
                 textDirection: run.TextDirection, leadingUnderlineStyle: currentRunUnderlineStyle,
                 leadingDecorationColor: currentRunUnderlineColor, leadingDecorationFontSize: currentRunDecorationFontSize,
                 leadingDecorationTextRise: currentRunDecorationTextRise,
-                horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing) : null;
+                horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent) : null;
             if (run.InlineElement != null) {
+                oversizedWordContinuation = false;
                 PdfInlineElement inlineElement = run.InlineElement;
                 currentRunAscent = Math.Max(0D, inlineElement.BaselineOffset + inlineElement.Height);
                 currentRunDescent = Math.Max(0D, -inlineElement.BaselineOffset);
@@ -401,7 +456,7 @@ internal static partial class PdfWriter {
                     underlineStyle: underlineStyle,
                     strikeStyle: strikeStyle,
                     decorationColor: currentRunDecorationColor,
-                    featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing,
+                    featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent,
                     leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null,
                     leadingUnderlineStyle: leadingAdvance > 0D ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
                     leadingDecorationColor: pendingLeadingDecorationColor,
@@ -426,7 +481,10 @@ internal static partial class PdfWriter {
                 }
                 double tokenW = MeasureRichText(token, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
                 var continuation = nextWs < 0 && runIndex + 1 < effectiveRuns.Count ? wordContinuations[runIndex + 1] : default;
+                RichSeg tokenProbe = CreateRunKerningProbe(token, run, baseFont, fontSize, options);
                 double wordWidth = tokenW + continuation.Width;
+                if (!oversizedWordContinuation && continuation.HasKerning)
+                    wordWidth += runKerning.MeasureWordAdjustment(tokenProbe, continuation.Parts);
                 double wordFontSize = Math.Max(runFontSize, continuation.FontSize);
                 if (token.Length > 0) PrepareLineFrame(RunLineHeight(wordFontSize),
                     continuation.Width > 0D && wordWidth <= maxWidthPts ? wordWidth : 0D);
@@ -448,6 +506,9 @@ internal static partial class PdfWriter {
                             if (!preformattedWhitespace && CurrentMaxWidth() <= 0.001D) break;
                             StartNewLine();
                             PrepareLineFrame(RunLineHeight(runFontSize));
+                            // Flow separators that overflow a completed line do
+                            // not become indentation on its continuation.
+                            if (!preformattedWhitespace) break;
                             available = CurrentMaxWidth();
                             if (available <= 0.001D) {
                                 if (!preformattedWhitespace) break;
@@ -476,6 +537,7 @@ internal static partial class PdfWriter {
                         color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline,
                         Math.Max(0D, currentMaxWidth - lineWidth))) {
                     if (hadNewline) {
+                        oversizedWordContinuation = false;
                         MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                         StartNewLine();
                         ResetPendingLeading();
@@ -485,11 +547,16 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
-                if (tokenW > currentMaxWidth) {
-                    if (lastLine.Count > 0) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
+                bool continuesOversizedWord = oversizedWordContinuation && !pendingLeadingSeparator && lastLine.Count > 0;
+                oversizedWordContinuation |= wordWidth > Math.Min(currentMaxWidth, maxWidthPts) + RichTextWidthTolerance;
+                double continuationBoundary = continuesOversizedWord ? runKerning.MeasureBoundary(lastLine, tokenProbe) : 0D;
+                if (tokenW > currentMaxWidth + RichTextWidthTolerance ||
+                    continuesOversizedWord && lineWidth + tokenW + continuationBoundary > currentMaxWidth + RichTextWidthTolerance) {
+                    if (lastLine.Count > 0 && !continuesOversizedWord) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     ResetPendingLeading();
                     if (TryAppendSoftLineBreakLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
+                        oversizedWordContinuation = false;
                             MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
@@ -502,6 +569,7 @@ internal static partial class PdfWriter {
 
                     if (TryAppendDelimitedLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
+                        oversizedWordContinuation = false;
                             MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
@@ -514,6 +582,7 @@ internal static partial class PdfWriter {
 
                     if (TryAppendHyphenatedLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
+                        oversizedWordContinuation = false;
                             MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
@@ -526,6 +595,7 @@ internal static partial class PdfWriter {
 
                     if (TryAppendMultilingualLongToken(token, bold, italic, underline, strike, underlineStyle, strikeStyle, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
+                        oversizedWordContinuation = false;
                             MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                             StartNewLine();
                             ResetPendingLeading();
@@ -537,40 +607,52 @@ internal static partial class PdfWriter {
                     }
 
                     int pos = 0;
+                    bool measureKernedChunks = currentRunFeatureSettings.TryGetValue("kern", out int chunkKerning) && chunkKerning > 0
+                        && (options?.TextShapingProviderSnapshot == null || ReferenceEquals(options.TextShapingProviderSnapshot, OfficeManagedTextShapingProvider.Instance))
+                        && !OfficeManagedTextShaper.RequiresComplexLayout(token);
                     while (pos < token.Length) {
                         int take = 0;
                         double chunkW = 0;
                         PrepareLineFrame(RunLineHeight(runFontSize));
                         currentMaxWidth = CurrentMaxWidth();
+                        double availableChunkWidth = currentMaxWidth - lineWidth;
                         while (pos + take < token.Length) {
                             int scalarLength = GetScalarUtf16Length(token, pos + take);
-                            string scalar = token.Substring(pos + take, scalarLength);
-                            double charW = MeasureRichText(scalar, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-                            if (take > 0 && chunkW + charW > currentMaxWidth) {
+                            double candidateWidth = measureKernedChunks
+                                ? MeasureRichText(token.Substring(pos, take + scalarLength), fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
+                                : chunkW + MeasureRichText(token.Substring(pos + take, scalarLength), fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+                            candidateWidth += runKerning.MeasureBoundary(lastLine,
+                                CreateRunKerningProbe(token.Substring(pos, take + scalarLength), run, baseFont, fontSize, options));
+                            if ((take > 0 || lastLine.Count > 0) && candidateWidth > availableChunkWidth + RichTextWidthTolerance) {
                                 break;
                             }
 
-                            chunkW += charW;
+                            chunkW = candidateWidth;
                             take += scalarLength;
-                            if (chunkW >= currentMaxWidth) {
+                            if (chunkW >= availableChunkWidth) {
                                 break;
                             }
                         }
 
                         if (take == 0) {
+                            if (lastLine.Count > 0) {
+                                StartNewLine(); lastLine = lines[lines.Count - 1];
+                                continue;
+                            }
                             take = GetScalarUtf16Length(token, pos);
                             chunkW = MeasureRichText(token.Substring(pos, take), fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
                         }
 
                         string chunk = token.Substring(pos, take);
                         double measuredChunkWidth = MeasureRichText(chunk, fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-                        lastLine.Add(new RichSeg(chunk, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, measuredChunkWidth, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing));
+                        lastLine.Add(new RichSeg(chunk, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, measuredChunkWidth, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent));
                         RegisterLineHeight(runFontSize);
                         lineWidth += chunkW;
                         pos += take;
                         if (pos < token.Length) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     }
                     if (hadNewline) {
+                        oversizedWordContinuation = false;
                         MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
                         StartNewLine();
                         ResetPendingLeading();
@@ -587,11 +669,13 @@ internal static partial class PdfWriter {
                 }
                 // Formatting boundaries do not introduce a word-break opportunity.
                 // Reserve the rest of a word spanning runs when it fits a fresh line.
-                double wrappingWidth = wordWidth <= Math.Min(currentMaxWidth, maxWidthPts) ? wordWidth : tokenW;
+                double wrappingWidth = !oversizedWordContinuation && wordWidth <= Math.Min(currentMaxWidth, maxWidthPts) + RichTextWidthTolerance ? wordWidth : tokenW;
+                double boundaryAdvance = !pendingLeadingSeparator && lastLine.Count > 0
+                    ? runKerning.MeasureBoundary(lastLine, tokenProbe) : 0D;
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab || preserveWhitespace ? pendingLeadingAdvance + wrappingWidth : wrappingWidth)
                     : pendingLeadingAdvance + wrappingWidth;
-                if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0
+                if (lineWidth + needed + boundaryAdvance > currentMaxWidth + RichTextWidthTolerance && lastLine.Count > 0
                     && (token.Length > 0 || whitespaceMode != PdfTextWhitespaceMode.Preserve)) {
                     if (pendingLeadingAdvance > 0D) {
                         MarkRichLineTextSeparator(lastLine);
@@ -619,14 +703,17 @@ internal static partial class PdfWriter {
                 if (token.Length > 0) {
                     bool needsLeadingSpace = pendingLeadingSeparator && (lineWidth != 0D || pendingLeadingIsTab || preserveWhitespace);
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
-                    double segmentWidth = tokenW + leadingAdvance;
+                    var currentLine = lines[lines.Count - 1];
+                    double segmentWidth = tokenW + leadingAdvance + (!pendingLeadingSeparator && currentLine.Count > 0
+                        ? runKerning.MeasureBoundary(currentLine, tokenProbe) : 0D);
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null, leadingUnderlineStyle: needsLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise, leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment, leadingSpaceCount: pendingLeadingSpaceCount));
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null, leadingUnderlineStyle: needsLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise, leadingIsTab: pendingLeadingIsTab, leadingTabAlignment: pendingLeadingTabAlignment, leadingSpaceCount: pendingLeadingSpaceCount));
                     RegisterLineHeight(runFontSize);
                     lineWidth += segmentWidth;
                     ResetPendingLeading();
                 }
                 if (hadNewline) {
+                    oversizedWordContinuation = false;
                     PrepareLineFrame(RunLineHeight(runFontSize));
                     RegisterLineHeight(runFontSize);
                     MarkCurrentLineHardBreak(CreateRichLineBreakSegment(run, fontForRun, runFontSize, currentRunNamedFont));
@@ -640,9 +727,30 @@ internal static partial class PdfWriter {
         }
         if (lines.Count > 0 && lines[lines.Count - 1].Count == 0) { lines.RemoveAt(lines.Count - 1); }
         if (heights.Count < lines.Count) heights.Add(currentLineHeight);
-        foreach (RichLine line in lines)
+        foreach (RichLine line in lines) {
+            runKerning.Apply(line);
             line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, lineSpacing);
+            if (lineSpacing?.FontLineBoxMultiplier != null && lineSpacing.Rule == PdfLineSpacingRule.Multiple)
+                line.FrameFitHeight = ResolveImportedLineFrameFitHeight(line, baseFont, fontSize, options, lineSpacing);
+        }
         return (lines, heights);
+
+        double MeasureLongTokenBoundary(string part) => runKerning.MeasureBoundary(lines[lines.Count - 1],
+            CreateRunKerningProbe(part, currentTextRun!, baseFont, fontSize, options));
+
+        List<PdfTextTokenChunk>? PlanLongTokenChunks(string token, int[] breakpoints,
+            Func<string, double> measure, bool allowFinalOverflow = false, bool appendHyphen = false,
+            double? firstChunkWidth = null) {
+            double available = firstChunkWidth ?? Math.Max(0D, CurrentMaxWidth() - lineWidth);
+            var chunks = TryBuildTokenChunks(token, breakpoints, measure, available, maxWidthPts,
+                allowFinalOverflow, part => measure(part) + MeasureLongTokenBoundary(part), appendHyphen, allowSingleChunk: true);
+            if (chunks == null && lines[lines.Count - 1].Count > 0) {
+                chunks = TryBuildTokenChunks(token, breakpoints, measure, maxWidthPts, maxWidthPts,
+                    allowFinalOverflow, appendHyphen: appendHyphen, allowSingleChunk: true);
+                if (chunks != null) StartNewLine();
+            }
+            return chunks;
+        }
 
         bool TryAppendSoftLineBreakLongToken(
             string token,
@@ -660,12 +768,9 @@ internal static partial class PdfWriter {
             PdfStandardFont font,
             double runFontSize,
             PdfTextBaseline baseline) {
-            var chunks = TryBuildSoftLineBreakTokenChunks(
-                token,
-                options,
-                part => MeasureRichText(part, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing),
-                CurrentMaxWidth(),
-                maxWidthPts);
+            var chunks = PlanLongTokenChunks(token, GetValidSoftLineBreakpoints(token, options),
+                part => MeasureRichText(part, font, currentRunNamedFont, runFontSize, baseline, options,
+                    currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing), allowFinalOverflow: true);
 
             if (chunks == null) {
                 return false;
@@ -674,9 +779,10 @@ internal static partial class PdfWriter {
             for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
                 PdfTextTokenChunk chunk = chunks[chunkIndex];
                 PrepareLineFrame(RunLineHeight(runFontSize), chunk.Width);
-                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, chunk.Width, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing));
+                double boundaryAdvance = MeasureLongTokenBoundary(chunk.Text);
+                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, chunk.Width, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent));
                 RegisterLineHeight(runFontSize);
-                lineWidth += chunk.Width;
+                lineWidth += chunk.Width + boundaryAdvance;
                 if (chunkIndex + 1 < chunks.Count) {
                     StartNewLine();
                 }
@@ -701,65 +807,20 @@ internal static partial class PdfWriter {
             PdfStandardFont font,
             double runFontSize,
             PdfTextBaseline baseline) {
-            int[] breakpoints = GetValidHyphenationBreakpoints(token, options);
-            if (breakpoints.Length == 0) {
-                return false;
-            }
-
-            int position = 0;
-            var plannedChunks = new System.Collections.Generic.List<(string Text, double Width)>();
-            while (position < token.Length) {
-                int selectedBreak = -1;
-                string selectedText = string.Empty;
-                double selectedWidth = 0D;
-                double maxWidthForChunk = plannedChunks.Count == 0 ? CurrentMaxWidth() : maxWidthPts;
-                int[] candidates = breakpoints
-                    .Where(point => point > position)
-                    .Concat(new[] { token.Length })
-                    .Distinct()
-                    .OrderBy(point => point)
-                    .ToArray();
-
-                foreach (int candidate in candidates) {
-                    bool finalChunk = candidate >= token.Length;
-                    string chunkText = token.Substring(position, candidate - position);
-                    if (!finalChunk) {
-                        chunkText += "-";
-                    }
-
-                    if (chunkText.Length == 0) {
-                        continue;
-                    }
-
-                    double chunkWidth = MeasureRichText(chunkText, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-                    if (chunkWidth <= maxWidthForChunk || selectedBreak < 0) {
-                        if (chunkWidth <= maxWidthForChunk) {
-                            selectedBreak = candidate;
-                            selectedText = chunkText;
-                            selectedWidth = chunkWidth;
-                        }
-                    }
-
-                    if (chunkWidth > maxWidthForChunk && selectedBreak >= 0) {
-                        break;
-                    }
-                }
-
-                if (selectedBreak <= position || selectedText.Length == 0) {
-                    return false;
-                }
-
-                plannedChunks.Add((selectedText, selectedWidth));
-                position = selectedBreak;
-            }
+            var plannedChunks = PlanLongTokenChunks(token, GetValidHyphenationBreakpoints(token, options),
+                part => MeasureRichText(part, font, currentRunNamedFont, runFontSize, baseline, options,
+                    currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing), appendHyphen: true);
+            if (plannedChunks == null) return false;
 
             for (int chunkIndex = 0; chunkIndex < plannedChunks.Count; chunkIndex++) {
-                (string selectedText, double selectedWidth) = plannedChunks[chunkIndex];
+                PdfTextTokenChunk planned = plannedChunks[chunkIndex];
+                string selectedText = planned.Text;
                 double measuredWidth = MeasureRichText(selectedText, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
                 PrepareLineFrame(RunLineHeight(runFontSize), measuredWidth);
-                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, measuredWidth, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing));
+                double boundaryAdvance = MeasureLongTokenBoundary(selectedText);
+                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, measuredWidth, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent));
                 RegisterLineHeight(runFontSize);
-                lineWidth += selectedWidth;
+                lineWidth += measuredWidth + boundaryAdvance;
                 if (chunkIndex < plannedChunks.Count - 1) {
                     StartNewLine();
                 }
@@ -790,12 +851,14 @@ internal static partial class PdfWriter {
             }
 
             int position = 0;
+            bool startOnFreshLine = false;
+            double firstAvailable = Math.Max(0D, CurrentMaxWidth() - lineWidth);
             var plannedChunks = new System.Collections.Generic.List<(string Text, double Width)>();
             while (position < token.Length) {
                 int selectedBreak = -1;
                 string selectedText = string.Empty;
                 double selectedWidth = 0D;
-                double maxWidthForChunk = plannedChunks.Count == 0 ? CurrentMaxWidth() : maxWidthPts;
+                double maxWidthForChunk = plannedChunks.Count == 0 && !startOnFreshLine ? firstAvailable : maxWidthPts;
                 if (TryPlanDelimiterBoundedWordGroup(maxWidthForChunk, out selectedText, out selectedWidth)) {
                     selectedBreak = position + selectedText.Length;
                     plannedChunks.Add((selectedText, selectedWidth));
@@ -816,7 +879,7 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    double chunkWidth = MeasureRichText(chunkText, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+                    double chunkWidth = MeasurePlannedChunk(chunkText);
                     if (chunkWidth <= maxWidthForChunk || selectedBreak < 0) {
                         if (chunkWidth <= maxWidthForChunk) {
                             selectedBreak = candidate;
@@ -838,6 +901,10 @@ internal static partial class PdfWriter {
 
                 if (selectedBreak <= position || selectedText.Length == 0) {
                     if (!TryPlanCharacterChunkToNextDelimiter(maxWidthForChunk, out selectedText, out selectedWidth)) {
+                        if (position == 0 && lineWidth > 0D && !startOnFreshLine) {
+                            startOnFreshLine = true;
+                            continue;
+                        }
                         return false;
                     }
 
@@ -848,19 +915,26 @@ internal static partial class PdfWriter {
                 position = selectedBreak;
             }
 
+            if (startOnFreshLine) StartNewLine();
             for (int chunkIndex = 0; chunkIndex < plannedChunks.Count; chunkIndex++) {
                 (string selectedText, double selectedWidth) = plannedChunks[chunkIndex];
                 double measuredWidth = MeasureRichText(selectedText, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
                 PrepareLineFrame(RunLineHeight(runFontSize), measuredWidth);
-                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, measuredWidth, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing));
+                double boundaryAdvance = MeasureLongTokenBoundary(selectedText);
+                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, measuredWidth, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent));
                 RegisterLineHeight(runFontSize);
-                lineWidth += selectedWidth;
+                lineWidth += measuredWidth + boundaryAdvance;
                 if (chunkIndex < plannedChunks.Count - 1) {
                     StartNewLine();
                 }
             }
 
             return true;
+
+            double MeasurePlannedChunk(string text) =>
+                MeasureRichText(text, font, currentRunNamedFont, runFontSize, baseline, options,
+                    currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
+                + (position == 0 && !startOnFreshLine ? MeasureLongTokenBoundary(text) : 0D);
 
             bool TryPlanDelimiterBoundedWordGroup(double maxWidthForChunk, out string selectedText, out double selectedWidth) {
                 selectedText = string.Empty;
@@ -886,7 +960,7 @@ internal static partial class PdfWriter {
                     return false;
                 }
 
-                double candidateWidth = MeasureRichText(candidate, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+                double candidateWidth = MeasurePlannedChunk(candidate);
                 if (candidateWidth <= maxWidthForChunk ||
                     CanKeepDelimitedWordSegmentOverSoftLimit(candidate, candidateWidth, maxWidthForChunk, allowBoundaryDelimiters: true)) {
                     selectedText = candidate;
@@ -908,7 +982,7 @@ internal static partial class PdfWriter {
                 if (segmentEnd < token.Length && segmentEnd > position + 1 && IsLongTokenDelimiterBreakChar(token[segmentEnd - 1])) {
                     string textWithoutTrailingDelimiter = token.Substring(position, segmentEnd - position - 1);
                     if (textWithoutTrailingDelimiter.Length > 0) {
-                        double widthWithoutTrailingDelimiter = MeasureRichText(textWithoutTrailingDelimiter, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+                        double widthWithoutTrailingDelimiter = MeasurePlannedChunk(textWithoutTrailingDelimiter);
                         if (widthWithoutTrailingDelimiter <= maxWidthForChunk ||
                             CanKeepDelimitedWordSegmentOverSoftLimit(textWithoutTrailingDelimiter, widthWithoutTrailingDelimiter, maxWidthForChunk, allowBoundaryDelimiters: false)) {
                             selectedText = textWithoutTrailingDelimiter;
@@ -922,13 +996,12 @@ internal static partial class PdfWriter {
                 double chunkWidth = 0D;
                 while (position + take < segmentEnd) {
                     int scalarLength = GetScalarUtf16Length(token, position + take);
-                    string scalar = token.Substring(position + take, scalarLength);
-                    double scalarWidth = MeasureRichText(scalar, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
-                    if (take > 0 && chunkWidth + scalarWidth > maxWidthForChunk) {
+                    double candidateWidth = MeasurePlannedChunk(token.Substring(position, take + scalarLength));
+                    if ((take > 0 || position == 0 && lineWidth > 0D && !startOnFreshLine) && candidateWidth > maxWidthForChunk) {
                         break;
                     }
 
-                    chunkWidth += scalarWidth;
+                    chunkWidth = candidateWidth;
                     take += scalarLength;
                     if (chunkWidth >= maxWidthForChunk) {
                         break;
@@ -951,7 +1024,7 @@ internal static partial class PdfWriter {
                 while (extendedBreak < token.Length && IsIdentifierContinuationChar(token[extendedBreak])) {
                     int scalarLength = GetScalarUtf16Length(token, extendedBreak);
                     string candidateText = token.Substring(position, extendedBreak + scalarLength - position);
-                    double candidateWidth = MeasureRichText(candidateText, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing);
+                    double candidateWidth = MeasurePlannedChunk(candidateText);
                     if (candidateWidth > maxWidthForChunk) {
                         break;
                     }
@@ -1052,11 +1125,9 @@ internal static partial class PdfWriter {
             double runFontSize,
             PdfTextBaseline baseline,
             double? firstChunkWidth = null) {
-            var chunks = TryBuildMultilingualTokenChunks(
-                token,
-                part => MeasureRichText(part, font, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing),
-                firstChunkWidth ?? CurrentMaxWidth(),
-                maxWidthPts);
+            var chunks = PlanLongTokenChunks(token, OfficeTextLineBreaks.GetBreakPositions(token).ToArray(),
+                part => MeasureRichText(part, font, currentRunNamedFont, runFontSize, baseline, options,
+                    currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing), firstChunkWidth: firstChunkWidth);
 
             if (chunks == null) {
                 return false;
@@ -1065,9 +1136,10 @@ internal static partial class PdfWriter {
             for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
                 PdfTextTokenChunk chunk = chunks[chunkIndex];
                 PrepareLineFrame(RunLineHeight(runFontSize), chunk.Width);
-                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, chunk.Width, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing));
+                double boundaryAdvance = MeasureLongTokenBoundary(chunk.Text);
+                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline, chunk.Width, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, horizontalTextScaling: currentRunHorizontalTextScaling, characterSpacing: currentRunCharacterSpacing, contributesLineBoxDescent: currentRunContributesDescent));
                 RegisterLineHeight(runFontSize);
-                lineWidth += chunk.Width;
+                lineWidth += chunk.Width + boundaryAdvance;
                 if (chunkIndex + 1 < chunks.Count) {
                     StartNewLine();
                 }

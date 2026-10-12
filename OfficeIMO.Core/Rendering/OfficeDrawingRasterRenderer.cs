@@ -148,6 +148,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 : PushClipPolygons(canvas, contours, drawingGroup.ClipPath.FillRule);
         }
 
+        if (drawingGroup.ClipPath.Kind == OfficeClipPathKind.Path)
+            return canvas.PushClipRectangle(0, 0, 0, 0);
+
         if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
             OfficeTransform transform = drawingGroup.FrameTransform.Value.CreateDestinationTransform();
             return canvas.PushClipPolygon(new[] {
@@ -296,7 +299,8 @@ public static partial class OfficeDrawingRasterRenderer {
 
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateClipContours(drawingShape, clipPath, scale);
         if (contours.Count == 0) {
-            return null;
+            return clipPath.Kind is OfficeClipPathKind.Path or OfficeClipPathKind.Empty
+                ? canvas.PushClipRectangle(0, 0, 0, 0) : null;
         }
 
         return contours.Count == 1 && clipPath.Kind != OfficeClipPathKind.Path

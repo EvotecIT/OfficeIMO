@@ -153,6 +153,26 @@ public sealed class PdfDrawingFlowWidthTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TerminalPanelPaddingThatCannotFitAnyColumnFailsWithoutRetryingPages(bool leadingBookmark) {
+        PdfOptions options = Options(460, 300);
+        options.MaxGeneratedPages = 2;
+        var document = PdfDocument.Create(options);
+        PdfPanelStyle panelStyle = PlainPanel(0);
+        panelStyle.PaddingY = 20;
+        panelStyle.RepeatFragmentDecoration = false;
+        PdfParagraphStyle paragraphStyle = Paragraph();
+        paragraphStyle.LineSpacing = PdfLineSpacing.Exactly(230);
+        document.Content.Columns(content => content.Panel(panel => {
+            if (leadingBookmark) panel.Bookmark("panel-start");
+            panel.Paragraph(p => p.Text("Body"), style: paragraphStyle);
+        }, panelStyle), UnequalColumns());
+
+        Assert.Throws<ArgumentException>(() => document.ToBytes());
+    }
+
+    [Theory]
     [InlineData(2, 240, false)]
     [InlineData(6, 80, true)]
     public void KeptPanelMeasuresItsWholeDrawingSequenceAtTheNarrowerColumnWidth(int drawingCount, double drawingHeight, bool partialFirstPage) {

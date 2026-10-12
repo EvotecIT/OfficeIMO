@@ -1,7 +1,18 @@
 using System.Text;
+#if NET8_0_OR_GREATER
+using System.Buffers;
+#endif
 
 namespace OfficeIMO.Excel {
     internal sealed partial class SharedStringCache {
+#if NET8_0_OR_GREATER
+        private const int SimpleAsciiScanChunkBytes = 16 * 1024;
+        private static readonly SearchValues<byte> SimpleAsciiTextSpecialBytes = SearchValues.Create(
+            new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+                16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+                0x7f, (byte)'<', (byte)'_', (byte)']' });
+#endif
+
         /// <summary>
         /// Validates the complete plain ASCII SpreadsheetML shape before retaining text offsets.
         /// Markup, escaping, Unicode, or different attribute layouts use the full XML path.
@@ -17,8 +28,13 @@ namespace OfficeIMO.Excel {
             // A late Unicode value or entity otherwise discards the ASCII prefix
             // and allocates it again when the XML reader reparses the whole part.
 #if NET8_0_OR_GREATER
-            ReadOnlySpan<byte> content = bytes.AsSpan(position, length - position);
-            if (!Ascii.IsValid(content) || content.IndexOf((byte)'&') >= 0) return false;
+            for (int index = position; index < length;) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                int chunkLength = Math.Min(SimpleAsciiScanChunkBytes, length - index);
+                ReadOnlySpan<byte> content = bytes.AsSpan(index, chunkLength);
+                if (!Ascii.IsValid(content) || content.IndexOf((byte)'&') >= 0) return false;
+                index += chunkLength;
+            }
 #else
             for (int index = position; index < length; index++) {
                 if (bytes[index] >= 0x80 || bytes[index] == (byte)'&') return false;
@@ -41,6 +57,11 @@ namespace OfficeIMO.Excel {
                     }
 
                     int textStart = position;
+#if NET8_0_OR_GREATER
+                    if (!TryScanSimpleAsciiText(bytes, length, ref position, preservesWhitespace, out bool onlyWhitespace)) {
+                        return false;
+                    }
+#else
                     while (position < length && bytes[position] != (byte)'<') {
                         if ((position & 16383) == 0) _cancellationToken.ThrowIfCancellationRequested();
                         byte value = bytes[position];
@@ -55,9 +76,11 @@ namespace OfficeIMO.Excel {
                             && bytes[position + 1] is (byte)'x' or (byte)'X') return false;
                         position++;
                     }
+#endif
 
                     int textLength = position - textStart;
                     if (!preservesWhitespace && textLength > 0) {
+#if !NET8_0_OR_GREATER
                         bool onlyWhitespace = true;
                         for (int index = textStart; index < position; index++) {
                             if (bytes[index] != (byte)' ') {
@@ -65,6 +88,7 @@ namespace OfficeIMO.Excel {
                                 break;
                             }
                         }
+#endif
                         if (onlyWhitespace) return false;
                     }
                     if (!Consume(bytes, length, ref position, "</t></si>")) {
@@ -90,6 +114,48 @@ namespace OfficeIMO.Excel {
             }
         }
 
+#if NET8_0_OR_GREATER
+        /// <summary>Skips ordinary text in bounded chunks without changing the scanner's XML fallback rules.</summary>
+        private bool TryScanSimpleAsciiText(
+            byte[] bytes,
+            int length,
+            ref int position,
+            bool preservesWhitespace,
+            out bool onlyWhitespace) {
+            onlyWhitespace = true;
+            int chunkEnd = position + Math.Min(SimpleAsciiScanChunkBytes, length - position);
+            while (position < length) {
+                if (position == chunkEnd) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    chunkEnd = position + Math.Min(SimpleAsciiScanChunkBytes, length - position);
+                }
+                ReadOnlySpan<byte> chunk = bytes.AsSpan(position, chunkEnd - position);
+                int special = chunk.IndexOfAny(SimpleAsciiTextSpecialBytes);
+                int textLength = special < 0 ? chunk.Length : special;
+                if (!preservesWhitespace && onlyWhitespace
+                    && chunk.Slice(0, textLength).IndexOfAnyExcept((byte)' ') >= 0) {
+                    onlyWhitespace = false;
+                }
+                position += textLength;
+                if (special < 0) continue;
+
+                byte value = bytes[position];
+                if (value == (byte)'<') return true;
+                if (value == (byte)'_') {
+                    if (position + 1 < length && bytes[position + 1] is (byte)'x' or (byte)'X') return false;
+                } else if (value == (byte)']') {
+                    if (position + 2 < length && bytes[position + 1] == (byte)']' && bytes[position + 2] == (byte)'>') return false;
+                } else {
+                    return false;
+                }
+
+                onlyWhitespace = false;
+                position++;
+            }
+            return true;
+        }
+#endif
+
         /// <summary>Limits large-part buffering to the simple table header handled by this scanner.</summary>
         internal static bool CanIndexSimpleAsciiPrefix(byte[] bytes, int length) =>
             TryReadSimpleAsciiHeader(bytes, length, out _, out _);
@@ -109,9 +175,13 @@ namespace OfficeIMO.Excel {
 
         private static bool Consume(byte[] bytes, int length, ref int position, string value) {
             if (value.Length > length - position) return false;
+#if NET8_0_OR_GREATER
+            if (!Ascii.Equals(bytes.AsSpan(position, value.Length), value.AsSpan())) return false;
+#else
             for (int index = 0; index < value.Length; index++) {
                 if (bytes[position + index] != (byte)value[index]) return false;
             }
+#endif
             position += value.Length;
             return true;
         }

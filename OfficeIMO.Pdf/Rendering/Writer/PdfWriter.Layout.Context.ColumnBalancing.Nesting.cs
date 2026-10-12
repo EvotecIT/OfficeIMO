@@ -117,8 +117,9 @@ internal static partial class PdfWriter {
             }
             used += before + Math.Min(style.GetFragmentTopPadding(container.IsContinuation), Math.Max(0D, height - used));
             if (!PackColumnBalanceUnits(container.Units, height - style.FragmentBottomInset, columnCount, parentPadding + style.GetFragmentTopPadding(isContinuation: true), ref columns, ref used, finishColumn)) return false;
-            if (!style.RepeatFragmentDecoration && used + style.BottomPadding > height + .001D) return false;
-            used += style.RepeatFragmentDecoration ? Math.Min(style.BottomPadding, Math.Max(0D, height - used)) : style.BottomPadding;
+            if (!style.RepeatFragmentDecoration && !style.AllowTrailingPaddingOverflow && used + style.BottomPadding > height + .001D) return false;
+            used += style.RepeatFragmentDecoration && !style.AllowTrailingPaddingOverflow
+                ? Math.Min(style.BottomPadding, Math.Max(0D, height - used)) : style.BottomPadding;
             double after = style.SpacingAfter;
             while (after > .001D) {
                 double take = Math.Min(after, Math.Max(0D, height - used));

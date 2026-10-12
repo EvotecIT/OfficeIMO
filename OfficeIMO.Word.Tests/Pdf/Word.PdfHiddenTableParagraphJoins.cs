@@ -146,18 +146,24 @@ public partial class Word {
         Assert.InRange(pdf.GetPage(1).Letters.First(letter => letter.Value == "M").StartBaseLine.X, 91.9D, 92.1D);
     }
 
-    [Fact]
-    public void SaveAsPdf_HiddenTableJoinPreservesUnresolvedConfiguredTypographyWithDiagnostic() {
+    [Theory]
+    [InlineData("body")]
+    [InlineData("header")]
+    [InlineData("footer")]
+    public void SaveAsPdf_HiddenTableJoinPreservesUnresolvedConfiguredTypographyWithDiagnostic(string story) {
         using WordDocument document = CreateJoinedParagraphDocument();
         W.Style normal = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties = null;
-        WordTable table = document.AddTable(1, 1); table._tableProperties!.TableStyle = null;
+        WordTable table = story == "body" ? document.AddTable(1, 1)
+            : (story == "header" ? (WordHeaderFooter)document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate).AddTable(1, 1);
+        table._tableProperties!.TableStyle = null;
         WordParagraph alpha = table.Rows[0].Cells[0].AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         table.Rows[0].Cells[0].AddParagraph("BETA");
         var result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false,
             PdfOptions = new PdfOptions { DefaultTableStyle = new PdfTableStyle { FontSize = 18D } } });
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeHiddenParagraphJoinUnsupported");
+        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Equal(18D, pdf.GetPage(1).Letters.First(letter => letter.Value == "A").FontSize, 3);
         Assert.Equal(18D, Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "B").FontSize, 3);

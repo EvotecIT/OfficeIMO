@@ -80,7 +80,7 @@ internal static partial class PdfWriter {
                 int right = Math.Min(end, segmentStart + segment.Text.Length);
                 if (right > left) {
                     width += left == segmentStart && right == segmentStart + segment.Text.Length
-                        ? segment.MeasuredWidth
+                        ? GetRichSegmentWidth(segment)
                         : MeasureRichText(segment.Text.Substring(left - segmentStart, right - left),
                             segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline, options, segment.FeatureSettings, segment.HorizontalTextScaling, segment.CharacterSpacing);
                     lastSegment = segment;

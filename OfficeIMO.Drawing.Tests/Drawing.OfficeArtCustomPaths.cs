@@ -1,0 +1,332 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.Binary;
+using System.Threading;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public partial class DrawingTests {
+    [Theory]
+    [InlineData(0U)]
+    [InlineData(1U)]
+    [InlineData(2U)]
+    [InlineData(3U)]
+    public void OfficeArtCustomPath_OnePointImplicitPathsRetainEmptyGeometry(uint pathKind) {
+        var properties = CustomPath(new[] { (5400, 10800) });
+        properties.Add(new OfficeArtProperty(1, 0x0144, pathKind));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(new OfficePoint(20, 20), path!.Shape.PathCommands[0].Point);
+        Assert.All(path.Shape.PathCommands, command =>
+            Assert.True(command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.Close));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtCustomPath_OnePointExplicitPathsCanEndWithoutDrawingASegment(bool close) {
+        ushort[] segments = close ? new ushort[] { 0x4000, 0x6001, 0x8000 } : new ushort[] { 0x4000, 0x8000 };
+        var properties = CustomPath(new[] { (5400, 10800) }, segments);
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(new OfficePoint(20, 20), path!.Shape.PathCommands[0].Point);
+        Assert.Equal(close ? 2 : 1, path.Shape.PathCommands.Count);
+        Assert.All(path.Shape.PathCommands, command =>
+            Assert.True(command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.Close));
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_MoveOnlySubpathsDoNotBecomeConnectingLines() {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) }, new ushort[] { 0x4000, 0x4000, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(2, path!.Shape.PathCommands.Count);
+        Assert.All(path.Shape.PathCommands, command => Assert.Equal(OfficePathCommandKind.MoveTo, command.Kind));
+    }
+
+    [Theory]
+    [InlineData(0x0001)]
+    [InlineData(0x2001)]
+    [InlineData(0x8001)]
+    public void OfficeArtCustomPath_OnePointPathsStillRejectUnavailableSegmentsAndInvalidEnds(ushort word) {
+        var properties = CustomPath(new[] { (5400, 10800) }, new ushort[] { 0x4000, word, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Null(path);
+    }
+
+    [Theory]
+    [InlineData(-2000000000, 2000000000, 40D)]
+    [InlineData(int.MinValue, int.MaxValue, 40.000000009313226D)]
+    public void OfficeArtCustomPath_FullSignedGeometrySpacesProjectWithoutIntegerDeltaOverflow(int first, int last, double expectedX) {
+        var properties = CustomPath(new[] { (0, 0), (last, last) });
+        properties.Add(new OfficeArtProperty(2, 0x0140, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(3, 0x0141, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(4, 0x0142, unchecked((uint)last)));
+        properties.Add(new OfficeArtProperty(5, 0x0143, unchecked((uint)last)));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(expectedX, path!.Shape.PathCommands[0].Point.X, 10);
+        Assert.Equal(expectedX / 2, path.Shape.PathCommands[0].Point.Y, 10);
+        Assert.Equal(new OfficePoint(80, 40), path.Shape.PathCommands[1].Point);
+    }
+
+    [Theory]
+    [InlineData(12, false)]
+    [InlineData(14, false)]
+    [InlineData(13, true)]
+    [InlineData(15, true)]
+    [InlineData(19, true)]
+    public void OfficeArtCustomPath_EditingEscapesRetainTheirLineOrCubicRuns(int escape, bool curve) {
+        var properties = CustomPath(new[] { (0, 0), (5400, 0), (10800, 21600), (21600, 21600), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | (curve ? 1 : 3)), 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Equal(curve ? 3 : 5, result!.Shape.PathCommands.Count);
+        Assert.Equal(new OfficePoint(80, 0), result.Shape.PathCommands.Last().Point);
+        if (curve) {
+            OfficePathCommand command = result.Shape.PathCommands[1];
+            Assert.Equal(OfficePathCommandKind.CubicBezierTo, command.Kind);
+            Assert.Equal(new OfficePoint(20, 0), command.ControlPoint1);
+            Assert.Equal(new OfficePoint(40, 40), command.ControlPoint2);
+            Assert.Equal(new OfficePoint(80, 40), command.Point);
+        } else {
+            Assert.Equal(new[] { new OfficePoint(20, 0), new OfficePoint(40, 40), new OfficePoint(80, 40) },
+                result.Shape.PathCommands.Skip(1).Take(3).Select(command => command.Point));
+        }
+    }
+
+    [Theory]
+    [InlineData(12)]
+    [InlineData(19)]
+    public void OfficeArtCustomPath_EditingEscapesRejectUnavailableRunVertices(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 255), 0x0001, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Null(result);
+    }
+
+    [Theory]
+    [InlineData(12)]
+    [InlineData(13)]
+    [InlineData(14)]
+    [InlineData(15)]
+    [InlineData(16)]
+    [InlineData(17)]
+    [InlineData(18)]
+    [InlineData(19)]
+    [InlineData(20)]
+    public void OfficeArtCustomPath_ZeroCountEditingMarkersRemainInertBeforeTheFirstMove(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { (ushort)(0xA000 | escape << 8), 0x4000, 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Equal(2, result!.Shape.PathCommands.Count);
+        Assert.Equal(new OfficePoint(80, 0), result.Shape.PathCommands[1].Point);
+    }
+
+    [Theory]
+    [InlineData(16)]
+    [InlineData(17)]
+    [InlineData(18)]
+    [InlineData(20)]
+    public void OfficeArtCustomPath_UnqualifiedNonzeroEditingRunsReportUnsupportedCommands(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 1), 0x0001, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out var failure));
+        Assert.Null(result);
+        Assert.Equal(OfficeArtCustomPathFailure.Command, failure);
+    }
+
+    [Theory]
+    [InlineData(10)]
+    [InlineData(11)]
+    public void OfficeArtCustomPath_PaintEscapesDoNotSkipGeometricVertices(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 2), 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Equal(new OfficePoint(80, 0), result!.Shape.PathCommands[1].Point);
+        Assert.Equal(escape == 10, result.NoFill);
+        Assert.Equal(escape == 11, result.NoLine);
+    }
+
+    [Theory]
+    [InlineData(0x0145, 8)]
+    [InlineData(0x0146, 2)]
+    public void OfficeArtCustomPath_CompleteEmptyArraysDoNotDeclareGeometry(int id, int stride) {
+        byte[] header = new byte[] { 0, 0, 0, 0, (byte)stride, 0 };
+        var property = new OfficeArtProperty(0, (ushort)(id | 0x8000), 6, 6, complexData: header);
+        Assert.False(OfficeArtCustomPathProjector.HasPath(new[] { property }));
+    }
+
+    [Theory]
+    [InlineData(80, 0)]
+    [InlineData(0, 40)]
+    public void OfficeArtCustomPath_OneDimensionalStrokesKeepTheirCoordinates(double width, double height) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) }, new ushort[] { 0x4000, 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, width, height, _ => { }, default, out var path, out _));
+        Assert.Equal(new OfficePoint(width, height), path!.Shape.PathCommands[1].Point);
+        Assert.True(path.Shape.Width > 0 && path.Shape.Height > 0);
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_MalformedEffectiveCanvasDoesNotReviveAnOlderExtent() {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) });
+        properties.Add(new OfficeArtProperty(1, 0x0142, 100));
+        properties.Add(new OfficeArtProperty(2, 0x8142, 1, 1, complexData: new byte[] { 0 }));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(80, path!.Shape.PathCommands[1].Point.X);
+    }
+
+    [Theory]
+    [InlineData(0x0145)]
+    [InlineData(0x0146)]
+    public void OfficeArtCustomPath_PresenceUsesTheEffectivePropertyAfterClearingAndRestoring(int id) {
+        var original = CustomPath(new[] { (0, 0), (21600, 21600) },
+            new ushort[] { 0x4000, 0x0001, 0x8000 }).Single(property => property.PropertyId == id);
+        var properties = new List<OfficeArtProperty> { original };
+        Assert.True(OfficeArtCustomPathProjector.HasPath(properties));
+        properties.Add(new OfficeArtProperty(1, checked((ushort)id), 0));
+        Assert.False(OfficeArtCustomPathProjector.HasPath(properties));
+        properties.Add(original);
+        Assert.True(OfficeArtCustomPathProjector.HasPath(properties));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtCustomPath_UnderstatedArraysDoNotSilentlyDiscardVerticesOrCommands(bool segments) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) },
+            new ushort[] { 0x4000, 0x0001, 0x8000 });
+        int index = segments ? 1 : 0;
+        byte[] original = properties[index].CopyComplexData()!;
+        byte[] bytes = original.Concat(segments ? new byte[] { 0, 0xC0 } : new byte[8]).ToArray();
+        properties[index] = new OfficeArtProperty(index, segments ? (ushort)0x8146 : (ushort)0x8145,
+            (uint)bytes.Length, bytes.Length, complexData: bytes);
+        int charged = 0;
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, count => charged += count,
+            default, out var result, out var failure));
+        Assert.Null(result); Assert.Equal(OfficeArtCustomPathFailure.InvalidData, failure);
+        Assert.Equal(0, charged);
+    }
+
+    [Fact]
+    public void OfficeArtBooleanInheritance_CustomPathPaintFlagsKeepIndependentBitsAndAllowExplicitClearing() {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) });
+        properties.Add(new OfficeArtProperty(0, 0x017F, 0x02000000U));
+        properties.Add(new OfficeArtProperty(0, 0x017F, 0x00400040U));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.True(result!.NoFill);
+        Assert.False(result.NoLine);
+        properties.Add(new OfficeArtProperty(0, 0x017F, 0x02000200U));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out result, out _));
+        Assert.False(result!.NoFill);
+        Assert.False(result.NoLine);
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(0xFFF0)]
+    public void OfficeArtCustomPath_CompactCoordinatesPreserveTheirUnsignedRange(int elementSize) {
+        var properties = CustomPath(new[] { (32767, 32768), (40000, 65535) }, elementSize: elementSize);
+        properties.Add(new OfficeArtProperty(1, 0x0142, 65535));
+        properties.Add(new OfficeArtProperty(2, 0x0143, 65535));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 65535, 65535, _ => { },
+            default, out var result, out _));
+        Assert.Equal(new OfficePoint(32767, 32768), result!.Shape.PathCommands[0].Point);
+        Assert.Equal(new OfficePoint(40000, 65535), result.Shape.PathCommands[1].Point);
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_FullCoordinatesRetainNegativeSignedValues() {
+        var properties = CustomPath(new[] { (-40000, -32768), (40000, 65535) });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 21600, 21600, _ => { },
+            default, out var result, out _));
+        Assert.Equal(new OfficePoint(-40000, -32768), result!.Shape.PathCommands[0].Point);
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_CommandRunsConsumeAllVerticesAndPreserveSubpaths() {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0), (21600, 21600), (0, 21600),
+            (5400, 5400), (10800, 5400), (10800, 10800), (5400, 10800) },
+            new ushort[] { 0x4000, 0xAC00, 0x0003, 0x6001, 0x4000, 0xAE00, 0x0003, 0x6001, 0x8000 });
+        int items = 0;
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, count => items += count,
+            default, out var result, out _));
+        Assert.Equal(27, items); // Eight vertices, nine native commands and ten projected commands.
+        Assert.Equal(80, result!.Shape.Width); Assert.Equal(40, result.Shape.Height);
+        Assert.Equal(OfficeFillRule.NonZero, result.Shape.FillRule);
+        Assert.Equal(2, result.Shape.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+        Assert.Equal(new OfficePoint(20, 10), result.Shape.PathCommands[5].Point);
+    }
+
+    [Theory]
+    [InlineData(0x02000000U, true, false)]
+    [InlineData(0x02000200U, false, false)]
+    [InlineData(0x00000200U, false, false)]
+    [InlineData(0x00400000U, false, true)]
+    [InlineData(0x00400040U, false, false)]
+    public void OfficeArtCustomPath_GeometryPaintControlsRequireTheirUseBits(uint flags, bool noFill, bool noLine) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) });
+        properties.Add(new OfficeArtProperty(properties.Count, 0x017F, flags));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Equal(noFill, result!.NoFill); Assert.Equal(noLine, result.NoLine);
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_CubicRunRetainsBothControlsAndEndWithoutClosing() {
+        var properties = CustomPath(new[] { (0, 0), (7200, 0), (14400, 21600), (21600, 21600) },
+            new ushort[] { 0x4000, 0xAD00, 0x2001, 0xAB00, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 90, 60, _ => { }, default, out var result, out _));
+        Assert.Equal(2, result!.Shape.PathCommands.Count);
+        OfficePathCommand curve = result.Shape.PathCommands[1];
+        Assert.Equal(new OfficePoint(30, 0), curve.ControlPoint1);
+        Assert.Equal(new OfficePoint(60, 60), curve.ControlPoint2);
+        Assert.Equal(new OfficePoint(90, 60), curve.Point);
+        Assert.True(result.NoLine);
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_GuideSentinelsAreNeverInterpretedAsLiteralCoordinates() {
+        var properties = CustomPath(new[] { (unchecked((int)0x8000007F), 0), (21600, 21600) });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out var failure));
+        Assert.Null(result); Assert.Equal(OfficeArtCustomPathFailure.GuideReference, failure);
+    }
+
+    [Theory]
+    [InlineData(0x6000)]
+    [InlineData(0x4001)]
+    [InlineData(0x0003)]
+    [InlineData(0x2001)]
+    public void OfficeArtCustomPath_InvalidPointConsumptionDoesNotReturnPartialArtwork(ushort command) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) }, new ushort[] { 0x4000, command, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_DeclaredAndExpandedWorkUsesTheImporterBudgetAndCancellation() {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) });
+        int items = 0;
+        Assert.Throws<InvalidDataException>(() => OfficeArtCustomPathProjector.TryProject(properties, 80, 40,
+            count => { items += count; if (items > 3) throw new InvalidDataException("work"); },
+            default, out _, out _));
+        using var source = new CancellationTokenSource();
+        Assert.Throws<OperationCanceledException>(() => OfficeArtCustomPathProjector.TryProject(properties, 80, 40,
+            _ => source.Cancel(), source.Token, out _, out _));
+    }
+
+    private static List<OfficeArtProperty> CustomPath((int X, int Y)[] points, ushort[]? segments = null, int elementSize = 8) {
+        byte[] ArrayData(int count, ushort stride, Action<BinaryWriter> write) {
+            using var data = new MemoryStream(); using var writer = new BinaryWriter(data);
+            writer.Write(checked((ushort)count)); writer.Write(checked((ushort)count)); writer.Write(stride);
+            write(writer); return data.ToArray();
+        }
+        var properties = new List<OfficeArtProperty>();
+        byte[] vertices = ArrayData(points.Length, checked((ushort)elementSize), writer => {
+            foreach (var point in points) {
+                if (elementSize == 8) { writer.Write(point.X); writer.Write(point.Y); }
+                else { writer.Write(checked((ushort)point.X)); writer.Write(checked((ushort)point.Y)); }
+            }
+        });
+        properties.Add(new OfficeArtProperty(0, 0x8145, (uint)vertices.Length, vertices.Length, complexData: vertices));
+        if (segments != null) {
+            byte[] words = ArrayData(segments.Length, 2, writer => { foreach (ushort word in segments) writer.Write(word); });
+            properties.Add(new OfficeArtProperty(1, 0x8146, (uint)words.Length, words.Length, complexData: words));
+        }
+        return properties;
+    }
+}

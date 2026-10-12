@@ -8,11 +8,13 @@ internal sealed class PublisherParseContext {
     internal CancellationToken Token { get; }
     internal int Records { get; private set; }
     internal long ImageBytes { get; private set; }
-    private long _projectedElements, _projectedCharacters, _projectedGradientStops;
+    private long _projectedElements, _projectedCharacters, _projectedGradientStops, _projectedPathCommands;
+    private long _pathWorkItems;
     private long _imageProcessingBytes;
     private long _imageProcessingPixels;
     private long _textLayoutCharacters;
     private int _imageStoreEntries;
+    private long _tableModelItems, _tableModelCharacters;
     internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
     internal void Record() {
         Token.ThrowIfCancellationRequested();
@@ -48,12 +50,36 @@ internal sealed class PublisherParseContext {
             throw new InvalidDataException("Publisher text layout character work limit exceeded.");
         _textLayoutCharacters += characters;
     }
+    internal void AccountTableModel(int items) {
+        Token.ThrowIfCancellationRequested();
+        if (items > Options.Limits.MaxItems - _tableModelItems)
+            throw new InvalidDataException("Publisher table model item limit exceeded.");
+        _tableModelItems += items;
+    }
+    internal void AccountTableText(long characters) {
+        Token.ThrowIfCancellationRequested();
+        if (characters > Options.Limits.MaxTextCharacters - _tableModelCharacters)
+            throw new InvalidDataException("Publisher table model text limit exceeded.");
+        _tableModelCharacters += characters;
+    }
+    internal void AccountPathWork(int items) {
+        Token.ThrowIfCancellationRequested();
+        if (items > Options.Limits.MaxItems - _pathWorkItems)
+            throw new InvalidDataException("Publisher custom path item work limit exceeded.");
+        _pathWorkItems += items;
+    }
+    private void AccountPathProjection(int commands) {
+        _projectedPathCommands += commands;
+        if (_projectedPathCommands > Options.Limits.MaxItems)
+            throw new InvalidDataException("Publisher projected path command work limit exceeded.");
+    }
     internal void AccountProjection(OfficeIMO.Drawing.OfficeDrawing drawing) {
         foreach (OfficeIMO.Drawing.OfficeDrawingElement element in drawing.Elements) {
             Token.ThrowIfCancellationRequested();
             if (++_projectedElements > Options.Limits.MaxItems) throw new InvalidDataException("Publisher projected drawing element limit exceeded.");
             if (element is OfficeIMO.Drawing.OfficeDrawingImage image) AccountImage(image.EncodedBytes.Length);
             if (element is OfficeIMO.Drawing.OfficeDrawingShape shape) {
+                AccountPathProjection(shape.Shape.PathCommands.Count);
                 _projectedGradientStops += (shape.Shape.FillGradient?.Stops.Count ?? 0) + (shape.Shape.FillRadialGradient?.Stops.Count ?? 0)
                     + (shape.Shape.StrokeGradient?.Stops.Count ?? 0) + (shape.Shape.StrokeRadialGradient?.Stops.Count ?? 0);
                 if (_projectedGradientStops > Options.Limits.MaxItems)
@@ -65,7 +91,9 @@ internal sealed class PublisherParseContext {
                 _projectedCharacters += characters;
                 if (_projectedCharacters > Options.Limits.MaxTextCharacters) throw new InvalidDataException("Publisher projected text character limit exceeded.");
             }
-            if (element is OfficeIMO.Drawing.OfficeDrawingGroup group) AccountProjection(group.InnerDrawing);
+            if (element is OfficeIMO.Drawing.OfficeDrawingGroup group) {
+                AccountPathProjection(group.ClipPath.Commands.Count); AccountProjection(group.InnerDrawing);
+            }
             if (element is OfficeIMO.Drawing.OfficeDrawingEffectGroup transformed) AccountProjection(transformed.InnerDrawing);
         }
     }
