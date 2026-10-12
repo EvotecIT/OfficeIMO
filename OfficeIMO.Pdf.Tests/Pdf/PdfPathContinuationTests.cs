@@ -28,7 +28,7 @@ public sealed class PdfPathContinuationTests {
 
     [Fact]
     public void CanvasAnnotationsSurviveTheImplicitContourAfterClose() {
-        var clip = OfficeClipPath.Path(100, 100, new[] { OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(10, 0),
+        var clip = OfficeClipPath.Path(new[] { OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(10, 0),
             OfficePathCommand.LineTo(0, 10), OfficePathCommand.Close(), OfficePathCommand.LineTo(100, 0),
             OfficePathCommand.LineTo(100, 100), OfficePathCommand.LineTo(0, 100) });
         byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 200, PageHeight = 200 })
