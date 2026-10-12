@@ -472,6 +472,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         if (!string.IsNullOrWhiteSpace(localAppData)) {
             yield return System.IO.Path.Combine(localAppData, "Microsoft", "Windows", "Fonts");
         }
+        foreach (string root in OfficeIMO.Drawing.OfficeCloudFontFiles.GetRoots()) yield return root;
 
         yield return "/usr/share/fonts";
         yield return "/usr/local/share/fonts";

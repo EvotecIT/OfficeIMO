@@ -1387,6 +1387,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 }
             }
         }
+        foreach (string path in OfficeCloudFontFiles.GetFamilyFiles(key)) yield return path;
     }
 
     private static IEnumerable<string> CandidateFontDirectories() {
