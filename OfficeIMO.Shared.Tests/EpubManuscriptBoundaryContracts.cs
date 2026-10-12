@@ -52,7 +52,7 @@ public sealed class EpubManuscriptBoundaryContracts {
         Assert.Equal(2, book.Spine.Count);
         XDocument first = book.GetContentXml("chapter-1");
         Assert.Equal(new[] { "One", "", "Two" }, first.Descendants(Html + "h1").Select(e => e.Value));
-        Assert.Equal("epub-heading-1", (string?)Assert.Single(first.Descendants(Html + "div")).Attribute(XNamespace.Xml + "id"));
+        Assert.Equal("epub-heading-1", (string?)Assert.Single(first.Descendants(Html + "div")).Attribute("id"));
         Assert.DoesNotContain(first.Descendants(Html + "h1"), e => (string?)e.Attribute("id") == "epub-heading-1");
     }
 

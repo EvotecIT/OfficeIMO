@@ -111,14 +111,12 @@ public sealed class OfficeArtPictureProperties {
         || Grayscale == true || BiLevel == true;
 
     private int? GetSignedValue(ushort propertyId) {
-        OfficeArtProperty? property = Properties.LastOrDefault(item =>
-            item.PropertyId == propertyId && !item.IsComplex);
+        OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(Properties, propertyId);
         return property == null ? null : unchecked((int)property.Value);
     }
 
     private OfficeArtColorReference? GetColor(ushort propertyId) {
-        OfficeArtProperty? property = Properties.LastOrDefault(item =>
-            item.PropertyId == propertyId && !item.IsComplex);
+        OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(Properties, propertyId);
         return property == null ? null : new OfficeArtColorReference(property.Value);
     }
 

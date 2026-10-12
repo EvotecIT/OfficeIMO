@@ -293,10 +293,8 @@ namespace OfficeIMO.Excel {
                         try {
                             if (value is long longValue) return longValue;
                             if (value is double doubleValue
-                                && doubleValue >= long.MinValue
-                                && doubleValue <= long.MaxValue
-                                && Math.Truncate(doubleValue) == doubleValue) {
-                                return (long)doubleValue;
+                                && TryConvertExactDoubleToInt64(doubleValue, out long exactLong)) {
+                                return exactLong;
                             }
 
                             return Convert.ToInt64(value, culture);

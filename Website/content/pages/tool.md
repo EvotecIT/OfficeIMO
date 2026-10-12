@@ -49,9 +49,3 @@ officeimo mcp serve --stdio
 ```
 
 Use the [command guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Tool#readme) for supported arguments and optional dependencies. OCR requires an explicitly configured provider; the default tool does not include an OCR runtime or model. Studio features are not automatically CLI commands.
-
-## Portable downloads and package managers
-
-Install from NuGet today. Portable binaries and WinGet are planned; available channels will be listed on the [downloads page](/downloads/).
-
-Want to work visually instead? Explore [OfficeIMO Studio](/studio/). For an embedded API, choose a focused [NuGet library](/downloads/#downloads-packages).

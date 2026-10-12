@@ -109,7 +109,8 @@ internal static partial class OfficeProvenanceGif {
                     bool valid = c2paApplicationCount == 1 && validStructure && isGif89a && OfficeC2paManifestStore.IsValid(
                         manifest, 0, manifest.Length, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                     string location = $"GIF/C2PA_GIF@{blockStart}";
-                    context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, manifest.Length));
+                    context?.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, manifest.Length)
+                        .WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
                     bool remove = output != null && removalOptions != null && changes != null &&
                         removalOptions.RemoveC2paManifests &&
                         (valid || !removalOptions.RequireStructurallyValidCarrier);

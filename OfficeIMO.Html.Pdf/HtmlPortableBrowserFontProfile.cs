@@ -19,10 +19,10 @@ public sealed class HtmlPortableBrowserFontProfile {
     ];
     private static readonly string[] PortableSymbolAliases = ["Symbol", "ZapfDingbats", "Zapf Dingbats"];
     private readonly PdfEmbeddedFontFamily _defaultPdfFontFamily;
-    private readonly PdfEmbeddedFontFallbackSet _pdfFontFallbacks;
+    private readonly PdfEmbeddedFontFallbackSet? _pdfFontFallbacks;
 
     private HtmlPortableBrowserFontProfile(string id, OfficeFontFallbackPack fontPack,
-        PdfEmbeddedFontFamily defaultPdfFontFamily, PdfEmbeddedFontFallbackSet pdfFontFallbacks,
+        PdfEmbeddedFontFamily defaultPdfFontFamily, PdfEmbeddedFontFallbackSet? pdfFontFallbacks,
         IReadOnlyList<PdfFontFamilySubstitution> substitutions) {
         Id = id;
         FontPack = fontPack;
@@ -49,23 +49,31 @@ public sealed class HtmlPortableBrowserFontProfile {
     public OfficeFontFallbackPack FontPack { get; }
     /// <summary>Lowercase SHA-256 identity of the activated faces, aliases, and fallback order.</summary>
     public string Fingerprint => FontPack.Fingerprint;
-    /// <summary>Explicit PDF family substitutions carried by the portable profile.</summary>
+    /// <summary>
+    /// Declared PDF family substitutions. PDF options activate only substitutions whose target fonts are present.
+    /// </summary>
     public IReadOnlyList<PdfFontFamilySubstitution> FontFamilySubstitutions { get; }
 
     /// <summary>
     /// Creates the standard seven-face portable profile from a caller-owned asset reader.
     /// The reader must return the exact named font file bytes or throw.
     /// </summary>
-    public static HtmlPortableBrowserFontProfile Create(string id, Func<string, byte[]> readAsset) {
+    public static HtmlPortableBrowserFontProfile Create(string id, Func<string, byte[]> readAsset) =>
+        CreateDefaultOnly(id, readAsset).WithFallbackFonts(readAsset);
+
+    /// <summary>
+    /// Creates the four-face Carlito profile without reading Japanese, Arabic, or symbol assets.
+    /// Hosts can retain this immutable snapshot until fallback fonts are available.
+    /// </summary>
+    /// <param name="id">Stable identifier of the caller's portable font package.</param>
+    /// <param name="readAsset">Reader for the four named Carlito font files; missing or empty bytes are rejected.</param>
+    public static HtmlPortableBrowserFontProfile CreateDefaultOnly(string id, Func<string, byte[]> readAsset) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A portable font-package id is required.", nameof(id));
         if (readAsset == null) throw new ArgumentNullException(nameof(readAsset));
         byte[] regular = Read(readAsset, "Carlito-Regular.ttf");
         byte[] bold = Read(readAsset, "Carlito-Bold.ttf");
         byte[] italic = Read(readAsset, "Carlito-Italic.ttf");
         byte[] boldItalic = Read(readAsset, "Carlito-BoldItalic.ttf");
-        byte[] japanese = Read(readAsset, "NotoSansJP-OfficeIMO-Common.ttf");
-        byte[] arabic = Read(readAsset, "NotoSansArabic-Regular.ttf");
-        byte[] symbols = Read(readAsset, "NotoSansSymbols2-Regular.ttf");
 
         var fonts = new OfficeFontFaceCollection()
             .Add(DefaultFontFamily, regular, OfficeFontStyle.Regular)
@@ -73,13 +81,6 @@ public sealed class HtmlPortableBrowserFontProfile {
             .Add(DefaultFontFamily, italic, OfficeFontStyle.Italic)
             .Add(DefaultFontFamily, boldItalic, OfficeFontStyle.Bold | OfficeFontStyle.Italic);
         foreach (string alias in PortableDefaultAliases) fonts.AddAlias(alias, DefaultFontFamily);
-        fonts.Add(SymbolFallbackFontFamily, symbols);
-        foreach (string alias in PortableSymbolAliases) fonts.AddAlias(alias, SymbolFallbackFontFamily);
-        fonts.Add(JapaneseFallbackFontFamily, japanese)
-            .Add(ArabicFallbackFontFamily, arabic)
-            .AddFallbackFamily(JapaneseFallbackFontFamily)
-            .AddFallbackFamily(ArabicFallbackFontFamily)
-            .AddFallbackFamily(SymbolFallbackFontFamily);
 
         var substitutions = Array.AsReadOnly(new[] {
             new PdfFontFamilySubstitution("Calibri", DefaultFontFamily, PdfFontFamilySubstitutionImpact.Compatible),
@@ -89,13 +90,39 @@ public sealed class HtmlPortableBrowserFontProfile {
             new PdfFontFamilySubstitution("Symbol", SymbolFallbackFontFamily, PdfFontFamilySubstitutionImpact.LayoutSensitive)
         });
         return new HtmlPortableBrowserFontProfile(id.Trim(),
-            new OfficeFontFallbackPack(id.Trim(), DefaultLayoutFontFamilies, fonts),
+            new OfficeFontFallbackPack(id.Trim(), DefaultFontFamily, fonts),
             new PdfEmbeddedFontFamily(DefaultFontFamily, regular, bold, italic, boldItalic),
+            null, substitutions);
+    }
+
+    /// <summary>
+    /// Creates a full portable snapshot by reading only the three named Japanese, Arabic, and symbol font files.
+    /// The existing profile remains unchanged; Carlito drawing programs and the PDF family are reused.
+    /// </summary>
+    /// <param name="readAsset">Reader for the three named Noto font files; missing or empty bytes are rejected.</param>
+    public HtmlPortableBrowserFontProfile WithFallbackFonts(Func<string, byte[]> readAsset) {
+        if (readAsset == null) throw new ArgumentNullException(nameof(readAsset));
+        byte[] japanese = Read(readAsset, "NotoSansJP-OfficeIMO-Common.ttf");
+        byte[] arabic = Read(readAsset, "NotoSansArabic-Regular.ttf");
+        byte[] symbols = Read(readAsset, "NotoSansSymbols2-Regular.ttf");
+
+        OfficeFontFaceCollection fonts = FontPack.Fonts;
+        fonts.Add(SymbolFallbackFontFamily, symbols);
+        foreach (string alias in PortableSymbolAliases) fonts.AddAlias(alias, SymbolFallbackFontFamily);
+        fonts.Add(JapaneseFallbackFontFamily, japanese)
+            .Add(ArabicFallbackFontFamily, arabic)
+            .AddFallbackFamily(JapaneseFallbackFontFamily)
+            .AddFallbackFamily(ArabicFallbackFontFamily)
+            .AddFallbackFamily(SymbolFallbackFontFamily);
+
+        return new HtmlPortableBrowserFontProfile(Id,
+            new OfficeFontFallbackPack(Id, DefaultLayoutFontFamilies, fonts),
+            _defaultPdfFontFamily,
             new PdfEmbeddedFontFallbackSet([
                 new PdfEmbeddedFontFallbackCandidate(JapaneseFallbackFontFamily, japanese),
                 new PdfEmbeddedFontFallbackCandidate(ArabicFallbackFontFamily, arabic),
                 new PdfEmbeddedFontFallbackCandidate(SymbolFallbackFontFamily, symbols)
-            ]), substitutions);
+            ]), FontFamilySubstitutions);
     }
 
     /// <summary>Creates an independent drawing-font collection with aliases and ordered fallbacks.</summary>
@@ -114,8 +141,10 @@ public sealed class HtmlPortableBrowserFontProfile {
         }.SetTextShapingProvider(textShapingProvider);
         options.RegisterFontFamily(PdfStandardFont.Helvetica, _defaultPdfFontFamily);
         options.RegisterNamedFontFamily(_defaultPdfFontFamily);
-        options.RegisterEmbeddedFontFallbacks(_pdfFontFallbacks);
+        if (_pdfFontFallbacks != null) options.RegisterEmbeddedFontFallbacks(_pdfFontFallbacks);
         foreach (PdfFontFamilySubstitution substitution in FontFamilySubstitutions) {
+            if (_pdfFontFallbacks == null && !string.Equals(
+                    substitution.TargetFontFamily, DefaultFontFamily, StringComparison.OrdinalIgnoreCase)) continue;
             options.RegisterFontFamilySubstitution(
                 substitution.SourceFontFamily, substitution.TargetFontFamily, substitution.Impact);
         }
@@ -125,7 +154,7 @@ public sealed class HtmlPortableBrowserFontProfile {
     /// <summary>Creates HTML rendering options with the same fonts for layout, images, and PDF output.</summary>
     public HtmlToPdfOptions CreateHtmlOptions(IOfficeTextShapingProvider? textShapingProvider = null) {
         var options = new HtmlToPdfOptions {
-            DefaultFontFamily = DefaultLayoutFontFamilies,
+            DefaultFontFamily = FontPack.DefaultFamilyNames,
             PdfOptions = CreatePdfOptions(textShapingProvider),
             FontFamily = _defaultPdfFontFamily,
             TextShapingMode = PdfTextShapingMode.LatinLigatures,
@@ -133,7 +162,7 @@ public sealed class HtmlPortableBrowserFontProfile {
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
         options.UseRenderingProfile(FontPack.CreateRenderingProfile(textShapingProvider));
-        options.DefaultFontFamily = DefaultLayoutFontFamilies;
+        options.DefaultFontFamily = FontPack.DefaultFamilyNames;
         return options;
     }
 

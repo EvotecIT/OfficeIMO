@@ -6,9 +6,24 @@ namespace OfficeIMO.Excel {
             bool IDataReaderTypedMappingCompatibility.CanUseTypedGetter(int ordinal, Type targetType) {
                 EnsureOpenRow();
                 if ((uint)ordinal >= (uint)_fieldCount) throw new IndexOutOfRangeException();
-                return _utf8Source != null && IsCurrentStreamingRow && !_currentRowIsBlank
-                    && !_owner._opt.NumericAsDecimal && _owner._opt.CellValueConverter == null
-                    && _utf8Source.CanUseTypedMappingGetter(ordinal + _utf8SourceOrdinalOffset, targetType);
+                if (_utf8Source == null || !IsCurrentStreamingRow || _currentRowIsBlank
+                    || _owner._opt.NumericAsDecimal || _owner._opt.CellValueConverter != null
+                    || !_utf8Source.CanUseTypedMappingGetter(ordinal + _utf8SourceOrdinalOffset, targetType)) {
+                    return false;
+                }
+                if (targetType != typeof(DateTime)) return true;
+
+                try {
+                    // Qualification and the typed getter share the existing primitive cache.
+                    // Keep previously materialized values/serials in their original cache state.
+                    return _currentValueLoaded[ordinal]
+                        ? _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.DateTime
+                            || _utf8Source.TryGetDateTime(ordinal + _utf8SourceOrdinalOffset, out _)
+                        : TryGetUnloadedDateTime(ordinal, out _);
+                } catch (ArgumentException) {
+                    // Generic mapping constructs the model before reporting an invalid date serial.
+                    return false;
+                }
             }
         }
 
@@ -27,16 +42,8 @@ namespace OfficeIMO.Excel {
                 if (targetType == typeof(bool)) return kind == Utf8CellKind.Boolean;
                 if (kind != Utf8CellKind.Number) return false;
                 bool dateStyle = (encodedKind & DateStyleCellKindFlag) != 0;
-                if (targetType == typeof(DateTime)) {
-                    // A malformed numeric token can fall back to source text. Preserve its RoundtripKind conversion.
-                    if (!dateStyle) return false;
-                    try {
-                        return TryGetDateTime(ordinal, out _);
-                    } catch (ArgumentException) {
-                        // Generic mapping constructs the model before reporting an invalid date serial.
-                        return false;
-                    }
-                }
+                // The data reader validates numeric tokens and caches successful date conversion.
+                if (targetType == typeof(DateTime)) return dateStyle;
                 // Date-style numeric projection retains the existing serial/converter/range-validation fallback.
                 return !dateStyle && (targetType == typeof(byte) || targetType == typeof(short)
                     || targetType == typeof(int) || targetType == typeof(long)

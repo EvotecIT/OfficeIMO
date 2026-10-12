@@ -431,6 +431,7 @@ internal static partial class PdfWriter {
             ? 0
             : AddObject(objects, PdfOptionalContentDictionaryBuilder.BuildProperties(layerDefinitions, optionalContentGroupIds));
 
+        var runningShapePaintCache = new RunningShapePaintCache();
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             var page = layout.Pages[pageIndex];
@@ -547,6 +548,7 @@ internal static partial class PdfWriter {
             }
 
             string headerFooterShapeContent = BuildHeaderFooterShapes(
+                runningShapePaintCache,
                 page,
                 pageOpts,
                 headerFooterVariantPageNumber,

@@ -88,6 +88,12 @@ public sealed class OfficeRasterDecodeOptions {
     /// This does not add orientation processing to formats whose decoder already returns stored sample order.</remarks>
     public bool ApplyExifOrientation { get; set; } = true;
 
+    /// <summary>Whether JPEG decoding interpolates subsampled chroma components; defaults to true.</summary>
+    /// <remarks>Interpolation reduces visible color steps in JPEG images with subsampled chroma.
+    /// Set false to use faster nearest-sample chroma reconstruction. This affects JPEG pixel decoding
+    /// only; it does not change truncation handling, EXIF orientation, or other image formats.</remarks>
+    public bool JpegHighQualityChroma { get; set; } = true;
+
     /// <summary>Creates an independent settings snapshot, retaining the trusted codec and cancellation token by reference/value.</summary>
     public OfficeRasterDecodeOptions Clone() => WithAdditionalRetainedManagedBytes(0L);
 
@@ -107,6 +113,7 @@ public sealed class OfficeRasterDecodeOptions {
             MaximumInspectionWorkPixels = MaximumInspectionWorkPixels,
             IgnoreTiffOrientation = IgnoreTiffOrientation,
             ApplyExifOrientation = ApplyExifOrientation,
+            JpegHighQualityChroma = JpegHighQualityChroma,
             CancellationToken = CancellationToken,
             RetainedManagedBytes = checked(RetainedManagedBytes + bytes)
         };

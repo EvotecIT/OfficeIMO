@@ -12,9 +12,11 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.
 - [Microsoft Access milestones](ROADMAP.md#microsoft-access-document-library) — native MDB/ACCDB lifecycle, application objects, VBA, integrations, and independent acceptance evidence.
 - [Access native API](../OfficeIMO.Access/README.md) and [support contract](../OfficeIMO.Access/SUPPORT.md) — MDB/ACCDB catalogs and typed rows, application/VBA inspection, unchanged preservation and seed-free creation.
+- [Publisher recovery API](../OfficeIMO.Publisher/README.md), [support contract](../OfficeIMO.Publisher/SUPPORT.md), [PDF conversion](../OfficeIMO.Publisher.Pdf/README.md), and [Reader adapter](../OfficeIMO.Reader.Publisher/README.md) — positioned publication pages, complete source stories, embedded assets and explicit fidelity reports.
 - [Project document API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent XML, native MPP/MPT, MPX, advanced calculation, portable reports, mapped data exchange, and producer-specific limits.
 - [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) — release notes, version history, and downloadable artifacts.
 - [Website guide](officeimo.website.md) — local build and publication workflow.
+- [Format-map videos and social exports](officeimo.format-map-media.md) — recorder commands, output formats, platform presets and updating scenes as the catalog grows.
 - [Website search and answer-engine operations](officeimo.website-seo-geo-operations.md) — publication and discovery checks.
 - [CI and test strategy](officeimo.ci-test-strategy.md) — test ownership and validation lanes.
 - [Native OCR quality corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) — independently labelled forms and scans, bounded retries, confidence false passes, source hashes, and platform scorecards.
@@ -47,12 +49,14 @@ The package README is the primary usage guide for its public API. These reposito
 - [Reader package family](officeimo.reader.md)
 - [Google Workspace package family](../OfficeIMO.GoogleWorkspace/README.md)
 - [XPS/OpenXPS package API](../OfficeIMO.Xps/README.md), [support matrix](../OfficeIMO.Xps/SUPPORT.md), [PDF export](../OfficeIMO.Xps.Pdf/README.md), and [Reader adapter](../OfficeIMO.Reader.Xps/README.md)
+- [DjVu document API](../OfficeIMO.DjVu/README.md), [codec and qualification contract](../OfficeIMO.DjVu/SUPPORT.md), [searchable PDF export](../OfficeIMO.DjVu.Pdf/README.md), and [Reader adapter](../OfficeIMO.Reader.DjVu/README.md)
 - [OpenDocument package family](../OfficeIMO.OpenDocument/README.md)
 - [PowerPoint package guide](../OfficeIMO.PowerPoint/README.md)
 - [Visio package guide](../OfficeIMO.Visio/README.md)
 
 ### Document and conversion formats
 
+- [CHM archive API](../OfficeIMO.Chm/README.md), [support and qualification](../OfficeIMO.Chm/SUPPORT.md), and [Reader adapter](../OfficeIMO.Reader.Chm/README.md)
 - [Electronic invoice model and CII/UBL conversion](../OfficeIMO.Invoicing/README.md)
 - [Typed invoice PDF generation](../OfficeIMO.Invoicing.Pdf/README.md)
 - [Pinned invoice schema and business-rule validation](../OfficeIMO.Invoicing.Validation/README.md)

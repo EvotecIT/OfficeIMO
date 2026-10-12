@@ -25,7 +25,7 @@ internal static class OfficeManagedTextShaper {
         string contextual = OfficeArabicTextShaper.Shape(text);
         cancellationToken.ThrowIfCancellationRequested();
         string visual = ToVisualOrder(contextual, direction, cancellationToken);
-        if (font.HasGlyphs(visual)) {
+        if (font.HasGlyphs(visual) || OfficeMissingSpaceMetrics.CoversWithSynthesis(font, visual)) {
             return new OfficeManagedTextFallback(visual, used: true, incomplete);
         }
 
@@ -34,7 +34,7 @@ internal static class OfficeManagedTextShaper {
             OfficeArabicTextShaper.ToLogicalText(text),
             direction,
             cancellationToken);
-        if (font.HasGlyphs(reordered)) {
+        if (font.HasGlyphs(reordered) || OfficeMissingSpaceMetrics.CoversWithSynthesis(font, reordered)) {
             return new OfficeManagedTextFallback(reordered, used: true, incomplete: true);
         }
 

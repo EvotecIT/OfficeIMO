@@ -32,7 +32,7 @@ public partial class DrawingRasterTests {
 
         if (format == OfficeImageExportFormat.Jpeg) {
             var direct = OfficeJpegCodec.Decode(tagged,
-                new OfficeJpegDecodeOptions(false, false, ignoreExifOrientation: true));
+                new OfficeJpegDecodeOptions(highQualityChroma: true, allowTruncated: false, ignoreExifOrientation: true));
             Assert.Equal(stored.GetPixels(), direct.GetPixels());
         }
     }

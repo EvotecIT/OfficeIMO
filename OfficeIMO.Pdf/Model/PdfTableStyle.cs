@@ -575,7 +575,7 @@ public partial class PdfTableStyle {
     public bool PreserveWidth { get; set; }
     /// <summary>When true, table rows can reduce their font size to keep cell text within the resolved cell width.</summary>
     public bool ShrinkTextToFit { get; set; }
-    /// <summary>Smallest font size, in points, used by <see cref="ShrinkTextToFit"/>. When null the writer uses 6 points.</summary>
+    /// <summary>Smallest font size, in points, used by row or cell text shrinking. When null the writer uses 6 points.</summary>
     public double? MinimumShrinkFontSize {
         get => _minimumShrinkFontSize;
         set {

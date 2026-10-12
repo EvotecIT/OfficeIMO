@@ -375,9 +375,11 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             scalars.Add(scalar);
         }
         bool[]? boundaries = TrackingBoundaries(text, textIndexes);
-        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        bool[]? missingSpaces = FindMissingEmSpaces(glyphs, scalars);
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars, synthesizedSpaces: missingSpaces);
         for (int index = 0; index < glyphs.Count; index++) {
-            width += checked(AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
+            width += checked(TextAdvanceWidth((ushort)glyphs[index], OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index),
+                             variationWorkBudget, CancellationToken.None) +
                              positioning[index].XAdvance) * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
         return width;
@@ -407,10 +409,12 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             sourceOffset += text.Length;
         }
         bool[]? boundaries = TrackingBoundaries(string.Concat(elements), textIndexes);
-        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
+        bool[]? missingSpaces = FindMissingEmSpaces(glyphs, scalars);
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars, synthesizedSpaces: missingSpaces);
         for (int index = 0; index < glyphs.Count; index++) {
             widths[elementIndexes[index]] += checked(
-                AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
+                TextAdvanceWidth((ushort)glyphs[index], OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index),
+                    variationWorkBudget, CancellationToken.None) +
                 positioning[index].XAdvance) * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
         return widths;
@@ -472,7 +476,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             scalars.Add(scalar);
         }
         bool[]? boundaries = TrackingBoundaries(text, textIndexes);
-        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
+        bool[]? missingSpaces = FindMissingEmSpaces(glyphIds, scalars);
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars, synthesizedSpaces: missingSpaces);
 
         for (int index = 0; index < glyphs.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -490,7 +495,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 attachmentPoints: null);
             contours.AddRange(glyphContours);
             int positionedAdvance = checked(
-                AdvanceWidth(glyph, variationWorkBudget, cancellationToken) +
+                TextAdvanceWidth(glyph, OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index),
+                    variationWorkBudget, cancellationToken) +
                 positioning[index].XAdvance);
             cursor += positionedAdvance * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }

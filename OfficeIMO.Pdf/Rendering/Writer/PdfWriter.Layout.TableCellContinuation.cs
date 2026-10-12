@@ -5,7 +5,6 @@ internal static partial class PdfWriter {
     private static TableCellTextLayout ContinueTableCellTextLayout(TableCellLayout cell, TableCellTextLayout previous,
         int consumedLines, double innerWidth, PdfStandardFont font, double size, double leading, PdfOptions options,
         double additionalFontSizeScale = 1D, double minimumShrinkFontSize = 0D, bool wrapOversizedNoWrap = false) {
-        double wrapWidth = ResolveImportedTableCellWrapWidth(cell, innerWidth, font, size, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         TableCellTextLayout remainder;
         if (consumedLines >= previous.Lines.Count) {
             remainder = new TableCellTextLayout(new(), new());
@@ -24,13 +23,13 @@ internal static partial class PdfWriter {
                     paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                     paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext));
             }
-            remainder = CreateTableCellParagraphTextLayout(ScaleTableCellParagraphsForShrink(paragraphs, additionalFontSizeScale, minimumShrinkFontSize),
-                wrapWidth, innerWidth, font, size, leading, options);
+            remainder = CreateTableCellTextLayout(CreateContinuationCell(cell,
+                paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray(), paragraphs),
+                innerWidth, font, size, leading, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         } else {
             var remainingRuns = BuildTextRunsFromWrappedLines(previous.Lines, consumedLines, previous.Lines.Count - consumedLines);
-            var wrapped = WrapRichRunsCore(ScaleTableRunsForShrink(remainingRuns, additionalFontSizeScale, minimumShrinkFontSize),
-                wrapWidth, size, font, leading, null, DefaultParagraphTabStopWidth, options);
-            remainder = new TableCellTextLayout(wrapped.Lines, wrapped.LineHeights);
+            remainder = CreateTableCellTextLayout(CreateContinuationCell(cell, remainingRuns, Array.Empty<PdfTableCellParagraph>()),
+                innerWidth, font, size, leading, options, additionalFontSizeScale, minimumShrinkFontSize, wrapOversizedNoWrap);
         }
 
         // Keep the consumed prefix as zero-height placeholders. Drawing and object-placement
@@ -43,4 +42,12 @@ internal static partial class PdfWriter {
         return new TableCellTextLayout(lines, PrefixHeights(remainder.LineHeights), Prefix(remainder.LineAlignments, (PdfAlign?)null),
             Prefix(remainder.LineXOffsets, 0D), Prefix(remainder.LineWidths, 0D), 0D, PrefixHeights(remainder.LineBoxHeights), paragraphRanges);
     }
+
+    private static TableCellLayout CreateContinuationCell(TableCellLayout cell, IReadOnlyList<PdfTextRun> runs,
+        IReadOnlyList<PdfTableCellParagraph> paragraphs) =>
+        new(cell.Column, cell.ColumnSpan, cell.RowSpan, string.Concat(runs.Select(run => run.Text)), runs, paragraphs,
+            cell.LinkUri, cell.LinkDestinationName, cell.LinkContents, cell.NamedDestinationName, cell.CheckBoxes,
+            cell.FormFields, cell.Images, cell.NoWrap, cell.Viewport, cell.TextRotation) {
+            OrientedRowTextHeight = cell.OrientedRowTextHeight, ShrinkTextToFit = cell.ShrinkTextToFit
+        };
 }

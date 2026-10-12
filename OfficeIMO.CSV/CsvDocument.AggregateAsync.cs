@@ -20,10 +20,11 @@ public sealed partial class CsvDocument
     /// <param name="cancellationToken">Cancels input, processing between records, and merging between batches.</param>
     /// <returns>The accumulated result. Empty input returns the neutral state.</returns>
     /// <remarks>
-    /// Reads incrementally without loading the whole file. The existing parser materializes decoded
-    /// field strings; bounded pooled batches retain their references and null/missing metadata while
-    /// the reader advances. At most the configured degree of batches are retained, with one state
-    /// per batch and no mapped result per row. Callback spans remain valid only during the callback.
+    /// Reads incrementally without loading the whole file. Eligible unquoted records borrow decoded
+    /// field spans from the input buffer; bounded pooled batches copy borrowed text and retain existing
+    /// field strings and null/missing metadata while the reader advances. At most the configured degree
+    /// of batches are retained, with one state per batch and no mapped result per row. Callback spans
+    /// remain valid only during the callback.
     /// Explicit or inferred schema conversion uses native asynchronous sequential consumption.
     /// Factory states must be independent and neutral for associative merge; merge need not be
     /// commutative. Record callbacks and factories may run concurrently, while merge calls are

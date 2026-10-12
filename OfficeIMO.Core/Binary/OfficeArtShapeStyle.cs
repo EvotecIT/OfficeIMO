@@ -28,6 +28,7 @@ public sealed class OfficeArtShapeStyle {
         LineOpacity = GetFixedPoint(0x01C1);
         LineType = GetUInt32(0x01C4);
         LineWidthEmus = GetInt32(0x01CB);
+        LineMiterLimit = GetSignedFixedPoint(0x01CC);
         LineStyle = GetUInt32(0x01CD);
         LineDashing = GetUInt32(0x01CE);
         LineStartArrowhead = GetUInt32(0x01D0);
@@ -105,6 +106,9 @@ public sealed class OfficeArtShapeStyle {
 
     /// <summary>Gets the line width in English Metric Units.</summary>
     public int? LineWidthEmus { get; }
+
+    /// <summary>Gets the fixed-point maximum miter length as a multiple of the line width, or null when inherited.</summary>
+    public double? LineMiterLimit { get; }
 
     /// <summary>Gets the MSOLINESTYLE value.</summary>
     public uint? LineStyle { get; }
@@ -185,7 +189,7 @@ public sealed class OfficeArtShapeStyle {
         || FillBackColor.HasValue || FillBackOpacity.HasValue || FillBlipStoreIndex.HasValue
         || FillAngleDegrees.HasValue || FillFocusPercent.HasValue
         || LineEnabled.HasValue || LineColor.HasValue || LineOpacity.HasValue || LineWidthEmus.HasValue
-        || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
+        || LineMiterLimit.HasValue || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
         || LineJoinStyle.HasValue || LineEndCapStyle.HasValue || HasProjectableShadow;
 
     /// <summary>Gets whether an enabled offset shadow can be projected directly.</summary>
@@ -223,7 +227,7 @@ public sealed class OfficeArtShapeStyle {
     }
 
     private OfficeArtProperty? GetProperty(ushort propertyId) =>
-        Properties.LastOrDefault(property => property.PropertyId == propertyId && !property.IsComplex);
+        OfficeArtProperty.GetScalarProperty(Properties, propertyId);
 
     private uint? GetUInt32(ushort propertyId) => GetProperty(propertyId)?.Value;
 
@@ -250,8 +254,8 @@ public sealed class OfficeArtShapeStyle {
 
     private int? GetBlipStoreIndex(ushort propertyId) {
         OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
-            candidate.PropertyId == propertyId && candidate.IsBlipId && !candidate.IsComplex);
-        return property == null || property.Value == 0 || property.Value > int.MaxValue
+            candidate.PropertyId == propertyId);
+        return property == null || !property.IsBlipId || property.IsComplex || property.Value == 0 || property.Value > int.MaxValue
             ? null
             : unchecked((int)property.Value);
     }
@@ -259,8 +263,9 @@ public sealed class OfficeArtShapeStyle {
     private IReadOnlyList<OfficeArtGradientStop> ReadGradientStops(out bool truncated) {
         truncated = false;
         OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
-            candidate.PropertyId == 0x0197 && candidate.IsComplex);
-        if (property == null) return Array.Empty<OfficeArtGradientStop>();
+            candidate.PropertyId == 0x0197);
+        if (property == null || property.Value == 0) return Array.Empty<OfficeArtGradientStop>();
+        if (!property.IsComplex) { truncated = true; return Array.Empty<OfficeArtGradientStop>(); }
         byte[]? data = property.CopyComplexData();
         if (data == null || data.Length < 6) {
             truncated = true;
@@ -303,9 +308,6 @@ public sealed class OfficeArtShapeStyle {
         data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16
         | data[offset + 3] << 24));
 
-    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) {
-        uint? value = GetUInt32(propertyId);
-        if (!value.HasValue || (value.Value & useMask) == 0) return null;
-        return (value.Value & valueMask) != 0;
-    }
+    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) =>
+        OfficeArtProperty.GetBoolean(Properties, propertyId, useMask, valueMask);
 }
