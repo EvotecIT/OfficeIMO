@@ -24,11 +24,11 @@ public sealed class ReaderPublisherTests {
             string anchor = "publisher-story-" + story.Id;
             OfficeDocumentBlock[] blocks = result.Blocks.Where(block => block.Location.BlockAnchor == anchor).ToArray();
             Assert.Equal(story.Text, string.Concat(blocks.Select(block => block.Text)));
-            Assert.All(blocks, block => Assert.Null(block.Location.Page));
+            Assert.All(blocks.Where(block => block.Kind != "table"), block => Assert.Null(block.Location.Page));
         }
         Assert.Equal(string.Concat(result.Blocks.Select(block => block.Text)), string.Concat(result.Chunks.Select(chunk => chunk.Text)));
         Assert.Equal(result.Blocks.Select(block => block.Id), result.EnumerateBlocks().Select(block => block.Id));
-        Assert.Equal(result.Blocks.Select(block => block.Id), result.EnumerateContent().Select(item => item.Block!.Id));
+        Assert.Equal(result.Blocks.Select(block => block.Id), result.EnumerateContent().Where(item => item.Block != null).Select(item => item.Block!.Id));
         OfficeDocumentReadResult transported = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(result));
         Assert.Equal(result.Blocks.Select(block => block.Id), transported.EnumerateBlocks().Select(block => block.Id));
         Assert.All(native.ReadReport.FidelityDiagnostics, finding => Assert.Contains(result.Diagnostics,

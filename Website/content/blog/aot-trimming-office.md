@@ -3,7 +3,10 @@ title: "Shipping OfficeIMO Applications with NativeAOT"
 description: "A customer-focused guide to publishing native OfficeIMO applications, choosing typed APIs, and validating real document workflows."
 date: 2025-11-01
 tags: [aot, trimming, performance]
-author: OfficeIMO Team
+meta.author.name: OfficeIMO Team
+meta.author.type: Organization
+meta.author.url: https://officeimo.com/
+meta.schema.type: BlogPosting
 ---
 
 NativeAOT is useful for small command-line tools, containerized document workers, and services where startup time and deployment size matter. OfficeIMO's standard in-process workflows are designed for that model: select the focused packages you need, publish your application for a concrete runtime, and test the documents your service will actually handle.

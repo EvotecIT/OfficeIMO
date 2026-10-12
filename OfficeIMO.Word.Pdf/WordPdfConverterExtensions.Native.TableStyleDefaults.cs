@@ -165,10 +165,10 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 W.SpacingBetweenLines? spacing = paragraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
+                authoredLineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties?.GetFirstChild<W.TextAlignment>()).Inherit(authoredLineSpacing);
                 if (spacing != null) {
                     double naturalLineHeight = ResolveNativeWordSingleLineHeight(fontFamily, nativeDefaults.FontFamily);
                     double? styleParagraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, fontFamily, nativeDefaults.FontFamily);
-                    authoredLineSpacing = ReadNativeLineSpacing(spacing).Inherit(authoredLineSpacing);
                     double? styleParagraphLineSpacingPoints = GetNativeTableStyleParagraphLineSpacingPoints(spacing);
                     if (styleParagraphLineHeight.HasValue || styleParagraphLineSpacingPoints.HasValue) {
                         paragraphLineHeight = styleParagraphLineHeight;
@@ -369,7 +369,7 @@ namespace OfficeIMO.Word.Pdf {
                     FontFamilies = fontFamilies,
                     ComplexScript = result.ComplexScript.Merge(runProperties),
                     TextSpacing = result.TextSpacing.Merge(runProperties),
-                    LineSpacing = ReadNativeLineSpacing(spacing).Inherit(result.LineSpacing),
+                    LineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties?.GetFirstChild<W.TextAlignment>()).Inherit(result.LineSpacing),
                     ParagraphSpacing = result.ParagraphSpacing.Merge(paragraphProperties),
                     ParagraphPagination = result.ParagraphPagination.Merge(paragraphProperties)
                 };

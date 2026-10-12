@@ -1,0 +1,15 @@
+{{~ author_name = null; author_url = null ~}}
+{{~ if page.meta.author ~}}
+  {{~ if (object.typeof page.meta.author) == "string" ~}}
+    {{~ author_name = page.meta.author ~}}
+  {{~ else ~}}
+    {{~ author_name = page.meta.author.name; author_url = page.meta.author.url ~}}
+  {{~ end ~}}
+{{~ end ~}}
+{{~ if author_name || page.date ~}}
+<div class="imo-article-meta">
+  {{ if author_name }}<span>By&nbsp;{{ if author_url }}<a href="{{ author_url | html.escape }}">{{ author_name | html.escape }}</a>{{ else }}{{ author_name | html.escape }}{{ end }}</span>{{ end }}
+  {{ if page.date }}<span>Published <time datetime="{{ page.date | date.to_string '%Y-%m-%d' }}">{{ page.date | date.to_string '%d %b %Y' }}</time></span>{{ end }}
+  {{ if page.last_modified_utc }}<span>Updated <time datetime="{{ page.last_modified_utc.utc_date_time | date.to_string '%Y-%m-%dT%H:%M:%SZ' }}">{{ page.last_modified_utc.utc_date_time | date.to_string '%d %b %Y' }}</time></span>{{ end }}
+</div>
+{{~ end ~}}
