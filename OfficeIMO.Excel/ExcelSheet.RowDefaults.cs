@@ -30,6 +30,10 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Gets the unpadded base column width used when no default width is authored.</summary>
+        internal double BaseColumnWidth => WorksheetRoot.GetFirstChild<SheetFormatProperties>()
+            ?.BaseColumnWidth?.Value ?? 8U;
+
         /// <summary>
         /// Sets the worksheet default row height in points.
         /// </summary>

@@ -3,6 +3,9 @@
 .imo-gallery__eyebrow { margin:0 0 .6rem; color:var(--imo-primary); font-size:.8rem; font-weight:750; letter-spacing:.07em; text-transform:uppercase; }
 .imo-gallery__intro h1 { margin:0 0 .8rem; font-size:clamp(2rem,3.5vw,3rem); line-height:1.12; letter-spacing:-.035em; }
 .imo-gallery__intro > p:last-child { margin:0; max-width:760px; color:var(--imo-text-secondary); font-size:1.05rem; line-height:1.65; }
+.imo-gallery__integrations { display:flex; flex-wrap:wrap; align-items:baseline; gap:.5rem 1.25rem; margin:0 0 1.4rem; font-size:.875rem; line-height:1.6; }
+.imo-gallery__integrations > span { color:var(--imo-text-secondary); font-weight:650; }
+.imo-gallery__integrations a { color:var(--imo-primary); text-decoration:underline; text-underline-offset:3px; }
 .imo-gallery__controls { display:grid; grid-template-columns:minmax(180px,1.5fr) repeat(3,minmax(125px,1fr)) auto; gap:1rem; align-items:end; margin:0 0 1.5rem; padding:1.2rem; background:var(--imo-bg-alt); border:1px solid var(--imo-border); border-radius:12px; }
 .imo-gallery__controls label { min-width:0; display:flex; flex-direction:column; gap:.45rem; }
 .imo-gallery__controls label > span { font-size:.8rem; font-weight:700; color:var(--imo-text-secondary); }

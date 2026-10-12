@@ -189,7 +189,7 @@ internal static partial class PdfWriter {
                 double wSeg = GetRichSegmentWidth(s);
                 if (s.BackgroundColor.HasValue && (wSeg > 0 || leadingAdvance > 0)) {
                     double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
-                    double textRise = TextRiseForBaseline(s.FontSize, s.Baseline);
+                    double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                     double asc = GetAscenderForOptions(s.Font, s.NamedFont, runFontSize, opts);
                     double desc = GetDescenderForOptions(s.Font, s.NamedFont, runFontSize, opts);
                     double padX = Math.Max(1.4D, runFontSize * 0.14D);
@@ -274,7 +274,7 @@ internal static partial class PdfWriter {
                 var s = segs[si];
                 string fontRes = GetFontResourceName(s.Font, s.NamedFont, ChooseNormal(opts.DefaultFont));
                 double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
-                double textRise = TextRiseForBaseline(s.FontSize, s.Baseline);
+                double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                 bool syntheticOblique = opts.NeedsSyntheticOblique(s.Font, s.NamedFont);
                 content.Font(fontRes, runFontSize, syntheticOblique);
                 if (Math.Abs(textRise - currentTextRise) > 0.0001) {
@@ -496,7 +496,7 @@ internal static partial class PdfWriter {
                 RichSeg last = segs[segs.Count - 1];
                 string separatorFontResource = GetFontResourceName(last.Font, last.NamedFont, ChooseNormal(opts.DefaultFont));
                 double separatorFontSize = EffectiveRichFontSize(last.FontSize, last.Baseline);
-                double separatorTextRise = TextRiseForBaseline(last.FontSize, last.Baseline);
+                double separatorTextRise = TextRiseForBaseline(last.FontSize, last.Baseline) + last.LineAlignmentRise;
                 content.Font(separatorFontResource, separatorFontSize, opts.NeedsSyntheticOblique(last.Font, last.NamedFont));
                 if (Math.Abs(separatorTextRise - currentTextRise) > 0.0001) {
                     content.TextRise(separatorTextRise);
