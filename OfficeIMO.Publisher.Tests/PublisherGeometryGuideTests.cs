@@ -9,6 +9,21 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherGeometryGuideTests {
     [Theory]
+    [InlineData(0x2000, 0x04F8)]
+    [InlineData(0x0001, 10)]
+    public void Native_paths_ignore_unreferenced_guides_without_a_false_fallback(ushort operation, ushort operand) {
+        var publication = PublisherDocument.Load(Input(new[] {
+            ((ushort)0, (ushort)25, (ushort)0, (ushort)0),
+            ((ushort)0x2000, (ushort)0x0400, (ushort)50, (ushort)0),
+            (operation, operand, (ushort)0, (ushort)0) }));
+        OfficeShape shape = Artwork(publication);
+        Assert.Equal(OfficeShapeKind.Path, shape.Kind);
+        Assert.Equal(new OfficePoint(shape.Width / 4, shape.Height / 4), shape.PathCommands[0].Point);
+        Assert.Equal(shape.Width * 3 / 4, shape.PathCommands[1].Point.X, 10);
+        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code.StartsWith("PUB_CUSTOM_PATH_GUIDE"));
+    }
+
+    [Theory]
     [InlineData(0x0145, false)]
     [InlineData(0x0146, true)]
     public void Native_cleared_default_paths_keep_preset_geometry_without_false_path_loss(int propertyId, bool tertiary) {
@@ -183,7 +198,8 @@ public sealed class PublisherGeometryGuideTests {
             [0x144] = 1, [0x147] = 25 };
         byte[] input = PublisherDrawingFixture.Mutate(original, values, 0, Complex(new[] {
             ((ushort)0x2000, (ushort)0x0147, (ushort)0, (ushort)0),
-            ((ushort)0x2000, (ushort)0x0400, (ushort)50, (ushort)0) }), 362);
+            ((ushort)0x2000, (ushort)0x0400, (ushort)50, (ushort)0),
+            ((ushort)0x2000, (ushort)0x04F8, (ushort)0, (ushort)0) }), 362);
         var options = new PublisherReadOptions { ImageCodec = new SolidCodec() };
         PublisherDocument publication = PublisherDocument.Load(input, options);
         PublisherDocument control = PublisherDocument.Load(original, options);

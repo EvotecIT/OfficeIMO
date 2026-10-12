@@ -131,9 +131,12 @@ all 17 stored formula identifiers, unsigned constants, signed adjustment values,
 geometry-space centres and dimensions, inherited document defaults, local scalar
 and stroke-use overrides, physical frame EMUs,
 backward references, fixed-point degrees and the 128-record ceiling.
-Device-pixel operands require an output-device context and retain a reported
-fallback. Malformed references, division by zero, invalid square roots and
-32-bit overflow also retain fallback evidence without partial custom artwork.
+Only guides referenced by path vertices and their backward dependencies are
+evaluated; unrelated formulas do not force otherwise valid paths or picture
+masks to fall back. Referenced device-pixel operands require an output-device
+context and retain a reported fallback. Referenced malformed dependencies,
+division by zero, invalid square roots and 32-bit overflow also retain fallback
+evidence without partial custom artwork.
 Integer rounding follows the corresponding [VML formula contract](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.vml.formula):
 products round to nearest with ties toward positive infinity, averages truncate
 toward zero, and inexact operations floor their results. Exact half-angle sine
@@ -150,7 +153,7 @@ six-byte headers, including empty arrays. Path, guide and gradient-stop consumer
 reject extra element bytes beyond their declared counts. Document-wide primary
 and tertiary defaults apply before local properties, with native record limits
 bounding property decoding and inherited copies. Cumulative limits account for decoded vertices/segments,
-evaluated guides, expanded commands and copied shape/mask paths. The producer corpus has no custom
+declared guides, expanded commands and copied shape/mask paths. The producer corpus has no custom
 paths; these managed scene and SVG/raster/PDF checks do not establish native
 Publisher winding or mask fidelity.
 Native linear-fill mutations check physical and aspect-scaled angles, positive

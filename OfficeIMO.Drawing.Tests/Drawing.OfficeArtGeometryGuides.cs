@@ -6,6 +6,46 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void OfficeArtGeometryGuides_BackwardChainsRemainBoundedAndSharedReferencesKeepDeclaredWork() {
+        var records = Enumerable.Range(0, 128).Select(index => index == 0
+            ? ((ushort)0, (ushort)1, (ushort)0, (ushort)0)
+            : ((ushort)0x2000, (ushort)(0x0400 + index - 1), (ushort)1, (ushort)0)).ToArray();
+        int guide = unchecked((int)0x8000007F);
+        var properties = CustomPath(new[] { (guide, guide), (guide, guide) });
+        properties.AddRange(Guides(records));
+        int charged = 0;
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 21600, 21600,
+            count => charged += count, default, out var result, out _));
+        Assert.Equal(new OfficePoint(128, 128), result!.Shape.PathCommands[0].Point);
+        Assert.Equal(result.Shape.PathCommands[0].Point, result.Shape.PathCommands[1].Point);
+        Assert.Equal(133, charged);
+    }
+
+    [Theory]
+    [InlineData(false, 0x2000, 0x04F8)]
+    [InlineData(true, 0x2000, 0x04F8)]
+    [InlineData(false, 0x0011, 10)]
+    [InlineData(true, 0x0011, 10)]
+    [InlineData(false, 0x0001, 10)]
+    [InlineData(true, 0x0001, 10)]
+    public void OfficeArtGeometryGuides_UnreferencedFormulasDoNotRejectValidGeometry(
+        bool unusedFirst, ushort operation, ushort operand) {
+        var unused = (operation, operand, (ushort)0, (ushort)0);
+        var literal = ((ushort)0, (ushort)25, (ushort)0, (ushort)0);
+        var dependent = ((ushort)0x2000, (ushort)(unusedFirst ? 0x0401 : 0x0400), (ushort)50, (ushort)0);
+        var properties = CustomPath(new[] {
+            (unchecked((int)0x80000000) | (unusedFirst ? 2 : 1), 0), (21600, 21600) });
+        properties.AddRange(Guides(unusedFirst ? new[] { unused, literal, dependent }
+            : new[] { literal, dependent, unused }));
+        int charged = 0;
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 21600, 21600,
+            count => charged += count, default, out var result, out var failure), failure.ToString());
+        Assert.Equal(new OfficePoint(75, 0), result!.Shape.PathCommands[0].Point);
+        Assert.True(result.UsesGuides);
+        Assert.Equal(8, charged); // Declared guides still count toward the import work limit.
+    }
+
     [Theory]
     [InlineData(10, -469135819, 19330047, -197917335)]
     [InlineData(9, 165050766, 65537, 2880576)]
@@ -18,7 +58,7 @@ public partial class DrawingTests {
         var properties = Guides(((ushort)(operation | 0x6000), (ushort)0x0147, (ushort)0x0148, (ushort)0));
         properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
         properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var values, out _));
         Assert.Equal(expected, Assert.Single(values));
     }
 
@@ -31,7 +71,7 @@ public partial class DrawingTests {
         properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
         properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
         properties.Add(new OfficeArtProperty(3, 0x0149, unchecked((uint)third)));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var values, out _));
         Assert.Equal(expected, Assert.Single(values));
     }
 
@@ -46,7 +86,7 @@ public partial class DrawingTests {
         properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
         properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
         properties.Add(new OfficeArtProperty(3, 0x0149, unchecked((uint)third)));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var values, out _));
         Assert.Equal(expected, Assert.Single(values));
     }
 
@@ -81,7 +121,7 @@ public partial class DrawingTests {
         properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
         properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
         properties.Add(new OfficeArtProperty(3, 0x0149, unchecked((uint)third)));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var values, out _));
         Assert.Equal(expected, Assert.Single(values));
     }
 
@@ -111,7 +151,7 @@ public partial class DrawingTests {
         var properties = Guides(((ushort)(operation | 0x6000), (ushort)0x0147, (ushort)0x0148, (ushort)0));
         properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)magnitude)));
         properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)angle)));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var values, out _));
         Assert.Equal(expected, Assert.Single(values));
     }
 
@@ -125,7 +165,7 @@ public partial class DrawingTests {
         bytes[0] = bytes[2] = 1;
         int charged = 0;
         var properties = new[] { new OfficeArtProperty(0, 0x8156, (uint)bytes.Length, bytes.Length, complexData: bytes) };
-        Assert.False(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, count => charged += count,
+        Assert.False(TryEvaluateGuides(properties, 72, 144, count => charged += count,
             default, out var values, out var failure));
         Assert.Empty(values); Assert.Equal(OfficeArtCustomPathFailure.InvalidGuide, failure); Assert.Equal(0, charged);
     }
@@ -146,12 +186,12 @@ public partial class DrawingTests {
         Assert.Equal(14, properties[0].AvailableComplexDataLength);
         Assert.Equal("OK", properties[1].ComplexText);
         int charged = 0;
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, count => charged += count,
+        Assert.True(TryEvaluateGuides(properties, 72, 144, count => charged += count,
             default, out var values, out var failure));
         Assert.Equal(OfficeArtCustomPathFailure.None, failure);
         Assert.Equal(new[] { 123, 123 }, values); Assert.Equal(2, charged);
         byte[] truncated = payload.Skip(12).Take(13).ToArray();
-        Assert.False(OfficeArtGeometryGuides.TryEvaluate(new[] { new OfficeArtProperty(0, 0x8156, 13, truncated.Length, complexData: truncated) },
+        Assert.False(TryEvaluateGuides(new[] { new OfficeArtProperty(0, 0x8156, 13, truncated.Length, complexData: truncated) },
             72, 144, _ => { }, default, out _, out _));
     }
 
@@ -160,10 +200,10 @@ public partial class DrawingTests {
         var properties = Guides(((ushort)0x2000, (ushort)0x01FC, (ushort)0, (ushort)0));
         properties.Add(new OfficeArtProperty(0, 0x01FF, 0x00080000U));
         properties.Add(new OfficeArtProperty(0, 0x01FF, 0x00400000U));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var result, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var result, out _));
         Assert.Equal(0, Assert.Single(result));
         properties.Add(new OfficeArtProperty(0, 0x01FF, 0x00080008U));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out result, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out result, out _));
         Assert.Equal(1, Assert.Single(result));
     }
 
@@ -191,7 +231,7 @@ public partial class DrawingTests {
         var properties = Guides((operation, first, second, third));
         properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)-25)));
         properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)angle)));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default,
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default,
             out int[] result, out var failure));
         Assert.Equal(OfficeArtCustomPathFailure.None, failure);
         Assert.Equal(expected, Assert.Single(result));
@@ -208,7 +248,7 @@ public partial class DrawingTests {
         properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
         properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
         properties.Add(new OfficeArtProperty(3, 0x0149, unchecked((uint)third)));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var result, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var result, out _));
         Assert.Equal(expected, Assert.Single(result));
     }
 
@@ -239,7 +279,7 @@ public partial class DrawingTests {
             new OfficeArtProperty(3, 0x0142, 110), new OfficeArtProperty(4, 0x0143, 80) });
         for (ushort id = 0x0147; id <= 0x014E; id++)
             properties.Add(new OfficeArtProperty(properties.Count, id, unchecked((uint)-(id - 0x0140))));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var result, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var result, out _));
         Assert.Equal(expected, Assert.Single(result));
     }
 
@@ -251,7 +291,7 @@ public partial class DrawingTests {
     public void OfficeArtGeometryGuides_StrokeOperandUsesTheNativeUseBitAndDefault(uint flags, int expected) {
         var properties = Guides(((ushort)0x2000, (ushort)0x01FC, (ushort)0, (ushort)0));
         properties.Add(new OfficeArtProperty(1, 0x01FF, flags));
-        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var result, out _));
+        Assert.True(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var result, out _));
         Assert.Equal(expected, Assert.Single(result));
     }
 
@@ -273,7 +313,7 @@ public partial class DrawingTests {
     [InlineData(0x047F)]
     public void OfficeArtGeometryGuides_SelfAndForwardReferencesRejectTheWholePath(ushort parameter) {
         var properties = Guides(((ushort)0x2000, parameter, (ushort)0, (ushort)0));
-        Assert.False(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out var failure));
+        Assert.False(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out var values, out var failure));
         Assert.Empty(values); Assert.Equal(OfficeArtCustomPathFailure.InvalidGuide, failure);
     }
 
@@ -284,7 +324,7 @@ public partial class DrawingTests {
     [InlineData(0x0144)]
     public void OfficeArtGeometryGuides_DeviceAndUnknownOperandsRemainUnsupported(ushort parameter) {
         var properties = Guides(((ushort)0x2000, parameter, (ushort)0, (ushort)0));
-        Assert.False(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out _, out var failure));
+        Assert.False(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out _, out var failure));
         Assert.Equal(OfficeArtCustomPathFailure.GuideParameter, failure);
     }
 
@@ -296,7 +336,7 @@ public partial class DrawingTests {
     [InlineData(15, 1, 0, 10)]
     public void OfficeArtGeometryGuides_UndefinedArithmeticDoesNotYieldAnExportableCoordinate(
         ushort operation, ushort first, ushort second, ushort third) {
-        Assert.False(OfficeArtGeometryGuides.TryEvaluate(Guides((operation, first, second, third)),
+        Assert.False(TryEvaluateGuides(Guides((operation, first, second, third)),
             72, 144, _ => { }, default, out var values, out var failure));
         Assert.Empty(values); Assert.Equal(OfficeArtCustomPathFailure.InvalidGuide, failure);
     }
@@ -306,14 +346,14 @@ public partial class DrawingTests {
         foreach (ushort operation in new ushort[] { 0x2003, 0x200D }) {
             var properties = Guides((operation, (ushort)0x0147, (ushort)0x0147, (ushort)0));
             properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)int.MinValue)));
-            Assert.False(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out _, out _));
+            Assert.False(TryEvaluateGuides(properties, 72, 144, _ => { }, default, out _, out _));
         }
         var overflow = Guides(((ushort)0x6001, (ushort)0x0147, (ushort)0x0147, (ushort)1));
         overflow.Add(new OfficeArtProperty(1, 0x0147, int.MaxValue));
-        Assert.False(OfficeArtGeometryGuides.TryEvaluate(overflow, 72, 144, _ => { }, default, out _, out _));
+        Assert.False(TryEvaluateGuides(overflow, 72, 144, _ => { }, default, out _, out _));
         var pole = Guides(((ushort)0x4010, (ushort)100, (ushort)0x0147, (ushort)0));
         pole.Add(new OfficeArtProperty(1, 0x0147, 90 * 65536));
-        Assert.False(OfficeArtGeometryGuides.TryEvaluate(pole, 72, 144, _ => { }, default, out _, out _));
+        Assert.False(TryEvaluateGuides(pole, 72, 144, _ => { }, default, out _, out _));
     }
 
     [Fact]
@@ -322,7 +362,7 @@ public partial class DrawingTests {
             new byte[] { 1, 0, 1, 0, 8, 0 }, new byte[] { 1, 0, 0, 0, 8, 0 }, new byte[] { 0, 0, 0, 0, 8, 0 } }) {
             int items = 0;
             var properties = new[] { new OfficeArtProperty(0, 0x8156, (uint)data.Length, data.Length, complexData: data) };
-            Assert.False(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, count => items += count,
+            Assert.False(TryEvaluateGuides(properties, 72, 144, count => items += count,
                 default, out var values, out var failure));
             Assert.Empty(values); Assert.Equal(0, items); Assert.Equal(OfficeArtCustomPathFailure.InvalidGuide, failure);
         }
@@ -340,8 +380,19 @@ public partial class DrawingTests {
         using var source = new CancellationTokenSource();
         Assert.Throws<OperationCanceledException>(() => OfficeArtCustomPathProjector.TryProject(properties,
             21600, 21600, count => { if (count == 128) source.Cancel(); }, source.Token, out _, out _));
-        Assert.Throws<InvalidDataException>(() => OfficeArtGeometryGuides.TryEvaluate(properties,
+        Assert.Throws<InvalidDataException>(() => TryEvaluateGuides(properties,
             72, 144, _ => throw new InvalidDataException("work"), default, out _, out _));
+    }
+
+    private static bool TryEvaluateGuides(IReadOnlyList<OfficeArtProperty> properties,
+        double width, double height, Action<int> accountItems, CancellationToken token,
+        out int[] values, out OfficeArtCustomPathFailure failure) {
+        values = Array.Empty<int>();
+        if (!OfficeArtGeometryGuides.TryCreate(properties, width, height, accountItems, token, out var guides, out failure)) return false;
+        var calculated = new int[guides!.Count];
+        for (int index = 0; index < calculated.Length; index++)
+            if (!guides.TryGetValue(index, out calculated[index], out failure)) return false;
+        values = calculated; return true;
     }
 
     private static List<OfficeArtProperty> Guides(params (ushort Operation, ushort First, ushort Second, ushort Third)[] records) {

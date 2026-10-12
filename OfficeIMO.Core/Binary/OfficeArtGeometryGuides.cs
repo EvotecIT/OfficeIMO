@@ -9,11 +9,27 @@ namespace OfficeIMO.Drawing.Binary;
 // MS-ODRAW 2.2.58 and 2.3.6.27 define SG records and their backward references.
 // Integer rounding follows the corresponding VML formula contract; native
 // producer rounding and final appearance remain an importer qualification gap.
-internal static class OfficeArtGeometryGuides {
-    internal static bool TryEvaluate(IReadOnlyList<OfficeArtProperty> properties,
+internal sealed class OfficeArtGeometryGuides {
+    private readonly OfficeArtComplexData _bytes;
+    private readonly int _storedSize;
+    private readonly int[] _values;
+    private readonly bool[] _evaluated;
+    private readonly OfficeArtGeometryGuideContext _context;
+    private readonly CancellationToken _token;
+
+    private OfficeArtGeometryGuides(OfficeArtComplexData bytes, int count, int storedSize,
+        OfficeArtGeometryGuideContext context, CancellationToken token) {
+        _bytes = bytes; _storedSize = storedSize; _values = new int[count];
+        _evaluated = new bool[count]; _context = context; _token = token;
+    }
+
+    internal int Count => _values.Length;
+
+    /// <summary>Validates and charges the entire stored array without evaluating unused formulas.</summary>
+    internal static bool TryCreate(IReadOnlyList<OfficeArtProperty> properties,
         double width, double height, Action<int> accountItems, CancellationToken token,
-        out int[] values, out OfficeArtCustomPathFailure failure) {
-        values = Array.Empty<int>(); failure = OfficeArtCustomPathFailure.InvalidGuide;
+        out OfficeArtGeometryGuides? guides, out OfficeArtCustomPathFailure failure) {
+        guides = null; failure = OfficeArtCustomPathFailure.InvalidGuide;
         token.ThrowIfCancellationRequested();
         OfficeArtProperty? property = properties.LastOrDefault(item => item.PropertyId == 0x0156);
         if (property?.IsComplex != true || !property.HasCompleteComplexData) return false;
@@ -25,41 +41,43 @@ internal static class OfficeArtGeometryGuides {
             || 6 + count * storedSize != bytes.Length) return false;
         accountItems(count);
         token.ThrowIfCancellationRequested();
-        var calculated = new int[count];
-        var context = new OfficeArtGeometryGuideContext(properties, width, height);
-        for (int index = 0; index < count; index++) {
-            token.ThrowIfCancellationRequested();
-            int offset = 6 + index * storedSize;
-            int operation = U16(bytes, offset), kind = operation & 0x1FFF;
-            if (kind > 0x10) { failure = OfficeArtCustomPathFailure.GuideFormula; return false; }
-            int arity = kind is 3 or 13 ? 1 : kind is 2 or 4 or 5 or 8 or 9 or 10 or 16 ? 2 : 3;
-            int first = 0, second = 0, third = 0;
-            OfficeArtCustomPathFailure parameterFailure = OfficeArtCustomPathFailure.InvalidGuide;
-            if (!Parameter(0, out first) || arity >= 2 && !Parameter(1, out second)
-                || arity == 3 && !Parameter(2, out third)) { failure = parameterFailure; return false; }
-            if (!TryCalculate(kind, first, second, third, out calculated[index])) {
-                failure = OfficeArtCustomPathFailure.InvalidGuide; return false;
-            }
+        guides = new OfficeArtGeometryGuides(bytes, count, storedSize,
+            new OfficeArtGeometryGuideContext(properties, width, height), token);
+        failure = OfficeArtCustomPathFailure.None; return true;
+    }
 
-            bool Parameter(int parameter, out int value) {
-                // IMsoArray's truncated SG stores the low four bytes and
-                // implicitly zeroes the two remaining operands.
-                int raw = 2 + parameter * 2 < storedSize ? U16(bytes, offset + 2 + parameter * 2) : 0;
-                value = raw;
-                if ((operation & (0x2000 << parameter)) == 0) return true;
-                if (raw is >= 0x0400 and <= 0x047F) {
-                    int source = raw - 0x0400;
-                    if (source >= index) { parameterFailure = OfficeArtCustomPathFailure.InvalidGuide; return false; }
-                    value = calculated[source]; return true;
-                }
-                return context.TryParameter(raw, out value, out parameterFailure);
+    /// <summary>Evaluates one referenced guide and its backward dependencies, memoized for this path.</summary>
+    internal bool TryGetValue(int index, out int value, out OfficeArtCustomPathFailure failure) {
+        value = 0; failure = OfficeArtCustomPathFailure.InvalidGuide;
+        _token.ThrowIfCancellationRequested();
+        if ((uint)index >= (uint)Count) return false;
+        if (_evaluated[index]) { value = _values[index]; failure = OfficeArtCustomPathFailure.None; return true; }
+        int offset = 6 + index * _storedSize;
+        int operation = U16(_bytes, offset), kind = operation & 0x1FFF;
+        if (kind > 0x10) { failure = OfficeArtCustomPathFailure.GuideFormula; return false; }
+        int arity = kind is 3 or 13 ? 1 : kind is 2 or 4 or 5 or 8 or 9 or 10 or 16 ? 2 : 3;
+        int first, second = 0, third = 0;
+        OfficeArtCustomPathFailure parameterFailure = OfficeArtCustomPathFailure.InvalidGuide;
+        if (!Parameter(0, out first) || arity >= 2 && !Parameter(1, out second)
+            || arity == 3 && !Parameter(2, out third)) { failure = parameterFailure; return false; }
+        if (!TryCalculate(kind, first, second, third, out value)) return false;
+        _values[index] = value; _evaluated[index] = true;
+        failure = OfficeArtCustomPathFailure.None; return true;
+
+        bool Parameter(int parameter, out int result) {
+            // IMsoArray's truncated SG stores the low four bytes and
+            // implicitly zeroes the two remaining operands.
+            int raw = 2 + parameter * 2 < _storedSize ? U16(_bytes, offset + 2 + parameter * 2) : 0;
+            result = raw;
+            if ((operation & (0x2000 << parameter)) == 0) return true;
+            if (raw is >= 0x0400 and <= 0x047F) {
+                int source = raw - 0x0400;
+                // Strict backward references bound recursion by the 128-entry array.
+                if (source >= index) { parameterFailure = OfficeArtCustomPathFailure.InvalidGuide; return false; }
+                return TryGetValue(source, out result, out parameterFailure);
             }
-            // A calculated operand outside the owned, device-independent
-            // parameter set must not be interpreted as its numeric identifier.
-            // Invalid backward references keep the malformed-data diagnosis.
+            return _context.TryParameter(raw, out result, out parameterFailure);
         }
-        token.ThrowIfCancellationRequested();
-        values = calculated; failure = OfficeArtCustomPathFailure.None; return true;
     }
 
     private static bool TryCalculate(int kind, int first, int second, int third, out int value) {

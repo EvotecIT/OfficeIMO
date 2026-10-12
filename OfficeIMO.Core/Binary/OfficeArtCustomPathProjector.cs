@@ -46,7 +46,7 @@ internal static class OfficeArtCustomPathProjector {
         // Charge declared work before allocating decoded arrays or expanding commands.
         accountItems(pointCount + segmentCount);
         var points = new OfficePoint[pointCount];
-        int[]? guides = null;
+        OfficeArtGeometryGuides? guides = null;
         for (int index = 0; index < points.Length; index++) {
             token.ThrowIfCancellationRequested();
             int offset = 6 + index * pointSize;
@@ -55,11 +55,10 @@ internal static class OfficeArtCustomPathProjector {
             int x = pointSize == 8 ? I32(vertices, offset) : U16(vertices, offset);
             int y = pointSize == 8 ? I32(vertices, offset + 4) : U16(vertices, offset + 2);
             if (IsGuide(x) || IsGuide(y)) {
-                if (guides == null && !OfficeArtGeometryGuides.TryEvaluate(properties, width, height,
+                if (guides == null && !OfficeArtGeometryGuides.TryCreate(properties, width, height,
                     accountItems, token, out guides, out failure)) return false;
-                if (!Resolve(x, guides!, out x) || !Resolve(y, guides!, out y)) {
-                    failure = OfficeArtCustomPathFailure.InvalidGuide; return false;
-                }
+                if (IsGuide(x) && !guides!.TryGetValue(x & 0x7F, out x, out failure)
+                    || IsGuide(y) && !guides!.TryGetValue(y & 0x7F, out y, out failure)) return false;
             }
             points[index] = new OfficePoint((x - left) / (right - left) * width, (y - top) / (bottom - top) * height);
         }
@@ -158,14 +157,6 @@ internal static class OfficeArtCustomPathProjector {
     private static OfficePathCommand Cubic(OfficePoint first, OfficePoint second, OfficePoint end) =>
         OfficePathCommand.CubicBezierTo(first.X, first.Y, second.X, second.Y, end.X, end.Y);
     private static bool IsGuide(int value) => unchecked((uint)value) is >= 0x80000000U and <= 0x8000007FU;
-    private static bool Resolve(int coordinate, int[] guides, out int value) {
-        value = coordinate;
-        if (!IsGuide(coordinate)) return true;
-        // The sentinel range encodes the zero-based index in its low seven bits.
-        int index = coordinate & 0x7F;
-        if (index >= guides.Length) return false;
-        value = guides[index]; return true;
-    }
     private static OfficeArtProperty? Property(IReadOnlyList<OfficeArtProperty> properties, ushort id) =>
         properties.LastOrDefault(property => property.PropertyId == id);
     private static int Scalar(IReadOnlyList<OfficeArtProperty> properties, ushort id, int fallback) {
