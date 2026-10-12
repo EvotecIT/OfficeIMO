@@ -14,62 +14,6 @@ function Test-DocumentationCatalog {
     } catch { return $false }
 }
 
-function Set-PSWriteOfficeDocumentationSnapshot {
-    param(
-        [Parameter(Mandatory)][string] $SiteRootPath,
-        [Parameter(Mandatory)] $Source
-    )
-
-    $repository = [regex]::Escape($Source.Repo)
-    $module = Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRootPath 'data/apidocs/powershell/PSWriteOffice.psd1')
-    $sourceRef = [Uri]::EscapeDataString('v' + [string] $module.ModuleVersion)
-    # Only floating repository refs change. Explicit historical tags, other
-    # repositories, URL suffixes and branches such as main-next retain their meaning.
-    $pattern = '(?<prefix>https://(?:github\.com/' + $repository +
-        '/(?:blob|tree)/|raw\.githubusercontent\.com/' + $repository +
-        '/))(?:main|master)(?=[/?#\s"''<>)]|$)'
-    $replacement = [System.Text.RegularExpressions.MatchEvaluator] {
-        param($match)
-        $match.Groups['prefix'].Value + $sourceRef
-    }
-
-    $catalogPath = Join-Path $SiteRootPath 'data/pswriteoffice_command_catalog.json'
-    $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json -Depth 20
-    # A family's examples belong to this module version even if its catalog was
-    # previously pinned. Historical links in guide prose are handled separately.
-    $examplesPattern = '^(?<prefix>https://github\.com/' + $repository +
-        '/tree/)[^/]+(?=/Examples(?:[/#?]|$))'
-    $catalogChanged = $false
-    foreach ($family in @($catalog.families)) {
-        $examplesUrl = [regex]::Replace([string] $family.examplesUrl, $examplesPattern, $replacement)
-        if ($examplesUrl -cne $family.examplesUrl) {
-            $family.examplesUrl = $examplesUrl
-            $catalogChanged = $true
-        }
-    }
-    if ($catalogChanged) {
-        [IO.File]::WriteAllText($catalogPath, ($catalog | ConvertTo-Json -Depth 20 -Compress) + [Environment]::NewLine)
-    }
-
-    $pagesChanged = $false
-    $documentationRoot = Join-Path $SiteRootPath 'content/docs/pswriteoffice'
-    foreach ($page in Get-ChildItem -LiteralPath $documentationRoot -Filter '*.md' -File -Recurse) {
-        $content = [IO.File]::ReadAllText($page.FullName)
-        $pinnedContent = [regex]::Replace($content, $pattern, $replacement)
-        $family = @($catalog.families | Where-Object id -CEQ $page.Directory.Name)
-        if ($page.Name -ceq 'index.md' -and $family.Count -eq 1) {
-            # Imported and fallback summaries follow the same catalog totals.
-            $summaryCount = [regex]::new('\b\d+(?= exported commands\b)|(?<=\bexports )\d+(?= commands\b)')
-            $pinnedContent = $summaryCount.Replace($pinnedContent, [string] $family[0].commandCount, 1)
-        }
-        if ($content -cne $pinnedContent) {
-            [IO.File]::WriteAllText($page.FullName, $pinnedContent, [Text.UTF8Encoding]::new($false))
-            $pagesChanged = $true
-        }
-    }
-    [PSCustomObject]@{ CatalogUpdated = $catalogChanged; DocumentationUpdated = $pagesChanged }
-}
-
 function Get-DocumentationCatalogFingerprint {
     param([Parameter(Mandatory)][string] $Path)
 
@@ -90,6 +34,7 @@ function Assert-DocumentationCatalogSnapshot {
         [Parameter(Mandatory)][string] $CatalogPath,
         [Parameter(Mandatory)][string] $EvidencePath,
         [Parameter(Mandatory)][string] $ExpectedSourceRef,
+        [Parameter(Mandatory)][string] $SiteRootPath,
         [Parameter(Mandatory)][version] $ExpectedVersion,
         [Parameter(Mandatory)][int] $ExpectedCommandCount
     )
@@ -97,7 +42,7 @@ function Assert-DocumentationCatalogSnapshot {
     try {
         $evidence = Get-Content -LiteralPath $EvidencePath -Raw -ErrorAction Stop | ConvertFrom-Json
         $actual = Get-DocumentationCatalogFingerprint -Path $CatalogPath
-        $valid = $evidence.schemaVersion -eq 1 -and $evidence.moduleName -ceq 'PSWriteOffice' -and
+        $valid = $evidence.schemaVersion -eq 2 -and $evidence.moduleName -ceq 'PSWriteOffice' -and
             $evidence.sourceRef -ceq $ExpectedSourceRef -and
             $evidence.sourceCommit -ceq $ExpectedSourceRef -and
             [version]$evidence.moduleVersion -eq $ExpectedVersion -and
@@ -110,7 +55,10 @@ function Assert-DocumentationCatalogSnapshot {
             $evidence.derivedCatalog.bytes -eq $actual.bytes -and
             $evidence.derivedCatalog.sha256 -ceq $actual.sha256 -and
             (Test-DocumentationCatalog -Path $CatalogPath -ExpectedVersion $ExpectedVersion -ExpectedCommandCount $ExpectedCommandCount)
-        if ($valid) { return $evidence }
+        if ($valid) {
+            Assert-DocumentationPageSnapshot -SiteRootPath $SiteRootPath -Evidence $evidence
+            return $evidence
+        }
     } catch { }
     throw 'The checked-in PSWriteOffice documentation catalog does not match its pinned source/derived evidence.'
 }
@@ -122,6 +70,7 @@ function Test-CompleteSourceDocumentation {
     )
 
     # A clean sparse checkout can omit tracked pages without appearing dirty.
+    if (-not (Test-Path -LiteralPath (Join-Path $RepositoryRoot 'Build/Export-WebsiteDocumentationCatalog.ps1') -PathType Leaf)) { return $false }
     $trackedFiles = @(& git -C $RepositoryRoot ls-tree -r --name-only $SourceCommit -- 'Website/content/project-docs/docs')
     if ($LASTEXITCODE -ne 0) { return $false }
     $trackedPages = @($trackedFiles | Where-Object { $_ -cmatch '\.md$' })
@@ -154,7 +103,7 @@ function New-DocumentationCatalogSnapshot {
         [PSCustomObject]@{
             Content = [IO.File]::ReadAllText($temporaryCatalog)
             Evidence = [ordered]@{
-                schemaVersion = 1
+                schemaVersion = 2
                 moduleName = 'PSWriteOffice'
                 moduleVersion = [string] $ExpectedVersion
                 sourceRef = $SourceRef
@@ -163,6 +112,8 @@ function New-DocumentationCatalogSnapshot {
                 producer = [ordered]@{ path = $producerPath; fingerprint = Get-DocumentationCatalogFingerprint -Path $producer }
                 sourceCatalog = Get-DocumentationCatalogFingerprint -Path $temporaryCatalog
                 derivedCatalog = $null
+                documentation = @(New-DocumentationPageEvidence -RepositoryRoot $RepositoryRoot)
+                navigation = $null
             }
         }
     } finally { Remove-Item -LiteralPath $temporaryCatalog }
@@ -172,10 +123,15 @@ function Save-DocumentationCatalogEvidence {
     param(
         [Parameter(Mandatory)][string] $CatalogPath,
         [Parameter(Mandatory)][string] $EvidencePath,
+        [Parameter(Mandatory)][string] $SiteRootPath,
         [Parameter(Mandatory)] $Evidence
     )
 
     # Consumer link rewriting is recorded separately from the source output.
     $Evidence.derivedCatalog = Get-DocumentationCatalogFingerprint -Path $CatalogPath
+    foreach ($page in $Evidence.documentation) {
+        $page.derived = Get-DocumentationCatalogFingerprint -Path (Join-Path $SiteRootPath $page.sitePath)
+    }
+    $Evidence.navigation = Get-PSWriteOfficeNavigationFingerprint -SiteRootPath $SiteRootPath
     [IO.File]::WriteAllText($EvidencePath, ($Evidence | ConvertTo-Json -Depth 8) + "`n", [Text.UTF8Encoding]::new($false))
 }
