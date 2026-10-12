@@ -58,10 +58,7 @@ internal static class WorkflowPrintCommand {
         if (parsed.Command != WorkflowCommandKind.PrintPlan) throw new WorkflowUsageException("Choose a PDF and supported print-plan options.");
         string input = Path.GetFullPath(parsed.Inputs[0]);
         PdfDocument document = await PdfDocument.LoadAsync(input, cancellationToken: token).ConfigureAwait(false);
-        PdfPreparedPrintDocument sheets = PdfPrintRenderer.Prepare(document, new PdfPrintPlanRequest {
-            InputPath = input, Pages = parsed.Pages, PaperSize = parsed.PaperSize,
-            Orientation = parsed.Orientation, PagesPerSheet = parsed.PagesPerSheet, ScaleMode = parsed.ScaleMode, Margin = parsed.Margin
-        }, new PdfPrintRenderOptions { Dpi = dpi }, token);
+        PdfPreparedPrintDocument sheets = PdfPrintRenderer.Prepare(document, parsed.CreatePrintRequest(), new PdfPrintRenderOptions { Dpi = dpi }, token);
         foreach (var diagnostic in sheets.Diagnostics) await error.WriteLineAsync(diagnostic).ConfigureAwait(false);
         try {
             PdfPrintSubmission receipt = await service.SubmitAsync(sheets, new PdfPrintDeliveryOptions {

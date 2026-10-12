@@ -18,7 +18,10 @@ namespace OfficeIMO.Excel {
         /// <param name="cells">Collection of cell coordinates and values.</param>
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
-        public void CellValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+        public void CellValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default) =>
+            CellValuesCore(cells, mode, ct, preserveMissingValues: false);
+
+        private void CellValuesCore(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode, CancellationToken ct, bool preserveMissingValues) {
             if (cells is null) {
                 throw new ArgumentNullException(nameof(cells));
             }
@@ -41,7 +44,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (directSaveCandidate != null
-                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(directSaveCandidate)) {
+                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(directSaveCandidate, preserveMissingValues)) {
                 return;
             }
 
@@ -53,20 +56,20 @@ namespace OfficeIMO.Excel {
 
             if (appendSaveCandidate != null
                 && _excelDocument.CanDeferDirectCellValuesAppendCandidate
-                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate)) {
+                && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate, preserveMissingValues)) {
                 return;
             }
 
             // Single cell: trivially sequential
-            if (list.Count == 1) {
+            if (list.Count == 1 && !preserveMissingValues) {
                 var single = list[0];
                 CellValue(single.Row, single.Column, single.Value);
                 RegisterDirectCellValuesSaveCandidateIfPossible(directSaveCandidate);
                 return;
             }
 
-            if (list.Count > DirectSequentialCellWriteLimit && TryApplyPlainCellsByAppendingRows(list, ct)) {
-                RegisterDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate ?? directSaveCandidate);
+            if (!preserveMissingValues && list.Count > DirectSequentialCellWriteLimit && TryApplyPlainCellsByAppendingRows(list, ct)) {
+                RegisterDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate ?? directSaveCandidate, preserveMissingValues);
                 return;
             }
 
@@ -83,7 +86,15 @@ namespace OfficeIMO.Excel {
                         for (int i = 0; i < list.Count; i++) {
                             ct.ThrowIfCancellationRequested();
                             var (r, c, v) = list[i];
-                            CellValueCore(r, c, v);
+                            if (preserveMissingValues && (v == null || v == DBNull.Value)) {
+                                SetMissingTabularCellValue(GetWritableValueCell(r, c));
+                                CompleteCellValueMutation(r, c);
+                            } else {
+                                CellValueCore(r, c, v);
+                                if (preserveMissingValues) {
+                                    ClearTabularReplacementValueMetadata(GetWritableValueCell(r, c));
+                                }
+                            }
                         }
 
                         return;
@@ -99,7 +110,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     ssPlanner.ApplyAndFixup(prepared, _excelDocument);
-                    ApplyPreparedCells(prepared, list);
+                    ApplyPreparedCells(prepared, list, preserveMissingValues);
                 },
                 computeParallel: () => {
                     // Parallel compute phase - prepare values without DOM mutation
@@ -115,12 +126,12 @@ namespace OfficeIMO.Excel {
                 applySequential: () => {
                     // Apply phase - first fix shared strings, then write all values to DOM
                     ssPlanner.ApplyAndFixup(prepared, _excelDocument);
-                    ApplyPreparedCells(prepared, list);
+                    ApplyPreparedCells(prepared, list, preserveMissingValues);
                 },
                 ct: ct
             );
 
-            RegisterDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate ?? directSaveCandidate);
+            RegisterDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate ?? directSaveCandidate, preserveMissingValues);
         }
 
         /// <summary>

@@ -418,11 +418,13 @@ namespace OfficeIMO.PowerPoint {
                 string valueColor = _dark ? _theme.AccentContrastColor : _theme.AccentDarkColor;
                 string labelColor = _dark ? _theme.AccentLightColor : _theme.SecondaryTextColor;
                 int valueFontSize = ResolveComposerMetricFontSize(metric.Value, box.WidthCm, box.HeightCm < 1.4 ? 21 : 25);
+                double valueHeight = Math.Max(0.46, box.HeightCm * 0.42);
+                valueFontSize = PowerPointDesignExtensions.FitSingleLineFontToHeight(valueFontSize, valueHeight);
                 int labelFontSize = ResolveComposerMetricFontSize(metric.Label, box.WidthCm, 9);
 
                 PowerPointTextBox value = PowerPointDesignExtensions.AddText(_slide, metric.Value,
                     box.LeftCm, box.TopCm + Math.Max(0.05, box.HeightCm * 0.08), box.WidthCm,
-                    Math.Max(0.46, box.HeightCm * 0.42), valueFontSize, valueColor, _theme.HeadingFontName, bold: true);
+                    valueHeight, valueFontSize, valueColor, _theme.HeadingFontName, bold: true);
                 CenterComposerText(value);
 
                 double underlineWidth = Math.Min(box.WidthCm * 0.46, 1.4);

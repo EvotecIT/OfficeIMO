@@ -82,9 +82,13 @@ public sealed class StudioInlineFormWidgetTests {
                 await Click(window, list.GetVisualDescendants().OfType<ListBoxItem>().ElementAt(2));
                 Assert.Equal(new[] { "Design", "Research" }, model.SelectedFormField.CreateValue().Values);
                 // Recreating the list after field navigation must not replace the draft with its default selection.
-                page.RequestInlineFormNavigation(-1);
-                page.RequestInlineFormNavigation(1);
+                window.KeyPress(Key.Tab, RawInputModifiers.Shift, PhysicalKey.None, null);
                 await Layout(window);
+                Assert.Equal("Region", model.SelectedFormField.Name);
+                Assert.True(VisibleList(window).IsKeyboardFocusWithin);
+                window.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.None, null);
+                await Layout(window);
+                Assert.Equal("Topics", model.SelectedFormField.Name);
                 Assert.Equal(2, VisibleList(window).SelectedItems!.Count);
                 Assert.True(radios[2].IsChecked); // Moving to a different field keeps the unsaved choice visible.
                 if (!string.IsNullOrEmpty(evidence)) {

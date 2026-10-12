@@ -42,12 +42,22 @@ and the source reader's buffering still determine memory use.
 When the source schema is already known, set `ArrowReadOptions.ColumnTypes` in ordinal order and
 leave reader-side inference disabled. The adapter snapshots and validates the explicit types before
 reading, so the conversion does not pay a schema-sampling pass.
+Set `ArrowReadOptions.ColumnNullability` in the same ordinal order when a consumer
+requires non-nullable fields. A `false` entry declares a required field; conversion
+throws before returning a batch if that column contains nulls. A `true` entry permits
+nulls, and omitting the option keeps all fields nullable. These settings are copied
+and their width is validated before the adapter reads any rows.
 CLR `DateTime` columns become timezone-less Arrow timestamps so spreadsheet and database
 wall-clock values retain their original meaning. `DateTimeOffset` columns become UTC-aware
 timestamps and preserve their instant. Temporal columns use nanoseconds by default so CLR
 100-nanosecond precision is retained. Set `ArrowReadOptions.TemporalUnit` to
 `TimeUnit.Microsecond` when the wider microsecond timestamp range is required and accepting
 sub-microsecond precision loss is appropriate.
+
+For XLSX output, applications can orchestrate the [Excel row writers](../OfficeIMO.Excel/README.md)
+while consuming Arrow batches. This package does not expose a dedicated
+`RecordBatch`-to-XLSX adapter; the remaining adapter contract is tracked in the
+[spreadsheet roadmap](../Docs/ROADMAP.md#spreadsheet-and-csv-delivery-order).
 
 ## Managed and C streams
 

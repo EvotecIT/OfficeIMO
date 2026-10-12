@@ -57,7 +57,7 @@ namespace OfficeIMO.Access {
         /// <summary>Typed index definitions.</summary>
         public AccessIndexCollection Indexes { get; }
         /// <summary>Number of modeled rows, without reading any native table.</summary>
-        public long RowCount { get { EnsureAttached(); if (IsLinked) throw new NotSupportedException("Linked-table row counts require a separately authorized provider; targets are never resolved by the document codec."); return NativeTable?.RowCount ?? Rows.Count; } }
+        public long RowCount { get { EnsureAttached(); if (IsLinked) throw new NotSupportedException("Linked-table row counts require a separately authorized provider; targets are never resolved by the document codec."); return Document.ResolveNativeReadTable(NativeTable)?.RowCount ?? Rows.Count; } }
         /// <summary>Whether this is a system or hidden table kept outside the user-table collection.</summary>
         public bool IsSystem { get; internal set; }
         /// <summary>Whether this definition refers to an external table whose target is never opened.</summary>
@@ -115,6 +115,8 @@ namespace OfficeIMO.Access {
 
     /// <summary>A typed column with immutable definition in the foundation slice.</summary>
     public sealed class AccessColumn : AccessNamedObject {
+        // The declared native text type remains available while reader metadata describes the opaque returned value.
+        internal bool HasOpaqueTextValues { get; set; }
         internal AccessColumn(AccessTable table, string name, AccessDataType type, int? maxLength) : base(table.Document, name) {
             if (!Enum.IsDefined(typeof(AccessDataType), type)) throw new ArgumentOutOfRangeException(nameof(type));
             if (type == AccessDataType.ShortText) { maxLength ??= 255; if (maxLength < 1 || maxLength > 255) throw new ArgumentOutOfRangeException(nameof(maxLength)); }

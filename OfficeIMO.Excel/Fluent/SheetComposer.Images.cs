@@ -3,9 +3,7 @@ using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel.Fluent {
-    /// <summary>
-    /// Image helpers for SheetComposer that forward to the underlying sheet and keep chaining.
-    /// </summary>
+    // Image helpers for SheetComposer that forward to the underlying sheet and keep chaining.
     public sealed partial class SheetComposer {
         /// <summary>
         /// Inserts an image anchored to a specific cell.

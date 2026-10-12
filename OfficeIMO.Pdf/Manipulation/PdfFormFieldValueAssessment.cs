@@ -2,7 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Metadata-based feedback for a proposed interactive form value.</summary>
 /// <remarks>This assessment does not execute JavaScript or replace document permissions, mutation planning,
-/// appearance generation, or saved-output validation. Required fields produce warnings so unfinished forms can be saved.</remarks>
+/// appearance generation, or saved-output validation. A bounded inert numeric helper profile requires reviewed values
+/// to use the recovered separator/precision/range settings; it does not emulate Acrobat formatting or execute scripts. Required fields produce warnings so unfinished forms can be saved.</remarks>
 public sealed class PdfFormFieldValueAssessment {
     private PdfFormFieldValueAssessment(IReadOnlyList<PdfFormFieldValueIssue> issues) { Issues = issues; }
 
@@ -35,6 +36,11 @@ public sealed class PdfFormFieldValueAssessment {
         if (field.IsChoiceField && !field.IsEditableChoice && values.Any(text => text.Length != 0 &&
             !field.Options.Any(option => option.ExportValue == text || option.DisplayText == text)))
             Add(PdfFormFieldValueIssueCode.UnknownChoice, true, "Choose a value offered by this field.");
+        if (field.IsChoiceField && !field.IsEditableChoice && values.Any(text =>
+            !field.Options.Any(option => option.ExportValue == text) &&
+            field.Options.Where(option => option.DisplayText == text).Select(option => option.ExportValue).Distinct(StringComparer.Ordinal).Count() > 1))
+            Add(PdfFormFieldValueIssueCode.AmbiguousChoice, true, "The display label matches several choices. Enter the exact export value.");
+        issues.AddRange(PdfFormNumericConstraints.Assess(field, values));
         return new PdfFormFieldValueAssessment(issues.AsReadOnly());
 
         void Add(PdfFormFieldValueIssueCode code, bool error, string message) => issues.Add(new(code, error, message));
@@ -69,5 +75,15 @@ public enum PdfFormFieldValueIssueCode {
     /// <summary>A selected radio group cannot be cleared.</summary>
     NoToggleToOff,
     /// <summary>The proposed choice is not offered by a non-editable field.</summary>
-    UnknownChoice
+    UnknownChoice,
+    /// <summary>The value is not a number in the declared field format.</summary>
+    NumericValue,
+    /// <summary>The value exceeds the decimal precision of the supported numeric review profile.</summary>
+    NumericPrecision,
+    /// <summary>The value is outside the declared numeric range.</summary>
+    NumericRange,
+    /// <summary>Script constraints are outside the inert supported helper grammar.</summary>
+    UnsupportedScriptConstraint,
+    /// <summary>A display label refers to more than one export value.</summary>
+    AmbiguousChoice
 }

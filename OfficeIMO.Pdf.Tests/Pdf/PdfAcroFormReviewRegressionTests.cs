@@ -302,7 +302,7 @@ public class PdfAcroFormReviewRegressionTests {
 
         PdfReadDocument readDocument = PdfReadDocument.Open(source);
 
-        Assert.False(readDocument.HasOnlyWidgetOwnedActiveContent());
+        Assert.False(readDocument.HasOnlyFormOwnedActiveContent());
         Assert.Throws<PdfMutationBlockedException>(() =>
             PdfDocument.Load(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }

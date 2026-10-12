@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
-/// <summary>
-/// Manages table style settings and borders.
-/// </summary>
+// Manages table style settings and borders.
 public partial class WordTableStyleDetails {
     /// <summary>
     /// Creates and sets a TableBorders object with the specified border settings

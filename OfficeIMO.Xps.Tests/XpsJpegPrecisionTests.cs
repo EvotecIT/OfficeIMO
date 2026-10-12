@@ -38,7 +38,10 @@ public sealed class XpsJpegPrecisionTests {
             byte[] jpeg = File.ReadAllBytes(Path.Combine(corpus, name + (tiff && !name.EndsWith(".tif", StringComparison.OrdinalIgnoreCase) ? ".tif" : "")));
             OfficeRasterImage? source;
             byte[]? profileBytes = profiled ? File.ReadAllBytes(Path.Combine(corpus, "..", "IccColorCorpus", "icc-dci-p3-matrix.icc")) : null;
-            Assert.True(tiff ? OfficeTiffCodec.TryDecode(jpeg, out source) : OfficeJpegCodec.TryDecode(jpeg, out source));
+            // Match the common decoder's interpolated chroma policy while keeping
+            // the expected pixels independent of the portable rendering path.
+            Assert.True(tiff ? OfficeTiffCodec.TryDecode(jpeg, out source) : OfficeJpegCodec.TryDecode(jpeg, out source,
+                new OfficeJpegDecodeOptions(highQualityChroma: true)));
             byte[]? profileReference = profiled ? File.ReadAllBytes(Path.Combine(corpus, name + ".icc-rgba")) : null;
             var document = XpsDocument.Create(format);
             string uri = document.AddResource(tiff ? "Images/source.tif" : "Images/source.jpg", jpeg, tiff ? "image/tiff" : "image/jpeg");

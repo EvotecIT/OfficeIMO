@@ -6,6 +6,12 @@ namespace OfficeIMO.Drawing;
 /// Applies the color transformations shared by Office document formats.
 /// </summary>
 public static class OfficeColorTransforms {
+    /// <summary>Converts encoded RGB channels to grayscale using 77:150:29 luminance weights, preserving alpha.</summary>
+    public static OfficeColor Grayscale(OfficeColor color) {
+        byte gray = (byte)((color.R * 77 + color.G * 150 + color.B * 29 + 128) >> 8);
+        return OfficeColor.FromRgba(gray, gray, gray, color.A);
+    }
+
     /// <summary>
     /// Mixes the input color with white. <paramref name="inputRatio"/> is the proportion of the
     /// original color retained, matching the DrawingML <c>tint</c> contract.

@@ -1,7 +1,5 @@
 namespace OfficeIMO.Excel {
-    /// <summary>
-    /// Convenience bridge methods exposing read helpers on an open ExcelDocument to avoid re-opening files.
-    /// </summary>
+    // Convenience bridge methods exposing read helpers on an open ExcelDocument to avoid re-opening files.
     public partial class ExcelDocument {
         /// <summary>
         /// Creates a reader that shares this document's underlying OpenXML handle (no new file handle).

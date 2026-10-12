@@ -3074,7 +3074,8 @@ namespace OfficeIMO.Tests {
             return presentationPath;
         }
 
-        private static string GetTestAssetPath(string fileName) =>
-            Path.Combine(RepositoryTestPaths.Find(), "Assets", fileName);
+        private static string GetTestAssetPath(string fileName) {
+            return Path.Combine(RepositoryTestPaths.Find(), "Assets", fileName);
+        }
     }
 }

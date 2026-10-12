@@ -16,17 +16,17 @@ internal sealed class HtmlTextEncodingResolver {
     private readonly IHtmlEncodingProvider _provider;
     internal HtmlTextEncodingResolver(IHtmlEncodingProvider provider) => _provider = provider ?? throw new ArgumentNullException(nameof(provider));
 
-    internal Encoding ResolveHtmlEncoding(Stream stream, Encoding? explicitEncoding = null) {
+    internal Encoding ResolveHtmlEncoding(Stream stream, Encoding? explicitEncoding = null, Encoding? fallbackEncoding = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (explicitEncoding != null) return explicitEncoding;
-        if (!stream.CanSeek) return Utf8;
+        if (!stream.CanSeek) return fallbackEncoding ?? Utf8;
 
         long position = stream.Position;
         try {
             stream.Position = 0;
             var prefix = new byte[HtmlPrescanLength];
             int count = ReadPrefix(stream, prefix);
-            return ResolveHtmlEncoding(prefix, count) ?? Utf8;
+            return ResolveHtmlEncoding(prefix, count) ?? fallbackEncoding ?? Utf8;
         } finally {
             stream.Position = position;
         }

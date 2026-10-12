@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel {
             string path,
             ExcelSaveOptions? options,
             bool allowUnchangedCopy = true) {
+            EnsureXlsbStringStorageSupported(ExcelDocumentLoadRouting.HasXlsbExtension(path), options);
             if (!ExcelDocumentLoadRouting.HasXlsbExtension(path)) {
                 return;
             }
@@ -23,6 +24,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void EnsureXlsbStreamTargetSupported(ExcelFileFormat format, ExcelSaveOptions? options) {
+            EnsureXlsbStringStorageSupported(format == ExcelFileFormat.Xlsb, options);
             if (format != ExcelFileFormat.Xlsb) {
                 return;
             }
@@ -32,6 +34,16 @@ namespace OfficeIMO.Excel {
             }
 
             throw new NotSupportedException(GetXlsbWriteUnsupportedMessage());
+        }
+
+        private void EnsureXlsbStringStorageSupported(bool isXlsbTarget, ExcelSaveOptions? options) {
+            if (options?.XlsbUseSharedStrings == null) return;
+            if (!isXlsbTarget) {
+                throw new NotSupportedException("XlsbUseSharedStrings applies only to native XLSB output.");
+            }
+            if (SourceFormat == ExcelFileFormat.Xlsb) {
+                throw new NotSupportedException("Changing string storage in an imported XLSB workbook is not supported because its preserved records may reference the original shared-string table. Leave XlsbUseSharedStrings unset to preserve that storage.");
+            }
         }
 
         private bool CanCopyUnchangedXlsb(ExcelSaveOptions? options) {
@@ -128,7 +140,7 @@ namespace OfficeIMO.Excel {
             bool unchanged = existingSource && CanCopyUnchangedXlsb(options);
             if (!existingSource) {
                 if (TryGetDirectTabularSaveSource(options, CancellationToken.None, "Xlsb", out ExcelDirectTabularSource source)) {
-                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, CancellationToken.None)) {
+                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, CancellationToken.None, options?.XlsbUseSharedStrings == true)) {
                         try { destination.Flush(); } catch (NotSupportedException) { }
                         LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
                         return true;
@@ -139,7 +151,7 @@ namespace OfficeIMO.Excel {
 
                 PrepareWorkbookForSave(options);
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
-                XlsbNewPackageWriter.Write(this, destination);
+                XlsbNewPackageWriter.Write(this, destination, options?.XlsbUseSharedStrings == true);
                 if (destination.CanSeek) destination.SetLength(destination.Position);
                 try { destination.Flush(); } catch (NotSupportedException) { }
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("New workbook streamed with the first-party BIFF12 XLSB writer.");
@@ -171,7 +183,7 @@ namespace OfficeIMO.Excel {
             if (!existingSource) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
-                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, cancellationToken)) {
+                    if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, destination, cancellationToken, options?.XlsbUseSharedStrings == true)) {
                         try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
                         LastSaveDiagnostics = ExcelSaveDiagnostics.NativeBinaryDirectPackage();
                         return true;
@@ -183,7 +195,7 @@ namespace OfficeIMO.Excel {
                 PrepareWorkbookForSave(options);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
-                XlsbNewPackageWriter.Write(this, destination);
+                XlsbNewPackageWriter.Write(this, destination, options?.XlsbUseSharedStrings == true, cancellationToken);
                 if (destination.CanSeek) destination.SetLength(destination.Position);
                 try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("New workbook streamed with the first-party BIFF12 XLSB writer.");
@@ -216,7 +228,7 @@ namespace OfficeIMO.Excel {
             directWrite = false;
             if (TryGetDirectTabularSaveSource(options, cancellationToken, "Xlsb", out ExcelDirectTabularSource source)) {
                 using var directOutput = new MemoryStream();
-                if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, directOutput, cancellationToken)) {
+                if (XlsbNewPackageWriter.TryWriteDirectTabular(this, source, directOutput, cancellationToken, options?.XlsbUseSharedStrings == true)) {
                     byte[] directBytes = directOutput.ToArray();
                     generatedWorkbook = XlsbWorkbookReader.Load(
                         directBytes,
@@ -230,7 +242,7 @@ namespace OfficeIMO.Excel {
 
             PrepareWorkbookForSave(options);
             using var output = new MemoryStream();
-            XlsbNewPackageWriter.Write(this, output);
+            XlsbNewPackageWriter.Write(this, output, options?.XlsbUseSharedStrings == true, cancellationToken);
             byte[] bytes = output.ToArray();
             generatedWorkbook = XlsbWorkbookReader.Load(
                 bytes,

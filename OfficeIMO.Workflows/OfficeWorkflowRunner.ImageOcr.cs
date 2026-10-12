@@ -29,6 +29,7 @@ public sealed partial class OfficeWorkflowRunner {
             var inputStream = request.InputStream;
             var outputStream = request.OutputStream;
             var hostGuard = request.PublicationGuard;
+            var stagingGuard = hostGuard as IOfficeWorkflowStagingGuard;
             string input = ValidateInputLocation(request.InputPath, inputStream);
             string output = outputStream is null ? ValidateLocalOutput(request.OutputPath) : OfficeStorageIdentity.Normalize(request.OutputPath);
             string sourceName = inputStream?.Name ?? Path.GetFileName(input);
@@ -76,7 +77,11 @@ public sealed partial class OfficeWorkflowRunner {
             characters = text.Length;
             string directory = outputStream is null ? Path.GetDirectoryName(output)!
                 : temporaryDirectory = OfficeTemporaryDirectory.Create("officeimo-image-ocr-output-");
+            if (outputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(directory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(directory);
+            if (outputStream is null && stagingGuard is not null)
+                await stagingGuard.EnsureStagingDirectoryAllowedAsync(directory, cancellationToken).ConfigureAwait(false);
             staging = Path.Combine(directory, ".image-ocr-" + Guid.NewGuid().ToString("N") + ".tmp");
             await using (var file = OfficeTemporaryFile.CreateAtPath(staging, 81920, FileOptions.Asynchronous)) {
                 await file.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);

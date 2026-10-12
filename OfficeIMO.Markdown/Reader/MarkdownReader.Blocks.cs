@@ -3,9 +3,7 @@ using System.Linq;
 
 namespace OfficeIMO.Markdown;
 
-/// <summary>
-/// Block parsing helpers for <see cref="MarkdownReader"/>.
-/// </summary>
+// Block parsing helpers for MarkdownReader.
 public static partial class MarkdownReader {
     private static bool IsAtxHeading(string line, out int level, out string text) {
         return TryGetAtxHeadingContentRange(line, out level, out _, out _, out text, out _, out _);

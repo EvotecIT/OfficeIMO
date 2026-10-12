@@ -480,7 +480,7 @@ namespace OfficeIMO.Excel {
                 CalendarStyle ? ExcelDateSystemConverter.FromSerial(Serial, DateSystem) : DateTime.FromOADate(Serial);
         }
 
-        private sealed class ExcelRangeDataReader : DbDataReader {
+        private sealed partial class ExcelRangeDataReader : DbDataReader {
             internal bool IsCellPresent(int ordinal) {
                 if (ReferenceEquals(_currentRow, _blankRow)) return false;
                 int rowOffset = _nextRow - 1 - (_currentChunk?.StartRow ?? 0);

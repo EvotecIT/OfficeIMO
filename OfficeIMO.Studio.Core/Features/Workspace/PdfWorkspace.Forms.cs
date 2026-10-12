@@ -40,7 +40,9 @@ internal sealed partial class PdfWorkspace {
             var document = LoadDocument(bytes);
             var plan = document.PlanMutation(PdfMutationOperation.FillFormFields, snapshot.Keys);
             return (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
-                ? document.Forms.AppendRevision(snapshot) : document.Forms.Fill(snapshot)).ToBytes();
+                ? document.Forms.AppendRevision(snapshot, new PdfIncrementalFormFieldUpdateOptions {
+                    GenerateAppearanceStreams = true, KeepNeedAppearances = false
+                }) : document.Forms.Fill(snapshot)).ToBytes();
         }, cancellationToken, progress);
     }
 
@@ -73,7 +75,9 @@ internal sealed partial class PdfWorkspace {
                 if (flatten) return document.Forms.FillAndFlatten(values).ToBytes();
                 PdfMutationPlan plan = document.PlanMutation(PdfMutationOperation.FillFormFields, values.Keys);
                 return (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
-                    ? document.Forms.AppendRevision(values)
+                    ? document.Forms.AppendRevision(values, new PdfIncrementalFormFieldUpdateOptions {
+                        GenerateAppearanceStreams = true, KeepNeedAppearances = false
+                    })
                     : document.Forms.Fill(values)).ToBytes();
             },
             cancellationToken,

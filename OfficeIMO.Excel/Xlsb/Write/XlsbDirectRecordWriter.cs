@@ -73,12 +73,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             _position = offset;
         }
 
-        internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value) {
+        internal void WriteSharedStringCell(int recordType, int zeroBasedColumn, int index) {
+            byte[] buffer = EnsureAvailable(18);
+            int offset = _position;
+            offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 12, buffer, offset);
+            offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
+            offset = AppendUInt32(buffer, offset, 0U);
+            offset = AppendUInt32(buffer, offset, checked((uint)index));
+            _position = offset;
+        }
+
+        internal void WriteNumberCell(int recordType, int zeroBasedColumn, double value, uint styleIndex = 0U) {
             byte[] buffer = EnsureAvailable(22);
             int offset = _position;
             offset += XlsbRecordWriter.EncodeHeader(recordType, payloadLength: 16, buffer, offset);
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
-            offset = AppendUInt32(buffer, offset, 0U);
+            offset = AppendUInt32(buffer, offset, styleIndex);
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
             offset = AppendUInt64(buffer, offset, bits);
             _position = offset;
@@ -99,7 +109,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             _position = AppendUInt32(buffer, _position, value);
         }
 
-        private void WriteWideString(string value) {
+        internal void WriteByte(byte value) {
+            byte[] buffer = EnsureAvailable(1);
+            buffer[_position++] = value;
+        }
+
+        internal void WriteWideString(string value) {
             if (value == null) throw new ArgumentNullException(nameof(value));
             WriteUInt32(checked((uint)value.Length));
 
@@ -144,8 +159,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal void Flush() {
             if (_position == 0) return;
-            _stream.Write(GetBuffer(), 0, _position);
-            _position = 0;
+            try {
+                _stream.Write(GetBuffer(), 0, _position);
+            } finally {
+                // A destination may accept a prefix before failing. Disposal must
+                // never replay that pending record or replace its write exception.
+                _position = 0;
+            }
         }
 
         private byte[] GetBuffer() =>

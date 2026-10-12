@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(new[] { "Name", "Score" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
                 Assert.Equal("Alpha", table.Rows[0]["Name"]);
-                Assert.Equal(string.Empty, table.Rows[0]["Score"]);
+                Assert.True(table.Rows[0].IsNull("Score"));
                 Assert.Equal("Beta", table.Rows[1]["Name"]);
                 Assert.Equal(20D, Convert.ToDouble(table.Rows[1]["Score"]));
             }
@@ -194,13 +194,13 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(new[] { "Name", "Metric25", "Metric50" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
                 Assert.Equal("Alpha", table.Rows[0]["Name"]);
-                Assert.Equal(string.Empty, table.Rows[0]["Metric25"]);
-                Assert.Equal(string.Empty, table.Rows[0]["Metric50"]);
+                Assert.True(table.Rows[0].IsNull("Metric25"));
+                Assert.True(table.Rows[0].IsNull("Metric50"));
                 Assert.Equal("Beta", table.Rows[1]["Name"]);
                 Assert.Equal(25D, Convert.ToDouble(table.Rows[1]["Metric25"]));
-                Assert.Equal(string.Empty, table.Rows[1]["Metric50"]);
-                Assert.Equal(string.Empty, table.Rows[2]["Name"]);
-                Assert.Equal(string.Empty, table.Rows[2]["Metric25"]);
+                Assert.True(table.Rows[1].IsNull("Metric50"));
+                Assert.True(table.Rows[2].IsNull("Name"));
+                Assert.True(table.Rows[2].IsNull("Metric25"));
                 Assert.Equal(50D, Convert.ToDouble(table.Rows[2]["Metric50"]));
             }
         }
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
         public void Test_DataExchange_JsonImportSparseRowsKeepLastDuplicateValue() {
             string filePath = Path.Combine(_directoryWithFiles, "DataExchange.JsonSparseDuplicateValues.xlsx");
             string columns = string.Join(",", Enumerable.Range(0, 40).Select(index => "\"Metric" + index + "\":" + index));
-            string json = "[{" + columns + "},{\"Metric0\":\"Keep\",\"metric0\":null,\"Metric39\":39}]";
+            string json = "[{" + columns + "},{\"Metric0\":\"Keep\",\"metric0\":null,\"Metric1\":\"\",\"Metric39\":39}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Data");
@@ -222,7 +222,12 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.GetSheet("Data");
                 DataTable table = sheet.ToDataTable("A1:AN3");
 
-                Assert.Equal(string.Empty, table.Rows[1]["Metric0"]);
+                Assert.Equal(40, table.Columns.Count);
+                Assert.Equal(2, table.Rows.Count);
+                Assert.Equal(0D, Convert.ToDouble(table.Rows[0]["Metric0"]));
+                Assert.True(table.Rows[1].IsNull("Metric0"));
+                Assert.Equal(string.Empty, table.Rows[1]["Metric1"]);
+                Assert.True(table.Rows[1].IsNull("Metric2"));
                 Assert.Equal(39D, Convert.ToDouble(table.Rows[1]["Metric39"]));
             }
         }

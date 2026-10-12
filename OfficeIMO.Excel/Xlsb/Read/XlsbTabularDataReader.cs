@@ -225,6 +225,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 _booleans = new bool[fieldCount];
                 _strings = new string?[fieldCount];
                 _customValues = new object?[fieldCount];
+                InitializeUtf8TextState();
                 _columnTypes = CreateObjectColumnTypes(fieldCount);
                 _schemaRows = _options.InferSchema
                     ? BufferSchemaRows()
@@ -294,6 +295,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
+            ResetUtf8TextState();
             if (_options.CellValueConverter != null) {
                 Array.Clear(_customValues, 0, _customValues.Length);
             }
@@ -334,6 +336,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             _closed = true;
+            ReleaseUtf8TextState();
             _worksheetPart.Dispose();
             _schemaRows?.Clear();
         }

@@ -44,6 +44,7 @@ namespace OfficeIMO.Word {
         private static void MergeLegacyDocBuiltInStyleParagraphFormatting(WordDocument document, Style style, LegacyDocParagraphFormat paragraphFormat) {
             // Imported styles inherit absent controls from their own base style, not from our authoring templates.
             if (style.StyleParagraphProperties is StyleParagraphProperties templateProperties) {
+                RemoveStyleProperties<SpacingBetweenLines>(templateProperties);
                 RemoveStyleProperties<KeepLines>(templateProperties);
                 RemoveStyleProperties<KeepNext>(templateProperties);
                 RemoveStyleProperties<PageBreakBefore>(templateProperties);
@@ -75,7 +76,11 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.SpacingBeforeTwips != null || paragraphFormat.SpacingAfterTwips != null || paragraphFormat.LineSpacingTwips != null) {
-                SpacingBetweenLines spacing = properties.GetFirstChild<SpacingBetweenLines>() ?? properties.AppendChild(new SpacingBetweenLines());
+                SpacingBetweenLines? spacing = properties.GetFirstChild<SpacingBetweenLines>();
+                if (spacing == null) {
+                    spacing = new SpacingBetweenLines();
+                    properties.AddChild(spacing, true);
+                }
                 if (paragraphFormat.SpacingBeforeTwips != null) {
                     spacing.Before = paragraphFormat.SpacingBeforeTwips.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }

@@ -4,9 +4,7 @@ using PdfTextRun = OfficeIMO.Pdf.PdfTextRun;
 
 namespace OfficeIMO.Markdown.Pdf;
 
-/// <summary>
-/// First-party Markdown to PDF conversion helpers.
-/// </summary>
+// First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
     private static void RenderFrontMatter(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownToPdfOptions options, MarkdownPdfStyle visualTheme) {
         if (frontMatter.Entries.Count == 0) {

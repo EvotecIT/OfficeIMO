@@ -56,13 +56,15 @@ internal static class OfficeProvenanceTiff {
                     continue;
                 }
                 if (entry.Tag != C2paTag) continue;
+                int payloadOffset = 0, payloadLength = 0;
                 bool valid = allEntriesHaveValidStorage && ifdIndex == 0 && ifd.TagsAreSorted && reachableC2paCount == 1 &&
                     HasCompletePrimaryImage(data, ifd, options) &&
-                    entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out int payloadOffset, out int payloadLength) &&
+                    entry.Type == UndefinedType && TryGetPayload(data, entry, options.MaxManifestBytes, out payloadOffset, out payloadLength) &&
                     OfficeC2paManifestStore.IsValid(
                         data, payloadOffset, payloadLength, options.MaxManifestBytes, options.MaxContainerEntries, out _);
                 string location = $"TIFF/IFD[{ifdIndex}]/0xCD41@{entry.Offset}";
-                context.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, entry.Count > long.MaxValue ? long.MaxValue : (long)entry.Count));
+                context.Add(new OfficeProvenanceEvidence(OfficeProvenanceCarrierKind.C2paManifest, location, valid, entry.Count > long.MaxValue ? long.MaxValue : (long)entry.Count)
+                    .WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(data, payloadOffset, payloadLength) : null));
                 if (ifdIndex != 0) context.Diagnostics.Add($"The C2PA TIFF tag at IFD {ifdIndex} is not in the primary IFD.");
                 if (!ifd.TagsAreSorted) context.Diagnostics.Add($"The TIFF tags at IFD {ifdIndex} are not sorted in ascending order.");
             }

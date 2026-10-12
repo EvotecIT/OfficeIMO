@@ -38,6 +38,10 @@ namespace OfficeIMO.Access {
                         writer.Write(native); break;
                     case 15: writer.Write(value == null ? new byte[16] : ((Guid)value).ToByteArray()); break;
                     case 16: writer.Write(Numeric(column, value == null ? 0m : (decimal)value)); break;
+                    case 9: case 17:
+                        byte[] binary = value == null ? new byte[column.Size] : (byte[])value;
+                        if (binary.Length != column.Size) throw new InvalidDataException("A native fixed binary field must retain its declared width.");
+                        writer.Write(binary); break;
                     default: throw new NotSupportedException("The native fixed field type is unqualified for creation.");
                 }
             }
@@ -51,7 +55,22 @@ namespace OfficeIMO.Access {
                     int count = Encoding.Unicode.GetByteCount(text);
                     if (count > _maximumBytes) throw new InvalidDataException("A text value exceeds MaxOutputBytes.");
                     bytes = new UnicodeEncoding(false, false, true).GetBytes(text);
-                } else bytes = (byte[])value;
+                } else if (value is byte[] binary) bytes = binary;
+                else {
+                    using MemoryStream scalar = new MemoryStream(); using BinaryWriter native = new BinaryWriter(scalar);
+                    switch (column.Type) {
+                        case 2: native.Write((byte)value); break;
+                        case 3: native.Write((short)value); break;
+                        case 4: native.Write((int)value); break;
+                        case 8:
+                            double date = value is DateTime time ? time.ToOADate() : (double)value;
+                            if (value is DateTime expected && DateTime.FromOADate(date).Ticks != expected.Ticks)
+                                throw new NotSupportedException("DateTime cannot be represented exactly by the native variable field codec.");
+                            native.Write(date); break;
+                        default: throw new NotSupportedException("The native variable scalar field type is not qualified for writing.");
+                    }
+                    native.Flush(); bytes = scalar.ToArray();
+                }
                 if (bytes.Length > _maximumBytes) throw new InvalidDataException("A binary value exceeds MaxOutputBytes.");
                 writer.Write(column.Type == 11 || column.Type == 12 ? LongValue(column, bytes) : bytes);
             }
@@ -68,9 +87,9 @@ namespace OfficeIMO.Access {
             int[] bits = decimal.GetBits(decimal.Truncate(magnitude)); byte[] output = new byte[17]; output[0] = value < 0 ? (byte)0x80 : (byte)0;
             U32(output, 5, unchecked((uint)bits[2])); U32(output, 9, unchecked((uint)bits[1])); U32(output, 13, unchecked((uint)bits[0])); return output;
         }
-        private byte[] LongValue(Column column, byte[] value) {
+        private byte[] LongValue(Column column, byte[] value, bool external = false) {
             byte[] descriptor = new byte[12];
-            if (value.Length <= 64) {
+            if (value.Length == 0 || value.Length <= 64 && !external) {
                 byte[] inline = new byte[value.Length + 12]; U32(inline, 0, (uint)value.Length | 0x80000000);
                 Buffer.BlockCopy(value, 0, inline, 12, value.Length); return inline;
             }

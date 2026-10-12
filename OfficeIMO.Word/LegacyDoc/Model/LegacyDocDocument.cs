@@ -220,7 +220,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-CHPX-INVALID", formattingWarning);
             }
 
-            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges = LegacyDocParagraphFormattingReader.ReadParagraphFormatting(wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning);
+            byte[] dataStream = TryGetRootStream(compoundFile, "Data", out byte[]? dataStreamCandidate)
+                ? dataStreamCandidate!
+                : Array.Empty<byte>();
+            IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges = LegacyDocParagraphFormattingReader.ReadParagraphFormatting(
+                wordDocumentStream, tableStream, fib, out string? paragraphFormattingWarning, dataStream, options);
             if (paragraphFormattingWarning != null) {
                 AddWarning("DOC-PAPX-INVALID", paragraphFormattingWarning);
             }
@@ -241,9 +245,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedContent);
 
-            byte[] dataStream = TryGetRootStream(compoundFile, "Data", out byte[]? dataStreamCandidate)
-                ? dataStreamCandidate!
-                : Array.Empty<byte>();
             LegacyDocPictureReader.LegacyDocPictureReadResult pictures = LegacyDocPictureReader.Read(
                 dataStream,
                 textContent.AllCharacters,

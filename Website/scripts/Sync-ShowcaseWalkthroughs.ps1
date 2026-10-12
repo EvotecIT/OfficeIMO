@@ -8,8 +8,29 @@ $repoRoot = Split-Path -Parent $websiteRoot
 $catalog = Get-Content -LiteralPath (Join-Path $websiteRoot 'data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
 $cards = @($catalog.cards | Where-Object walkthrough_url)
 $sources = [ordered]@{}
+$browserCatalog = Get-Content -LiteralPath (Join-Path $websiteRoot 'data/browser_tools.json') -Raw | ConvertFrom-Json -Depth 40
+$browserLinks = [ordered]@{}
 $expected = [ordered]@{}
 $pageRoot = Join-Path $websiteRoot 'content/showcase-examples'
+
+foreach ($card in $catalog.cards) {
+    $expectedLanguage = switch ([IO.Path]::GetExtension($card.source_path).ToLowerInvariant()) {
+        '.cs' { 'csharp' }
+        '.ps1' { 'powershell' }
+        default { throw "Unsupported source language on '$($card.id)': $($card.source_path)" }
+    }
+    if ($card.source_language -cne $expectedLanguage -or $card.source_language -cnotin @($catalog.source_languages.id)) {
+        throw "Source language must match the generating file on '$($card.id)'."
+    }
+    if ($expectedLanguage -eq 'powershell') {
+        $scriptFileName = [IO.Path]::GetFileName($card.source_path)
+        $scriptDownload = @($card.downloads | Where-Object { $_.url -ceq $card.source_url -and $_.file_name -ceq $scriptFileName })
+        if ($card.source_download_name -cne $scriptFileName -or $scriptDownload.Count -ne 1 -or
+            -not $card.run_command.StartsWith("pwsh -NoProfile -File ./$scriptFileName ", [StringComparison]::Ordinal)) {
+            throw "PowerShell example '$($card.id)' needs its script download and a command that runs the saved file."
+        }
+    }
+}
 
 foreach ($card in $cards) {
     if ($card.id -cnotmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$' -or $sources.Contains($card.id)) {
@@ -27,9 +48,32 @@ foreach ($card in $cards) {
         if ($related -cnotin @($catalog.cards.id)) { throw "Unknown related example '$related' on '$($card.id)'." }
     }
     $sources[$card.id] = $sourceText
+    $extension = [IO.Path]::GetExtension($card.artifact_url).ToLowerInvariant()
+    $preferred = switch ($extension) {
+        '.pdf' { 'inspect-pdf' }
+        '.html' { 'html-to-pdf' }
+        '.docx' { 'word-to-pdf' }
+        '.xlsx' { 'excel-to-pdf' }
+        '.pptx' { 'powerpoint-to-pdf' }
+        '.md' { 'markdown-to-html' }
+        default { '' }
+    }
+    $tools = @($browserCatalog.tools | Where-Object {
+        $_.input.kind -in @('file', 'text') -and $extension -in $_.input.accept.Split(',')
+    } | Sort-Object @{ Expression = {
+        if ($_.id -eq $preferred) { 0 } elseif ($_.group -eq 'convert') { 1 } else { 2 }
+    } }, id)
+    if ($tools.Count -gt 0) {
+        $browserLinks[$card.id] = @($tools | ForEach-Object {
+            [ordered]@{ title = $_.title; url = "/browser/$($_.id)/"; artifact = $card.artifact_url }
+        })
+    }
     $title = $card.title | ConvertTo-Json -Compress
     $description = $card.description | ConvertTo-Json -Compress
-    $seoTitle = "$($card.title) in C# | OfficeIMO" | ConvertTo-Json -Compress
+    $languageLabel = ($catalog.source_languages | Where-Object id -CEQ $card.source_language).label
+    $seoTitle = if ($card.title.Contains($languageLabel, [StringComparison]::OrdinalIgnoreCase)) {
+        "$($card.title) | OfficeIMO" | ConvertTo-Json -Compress
+    } else { "$($card.title) in $languageLabel | OfficeIMO" | ConvertTo-Json -Compress }
     $expected[(Join-Path $pageRoot "$($card.id).md")] = @"
 ---
 # Generated from data/showcase.json by scripts/Sync-ShowcaseWalkthroughs.ps1.
@@ -46,7 +90,21 @@ meta.data_mode: override
 Browse [the showcase](/showcase/) for generated documents and source code.
 "@ + "`n"
 }
+# Code excerpts shown beside previews (product pages). A card's source marks the lines with `#region Excerpt:<card id>` and `#endregion`,
+# so what the page shows is always cut from the file that produced the document next to it.
+$excerpts = [ordered]@{}
+foreach ($card in @($catalog.cards | Where-Object source_path)) {
+    $sourcePath = Resolve-ShowcasePath $repoRoot $card.source_path
+    $text = [IO.File]::ReadAllText($sourcePath).Replace("`r`n", "`n")
+    $match = [regex]::Match($text, '(?ms)^[ \t]*#region Excerpt:' + [regex]::Escape($card.id) + '[ \t]*\n(?<body>.*?)^[ \t]*#endregion[^\n]*$')
+    if (-not $match.Success) { continue }
+    $lines = @($match.Groups['body'].Value.TrimEnd("`n").Split("`n"))
+    $indent = ($lines | Where-Object { $_.Trim() } | ForEach-Object { $_.Length - $_.TrimStart().Length } | Measure-Object -Minimum).Minimum
+    $excerpts[$card.id] = (($lines | ForEach-Object { if ($_.Length -ge $indent) { $_.Substring($indent) } else { $_.TrimStart() } }) -join "`n")
+}
+$expected[(Join-Path $websiteRoot 'data/showcase_excerpts.json')] = ($excerpts | ConvertTo-Json -Depth 3).Replace("`r`n", "`n") + "`n"
 $expected[(Join-Path $websiteRoot 'data/showcase_sources.json')] = ($sources | ConvertTo-Json -Depth 4).Replace("`r`n", "`n") + "`n"
+$expected[(Join-Path $websiteRoot 'data/showcase_browser_tools.json')] = ($browserLinks | ConvertTo-Json -Depth 5).Replace("`r`n", "`n") + "`n"
 foreach ($file in Get-ChildItem -LiteralPath $pageRoot -Filter '*.md' -File -ErrorAction SilentlyContinue) {
     if (-not $expected.Contains($file.FullName)) { throw "Unmapped generated showcase page needs review: $($file.FullName)" }
 }
@@ -58,4 +116,4 @@ foreach ($entry in $expected.GetEnumerator()) {
     New-Item -ItemType Directory -Path (Split-Path -Parent $entry.Key) -Force | Out-Null
     [IO.File]::WriteAllText($entry.Key, $content, [Text.UTF8Encoding]::new($false))
 }
-Write-Host "Showcase walkthroughs verified: $($cards.Count) pages with code from their generating C# files."
+Write-Host "Showcase walkthroughs verified: $($cards.Count) pages with code from their generating files, $($excerpts.Count) product-page excerpts."

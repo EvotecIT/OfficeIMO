@@ -340,13 +340,16 @@ public sealed class PdfDocumentForms {
             readOptions,
             operationName: "Fill");
 
-    private PdfDocument FillWithReadOptions(
+    /// <summary>Fills reviewed values through the canonical mutation and readback owners with cooperative cancellation.</summary>
+    internal PdfDocument FillWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfFormFillerOptions? formOptions,
-        PdfLoadOptions? readOptions) => _document.ApplyMutation(
-            input => PdfFormFiller.FillFields(input, fieldValues, formOptions, readOptions),
+        PdfLoadOptions? readOptions,
+        CancellationToken cancellationToken = default) => _document.ApplyMutation(
+            input => PdfFormFiller.FillFields(input, fieldValues, formOptions, readOptions, cancellationToken),
             readOptions,
-            operationName: "Fill");
+            operationName: "Fill",
+            cancellationToken);
 
     private PdfDocument FlattenWithReadOptions(
         PdfFormFillerOptions? formOptions,
@@ -387,11 +390,14 @@ public sealed class PdfDocumentForms {
             readOptions,
             operationName: "AppendRevision");
 
-    private PdfDocument AppendRevisionWithReadOptions(
+    /// <summary>Appends reviewed values through the canonical mutation and readback owners with cooperative cancellation.</summary>
+    internal PdfDocument AppendRevisionWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfIncrementalFormFieldUpdateOptions? formOptions,
-        PdfLoadOptions? readOptions) => _document.ApplyMutation(
-            input => PdfIncrementalUpdater.UpdateFormFields(input, fieldValues, formOptions, readOptions),
+        PdfLoadOptions? readOptions,
+        CancellationToken cancellationToken = default) => _document.ApplyMutation(
+            input => PdfIncrementalUpdater.UpdateFormFields(input, fieldValues, formOptions, readOptions, cancellationToken),
             readOptions,
-            operationName: "AppendRevision");
+            operationName: "AppendRevision",
+            cancellationToken);
 }

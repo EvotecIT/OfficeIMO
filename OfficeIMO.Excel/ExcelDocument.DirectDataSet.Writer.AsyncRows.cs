@@ -11,7 +11,8 @@ namespace OfficeIMO.Excel {
                 IAsyncEnumerable<T> rows,
                 Action<ExcelTabularRowWriter, T> writeRow,
                 int maximumRows,
-                CancellationToken ct) {
+                CancellationToken ct,
+                bool useSharedStrings) {
                 if (model.Sheets.Count != 1 || model.Sheets[0].HasTable) {
                     throw new InvalidOperationException(
                         "Asynchronous row exports require one package-native worksheet without an Excel table.");
@@ -24,9 +25,10 @@ namespace OfficeIMO.Excel {
                     : new ExcelPositionReportingWriteStream(stream);
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: false);
+                var sharedStrings = useSharedStrings ? DirectSharedStringTable.CreateStreaming() : null;
+                WritePackagePreamble(archive, model, stylePlan, includeSharedStrings: sharedStrings != null);
 
-                return await WriteAsyncWorksheetRows(
+                int rowCount = await WriteAsyncWorksheetRows(
                     archive,
                     model.Sheets[0],
                     model.DateTimeOffsetWriteStrategy,
@@ -35,7 +37,11 @@ namespace OfficeIMO.Excel {
                     rows,
                     writeRow,
                     maximumRows,
+                    sharedStrings,
+                    stylePlan.TabularStyles,
                     ct).ConfigureAwait(false);
+                if (sharedStrings != null) WriteSharedStrings(archive, sharedStrings, ct);
+                return rowCount;
             }
 
             private static async Task<int> WriteAsyncWorksheetRows<T>(
@@ -47,6 +53,8 @@ namespace OfficeIMO.Excel {
                 IAsyncEnumerable<T> rows,
                 Action<ExcelTabularRowWriter, T> writeRow,
                 int maximumRows,
+                DirectSharedStringTable? sharedStrings,
+                ExcelTabularStylePlan? declaredStyles,
                 CancellationToken ct) {
                 var entry = archive.CreateEntry(
                     "xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml",
@@ -56,7 +64,7 @@ namespace OfficeIMO.Excel {
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
-                WriteColumns(writer, sheet.ColumnWidths);
+                WriteDeclaredColumns(writer, sheet.ColumnWidths, declaredStyles);
                 writer.Write("<sheetData>");
 
                 int columnCount = sheet.Table.ColumnCount;
@@ -73,10 +81,10 @@ namespace OfficeIMO.Excel {
                             headerRowReference,
                             cellReferencePrefixes[columnIndex],
                             sheet.Table.GetColumnName(columnIndex),
-                            null,
+                            declaredStyles?.Columns[columnIndex]?.Attribute,
                             dateTimeOffsetWriteStrategy,
                             dateSystem,
-                            sharedStrings: null);
+                            sharedStrings);
                     }
                     writer.Write("</row>");
                     rowIndex++;
@@ -92,7 +100,8 @@ namespace OfficeIMO.Excel {
                     sheet.UseCellValueNumberFormats,
                     dateTimeOffsetWriteStrategy,
                     dateSystem,
-                    sharedStrings: null);
+                    sharedStrings,
+                    declaredStyles);
 
                 int rowCount = 0;
                 IAsyncEnumerator<T> enumerator = rows.GetAsyncEnumerator(ct);

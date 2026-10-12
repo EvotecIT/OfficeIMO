@@ -31,6 +31,7 @@ internal static partial class CsvParser
         private int _emittedRecordCount;
         private int? _currentPhysicalLineNumber;
         private int? _currentPhysicalEndLineNumber;
+        private bool _growBufferOnNextRead;
         private bool _disposed;
 
         internal CsvStreamDataReaderRowSource(
@@ -62,12 +63,10 @@ internal static partial class CsvParser
 
         internal void SetSourceColumnCount(int sourceColumnCount)
         {
-            if (_lineReader.TryGrowFilledBuffer(LargeDataReaderBufferSize))
-            {
-                _visitor.SetBuffer(_lineReader.Buffer);
-            }
-
             _visitor.SetSourceColumnCount(sourceColumnCount);
+            // Headerless readers retain this row until their first Read. Its field offsets
+            // must keep pointing at the current buffer until the source advances.
+            _growBufferOnNextRead = true;
         }
 
         void ICsvDataReaderHeaderRowSource.SetSourceColumnCount(int sourceColumnCount) =>
@@ -93,6 +92,14 @@ internal static partial class CsvParser
             ObjectDisposedException.ThrowIf(_disposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             _visitor.Reset();
+            if (_growBufferOnNextRead)
+            {
+                _growBufferOnNextRead = false;
+                if (_lineReader.TryGrowFilledBuffer(LargeDataReaderBufferSize))
+                {
+                    _visitor.SetBuffer(_lineReader.Buffer);
+                }
+            }
             _currentPhysicalLineNumber = null;
             _currentPhysicalEndLineNumber = null;
             while (true)

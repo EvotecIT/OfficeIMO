@@ -56,6 +56,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                    && TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
                 if (CanCancelCurrentRead) CheckCancellation();
                 if (record.PayloadOffset + record.Length > sheetEndOffset) return false;
+                if (record.Type == (ushort)BiffRecordType.Bof) {
+                    SkipNestedChartSubstream(record, ref offset);
+                    continue;
+                }
                 if (record.Type == (ushort)BiffRecordType.Index) {
                     if (hasIndex) return false;
                     index = record;
@@ -200,6 +204,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                    && TryReadDiscoveryRecord(ref offset, out RecordSlice record)) {
                 if (CanCancelCurrentRead) CheckCancellation();
                 if (record.PayloadOffset + record.Length > sheetEndOffset) return false;
+                if (record.Type == (ushort)BiffRecordType.Bof) {
+                    SkipNestedChartSubstream(record, ref offset);
+                    continue;
+                }
                 if (record.Type == (ushort)BiffRecordType.Row || IsCellRecordType(record.Type)) {
                     return false;
                 }
@@ -256,6 +264,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                     if (record.Type != (ushort)BiffRecordType.String) return false;
                     values[pendingFormulaColumn] = ReadFormulaStringValue(record, ref offset);
                     pendingFormulaColumn = -1;
+                    continue;
+                }
+                if (record.Type == (ushort)BiffRecordType.Bof) {
+                    SkipNestedChartSubstream(record, ref offset);
                     continue;
                 }
                 if (!TryGetCellBounds(
