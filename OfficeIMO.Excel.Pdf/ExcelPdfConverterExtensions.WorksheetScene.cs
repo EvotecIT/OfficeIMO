@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return Math.Max(0.75D, width * maximumDigitWidth);
             }
 
-            // Preserve the established estimate when the authored Normal font
+            // Preserve the established estimate when the workbook default font
             // program is unavailable; a substituted text font does not establish
             // the workbook's column units.
             const double fallbackDigitWidth = 7D;

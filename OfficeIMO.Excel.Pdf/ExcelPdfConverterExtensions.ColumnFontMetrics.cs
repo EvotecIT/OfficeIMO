@@ -10,17 +10,17 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<WorksheetPdfExportPlan> plans) {
             if (options.WorksheetLayout != ExcelPdfWorksheetLayoutMode.WorksheetCanvas ||
                 !options.UseWorksheetColumnWidths ||
-                document.GetNormalStyleFontInfo() is not OfficeFontInfo normalFont ||
-                !pdfOptions.TryResolveNamedFontFace(normalFont.FamilyName, normalFont.IsBold, normalFont.IsItalic,
+                document.GetWorkbookDefaultFontInfo() is not OfficeFontInfo defaultFont ||
+                !pdfOptions.TryResolveNamedFontFace(defaultFont.FamilyName, defaultFont.IsBold, defaultFont.IsItalic,
                     out PdfCore.PdfNamedFontFace face)) return;
 
             Func<string, double> measure;
             Func<int, bool> covers;
             if (pdfOptions.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType) && trueType != null) {
-                measure = text => trueType.MeasureTextWidth(text, normalFont.Size);
+                measure = text => trueType.MeasureTextWidth(text, defaultFont.Size);
                 covers = scalar => trueType.TryGetGlyphId(scalar, out int glyph) && glyph > 0;
             } else if (pdfOptions.TryGetNamedOpenTypeCffFontProgram(face, out PdfCore.PdfOpenTypeCffFontProgram? cff) && cff != null) {
-                measure = text => cff.MeasureTextWidth(text, normalFont.Size);
+                measure = text => cff.MeasureTextWidth(text, defaultFont.Size);
                 covers = scalar => cff.TryGetGlyphId(scalar, out int glyph) && glyph > 0;
             } else {
                 return;
