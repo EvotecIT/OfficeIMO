@@ -91,6 +91,10 @@ final class DocumentSession {
 
     /// Pages written to a new PDF, waiting for the user to choose where to save them.
     var extractedPages: ExtractedPages?
+    /// Whether the panel for choosing PDFs to insert pages from is shown.
+    var isChoosingPagesToImport = false
+    /// An import waiting for the password of one of its PDFs.
+    var pendingImport: PendingImport?
 
     // Markup
     /// Whether drawing not yet added to the document is on the page.
@@ -171,6 +175,7 @@ final class DocumentSession {
     var canEditPages: Bool { isReady && facts?.canMutatePages != false }
     var canEditAnnotations: Bool { isReady && facts?.canEditAnnotations != false }
     var canExtractPages: Bool { isReady && facts?.canExtractPages != false }
+    var canImportPages: Bool { isReady && facts?.canImportPages != false }
 
     /// The pages a page command applies to: the selection in the Pages task, otherwise the current page.
     var targetPages: [Int] {
@@ -229,6 +234,34 @@ final class DocumentSession {
         } then: { session in
             session.selection = [after + 1]
             session.show(page: after + 1)
+        }
+    }
+
+    /// Inserts the pages of PDFs the user chose after the target pages, as one undoable change.
+    func importPages(from urls: [URL]) {
+        guard !urls.isEmpty, let after = targetPages.last else { return }
+        importPages(urls.map { ImportSource(url: $0) }, before: after + 1)
+    }
+
+    /// Supplies the password a pending import asked for and tries again.
+    func continueImport(password: String) {
+        guard var pending = pendingImport else { return }
+        pendingImport = nil
+        pending.sources[pending.needed.source].password = password
+        importPages(pending.sources, before: pending.before)
+    }
+
+    private func importPages(_ sources: [ImportSource], before page: Int) {
+        let pagesBefore = pageCount
+        edit(String(localized: "Insert Pages")) {
+            _ = try await $0.importPages(sources, before: page)
+        } then: { session in
+            let inserted = session.pageCount - pagesBefore
+            guard inserted > 0 else { return }
+            session.selection = Set(page..<(page + inserted))
+            session.show(page: page)
+        } passwordNeeded: { [weak self] needed in
+            self?.pendingImport = PendingImport(sources: sources, before: page, needed: needed)
         }
     }
 
@@ -398,8 +431,9 @@ final class DocumentSession {
     /// Runs an engine edit after any earlier one and registers its undo once it has succeeded. An edit that takes
     /// several engine changes undoes them together.
     private func edit(_ name: String, steps: Int = 1, _ change: @escaping @Sendable (EngineDocument) async throws -> Void,
-                      then: ((DocumentSession) -> Void)? = nil, failed: (() -> Void)? = nil) {
-        enqueue(change, failed: failed) { session in
+                      then: ((DocumentSession) -> Void)? = nil, failed: (() -> Void)? = nil,
+                      passwordNeeded: ((ImportPasswordNeeded) -> Void)? = nil) {
+        enqueue(change, failed: failed, passwordNeeded: passwordNeeded) { session in
             session.registerUndo(name, steps: steps)
             then?(session)
         }
@@ -426,7 +460,8 @@ final class DocumentSession {
     }
 
     private func enqueue(_ edit: @escaping @Sendable (EngineDocument) async throws -> Void, failureClearsHistory: Bool = false,
-                         failed: (() -> Void)? = nil, succeeded: ((DocumentSession) -> Void)? = nil) {
+                         failed: (() -> Void)? = nil, passwordNeeded: ((ImportPasswordNeeded) -> Void)? = nil,
+                         succeeded: ((DocumentSession) -> Void)? = nil) {
         guard let engine else { return }
         let previous = edits
         isWorking = true
@@ -438,6 +473,9 @@ final class DocumentSession {
                 if textSelection?.revision != revision { textSelection = nil }
                 succeeded?(self)
                 if searchResult != nil { runSearch() }
+            } catch let needed as ImportPasswordNeeded where passwordNeeded != nil {
+                // Nothing changed: the app asks for the password and tries again.
+                passwordNeeded?(needed)
             } catch {
                 if failureClearsHistory { undoManager?.removeAllActions(withTarget: self) }
                 facts = try? await engine.facts()
@@ -582,4 +620,12 @@ final class ThumbnailStore {
 extension FocusedValues {
     /// The document session of the focused window, for menu commands.
     @Entry var documentSession: DocumentSession?
+}
+
+/// An import waiting for a password: what to import, where, and which PDF needs it.
+struct PendingImport: Identifiable {
+    let id = UUID()
+    var sources: [ImportSource]
+    let before: Int
+    let needed: ImportPasswordNeeded
 }

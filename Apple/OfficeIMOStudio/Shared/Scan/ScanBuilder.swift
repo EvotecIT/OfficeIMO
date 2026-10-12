@@ -104,6 +104,24 @@ enum ScanBuilder {
     }
 
     /// A document name for a new scan, as the system names new documents.
+    /// An image file, upright and at most the longest side a page keeps; nil when it is not an image.
+    static func image(at url: URL) -> CGImage? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        return image(from: source)
+    }
+
+    static func image(from data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        return image(from: source)
+    }
+
+    private static func image(from source: CGImageSource) -> CGImage? {
+        // The thumbnail path applies the photo's orientation, so the page is upright.
+        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true,
+                                        kCGImageSourceThumbnailMaxPixelSize: maximumPixels]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+    }
+
     static var newName: String {
         String(localized: "Scan \(Date.now.formatted(date: .abbreviated, time: .shortened))").replacingOccurrences(of: "/", with: "-")
             .replacingOccurrences(of: ":", with: ".")

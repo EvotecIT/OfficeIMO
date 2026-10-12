@@ -142,6 +142,8 @@ struct StudioCommands: Commands {
                 Button("Insert Blank Page") { session?.insertBlankPage() }
             }
             .disabled(session?.canEditPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
+            Button("Insert Pages from File…") { session?.isChoosingPagesToImport = true }
+                .disabled(session?.canImportPages != true)
             Divider()
             Button("Extract Pages…") { session.map { $0.extract($0.targetPages) } }
                 .disabled(session?.canExtractPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
