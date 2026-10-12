@@ -16,11 +16,41 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioIWorkProviderPackageTests {
     [Theory]
-    [InlineData(false, 840)]
-    [InlineData(false, 1280)]
-    [InlineData(true, 840)]
-    [InlineData(true, 1280)]
-    public async Task Registered_package_uses_folder_capture_and_rejects_replacement(bool replace, int width) {
+    [InlineData(840)]
+    [InlineData(1280)]
+    public async Task Package_actions_use_folder_picker_in_empty_and_populated_queues(int width) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            var services = ((App)Application.Current!).Services;
+            string root = Path.Combine(services.Paths.Root, "selected.numbers");
+            Directory.CreateDirectory(root);
+            ZipFile.ExtractToDirectory(Path.Combine(AppContext.BaseDirectory, "Fixtures", "IWork", "simple.numbers"), root);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var dialogs = new PackageDialogs(root);
+            model.FileDialogs = dialogs;
+            var queue = model.ConversionWorkbench;
+            var view = new ConversionWorkbenchView { DataContext = model };
+            var window = new Window { Width = width, Height = 720, Content = view };
+            try {
+                window.Show(); window.UpdateLayout();
+                Capture(window, $"package-empty-{width}.png");
+                ClickVisibleAction(view, window, queue.AddPackageCommand);
+                Assert.Equal(1, dialogs.PickCount);
+                Assert.False(Assert.Single(queue.Jobs).AllowPartialEditableReconstruction);
+                window.UpdateLayout();
+                ClickVisibleAction(view, window, queue.AddPackageCommand);
+                Assert.Equal(2, dialogs.PickCount);
+                Assert.Single(queue.Jobs);
+                Capture(window, $"package-queued-{width}.png");
+            } finally { window.Close(); }
+            return Task.FromResult(true);
+        }, CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Registered_package_uses_folder_capture_and_rejects_replacement(bool replace) {
         // On other hosts local folders use the existing local-package route; macOS selects provider access.
         if (!OperatingSystem.IsMacOS()) return;
         using var session = TestAppBuilder.StartSession();
@@ -47,21 +77,8 @@ public sealed class StudioIWorkProviderPackageTests {
             model.FileDialogs = dialogs;
             var queue = model.ConversionWorkbench;
             queue.OutputFolder = services.Paths.Root;
-            var view = new ConversionWorkbenchView { DataContext = model };
-            var window = new Window { Width = width, Height = 720, Content = view };
-            try {
-                window.Show(); window.UpdateLayout();
-                Capture(window, $"package-empty-{width}-{replace}.png");
-                ClickVisibleAction(view, window, queue.AddPackageCommand);
-                Assert.Equal(1, dialogs.PickCount);
-                Assert.Single(queue.Jobs);
-                window.UpdateLayout();
-                // The populated queue has its own action; cancelling its picker preserves the job.
-                ClickVisibleAction(view, window, queue.AddPackageCommand);
-                Assert.Equal(2, dialogs.PickCount);
-                Assert.Single(queue.Jobs);
-                Capture(window, $"package-queued-{width}-{replace}.png");
-            } finally { window.Close(); }
+            await queue.AddPackageCommand.ExecuteAsync(null);
+            Assert.Equal(1, dialogs.PickCount);
             var job = Assert.Single(queue.Jobs);
             Assert.False(job.AllowPartialEditableReconstruction);
             await queue.RunQueueCommand.ExecuteAsync(null);
