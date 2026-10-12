@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
                     Assert.True(sheet.TryGetCellText(3, 1, out string? enabled));
                     Assert.True(sheet.TryGetCellText(3, 2, out string? adState));
                     Assert.True(sheet.TryGetCellText(3, 3, out string? endpoint));
-                    Assert.True(sheet.TryGetCellText(3, 4, out string? missing));
+                    Assert.False(sheet.TryGetCellText(3, 4, out _));
                     Assert.Equal("Enabled", enabledHeader);
                     Assert.Equal("AD State", adStateHeader);
                     Assert.Equal("Endpoint", endpointHeader);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("1", enabled);
                     Assert.Equal("Disabled", adState);
                     Assert.Equal("PC-01", endpoint);
-                    Assert.True(string.IsNullOrEmpty(missing));
+                    Assert.True(sheet.ToDataTable("A2:D4").Rows[0].IsNull("Missing"));
                 }
 
                 using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -143,9 +143,9 @@ namespace OfficeIMO.Tests {
 
             ExcelSheet sheet = document["Members"];
             Assert.True(sheet.TryGetCellText(1, 1, out string? header));
-            Assert.True(sheet.TryGetCellText(2, 1, out string? value));
+            Assert.False(sheet.TryGetCellText(2, 1, out _));
             Assert.Equal("Name", header);
-            Assert.True(string.IsNullOrEmpty(value));
+            Assert.True(sheet.ToDataTable("A1:A2").Rows[0].IsNull("Name"));
         }
 
         [Fact]

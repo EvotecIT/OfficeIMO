@@ -64,6 +64,33 @@
         </Border>
       </Grid>
 
+      <Border Classes="card" DataContext="{Binding OcrSetup}" x:DataType="settings:StudioOcrSetupViewModel">
+        <StackPanel Spacing="10">
+          <TextBlock Text="{loc:Loc OcrSetup.Title}" Classes="sectionTitle" />
+          <TextBlock Text="{loc:Loc OcrSetup.Description}" Classes="muted" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+          <StackPanel Spacing="10" IsVisible="{Binding IsAvailable}">
+            <TextBlock Text="{loc:Loc OcrSetup.ExecutablePath}" FontWeight="SemiBold" />
+            <TextBox Text="{Binding ExecutablePath, Mode=TwoWay}" PlaceholderText="{loc:Loc OcrSetup.AutomaticDiscovery}"
+                     IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{loc:Loc OcrSetup.ExecutablePath}" />
+            <WrapPanel>
+              <Button Classes="tool" Content="{loc:Loc OcrSetup.ChooseExecutable}" Command="{Binding ChooseExecutableCommand}" Margin="0,0,8,6" />
+              <Button Classes="tool" Content="{loc:Loc OcrSetup.CheckAndSave}" Command="{Binding CheckCommand}" Margin="0,0,8,6" />
+              <Button Classes="tool" Content="{loc:Loc OcrSetup.UseAutomatic}" Command="{Binding UseAutomaticDiscoveryCommand}" Margin="0,0,0,6" />
+            </WrapPanel>
+            <StackPanel Spacing="4" IsVisible="{Binding IsReady}">
+              <TextBlock Text="{Binding DetectedExecutable}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding Version}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding InstalledLanguages}" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc OcrSetup.InstalledLanguages}" />
+            </StackPanel>
+            <TextBlock Text="{loc:Loc OcrSetup.InstallHelp}" TextWrapping="Wrap" />
+            <TextBox Text="{Binding InstallationCommand}" IsReadOnly="True" TextWrapping="Wrap"
+                     AutomationProperties.Name="{loc:Loc OcrSetup.InstallCommand}" />
+            <TextBlock Text="{Binding LanguageHelp}" TextWrapping="Wrap" Classes="muted" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
       <Grid x:Name="PrivacyGrid" ColumnDefinitions="*,*" ColumnSpacing="16" RowSpacing="16">
         <Border Classes="card">
           <StackPanel Spacing="10">

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -21,11 +22,13 @@ internal static class PdfIncrementalObjectWriter {
         PdfIncrementalXrefFormat format = PdfIncrementalXrefFormat.Automatic,
         PdfStandardSecurityHandler? encryptionHandler = null,
         long? maximumOutputBytes = null,
-        PdfIncrementalUpdater.SignaturePlaceholder? signaturePlaceholder = null) {
+        PdfIncrementalUpdater.SignaturePlaceholder? signaturePlaceholder = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(security, nameof(security));
         Guard.NotNull(trailerRaw, nameof(trailerRaw));
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!security.RootObjectNumber.HasValue) {
             throw new InvalidOperationException("PDF root catalog reference is required for an incremental update.");
@@ -57,7 +60,7 @@ internal static class PdfIncrementalObjectWriter {
             }).ToArray();
         }
 
-        List<SerializedObject> serialized = SerializeObjects(objects, changedObjectNumbers, effectiveRawObjects, encryptionHandler);
+        List<SerializedObject> serialized = SerializeObjects(objects, changedObjectNumbers, effectiveRawObjects, encryptionHandler, cancellationToken);
         if (serialized.Count == 0) {
             throw new ArgumentException("At least one changed or new indirect object is required for an incremental update.", nameof(changedObjectNumbers));
         }
@@ -71,6 +74,7 @@ internal static class PdfIncrementalObjectWriter {
 
         long serializedBytes = 0;
         foreach (SerializedObject item in serialized) {
+            cancellationToken.ThrowIfCancellationRequested();
             serializedBytes = checked(serializedBytes + item.Bytes.LongLength);
             if (maximumOutputBytes.HasValue && pdf.LongLength + serializedBytes > maximumOutputBytes.Value) {
                 throw PdfOutputLimitErrors.Create("The prepared PDF exceeds the configured output limit.");
@@ -86,6 +90,7 @@ internal static class PdfIncrementalObjectWriter {
 
         var offsets = new Dictionary<int, long>();
         for (int i = 0; i < serialized.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             SerializedObject item = serialized[i];
             offsets.Add(item.ObjectNumber, output.Position);
             output.Write(item.Bytes, 0, item.Bytes.Length);
@@ -105,6 +110,7 @@ internal static class PdfIncrementalObjectWriter {
         if (maximumOutputBytes.HasValue && output.Length > maximumOutputBytes.Value) {
             throw PdfOutputLimitErrors.Create("The prepared PDF exceeds the configured output limit.");
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return output.ToArray();
     }
 
@@ -112,9 +118,12 @@ internal static class PdfIncrementalObjectWriter {
         Dictionary<int, PdfIndirectObject> objects,
         IEnumerable<int>? changedObjectNumbers,
         IReadOnlyList<(int ObjectNumber, byte[] Bytes)> rawObjects,
-        PdfStandardSecurityHandler? encryptionHandler) {
+        PdfStandardSecurityHandler? encryptionHandler,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var contextObjects = new Dictionary<int, PdfIndirectObject>(objects);
         for (int i = 0; i < rawObjects.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!contextObjects.ContainsKey(rawObjects[i].ObjectNumber)) {
                 contextObjects.Add(rawObjects[i].ObjectNumber, new PdfIndirectObject(rawObjects[i].ObjectNumber, 0, PdfNull.Instance));
             }
@@ -122,6 +131,7 @@ internal static class PdfIncrementalObjectWriter {
 
         var rawByObjectNumber = new Dictionary<int, byte[]>();
         for (int i = 0; i < rawObjects.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (rawByObjectNumber.ContainsKey(rawObjects[i].ObjectNumber)) {
                 throw new ArgumentException("Raw incremental objects must have unique object numbers.", nameof(rawObjects));
             }
@@ -141,9 +151,11 @@ internal static class PdfIncrementalObjectWriter {
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             contextObjects,
             preserveReferenceGenerations: true,
-            preserveRawStringBytes: encryptionHandler is not null);
+            preserveRawStringBytes: encryptionHandler is not null,
+            cancellationToken: cancellationToken);
         var serialized = new List<SerializedObject>(objectNumbers.Length);
         for (int i = 0; i < objectNumbers.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int objectNumber = objectNumbers[i];
             if (rawByObjectNumber.TryGetValue(objectNumber, out byte[]? rawBytes)) {
                 serialized.Add(new SerializedObject(objectNumber, 0, rawBytes));
@@ -156,7 +168,7 @@ internal static class PdfIncrementalObjectWriter {
 
             PdfObject value = encryptionHandler is null
                 ? indirect.Value
-                : encryptionHandler.EncryptObject(objectNumber, indirect.Generation, indirect.Value);
+                : encryptionHandler.EncryptObject(objectNumber, indirect.Generation, indirect.Value, cancellationToken);
             serialized.Add(new SerializedObject(
                 objectNumber,
                 indirect.Generation,

@@ -34,8 +34,9 @@ internal static partial class PdfFormFiller {
         return FillFields(pdf, fieldValues, options, readOptions: null);
     }
 
-    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
-        FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true);
+    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options,
+        PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) =>
+        FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true, cancellationToken);
 
     internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null, CancellationToken cancellationToken = default) {
         return FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false, cancellationToken);
@@ -46,7 +47,8 @@ internal static partial class PdfFormFiller {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateFieldValues(fieldValues);
         RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions, cancellationToken);
-        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions, fieldNames: fieldValues.Keys);
+        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FillFormFields, readOptions,
+            fieldNames: fieldValues.Keys, cancellationToken);
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);

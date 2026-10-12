@@ -22,6 +22,7 @@ internal static partial class PdfStandardSecurityWriter {
         byte[] userEntry = PdfObjectBytes.Concat(userHash, userValidationSalt, userKeySalt);
         byte[] userEncryptionKey = ComputeRevision6Hash(userPassword, userKeySalt, Array.Empty<byte>(), options.AesCryptographyProvider, cancellationToken);
         byte[] userEncryptedFileKey = EncryptAes256NoPadding(userEncryptionKey, fileKey, options.AesCryptographyProvider);
+        cancellationToken.ThrowIfCancellationRequested();
 
         byte[] ownerValidationSalt = RandomBytes(8);
         byte[] ownerKeySalt = RandomBytes(8);
@@ -29,7 +30,9 @@ internal static partial class PdfStandardSecurityWriter {
         byte[] ownerEntry = PdfObjectBytes.Concat(ownerHash, ownerValidationSalt, ownerKeySalt);
         byte[] ownerEncryptionKey = ComputeRevision6Hash(ownerPassword, ownerKeySalt, userEntry, options.AesCryptographyProvider, cancellationToken);
         byte[] ownerEncryptedFileKey = EncryptAes256NoPadding(ownerEncryptionKey, fileKey, options.AesCryptographyProvider);
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] encryptedPermissions = EncryptPermissions(fileKey, options.Permissions, options.EncryptMetadata, options.AesCryptographyProvider);
+        cancellationToken.ThrowIfCancellationRequested();
 
         int encryptionObjectNumber = sourceObjects.Count + 1;
         var objects = new PdfObjectStore(objectMemoryLimitBytes);

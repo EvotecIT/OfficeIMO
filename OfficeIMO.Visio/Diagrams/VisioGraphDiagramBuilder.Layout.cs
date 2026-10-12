@@ -5,9 +5,7 @@ using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
-    /// <summary>
-    /// High-level builder for generic graph diagrams where OfficeIMO lays out arbitrary nodes and edges.
-    /// </summary>
+    // High-level builder for generic graph diagrams where OfficeIMO lays out arbitrary nodes and edges.
     public sealed partial class VisioGraphDiagramBuilder {
         internal VisioPage Build() {
             if (_built) {
@@ -21,9 +19,12 @@ namespace OfficeIMO.Visio.Diagrams {
 
             ValidateZones();
             if (_preserveLayout) {
+                ResolveTitleHeight();
                 AssignPreservedCoordinates();
             } else {
                 AssignLayoutMetadata();
+                SizePageForLayout();
+                ResolveTitleHeight();
                 SizePageForLayout();
                 AssignCoordinates();
             }
@@ -44,6 +45,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     bounds = page.GetContentBounds();
                 }
                 _pageWidth = Math.Max(_pageWidth, bounds.Right.FromInches(_unit) + _rightMargin);
+                ResolveTitleHeight();
                 _pageHeight = Math.Max(_pageHeight, bounds.Top.FromInches(_unit) + _topMargin + TitleHeaderHeight + LegendHeaderHeight);
                 page.Width = _pageWidth.ToInches(_unit);
                 page.Height = _pageHeight.ToInches(_unit);
@@ -57,6 +59,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 ResolveConnectorShapeIntersections = _layout != VisioGraphLayout.Radial,
                 ResolveConnectorLabelOverlaps = true
             });
+            VisioDiagramPageBackground.Apply(page, _theme.PageBackgroundColor);
             _document.RequestRecalcOnOpen();
             return page;
         }

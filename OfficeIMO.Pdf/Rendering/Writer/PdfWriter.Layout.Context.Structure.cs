@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
+        private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, long? logicalOrder = null) {
             if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -12,6 +12,7 @@ internal static partial class PdfWriter {
             currentPage.StructElements.Add(new PageStructElement {
                 StructureType = structureType,
                 ParentElementIndex = parentElementIndex,
+                LogicalOrder = logicalOrder,
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
@@ -21,7 +22,7 @@ internal static partial class PdfWriter {
             return elementIndex;
         }
 
-        private PageStructElement? RegisterStructureContainer(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null) {
+        private PageStructElement? RegisterStructureContainer(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, string? alternativeText = null, long? logicalOrder = null) {
             if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -29,6 +30,7 @@ internal static partial class PdfWriter {
             var element = new PageStructElement {
                 StructureType = structureType,
                 ParentElement = parentElement ?? ResolveFlowSemanticParent(),
+                LogicalOrder = logicalOrder,
                 TableHeaderScope = tableHeaderScope,
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
@@ -51,7 +53,7 @@ internal static partial class PdfWriter {
             return structureElementIndex;
         }
 
-        private int? RegisterTextStructureElement(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
+        private int? RegisterTextStructureElement(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, long? logicalOrder = null) {
             if (_suppressCanvasStructureRegistration || !emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -65,7 +67,8 @@ internal static partial class PdfWriter {
                 TableColumnSpan = tableColumnSpan,
                 TableRowSpan = tableRowSpan,
                 ParentElementIndex = parentElementIndex,
-                ParentElement = semanticParent
+                ParentElement = semanticParent,
+                LogicalOrder = logicalOrder
             });
             return markedContentId;
         }

@@ -460,22 +460,6 @@ internal static partial class DocBookReaderAdapter {
             Truncated = table.Truncated || rows.Count < table.Rows.Count
         };
     }
-    private static ReaderLocation MapLocation(OfficeDocumentModelLocation? location, string sourceName, string? defaultSourceBlockKind = null) => new ReaderLocation {
-        Path = location?.Path ?? sourceName,
-        BlockIndex = location?.BlockIndex,
-        SourceBlockIndex = location?.SourceBlockIndex,
-        StartLine = location?.StartLine,
-        EndLine = location?.EndLine,
-        NormalizedStartLine = location?.NormalizedStartLine,
-        NormalizedEndLine = location?.NormalizedEndLine,
-        HeadingPath = location?.HeadingPath,
-        HeadingSlug = location?.HeadingSlug,
-        SourceBlockKind = location?.SourceBlockKind ?? defaultSourceBlockKind,
-        BlockAnchor = location?.BlockAnchor,
-        Sheet = location?.Sheet,
-        A1Range = location?.A1Range,
-        Slide = location?.Slide,
-        Page = location?.Page,
-        TableIndex = location?.TableIndex
-    };
+    private static ReaderLocation MapLocation(OfficeDocumentModelLocation? location, string sourceName, string? defaultSourceBlockKind = null) =>
+        OfficeDocumentModelReaderMapping.Location(location, sourceName, defaultSourceBlockKind);
 }

@@ -4,9 +4,7 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Word;
 
-/// <summary>
-/// Contains internal helper methods for WordDocument.
-/// </summary>
+// Contains internal helper methods for WordDocument.
 public partial class WordDocument {
     private void SaveNumbering() {
         var numbering = GetNumbering();

@@ -52,6 +52,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Inserts a DataTable into the worksheet starting at the specified cell.
         /// Uses the batch CellValues compute/apply model with SharedString and Style planners.
+        /// Null and DBNull values remain blank cells; an empty string remains text.
         /// </summary>
         /// <param name="table">Source DataTable.</param>
         /// <param name="startRow">1-based start row.</param>
@@ -151,7 +152,13 @@ namespace OfficeIMO.Excel {
                     for (int i = 0; i < cells.Count; i++) {
                         var (r, c, v, fmt) = cells[i];
                         // Direct cell write path
-                        CellValueCore(r, c, v);
+                        if (v == null) {
+                            SetMissingTabularCellValue(GetWritableValueCell(r, c));
+                            CompleteCellValueMutation(r, c);
+                        } else {
+                            CellValueCore(r, c, v);
+                            ClearTabularReplacementValueMetadata(GetWritableValueCell(r, c));
+                        }
                         if (!string.IsNullOrWhiteSpace(fmt)) {
                             // Apply number format using existing API
                             FormatCell(r, c, fmt!);
@@ -185,8 +192,11 @@ namespace OfficeIMO.Excel {
                     for (int i = 0; i < prepared.Length; i++) {
                         var p = prepared[i];
                         var cell = writer.GetOrCreateCell(p.Row, p.Col);
-                        cell.CellValue = p.Val;
-                        cell.DataType = p.Type;
+                        if (cells[i].Val == null) {
+                            SetMissingTabularCellValue(cell);
+                        } else {
+                            SetPreparedTabularCellValue(cell, p.Val, p.Type);
+                        }
                         if (wrapFlags[i])
                             ApplyWrapText(cell);
 

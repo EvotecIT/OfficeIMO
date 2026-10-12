@@ -47,18 +47,20 @@ namespace OfficeIMO.Excel {
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
-            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, bool disableSharedStrings = false) {
+            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, bool disableSharedStrings = false, bool collectSharedStrings = false) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
-                var sharedStrings = disableSharedStrings ? null : DirectSharedStringTable.Create(model, columnWritePlans, ct);
+                var sharedStrings = disableSharedStrings ? null
+                    : collectSharedStrings ? DirectSharedStringTable.CreateStreaming()
+                    : DirectSharedStringTable.Create(model, columnWritePlans, ct);
                 using var positionReportingDestination = stream.CanSeek
                     ? null
                     : new ExcelPositionReportingWriteStream(stream);
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
                 WritePackagePreamble(archive, model, stylePlan, sharedStrings != null);
-                if (sharedStrings != null) {
-                    WriteSharedStrings(archive, sharedStrings);
+                if (sharedStrings != null && !collectSharedStrings) {
+                    WriteSharedStrings(archive, sharedStrings, ct);
                 }
 
                 bool canCancel = ct.CanBeCanceled;
@@ -78,6 +80,9 @@ namespace OfficeIMO.Excel {
                             "</Relationships>");
                         WriteTable(archive, sheet);
                     }
+                }
+                if (sharedStrings != null && collectSharedStrings) {
+                    WriteSharedStrings(archive, sharedStrings, ct);
                 }
             }
 
@@ -237,6 +242,10 @@ namespace OfficeIMO.Excel {
             }
 
             private static void WriteStyles(ZipArchive archive, DirectStylePlan stylePlan) {
+                if (stylePlan.TabularStyles != null) {
+                    WriteTextEntry(archive, "xl/styles.xml", "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + stylePlan.TabularStyles.Stylesheet.OuterXml);
+                    return;
+                }
                 var builder = new StringBuilder(1024 + stylePlan.CustomNumberFormats.Count * 160);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 builder.Append("<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
@@ -272,7 +281,8 @@ namespace OfficeIMO.Excel {
                 WriteTextEntry(archive, "xl/styles.xml", builder.ToString());
             }
 
-            private static void WriteSharedStrings(ZipArchive archive, DirectSharedStringTable sharedStrings) {
+            private static void WriteSharedStrings(ZipArchive archive, DirectSharedStringTable sharedStrings, CancellationToken ct = default) {
+                ct.ThrowIfCancellationRequested();
                 var entry = archive.CreateEntry("xl/sharedStrings.xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
                 using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize);
@@ -281,10 +291,11 @@ namespace OfficeIMO.Excel {
                 writer.Write("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"");
                 WriteInvariant(writer, sharedStrings.TotalStringReferences);
                 writer.Write("\" uniqueCount=\"");
-                WriteInvariant(writer, sharedStrings.Values.Length);
+                WriteInvariant(writer, sharedStrings.Values.Count);
                 writer.Write("\">");
-                string[] values = sharedStrings.Values;
-                for (int i = 0; i < values.Length; i++) {
+                IReadOnlyList<string> values = sharedStrings.Values;
+                for (int i = 0; i < values.Count; i++) {
+                    if ((i & 1023) == 0) ct.ThrowIfCancellationRequested();
                     string value = values[i];
                     writer.Write("<si><t");
                     if (NeedsPreserveSpace(value)) {

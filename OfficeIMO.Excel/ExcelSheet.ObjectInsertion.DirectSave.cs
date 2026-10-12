@@ -95,7 +95,8 @@ namespace OfficeIMO.Excel {
                 valuesMatchColumnTypes,
                 includeHeaders,
                 range,
-                includeCellReferences: includeCellReferences);
+                includeCellReferences: includeCellReferences,
+                preserveMissingValues: true);
         }
 
         private static bool HasDuplicateObjectExportHeaders(IEnumerable<string> columnNames) {

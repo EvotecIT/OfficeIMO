@@ -26,6 +26,7 @@ namespace OfficeIMO.Excel {
                     model.DateTimeOffsetWriteStrategy,
                     model.DateSystem,
                     columnWritePlans[0],
+                    stylePlan.TabularStyles,
                     ct);
                 if (sheet.HasTable) {
                     string sheetIndexText = InvariantNumberText.Get(sheet.Index);
@@ -54,13 +55,16 @@ namespace OfficeIMO.Excel {
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
                 DirectColumnWritePlan columnWritePlan,
+                ExcelTabularStylePlan? declaredStyles,
                 CancellationToken ct) {
                 var entry = archive.CreateEntry("xl/worksheets/sheet1.xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
                 using var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize);
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-                writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheetData>");
+                writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
+                WriteDeclaredColumns(writer, sheet.ColumnWidths, declaredStyles);
+                writer.Write("<sheetData>");
 
                 int columnCount = sheet.Table.ColumnCount;
                 string[] cellReferencePrefixes = CreateCellReferencePrefixes(columnCount);
@@ -73,7 +77,7 @@ namespace OfficeIMO.Excel {
                             headerRowReference,
                             cellReferencePrefixes[columnIndex],
                             sheet.Table.GetColumnName(columnIndex),
-                            styleAttribute: null,
+                            styleAttribute: declaredStyles?.Columns[columnIndex]?.Attribute,
                             dateTimeOffsetWriteStrategy,
                             dateSystem,
                             sharedStrings: null);
@@ -86,7 +90,11 @@ namespace OfficeIMO.Excel {
                 bool canCancel = ct.CanBeCanceled;
                 bool useBulkRead = ExcelSheet.CanUseBulkDataReaderValues(reader);
                 object?[] values = new object?[columnCount];
-                CompactDataReaderRowWriter? typedRowWriter = !sheet.IncludeCellReferences
+                ExcelTabularRowWriter? declaredRowWriter = declaredStyles == null ? null : ExcelTabularRowWriter.Create(
+                    writer, sheet.IncludeHeaders ? 2 : 1, sheet.IncludeCellReferences, cellReferencePrefixes,
+                    columnWritePlan.StyleAttributes, columnWritePlan.ValueStyleColumns, sheet.UseCellValueNumberFormats,
+                    dateTimeOffsetWriteStrategy, dateSystem, sharedStrings: null, declaredStyles);
+                CompactDataReaderRowWriter? typedRowWriter = declaredStyles == null && !sheet.IncludeCellReferences
                     && columnWritePlan.ValueStyleColumns == null
                     ? GetCompactDataReaderRowWriter(
                         columnWritePlan.CellValueKinds,
@@ -111,7 +119,9 @@ namespace OfficeIMO.Excel {
                         ExcelSheet.FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
                     }
 
-                    if (typedRowWriter == null && sheet.IncludeCellReferences) {
+                    if (declaredRowWriter != null) {
+                        WriteDeclaredValueRow(declaredRowWriter, values);
+                    } else if (typedRowWriter == null && sheet.IncludeCellReferences) {
                         WriteReferencedDataReaderRow(
                             writer,
                             values,

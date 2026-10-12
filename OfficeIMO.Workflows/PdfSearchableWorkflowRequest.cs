@@ -24,6 +24,8 @@ public sealed class PdfSearchableWorkflowRequest {
     public string? PdfPassword { get; set; }
     /// <summary>Recognition, page selection, rendering, and confidence options captured before asynchronous work.</summary>
     public PdfOcrMergeOptions Ocr { get; set; } = new();
+    /// <summary>Optional document-relative recognition pages, resolved against the captured source. Cannot be combined with Ocr.ReadOptions.PageSelection.</summary>
+    public OfficeIMO.Pdf.PdfPageSelector? PageSelector { get; set; }
     /// <summary>Optional review before mutation. Return eligible word instances from the supplied review.
     /// The runner validates the selection and rechecks source identity before publication.</summary>
     /// <remarks>The callback must honor cancellation. It does not grant permission to publish or bypass

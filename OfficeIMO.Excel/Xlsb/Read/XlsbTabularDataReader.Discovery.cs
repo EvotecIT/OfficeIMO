@@ -456,14 +456,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         cursor.ReadDouble();
                         break;
                     case BrtCellSt:
-                        cursor.ReadWideString(maxStringCharacters);
+                        cursor.ValidateWideString(maxStringCharacters);
                         break;
                     case BrtCellRString:
                         cursor.ReadByte();
-                        cursor.ReadWideString(maxStringCharacters);
+                        cursor.ValidateWideString(maxStringCharacters);
                         break;
                     case BrtFmlaString:
-                        cursor.ReadWideString(maxStringCharacters);
+                        cursor.ValidateWideString(maxStringCharacters);
                         ValidateFormulaPayloadTail(record, ref cursor);
                         break;
                     case BrtFmlaNum:

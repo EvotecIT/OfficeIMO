@@ -79,10 +79,10 @@ public static partial class IWorkWorkflow {
             // Saving can add font/encoding/layout evidence. Copy it after serialization.
             RequireCompletePdfContent(saved.Report);
             return new OfficeWorkflowConversionEvidence(reports, facts);
-        } catch (Exception exception) when (exception is not OperationCanceledException and not OutOfMemoryException and not StackOverflowException) {
+        } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
             facts["conversionFailureStage"] = "pdf";
             facts["pdfReportAvailable"] = (reports.Count > 1).ToString();
-            throw new WorkflowConversionFailureException(exception, new OfficeWorkflowConversionEvidence(reports, facts));
+            throw new OfficeConversionException(exception.Message, new OfficeWorkflowConversionEvidence(reports, facts), exception);
         }
     }
 

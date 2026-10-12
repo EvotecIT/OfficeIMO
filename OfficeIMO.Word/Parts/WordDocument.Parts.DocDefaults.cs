@@ -1,9 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Defines default document settings parts.
-    /// </summary>
+    // Defines default document settings parts.
     public partial class WordDocument {
         /// <summary>
         /// Defaults for Word Document

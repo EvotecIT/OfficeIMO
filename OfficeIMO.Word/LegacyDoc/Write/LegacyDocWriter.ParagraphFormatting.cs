@@ -205,15 +205,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static byte ReadSupportedVerticalCharacterAlignment(TextAlignment textAlignment) {
             VerticalTextAlignmentValues value = textAlignment.Val?.Value ?? VerticalTextAlignmentValues.Auto;
             if (value == VerticalTextAlignmentValues.Auto) {
-                return 0;
-            } else if (value == VerticalTextAlignmentValues.Baseline) {
-                return 1;
-            } else if (value == VerticalTextAlignmentValues.Top) {
-                return 2;
-            } else if (value == VerticalTextAlignmentValues.Center) {
-                return 3;
-            } else if (value == VerticalTextAlignmentValues.Bottom) {
                 return 4;
+            } else if (value == VerticalTextAlignmentValues.Baseline) {
+                return 2;
+            } else if (value == VerticalTextAlignmentValues.Top) {
+                return 0;
+            } else if (value == VerticalTextAlignmentValues.Center) {
+                return 1;
+            } else if (value == VerticalTextAlignmentValues.Bottom) {
+                return 3;
             }
 
             throw new NotSupportedException($"Native DOC saving does not support paragraph vertical character alignment '{value}'.");

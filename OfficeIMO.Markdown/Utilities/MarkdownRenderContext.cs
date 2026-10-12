@@ -9,6 +9,7 @@ internal static class MarkdownRenderContext {
 
     internal static MarkdownWriteOptions? Options => s_Options.Value;
     internal static MarkdownWriteContext? WriteContext => s_WriteContext.Value;
+    internal static void ThrowIfCancellationRequested() => WriteContext?.CancellationToken.ThrowIfCancellationRequested();
 
     internal static IDisposable Push(MarkdownWriteOptions options) {
         var prior = s_Options.Value;

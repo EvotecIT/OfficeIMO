@@ -51,6 +51,9 @@ public sealed partial class OfficeWorkflowRunner {
             request.Operation is not (OfficeWorkflowOperation.Inspect or OfficeWorkflowOperation.RepairPlan or OfficeWorkflowOperation.Compare or OfficeWorkflowOperation.AnalyzeWordImages)) {
             throw new ArgumentException("A provider input requires an explicit output destination.", nameof(request));
         }
+        if (request.Operation != OfficeWorkflowOperation.Compare &&
+            (request.ComparisonExpectedPages is not null || request.ComparisonActualPages is not null))
+            throw new ArgumentException("Comparison page scopes require a comparison operation.", nameof(request));
         if (request.ComparisonStream is not null && request.Operation != OfficeWorkflowOperation.Compare) {
             throw new ArgumentException("A comparison provider is valid only for a comparison operation.", nameof(request));
         }
@@ -132,11 +135,15 @@ public sealed partial class OfficeWorkflowRunner {
             throw new ArgumentException("Page extraction is limited to 100,000 selected pages.", nameof(request));
         int[]? pages = request.PageNumbers?.ToArray();
         if (request.Operation == OfficeWorkflowOperation.ExtractPages) {
-            if (pages is not { Length: > 0 and <= 100000 } || pages.Any(page => page <= 0))
-                throw new ArgumentException("Extraction requires 1 to 100,000 positive one-based page numbers.", nameof(request));
+            if (request.MaximumExtractedPages is < 1 or > 100000)
+                throw new ArgumentOutOfRangeException(nameof(request.MaximumExtractedPages));
+            if (request.PageSelector is not null && pages is not null)
+                throw new ArgumentException("Choose a page selector or page numbers, not both.", nameof(request));
+            if (request.PageSelector is null && (pages is not { Length: > 0 } || pages.Length > request.MaximumExtractedPages || pages.Any(page => page <= 0)))
+                throw new ArgumentException("Extraction requires positive one-based pages within the selected page limit.", nameof(request));
             if (request.OutputProfile != OfficeWorkflowOutputProfile.Faithful)
                 throw new ArgumentException("Page extraction supports only the Faithful output profile.", nameof(request));
-        } else if (pages is not null) {
+        } else if (pages is not null || request.PageSelector is not null) {
             throw new ArgumentException("Page numbers are valid only for page extraction.", nameof(request));
         }
 
@@ -196,7 +203,8 @@ public sealed partial class OfficeWorkflowRunner {
             outputOptions,
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
-            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings, wordImageOptimization, providerPackage);
+            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings, wordImageOptimization, providerPackage,
+            request.PageSelector, request.MaximumExtractedPages, request.ComparisonExpectedPages, request.ComparisonActualPages);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream, bool directoryPackage = false) {

@@ -37,100 +37,75 @@ internal static class BrowserPdfConversionManifest {
             PdfTaggedStructureMode.CatalogMarkers.ToString()
         ])));
 
-        var manifest = new {
-            schemaVersion = SchemaVersion,
+        var manifest = new ConversionManifestDocument(
+            SchemaVersion,
             conversionId,
-            fidelityStatus = report.FidelityStatus.ToString(),
-            source = new {
-                fileName = source.Name,
-                byteCount = source.Size,
-                sha256 = sourceHash
-            },
-            output = new {
-                fileName = outputFileName,
-                byteCount = outputBytes.LongLength,
-                sha256 = outputHash,
-                pageCount = serialization.PageCount,
-                tagged = true
-            },
-            engine = new {
+            report.FidelityStatus.ToString(),
+            new ManifestSource(source.Name, source.Size, sourceHash),
+            new ManifestOutput(outputFileName, outputBytes.LongLength, outputHash, serialization.PageCount, Tagged: true),
+            new ManifestEngine(
                 converter,
-                assembly = typeof(PdfDocument).Assembly.GetName().Name,
-                version = engineVersion,
-                sourceCommit = GetSourceCommit(engineVersion),
+                typeof(PdfDocument).Assembly.GetName().Name,
+                engineVersion,
+                GetSourceCommit(engineVersion),
                 optionProfile,
-                profile = new {
-                    id = profile.Id,
-                    label = profile.Label,
-                    description = profile.Description
-                }
-            },
-            fontPack = new {
-                id = BrowserPortablePdfProfile.FontPackId,
-                fingerprint = BrowserPortablePdfProfile.FontPackFingerprint,
-                defaultFamily = BrowserPortablePdfProfile.DefaultFontFamily,
-                coverage = BrowserPortablePdfProfile.FontCoverage,
-                substitutions = BrowserPortablePdfProfile.FontFamilySubstitutions.Select(
-                    static substitution => new {
-                        source = substitution.SourceFontFamily,
-                        target = substitution.TargetFontFamily,
-                        impact = substitution.Impact.ToString()
-                    }).ToArray()
-            },
-            policy = new {
-                resources = "portable-deterministic",
-                taggedStructure = PdfTaggedStructureMode.CatalogMarkers.ToString(),
-                systemFonts = false,
-                externalResources = false
-            },
-            limits = new {
-                profile = "browser",
-                packageBytes = BrowserConversionService.MaxPackageBytes,
-                packagePartCount = BrowserConversionService.MaxPackagePartCount,
-                partUncompressedBytes = BrowserConversionService.MaxPartUncompressedBytes,
-                totalUncompressedBytes = BrowserConversionService.MaxTotalUncompressedBytes,
-                compressionRatio = BrowserConversionService.MaxCompressionRatio
-            },
-            performance = new {
+                new ManifestProfile(profile.Id, profile.Label, profile.Description)),
+            new ManifestFontPack(
+                BrowserPortablePdfProfile.FontPackId,
+                BrowserPortablePdfProfile.FontPackFingerprint,
+                BrowserPortablePdfProfile.DefaultFontFamily,
+                BrowserPortablePdfProfile.FontCoverage,
+                BrowserPortablePdfProfile.FontFamilySubstitutions.Select(
+                    static substitution => new ManifestSubstitution(
+                        substitution.SourceFontFamily,
+                        substitution.TargetFontFamily,
+                        substitution.Impact.ToString())).ToArray()),
+            new ManifestPolicy(
+                "portable-deterministic",
+                PdfTaggedStructureMode.CatalogMarkers.ToString(),
+                SystemFonts: false,
+                ExternalResources: false),
+            new ManifestLimits(
+                "browser",
+                BrowserConversionService.MaxPackageBytes,
+                BrowserConversionService.MaxPackagePartCount,
+                BrowserConversionService.MaxPartUncompressedBytes,
+                BrowserConversionService.MaxTotalUncompressedBytes,
+                BrowserConversionService.MaxCompressionRatio),
+            new ManifestPerformance(
                 conversionMilliseconds,
-                peakRetainedPageContentBytes = serialization.PeakRetainedPageContentBytes,
-                peakRetainedObjectBytes = serialization.PeakRetainedObjectBytes,
-                peakRetainedCompletedPayloadBytes = AddWithoutOverflow(
+                serialization.PeakRetainedPageContentBytes,
+                serialization.PeakRetainedObjectBytes,
+                AddWithoutOverflow(
                     serialization.PeakRetainedPageContentBytes,
                     serialization.PeakRetainedObjectBytes),
-                pageContentSpilled = serialization.PageContentSpilled,
-                objectBufferSpilled = serialization.ObjectBufferSpilled,
-                finalArtifactBuffered = serialization.FinalArtifactBuffered,
-                isForwardOnlyObjectSerialization = serialization.IsForwardOnlyObjectSerialization,
-                largestSerializedObjectBytes = serialization.LargestSerializedObjectBytes,
-                isForwardOnlyLayout = serialization.IsForwardOnlyLayout
-            },
-            warnings = report.Warnings.Select(warning => new {
-                converter = warning.Converter,
-                code = warning.Code,
-                source = warning.Source,
-                message = warning.Message,
-                severity = warning.Severity.ToString(),
-                construct = warning.LayoutDiagnostic?.Kind.ToString()
+                serialization.PageContentSpilled,
+                serialization.ObjectBufferSpilled,
+                serialization.FinalArtifactBuffered,
+                serialization.IsForwardOnlyObjectSerialization,
+                serialization.LargestSerializedObjectBytes,
+                serialization.IsForwardOnlyLayout),
+            report.Warnings.Select(warning => new ManifestWarning(
+                warning.Converter,
+                warning.Code,
+                warning.Source,
+                warning.Message,
+                warning.Severity.ToString(),
+                warning.LayoutDiagnostic?.Kind.ToString()
                     ?? (warning.Details.TryGetValue("construct", out string? construct) ? construct : warning.Code),
-                pageNumber = TryReadPositiveInt(warning.Details, "pageNumber")
+                TryReadPositiveInt(warning.Details, "pageNumber")
                     ?? TryReadPositiveInt(warning.Details, "page"),
-                canChangePagination =
-                    warning.Severity != PdfConversionWarningSeverity.Information &&
+                warning.Severity != PdfConversionWarningSeverity.Information &&
                     (warning.Code.Contains("font", StringComparison.OrdinalIgnoreCase) ||
                      warning.Code.Contains("pagination", StringComparison.OrdinalIgnoreCase) ||
                      warning.Code.Contains("overflow", StringComparison.OrdinalIgnoreCase) ||
                      warning.LayoutDiagnostic?.Kind is PdfLayoutDiagnosticKind.AdjustedGeometry
                          or PdfLayoutDiagnosticKind.ClippedContent
                          or PdfLayoutDiagnosticKind.Overflow),
-                details = warning.Details.OrderBy(pair => pair.Key, StringComparer.Ordinal)
-                    .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal)
-            }).ToArray()
-        };
+                warning.Details.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal))).ToArray());
 
-        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(
-            manifest,
-            new JsonSerializerOptions { WriteIndented = true });
+        byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(manifest, BrowserReportJsonContext.Default.ConversionManifestDocument);
         return new BrowserConversionArtifact(
             bytes,
             Path.GetFileNameWithoutExtension(source.Name) + ".conversion.json",

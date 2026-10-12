@@ -8,11 +8,18 @@ internal static partial class PdfWriter {
             if (style.KeepTogether || !GetTableRowAllowBreakAcrossPages(style, 0) || TableRowHasViewport(table, 0, columns))
                 return rows.Heights[0];
             IReadOnlyList<TableCellLayout> cells = GetTableCellLayouts(table, 0, columns);
+            var spanFlow = new TableSpanFlow(table, style, columns, style.HeaderRowCount,
+                table.Rows.Count - style.FooterRowCount);
+            bool hasIndependentSpan = spanFlow.CoversRow(0);
+            if (hasIndependentSpan)
+                cells = cells.Where(cell => !spanFlow.Contains(0, cell.Column)).ToArray();
             double fullHeight = GetMeasuredContinuationFrameHeight();
             for (int count = 1; count <= rows.LineCounts[0]; count++) {
-                if (IsTableRowFragmentBoundaryAllowed(rows.Lines[0], cells, 0, count, fullHeight, requireDefaultFirstFragment: true))
-                    return MeasurePreparedTableRowSegmentHeight(table, style, rows, columns, widths, gap,
+                if (IsTableRowFragmentBoundaryAllowed(rows.Lines[0], cells, 0, count, fullHeight, requireDefaultFirstFragment: true)) {
+                    double height = MeasurePreparedTableRowSegmentHeight(table, style, rows, columns, widths, gap,
                         0, 0, count, suppressCellObjects: false);
+                    return hasIndependentSpan ? Math.Min(height, rows.IntrinsicHeights[0]) : height;
+                }
             }
             return rows.Heights[0];
         }

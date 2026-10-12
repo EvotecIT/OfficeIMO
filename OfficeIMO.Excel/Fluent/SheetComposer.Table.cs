@@ -2,9 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel.Fluent {
-    /// <summary>
-    /// Table rendering for SheetComposer.
-    /// </summary>
+    // Table rendering for SheetComposer.
     public sealed partial class SheetComposer {
         /// <summary>
         /// Flattens a sequence of objects into a table and renders it with a header row.

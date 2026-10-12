@@ -18,6 +18,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
     private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
     private readonly Func<CancellationToken, Task<string?>> _pickSaveRedactionReport;
+    private readonly Func<CancellationToken, Task<string?>> _pickSaveComparisonReport;
     private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> _pickImportPdfs;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly Func<CancellationToken, Task<byte[]?>> _pickImage;
@@ -128,7 +129,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickProvenanceFile = null,
         Func<Task<UnsavedChangesDecision>>? confirmBookChanges = null,
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
-        bool supportsFolderNavigation = true) {
+        bool supportsFolderNavigation = true,
+        Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
@@ -139,6 +141,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         InitializeLocalizedReaderLayouts();
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
+        _pickSaveComparisonReport = pickSaveComparisonReport ?? (_ => Task.FromResult<string?>(null));
         _pickSaveRedactionReport = pickSaveRedactionReport ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
         _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));
@@ -213,11 +216,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             path => !_services.Storage.IsRecoveryLocation(path) && (canPublishPath ?? _canSaveAsPath)(path),
             _localizer, jobHistory: _services.Jobs, publicationGuard: publicationGuard, storage: _services.Storage,
             pickOutputPdf: _pickSavePdf, recoveryStore: _services.WorkflowRecovery,
-            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, textRecognition: scanTextRecognition);
-        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory);
+            confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, textRecognition: scanTextRecognition, ocrRuntime: _services.Ocr);
+        Settings = new StudioSettingsViewModel(_services.Preferences, _services.Localizer, _services.Diagnostics, _services.Recovery, _services.DocumentHistory,
+            token => FileDialogs.PickOpenFileAsync(_localizer.Get("OcrSetup.ChooseExecutable"), StudioFileType.Any("Tesseract"), token), _services.Ocr);
         OcrSession = new OcrSessionViewModel(pickOcrFiles ?? pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>([])),
             _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,
-            publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
+            publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite,
+            createEngine: StudioDistributionPolicy.ExternalToolsAllowed ? _services.Ocr.CreateEngineAsync : null, openOutput: openWorkflowOutput);
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
@@ -303,7 +308,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || ConversionWorkbench.BatchExport.IsBusy ||
-                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy || ProvenanceWorkbench.IsBusy || OcrWorkbench.IsBusy || OcrSession.IsBusy || IsFormOcrBusy || InvoiceWorkbench.IsBusy || BookWorkbench.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -584,6 +589,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     public void Dispose() {
+        ClearFormOcrReview();
         _assistant?.Dispose();
         ClearFormPreview();
         _commands?.Dispose();
@@ -653,6 +659,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyList<PdfPageViewModel> pages,
         IReadOnlyList<PdfOrganizerPageViewModel> organizerPages,
         IReadOnlyCollection<int>? organizerSelection = null) {
+        IsReplacingReaderPresentation = true;
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
         ClearFormPreview();
         if (isDocumentTransition) SaveDocumentViewState();
@@ -700,6 +707,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.MarkupRequested += OnPageMarkupRequested;
             page.InlineFormNavigationRequested += OnInlineFormNavigationRequested;
             page.ObjectSelected += OnPageObjectSelected;
+            page.AnnotationSelectionRequested += OnPageAnnotationsSelected;
+            page.AnnotationKeyRequested += OnAnnotationKeyRequested;
             page.ObjectTransformCompleted += OnPageObjectTransform;
             page.EditorTool = ActiveEditorTool;
             page.SelectionMode = GetEditorSelectionMode();
@@ -734,6 +743,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         NotifyWorkspaceStateChanged();
 
         if (session is not null) ApplyFitZoom();
+        IsReplacingReaderPresentation = false;
+        ReaderPresentationReplaced?.Invoke(this, EventArgs.Empty);
     }
 
     private void ApplyFitZoom() {
@@ -772,7 +783,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     private static int GetGridColumnCount(double availableWidth) =>
-        availableWidth >= 980D ? 4 : availableWidth >= 680D ? 3 : 2;
+        PdfReaderViewportLayout.GridColumnCount(availableWidth);
 
     private void ApplyZoom(double zoom) {
         zoom = Math.Round(zoom, 2);

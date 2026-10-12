@@ -21,6 +21,7 @@ internal sealed class StudioApplicationServices {
         AiConnections = new OfficeIMO.Studio.Features.Assistant.StudioAiConnections(paths.Root, localizer, preferences);
         Storage = new StudioStorageAccess(paths.WorkflowRecoveryRoot);
         Preferences = preferences;
+        Ocr = new StudioOcrRuntime(preferences);
         Cultures = cultures;
         Localizer = localizer;
         Diagnostics = diagnostics;
@@ -37,6 +38,8 @@ internal sealed class StudioApplicationServices {
     internal OfficeIMO.Studio.Features.Assistant.StudioAiConnections AiConnections { get; }
 
     internal StudioPreferencesService Preferences { get; }
+
+    internal StudioOcrRuntime Ocr { get; }
 
     internal StudioCultureService Cultures { get; }
 

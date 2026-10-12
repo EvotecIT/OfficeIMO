@@ -3,6 +3,8 @@ using OfficeIMO.OpenDocument.Odg.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
 
 namespace OfficeIMO.Workflows.Tests;
 
@@ -10,7 +12,9 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
     [Theory]
     [InlineData(".odg", "odg-pdf")]
     [InlineData(".vdx", "visio-pdf")]
-    public async Task DeferredEncryptionLimitRetainsDiagramReportsAndPreservesDestination(string extension, string route) {
+    [InlineData(".txt", "txt-pdf")]
+    [InlineData(".docx", "docx-pdf")]
+    public async Task DeferredEncryptionLimitRetainsConversionReportsAndPreservesDestination(string extension, string route) {
         string root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "officeimo-postprocess-" + Guid.NewGuid().ToString("N"))).FullName;
         try {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
@@ -18,10 +22,16 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
                 var source = OdgDocument.Create();
                 source.AddPage("Page").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 5, 2), "Caption");
                 source.Save(input);
-            } else {
+            } else if (extension == ".vdx") {
                 var source = VisioDocument.Create();
                 source.AddPage("Page").AddRectangle(1, 1, 2, 1, "Caption");
                 source.SaveLegacyXml(input, allowOmissions: true);
+            } else if (extension == ".docx") {
+                using var source = WordDocument.Create(input);
+                source.AddParagraph("Caption").FontFamily = "OfficeIMO Missing Postprocessing Font";
+                source.Save();
+            } else {
+                File.WriteAllText(input, "Caption");
             }
             byte[] originalSource = File.ReadAllBytes(input);
             var runner = new OfficeWorkflowRunner();
@@ -31,7 +41,9 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
                 return new() {
                     CompressPdfOutput = compressed,
                     Draw = extension == ".odg" ? new OdgToPdfOptions { PdfOptions = pdf } : null,
-                    Visio = extension == ".vdx" ? new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, PdfOptions = pdf } : null
+                    Visio = extension == ".vdx" ? new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages, PdfOptions = pdf } : null,
+                    PlainText = extension == ".txt" ? new PdfPlainTextOptions { PdfOptions = pdf } : null,
+                    Word = extension == ".docx" ? new WordToPdfOptions { PdfOptions = pdf, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() } : null
                 };
             }
             async Task<OfficeWorkflowResult> Run(bool compressed, bool encrypted, long limit) => await runner.RunAsync(new() {
@@ -61,12 +73,18 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
             Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, failed.FailureKind);
             Assert.Contains(failed.Diagnostics, d => d.Code == "PdfOutputCompression");
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(failed.ConversionEvidence);
-            Assert.Equal("1", evidence.Facts["sourcePages"]);
+            if (extension == ".docx") Assert.NotEmpty(evidence.FidelityDiagnostics);
+            if (extension is ".odg" or ".vdx") Assert.Equal("1", evidence.Facts["sourcePages"]);
             Assert.Equal(
                 compressed.ConversionEvidence!.FidelityDiagnostics.Select(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location)),
                 evidence.FidelityDiagnostics.Select(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location)));
-            foreach (var finding in evidence.FidelityDiagnostics)
-                Assert.Single(failed.Diagnostics, d => d.Code == finding.Code && d.Message == finding.Message);
+            foreach (var findings in evidence.FidelityDiagnostics.GroupBy(d => (d.Source, d.Code, d.Message, d.LossKind, d.Location))) {
+                var finding = findings.Key;
+                Assert.Equal(findings.Count(), failed.Diagnostics.Count(d => d.Code == finding.Code && d.Message == finding.Message
+                    && d.Details.TryGetValue("source", out string? source) && source == finding.Source
+                    && d.Details.TryGetValue("lossKind", out string? loss) && loss == finding.LossKind.ToString()
+                    && (d.Details.TryGetValue("location", out string? location) ? location : null) == finding.Location));
+            }
             Assert.Equal(originalSource, File.ReadAllBytes(input));
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(root, ".*.tmp"));

@@ -31,6 +31,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static void AppendInlineNode(InlineSequence sequence, INode node, ConversionContext? context, bool trimEnd) {
+        context?.CancellationToken.ThrowIfCancellationRequested();
         switch (node) {
             case null:
             case IComment:
@@ -134,17 +135,20 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         var conversionContext = new HtmlInlineElementConversionContext(element, context.Options, context);
         for (int i = 0; i < context.Options.InlineElementConverters.Count; i++) {
+            context.CancellationToken.ThrowIfCancellationRequested();
             var converter = context.Options.InlineElementConverters[i];
             if (converter == null) {
                 continue;
             }
 
             var converted = converter.Convert(conversionContext);
+            context.CancellationToken.ThrowIfCancellationRequested();
             if (converted == null) {
                 continue;
             }
 
             for (int j = 0; j < converted.Count; j++) {
+                context.CancellationToken.ThrowIfCancellationRequested();
                 var inline = converted[j];
                 if (inline != null) {
                     sequence.AddRaw(inline);
@@ -158,6 +162,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ConvertInlineNodeToMarkdown(INode node, ConversionContext? context) {
+        context?.CancellationToken.ThrowIfCancellationRequested();
         switch (node) {
             case IComment:
                 return string.Empty;

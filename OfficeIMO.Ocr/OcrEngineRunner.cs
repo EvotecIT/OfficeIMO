@@ -73,7 +73,8 @@ public static partial class OcrEngineRunner {
         OcrRequest request,
         TimeSpan timeout,
         CancellationToken cancellationToken,
-        OcrResultCaptureLimits? captureLimits = null) {
+        OcrResultCaptureLimits? captureLimits = null,
+        bool awaitProviderSettlement = false) {
         if (execution == null) throw new ArgumentNullException(nameof(execution));
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (request.Operation != OcrOperation.RecognizeText && request.Operation != OcrOperation.DetectOrientation)
@@ -130,12 +131,21 @@ public static partial class OcrEngineRunner {
         } finally {
             Task<OcrResult>? providerTask = providerInvocation?.Task;
             if (providerTask != null) ObserveBackgroundFailure(providerTask);
+            Task? cancellationTask = providerInvocation?.CancellationTask;
+            if (awaitProviderSettlement && (providerTask != null || cancellationTask != null)) {
+                try {
+                    await Task.WhenAll(providerTask ?? Task.CompletedTask, cancellationTask ?? Task.CompletedTask)
+                        .ConfigureAwait(false);
+                } catch {
+                    // Cleanup must not replace the result or the operation's selected failure.
+                }
+            }
             DisposeCancellationSourceWhenSettled(
                 providerCancellation,
                 providerTask,
-                providerInvocation?.CancellationTask);
+                cancellationTask);
             if (gateHeld && gate != null) {
-                ReleaseGateWhenSettled(gate, providerTask, providerInvocation?.CancellationTask);
+                ReleaseGateWhenSettled(gate, providerTask, cancellationTask);
             }
         }
     }

@@ -7,6 +7,19 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class PdfOcrProviderCommandTests {
     [Fact]
+    public async Task ExplicitInstalledProviderDeploymentIsDiscoveredWithoutExecutingTesseract() {
+        using var output = new StringWriter(); using var error = new StringWriter();
+        int exit = await PdfCommand.RunAsync(["providers", "--ocr-provider-assembly",
+            typeof(OfficeIMO.Ocr.Tesseract.TesseractOcrEngineProvider).Assembly.Location], output, error);
+        Assert.True(exit == 0, error.ToString());
+        using JsonDocument json = JsonDocument.Parse(output.ToString());
+        Assert.Equal("tesseract-cli", Assert.Single(json.RootElement.EnumerateArray()).GetProperty("id").GetString());
+        Assert.Equal(string.Empty, error.ToString());
+        var provider = new OfficeIMO.Ocr.Tesseract.TesseractOcrEngineProvider();
+        Assert.Throws<ArgumentException>(() => provider.Create(new Dictionary<string, string> { ["arbitraryArguments"] = "--help" }));
+        Assert.Throws<ArgumentException>(() => provider.Create(new Dictionary<string, string> { ["pageSegmentationMode"] = "14" }));
+    }
+    [Fact]
     public async Task ProviderDiscoveryListsInjectedOptionalProviders() {
         var catalog = new OcrEngineCatalog().Register(new FixtureProvider());
         using var output = new StringWriter();

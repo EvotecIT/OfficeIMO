@@ -44,31 +44,11 @@ internal static partial class DocBookReaderAdapter {
         return result;
     }
 
-    private static OfficeDocumentMetadataEntry MapMetadata(OfficeDocumentModelMetadataEntry metadata) => new OfficeDocumentMetadataEntry {
-        Id = metadata.Id,
-        Category = metadata.Category,
-        Name = metadata.Name,
-        Value = metadata.Value,
-        ValueType = metadata.ValueType,
-        SourceObjectId = metadata.SourceObjectId,
-        Location = metadata.Location == null ? null : MapLocation(metadata.Location, metadata.Location.Path ?? "memory"),
-        Attributes = metadata.Attributes
-    };
+    private static OfficeDocumentMetadataEntry MapMetadata(OfficeDocumentModelMetadataEntry metadata) =>
+        OfficeDocumentModelReaderMapping.Metadata(metadata, "memory");
 
-    private static OfficeDocumentLink MapLink(OfficeDocumentModelLink link, string sourceName) => new OfficeDocumentLink {
-        Id = link.Id,
-        Kind = link.Kind,
-        Uri = link.Uri,
-        DestinationName = link.DestinationName,
-        DestinationPageNumber = link.DestinationPageNumber,
-        DestinationMode = link.DestinationMode,
-        NamedAction = link.NamedAction,
-        RemoteFile = link.RemoteFile,
-        RemoteDestinationName = link.RemoteDestinationName,
-        RemoteDestinationPageNumber = link.RemoteDestinationPageNumber,
-        Text = link.Text,
-        Location = MapLocation(link.Location, sourceName, "link")
-    };
+    private static OfficeDocumentLink MapLink(OfficeDocumentModelLink link, string sourceName) =>
+        OfficeDocumentModelReaderMapping.Link(link, sourceName, "link");
 
     private static OfficeDocumentAsset MapAsset(OfficeDocumentModelAsset asset, string sourceName) => new OfficeDocumentAsset {
         Id = asset.Id,
