@@ -55,7 +55,7 @@ internal static class PublisherDrawingFixture {
             if (kind == 0xF00A) initial = (ushort)((shapeType << 4) | (initial & 15));
             if (kind is 0xF00B or 0xF122) {
                 var entries = OfficeArtPropertyTableReader.Read(body, (ushort)(initial >> 4))
-                    .Where(item => !values.ContainsKey(item.PropertyId) && complexValues?.ContainsKey(item.PropertyId) != true)
+                    .Where(item => !values.Keys.Any(key => (key & 0x3FFF) == item.PropertyId) && complexValues?.ContainsKey(item.PropertyId) != true)
                     .Select(item => (Op: item.RawOperationId, Value: item.Value, Data: item.CopyComplexData())).ToList();
                 entries.AddRange(values.Select(item => (item.Key, item.Value, (byte[]?)null)));
                 if (complexValues != null)

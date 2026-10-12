@@ -6,6 +6,18 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Fact]
+    public void NativeSvgMarkerFieldsDoNotFlattenHighCurvaturePaths() {
+        var commands = new System.Collections.Generic.List<OfficePathCommand> { OfficePathCommand.MoveTo(0, 1000000) };
+        for (int i = 0; i < 500; i++) commands.Add(OfficePathCommand.CubicBezierTo(i, 2000000, i + 1, 0, i + 1, 1000000));
+        var shape = OfficeShape.Path(500, 2000000, commands);
+        shape.StrokeWidth = 1; shape.StrokeGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
+        var xml = XElement.Parse(OfficeDrawingSvgExporter.ToSvg(new OfficeDrawing(500, 2000000).AddShape(shape, 0, 0)));
+        Assert.Contains(xml.Descendants(), element => element.Name.LocalName == "linearGradient");
+        Assert.DoesNotContain(xml.Descendants(), element => element.Name.LocalName == "image");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
