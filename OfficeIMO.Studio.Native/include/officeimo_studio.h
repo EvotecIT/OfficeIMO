@@ -67,9 +67,10 @@ void officeimo_document_close(officeimo_document document);
  * Document facts as JSON:
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
- *   "maxRenderPixels" }
+ *   "maxRenderPixels", "canMutatePages", "canExtractPages" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
- * image officeimo_document_render_page produces.
+ * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
+ * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
  * render scales apply to. The revision changes with every edit, undo and redo.
  */
@@ -99,6 +100,42 @@ int32_t officeimo_document_render_region(officeimo_document document, int32_t pa
 /* Rotates pages by a multiple of 90 degrees as one undoable change. */
 int32_t officeimo_document_rotate_pages(officeimo_document document, const int32_t *pages, int32_t count,
                                         int32_t degrees, officeimo_cancellation cancellation, char **error);
+
+/* Deletes pages as one undoable change. A document keeps at least one page. */
+int32_t officeimo_document_delete_pages(officeimo_document document, const int32_t *pages, int32_t count,
+                                        officeimo_cancellation cancellation, char **error);
+
+/* Duplicates pages as one undoable change; each copy follows its page. */
+int32_t officeimo_document_duplicate_pages(officeimo_document document, const int32_t *pages, int32_t count,
+                                           officeimo_cancellation cancellation, char **error);
+
+/* Puts the pages in a new order as one undoable change. order lists every current page number exactly once. */
+int32_t officeimo_document_reorder_pages(officeimo_document document, const int32_t *order, int32_t count,
+                                         officeimo_cancellation cancellation, char **error);
+
+/*
+ * Inserts a blank page of width by height points before page insert_before, or after the last page when insert_before
+ * is the page count + 1, as one undoable change. Each side is between 3 and 14,400 points.
+ */
+int32_t officeimo_document_insert_blank_page(officeimo_document document, int32_t insert_before, double width, double height,
+                                             officeimo_cancellation cancellation, char **error);
+
+/* Writes pages to a new PDF at path, a different file from the document's; the open document is unchanged. */
+int32_t officeimo_document_extract_pages(officeimo_document document, const int32_t *pages, int32_t count, const char *path,
+                                         officeimo_cancellation cancellation, char **error);
+
+/*
+ * Finds text, ignoring case, as JSON:
+ * { "abiVersion", "query", "revision", "hits": [ { "page", "occurrence", "text",
+ *   "bounds": { "x", "y", "width", "height" }, "lineBounds": [ { "x", "y", "width", "height" } ] } ] }
+ * Rectangles are in points of the page as displayed, from its top-left corner after rotation: the page's width and
+ * height, swapped for 90 and 270 degrees. lineBounds has one rectangle per line a hit spans; bounds is their union.
+ * Occurrences are numbered from 1 in document order. A document that restricts text extraction fails with
+ * OFFICEIMO_UNSUPPORTED.
+ */
+int32_t officeimo_document_search_json(officeimo_document document, const char *query, officeimo_cancellation cancellation,
+                                       char **json, char **error);
+
 int32_t officeimo_document_undo(officeimo_document document, officeimo_cancellation cancellation, char **error);
 int32_t officeimo_document_redo(officeimo_document document, officeimo_cancellation cancellation, char **error);
 

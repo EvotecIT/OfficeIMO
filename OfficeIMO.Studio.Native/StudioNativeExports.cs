@@ -119,6 +119,56 @@ internal static unsafe class StudioNativeExports {
         return WithDocument(document, error, cancellation, (target, token) => target.RotatePagesAsync(selected, degrees, token).GetAwaiter().GetResult());
     }
 
+    /// <summary>Deletes pages as one undoable change; a document keeps at least one page.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_delete_pages")]
+    internal static int DocumentDeletePages(nint document, int* pages, int count, nint cancellation, byte** error) {
+        if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
+        int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
+        return WithDocument(document, error, cancellation, (target, token) => target.DeletePagesAsync(selected, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Duplicates pages as one undoable change; each copy follows its page.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_duplicate_pages")]
+    internal static int DocumentDuplicatePages(nint document, int* pages, int count, nint cancellation, byte** error) {
+        if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
+        int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
+        return WithDocument(document, error, cancellation, (target, token) => target.DuplicatePagesAsync(selected, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Puts the pages in a new order as one undoable change; <paramref name="order"/> lists every current page once.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_reorder_pages")]
+    internal static int DocumentReorderPages(nint document, int* order, int count, nint cancellation, byte** error) {
+        if (order is null || count <= 0) return Fail(error, new ArgumentException("The new order must list every page."));
+        int[] pages = new ReadOnlySpan<int>(order, count).ToArray();
+        return WithDocument(document, error, cancellation, (target, token) => target.ReorderPagesAsync(pages, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Inserts a blank page of <paramref name="width"/> by <paramref name="height"/> points before a page.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_insert_blank_page")]
+    internal static int DocumentInsertBlankPage(nint document, int insertBefore, double width, double height, nint cancellation, byte** error) =>
+        WithDocument(document, error, cancellation, (target, token) => target.InsertBlankPageAsync(insertBefore, width, height, token).GetAwaiter().GetResult());
+
+    /// <summary>Writes pages to a new PDF at <paramref name="path"/>, leaving the open document unchanged.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_extract_pages")]
+    internal static int DocumentExtractPages(nint document, int* pages, int count, byte* path, nint cancellation, byte** error) {
+        if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
+        int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
+        string? destination = StudioNativeAbi.FromUtf8(path);
+        return WithDocument(document, error, cancellation, (target, token) => target.ExtractPagesAsync(selected, destination!, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Finds text, ignoring case, and returns the hits with their page rectangles as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_search_json")]
+    internal static int DocumentSearchJson(nint document, byte* query, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        string text = StudioNativeAbi.FromUtf8(query) ?? string.Empty;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeSearchResult result = target.SearchAsync(text, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeSearchResult));
+        });
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_undo")]
     internal static int DocumentUndo(nint document, nint cancellation, byte** error) =>
         WithDocument(document, error, cancellation, (target, token) => target.UndoAsync(token).GetAwaiter().GetResult());

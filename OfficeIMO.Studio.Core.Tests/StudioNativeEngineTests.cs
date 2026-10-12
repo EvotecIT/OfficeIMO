@@ -60,6 +60,131 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
     }
 
+    // Pages of distinct widths, so a page's width identifies it after an edit.
+    private string CreatePagesOfWidths(params double[] widths) {
+        string path = Path.Combine(_root, "widths.pdf");
+        PdfDocument.Create(document => {
+            foreach (double width in widths) document.Page(content => content.Size(width, 400));
+        }).Save(path);
+        return path;
+    }
+
+    private static async Task<double[]> WidthsAsync(StudioNativeDocument document) =>
+        (await document.GetInfoAsync(default)).Pages.Select(page => page.Width).ToArray();
+
+    [Fact]
+    public async Task Pages_are_deleted_duplicated_reordered_and_inserted_as_undoable_changes() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310, 320), null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanMutatePages);
+
+        await document.DeletePagesAsync([2], default);
+        Assert.Equal(new[] { 300D, 320D }, await WidthsAsync(document));
+        await document.UndoAsync(default);
+        Assert.Equal(new[] { 300D, 310D, 320D }, await WidthsAsync(document));
+
+        await document.DuplicatePagesAsync([1], default);
+        Assert.Equal(new[] { 300D, 300D, 310D, 320D }, await WidthsAsync(document));
+
+        await document.ReorderPagesAsync([4, 3, 1, 2], default);
+        Assert.Equal(new[] { 320D, 310D, 300D, 300D }, await WidthsAsync(document));
+
+        await document.InsertBlankPageAsync(5, 500, 600, default);
+        StudioNativeDocumentInfo info = await document.GetInfoAsync(default);
+        Assert.Equal((500D, 600D), (info.Pages[^1].Width, info.Pages[^1].Height));
+
+        // Each edit undoes on its own, back to the original pages.
+        for (int edit = 0; edit < 3; edit++) await document.UndoAsync(default);
+        Assert.Equal(new[] { 300D, 310D, 320D }, await WidthsAsync(document));
+    }
+
+    [Fact]
+    public async Task Page_edits_refuse_what_would_damage_the_document() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310), null, default);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => document.DeletePagesAsync([1, 2], default));
+        await Assert.ThrowsAsync<ArgumentException>(() => document.ReorderPagesAsync([1, 1], default));
+        await Assert.ThrowsAsync<ArgumentException>(() => document.ReorderPagesAsync([2], default));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => document.DuplicatePagesAsync([3], default));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => document.InsertBlankPageAsync(4, 300, 400, default));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => document.InsertBlankPageAsync(1, 0, 400, default));
+
+        Assert.False((await document.GetInfoAsync(default)).IsDirty);
+    }
+
+    [Fact]
+    public async Task Extracted_pages_form_a_new_document_and_leave_the_open_one_unchanged() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310, 320), null, default);
+        long revision = (await document.GetInfoAsync(default)).Revision;
+        string extracted = Path.Combine(_root, "extracted.pdf");
+
+        await document.ExtractPagesAsync([3, 1], extracted, default);
+
+        using StudioNativeDocument copy = await StudioNativeDocument.OpenAsync(extracted, null, default);
+        Assert.Equal(new[] { 300D, 320D }, await WidthsAsync(copy));
+        StudioNativeDocumentInfo info = await document.GetInfoAsync(default);
+        Assert.Equal(revision, info.Revision);
+        Assert.False(info.IsDirty);
+    }
+
+    [Fact]
+    public async Task Search_finds_text_with_rectangles_on_the_page_as_displayed() {
+        string path = Path.Combine(_root, "text.pdf");
+        PdfDocument.Create(document => {
+            foreach (string text in new[] { "Alpha needle here", "Nothing to see", "Another NEEDLE" })
+                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+        }).Save(path);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+
+        StudioNativeSearchResult result = await document.SearchAsync("  needle ", default);
+
+        Assert.Equal("needle", result.Query);
+        Assert.Equal(new[] { (1, 1), (3, 2) }, result.Hits.Select(hit => (hit.Page, hit.Occurrence)));
+        Assert.All(result.Hits, hit => {
+            Assert.True(hit.Bounds.Width > 0 && hit.Bounds.Height > 0);
+            Assert.InRange(hit.Bounds.X + hit.Bounds.Width, 0D, 400D);
+            Assert.InRange(hit.Bounds.Y + hit.Bounds.Height, 0D, 300D);
+            Assert.Single(hit.LineBounds);
+        });
+
+        // Rotating the page turns the rectangles with it, into the displayed page's space.
+        await document.RotatePagesAsync([1], 90, default);
+        StudioNativeSearchHit rotated = (await document.SearchAsync("needle", default)).Hits[0];
+        Assert.True(rotated.Bounds.Height > rotated.Bounds.Width);
+        Assert.InRange(rotated.Bounds.Y + rotated.Bounds.Height, 0D, 400D);
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_reorders_pages_and_returns_search_hits_as_json() {
+        string path = Path.Combine(_root, "text.pdf");
+        PdfDocument.Create(document => {
+            foreach (string text in new[] { "first page", "second needle" })
+                document.Page(page => page.Size(400, 300).Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(text)))));
+        }).Save(path);
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, int*, int, nint, byte**, int> reorder = &StudioNativeExports.DocumentReorderPages;
+        delegate* unmanaged<nint, byte*, nint, byte**, byte**, int> search = &StudioNativeExports.DocumentSearchJson;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+
+        nint document = 0; byte* error = null;
+        fixed (byte* location = Encoding.UTF8.GetBytes(path + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(location, null, 0, &document, &error));
+        try {
+            int* order = stackalloc int[] { 2, 1 };
+            Assert.Equal(StudioNativeAbi.Ok, reorder(document, order, 2, 0, &error));
+            Assert.Equal(StudioNativeAbi.InvalidArgument, reorder(document, order, 1, 0, &error));
+            free(error);
+
+            byte* json = null;
+            fixed (byte* query = Encoding.UTF8.GetBytes("needle\0")) Assert.Equal(StudioNativeAbi.Ok, search(document, query, 0, &json, &error));
+            using JsonDocument hits = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            free(json);
+            JsonElement hit = Assert.Single(hits.RootElement.GetProperty("hits").EnumerateArray());
+            Assert.Equal(1, hit.GetProperty("page").GetInt32());
+            Assert.True(hit.GetProperty("bounds").GetProperty("width").GetDouble() > 0);
+            Assert.Equal(1, hits.RootElement.GetProperty("abiVersion").GetInt32());
+        } finally { close(document); }
+    }
+
     [Fact]
     public async Task Page_sizes_are_the_rendered_size_at_the_page_user_unit() {
         string path = Path.Combine(_root, "user-unit.pdf");
