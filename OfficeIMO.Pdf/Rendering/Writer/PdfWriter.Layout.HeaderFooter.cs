@@ -207,6 +207,7 @@ internal static partial class PdfWriter {
     }
 
     private static string BuildHeaderFooterShapes(
+        RunningShapePaintCache paintCache,
         LayoutResult.Page page,
         PdfOptions options,
         int variantPageNumber,
@@ -215,6 +216,7 @@ internal static partial class PdfWriter {
         int documentPages) {
         var sb = new StringBuilder();
         AddHeaderFooterShapes(
+            paintCache,
             sb,
             page,
             options,
@@ -225,6 +227,7 @@ internal static partial class PdfWriter {
             documentPages,
             isHeader: true);
         AddHeaderFooterShapes(
+            paintCache,
             sb,
             page,
             options,
@@ -239,6 +242,7 @@ internal static partial class PdfWriter {
     }
 
     private static void AddHeaderFooterShapes(
+        RunningShapePaintCache paintCache,
         StringBuilder sb,
         LayoutResult.Page page,
         PdfOptions options,
@@ -271,12 +275,13 @@ internal static partial class PdfWriter {
                 (imagesWidth > 0D ? imagesWidth + HeaderFooterInlineGap : 0D) +
                 consumedWidth;
 
-            AddHeaderFooterShape(sb, page, options, shape, shapeX, isHeader);
+            AddHeaderFooterShape(paintCache, sb, page, options, shape, shapeX, isHeader);
             consumedWidths[shape.Align] = consumedWidth + shape.Width + HeaderFooterInlineGap;
         }
     }
 
     private static void AddHeaderFooterShape(
+        RunningShapePaintCache paintCache,
         StringBuilder sb,
         LayoutResult.Page page,
         PdfOptions options,
@@ -291,9 +296,13 @@ internal static partial class PdfWriter {
         double bottomY = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - block.Shape.Height
             : options.MarginBottom - options.FooterOffsetY;
-        if (TryGetHeaderFooterShapeBounds(block.Shape, x, bottomY, out double visibleX, out double visibleY, out double visibleWidth, out double visibleHeight)) {
-            ReportHeaderFooterBounds(options, source, "shape", visibleX, visibleY, visibleWidth, visibleHeight);
-        }
+        RunningShapePaint paint = paintCache.Get(headerFooterShape, block.Shape);
+        foreach (string message in paint.UnmeasuredMessages)
+            options.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
+                message.Replace("Running shape", source));
+        foreach (RunningPaintBounds bounds in paint.Bounds)
+            ReportHeaderFooterBounds(options, source, bounds.Kind,
+                x + bounds.X, bottomY + bounds.Y, bounds.Width, bounds.Height);
 
         DrawHeaderFooterShapeGeometryAt(sb, page, block.Shape, x, bottomY);
     }
@@ -302,46 +311,19 @@ internal static partial class PdfWriter {
         OfficeShape shape,
         double x,
         double bottomY,
+        PdfOptions? options,
+        string source,
         out double boundsX,
         out double boundsY,
         out double boundsWidth,
         out double boundsHeight) {
         boundsX = boundsY = boundsWidth = boundsHeight = 0D;
-        if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) {
-            return false;
-        }
-
-        ResolveHeaderFooterBaseGeometry(shape, out bool baseHasFill, out bool baseHasStroke);
+        if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return false;
         bool hasBounds = false;
-        if (baseHasFill || baseHasStroke) {
-            GetHeaderFooterShapeLayerBounds(
-                shape,
-                x,
-                bottomY,
-                baseHasStroke ? shape.StrokeWidth : 0D,
-                out double baseX,
-                out double baseY,
-                out double baseWidth,
-                out double baseHeight);
-            if (shape.ClipPath == null || TryIntersectHeaderFooterShapeClipBounds(
-                    shape,
-                    x,
-                    bottomY,
-                    ref baseX,
-                    ref baseY,
-                    ref baseWidth,
-                    ref baseHeight)) {
-                IncludeShapeBounds(
-                    baseX,
-                    baseY,
-                    baseWidth,
-                    baseHeight,
-                    ref hasBounds,
-                    ref boundsX,
-                    ref boundsY,
-                    ref boundsWidth,
-                    ref boundsHeight);
-            }
+        if (TryGetShapePaintBounds(shape, x, bottomY, options, source, "shape",
+                out double baseX, out double baseY, out double baseWidth, out double baseHeight)) {
+            IncludeShapeBounds(baseX, baseY, baseWidth, baseHeight,
+                ref hasBounds, ref boundsX, ref boundsY, ref boundsWidth, ref boundsHeight);
         }
 
         OfficeShadow? shadow = shape.Shadow;
@@ -390,61 +372,6 @@ internal static partial class PdfWriter {
         return hasBounds;
     }
 
-    private static bool TryIntersectHeaderFooterShapeClipBounds(
-        OfficeShape shape,
-        double x,
-        double bottomY,
-        ref double boundsX,
-        ref double boundsY,
-        ref double boundsWidth,
-        ref double boundsHeight) {
-        OfficeClipPath clipPath = shape.ClipPath!;
-        double clipX;
-        double clipY;
-        double clipWidth;
-        double clipHeight;
-        if (!shape.Transform.HasValue) {
-            clipX = x;
-            clipY = bottomY + shape.Height - clipPath.Height;
-            clipWidth = clipPath.Width;
-            clipHeight = clipPath.Height;
-        } else {
-            (double left, double top, double right, double bottom) = shape.Transform.Value.TransformRectangleBounds(
-                0D,
-                0D,
-                clipPath.Width,
-                clipPath.Height);
-            clipX = x + left;
-            clipY = bottomY + shape.Height - bottom;
-            clipWidth = right - left;
-            clipHeight = bottom - top;
-        }
-
-        double intersectionX = System.Math.Max(boundsX, clipX);
-        double intersectionY = System.Math.Max(boundsY, clipY);
-        double intersectionRight = System.Math.Min(boundsX + boundsWidth, clipX + clipWidth);
-        double intersectionTop = System.Math.Min(boundsY + boundsHeight, clipY + clipHeight);
-        if (intersectionRight <= intersectionX || intersectionTop <= intersectionY) {
-            return false;
-        }
-
-        boundsX = intersectionX;
-        boundsY = intersectionY;
-        boundsWidth = intersectionRight - intersectionX;
-        boundsHeight = intersectionTop - intersectionY;
-        return true;
-    }
-
-    private static void ResolveHeaderFooterBaseGeometry(OfficeShape shape, out bool hasFill, out bool hasStroke) {
-        hasFill = shape.Kind != OfficeShapeKind.Line
-            && (shape.FillOpacity ?? 1D) > 0D
-            && ((shape.FillColor.HasValue && shape.FillColor.Value.A > 0) || shape.FillGradient != null || shape.FillRadialGradient != null);
-        hasStroke = shape.StrokeWidth > 0D
-            && (shape.StrokeOpacity ?? 1D) > 0D
-            && shape.StrokeColor.HasValue
-            && shape.StrokeColor.Value.A > 0;
-    }
-
     private static void IncludeShapeBounds(
         double x,
         double y,
@@ -481,7 +408,8 @@ internal static partial class PdfWriter {
         out double boundsY,
         out double boundsWidth,
         out double boundsHeight) {
-        double strokeExpansionFactor = UsesPdfMiterJoinEnvelope(shape) ? 10D : 1D;
+        double strokeExpansionFactor = UsesPdfMiterJoinEnvelope(shape)
+            ? (shape.Transform.HasValue || RequiresExactStrokeWriter(shape) ? shape.StrokeMiterLimit : 10D) : 1D;
         if (!shape.Transform.HasValue) {
             double strokeExpansion = strokeWidth * 0.5D * strokeExpansionFactor;
             boundsX = x - strokeExpansion;
@@ -563,11 +491,8 @@ internal static partial class PdfWriter {
     }
 
     private static string? EnsureHeaderFooterOpacityState(LayoutResult.Page page, OfficeShape shape) {
-        bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeShapeKind.Line;
-        bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
-        double fillOpacity = hasFill ? shape.FillOpacity ?? 1D : 1D;
-        double strokeOpacity = hasStroke ? shape.StrokeOpacity ?? 1D : 1D;
-        return EnsureHeaderFooterGraphicsState(page, fillOpacity, strokeOpacity);
+        var opacity = ResolveShapePaintOpacity(shape);
+        return EnsureHeaderFooterGraphicsState(page, opacity.Fill, opacity.Stroke);
     }
 
     private static void DrawHeaderFooterShapeShadowAt(StringBuilder sb, LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY) {
@@ -638,6 +563,7 @@ internal static partial class PdfWriter {
             DrawHeaderFooterShapeGeometryAt(sb, page, fill, xShape, bottomY);
             OfficeShape? stroke = CreateGradientStrokeShape(shape);
             if (stroke != null) DrawHeaderFooterShapeGeometryAt(sb, page, stroke, xShape, bottomY);
+            DrawHeaderFooterShapeMarkersAt(sb, page, shape, xShape, bottomY);
             return;
         }
 
@@ -693,6 +619,7 @@ internal static partial class PdfWriter {
             new ContentStreamBuilder(sb)
                 .RestoreState();
         }
+        DrawHeaderFooterShapeMarkersAt(sb, page, shape, xShape, bottomY);
     }
 
 }

@@ -13,6 +13,9 @@ internal readonly partial struct OfficeTextInkClip {
         this = default; FilledContours = contours; FillRule = fillRule;
     }
 
+    internal static OfficeTextInkClip FromFilledContours(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) =>
+        new OfficeTextInkClip(contours, fillRule);
+
     internal static bool TryCreatePath(OfficeClipPath path, OfficeTransform transform,
         CancellationToken cancellationToken, out OfficeTextInkClip clip) {
         if (TryCreateConvexPath(path, transform, cancellationToken, out clip)) return true;

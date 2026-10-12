@@ -43,7 +43,7 @@ public static partial class WordPdfConverterExtensions {
         double? fontSize = visible.Min(paragraph => ResolveNativeJoinedCellFontSize(paragraph, defaults, tableStyle));
         double naturalHeight = visible.Max(paragraph => ResolveNativeParagraphSingleLineHeight(paragraph, defaults,
             GetNativeParagraphStyleDefaults(paragraph), tableStyle.RunStyle, fontMap));
-        NativeLineSpacing spacing = ResolveNativeParagraphLineSpacing(first, GetNativeParagraphStyleDefaults(first), defaults, tableStyle.LineSpacing);
+        NativeLineSpacing spacing = ResolveNativeParagraphLineSpacing(first, GetNativeParagraphStyleDefaults(first), defaults, tableStyle);
         if (tableStyle.UseConfiguredTypography && !spacing.Value.HasValue) return (fontSize, null, null);
         double? lineHeight = spacing.Resolve(fontSize ?? defaults.FontSize, naturalHeight) ?? tableStyle.ParagraphLineHeight;
         return (fontSize, lineHeight, spacing.ToPdfLineSpacing(naturalHeight));

@@ -23,6 +23,9 @@ public sealed class PdfListStyle {
     // PDF lists continue to align within their reserved marker column.
     internal bool MarkerAlignsAtIndent { get; set; }
 
+    // Format converters can supply marker shaping separately from body text.
+    internal OfficeIMO.Drawing.OfficeTextFeatureSettings? MarkerFeatureSettings { get; set; }
+
     /// <summary>List font size in points. When null the writer uses the current default font size.</summary>
     public double? FontSize {
         get => _fontSize;
@@ -137,6 +140,8 @@ public sealed class PdfListStyle {
     public bool MarkerItalic { get; set; }
     /// <summary>When true, the list moves as a unit instead of splitting across pages when it fits in the page frame.</summary>
     public bool KeepTogether { get; set; }
+    /// <summary>Imported document policy for a kept list paragraph taller than a complete continuation frame.</summary>
+    internal PdfKeepTogetherOverflowBehavior KeepTogetherOverflow { get; set; }
     /// <summary>When true, the list moves to the next page when it would otherwise be separated from the following flow block.</summary>
     public bool KeepWithNext { get; set; }
 
@@ -150,6 +155,7 @@ public sealed class PdfListStyle {
             MarkerGap = MarkerGap,
             MarkerWidth = MarkerWidth,
             MarkerAlignsAtIndent = MarkerAlignsAtIndent,
+            MarkerFeatureSettings = MarkerFeatureSettings,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             ItemSpacing = ItemSpacing,
@@ -162,6 +168,7 @@ public sealed class PdfListStyle {
             MarkerBold = MarkerBold,
             MarkerItalic = MarkerItalic,
             KeepTogether = KeepTogether,
+            KeepTogetherOverflow = KeepTogetherOverflow,
             KeepWithNext = KeepWithNext
         };
     }

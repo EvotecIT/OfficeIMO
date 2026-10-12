@@ -104,7 +104,10 @@ namespace OfficeIMO.Word.Pdf {
             return columnCount;
         }
 
-        private static IEnumerable<(WordTableCell Cell, int Column, int ColumnSpan)> EnumerateNativeTableCells(TableLayout layout) {
+        private static IEnumerable<(WordTableCell Cell, int Column, int ColumnSpan)> EnumerateNativeTableCells(TableLayout layout) =>
+            EnumerateNativeTableCellPositions(layout).Select(cell => (cell.Cell, cell.Column, cell.ColumnSpan));
+
+        private static IEnumerable<(WordTableCell Cell, int Row, int Column, int ColumnSpan)> EnumerateNativeTableCellPositions(TableLayout layout) {
             for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
                 int logicalColumn = GetNativeTableRowStartColumn(layout, rowIndex);
@@ -119,7 +122,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    yield return (cell, logicalColumn, columnSpan);
+                    yield return (cell, rowIndex, logicalColumn, columnSpan);
                     logicalColumn += columnSpan;
                 }
             }
@@ -307,6 +310,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults,
                     tableStyleDefaults,
                     nativeFontMap);
+                if (ShouldSuppressNativeContextualSpacingBefore(paragraph)) spacingBefore = 0D;
                 if (pendingSpacingAfter.HasValue) {
                     spacingBefore = Math.Max(0D, spacingBefore - pendingSpacingAfter.Value);
                 }
@@ -316,6 +320,7 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults,
                     tableStyleDefaults,
                     nativeFontMap);
+                double declaredSpacingAfter = spacingAfter;
                 if (ShouldSuppressNativeContextualSpacingAfter(finalParagraph, GetNextNativeRenderableCellParagraph(cellElements, paragraphRunsByElement, lastIndex))) {
                     spacingAfter = 0D;
                 }
@@ -323,7 +328,7 @@ namespace OfficeIMO.Word.Pdf {
                 NativeParagraphStyleDefaults paragraphStyleDefaults = GetNativeParagraphStyleDefaults(paragraph);
                 NativeParagraphPaginationDefaults pagination = ResolveNativeCellParagraphPagination(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults);
                 double naturalLineHeight = ResolveNativeParagraphSingleLineHeight(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults.RunStyle, nativeFontMap);
-                NativeLineSpacing nativeLineSpacing = ResolveNativeParagraphLineSpacing(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults.LineSpacing);
+                NativeLineSpacing nativeLineSpacing = ResolveNativeParagraphLineSpacing(paragraph, paragraphStyleDefaults, nativeDefaults, tableStyleDefaults);
                 double? lineHeight = nativeLineSpacing.Resolve(
                     ResolveNativeTableCellParagraphEffectiveFontSize(paragraph, nativeDefaults, paragraphStyleDefaults, tableStyleDefaults), naturalLineHeight)
                     ?? tableStyleDefaults.ParagraphLineHeight;
@@ -360,7 +365,7 @@ namespace OfficeIMO.Word.Pdf {
                     tabStops,
                     paragraphFontSize,
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false));
-                pendingSpacingAfter = spacingAfter;
+                pendingSpacingAfter = declaredSpacingAfter;
                 i = lastIndex;
             }
 
@@ -495,7 +500,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double spacingBefore = paragraph.LineSpacingBeforePoints ??
+            double spacingBefore = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).Before ?? paragraph.LineSpacingBeforePoints ??
                 GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingBefore ??
                 tableStyleDefaults.ParagraphSpacingBefore ??
@@ -521,7 +526,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double spacingAfter = paragraph.LineSpacingAfterPoints ??
+            double spacingAfter = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).After ?? paragraph.LineSpacingAfterPoints ??
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingAfter ??
                 tableStyleDefaults.ParagraphSpacingAfter ??
@@ -609,6 +614,9 @@ namespace OfficeIMO.Word.Pdf {
                     nativeDefaults, nativeFontMap, tableStyleDefaults.RunStyle, tableStyleDefaults.UseConfiguredTypography));
             }
 
+            if (NeedsNativeParagraphMarkStrut(result, WordDocumentTraversal.GetListInfo(paragraph)?.MarkerVisible == true)) {
+                result.Add(CreateNativeParagraphMarkStrut(paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap));
+            }
             return result;
         }
 
@@ -706,12 +714,13 @@ namespace OfficeIMO.Word.Pdf {
             left.Baseline == right.Baseline &&
             left.HorizontalTextScaling == right.HorizontalTextScaling &&
             left.CharacterSpacing == right.CharacterSpacing &&
+            left.FeatureSettings.Equals(right.FeatureSettings) &&
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
 
         private static PdfCore.PdfTextRun CreateNativeCellTextRun(string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults = default, NativeDocumentDefaults? nativeDefaults = null, NativeFontMap? nativeFontMap = null) {
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            return style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
+            return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
                 underline: style.Underline,
@@ -738,7 +747,7 @@ namespace OfficeIMO.Word.Pdf {
 
             string? contents = string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;
             NativeResolvedTextStyle style = ResolveNativeTextRunStyle(paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
-            return style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
+            return style.ApplyTo(new PdfCore.PdfTextRun(
                 ApplyNativeTextTransform(text, paragraph, tableRunStyleDefaults: tableStyleDefaults.RunStyle, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap),
                 bold: style.Bold,
                 underline: style.Underline || linkUri != null || destinationName != null,

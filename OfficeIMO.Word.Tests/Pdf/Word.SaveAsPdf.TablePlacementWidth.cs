@@ -309,7 +309,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Style_Preferred_Width() {
+    public void SaveAsPdf_OfficeIMOEngine_Automatic_Frame_Preserves_Cell_Widths_With_A_Style_Width() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedPreferredWidth.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableStyleRenderedPreferredWidth.pdf");
 
@@ -350,8 +350,8 @@ public partial class Word {
 
         double defaultGap = defaultRight.BoundingBox.Left - defaultLeft.BoundingBox.Left;
         double styledGap = styledRight.BoundingBox.Left - styledLeft.BoundingBox.Left;
-        Assert.True(styledGap < defaultGap - 25D,
-            $"Expected table style preferred width to narrow the styled native table. Default gap: {defaultGap:0.##}; styled gap: {styledGap:0.##}.");
+        Assert.InRange(defaultGap, 71.85D, 72.15D);
+        Assert.InRange(styledGap, 71.85D, 72.15D);
     }
 
     [Fact]

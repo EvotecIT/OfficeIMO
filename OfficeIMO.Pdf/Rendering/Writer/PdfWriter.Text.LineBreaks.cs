@@ -37,7 +37,10 @@ internal static partial class PdfWriter {
         Func<string, double> measure,
         double firstMaxWidth,
         double subsequentMaxWidth,
-        bool allowFinalOverflow = false) {
+        bool allowFinalOverflow = false,
+        Func<string, double>? measureFirstChunk = null,
+        bool appendHyphen = false,
+        bool allowSingleChunk = false) {
         if (breakpoints.Length == 0) {
             return null;
         }
@@ -52,12 +55,14 @@ internal static partial class PdfWriter {
 
             foreach (int candidate in EnumerateTokenBreakCandidates(breakpoints, position, token.Length)) {
                 string chunkText = token.Substring(position, candidate - position);
+                if (appendHyphen && candidate < token.Length) chunkText += "-";
                 if (chunkText.Length == 0) {
                     continue;
                 }
 
                 double chunkWidth = measure(chunkText);
-                if (chunkWidth <= currentMaxWidth) {
+                double fitWidth = chunks.Count == 0 && measureFirstChunk != null ? measureFirstChunk(chunkText) : chunkWidth;
+                if (fitWidth <= currentMaxWidth) {
                     selectedBreak = candidate;
                     selectedText = chunkText;
                     selectedWidth = chunkWidth;
@@ -78,7 +83,7 @@ internal static partial class PdfWriter {
             position = selectedBreak;
         }
 
-        return chunks.Count > 1 ? chunks : null;
+        return chunks.Count > 1 || allowSingleChunk ? chunks : null;
     }
 
     private static int[] GetValidSoftLineBreakpoints(string token, PdfOptions? options) {

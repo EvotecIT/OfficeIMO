@@ -48,4 +48,23 @@ public sealed partial class PdfOptions {
             else FooterContent = content;
         }
     }
+
+    internal void AllowRunningContentTextFallback(bool isHeader) {
+        if (isHeader) {
+            HeaderContent = HeaderContent?.WithTextFallback();
+            FirstPageHeaderContent = FirstPageHeaderContent?.WithTextFallback();
+            EvenPageHeaderContent = EvenPageHeaderContent?.WithTextFallback();
+        } else {
+            FooterContent = FooterContent?.WithTextFallback();
+            FirstPageFooterContent = FirstPageFooterContent?.WithTextFallback();
+            EvenPageFooterContent = EvenPageFooterContent?.WithTextFallback();
+        }
+    }
+
+    internal void ClearRunningContentForPage(int variantPageNumber, bool isHeader) {
+        PdfRunningContentVariant variant = variantPageNumber == 1 && DifferentFirstPageHeaderFooter
+            ? PdfRunningContentVariant.FirstPage
+            : IsEvenPageVariant(variantPageNumber) ? PdfRunningContentVariant.EvenPages : PdfRunningContentVariant.Default;
+        SetRunningContent(null, isHeader, variant);
+    }
 }

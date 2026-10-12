@@ -123,6 +123,7 @@ internal static partial class PdfWriter {
             // The prepared snapshot already includes the inset. Deferred slices
             // and nested measurements must not add it a second time.
             prepared.CellVerticalPaddingFromBorderInterior = false;
+            prepared.CellTextClipIncludesVerticalPadding = true;
         }
         return prepared;
 

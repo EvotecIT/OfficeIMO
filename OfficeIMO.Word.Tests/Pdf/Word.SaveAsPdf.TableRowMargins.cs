@@ -8,6 +8,28 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, 129D)]
+    [InlineData(true, 136D)]
+    public void SaveAsPdf_ZeroSpacingRowsShareMarginsAndRetainTheirHeight(bool minimum, double advance) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateBorderFrameControl(document, 2, 2, 0);
+        table.StyleDetails!.CellSpacing = 0;
+        foreach (WordTableRow row in table.Rows) {
+            if (minimum) row.MinimumHeight = 2400;
+            else row.Height = 2400;
+            row.Cells[0].MarginTopWidth = 120;
+            row.Cells[1].MarginBottomWidth = 180;
+        }
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(BorderFramePdfOptions()));
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        double first = Assert.Single(words, word => word.Text == "Frame0").Letters[0].StartBaseLine.Y;
+        double neighbor = Assert.Single(words, word => word.Text == "Frame1").Letters[0].StartBaseLine.Y;
+        double next = Assert.Single(words, word => word.Text == "Frame2").Letters[0].StartBaseLine.Y;
+        Assert.Equal(first, neighbor, 3);
+        Assert.Equal(advance, first - next, 3);
+    }
+
+    [Theory]
     [InlineData(false, WordTableVerticalAlignment.Center)]
     [InlineData(true, WordTableVerticalAlignment.Center)]
     [InlineData(false, WordTableVerticalAlignment.Bottom)]
@@ -37,11 +59,11 @@ public partial class Word {
 
     [Theory]
     [InlineData(false, 0, 120D)]
-    [InlineData(true, 0, 120D)]
+    [InlineData(true, 0, 120.5D)]
     [InlineData(false, 1, 129D)]
-    [InlineData(true, 1, 135D)]
+    [InlineData(true, 1, 135.5D)]
     [InlineData(false, 2, 129D)]
-    [InlineData(true, 2, 135D)]
+    [InlineData(true, 2, 135.5D)]
     public void SaveAsPdf_UnspacedTableRowHeightIncludesEffectiveMargins(bool minimum, int marginMode, double advance) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 2, 2, 0);

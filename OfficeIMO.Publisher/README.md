@@ -46,6 +46,15 @@ Dynamic field markers and cached
 display text remain unevaluated. `Images` retains original embedded payloads;
 `GetBytes()` returns an independent copy.
 
+Native transparent-color keys, brightness/contrast controls, grayscale and
+two-color picture modes produce a processed PNG in the page scene. Original
+assets remain in `Images`. The read report identifies the managed color-space
+and threshold approximations; recoloring and extended color controls remain
+unassessed. Picture effects require bounded raster decoding. `MaximumRasterPixels`
+limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulative
+decode/filter work and inspected GIF, WebP or icon frame pixels across picture
+references.
+
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
 column settings and wrap-object references. Linked stories follow their native
 links across frames and pages. Columns and rectangular wrap exclusions use the
@@ -55,11 +64,20 @@ including paragraph separators. These ranges describe recovered layout, rather
 than stored native break positions. A null range means placement is unresolved;
 `HasOverflow` identifies remaining story content after the final frame.
 
+Frame `X`, `Y`, `Width` and `Height` describe the unrotated rectangle in points.
+`PageTransform` maps frame-local points into the page, including the frame's own
+rotation/reflection and enclosing group transforms, including non-uniform scale. Use it when placing an
+annotation or inspecting the visible frame corners.
+
 ```csharp
 foreach (var page in publication.Pages)
     foreach (var frame in page.TextFrames)
         Console.WriteLine($"Frame {frame.Id}, story {frame.StoryId}, " +
             $"range {frame.TextStart}+{frame.TextLength}, overflow {frame.HasOverflow}");
+
+var firstFrame = publication.Pages[0].TextFrames[0];
+var corner = firstFrame.PageTransform.TransformPoint(new OfficeIMO.Drawing.OfficePoint(0, 0));
+Console.WriteLine($"Transformed top-left: {corner.X}, {corner.Y}");
 ```
 
 ## Export a page as SVG
@@ -102,7 +120,10 @@ snapshotted for each operation. Cancellation applies to input reading, native
 records, and page projection. Exceeding a configured limit rejects the operation
 instead of returning a truncated document. Item and text limits also bound
 projected content, including repeated master use. `MaxItems` bounds image-store
-entries even when their payload cannot be recovered. `MaxInputBytes` also bounds
+entries even when their payload cannot be recovered and cumulative projected
+gradient stops, including focus expansion. Native linear fills preserve colors,
+angle, focus and transparency in the shared drawing model; inspect the conversion
+report for unsupported shading, anchors and opacity ratios. `MaxInputBytes` also bounds
 cumulative encoded image-payload processing, including repeated delayed
 references; delayed decoding results are reused within the operation.
 `MaxTextCharacters` also bounds cumulative text measured while continuing stories;

@@ -81,6 +81,19 @@ internal static class OfficePathGeometry {
         }
         return hasSegment && !Zero(endInward);
     }
+    /// <summary>Gets endpoint tangents from the canonical first and last eligible open contours.</summary>
+    internal static bool TryOpenMarkerEndpoints(IReadOnlyList<OfficePathCommand> commands, out OfficePoint start, out OfficePoint startInward, out OfficePoint end, out OfficePoint endInward) {
+        start = end = startInward = endInward = default;
+        bool found = false;
+        foreach (OfficePathContour contour in OfficePathContour.Split(commands)) {
+            if (contour.IsClosed || !TryOpenEndpoints(contour.Commands,
+                    out var first, out var inwardFirst, out var last, out var inwardLast)) continue;
+            if (!found) { start = first; startInward = inwardFirst; }
+            end = last; endInward = inwardLast; found = true;
+        }
+        return found;
+    }
+
     private static OfficePoint Difference(OfficePoint a, OfficePoint b) => new OfficePoint(a.X - b.X, a.Y - b.Y);
     private static bool Zero(OfficePoint p) => p.X == 0 && p.Y == 0;
 }

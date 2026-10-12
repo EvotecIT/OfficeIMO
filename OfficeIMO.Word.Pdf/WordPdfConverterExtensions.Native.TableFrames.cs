@@ -6,7 +6,8 @@ namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private static void ApplyNativeTableBorderFrame(WordTable table, TableLayout layout,
             PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
-            if (style.CellSpacing <= 0D || style.Position != null || !style.ConsumesVerticalFlow) return;
+            if (!UsesNativeSeparateTableCellBorders(table, style, defaults) ||
+                style.Position != null || !style.ConsumesVerticalFlow) return;
             W.TableBorders? authored = table._tableProperties?.TableBorders;
             W.TableBorders? borders = authored?.HasChildren == true
                 ? MergeNativeTableBorders(defaults.Borders, authored) : defaults.Borders;
@@ -26,27 +27,144 @@ namespace OfficeIMO.Word.Pdf {
                 foreach (PdfCore.PdfCellBorder cellBorder in style.CellBorders.Values) cellBorder.PaintInsideFrame = true;
             double sourceSpacing = style.CellSpacing;
             style.CellSpacing = 2D * sourceSpacing;
+            style.CompressFixedColumnsAboveMinimums = sourceSpacing > 0D;
             if (style.PreferredWidth.HasValue)
-                style.PreferredWidth += Math.Max(0, layout.ColumnWidths.Length - 1) * sourceSpacing;
+                style.PreferredWidth = style.AutoFitColumnPreferredWidthPoints != null
+                    ? Math.Max(.001D, style.PreferredWidth.Value - 2D * style.CellSpacing)
+                    : style.PreferredWidth.Value + Math.Max(0, layout.ColumnWidths.Length - 1) * sourceSpacing;
             style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns;
             style.CellVerticalPaddingFromBorderInterior = true;
             style.PreservePartialCellLines = true;
             // The independent perimeter supplies the source continuation inset.
             style.PageContinuationSpacingBefore = 0D;
-            double horizontalInset = 0D;
-            if (style.CellBorders != null) {
-                foreach (var entry in style.CellBorders.Where(entry => entry.Key.Row == 0)) {
-                    horizontalInset = Math.Max(horizontalInset,
-                        Math.Max(GetNativeFrameSide(entry.Value, top: null, right: false)?.PaintThickness ?? 0D,
-                            GetNativeFrameSide(entry.Value, top: null, right: true)?.PaintThickness ?? 0D) / 2D);
-                }
-            }
+            double horizontalInset = layout.Rows.Count == 0 ? 0D : GetNativeTableCellBorderInset(style, 0,
+                GetNativeTableRowStartColumn(layout, 0), right: false);
             style.BorderFrame = new PdfCore.PdfTableBorderFrame {
                 Spacing = style.CellSpacing, Border = border, HorizontalInset = horizontalInset,
                 Background = table._tableProperties?.GetFirstChild<W.Shading>() is { } shading
                     ? ParseNativeColor(shading.Fill?.Value) : defaults.CellFill
             };
             ApplyNativeFramedRowHeights(table, layout, style, sourceSpacing, border.TopBorder?.PaintThickness ?? 0D);
+        }
+
+        /// <summary>Fixed cells retain a one-point text frame after effective margins and border paint.</summary>
+        private static void ApplyNativeFixedTableMinimumWidths(TableLayout layout, PdfCore.PdfTableStyle style) {
+            if (style.AutoFitColumns) return;
+            var minimums = style.ColumnMinWidthPoints == null
+                ? new List<double?>() : new List<double?>(style.ColumnMinWidthPoints);
+            while (minimums.Count < layout.ColumnWidths.Length) minimums.Add(null);
+            var spanningMinimums = new List<(int Column, int Span, double Width)>();
+            for (int row = 0; row < layout.Rows.Count; row++) {
+                int column = GetNativeTableRowStartColumn(layout, row);
+                foreach (WordTableCell cell in layout.Rows[row]) {
+                    if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                    int span = GetNativeCellColumnSpan(cell);
+                    if (!IsNativeVerticalMergeContinuation(cell)) {
+                        double width = 1D + GetNativeTableCellHorizontalMargin(style, row, column, right: false) +
+                            GetNativeTableCellHorizontalMargin(style, row, column, right: true) +
+                            (style.BorderFrame?.Border == null ? 0D : 2D * (
+                                GetNativeTableCellBorderInset(style, row, column, right: false) +
+                                GetNativeTableCellBorderInset(style, row, column, right: true)));
+                        double minimum = width - Math.Max(0, span - 1) * style.CellSpacing;
+                        if (minimum > 0D) {
+                            if (span == 1 && column < minimums.Count)
+                                minimums[column] = Math.Max(minimums[column] ?? 0D, minimum);
+                            else
+                                spanningMinimums.Add((column, span, minimum));
+                        }
+                    }
+                    column += span;
+                }
+            }
+            foreach (var constraint in spanningMinimums)
+                ApplyNativeSpanMinimum(layout, minimums, constraint.Column, constraint.Span, constraint.Width);
+            style.ColumnMinWidthPoints = minimums;
+            if (style.AllowWidthBeyondFrame && style.MaxWidth.HasValue) {
+                double minimumWidth = minimums.Sum(width => width ?? 0D) +
+                    Math.Max(0, layout.ColumnWidths.Length - 1) * style.CellSpacing;
+                style.MaxWidth = Math.Max(minimumWidth, style.MaxWidth.Value -
+                    (style.BorderFrame == null ? 0D : 2D * style.CellSpacing));
+            }
+        }
+
+        /// <summary>Zero absolute spacing measures horizontal margins from the border center after reserving the full cell minimum.</summary>
+        private static void ApplyNativeZeroSpacingCellMargins(TableLayout layout, PdfCore.PdfTableStyle style) {
+            if (style.BorderFrame?.Border == null || style.CellSpacing != 0D) return;
+            PdfCore.PdfCellBorder perimeter = style.BorderFrame.Border;
+            int columns = GetNativeTableColumnCount(layout);
+            for (int row = 0; row < layout.Rows.Count; row++) {
+                int column = GetNativeTableRowStartColumn(layout, row);
+                foreach (WordTableCell cell in layout.Rows[row]) {
+                    if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                    int span = GetNativeCellColumnSpan(cell);
+                    if (!IsNativeVerticalMergeContinuation(cell)) {
+                        double left = GetNativeTableCellHorizontalMargin(style, row, column, right: false);
+                        double right = GetNativeTableCellHorizontalMargin(style, row, column, right: true);
+                        double leftInset = GetNativeTableCellBorderInset(style, row, column, right: false);
+                        double rightInset = GetNativeTableCellBorderInset(style, row, column, right: true);
+                        double outerLeft = column == 0
+                            ? (GetNativeFrameSide(perimeter, top: null)?.PaintThickness ?? 0D) / 2D : 0D;
+                        double outerRight = column + span == columns
+                            ? (GetNativeFrameSide(perimeter, top: null, right: true)?.PaintThickness ?? 0D) / 2D : 0D;
+                        if (leftInset > 0D || rightInset > 0D || outerLeft > 0D || outerRight > 0D) {
+                            style.CellPaddings ??= new();
+                            style.CellPaddings.TryGetValue((row, column), out PdfCore.PdfCellPadding? existing);
+                            style.CellPaddings[(row, column)] = new PdfCore.PdfCellPadding {
+                                Left = Math.Max(Math.Max(0D, left - leftInset), outerLeft - 2D * leftInset),
+                                Right = Math.Max(Math.Max(0D, right - rightInset), outerRight - 2D * rightInset),
+                                Top = existing?.Top, Bottom = existing?.Bottom
+                            };
+                        }
+                    }
+                    column += span;
+                }
+            }
+        }
+
+        /// <summary>Fits a merged minimum to the source proportions while retaining single-cell minimums.</summary>
+        private static void ApplyNativeSpanMinimum(TableLayout layout, List<double?> minimums,
+            int start, int span, double requiredWidth) {
+            int end = Math.Min(minimums.Count, start + span);
+            double currentWidth = 0D;
+            for (int column = start; column < end; column++) currentWidth += minimums[column] ?? 0D;
+            if (currentWidth >= requiredWidth) return;
+            var weights = new double[end - start];
+            double preferredWidth = 0D;
+            for (int column = start; column < end; column++)
+                preferredWidth += Math.Max(layout.ColumnWidths[column], minimums[column] ?? 0D);
+            bool growsBeyondPreferences = requiredWidth > preferredWidth;
+            for (int column = start; column < end; column++) {
+                double preferred = layout.ColumnWidths[column] > 0F ? layout.ColumnWidths[column] : 1D;
+                // Once the complete span outgrows its feasible preferences,
+                // minimum frames also participate in proportional growth.
+                weights[column - start] = growsBeyondPreferences
+                    ? Math.Max(preferred, minimums[column] ?? 0D) + (minimums[column] ?? 0D)
+                    : preferred;
+            }
+            var locked = new bool[end - start];
+            double remaining = requiredWidth;
+            while (true) {
+                double weight = 0D;
+                for (int column = start; column < end; column++)
+                    if (!locked[column - start]) weight += weights[column - start];
+                if (weight <= 0D) return;
+                double scale = remaining / weight;
+                bool lockedMinimum = false;
+                for (int column = start; column < end; column++) {
+                    if (locked[column - start]) continue;
+                    double candidate = scale * weights[column - start];
+                    if (candidate < (minimums[column] ?? 0D)) {
+                        locked[column - start] = true;
+                        remaining -= minimums[column]!.Value;
+                        lockedMinimum = true;
+                    }
+                }
+                if (lockedMinimum) continue;
+                for (int column = start; column < end; column++)
+                    if (!locked[column - start])
+                        minimums[column] = scale * weights[column - start];
+                return;
+            }
         }
 
         /// <summary>Translates Word's row constraints into cell-box heights without counting spacing twice.</summary>
@@ -59,10 +177,12 @@ namespace OfficeIMO.Word.Pdf {
             while (fixedHeights.Count < sourceRows.Count) fixedHeights.Add(null);
             bool hasMinimum = false, hasFixed = false;
             for (int rowIndex = 0; rowIndex < sourceRows.Count; rowIndex++) {
+                double topMargin = GetNativeTableRowMargin(layout, style, rowIndex, top: true);
+                double bottomMargin = GetNativeTableRowMargin(layout, style, rowIndex, top: false);
+                ApplyNativeRowVerticalMargins(layout, style, rowIndex, topMargin, bottomMargin);
                 W.TableRowHeight? height = sourceRows[rowIndex]._tableRow.TableRowProperties?.GetFirstChild<W.TableRowHeight>();
                 if (height?.Val?.Value is not > 0 || height.HeightType?.Value == W.HeightRuleValues.Auto) continue;
                 double top = 0D, bottom = 0D;
-                double bottomMargin = GetNativeTableRowMargin(layout, style, rowIndex, top: false);
                 if (style.CellBorders != null) {
                     foreach (var entry in style.CellBorders.Where(entry => entry.Key.Row == rowIndex)) {
                         top = Math.Max(top, GetNativeFrameSide(entry.Value, top: true)?.PaintThickness ?? 0D);
@@ -78,7 +198,7 @@ namespace OfficeIMO.Word.Pdf {
                     fixedHeights[rowIndex] = Math.Max(0D, points - spacing + borderHeight + bottomMargin);
                     hasFixed = true;
                 } else {
-                    minimums[rowIndex] = points + top + bottom;
+                    minimums[rowIndex] = points + top + bottom + topMargin + bottomMargin;
                     hasMinimum = true;
                 }
             }
