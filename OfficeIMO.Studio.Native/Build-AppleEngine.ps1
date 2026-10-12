@@ -26,8 +26,8 @@ param(
     [ValidateSet('osx-arm64', 'osx-x64', 'ios-arm64', 'iossimulator-arm64')]
     [string[]]$RuntimeIdentifier = @('osx-arm64', 'osx-x64', 'ios-arm64', 'iossimulator-arm64'),
     # The oldest systems the native apps support; the prelinked engine object is marked for them.
-    [string]$MacOSDeploymentTarget = '14.0',
-    [string]$IOSDeploymentTarget = '17.0'
+    [string]$MacOSDeploymentTarget = '26.0',
+    [string]$IOSDeploymentTarget = '26.0'
 )
 $ErrorActionPreference = 'Stop'
 if (-not $IsMacOS) { throw 'The XCFramework is built on macOS with Xcode.' }
