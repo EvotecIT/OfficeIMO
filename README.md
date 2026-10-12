@@ -105,7 +105,7 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 - [x] Independently sourced corpus evidence across Pages 14.1/14.5, Numbers 11.1–15.1 histories, and Keynote 8.1/14.5/15.2.1
 - [x] Template-free native Keynote slides with rich text, PNG/JPEG images and scalar tables; native Pages body documents with page settings and rich paragraphs; independent decoding and fixture-specific Apple reopen/export/edit evidence
 - [x] Template-free native Numbers scalar-table spreadsheets with independent decoding and native open/edit/save/export evidence
-- [x] Preservation-aware unchanged native saves and direct Keynote image translations through separate sessions over immutable source snapshots, with explicit visual-cache acceptance and operation reports
+- [x] Preservation-aware unchanged native saves, direct Keynote image moves/resizes and existing Numbers numeric/boolean cell edits through separate sessions over immutable source snapshots, with explicit visual-cache acceptance and operation reports
 
 _Dependency footprint:_ only `OfficeIMO.Core`; the package and IWA readers are first-party implementations. Word, Excel, and PowerPoint remain independent unless an iWork adapter is installed explicitly.
 

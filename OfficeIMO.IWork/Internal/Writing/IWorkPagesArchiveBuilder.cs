@@ -92,7 +92,12 @@ internal sealed partial class IWorkPagesArchiveBuilder : IWorkNativeCreationGrap
                 _paragraphVariations.Add(paragraphId);
                 paragraphStyle = P().Reference(3, DefaultBodyParagraphId).Bool(4, true).Message(5, P().UInt(1, StylesheetId));
             } else paragraphStyle = Style(paragraphId, "OfficeIMO Paragraph");
-            Add(paragraphId, 2022, P().Message(1, paragraphStyle).Message(11, Character(paragraph.Runs[0]))
+            // Numbered markers inherit paragraph character defaults. Keep those defaults
+            // independent of first-run emphasis; explicit character ranges carry item styling.
+            IWorkTextRunData paragraphDefaults = paragraph.NumberedList is { } owner
+                ? new IWorkTextRunData(string.Empty, owner.FontName, owner.FontSizePoints)
+                : paragraph.Runs[0];
+            Add(paragraphId, 2022, P().Message(1, paragraphStyle).Message(11, Character(paragraphDefaults))
                 .Message(12, ParagraphProperties(paragraph.Layout, selectedList)).UInt(10, customLayout ? 19u : 10u));
             paragraphStyles.Message(1, P().UInt(1, (uint)offset).Reference(2, paragraphId));
             paragraphData.Message(1, P().UInt(1, (uint)offset).UInt(2, (uint)Math.Max(0, paragraph.ListLevel)).UInt(3, listStart > 0 ? 1u : 0u));

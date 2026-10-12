@@ -25,14 +25,20 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-images-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-numbering-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-numbering-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-rich-numbering-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-rich-numbering-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-list-continuation-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-table-borders-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\numbers-created-edited-v14.5.numbers" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\numbers-preserved-scalars-v14.5.numbers" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\numbers-preserved-scalars-edited-v14.5.numbers" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\numbers-duration-seconds-v14.5.numbers" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\numbers-duration-milliseconds-v14.5.numbers" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\numbers-table-borders-v14.5.numbers" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-created-tables-edited-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-created-tables-pdf-export-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-preserved-resized-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-preserved-resized-edited-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\NotoSansJP-OfficeIMO-Common.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoEmoji-VariableFont_wght.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

@@ -5,6 +5,48 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfCompactToUnicodeCMapTests {
+    [Theory]
+    [InlineData("7f ff ff ff", "7FFFFFFF")]
+    [InlineData("ff ff ff ff", "FFFFFFFF")]
+    public void ToUnicodeCMap_Bounds_single_entry_ranges_at_four_byte_boundaries(string sourceCode, string expectedKey) {
+        string source = $"2 beginbfrange <{sourceCode}><{sourceCode}><0041> "
+            + "<00 00 00 00><ff ff ff ff><0042> endbfrange";
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out ToUnicodeCMap? cmap));
+        var mapping = Assert.Single(cmap!.Mappings);
+        Assert.Equal(expectedKey, mapping.Key);
+        Assert.Equal("A", mapping.Value);
+        Assert.Equal("A", cmap.MapBytes(Convert.FromHexString(expectedKey)));
+
+        source = $"1 beginbfrange <{sourceCode}><{sourceCode}>[<0041><0042>] endbfrange";
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out cmap));
+        mapping = Assert.Single(cmap!.Mappings);
+        Assert.Equal(expectedKey, mapping.Key);
+        Assert.Equal("A", mapping.Value);
+    }
+
+    [Theory]
+    [InlineData("7F FF FF FE", "80 00 00 00", "7FFFFFFE7FFFFFFF80000000")]
+    [InlineData("FF FF FF FD", "FF FF FF FF", "FFFFFFFDFFFFFFFEFFFFFFFF")]
+    public void ToUnicodeCMap_Retains_unsigned_source_ranges_without_wrapping(string from, string to, string sourceHex) {
+        foreach (string destinations in new[] { "<0041>", "[<0041><0042><0043><0044>]" }) {
+            string source = $"1 beginbfrange <{from}><{to}>{destinations} endbfrange";
+            Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out ToUnicodeCMap? cmap));
+            Assert.Equal(3, cmap!.MappingCount);
+            Assert.Equal("ABC", cmap.MapBytes(Convert.FromHexString(sourceHex)));
+        }
+    }
+
+    [Fact]
+    public void ToUnicodeCMap_Retains_Apple_surrogate_pairs_and_ranges_with_hex_whitespace() {
+        const string source = "1 beginbfchar\n<2 1><d83d de00>\nendbfchar\n"
+            + "2 beginbfrange\n<00 22><00 23><00\t41>\n<00\r24><00\n25>[<00\f43><d83d\0de00>]\nendbfrange";
+
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(source), out ToUnicodeCMap? cmap));
+        Assert.Equal("😀ABC😀", cmap!.MapBytes(new byte[] { 0x21, 0, 0x22, 0, 0x23, 0, 0x24, 0, 0x25 }));
+        Assert.True(cmap.TryEncodeText("😀ABC😀", out string encoded));
+        Assert.Equal("2100220023002421", encoded);
+    }
+
     [Fact]
     public void ToUnicodeCMap_ParsesAdjacentDelimitedTokensAcrossMappingForms() {
         const string source = """

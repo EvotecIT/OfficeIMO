@@ -15,9 +15,13 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("pages-created-images-edited-v15.4.pages", "pages-pdf", 1, "12")]
     [InlineData("pages-created-numbering-v15.4.pages", "pages-pdf", 1, "10")]
     [InlineData("pages-created-numbering-edited-v15.4.pages", "pages-pdf", 1, "10")]
+    [InlineData("pages-created-rich-numbering-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-created-rich-numbering-edited-v15.4.pages", "pages-pdf", 1, "8")]
     [InlineData("pages-list-continuation-v15.4.pages", "pages-pdf", 1, "2")]
     [InlineData("keynote-created-tables-edited-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
+    [InlineData("keynote-preserved-resized-v15.4.key", "keynote-pdf", 3, "14")]
+    [InlineData("keynote-preserved-resized-edited-v15.4.key", "keynote-pdf", 3, "14")]
     public async Task Native_content_pdf_routes_retain_every_page_with_caller_fonts(
         string fixture, string route, int expectedPages, string expectedSourceUnits) {
         using var files = new Files(Path.GetExtension(fixture)[1..], "pdf");
@@ -70,15 +74,42 @@ public sealed partial class IWorkWorkflowTests {
                 else if (fixture == "pages-list-continuation-v15.4.pages") AssertNativePagesListText(pages);
                 else if (fixture.StartsWith("pages-created-numbering", StringComparison.Ordinal))
                     AssertCreatedPagesListText(pages, fixture.Contains("edited", StringComparison.Ordinal));
+                else if (fixture.StartsWith("pages-created-rich-numbering", StringComparison.Ordinal))
+                    AssertCreatedPagesRichList(pdf, fixture.Contains("edited", StringComparison.Ordinal));
                 else AssertNativePagesText(pages);
                 break;
-            case "keynote-pdf": AssertNativeKeynoteText(pages); break;
+            case "keynote-pdf":
+                if (fixture.StartsWith("keynote-preserved-resized", StringComparison.Ordinal))
+                    AssertResizedKeynoteImages(pdf, fixture.Contains("edited", StringComparison.Ordinal));
+                else AssertNativeKeynoteText(pages);
+                break;
         }
+    }
+
+    private static void AssertResizedKeynoteImages(PdfReadDocument pdf, bool edited) {
+        string[] titles = ["Native PNG — image behind text", "Native alpha PNG", "Native JPEG"];
+        for (int index = 0; index < 3; index++) {
+            var page = pdf.Pages[index]; Assert.Contains(titles[index], page.ExtractText());
+            var image = Assert.Single(page.GetImagePlacements());
+            Assert.Equal(index == 2 ? 100 : 80, image.X);
+            Assert.Equal(index == 1 ? 360 : index == 2 && edited ? 421 : 420, image.Width);
+            Assert.Equal(index == 1 ? 180 : 168, image.Height);
+            Assert.Equal(540 - (index == 0 ? 125 : 135) - image.Height, image.Y);
+        }
+        Assert.Contains("Covered source label", pdf.Pages[0].ExtractText());
+        Assert.Contains("TEXT IN FRONT", pdf.Pages[0].ExtractText());
+        Assert.Contains("100% alpha", pdf.Pages[1].ExtractText());
+        Assert.Contains("JPEG / stretched frame", pdf.Pages[2].ExtractText());
+        var images = pdf.ExtractImages(); Assert.Equal(3, images.Count);
+        Assert.All(images, image => { Assert.Equal(96, image.Width); Assert.Equal(64, image.Height); });
+        Assert.Single(images, image => image.HasTransparencyMask && image.TransparencyMaskResolved);
     }
 
     [Theory]
     [InlineData("simple.numbers")]
     [InlineData("numbers-created-edited-v14.5.numbers")]
+    [InlineData("numbers-preserved-scalars-v14.5.numbers")]
+    [InlineData("numbers-preserved-scalars-edited-v14.5.numbers")]
     [InlineData("numbers-duration-seconds-v14.5.numbers")]
     [InlineData("numbers-duration-milliseconds-v14.5.numbers")]
     public async Task Native_numbers_region_padding_prevents_complete_pdf_publication(string fixture) {
@@ -121,6 +152,25 @@ public sealed partial class IWorkWorkflowTests {
         settings.NumbersPdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
         settings.KeynotePdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
         return settings;
+    }
+
+    private static void AssertCreatedPagesRichList(PdfReadDocument pdf, bool edited) {
+        var page = Assert.Single(pdf.Pages);
+        string text = System.Text.RegularExpressions.Regex.Replace(page.ExtractText(), @"\s+", string.Empty);
+        int previous = -1;
+        foreach (string expected in new[] { "7.Bold first 😀 plain reset", "1.Child italic, underline, strike",
+            "5.Combined decoration reset", "Plain gap", "8.Colored first parent eight", "1.Underlined child reset",
+            "9.Plain parent nine", "3.Separate Zażółć café", "10.Resumed parent ten" + (edited ? " native edit" : "") }) {
+            string wanted = System.Text.RegularExpressions.Regex.Replace(expected, @"\s+", string.Empty);
+            int at = text.IndexOf(wanted, previous + 1, StringComparison.Ordinal);
+            Assert.True(at > previous, "Missing or reordered rich-list content: " + expected); previous = at;
+        }
+        var spans = page.GetTextSpans();
+        Assert.Contains(spans, span => span.Text == "Bold" && span.IsBold && !span.IsItalic);
+        Assert.Contains(spans, span => span.Text == "Child" && !span.IsBold && span.IsItalic);
+        Assert.Contains(spans, span => span.Text == "Combined" && span.IsBold && span.IsItalic);
+        Assert.All(spans.Where(span => System.Text.RegularExpressions.Regex.IsMatch(span.Text.Trim(), @"^\d+\.$")),
+            span => { Assert.False(span.IsBold); Assert.False(span.IsItalic); });
     }
 
     private static void AssertNativePagesText(IReadOnlyList<string> pages) {

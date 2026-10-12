@@ -1,0 +1,803 @@
+{
+  "source": "pages-created-rich-numbering-v15.4.pages",
+  "sha256": "9aab5aa4c78f2f0a427255d8126c6ca80d44ccffb9e23e51854e10e862ac898a",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "recordCount": 51,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 10,
+  "text": "Rich numbered items \ud83d\ude00\nBold first \ud83d\ude00 plain reset\nChild italic, underline, strike\nCombined decoration reset\nPlain gap\nColored first parent eight\nUnderlined child reset\nPlain parent nine\nSeparate Za\u017c\u00f3\u0142\u0107 caf\u00e9\nResumed parent ten\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 23,
+      "text": "Rich numbered items \ud83d\ude00\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 23,
+      "end": 36,
+      "text": "Bold first \ud83d\ude00",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": true,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 36,
+      "end": 49,
+      "text": " plain reset\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 49,
+      "end": 61,
+      "text": "Child italic",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": true,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 61,
+      "end": 72,
+      "text": ", underline",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 1,
+      "strikethrough": 0
+    },
+    {
+      "start": 72,
+      "end": 81,
+      "text": ", strike\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 1
+    },
+    {
+      "start": 81,
+      "end": 100,
+      "text": "Combined decoration",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": true,
+      "italic": true,
+      "underline": 1,
+      "strikethrough": 1
+    },
+    {
+      "start": 100,
+      "end": 107,
+      "text": " reset\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 107,
+      "end": 117,
+      "text": "Plain gap\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 117,
+      "end": 130,
+      "text": "Colored first",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 130,
+      "end": 144,
+      "text": " parent eight\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 144,
+      "end": 160,
+      "text": "Underlined child",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 1,
+      "strikethrough": 0
+    },
+    {
+      "start": 160,
+      "end": 167,
+      "text": " reset\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 167,
+      "end": 185,
+      "text": "Plain parent nine\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 185,
+      "end": 206,
+      "text": "Separate Za\u017c\u00f3\u0142\u0107 caf\u00e9\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": true,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 206,
+      "end": 213,
+      "text": "Resumed",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 1,
+      "strikethrough": 0
+    },
+    {
+      "start": 213,
+      "end": 225,
+      "text": " parent ten\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 32,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 23,
+      "styleId": 35,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 49,
+      "styleId": 38,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 81,
+      "styleId": 42,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 107,
+      "styleId": 45,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 117,
+      "styleId": 47,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 144,
+      "styleId": 50,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 167,
+      "styleId": 53,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 185,
+      "styleId": 56,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 206,
+      "styleId": 58,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        22,
+        33
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        22,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": []
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        22
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": []
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 22,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 33,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 34,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 35,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 36,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 37,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 38,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 39,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 40,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 41,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 42,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 43,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 44,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 45,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 46,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 47,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 48,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 49,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 50,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 51,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 52,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 53,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 54,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 55,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 2022,
+      "references": [
+        22,
+        55
+      ]
+    },
+    {
+      "id": 57,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 58,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 59,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 60,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "nativeTables": [],
+  "inlineTables": [],
+  "imageResources": [],
+  "inlineImages": [],
+  "decimalItems": [
+    {
+      "offset": 23,
+      "styleId": 34,
+      "level": 0,
+      "number": 7,
+      "start": 7,
+      "text": "Bold first \ud83d\ude00 plain reset",
+      "font": "Arial"
+    },
+    {
+      "offset": 49,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Child italic, underline, strike",
+      "font": "Arial"
+    },
+    {
+      "offset": 81,
+      "styleId": 34,
+      "level": 1,
+      "number": 5,
+      "start": 5,
+      "text": "Combined decoration reset",
+      "font": "Arial"
+    },
+    {
+      "offset": 117,
+      "styleId": 34,
+      "level": 0,
+      "number": 8,
+      "start": 0,
+      "text": "Colored first parent eight",
+      "font": "Arial"
+    },
+    {
+      "offset": 144,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Underlined child reset",
+      "font": "Arial"
+    },
+    {
+      "offset": 167,
+      "styleId": 34,
+      "level": 0,
+      "number": 9,
+      "start": 0,
+      "text": "Plain parent nine",
+      "font": "Arial"
+    },
+    {
+      "offset": 185,
+      "styleId": 55,
+      "level": 0,
+      "number": 3,
+      "start": 3,
+      "text": "Separate Za\u017c\u00f3\u0142\u0107 caf\u00e9",
+      "font": "Arial"
+    },
+    {
+      "offset": 206,
+      "styleId": 34,
+      "level": 0,
+      "number": 10,
+      "start": 10,
+      "text": "Resumed parent ten",
+      "font": "Arial"
+    }
+  ],
+  "scope": "Owned body paragraphs, inline PNG/JPEG images, scalar tables and graph declarations; native application acceptance is separate."
+}

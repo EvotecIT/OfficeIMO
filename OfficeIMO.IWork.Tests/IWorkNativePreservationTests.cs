@@ -95,6 +95,7 @@ public sealed class IWorkNativePreservationTests {
         Assert.Equal(inner.ToArray(), copy.ToArray());
         Assert.Equal(source.ComputePackageContentHash(), saved.Report.OutputPackageContentHash);
         Assert.Throws<NotSupportedException>(() => session.MoveKeynoteImage(Jpeg(source).SourceIdentity!, 80, 100));
+        Assert.Throws<NotSupportedException>(() => session.ResizeKeynoteImage(Jpeg(source).SourceIdentity!, 300, 180));
     }
 
     [Fact]

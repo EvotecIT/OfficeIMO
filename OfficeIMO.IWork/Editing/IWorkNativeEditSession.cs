@@ -6,8 +6,9 @@ using OfficeIMO.Internal;
 namespace OfficeIMO.IWork;
 
 /// <summary>Edits a captured native source without changing the immutable source model.</summary>
-/// <remarks>Instances are not thread safe. Supported mutations are qualified direct Keynote image translations;
-/// other semantics and nested-index mutations are rejected. Unchanged saves support all modern read profiles.</remarks>
+/// <remarks>Instances are not thread safe. Supported mutations are direct Keynote image moves/resizes and existing
+/// Numbers numeric/boolean cells in the bounded modern profile. Nested-index mutations are rejected.
+/// Unchanged saves support all modern read profiles.</remarks>
 public sealed partial class IWorkNativeEditSession {
     private readonly IWorkSourceDocument _source;
     private readonly Dictionary<IWorkArchiveRecord, byte[]> _payloads = new();

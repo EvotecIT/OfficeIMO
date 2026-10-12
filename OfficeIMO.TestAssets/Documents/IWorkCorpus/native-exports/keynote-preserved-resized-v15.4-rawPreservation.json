@@ -1,0 +1,56 @@
+{
+  "source": "keynote-created-images-edited-v15.4.key",
+  "output": "keynote-preserved-resized-v15.4.key",
+  "source_sha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17",
+  "output_sha256": "49d1293b65a1aa6eab6fd9a15ff0a1d482ef76760344f61a5d48f0d5e1f5a851",
+  "file_entries": 24,
+  "records_including_auxiliary": 205,
+  "changed_entries": [
+    "Index/Slide-131-2.iwa",
+    "Index/Slide-146-2.iwa",
+    "Index/Slide.iwa"
+  ],
+  "edited_images": [
+    {
+      "entry": "Index/Slide.iwa",
+      "id": 125,
+      "position": [
+        80.0,
+        125.0
+      ],
+      "frame": [
+        420.0,
+        168.0
+      ]
+    },
+    {
+      "entry": "Index/Slide-131-2.iwa",
+      "id": 139,
+      "position": [
+        80.0,
+        135.0
+      ],
+      "frame": [
+        360.0,
+        180.0
+      ]
+    },
+    {
+      "entry": "Index/Slide-146-2.iwa",
+      "id": 154,
+      "position": [
+        100.0,
+        135.0
+      ],
+      "frame": [
+        420.0,
+        168.0
+      ]
+    }
+  ],
+  "untouched_file_entries_identical": true,
+  "raw_headers_and_sibling_payloads_identical": true,
+  "numbers_parser": "4.19.0",
+  "protobuf": "7.36.2",
+  "descriptor_sha256": "2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917"
+}

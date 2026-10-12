@@ -1,8 +1,8 @@
-"""Opt-in independent entry, IWA envelope and image-translation evidence.
+"""Opt-in independent entry, IWA envelope and image-frame evidence.
 
 Uses numbers-parser's Snappy decoder and pinned protobuf descriptors, never
 OfficeIMO assemblies. File-entry payloads are compared independently of the ZIP
-carrier. All raw IWA bytes must match except the declared position floats.
+carrier. All raw IWA bytes must match except the declared position/size floats.
 """
 import argparse
 import hashlib
@@ -17,10 +17,13 @@ from google.protobuf.internal.decoder import _DecodeVarint
 from numbers_parser.iwafile import IWACompressedChunk, get_archive_info_and_remainder
 
 
-def position_spans(data):
-    """Locate both fixed32 leaves independently in the original raw message."""
+def geometry_spans(data, include_size=False):
+    """Locate the requested fixed32 leaves independently in the raw message."""
     spans = []
-    for path in ((1, 1, 1, 1), (1, 1, 1, 2)):
+    paths = ((1, 1, 1, 1), (1, 1, 1, 2))
+    if include_size:
+        paths += ((1, 1, 2, 1), (1, 1, 2, 2))
+    for path in paths:
         start, end = 0, len(data)
         for level, selected_field in enumerate(path):
             found, offset = [], start
@@ -68,7 +71,10 @@ def archives(package):
     return result
 
 
-def verify(source, output, descriptor=None, image=None):
+def verify(source, output, descriptor=None, image=None, frames=None):
+    expected_images = ([image] if image else []) + (frames or [])
+    expected_by_id = {item[0]: item for item in expected_images}
+    assert len(expected_by_id) == len(expected_images), 'Duplicate image expectations'
     with ZipFile(source) as original, ZipFile(output) as saved:
         assert len(original.namelist()) == len(set(original.namelist()))
         assert len(saved.namelist()) == len(set(saved.namelist()))
@@ -78,7 +84,7 @@ def verify(source, output, descriptor=None, image=None):
         original_archives, saved_archives = archives(original), archives(saved)
         assert original_archives.keys() == saved_archives.keys()
         edited, records = [], 0
-        if image:
+        if expected_images:
             assert descriptor is not None
             pool = descriptor_pool.DescriptorPool()
             for file in descriptor_pb2.FileDescriptorSet.FromString(descriptor.read_bytes()).file:
@@ -93,23 +99,29 @@ def verify(source, output, descriptor=None, image=None):
                 before, after = raw[start:end], saved_raw[start:end]
                 if before == after:
                     continue
-                assert image and identifier == image[0] and index == 0 and kind == 3005
+                selected = expected_by_id.get(identifier)
+                assert selected and index == 0 and kind == 3005
                 old, new = image_type.FromString(before), image_type.FromString(after)
                 assert not old.FindInitializationErrors() and not new.FindInitializationErrors()
-                assert new.super.geometry.position.x == image[1] and new.super.geometry.position.y == image[2]
+                assert new.super.geometry.position.x == selected[1] and new.super.geometry.position.y == selected[2]
                 new.super.geometry.position.CopyFrom(old.super.geometry.position)
+                if len(selected) == 5:
+                    assert new.super.geometry.size.width == selected[3] and new.super.geometry.size.height == selected[4]
+                    new.super.geometry.size.CopyFrom(old.super.geometry.size)
                 assert old.SerializeToString(deterministic=True) == new.SerializeToString(deterministic=True)
-                # Independently locate the original position leaves. Prove that the
-                # entire payload differs only by these two four-byte replacements.
+                # Prove the entire payload differs only by the declared leaves.
                 expected = bytearray(before)
-                for (position_start, position_end), value in zip(position_spans(before), image[1:]):
+                for (position_start, position_end), value in zip(geometry_spans(before, len(selected) == 5), selected[1:]):
                     expected[position_start:position_end] = struct.pack('<f', value)
                 assert after == expected
                 normalized[start:end] = before
-                edited.append({'entry': path, 'id': identifier, 'position': list(image[1:])})
+                item = {'entry': path, 'id': identifier, 'position': list(selected[1:3])}
+                if len(selected) == 5:
+                    item['frame'] = list(selected[3:])
+                edited.append(item)
             assert raw == normalized, path
-        if image:
-            assert len(edited) == 1 and changed == [edited[0]['entry']]
+        if expected_images:
+            assert len(edited) == len(expected_images) and changed == sorted({item['entry'] for item in edited})
         else:
             assert not edited and not changed
     return {'source': source.name, 'output': output.name,
@@ -128,9 +140,11 @@ if __name__ == '__main__':
     parser.add_argument('output', type=Path)
     parser.add_argument('--descriptor', type=Path)
     parser.add_argument('--image', nargs=3, metavar=('ID', 'X', 'Y'))
+    parser.add_argument('--image-frame', action='append', nargs=5, metavar=('ID', 'X', 'Y', 'WIDTH', 'HEIGHT'))
     parser.add_argument('--out', required=True, type=Path)
     args = parser.parse_args()
     image = (int(args.image[0]), float(args.image[1]), float(args.image[2])) if args.image else None
-    result = verify(args.source, args.output, args.descriptor, image)
+    frames = [(int(item[0]), *(float(value) for value in item[1:])) for item in args.image_frame or []]
+    result = verify(args.source, args.output, args.descriptor, image, frames)
     args.out.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(result, indent=2))

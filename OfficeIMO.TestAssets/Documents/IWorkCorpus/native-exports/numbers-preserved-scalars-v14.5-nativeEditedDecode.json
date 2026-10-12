@@ -1,0 +1,69 @@
+[
+  {
+    "sheet": "Budget",
+    "tables": [
+      {
+        "name": "Data",
+        "rows": [
+          [
+            "Item",
+            "Value",
+            "Flag",
+            "Notes"
+          ],
+          [
+            "Apples",
+            43.125,
+            false,
+            "Zażółć 😀"
+          ],
+          [
+            "Negative",
+            -7.5,
+            true,
+            "=literal"
+          ],
+          [
+            "Line1\nLine2",
+            12345.6789,
+            true,
+            null
+          ]
+        ]
+      },
+      {
+        "name": "Totals",
+        "rows": [
+          [
+            "Totals",
+            123.75
+          ],
+          [
+            true,
+            null
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "Empty grid",
+    "tables": [
+      {
+        "name": "Empty",
+        "rows": [
+          [
+            null,
+            null,
+            null
+          ],
+          [
+            null,
+            null,
+            null
+          ]
+        ]
+      }
+    ]
+  }
+]

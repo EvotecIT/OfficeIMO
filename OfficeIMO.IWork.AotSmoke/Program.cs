@@ -84,6 +84,7 @@ NativePagesParagraphWriterSmoke.Run();
 NativePagesTableWriterSmoke.Run();
 NativePagesImageWriterSmoke.Run();
 NativePagesNumberedListWriterSmoke.Run();
+NativePagesRichNumberedItemWriterSmoke.Run();
 NativePagesListCounterSmoke.Run();
 NativePagesBorderSmoke.Run();
 NativeNumbersFixedDurationSmoke.Run();
@@ -92,6 +93,8 @@ NativeNumbersBorderSmoke.Run();
 NativeNumbersWriterSmoke.Run();
 NativeNumericFormatWriterSmoke.Run();
 NativePreservationSmoke.Run();
+NativeImageResizeSmoke.Run();
+NativeNumbersCellEditingSmoke.Run();
 
 static void Require(bool condition, string message) {
     if (!condition) throw new InvalidOperationException(message);

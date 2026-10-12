@@ -83,6 +83,10 @@ steps.AddItem("Prepare", restartAt: 7);
 steps.AddItem("Check sources", level: 1);
 document.AddParagraph("An ordinary paragraph preserves the counters.");
 steps.AddItem("Review"); // parent 8; the next child starts at 1
+steps.AddRichItem(new[] {
+    new IWorkTextRunData("Important", "Arial", 12, "003366", bold: true),
+    new IWorkTextRunData(" check", "Arial", 12)
+}, level: 1);
 document.Save("report.pages");
 ```
 
@@ -94,7 +98,7 @@ Rich paragraphs snapshot immutable `IWorkTextRunData` runs. Plain runs explicitl
 
 `AddImage` snapshots a validated PNG or JPEG into its own body paragraph. Finite positive width/height values use points and must fit the page body. The complete image fills that frame, including intentional stretching and PNG transparency. Optional accessibility descriptions retain at most 4096 normalized UTF-16 units. Crops, masks, rotation, floating placement, image links and effects are not authored. Images, paragraphs and tables share `BodyBlocks` insertion order.
 
-`CreateNumberedList` returns a document-bound decimal list. `AddItem` appends one immutable body paragraph at level 0 or 1, with an optional positive `restartAt` and paragraph layout. Children require an earlier parent; each new parent resets its children to one. Plain paragraphs, tables and images preserve counters. Returning to an earlier group restores its authored counters with explicit native starts; later edits before another group do not propagate through those restored starts. Items share black text and one whole-point marker/body font size. Rich list items, bullets, tiered numbering and deeper levels are unsupported. Unused groups do not affect saved bytes. `NumberedLists`, `Items`, `ListLevel`, `ListNumber` and `ListRestartNumber` expose the authored structure.
+`CreateNumberedList` returns a document-bound decimal list. `AddItem` and `AddRichItem` append one immutable body paragraph at level 0 or 1, with an optional positive `restartAt` and paragraph layout. Rich items snapshot `IWorkTextRunData` runs whose opaque colors, bold, italic, underline and strikethrough may vary. Retained runs use the owning list's font and whole-point size; markers remain plain black regardless of the first run. Mixed fonts/sizes, bullets, tiered numbering and deeper levels are unsupported. Children require an earlier parent; each new parent resets its children to one. Plain paragraphs, tables and images preserve counters. Returning to an earlier group restores its authored counters with explicit native starts; later edits before another group do not propagate through those restored starts. Unused groups do not affect saved bytes. `NumberedLists`, `Items`, `ListLevel`, `ListNumber` and `ListRestartNumber` expose the authored structure. The [rich-list reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-rich-numbering-v15.4.json) records independent decoding, Pages open/edit/save/reopen and native/composed PDF checks, with font and export limits.
 
 `IWorkPagesWriteOptions` bounds used list groups (`MaximumNumberedLists`), paragraphs including list/image/table hosts, retained runs including attachment markers, image instances (`MaximumImages`), combined encoded/RGBA image bytes (`MaximumEncodedImageBytes`/`MaximumDecodedImageBytes`), aggregate tables (`MaximumTables`) and dense grid positions (`MaximumTableCells`), UTF-16 body/cell/name characters including terminators, aggregate custom tab stops (`MaximumTabStops`) and encoded package/intermediate archive bytes. Byte, caller-stream and atomic path saves accept cancellation and use the same package and file-commit owners as Keynote creation. Encoding completes before stream copying or file staging. Stream saves leave the caller's stream open; copy failure or cancellation can leave partial stream output. File staging failure preserves an existing destination.
 
@@ -146,6 +150,8 @@ The [native format reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/nati
 
 Automatic, currency, fraction, temporal, custom and locale-specific formats are not authored. The receiving app selects separators, fonts, fitting and pagination; extra displayed digits do not increase scalar precision. Source reading supports additional qualified format families independently of this creation subset.
 
+The [macOS arm64 NativeAOT receipt](../Docs/Compatibility/iwork-numeric-formats-native-aot-macos-arm64-2026-10-10.json) records 31 native smoke profiles on .NET 8 and .NET 10, including deterministic numeric-format creation, native-edited readback and saved DOCX/XLSX/PPTX.
+
 ## Save a captured native source
 
 ```csharp
@@ -159,21 +165,43 @@ IWorkNativeSaveReport report = session.Save("preserved.pages");
 
 An unchanged save writes all captured file-entry payloads into a native ZIP package. Unknown IWA records, auxiliary payloads, IDs, references, version fields, resources and existing previews remain intact, even when conversion-report source-record preservation is disabled. ZIP compression, timestamps, extra fields, comments, directory entries and filesystem metadata are rewritten or omitted. This is file-entry preservation rather than whole-file byte identity. Directory bundles and nested `Index.zip` sources can be saved unchanged; nested index contents stay inside their original entry.
 
-The supported mutation moves a direct, unlocked, unrotated and unmasked Keynote image within its slide canvas:
+Keynote image mutations move and resize direct, unlocked, unrotated and unmasked images within their slide canvas:
 
 ```csharp
 var keynote = IWorkSourceDocument.Open("deck.key");
 var image = keynote.ReadKeynote().Slides[0].Images[0];
 var edit = keynote.BeginEdit();
 edit.MoveKeynoteImage(image.SourceIdentity!, leftPoints: 100, topPoints: 130);
-var report = edit.Save("moved.key", options: new IWorkNativeSaveOptions {
+edit.ResizeKeynoteImage(image.SourceIdentity!, widthPoints: 420, heightPoints: 168);
+var report = edit.Save("edited.key", options: new IWorkNativeSaveOptions {
     AllowUnassessedVisualCaches = true
 });
 ```
 
-Only the existing position floats change. Image dimensions, payloads, descriptions, IDs, references and all other raw fields remain intact. Missing or ambiguous geometry, unsupported image states, out-of-canvas positions and nested-index mutations are rejected. Repeating the operation uses absolute coordinates; restoring the original coordinates removes that pending edit. Other content and structural edits are unsupported.
+Only the requested existing position or size floats change. Image pixels, intrinsic dimensions, descriptions, IDs, references and all other raw fields remain intact. Sizes must be positive and finite; an explicit resize can change the aspect ratio. Moves and resizes compose using the pending frame, which must fit within the canvas after each operation. Missing or ambiguous geometry, unsupported image states, out-of-canvas frames and nested-index mutations are rejected. Repeating an operation uses absolute values; restoring the complete original frame removes that pending edit. Other Keynote content and structural edits are unsupported.
+
+Numbers sessions replace existing numeric or boolean cells using one-based coordinates and the table's source identity:
+
+```csharp
+var numbers = IWorkSourceDocument.Open("budget.numbers");
+var table = numbers.ReadNumbers().Sheets[0].Tables[0];
+var cells = numbers.BeginEdit();
+cells.SetNumbersCellNumber(table.SourceIdentity!, row: 2, column: 2, value: 42.125);
+cells.SetNumbersCellBoolean(table.SourceIdentity!, row: 2, column: 3, value: false);
+cells.Save("edited.numbers", options: new IWorkNativeSaveOptions {
+    AllowUnassessedVisualCaches = true
+});
+```
+
+This profile requires complete modern Numbers content with no selected formulas or unsupported cell features. Numeric cells use Decimal128 storage and accept finite doubles; booleans retain their distinct native type. Active version-five BNC storage and an absent or empty legacy placeholder are required. Only each existing fixed-width scalar changes, preserving styles, formats, unknown bytes, IDs and references. Edits compose across cells and tables. Assigning a cell's original projected value restores its original scalar bytes, including higher-precision source representations. Invalid or cancelled requests leave pending edits unchanged. Insertion, type changes, shared tiles, populated legacy values, double-backed numeric cells and nested-index mutations are rejected.
+
+The [Numbers scalar-edit reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-preserved-scalars-v14.5.json) qualifies six numeric/boolean replacements across two tables. Numbers 14.5 opens both sheets without repair, retains a further numeric edit after save/close/reopen and exports typed XLSX plus a two-page PDF. Independent raw comparisons admit only the requested scalar ranges; all other file-entry payloads, headers and sibling records remain identical. OfficeIMO XLSX retains the typed content with the existing explicit padding loss. Complete composed PDF remains rejected for this padding profile.
+
+The [macOS arm64 NativeAOT receipt](../Docs/Compatibility/iwork-numbers-cell-editing-native-aot-macos-arm64-2026-10-11.json) records 34 native smoke profiles on each of .NET 8 and .NET 10, including scalar editing, native-edited readback, saved XLSX, cancellation and original-byte restoration.
 
 Edited saves require `AllowUnassessedVisualCaches` and report `IWORK_NATIVE_VISUAL_CACHES_UNASSESSED` with `Unassessed` fidelity. The operation retains existing native previews and visual caches without regenerating them or assessing wider application metadata. An unchanged save needs no cache acceptance. The [native preservation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/native-preservation-macos.json) records independent raw-entry/envelope comparisons, unchanged native open in all three applications, Keynote 15.4 translation and subsequent native edit/save/reopen, and all-slide PDF inspection. It qualifies those fixtures; other application versions and visual-cache behavior require separate evidence.
+
+The [image resizing reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-resized-v15.4.json) qualifies composed moves and resizes of opaque PNG, alpha PNG and JPEG images, including a subsequent native width edit and save/close/reopen in Keynote 15.4. Independent IWA, PPTX and PDF checks retain exact image resources and final frames; native and composed PDF inspection confirms transparency and stacking. Font metrics differ, and wider image states and native cache regeneration remain outside this profile.
 
 `IWorkNativeSaveOptions` independently bounds the sum of input file-entry bytes and encoded ZIP length, combined decompressed bytes of changed archives, and distinct edited records. `SaveBytesResult` returns a defensive package copy through `GetPackageBytes()` and an operation-level report with normalized content hashes, physical entry/record counts and updated identities/entry paths. Counts do not establish semantic fidelity of opaque content. Encoding completes before writing. Stream saves start at the caller's current position, leave the stream open and can leave partial bytes on copying failure or cancellation. Path saves are atomic, require `overwrite: true` for existing files and reject output inside a captured directory source, including directory aliases. Sessions are not thread safe.
 
@@ -264,7 +292,7 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The destination adapters also accept a token after their read and conversion options. Cancellation is cooperative during loading, projection, and destination construction; saving uses the destination owner's separate save API. These APIs do not establish a fixed cancellation latency or memory budget.
 
-The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections, shared Reader extraction, editable DOCX/XLSX/PPTX conversion and native Keynote creation on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10. Hash-pinned receipts record their exact source revisions, save/reopen and selected Numbers recalculation; current Numbers conversions require partial acceptance when inherited or selected padding cannot be represented in XLSX; the native Keynote creator emits the same independently decoded, Apple-accepted package on all six host/runtime combinations. The Pages body and Numbers scalar-table creation extensions, unchanged native preservation and bounded Keynote image translations have actual .NET 8/10 native execution on macOS arm64. The [fixed second-duration profile](../Docs/Compatibility/iwork-duration-seconds-native-aot-macos-arm64-2026-10-10.json) also qualifies saved/reopened native Numbers caches, formula recalculation and integral-second display boundaries on that host. The [fixed millisecond-duration profile](../Docs/Compatibility/iwork-duration-milliseconds-native-aot-macos-arm64-2026-10-10.json) adds saved/reopened native Numbers caches and formula recalculation for three fractional-second ranges on that host. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
+The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections, shared Reader extraction, editable DOCX/XLSX/PPTX conversion and native Keynote creation on macOS arm64, Linux x64 and Windows x64 under .NET 8 and 10. Hash-pinned receipts record their exact source revisions, save/reopen and selected Numbers recalculation; current Numbers conversions require partial acceptance when inherited or selected padding cannot be represented in XLSX; the native Keynote creator emits the same independently decoded, Apple-accepted package on all six host/runtime combinations. The Pages body and Numbers scalar-table creation extensions, unchanged native preservation and bounded Keynote image moves/resizes have actual .NET 8/10 native execution on macOS arm64. The [image resize receipt](../Docs/Compatibility/iwork-keynote-image-resize-native-aot-macos-arm64-2026-10-11.json) records 33 passing native smoke profiles per runtime. The [fixed second-duration profile](../Docs/Compatibility/iwork-duration-seconds-native-aot-macos-arm64-2026-10-10.json) also qualifies saved/reopened native Numbers caches, formula recalculation and integral-second display boundaries on that host. The [fixed millisecond-duration profile](../Docs/Compatibility/iwork-duration-milliseconds-native-aot-macos-arm64-2026-10-10.json) adds saved/reopened native Numbers caches and formula recalculation for three fractional-second ranges on that host. Rendering, complete fidelity and Apple sandbox/device acceptance remain separate qualification requirements.
 
 ## Opt in to an Office destination adapter
 

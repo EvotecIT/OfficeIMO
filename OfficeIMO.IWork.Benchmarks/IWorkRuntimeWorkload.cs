@@ -37,6 +37,12 @@ public sealed partial class IWorkRuntimeWorkload {
     public void Execute(string operation) {
         _operation = operation; ReleaseResults(); VerifiedUnits = 0;
         CancellationObserved = false; CancellationProcessedBytes = 0; CancellationTotalIoBytes = 0; CancellationLatencyMs = 0;
+        CancellationPreRequestElapsedMs = 0; CancellationPreRequestCpuMs = 0; CancellationRecoveryUnits = 0;
+        KnownPaddingOmissionCount = 0; KnownNumbersApproximationCount = 0;
+        if (IsPhaseCancellation(operation)) {
+            ExecutePhaseCancellation(operation);
+            return;
+        }
         if (operation.StartsWith("CancelDuring", StringComparison.Ordinal)) {
             ExecuteCancellation(operation);
             return;
@@ -61,7 +67,9 @@ public sealed partial class IWorkRuntimeWorkload {
         }
         if (operation != "ConvertSave") throw new ArgumentException("Unknown iWork workload operation.", nameof(operation));
         using var saved = new MemoryStream();
-        var policy = new IWorkConversionOptions();
+        var policy = _native && _kind == IWorkDocumentKind.Numbers
+            ? new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true }
+            : new IWorkConversionOptions();
         if (_kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordDocumentResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
@@ -78,6 +86,10 @@ public sealed partial class IWorkRuntimeWorkload {
     private void ValidateConversionPolicy(IWorkConversionReport report) {
         if (report.ProjectionKind != IWorkProjectionKind.EditableReconstruction)
             throw new InvalidDataException("Runtime workload requires editable output.");
+        if (_native && _kind == IWorkDocumentKind.Numbers) {
+            ValidateNativeNumbersConversionPolicy(report);
+            return;
+        }
         report.RequireCompleteEditableReconstruction();
     }
 
@@ -89,6 +101,10 @@ public sealed partial class IWorkRuntimeWorkload {
 
     /// <summary>Checks every source or saved destination unit outside timing; failures fail the lane.</summary>
     public void Validate() {
+        if (IsPhaseCancellation(_operation)) {
+            ValidatePhaseCancellation();
+            return;
+        }
         if (_operation?.StartsWith("CancelDuring", StringComparison.Ordinal) == true) {
             if (!CancellationObserved || CancellationProcessedBytes <= 0)
                 throw new InvalidDataException("Cancellation did not follow actual operation I/O.");
@@ -161,6 +177,7 @@ public sealed partial class IWorkRuntimeWorkload {
             if (text != expected) throw new InvalidDataException(
                 $"iWork text or order mismatch at unit {index}: expected {System.Text.Json.JsonSerializer.Serialize(expected)}, read {System.Text.Json.JsonSerializer.Serialize(text)}.");
         }
+        if (index != _units) throw new InvalidDataException("iWork text workload unit count mismatch.");
         VerifiedUnits = index;
     }
 }

@@ -87,7 +87,7 @@ public sealed class IWorkPagesDocument {
         return paragraph;
     }
 
-    /// <summary>Creates a decimal list; call its AddItem method to insert body paragraphs.</summary>
+    /// <summary>Creates a decimal list; call AddItem or AddRichItem to insert body paragraphs.</summary>
     /// <remarks>Markers and text share a whole-point font size. Each list owns its counters and supports two non-tiered levels.</remarks>
     public IWorkPagesNumberedList CreateNumberedList(string fontName = "Arial", float fontSizePoints = 12) {
         var list = new IWorkPagesNumberedList(this, fontName, fontSizePoints);

@@ -2,6 +2,32 @@
 
 These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote, Pages and Numbers fixtures qualify their bounded creation models.
 
+## Large native Keynote reference
+
+The [512-slide reference](native-exports/keynote-scale-512-v15.4.json) is an Apple
+Keynote 15.4 derivative of the licensed two-slide color fixture. Native duplication
+produces 256 repetitions of two text layouts; save, close/reopen and inspection
+reach slide 512 without repair. Independent decoding checks every ordered native
+slide identity, text box, note, background and frame against Apple's PPTX export.
+All 512 PDF pages pass complete text and canvas checks. Six representative Cairo
+renders are inspected; Poppler Splash rendering and bbox ligature extraction have
+the recorded limits. This is a repeated-layout scale reference, with broader
+object diversity and complete appearance outside its qualification.
+
+Reproduce the oracle in isolated evidence environments with pypdf 6.10.0,
+numbers-parser 4.19.0 and the manifest's pinned Keynote descriptor:
+
+```sh
+python Build/IWork/extract-keynote-scale-pdf.py <apple.pdf> <pdf-text.json>
+pdftotext -bbox -enc UTF-8 <apple.pdf> <pdf-bbox.xhtml>
+python Build/IWork/extract-keynote-scale.py <native.key> --descriptor <keynote-descriptor.pb> --pptx <apple.pptx> --pdf <apple.pdf> --pdf-text <pdf-text.json> --pdf-bbox <pdf-bbox.xhtml> --out <decode.json>
+```
+
+The optional `--destination-pptx` argument checks all reconstructed OfficeIMO
+slides through independent XML reading. The benchmark's `NativeLarge` profile
+uses this source and verifies every unit outside measurement. No oracle tools
+enter OfficeIMO's runtime or normal build requirements.
+
 | Folder | Upstream | Revision | Producer evidence | License |
 |---|---|---|---|---|
 | `nim-iwork` | [nim-iwork](https://github.com/halcyon-oss/nim-iwork) | `60a8e875692ac934956cdb5b39f88e557c97cca4` | Pages, Numbers, and Keynote 14.5 fixtures | MIT, copyright Alfred |
@@ -38,7 +64,23 @@ python Build/IWork/verify-native-preservation.py OfficeIMO.TestAssets/Documents/
 
 Omit `--image` and `--descriptor` to compare a reproduced unchanged encoding. The manifest pins source/output hashes and record/entry counts for all three applications. Byte comparison applies to OfficeIMO output before native opening; Keynote can update application view state during inspection.
 
+The [direct image resize manifest](native-exports/keynote-preserved-resized-v15.4.json) extends that proof to composed moves and resizes of opaque PNG, alpha PNG and JPEG images. Keynote 15.4 opens all three slides without repair, changes the JPEG width from 420 to 421 points and retains that edit after save/close/reopen. Independent native-graph and PPTX decoding checks exact image bytes, descriptions and final frames. Native and composed PDF inspection checks all three slides, painted image bounds, transparency samples and stacking; typography retains the recorded font-metric differences. Reproduce the raw IWA comparison with:
+
+```sh
+python Build/IWork/verify-native-preservation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-edited-v15.4.key OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-resized-v15.4.key --descriptor <keynote-descriptor.pb> --image-frame 125 80 125 420 168 --image-frame 139 80 135 360 180 --image-frame 154 100 135 420 168 --out <evidence.json>
+```
+
+The descriptor hash and isolated numbers-parser/protobuf versions are pinned in the manifest. Only the requested fixed32 position/size spans differ; all raw headers, sibling records and other file-entry payloads remain intact. Native visual caches remain unassessed and require explicit acceptance. Other producer versions, crop/mask/rotation states, nested-index mutations and broader semantic editing retain their separate gates.
+
 Keynote 15.4 reports the requested X100/Y130 frame, accepts a native one-point horizontal edit and retains X101/Y130/W600/H240 after save/close/reopen. All three native PDF pages are inspected, and saved-source resources match the original PNG/JPEG payloads. Unchanged outputs open in Pages 15.4, Numbers 14.5 and Keynote 15.4, retaining the observed two-page body, two-sheet/three-table workbook and three-slide geometry. This is fixture-specific native acceptance; unrefreshed preview/cache behavior, wider native metadata and other producer versions remain unassessed.
+
+The [Numbers scalar-edit manifest](native-exports/numbers-preserved-scalars-v14.5.json) qualifies six existing numeric/boolean replacements across two tables in a two-sheet workbook. Numbers 14.5 opens the output without repair and retains a further Data B2 edit from 42.125 to 43.125 after save/close/reopen. Independent Numbers/XLSX decoding agrees on all typed values. The native PDF covers both sheets, and both pages are rendered and inspected. The raw verifier checks 103 entries and 316 records; only the six requested fixed-width scalar spans in tile records 150/175 differ:
+
+```sh
+python Build/IWork/verify-native-scalar-preservation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-edited-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-preserved-scalars-v14.5.numbers --descriptor <numbers-descriptor.pb> --cell 141 2 2 number 42.125 --cell 141 2 3 boolean false --cell 141 3 2 number -7.5 --cell 141 3 3 boolean true --cell 166 1 2 number 123.75 --cell 166 2 1 boolean true --out <evidence.json>
+```
+
+The descriptor and decoder versions are hash-pinned. Native visual caches remain unrefreshed and require explicit acceptance. This profile admits Decimal128 numbers and native booleans in active BNC storage with empty legacy placeholders; formulas, insertion, type changes, shared tiles and nested-index mutations are rejected. XLSX padding loss and the resulting complete-PDF rejection remain explicit. Other versions, fonts and broader edits require separate qualification.
 
 ## Native Pages body creation
 
@@ -606,6 +648,8 @@ outputs.
 [`native-exports/pages-created-numbering-v15.4.json`](native-exports/pages-created-numbering-v15.4.json) pins OfficeIMO-authored mixed and list-only documents under the repository MIT license. The mixed body contains two decimal levels, starts/restarts, parent resets, plain text, a scalar table, a transparent PNG and return to an earlier group. Independent schemas decode every created record and selected native-saved body/style declaration. Pages 15.4 opens both documents without repair; an inserted parent survives save, close and reopen. Native DOCX indents and all 14 original/15 edited PDF markers agree with strict OfficeIMO DOCX and composed PDFs. All native and composed pages are inspected.
 
 Reproduce the created graphs with `Build/IWork/verify-pages-creation.py` and the native-saved declarations with `Build/IWork/extract-pages-list-profile.py`, using the pinned descriptor digest and commands in the manifest. The native edit demonstrates sparse restart metadata: a level persists into an inserted paragraph, while its restart flag applies only at the original boundary. Screenshots and PDF exports supply visible counter evidence because Pages accessibility text reports different ordinal values. The manifest records font, emoji, spacing, native PDF extraction and group-restoration limits; additional list profiles and receiving-application OfficeIMO DOCX appearance remain unqualified.
+
+The [rich-item reference](native-exports/pages-created-rich-numbering-v15.4.json) adds bold, italic, underline, strikethrough, opaque colors and explicit plain resets at the same two decimal levels. The 51-record graph and native-saved character ranges independently retain all eight counters and plain black marker defaults. A final text edit survives Pages 15.4 save/close/reopen. Strict OfficeIMO DOCX and complete composed PDFs retain the rich runs; all native and composed PDF pages are inspected. Use the same independent graph/style tools with the manifest's descriptor. Native DOCX retains text/counters but changes font families and selected bold/italic overrides. Mixed fonts/sizes, broader lists, exact typography, emoji and pagination equivalence remain unqualified.
 
 ## Native numeric-format creation reference
 

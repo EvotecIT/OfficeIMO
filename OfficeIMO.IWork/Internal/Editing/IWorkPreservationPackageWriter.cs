@@ -50,7 +50,7 @@ internal static class IWorkPreservationPackageWriter {
                 "Captured file-entry payloads are preserved. ZIP compression, timestamps, extra fields, comments, directory entries and filesystem metadata are not preserved.")
         };
         if (edits.Count > 0) diagnostics.Add(new(IWorkDiagnosticSeverity.Warning, "IWORK_NATIVE_VISUAL_CACHES_UNASSESSED",
-            "Image positions were changed while native previews and other visual caches were retained without refresh. Native rendering/cache regeneration and wider application metadata are unassessed.",
+            "Native content was changed while previews and other visual caches were retained without refresh. Native rendering/cache regeneration and wider application metadata are unassessed.",
             lossKind: global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         string sourceHash = source.WithCancellation(token).ComputePackageContentHash(), outputHash = reopened.ComputePackageContentHash();
         if (edits.Count == 0 && sourceHash != outputHash) throw new InvalidDataException("An unchanged save did not preserve normalized source content.");

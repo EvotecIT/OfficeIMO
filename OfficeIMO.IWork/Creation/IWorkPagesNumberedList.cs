@@ -3,7 +3,8 @@ using OfficeIMO.IWork.Internal;
 namespace OfficeIMO.IWork;
 
 /// <summary>Owns a decimal list whose items occupy separate paragraphs in one newly created Pages document.</summary>
-/// <remarks>Items use two non-tiered levels, black text and a shared whole-point font size.
+/// <remarks>Items use two non-tiered levels and a shared whole-point font size. Markers remain plain black;
+/// rich item runs can vary their opaque color and character decorations.
 /// Plain paragraphs and attachments preserve counters. Returning to this list after another list resumes its counters.
 /// Advancing or restarting a parent resets its child counter. Instances are not thread safe.</remarks>
 public sealed class IWorkPagesNumberedList {
@@ -34,15 +35,33 @@ public sealed class IWorkPagesNumberedList {
     /// <param name="layout">Optional immutable paragraph spacing and tab stops.</param>
     public IWorkPagesParagraphData AddItem(string text, int level = 0, int? restartAt = null,
         IWorkPagesParagraphLayout? layout = null) {
+        var run = new IWorkTextRunData(text, FontName, FontSizePoints,
+            IWorkCreationValidation.ParseColor("000000"), allowTabs: layout != null);
+        return AppendItem(new[] { run }, level, restartAt, layout);
+    }
+
+    /// <summary>Adds a snapshot of rich character runs as one numbered body paragraph.</summary>
+    /// <param name="runs">Runs with the owning list's font and size. Opaque colors and character decorations may vary.</param>
+    /// <param name="level">Zero for a parent or one for a child. A child requires an earlier parent in this list.</param>
+    /// <param name="restartAt">Optional positive counter value. The first parent starts at one by default.</param>
+    /// <param name="layout">Optional immutable paragraph spacing and tab stops.</param>
+    /// <remarks>Runs cannot contain line or paragraph breaks. Empty ranges are discarded unless the whole item is blank.
+    /// The list's marker style remains independent of the first character run.</remarks>
+    public IWorkPagesParagraphData AddRichItem(IEnumerable<IWorkTextRunData> runs, int level = 0, int? restartAt = null,
+        IWorkPagesParagraphLayout? layout = null) => AppendItem(runs, level, restartAt, layout);
+
+    private IWorkPagesParagraphData AppendItem(IEnumerable<IWorkTextRunData> runs, int level, int? restartAt,
+        IWorkPagesParagraphLayout? layout) {
         if (level is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(level));
         if (restartAt <= 0) throw new ArgumentOutOfRangeException(nameof(restartAt));
         if (level == 1 && !_counter.HasParent)
             throw new InvalidOperationException("A child item requires an earlier parent in this list.");
         int number = restartAt ?? _counter.Next(level)
             ?? throw new InvalidOperationException("The decimal counter requires an explicit restart after Int32.MaxValue.");
-        var run = new IWorkTextRunData(text, FontName, FontSizePoints,
-            IWorkCreationValidation.ParseColor("000000"), allowTabs: layout != null);
-        var paragraph = new IWorkPagesParagraphData(new[] { run }, layout, this, level, number, restartAt);
+        var paragraph = new IWorkPagesParagraphData(runs, layout, this, level, number, restartAt);
+        if (paragraph.Runs.Any(run => run.FontSizePoints != FontSizePoints
+                || !string.Equals(run.FontName, FontName, StringComparison.Ordinal)))
+            throw new ArgumentException("Rich item runs must use the owning list's font and size.", nameof(runs));
         _document.AddNumberedParagraph(paragraph); _items.Add(paragraph); _counter.Accept(level, number);
         return paragraph;
     }

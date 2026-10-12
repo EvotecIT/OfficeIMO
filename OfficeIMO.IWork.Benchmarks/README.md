@@ -7,9 +7,19 @@ deterministic native-content and cancellation checks run in a dedicated workflow
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
 The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
+The [512-slide Apple-produced run](../Docs/benchmarks/officeimo.iwork-native-large-runtime-2026-10-11.md)
+records eighteen validated reading/conversion and separate memory-sampling
+observations. It covers two repeated native layouts; host contention, varied
+objects and portable resource budgets remain explicit limits.
+
 The [1,000-slide native creation run](../Docs/benchmarks/officeimo.iwork-native-created-runtime-2026-10-09.md)
 records 18 semantically validated reading, conversion/save and native encoding/save
 samples on macOS, with separate memory observations and explicit host limits.
+
+The [phase cancellation run](../Docs/benchmarks/officeimo.iwork-phase-cancellation-2026-10-11.md)
+records twelve successful projection/native-encoding cancellations, each followed
+by complete 1,000-slide recovery. Timer scheduling and host contention remain
+explicit limits; these observations do not establish portable latency budgets.
 
 The [2026-10-04 portable run](../Docs/benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md)
 retains 6,390 validated samples on Linux x64, macOS arm64 and Windows x64. It covers
@@ -34,6 +44,41 @@ The workload project also targets `net10.0`; pass that framework when building a
 ```powershell
 ./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Scale NativeCreated -Kind Keynote -Operation LoadProject,ConvertSave,NativeSave -OutputRoot $env:EVOTEC_SCRATCH_ROOT/iwork-native-created
 ```
+
+`NativeLarge` reads a hash-pinned 512-slide file saved by Apple Keynote 15.4.
+It repeats two native text layouts 256 times. Validation checks every slide's
+text, presenter notes, background, visibility and frame geometry, plus the full
+ordered native identity digest. Saved PPTX checks cover all slides and the Open
+XML schema. The [native reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-scale-512-v15.4.json)
+records independent native/PPTX/PDF checks and representative rendering limits.
+This profile measures repeated-layout scale; varied objects and complete
+appearance need additional references. Native encoding/save uses `NativeCreated`.
+
+```powershell
+./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Scale NativeLarge -Kind Keynote -Operation LoadProject,ConvertSave -OutputRoot $env:EVOTEC_SCRATCH_ROOT/iwork-native-large
+```
+
+The two phase cancellation operations use the same 1,000-slide owned model.
+`CancelDuringProjection` loads the source before timing and cancels its semantic
+projection. `CancelDuringNativeEncoding` cancels native saving before the first
+caller-stream write. A timer requests cancellation after 25 ms; a successful
+sample requires at least 20 ms elapsed and 5 ms of process CPU advancement before
+the request, an untouched destination, and a subsequent complete projection of
+all 1,000 slides. Preparation, source hashing and semantic recovery stay outside
+measurement. The timer callback is joined before its resources are released.
+
+```powershell
+./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Scale NativeCreated -Kind Keynote -Operation CancelDuringProjection,CancelDuringNativeEncoding -OutputRoot $env:EVOTEC_SCRATCH_ROOT/iwork-phase-cancellation
+```
+
+These timer-dependent cases are opt-in and stay outside the ordinary correctness
+command below. To validate them once without collecting a benchmark, run
+`dotnet run --project OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0 -- --validate-phase-cancellation`.
+A run fails if it finishes before cancellation, reaches stream
+copying, or lacks the required active-work observations. CPU includes observer
+and host activity; scheduling does not identify an internal parser or encoder
+checkpoint. The cases do not qualify destination construction, atomic path
+staging, large independent Apple documents, or portable stop-latency budgets.
 
 Use a fresh PowerShell 7 process. The runner requires PowerForge operation allocation
 measurement and its operation-memory sampling policy API. It fails when allocation
@@ -62,10 +107,14 @@ Use `-Scale Native` for `nim-iwork/simple.pages`, `nim-iwork/simple.numbers` and
 `native-exports/keynote-colors-v15.4.key` in the [licensed corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
 Their SHA-256 hashes are checked before execution. Pages validates all three body
 paragraphs, including the empty paragraph; Numbers validates the complete 3×3 grid,
-coordinates, value types and contents. Both operations use the same reader and
-editable-conversion owners as the synthetic cases, requiring complete editable
-reconstruction for their qualified paragraph defaults. They reject preview fallback
-and verify all listed content. The conversion policy is recorded in case variables so these runs
+coordinates, value types and contents. These cases use the same reader and
+editable-conversion owners as the synthetic cases. Pages and Keynote require complete
+editable reconstruction. The pinned Numbers conversion explicitly accepts its
+reported cell-padding omission, rejects other omissions or unresolved selected content,
+and verifies every saved typed cell. `KnownPaddingOmissionCount` retains that acceptance
+in the metrics. The existing automatic-decimal and border-width approximations remain
+explicit in `KnownNumbersApproximationCount` and suite metadata. All conversions reject
+preview fallback. The policy is recorded in case variables so these runs
 are not compared with earlier strict-policy samples. Saved packages are reopened
 before a sample succeeds. Keynote validates both slides, their 1024×768-point canvas,
 all title/body text drawables in order and the two opaque background colors against
@@ -128,13 +177,14 @@ after the first 64 KiB write. Select only `-Scale Native -Kind Keynote -Operatio
 CancelDuringNativeCopy` for that fixed writer case. Its input hash and size describe
 the model's deterministic native encoding. It does not consume a producer fixture.
 
-Every cancellation sample must observe `OperationCanceledException` after real I/O
+Each of these three I/O cancellation cases must observe `OperationCanceledException` after real I/O
 and leave the caller stream open. Writer copying must stop at 64 KiB. `VerifiedUnits`
 is one cancellation boundary in these cases, rather than the fixture's content count.
 Metrics retain bytes at the request, total observed I/O and request-to-exception
-latency. This qualifies cancellation during package intake and native stream copying;
-it does not measure cancellation during projection, destination construction or
-native encoding, and it does not qualify atomic path cancellation during staging.
+latency. These I/O cases qualify cancellation during package intake and native stream copying.
+The separate opt-in phase cases above cover projection and native encoding under their
+stated timer and CPU observations. Destination construction and atomic path staging
+remain unqualified.
 
 Repeat an equivalent matrix after warmup before selecting a host-specific budget.
 Per-iteration deltas do not establish long-run stability, native-memory retention,
