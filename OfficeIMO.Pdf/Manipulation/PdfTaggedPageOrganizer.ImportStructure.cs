@@ -9,6 +9,12 @@ internal static partial class PdfTaggedPageOrganizer {
     private static void MergeImportedStructure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog,
         PdfDictionary importedCatalog, IEnumerable<int> importedNumbers, int[] originalPages, int insertBeforePage, CancellationToken token) {
         if (!importedCatalog.Items.TryGetValue("StructTreeRoot", out var sourceRootValue) || PdfObjectLookup.Resolve(objects, sourceRootValue) is not PdfDictionary sourceRoot) return;
+        // Catalog language inheritance ends when roots move to another catalog.
+        if (importedCatalog.Items.TryGetValue("Lang", out var sourceLanguage) && sourceRoot.Items.TryGetValue("K", out var sourceChildrenValue)) {
+            var sourceRoots = PdfObjectLookup.Resolve(objects, sourceChildrenValue) is PdfArray sourceArray ? sourceArray.Items : new List<PdfObject> { sourceChildrenValue };
+            foreach (var child in sourceRoots) if (PdfObjectLookup.Resolve(objects, child) is PdfDictionary element && !element.Items.ContainsKey("Lang"))
+                element.Items["Lang"] = sourceLanguage;
+        }
         if (!catalog.Items.TryGetValue("StructTreeRoot", out var targetRootValue) || PdfObjectLookup.Resolve(objects, targetRootValue) is not PdfDictionary targetRoot) {
             catalog.Items["StructTreeRoot"] = sourceRootValue;
             if (importedCatalog.Items.TryGetValue("MarkInfo", out var mark)) catalog.Items["MarkInfo"] = mark;
@@ -35,7 +41,7 @@ internal static partial class PdfTaggedPageOrganizer {
         var nums = new PdfArray(); foreach (var pair in targetEntries) { nums.Items.Add(new PdfNumber(pair.Key)); nums.Items.Add(pair.Value); }
         var parentTree = new PdfDictionary(); parentTree.Items["Nums"] = nums; targetRoot.Items["ParentTree"] = parentTree;
         targetRoot.Items["ParentTreeNextKey"] = new PdfNumber(nextKey);
-        string prefix = "import" + (-imported.Min()).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":";
+        string prefix = UniqueStructureIdPrefix(objects, "import" + (-imported.Min()).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":");
         var roles = MergeMap("RoleMap"); var classes = MergeMap("ClassMap");
         Dictionary<string, string> MergeMap(string name) {
             var renames = new Dictionary<string, string>(StringComparer.Ordinal);

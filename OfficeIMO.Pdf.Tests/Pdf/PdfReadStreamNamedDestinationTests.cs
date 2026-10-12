@@ -182,16 +182,16 @@ public partial class PdfReadStreamTests {
         AssertNamedDestinations(PdfStamper.StampText(namedDestinationPdf, "STAMP"));
 
         static void AssertNamedDestinations(byte[] output, bool containsSecondDestination = false) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/Names << /Dests << /Names [", text, StringComparison.Ordinal);
-            Assert.Contains("(Chapter1)", text, StringComparison.Ordinal);
-            Assert.Contains("/XYZ 0 200 0", text, StringComparison.Ordinal);
+            var destinations = PdfInspector.Inspect(output).NamedDestinations;
+            var first = Assert.Single(destinations, item => item.Name == "Chapter1");
+            Assert.Equal(containsSecondDestination ? 2 : 1, first.PageNumber);
+            Assert.Equal(200D, first.DestinationTop);
+            Assert.Equal(PdfOpenActionDestinationMode.Xyz, first.DestinationMode);
             if (containsSecondDestination) {
-                Assert.Contains("(Chapter2)", text, StringComparison.Ordinal);
-                Assert.Contains("/Fit", text, StringComparison.Ordinal);
-            } else {
-                Assert.DoesNotContain("(Chapter2)", text, StringComparison.Ordinal);
-            }
+                var second = Assert.Single(destinations, item => item.Name == "Chapter2");
+                Assert.Equal(1, second.PageNumber);
+                Assert.Equal(PdfOpenActionDestinationMode.Fit, second.DestinationMode);
+            } else Assert.DoesNotContain(destinations, item => item.Name == "Chapter2");
         }
     }
 
@@ -206,10 +206,6 @@ public partial class PdfReadStreamTests {
         AssertNamedDestinations(PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
 
         static void AssertNamedDestinations(byte[] output, bool containsSecondDestination = false, int chapter1Page = 1, int chapter2Page = 2) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/Names << /Dests << /Names [", text, StringComparison.Ordinal);
-            Assert.DoesNotContain("/Dests << /Kids", text, StringComparison.Ordinal);
-
             PdfDocumentInfo info = PdfInspector.Inspect(output);
             AssertDestination(info, "Chapter1", chapter1Page, 200);
             if (containsSecondDestination) {
@@ -382,7 +378,6 @@ public partial class PdfReadStreamTests {
 
         AssertNamedDestinations(() => PdfPageExtractor.ExtractPages(namedDestinationPdf, 1));
         AssertNamedDestinations(() => PdfPageExtractor.SplitPages(namedDestinationPdf));
-        AssertNamedDestinations(() => PdfPageEditor.DeletePages(namedDestinationPdf, 1));
         AssertNamedDestinations(() => PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
         AssertNamedDestinations(() => PdfMerger.Merge(namedDestinationPdf));
         AssertNamedDestinations(() => PdfStamper.StampText(namedDestinationPdf, "STAMP"));

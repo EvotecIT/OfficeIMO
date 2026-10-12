@@ -1368,14 +1368,18 @@ These operations do not use the page-attribute append-only route.
 Tagged page organization uses a catalog-preserving full rewrite. `Delete`,
 `Reorder`, `Move`, `Duplicate`, `Extract`, and `Split` retain surviving structure
 elements and update page ownership, parent-tree entries, IDs, fields and navigation.
-Copies receive separate page objects, structure elements, parent-tree keys and IDs.
+Copies receive separate page objects, structure elements, parent-tree keys and IDs,
+including across successive copy operations. Marked-content references retain
+their ownership whether their optional `/Type /MCR` entry is present or omitted.
 `ReorderWithMapping` returns mappings for surviving original objects, including
 annotations used by a host's selection state. The operation plan reports
 `OrganizePages` and the required structure, form and annotation readback proofs.
 
 `Insert`, `Append` and `Prepend` use `ImportPages` when combining tagged page
 graphs. The target catalog and metadata remain, imported structure keys and IDs
-are made distinct, and role/class mappings are namespaced. Incoming form fields,
+are made distinct across successive imports, and role/class mappings are
+namespaced. Imported structure roots retain their source language inheritance
+and explicit language overrides. Incoming form fields,
 layers, document name trees other than destinations, and unknown structure-root
 extensions need explicit collision policies and currently fail with a specific
 error. XFA, ambiguous ownership and unsupported surviving references to deleted

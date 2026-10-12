@@ -3,6 +3,16 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTaggedPageOrganizer {
+    private static string UniqueStructureIdPrefix(Dictionary<int, PdfIndirectObject> objects, string preferred) {
+        var existing = objects.Values.Select(item => item.Value).OfType<PdfDictionary>()
+            .Where(dictionary => dictionary.Items.ContainsKey("ID"))
+            .Select(dictionary => PdfObjectLookup.Resolve(objects, dictionary.Items["ID"]))
+            .OfType<PdfStringObj>().Select(id => id.RawBytes).ToArray();
+        string prefix = preferred;
+        while (existing.Any(id => id.Take(prefix.Length).SequenceEqual(System.Text.Encoding.ASCII.GetBytes(prefix)))) prefix = "_" + prefix;
+        return prefix;
+    }
+
     private static PdfStringObj PrefixStructureId(string prefix, PdfStringObj id) =>
         new(System.Text.Encoding.ASCII.GetBytes(prefix).Concat(id.RawBytes).ToArray());
 
@@ -89,7 +99,7 @@ internal static partial class PdfTaggedPageOrganizer {
                 throw new InvalidOperationException("The tagged structure tree is cyclic, shared, or unreadable.");
             int? page = dictionary.Items.TryGetValue("Pg", out var pageValue) && pageValue is PdfReference owner ? owner.ObjectNumber : inheritedPage;
             string? type = dictionary.Get<PdfName>("Type")?.Name;
-            if (type is "MCR" or "OBJR") {
+            if (type is "MCR" or "OBJR" || type == null && dictionary.Items.ContainsKey("MCID")) {
                 if (!page.HasValue) throw new InvalidOperationException("A tagged content reference has no page owner.");
                 if (removedPages.Contains(page.Value) || type == "OBJR" && dictionary.Items.TryGetValue("Obj", out var target) &&
                     target is PdfReference annotation && removedAnnotations.Contains(annotation.ObjectNumber)) return null;

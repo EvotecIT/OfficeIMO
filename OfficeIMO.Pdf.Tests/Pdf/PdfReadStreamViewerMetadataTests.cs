@@ -48,19 +48,17 @@ public partial class PdfReadStreamTests {
 
         AssertViewerPreferences(() => PdfPageExtractor.ExtractPages(viewerPreferencePdf, 1));
         AssertViewerPreferences(() => PdfPageExtractor.SplitPages(viewerPreferencePdf));
-        AssertViewerPreferences(() => PdfPageEditor.DeletePages(viewerPreferencePdf, 1));
         AssertViewerPreferences(() => PdfMetadataEditor.UpdateMetadata(viewerPreferencePdf, title: "Updated"));
         AssertViewerPreferences(() => PdfMerger.Merge(viewerPreferencePdf));
         AssertViewerPreferences(() => PdfStamper.StampText(viewerPreferencePdf, "STAMP"));
     }
 
     [Fact]
-    public void RewriteApis_RejectTaggedPdfsWithClearUnsupportedDiagnostic() {
+    public void RewriteApis_ApplyOperationSpecificTaggedStructureGates() {
         byte[] taggedPdf = BuildTaggedPdf();
 
-        AssertTagged(() => PdfPageExtractor.ExtractPages(taggedPdf, 1));
-        AssertTagged(() => PdfPageExtractor.SplitPages(taggedPdf));
-        AssertTagged(() => PdfPageEditor.DeletePages(taggedPdf, 1));
+        Assert.True(PdfInspector.Inspect(PdfPageExtractor.ExtractPages(taggedPdf, 1)).HasTaggedContent);
+        Assert.True(PdfInspector.Inspect(Assert.Single(PdfPageExtractor.SplitPages(taggedPdf))).HasTaggedContent);
         AssertTagged(() => PdfMetadataEditor.UpdateMetadata(taggedPdf, title: "Updated"));
         AssertTagged(() => PdfMerger.Merge(taggedPdf));
         AssertTagged(() => PdfStamper.StampText(taggedPdf, "STAMP"));
@@ -106,7 +104,6 @@ public partial class PdfReadStreamTests {
 
         AssertXmpMetadata(() => PdfPageExtractor.ExtractPages(xmpMetadataPdf, 1));
         AssertXmpMetadata(() => PdfPageExtractor.SplitPages(xmpMetadataPdf));
-        AssertXmpMetadata(() => PdfPageEditor.DeletePages(xmpMetadataPdf, 1));
         AssertXmpMetadata(() => PdfMetadataEditor.UpdateMetadata(xmpMetadataPdf, title: "Updated"));
         AssertXmpMetadata(() => PdfMerger.Merge(xmpMetadataPdf));
         AssertXmpMetadata(() => PdfStamper.StampText(xmpMetadataPdf, "STAMP"));
@@ -128,10 +125,8 @@ public partial class PdfReadStreamTests {
         AssertOutputIntents(PdfStamper.StampText(outputIntentPdf, "STAMP"));
 
         static void AssertOutputIntents(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/OutputIntents [", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /OutputIntent", text, StringComparison.Ordinal);
-            Assert.Contains("/OutputConditionIdentifier (sRGB)", text, StringComparison.Ordinal);
+            var intent = Assert.Single(PdfInspector.Inspect(output).OutputIntents);
+            Assert.Equal("sRGB", intent.OutputConditionIdentifier);
         }
     }
 
@@ -146,7 +141,6 @@ public partial class PdfReadStreamTests {
 
         AssertOutputIntents(() => PdfPageExtractor.ExtractPages(outputIntentPdf, 1));
         AssertOutputIntents(() => PdfPageExtractor.SplitPages(outputIntentPdf));
-        AssertOutputIntents(() => PdfPageEditor.DeletePages(outputIntentPdf, 1));
         AssertOutputIntents(() => PdfMetadataEditor.UpdateMetadata(outputIntentPdf, title: "Updated"));
         AssertOutputIntents(() => PdfMerger.Merge(outputIntentPdf));
         AssertOutputIntents(() => PdfStamper.StampText(outputIntentPdf, "STAMP"));

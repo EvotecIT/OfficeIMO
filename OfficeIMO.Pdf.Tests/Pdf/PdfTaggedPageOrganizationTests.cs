@@ -3,7 +3,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PdfTaggedPageOrganizationTests {
+public sealed partial class PdfTaggedPageOrganizationTests {
     [Fact]
     public void CopiesAndImportsRetainOpaqueStructureIdsAndRemapStructuredDestinations() {
         byte[] source = CreateTaggedSource();
@@ -22,7 +22,11 @@ public sealed class PdfTaggedPageOrganizationTests {
             return security.InfoObjectNumber;
         });
         var input = PdfDocument.Load(source);
-        foreach (var output in new[] { input.Pages.Duplicate(1), input.Pages.Insert(1, input) }) {
+        foreach (var (output, expectedDestinations) in new[] {
+            (input.Pages.Duplicate(1), 2), (input.Pages.Insert(1, input), 2),
+            (input.Pages.Duplicate(1).Pages.Duplicate(1), 3),
+            (input.Pages.Append(input).Pages.Append(input), 3)
+        }) {
             var read = PdfReadDocument.Open(output.ToBytes()); var objects = read.Objects;
             var root = (PdfDictionary)PdfObjectLookup.Resolve(objects, Catalog(read).Items["StructTreeRoot"])!;
             var names = (PdfArray)((PdfDictionary)PdfObjectLookup.Resolve(objects, root.Items["IDTree"])!).Items["Names"];
@@ -37,8 +41,9 @@ public sealed class PdfTaggedPageOrganizationTests {
                 Assert.Equal(new byte[] { 0, 255, 1 }, id.RawBytes.Skip(id.RawBytes.Length - 3));
                 Assert.Equal(page.ObjectNumber, ((PdfReference)owner.Items["Pg"]).ObjectNumber); destinations++;
             }
-            Assert.Equal(2, destinations);
+            Assert.Equal(expectedDestinations, destinations);
         }
+        Assert.Equal(source, input.ToBytes());
     }
 
     [Fact]
@@ -226,7 +231,6 @@ public sealed class PdfTaggedPageOrganizationTests {
 
     private static void AssertStructure(PdfReadDocument read, int pages) {
         var objects = read.Objects; var root = (PdfDictionary)PdfObjectLookup.Resolve(objects, Catalog(read).Items["StructTreeRoot"])!;
-        var document = (PdfDictionary)PdfObjectLookup.Resolve(objects, root.Items["K"])!;
         var leaves = new List<PdfDictionary>(); Visit(root.Items["K"], (PdfReference)Catalog(read).Items["StructTreeRoot"]);
         Assert.Equal(pages, leaves.Count);
         var parents = (PdfDictionary)PdfObjectLookup.Resolve(objects, root.Items["ParentTree"])!;
@@ -236,7 +240,13 @@ public sealed class PdfTaggedPageOrganizationTests {
         var pageIds = new HashSet<int>(read.Pages.Select(page => page.ObjectNumber));
         foreach (var element in leaves) {
             Assert.Contains(((PdfReference)element.Items["Pg"]).ObjectNumber, pageIds);
-            Assert.Equal(0, ((PdfNumber)element.Items["K"]).Value);
+            var content = PdfObjectLookup.Resolve(objects, element.Items["K"]);
+            if (content is PdfNumber number) Assert.Equal(0, number.Value);
+            else {
+                var reference = Assert.IsType<PdfDictionary>(content);
+                Assert.Equal(0, reference.Get<PdfNumber>("MCID")!.Value);
+                Assert.Equal(((PdfReference)element.Items["Pg"]).ObjectNumber, reference.Get<PdfReference>("Pg")!.ObjectNumber);
+            }
         }
         for (int index = 0; index < nums.Items.Count; index += 2) {
             int key = (int)((PdfNumber)nums.Items[index]).Value;
@@ -248,7 +258,9 @@ public sealed class PdfTaggedPageOrganizationTests {
             if (PdfObjectLookup.Resolve(objects, item) is PdfArray array) { foreach (var child in array.Items) Visit(child, parent); return; }
             var reference = Assert.IsType<PdfReference>(item); var element = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, reference));
             Assert.Equal(parent.ObjectNumber, ((PdfReference)element.Items["P"]).ObjectNumber);
-            if (PdfObjectLookup.Resolve(objects, element.Items["K"]) is PdfNumber) leaves.Add(element); else Visit(element.Items["K"], reference);
+            var content = PdfObjectLookup.Resolve(objects, element.Items["K"]);
+            if (content is PdfNumber || content is PdfDictionary dictionary && dictionary.Items.ContainsKey("MCID")) leaves.Add(element);
+            else Visit(element.Items["K"], reference);
         }
     }
 

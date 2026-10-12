@@ -49,6 +49,7 @@ internal static partial class PdfTaggedPageOrganizer {
         if (!catalog.Items.TryGetValue("StructTreeRoot", out var rootValue) || PdfObjectLookup.Resolve(objects, rootValue) is not PdfDictionary root) return;
         var projected = new Dictionary<int, int>(); var visited = new HashSet<int>();
         var ids = new Dictionary<string, PdfStringObj>(StringComparer.Ordinal);
+        string idPrefix = UniqueStructureIdPrefix(objects, "copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":");
         PdfObject? Project(PdfObject value, int? inheritedPage, PdfObject parent, int depth) {
             token.ThrowIfCancellationRequested();
             if (depth > 256) throw new InvalidOperationException("Page copying exceeded the structure nesting limit.");
@@ -61,7 +62,7 @@ internal static partial class PdfTaggedPageOrganizer {
             if (resolved is not PdfDictionary dictionary) throw new InvalidOperationException("Page copying found an unreadable structure child.");
             int? page = dictionary.Items.TryGetValue("Pg", out var owner) && owner is PdfReference pageRef ? pageRef.ObjectNumber : inheritedPage;
             string? type = dictionary.Get<PdfName>("Type")?.Name;
-            if (type is "MCR" or "OBJR") {
+            if (type is "MCR" or "OBJR" || type == null && dictionary.Items.ContainsKey("MCID")) {
                 if (!page.HasValue) throw new InvalidOperationException("A content reference has no page owner.");
                 if (page != sourcePage) return null;
                 var result = (PdfDictionary)clone(dictionary, 0); result.Items["Pg"] = new PdfReference(copiedPage, 0); return result;
@@ -77,7 +78,7 @@ internal static partial class PdfTaggedPageOrganizer {
             if (page == sourcePage) resultDictionary.Items["Pg"] = new PdfReference(copiedPage, 0);
             if (kids != null) resultDictionary.Items["K"] = kids;
             if (dictionary.Items.TryGetValue("ID", out var id) && PdfObjectLookup.Resolve(objects, id) is PdfStringObj text) {
-                var mapped = PrefixStructureId("copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":", text);
+                var mapped = PrefixStructureId(idPrefix, text);
                 resultDictionary.Items["ID"] = mapped; ids.Add(Convert.ToBase64String(text.RawBytes), mapped);
             }
             objects.Add(number, new PdfIndirectObject(number, 0, resultDictionary)); projected.Add(reference.ObjectNumber, number); return resultReference;
@@ -90,7 +91,8 @@ internal static partial class PdfTaggedPageOrganizer {
         var combined = new PdfArray(); var original = PdfObjectLookup.Resolve(objects, originalKids);
         var originalChildren = original is PdfArray array ? array.Items.ToArray() : originalKids == null ? Array.Empty<PdfObject>() : new[] { originalKids };
         bool copyDocument = parentDictionary != root && originalChildren.Any(child =>
-            PdfObjectLookup.Resolve(objects, child) is not PdfDictionary element || element.Get<PdfName>("Type")?.Name is "MCR" or "OBJR");
+            PdfObjectLookup.Resolve(objects, child) is not PdfDictionary element || element.Get<PdfName>("Type")?.Name is "MCR" or "OBJR" ||
+            element.Items.ContainsKey("MCID"));
         foreach (var child in originalChildren) {
             combined.Items.Add(child);
             if (copyDocument) continue;
