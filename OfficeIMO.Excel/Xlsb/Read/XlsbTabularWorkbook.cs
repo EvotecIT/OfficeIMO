@@ -366,8 +366,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            byte[] bytes = _parts.ReadPart(partName, _cancellationToken);
-            var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
+            using XlsbPooledPartStream part = _parts.ReadSeekablePart(partName, _cancellationToken);
+            // Decoded strings own their text; only the declared part bytes frame records.
+            var records = new XlsbRecordSliceReader(part.Buffer, _limits.MaxRecordBytes, _recordBudget, length: part.DataLength);
             var values = new List<string>();
             long totalCharacters = 0;
             bool began = false;

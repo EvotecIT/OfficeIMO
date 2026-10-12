@@ -199,6 +199,10 @@ namespace OfficeIMO.Tests {
             ExcelCellValueSnapshot value = AssertCellValue(reloaded.Sheets[0], 1, 1);
             Assert.Equal(ExcelCellValueKind.Number, value.Kind);
             Assert.Equal("42", value.RawValue);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+            Assert.False(reader.Read());
         }
 
         [Theory]

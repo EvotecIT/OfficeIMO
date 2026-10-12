@@ -699,6 +699,8 @@ public partial class Excel {
 
         Assert.Throws<OperationCanceledException>(() =>
             partReader.ReadPart("xl/sharedStrings.bin", cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() =>
+            partReader.ReadSeekablePart("xl/sharedStrings.bin", cancellation.Token));
     }
 
     [Fact]
