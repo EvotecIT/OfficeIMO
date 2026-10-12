@@ -296,8 +296,18 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Images");
 
             ExcelImage image = sheet.AddImageFromFileToRange("A1:B1", imagePath, name: "FontSizedRange");
-
-            Assert.True(image.WidthPixels > 128);
+            int regularWidth = image.WidthPixels;
+            SetDefaultWorkbookFont(document._spreadSheetDocument, "Consolas", 44);
+            ExcelImage large = sheet.AddImageFromFileToRange("A2:B2", imagePath, name: "LargeFontSizedRange");
+            OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamilyForText("Consolas", OfficeFontStyle.Regular, "0123456789", out _);
+            if (font?.MatchesFamilyName("Consolas") == true) {
+                Assert.True(large.WidthPixels > regularWidth);
+            } else {
+                // An unavailable authored face keeps the portable seven-pixel
+                // digit fallback at either font size.
+                Assert.Equal(128, regularWidth);
+                Assert.Equal(regularWidth, large.WidthPixels);
+            }
         }
 
         private static void SetDefaultWorkbookFont(SpreadsheetDocument document, string fontName, double fontSize) {
