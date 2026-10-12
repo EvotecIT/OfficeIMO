@@ -9,7 +9,14 @@ namespace OfficeIMO.Drawing.Binary;
 // Importers own cumulative operation limits and feature-level fidelity reports.
 internal static class OfficeArtCustomPathProjector {
     internal static bool HasPath(IReadOnlyList<OfficeArtProperty> properties) =>
-        Property(properties, 0x0145)?.Value > 0 || Property(properties, 0x0146)?.Value > 0;
+        HasArrayElements(Property(properties, 0x0145), true) || HasArrayElements(Property(properties, 0x0146), false);
+
+    private static bool HasArrayElements(OfficeArtProperty? property, bool points) {
+        if (property == null || property.Value == 0) return false;
+        // A valid complete empty header is absence; malformed nonempty declarations
+        // still reach projection so the importer can report their loss.
+        return !TryArray(property, points, out _, out int count, out _) || count != 0;
+    }
 
     // Geometry paint controls also apply when an importer falls back to a preset.
     internal static bool IsFillDisabled(IReadOnlyList<OfficeArtProperty> properties) => Disabled(properties, 0x0200);
@@ -22,7 +29,7 @@ internal static class OfficeArtCustomPathProjector {
         token.ThrowIfCancellationRequested();
         double left = Scalar(properties, 0x0140, 0), top = Scalar(properties, 0x0141, 0);
         double right = Scalar(properties, 0x0142, 21600), bottom = Scalar(properties, 0x0143, 21600);
-        if (right <= left || bottom <= top || width <= 0 || height <= 0
+        if (right <= left || bottom <= top || width < 0 || height < 0 || (width == 0 && height == 0)
             || double.IsNaN(width) || double.IsNaN(height) || double.IsInfinity(width) || double.IsInfinity(height)) {
             failure = OfficeArtCustomPathFailure.InvalidGeometrySpace; return false;
         }
@@ -105,7 +112,7 @@ internal static class OfficeArtCustomPathProjector {
             if (!ended || nextPoint != pointCount) return false;
         }
         token.ThrowIfCancellationRequested();
-        OfficeShape shape = OfficeShape.Path(width, height, commands);
+        OfficeShape shape = OfficeShape.Path(Math.Max(.01D, width), Math.Max(.01D, height), commands);
         shape.FillRule = OfficeFillRule.NonZero;
         projection = new OfficeArtCustomPathProjection(shape, noFill, noLine);
         failure = OfficeArtCustomPathFailure.None; return true;

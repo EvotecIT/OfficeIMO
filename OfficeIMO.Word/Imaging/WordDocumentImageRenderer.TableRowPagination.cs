@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
                 double marginRight = ToPoints(cell.MarginRightWidth, DefaultCellMarginPoints);
                 double marginTop = ToPoints(cell.MarginTopWidth, DefaultCellMarginPoints);
                 double marginBottom = ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints);
-                double contentWidth = Math.Max(1D, cellWidth - marginLeft - marginRight);
+                double contentWidth = Math.Max(1D, cellWidth - (marginLeft + marginRight));
                 List<SplitTableCellImage>? images = CreateSplitTableCellImages(cell, contentWidth, diagnostics);
                 if (images == null) {
                     return null;
@@ -143,6 +143,8 @@ namespace OfficeIMO.Word {
                 List<SplitTableCellNestedTable> nestedTables = CreateSplitTableCellNestedTables(
                     cell,
                     contentWidth,
+                    listMarkers,
+                    context.Drawing,
                     context.CancellationToken);
                 if (ShouldSplitTableCellAsRichText(paragraphRuns, hasListMarkers, colorScheme)) {
                     List<OfficeRichTextRun> richRuns = CreateSplitTableCellRichRuns(paragraphRuns, colorScheme, listMarkers, context, diagnostics);
@@ -172,12 +174,12 @@ namespace OfficeIMO.Word {
                             (lines, lineIndents, contentOrder) = LayoutListSplitTableCellParagraphs(
                                 cell, colorScheme, listMarkers, context, diagnostics, contentWidth);
                         } else {
-                            OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                            OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
                                 richRuns,
                                 contentWidth,
                                 double.MaxValue,
                                 Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
-                                CreateRichTextMeasure(context.CancellationToken),
+                                CreateRichTextMeasure(context),
                                 wrap: true,
                                 shrinkToFit: false,
                                 minimumFontSize: Math.Min(6D, maxFontSize),
@@ -203,7 +205,7 @@ namespace OfficeIMO.Word {
                     }
                 } else {
                     OfficeFontInfo font = paragraph == null ? OfficeFontInfo.Default : CreateFont(paragraph);
-                    double lineHeight = Math.Max(font.Size * 1.25D, 12D);
+                    double lineHeight = ResolvePlainTextLineHeight(font);
                     string text = GetCellText(
                         cell,
                         context,
@@ -215,6 +217,7 @@ namespace OfficeIMO.Word {
                             text,
                             font,
                             contentWidth,
+                            context.TextMetrics,
                             context.CancellationToken,
                             context.CancellationCheckpoint);
                     IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell, context, contentWidth, lines.Count);
@@ -266,6 +269,8 @@ namespace OfficeIMO.Word {
         private static List<SplitTableCellNestedTable> CreateSplitTableCellNestedTables(
             WordTableCell cell,
             double contentWidth,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken = default) {
             List<WordTable> nestedTables = GetDirectNestedTables(cell);
             var blocks = new List<SplitTableCellNestedTable>(nestedTables.Count);
@@ -274,6 +279,8 @@ namespace OfficeIMO.Word {
                 double height = EstimateTableHeight(
                     nestedTables[i],
                     contentWidth,
+                    listMarkers,
+                    sourceDrawing,
                     cancellationToken,
                     cancellationCheckpoint: null);
                 if (height > 0D) {
@@ -364,6 +371,7 @@ namespace OfficeIMO.Word {
                     text,
                     font,
                     contentWidth,
+                    context.TextMetrics,
                     context.CancellationToken,
                     context.CancellationCheckpoint).Count);
         }

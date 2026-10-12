@@ -4,6 +4,31 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClipPath_ZeroAreaDeclaredCanvasDoesNotRevealItsRectangle(bool transformed) {
+        var inner = new OfficeDrawing(20, 20).AddShape(new OfficeShape { Kind = OfficeShapeKind.Rectangle, Width = 20, Height = 20, FillColor = OfficeColor.Red }, 0, 0);
+        var drawing = new OfficeDrawing(40, 40);
+        drawing.AddClippedDrawing(inner, 10, 10, OfficeClipPath.Path(20, 20, new[] {
+            OfficePathCommand.MoveTo(5, 5), OfficePathCommand.LineTo(15, 5)
+        }), new OfficeImageFrameTransform(transformed ? 30 : 0, 20, 20, false, false));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.All(Enumerable.Range(0, 40), y => Assert.All(Enumerable.Range(0, 40), x => Assert.Equal(0, raster.GetPixel(x, y).A)));
+    }
+
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClipPath_ZeroAreaShapeClipDoesNotRevealItsRectangle(bool transformed) {
+        var shape = OfficeShape.Rectangle(20, 20); shape.FillColor = OfficeColor.Red;
+        shape.ClipPath = OfficeClipPath.Path(20, 20, new[] { OfficePathCommand.MoveTo(5, 5), OfficePathCommand.LineTo(15, 5) });
+        if (transformed) shape.Transform = OfficeTransform.RotateDegrees(30, 10, 10);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(40, 40).AddShape(shape, 10, 10));
+        Assert.All(Enumerable.Range(0, 40), y => Assert.All(Enumerable.Range(0, 40), x => Assert.Equal(0, raster.GetPixel(x, y).A)));
+    }
+
     [Fact]
     public void ClipPath_DeclaredCanvasKeepsInsetCoordinatesAndLegacyOverloadKeepsContentBounds() {
         var commands = new[] { OfficePathCommand.MoveTo(25, 10), OfficePathCommand.LineTo(75, 10),
