@@ -25,7 +25,8 @@ internal static partial class PdfWriter {
             }
             if (prepared.Style?.KeepTogether == true) {
                 while (true) {
-                    double fitHeight = MeasurePreparedListHeight(prepared, frameFit: true);
+                    ContainerClosingSpace closing = GetClosingContainerSpace();
+                    double fitHeight = MeasurePreparedListHeight(prepared, frameFit: !closing.RequiresFullAdvance) + closing.Padding;
                     if (fitHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         if (prepared.Style?.KeepTogetherOverflow is null or PdfKeepTogetherOverflowBehavior.Reject)
                             throw new ArgumentException("List height exceeds the available page content height.");

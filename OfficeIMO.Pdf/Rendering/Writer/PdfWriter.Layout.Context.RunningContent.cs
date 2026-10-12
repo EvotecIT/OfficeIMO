@@ -150,7 +150,7 @@ internal static partial class PdfWriter {
                     sequence.Blocks[start] is PageBreakBlock) start++;
                 var frame = GetRunningBodyContinuationFrame(source, depth);
                 double? height = FirstVisual(PendingBlocks(sequence.Blocks, start), frame.X, frame.Width,
-                    GetClosingContainerPadding(depth));
+                    GetClosingContainerSpace(depth));
                 if (height.HasValue) {
                     footerOverlapHeight = firstVisualFooterOverlapHeight.HasValue
                         ? firstVisualFooterOverlapHeight.Value + frame.ReservedHeight : null;
@@ -161,34 +161,34 @@ internal static partial class PdfWriter {
             }
             return 0D;
 
-            double? FirstVisual(IEnumerable<IPdfBlock> blocks, double frameX, double frameWidth, double closingPadding) {
+            double? FirstVisual(IEnumerable<IPdfBlock> blocks, double frameX, double frameWidth, ContainerClosingSpace closingSpace) {
                 using var pending = ExpandTransparentMeasurementBlocks(blocks).GetEnumerator();
                 while (pending.MoveNext()) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IPdfBlock block = pending.Current;
                     if (block is BookmarkBlock or ColumnBreakBlock) continue;
                     if (block is PageBreakBlock) return 0D;
-                    if (block is PageBlock page) return FirstVisual(page.Blocks, frameX, frameWidth, closingPadding) ?? 0D;
+                    if (block is PageBlock page) return FirstVisual(page.Blocks, frameX, frameWidth, closingSpace) ?? 0D;
                     double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
                         allowTableFragments: true, suppressParagraphSpacingBefore: true);
                     if (height <= .001D && block is ContainerBlock or SpacerBlock) continue;
-                    double paragraphClosingPadding = 0D;
-                    if (closingPadding > 0D) {
+                    ContainerClosingSpace paragraphClosingSpace = default;
+                    if (closingSpace.RequiresFullAdvance) {
                         bool closesSequence = true;
                         while (pending.MoveNext()) {
                             cancellationToken.ThrowIfCancellationRequested();
                             if (!IsNonVisualFlowMarker(pending.Current)) { closesSequence = false; break; }
                         }
                         if (closesSequence) {
-                            paragraphClosingPadding = closingPadding;
+                            paragraphClosingSpace = closingSpace;
                             height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
-                                allowTableFragments: true, suppressParagraphSpacingBefore: true, closingPadding: closingPadding);
+                                allowTableFragments: true, suppressParagraphSpacingBefore: true, closingSpace: closingSpace);
                         }
                     }
                     if (activeColumnFlow == null && block is RichParagraphBlock paragraph &&
                         EffectiveParagraphStyle(paragraph)?.AllowFirstLineOverlapWithRunningFooter == true)
                         firstVisualFooterOverlapHeight = MeasureParagraphFirstVisual(paragraph, frameX, frameWidth,
-                            source.DefaultFontSize, suppressSpacingBefore: true, closingPadding: paragraphClosingPadding,
+                            source.DefaultFontSize, suppressSpacingBefore: true, closingSpace: paragraphClosingSpace,
                             reserveSingleLine: true).Height;
                     return height;
                 }

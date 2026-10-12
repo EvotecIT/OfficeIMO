@@ -93,6 +93,57 @@ public partial class Word {
                 bounds.Value.Bottom > secondPage.Height - 39D);
     }
 
+    [Fact]
+    public void SaveAsPdf_FinalJoinedParagraphReservesItsAutomaticLineAdvance() {
+        using WordDocument source = WordDocument.Create();
+        source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
+        WordParagraph[] paragraphs = new[] { "Lead", "A", "B" }.Select(source.AddParagraph).ToArray();
+        foreach (WordParagraph paragraph in paragraphs) {
+            ConfigureAsymmetricBorderParagraph(paragraph);
+            paragraph.FontSize = 10;
+            paragraph.AvoidWidowAndOrphanOverride = false;
+            paragraph.KeepLinesTogetherOverride = false;
+            paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
+                new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "20" });
+        }
+        paragraphs[0].LineSpacingPoints = 30D;
+        foreach (WordParagraph paragraph in paragraphs.Skip(1)) {
+            paragraph.LineSpacing = 480;
+            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            ConfigureMatchingParagraphBorders(paragraph, "box");
+            W.ParagraphBorders borders = paragraph._paragraph.ParagraphProperties!.ParagraphBorders!;
+            foreach (W.BorderType border in borders.ChildElements.OfType<W.BorderType>()) border.Color = "000000";
+            borders.BetweenBorder = new W.BetweenBorder {
+                Val = W.BorderValues.Single, Size = 8, Space = 0, Color = "000000"
+            };
+        }
+        using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        var pdfOptions = new OfficeIMO.Pdf.PdfOptions { DefaultFont = OfficeIMO.Pdf.PdfStandardFont.Helvetica };
+        pdfOptions.EmbedStandardFont(OfficeIMO.Pdf.PdfStandardFont.Helvetica,
+            CreateBaselineMetricFont(), "OfficeIMO-LineFit-Regular");
+        using var output = new MemoryStream();
+        document.SaveAsPdf(output, new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic(),
+            PdfOptions = pdfOptions, PageSize = new OfficeIMO.Pdf.PageSize(200D, 120D),
+            Margins = OfficeIMO.Pdf.PageMargins.Uniform(20D)
+        });
+        using var pdf = PdfPigDocument.Open(output.ToArray());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Lead");
+        Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A");
+        Assert.DoesNotContain("B", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        var page = pdf.GetPage(2);
+        Assert.Single(page.Letters, letter => letter.Value == "B");
+        double[] horizontal = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
+            .Where(bounds => bounds.HasValue && bounds.Value.Width > 100D && bounds.Value.Height < .01D)
+            .Select(bounds => bounds!.Value.Bottom).OrderBy(value => value).ToArray();
+        Assert.Equal(2, horizontal.Length);
+        // The final paragraph keeps its 24-point automatic advance and four-point
+        // outer padding; the previous one-point separator starts the new frame.
+        Assert.Equal(71.5D, horizontal[0], 3);
+        Assert.Equal(99.5D, horizontal[1], 3);
+    }
+
     private static WordDocument CreateParagraphBorderGroupFrameDocument(WordCompatibilityMode mode, int lines, uint space) {
         WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;

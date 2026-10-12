@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
             double contentWidth = frame.ContentWidth;
 
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX, contentWidth, GetClosingContainerPadding());
+            var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX, contentWidth, GetClosingContainerSpace());
             double firstVisualHeight = firstVisual.Height;
             double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
             double firstContentHeight = minimumStartHeight - spacingBefore;
@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
                 spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
                 parentLeft = currentOpts.MarginLeft; parentWidth = width;
                 frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
-                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth, GetClosingContainerPadding());
+                firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX, frame.ContentWidth, GetClosingContainerSpace());
                 firstVisualHeight = firstVisual.Height;
                 minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisualHeight;
                 firstContentHeight = minimumStartHeight - spacingBefore;

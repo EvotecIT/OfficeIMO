@@ -342,22 +342,24 @@ moving the next fragment's first line. Closing padding can occupy that space;
 the default inset is zero. Flow images with `ScaleDownToFit` account for the
 panel's padding and inset when choosing their size.
 Continued images use the space available after the first fragment's top padding.
-Final content retains the full closing padding; intermediate fragments keep
-their normal capacity. Content that cannot leave closing space is rejected.
+Continuous panels reserve final text's full line advance and closing padding.
+If that content fits a fresh page or column, it moves there before the panel's decoration opens.
+Intermediate fragments keep their normal capacity. Content that cannot leave
+closing space even in a fresh frame is rejected.
 
 Use a side border's `PdfPanelBorder.Offset` to move its stroke independently of
 the content frame. Positive point values move it outward and negative values
 move it inward. Offsets preserve text wrapping and padding:
 
 ```csharp
-var document = PdfDocument.Create()
-    .Panel(panel => panel.Paragraph(p => p.Text("Content in a continuous panel.")),
-        new PdfPanelStyle {
-            RepeatFragmentDecoration = false,
-            PaddingY = 4,
-            LeftBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 },
-            RightBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 }
-        });
+var document = PdfDocument.Create();
+document.Content.Panel(panel => panel.Paragraph(p => p.Text("Content in a continuous panel.")),
+    new PdfPanelStyle {
+        RepeatFragmentDecoration = false,
+        PaddingY = 4,
+        LeftBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 },
+        RightBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 }
+    });
 ```
 When columns start partway down a page, kept paragraphs, lists, panels and static
 flow groups can move past the partial columns to a full physical page. Headings

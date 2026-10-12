@@ -38,7 +38,9 @@ internal static partial class PdfWriter {
             var listFont = ChooseNormal(currentOpts.DefaultFont);
             bool splitKeptItemAcrossPages = prepared.Style?.KeepTogether == true &&
                 prepared.Style.KeepTogetherOverflow == PdfKeepTogetherOverflowBehavior.SplitAcrossPages &&
-                MeasureRichLinesFrameFitHeight(lines, lineHeights, leading) > GetMaximumBlockContinuationHeight() + .001D;
+                MeasureParagraphFirstLinesFrameFitHeight(lines, lineHeights, leading, lines.Count,
+                    itemIndex == prepared.Items.Count - 1 ? GetClosingContainerSpace() : default, spacingAfter) >
+                GetMaximumBlockContinuationHeight() + .001D;
             void NewListFrame() {
                 if (CanQueueColumnBalanceRemainder(blockList)) {
                     QueueColumnBalanceRemainder(MeasureListColumnBalanceUnits(prepared, itemIndex, lineIndex, lineHeights,
@@ -67,9 +69,9 @@ internal static partial class PdfWriter {
 
             while (lineIndex < lines.Count) {
                 double available = y - currentOpts.MarginBottom;
-                double closingPadding = itemIndex == prepared.Items.Count - 1 ? GetClosingContainerPadding() : 0D;
-                if (closingPadding > 0D) closingPadding += spacingAfter;
-                double firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
+                bool closesList = itemIndex == prepared.Items.Count - 1;
+                double firstLineHeight = GetTextLineAdmissionHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading),
+                    closesList && lineIndex == lines.Count - 1, spacingAfter);
                 if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D)
                     throw new ArgumentException("List line height exceeds the available page content height.");
                 while (available + .001D < firstLineHeight) {
@@ -77,7 +79,8 @@ internal static partial class PdfWriter {
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     NewListFrame();
                     available = y - currentOpts.MarginBottom;
-                    firstLineHeight = GetRichLineFrameFitHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading)) + (lineIndex == lines.Count - 1 ? closingPadding : 0D);
+                    firstLineHeight = GetTextLineAdmissionHeight(lines[lineIndex], GetRichLineHeight(lineHeights, lineIndex, leading),
+                        closesList && lineIndex == lines.Count - 1, spacingAfter);
                     if (firstLineHeight > GetMaximumBlockContinuationHeight() + .001D) {
                         throw new ArgumentException("List line height exceeds the available page content height.");
                     }
@@ -87,7 +90,8 @@ internal static partial class PdfWriter {
                 double heightSum = 0;
                 for (int k = lineIndex; k < lines.Count; k++) {
                     double lineHeight = GetRichLineHeight(lineHeights, k, leading);
-                    if (heightSum + GetRichLineFrameFitHeight(lines[k], lineHeight) + (k == lines.Count - 1 ? closingPadding : 0D) > available) {
+                    if (heightSum + GetTextLineAdmissionHeight(lines[k], lineHeight,
+                        closesList && k == lines.Count - 1, spacingAfter) > available) {
                         break;
                     }
 
