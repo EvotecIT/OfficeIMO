@@ -13,7 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
-    <PackageReference Include="DBAClientX.SQLite" Version="1.0.13" />
+    <PackageReference Include="DBAClientX.SQLite" Version="1.0.14" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Odbc.Tests" />
