@@ -23,6 +23,7 @@ function Assert-NoSourceLinks {
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Catalog.ps1')
+. (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Documentation.ps1')
 
 function Resolve-RepoRoot {
     param(
@@ -106,130 +107,6 @@ function Sync-DirectoryContents {
         New-Item -ItemType Directory -Path (Split-Path -Parent $targetPath) -Force | Out-Null
         Copy-Item -LiteralPath $item.FullName -Destination $targetPath -Force
     }
-}
-
-function Sync-DocumentationPages {
-    param(
-        [Parameter(Mandatory)][string] $Source,
-        [Parameter(Mandatory)][string] $Destination
-    )
-
-    New-Item -ItemType Directory -Path $Destination -Force | Out-Null
-    Get-ChildItem -LiteralPath $Destination -Force -ErrorAction SilentlyContinue |
-        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -Recurse }
-
-    foreach ($sourceFile in Get-ChildItem -LiteralPath $Source -File -Filter '*.md' | Sort-Object Name) {
-        $slug = [System.IO.Path]::GetFileNameWithoutExtension($sourceFile.Name)
-        if ($slug -eq '_index') {
-            $targetPath = Join-Path $Destination 'index.md'
-        } else {
-            $targetDirectory = Join-Path $Destination $slug
-            New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
-            $targetPath = Join-Path $targetDirectory 'index.md'
-        }
-
-        $content = [IO.File]::ReadAllText($sourceFile.FullName)
-        [IO.File]::WriteAllText($targetPath, $content, [Text.UTF8Encoding]::new($false))
-    }
-}
-
-function Get-DocumentationTitle {
-    param(
-        [Parameter(Mandatory)][string] $Path,
-        [Parameter(Mandatory)][string] $Fallback
-    )
-
-    $lines = @(Get-Content -LiteralPath $Path)
-    if ($lines.Count -gt 0 -and $lines[0].Trim() -eq '---') {
-        for ($index = 1; $index -lt $lines.Count; $index++) {
-            $line = $lines[$index].Trim()
-            if ($line -eq '---') {
-                break
-            }
-            if ($line.StartsWith('title:', [StringComparison]::OrdinalIgnoreCase)) {
-                $title = $line.Substring('title:'.Length).Trim().Trim('"').Trim("'")
-                if (-not [string]::IsNullOrWhiteSpace($title)) {
-                    return $title
-                }
-            }
-        }
-    }
-
-    return $Fallback
-}
-
-function Sync-DocumentationToc {
-    param(
-        [Parameter(Mandatory)][string] $Source,
-        [Parameter(Mandatory)][string] $TocPath
-    )
-
-    $toc = @(Get-Content -LiteralPath $TocPath -Raw | ConvertFrom-Json)
-    $sections = @($toc | Where-Object title -EQ 'PSWriteOffice')
-    if ($sections.Count -ne 1) {
-        throw "The OfficeIMO documentation TOC must contain exactly one PSWriteOffice section."
-    }
-
-    $sourcePages = foreach ($sourceFile in Get-ChildItem -LiteralPath $Source -File -Filter '*.md' | Sort-Object Name) {
-        $sourceSlug = [System.IO.Path]::GetFileNameWithoutExtension($sourceFile.Name)
-        $key = if ($sourceSlug -eq '_index') { '__index__' } else { $sourceSlug }
-        $fallbackTitle = if ($sourceSlug -eq '_index') {
-            'PSWriteOffice Overview'
-        } else {
-            [System.Globalization.CultureInfo]::InvariantCulture.TextInfo.ToTitleCase($sourceSlug.Replace('-', ' '))
-        }
-        $targetPath = if ($sourceSlug -eq '_index') {
-            'pswriteoffice/index.md'
-        } else {
-            "pswriteoffice/$sourceSlug/index.md"
-        }
-        $href = if ($sourceSlug -eq '_index') {
-            '/docs/pswriteoffice/'
-        } else {
-            "/docs/pswriteoffice/$sourceSlug/"
-        }
-
-        [PSCustomObject]@{
-            Key = $key
-            Title = Get-DocumentationTitle -Path $sourceFile.FullName -Fallback $fallbackTitle
-            Path = $targetPath
-            Href = $href
-        }
-    }
-
-    $pageByKey = @{}
-    foreach ($page in $sourcePages) {
-        $pageByKey[$page.Key] = $page
-    }
-
-    $usedKeys = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    $items = [System.Collections.Generic.List[object]]::new()
-    foreach ($existing in @($sections[0].items)) {
-        $existingPath = ([string] $existing.path).Replace('\', '/')
-        $key = if ($existingPath -eq 'pswriteoffice/index.md') {
-            '__index__'
-        } elseif ($existingPath -match '^pswriteoffice/(?<slug>[^/]+)/index\.md$') {
-            $Matches['slug']
-        } else {
-            $null
-        }
-
-        if ($key -and $pageByKey.ContainsKey($key) -and $usedKeys.Add($key)) {
-            $items.Add($existing)
-        }
-    }
-
-    foreach ($page in @($sourcePages | Where-Object { -not $usedKeys.Contains($_.Key) } | Sort-Object Title, Key)) {
-        $items.Add([PSCustomObject]@{
-            title = $page.Title
-            path = $page.Path
-            href = $page.Href
-        })
-        [void] $usedKeys.Add($page.Key)
-    }
-
-    $sections[0].items = $items.ToArray()
-    $toc | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $TocPath -Encoding utf8
 }
 
 function Get-ManifestCommandNames {
@@ -446,7 +323,7 @@ if (-not $resolvedRepoRoot) {
     }
     $summary.expectedCommandCount = $snapshotCommands.Count
     if (-not $SkipDocumentation) {
-        $catalogEvidence = Assert-DocumentationCatalogSnapshot -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath `
+        $catalogEvidence = Assert-DocumentationCatalogSnapshot -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -SiteRootPath $resolvedSiteRoot `
             -ExpectedSourceRef $powerShellSource[0].Ref -ExpectedVersion ([version]$snapshotCatalog.module.version) -ExpectedCommandCount $snapshotCommands.Count
     }
     $summary.commandMetadataUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
@@ -455,7 +332,7 @@ if (-not $resolvedRepoRoot) {
         $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
         $summary.documentationCatalogUpdated = $linkUpdates.CatalogUpdated
         $summary.documentationUpdated = $linkUpdates.DocumentationUpdated
-        Save-DocumentationCatalogEvidence -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -Evidence $catalogEvidence
+        Save-DocumentationCatalogEvidence -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -SiteRootPath $resolvedSiteRoot -Evidence $catalogEvidence
     }
     Write-Host 'No matching PSWriteOffice release checkout found. Keeping checked-in PowerShell API snapshot.' -ForegroundColor Yellow
     [PSCustomObject] $summary
@@ -495,7 +372,7 @@ if (-not $SkipDocumentation) {
         if (-not (Test-Path -LiteralPath (Join-Path $targetDocumentationPath 'index.md') -PathType Leaf)) {
             throw 'No complete PSWriteOffice source or checked-in documentation snapshot is available.'
         }
-        $catalogEvidence = Assert-DocumentationCatalogSnapshot -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath `
+        $catalogEvidence = Assert-DocumentationCatalogSnapshot -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -SiteRootPath $resolvedSiteRoot `
             -ExpectedSourceRef $powerShellSource[0].Ref -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count
     }
 }
@@ -575,7 +452,7 @@ if (-not $SkipDocumentation) {
     $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
     $summary.documentationCatalogUpdated = $summary.documentationCatalogUpdated -or $linkUpdates.CatalogUpdated
     $summary.documentationUpdated = $summary.documentationUpdated -or $linkUpdates.DocumentationUpdated
-    Save-DocumentationCatalogEvidence -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -Evidence $catalogEvidence
+    Save-DocumentationCatalogEvidence -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -SiteRootPath $resolvedSiteRoot -Evidence $catalogEvidence
 }
 
 [PSCustomObject] $summary
