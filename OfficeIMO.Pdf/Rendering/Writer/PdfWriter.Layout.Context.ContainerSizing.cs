@@ -35,10 +35,9 @@ internal static partial class PdfWriter {
                 if (wholeContainer) {
                     return MeasureWholeBlockAtFrameStart(container, currentOpts.MarginLeft, candidateWidth, currentOpts.DefaultFontSize);
                 }
-                double firstVisual = container.Blocks.Count == 0 ? 0D : MeasureWithContainerPaddingReservation(style, () =>
-                    MeasureNextBlockFirstVisualHeight(container.Blocks[0], frame.X + style.PaddingX, frame.ContentWidth,
-                        currentOpts.DefaultFontSize, allowTableFragments: true));
-                return style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisual;
+                var firstVisual = MeasureContainerFirstVisual(container, style, frame.X + style.PaddingX,
+                    frame.ContentWidth, GetClosingContainerPadding());
+                return style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset + firstVisual.Height;
             });
         }
 

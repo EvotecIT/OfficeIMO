@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
                 namedFont?.FamilyName ?? text.Font.FamilyName ?? font.ToString(),
                 currentOpts.TextShapingModeSnapshot, provider,
                 currentOpts.RecordProviderShapedTextRunDelegate, currentOpts.Language,
-                text.FeatureSettings, OfficeTextDirection.TopToBottom);
+                currentOpts.ResolveTextFeatureSettings(text.FeatureSettings), OfficeTextDirection.TopToBottom);
             PdfGlyphRun glyphRun;
             byte[] fontData;
             int fontUnitsPerEm;

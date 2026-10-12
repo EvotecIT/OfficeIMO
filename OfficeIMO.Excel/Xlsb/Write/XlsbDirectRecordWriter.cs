@@ -65,12 +65,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             offset = AppendUInt32(buffer, offset, checked((uint)zeroBasedColumn));
             offset = AppendUInt32(buffer, offset, 0U);
             offset = AppendUInt32(buffer, offset, checked((uint)value.Length));
-            for (int index = 0; index < value.Length; index++) {
-                ushort character = value[index];
-                buffer[offset++] = (byte)character;
-                buffer[offset++] = (byte)(character >> 8);
-            }
-            _position = offset;
+            _position = AppendWideCharacters(buffer, offset, value, 0, value.Length);
         }
 
         internal void WriteSharedStringCell(int recordType, int zeroBasedColumn, int index) {
@@ -124,14 +119,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 int characterCount = Math.Min(charsPerChunk, value.Length - offset);
                 int byteCount = checked(characterCount * 2);
                 buffer = EnsureAvailable(byteCount);
-                int targetOffset = _position;
-                for (int index = 0; index < characterCount; index++) {
-                    ushort character = value[offset + index];
-                    int byteOffset = targetOffset + (index * 2);
-                    buffer[byteOffset] = (byte)character;
-                    buffer[byteOffset + 1] = (byte)(character >> 8);
-                }
-                _position += byteCount;
+                _position = AppendWideCharacters(buffer, _position, value, offset, characterCount);
             }
         }
 
@@ -170,6 +158,23 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private byte[] GetBuffer() =>
             _buffer ?? throw new ObjectDisposedException(nameof(XlsbDirectRecordWriter));
+
+        /// <summary>Copies UTF16 code units verbatim, including isolated surrogates, in BIFF12 byte order.</summary>
+        private static int AppendWideCharacters(byte[] buffer, int offset, string value, int sourceOffset, int characterCount) {
+#if NET8_0_OR_GREATER
+            if (BitConverter.IsLittleEndian) {
+                System.Runtime.InteropServices.MemoryMarshal.AsBytes(value.AsSpan(sourceOffset, characterCount))
+                    .CopyTo(buffer.AsSpan(offset, checked(characterCount * 2)));
+                return offset + characterCount * 2;
+            }
+#endif
+            for (int index = 0; index < characterCount; index++) {
+                ushort character = value[sourceOffset + index];
+                buffer[offset++] = (byte)character;
+                buffer[offset++] = (byte)(character >> 8);
+            }
+            return offset;
+        }
 
         private static int AppendUInt32(byte[] buffer, int offset, uint value) {
             buffer[offset++] = (byte)value;

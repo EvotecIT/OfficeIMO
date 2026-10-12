@@ -32,6 +32,8 @@ public sealed partial class PdfTextRun {
     internal PdfTextRun WithSpacingFrom(PdfTextRun source) {
         HorizontalTextScaling = source.HorizontalTextScaling;
         CharacterSpacing = source.CharacterSpacing;
+        ContributesLineBoxDescent = source.ContributesLineBoxDescent;
+        IsLineBoxStrut = source.IsLineBoxStrut;
         return this;
     }
 

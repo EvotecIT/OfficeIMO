@@ -42,7 +42,7 @@ public static partial class WordPdfConverterExtensions {
         }
         PdfCore.PageSize pageSize = GetNativePageSize(section, options);
         PdfCore.PageMargins margins = GetNativeMargins(section, options);
-        double sectionContentWidth = Math.Max(72D, pageSize.Width - margins.Left - margins.Right);
+        double sectionContentWidth = Math.Max(1D, pageSize.Width - margins.Left - margins.Right);
         double totalGap = definitions.Count > 0
             ? definitions.Take(count - 1).Sum(column => column.SpaceAfterTwips is int space ? ConvertNativeTwipsToPoints(space) ?? 0D : 0D)
             : gap * (count - 1);

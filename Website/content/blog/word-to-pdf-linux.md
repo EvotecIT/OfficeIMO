@@ -4,7 +4,9 @@ description: "A practical guide to converting DOCX files to PDF on Linux using O
 date: 2025-09-10
 tags: [pdf, linux, cross-platform, converters]
 categories: [Tutorial]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 Converting Word documents to PDF is one of the most requested features in document automation. Traditionally it often meant a Windows machine with Microsoft Office or a LibreOffice sidecar. **OfficeIMO.Word.Pdf** provides an in-process conversion path that can be hosted on Linux, macOS, and Windows, provided you validate fonts and runtime packaging for your deployment.

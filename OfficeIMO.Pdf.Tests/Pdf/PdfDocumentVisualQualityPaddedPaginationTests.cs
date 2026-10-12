@@ -9,6 +9,50 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentVisualQualityTests {
     [Theory]
+    [InlineData(3, 2, 200, 0)]
+    [InlineData(2, 0, 200, 0)]
+    [InlineData(3, 2, 205, 0)]
+    [InlineData(2, 0, 205, 0)]
+    [InlineData(3, 2, 205, 1)]
+    [InlineData(2, 0, 205, 1)]
+    [InlineData(3, 2, 208, 2)]
+    [InlineData(2, 0, 208, 2)]
+    [InlineData(3, 2, 216, 3)]
+    [InlineData(2, 0, 216, 3)]
+    public void ShortWidowParagraphMovesBeforeOpeningItsPanel(int lineCount, int orphanLines, double pageHeight, int wrapper) {
+        var options = new PdfOptions { PageWidth = 400, PageHeight = pageHeight, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 10 };
+        var paragraphStyle = new PdfParagraphStyle { FontSize = 10, LineHeight = 1, SpacingBefore = 0,
+            SpacingAfter = 0, MinimumOrphanLines = orphanLines, MinimumWidowLines = 2 };
+        var panelStyle = new PdfPanelStyle { PaddingY = 5, PaddingX = 5, SpacingBefore = 0,
+            SpacingAfter = 0, RepeatFragmentDecoration = false };
+        Action<PdfContentBuilder> paragraph = panel => panel.Paragraph(p => {
+            for (int i = 1; i <= lineCount; i++) { if (i > 1) p.LineBreak(); p.Text("Target" + i); }
+        }, style: paragraphStyle);
+        Action<PdfContentBuilder> content = wrapper switch {
+            1 => panel => panel.Bookmark("start").Semantic(PdfSemanticRole.Section,
+                semantic => semantic.Layer("text", layer => layer.Flow(paragraph))).Bookmark("end"),
+            2 or 3 => panel => panel.Panel(paragraph, new PdfPanelStyle { PaddingY = 3, PaddingX = 0,
+                SpacingBefore = 0, SpacingAfter = wrapper == 3 ? 7 : 0, RepeatFragmentDecoration = false }),
+            _ => paragraph
+        };
+        byte[] referenceBytes = PdfDocument.Create(options).Panel(content, panelStyle).ToBytes();
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => { for (int i = 0; i < 16 - lineCount; i++) { if (i > 0) p.LineBreak(); p.Text("Lead" + i); } },
+                style: new PdfParagraphStyle { FontSize = 10, LineHeight = 1, SpacingAfter = 0 })
+            .Panel(content, panelStyle).ToBytes();
+        SavePaddedPaginationEvidence($"short-widow-{lineCount}-{pageHeight}-{wrapper}-reference", referenceBytes);
+        SavePaddedPaginationEvidence($"short-widow-{lineCount}-{pageHeight}-{wrapper}", bytes);
+        using var reference = PdfPigDocument.Open(referenceBytes);
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text.StartsWith("Target", StringComparison.Ordinal));
+        double expected = Assert.Single(reference.GetPage(1).GetWords(), word => word.Text == "Target1").Letters[0].StartBaseLine.Y;
+        double actual = Assert.Single(pdf.GetPage(2).GetWords(), word => word.Text == "Target1").Letters[0].StartBaseLine.Y;
+        Assert.Equal(expected, actual, 3);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void PaddedFixedObjectsRejectHeightBeyondTheirResumedFrame(bool column) {

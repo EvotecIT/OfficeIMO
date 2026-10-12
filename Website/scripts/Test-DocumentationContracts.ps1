@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$null = & (Join-Path $PSScriptRoot 'Test-PSWriteOfficeCatalog.ps1') -SiteRoot $SiteRoot
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-Failure([string] $Message) { $failures.Add($Message) }
@@ -211,6 +212,15 @@ if ($showcaseManifest.schema -ne 'officeimo.showcase-evidence' -or $showcaseMani
     Add-Failure 'The showcase evidence manifest has an unsupported schema.'
 }
 $manifestPaths = @($showcaseManifest.artifacts | ForEach-Object { [string] $_.path })
+. (Join-Path $PSScriptRoot 'ShowcaseEvidence.Helpers.ps1')
+. (Join-Path $PSScriptRoot 'ShowcaseEvidence.Provenance.ps1')
+$showcaseModuleVersion = [string](Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRoot 'data/apidocs/powershell/PSWriteOffice.psd1')).ModuleVersion
+$generationEvidence = @(Complete-ShowcaseGenerationEvidence -RepositoryRoot (Split-Path -Parent $SiteRoot) -Catalog $showcase -Artifacts @($showcaseManifest.artifacts) -Previous @($showcaseManifest.generations) -Generated @{} -ModuleVersion $showcaseModuleVersion)
+foreach ($generation in $generationEvidence) {
+    if ($generation.state -cne 'generated' -or $generation.previewReview.state -cne 'reviewed') {
+        Add-Failure "PowerShell showcase '$($generation.exampleId)' needs matching generation evidence and completed preview review."
+    }
+}
 foreach ($artifact in @($showcaseManifest.artifacts)) {
     $artifactPath = Join-Path (Join-Path $SiteRoot 'static') ([string] $artifact.path).TrimStart([char[]] '/')
     if (-not (Test-Path -LiteralPath $artifactPath -PathType Leaf)) {
@@ -509,6 +519,26 @@ if ((@($powerShellCatalog.families | Measure-Object commandCount -Sum).Sum) -ne 
 }
 if ($powerShellCatalog.module.aliasCount -lt 0) {
     Add-Failure 'The PSWriteOffice snapshot alias count cannot be negative.'
+}
+
+$apiSnapshotRoot = Join-Path $SiteRoot 'data/apidocs/powershell'
+$apiBundle = Get-Content -LiteralPath (Join-Path $apiSnapshotRoot 'bundle-manifest.json') -Raw | ConvertFrom-Json
+if ($apiBundle.schemaVersion -ne 1 -or $apiBundle.moduleName -cne 'PSWriteOffice' -or
+    $apiBundle.moduleVersion -cne $psWriteOfficeVersion -or
+    $apiBundle.sourceCommit -cne $psWriteOfficeSource[0].Ref) {
+    Add-Failure 'The PowerShell API bundle provenance must identify the imported release.'
+}
+foreach ($component in @(
+    @{ Key = 'manifest'; File = 'PSWriteOffice.psd1' },
+    @{ Key = 'help'; File = 'PSWriteOffice-Help.xml' },
+    @{ Key = 'metadata'; File = 'command-metadata.json' }
+)) {
+    $path = Join-Path $apiSnapshotRoot $component.File
+    $evidence = $apiBundle.components.($component.Key)
+    if ($null -eq $evidence -or (Get-Item -LiteralPath $path).Length -ne $evidence.bytes -or
+        (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine $evidence.sha256) {
+        Add-Failure "The PowerShell API $($component.Key) must match its release fingerprint."
+    }
 }
 
 $codeExamplesPath = Join-Path $SiteRoot 'data\code_examples.json'

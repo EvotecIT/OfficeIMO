@@ -189,32 +189,32 @@
     {
       "id": "pswriteoffice-output",
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
-      "bytes": 22207,
-      "sha256": "1bd89df5eb7508ce51f3f4cc8e42c9f20dbc8f3f0f3efd0d7f6d55ccc4409dde",
+      "bytes": 22209,
+      "sha256": "fd4994ffc544328bbf6a8d8df153e91cc5fdc93c713c06f04c139244e846736c",
       "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
       "evidence": "DOCX created from PowerShell objects by PSWriteOffice."
     },
     {
       "id": "pswriteoffice-pdf",
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
-      "bytes": 72370,
-      "sha256": "070edb8353772df3c0acb065a9a6ecde5f04aba283e6ac8f270fa94494360a3a",
+      "bytes": 92595,
+      "sha256": "bd6cc8410b3787ae1686fc41633902f08b9383b5e71da394256a44d0093a1ea8",
       "generator": "PSWriteOffice Export-OfficeDocumentPdf",
       "evidence": "First-party Word-to-PDF conversion of the generated DOCX."
     },
     {
       "id": "pswriteoffice-preview",
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
-      "bytes": 87244,
-      "sha256": "c88d616c98a0478a21b48a2d0c0509e5a7762381faf59f00a2466c3ae5413695",
+      "bytes": 89773,
+      "sha256": "70b9c31b995b3db2958e0ea67b4a1fbd581a1be3f39f45d9015ca43e58e0d59e",
       "generator": "Poppler pdftocairo page-one render of the generated PDF",
       "evidence": "Independent page-one render of the first-party PDF result."
     },
     {
       "id": "source-officeimo-examples-powershell-patchcompliancereport-ps1",
       "path": "/downloads/showcase/source/PowerShell/PatchComplianceReport.ps1.txt",
-      "bytes": 4073,
-      "sha256": "534911b0cd66aac55a29946af26cb1f14c9006f0e4bc0ae14440ce576042be79",
+      "bytes": 3990,
+      "sha256": "d2bb764fec596ef2e2e4bec416268a0875f497fefc652e19211b2cbff3b689bc",
       "generator": "Copy the generating PowerShell source from the repository",
       "evidence": "PowerShell source for the runnable example."
     },
@@ -3345,6 +3345,4148 @@
       "sha256": "baca7d679cc9e2d78e71e3d15c529a7bb945ca5bab93379742baeb23f44acac1",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
+    },
+    {
+      "id": "pswriteoffice-budget-review-xlsx",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
+      "bytes": 5502,
+      "sha256": "172f046cabad4c51a110fbc3a41ab55dab4328a98225c052182477456fc8d6fb",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native XLSX generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-budget-review-docx",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx",
+      "bytes": 21099,
+      "sha256": "9cb850319dd272375370eed04b46965d3fd72426c662251293178a824b2a90ff",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native DOCX generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-budget-review-pdf",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
+      "bytes": 3092,
+      "sha256": "ae6f6fb3780d536c7c11fe35b7106905e73e56102f6a25c5c5ead20e1c454a7b",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native PDF generated from BudgetForecast.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-budget-review-preview",
+      "path": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+      "bytes": 107852,
+      "sha256": "72d28cddf9b96f40566de4132fd2b9d394bac2d6507603e27a278594243b9acd",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result."
+    },
+    {
+      "id": "pswriteoffice-budget-review-source",
+      "path": "/downloads/showcase/source/PowerShell/BudgetForecastReview.ps1.txt",
+      "bytes": 8344,
+      "sha256": "5e0077e0d9519db7d5a3a9a69430136d5b60aeb9ffc18bd16857a56b881d2231",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-budget-review-input",
+      "path": "/downloads/showcase/source/PowerShell/Data/BudgetForecast.csv",
+      "bytes": 540,
+      "sha256": "121aa5914ede8c0c9e42ab9898ab0b2422f77c56134faa60af6666064cc38d0c",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-xlsx",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx",
+      "bytes": 5398,
+      "sha256": "18afbdf683a5c0264f11469773569daa59cd0c1411378f98c6bab2834afb9eca",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native XLSX generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-docx",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
+      "bytes": 21201,
+      "sha256": "e19bbf17ad1a2b430c9f8a3f6263aab034366d6b96ae42c7ff8e4e3ac8714ff6",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native DOCX generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-pdf",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
+      "bytes": 95936,
+      "sha256": "5e50544f968d84fd0c7abfd98fc37ec71ca1052edca3c13645f9aa2a1abe4b95",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8",
+      "evidence": "Native PDF generated from ProjectMilestones.csv by PSWriteOffice 3.0.8."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-preview",
+      "path": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+      "bytes": 117628,
+      "sha256": "0c19eae993f6b723d47b875f21fdddd875ab24a362306aefe8aa52bd6ae99a25",
+      "generator": "Poppler pdftocairo page-one render of the generated PDF",
+      "evidence": "Independent page-one render of the first-party PDF result."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-source",
+      "path": "/downloads/showcase/source/PowerShell/ProjectDeliveryPack.ps1.txt",
+      "bytes": 7699,
+      "sha256": "3231be706c199b770221807b729b59427085dc261f70870c6bd597364491d7fe",
+      "generator": "Copy the generating PowerShell source from the repository",
+      "evidence": "Complete generating script. Pass a separate CSV with -InputPath or keep the sample under Data/."
+    },
+    {
+      "id": "pswriteoffice-project-delivery-input",
+      "path": "/downloads/showcase/source/PowerShell/Data/ProjectMilestones.csv",
+      "bytes": 520,
+      "sha256": "da0b5b88df370224e9d561f7c540f52ca3f5a22e9bfb06aca832b5afc0c811fd",
+      "generator": "Copy the synthetic CSV input from the repository",
+      "evidence": "Exact input snapshot used to generate the downloadable files."
+    }
+  ],
+  "generations": [
+    {
+      "exampleId": "pswriteoffice-patch-report",
+      "state": "generated",
+      "startedUtc": "2026-10-11T21:34:42.2667226Z",
+      "completedUtc": "2026-10-11T21:34:44.0633027Z",
+      "host": {
+        "powershell": "7.6.6",
+        "os": "Microsoft Windows 10.0.26300",
+        "architecture": "X64"
+      },
+      "sources": [
+        {
+          "path": "OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1",
+          "sha256": "d2bb764fec596ef2e2e4bec416268a0875f497fefc652e19211b2cbff3b689bc"
+        }
+      ],
+      "evidenceProducer": {
+        "path": "Website/scripts/Invoke-ShowcasePowerShellExample.ps1",
+        "sha256": "8df5042eac093a45254040faf0777ad89c61175fc4184173435c376244e3c1a2",
+        "dependencies": [
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Helpers.ps1",
+            "sha256": "5eb84ad7864f43a1a5af237419de3f389f1ba4efb5dfddd66758aa976708b957"
+          },
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Provenance.ps1",
+            "sha256": "4ffa4b9f9e5a7685cc7e8900a090e33b06e6738567c6bc433266f6253fd3701d"
+          },
+          {
+            "path": "Website/scripts/Build-ShowcaseEvidence.ps1",
+            "sha256": "8470645f79b4a8cb384ed3eef2e382d9c8cab1533850165ea01b9fcc3f828da6"
+          }
+        ]
+      },
+      "package": {
+        "name": "PSWriteOffice",
+        "version": "3.0.8",
+        "fileCount": 222,
+        "files": [
+          {
+            "path": "en-US/PSWriteOffice-help.xml",
+            "sha256": "e65c478b5cfa2404909441f270a9417c19f38eb1197ca86563b4bec3b8b21dc5",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/AngleSharp.Css.dll",
+            "sha256": "80800a191d8f4fe582cb4e16a63ced11b8e9d1e46684720ffa4bd02459398d81",
+            "fileVersion": "1.0.1.0"
+          },
+          {
+            "path": "Lib/Core/AngleSharp.dll",
+            "sha256": "ac4b43a13f68df641d2887acbb58f1b273941069c60f1e7be9ee367a52116ca3",
+            "fileVersion": "1.7.1.0"
+          },
+          {
+            "path": "Lib/Core/ChartForgeX.dll",
+            "sha256": "d60609ef586fbd635a8ae8e01b26f21cb41951a8fac12ecaa37409332f44e981",
+            "fileVersion": "1.6.0.0"
+          },
+          {
+            "path": "Lib/Core/DocumentFormat.OpenXml.dll",
+            "sha256": "5f96d580164cc1546978b712fec9dc425f2ddd1b18ded5f8b776bebc60ca9742",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Core/DocumentFormat.OpenXml.Framework.dll",
+            "sha256": "9545e02b8a88d3df6b7befe5fde7618ede3521154898bb78db548599608b9e4b",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Core/en-US/PSWriteOffice.dll-Help.xml",
+            "sha256": "c7b965eb33116888ab16a53dbbad8cc044b614efb820c95461e44f9860be17ac",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Adf.dll",
+            "sha256": "7b455d885db5918b6b5e38c54b770b2d94f25962bc4a3687750b70b55b353db3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.AsciiDoc.dll",
+            "sha256": "f3c5656fdddb5baa2b7201fbfa01ac74952d37135f6df6844dfade32052e8ae5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.AsciiDoc.Markdown.dll",
+            "sha256": "72cb0db2864ce5229f009fe097913e108e9c2cf670c321a4a3f6f12380cec60f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.ChartForgeX.dll",
+            "sha256": "878f1c3ecfd21c6cefc33cce2807a7646dc4dc2dbd0e2c515202c88fc00a8596",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Confluence.dll",
+            "sha256": "9184c4a2a65cb6c6a70a42b1be682196a54e0b6d8521499594db0ce2e86d6572",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Core.dll",
+            "sha256": "339caf6eac4bf94761f23df903db7caae6c8f8226d204f161c197e75f32d36bb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.CSV.dll",
+            "sha256": "7cd14f56a9701dfdb531257210f447ed46d44550635de760fe1a291e032f2be4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.DocBook.dll",
+            "sha256": "c2799e7905ea9466e0055d7a3a424248b1811c71a33fec6a7a6361374f4609b3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Email.dll",
+            "sha256": "a2e9932cb7db035f2066bdda5b07b9165927dff509c54215b6a28e71e50dbcb2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Email.Html.dll",
+            "sha256": "481d0edfcb789131c1e7421ba73ad03df67e00651b9448e570fed524761c303f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Epub.dll",
+            "sha256": "a0e0f35cea664fc0e0cbf652e8d481f7cff7fcfc15f6ba1845350a0bcf522721",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Csv.dll",
+            "sha256": "0cbcee56697d550674735050593fa620a0f49bc451c1cb755a868027be4cbb6f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.dll",
+            "sha256": "91f9a3c5f563f2c41dc95b077bd46ac0ad1bb8f57b6cb005d6f44b5f10bc9b61",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.GoogleSheets.dll",
+            "sha256": "1e650c0f4696b7d7d3f3171a7ad448b7e78f03ea4bddd54e0bea2f18a9c1ca2f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Html.dll",
+            "sha256": "f97a852100432eee47698b584309443ed8098c32d2b155c4dc6e89f9d9a2d666",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.IWork.dll",
+            "sha256": "2d7fb1dad00808e1e433710f7a7cd74d7f933875ebdbdce3cc65ebbfb28023ab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.OpenDocument.dll",
+            "sha256": "b488c813d64c5f84a70f2f470022ff5013d4486e7d658cf0150712b5ea2d3887",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Pdf.dll",
+            "sha256": "d2dbb070beba55dd2ca8d8ba3f4fbdc0910424018922055457a0638d0af571df",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.GoogleWorkspace.dll",
+            "sha256": "69e52e3eee69a78989b498d2f293220253a5147e1e9659725a520bf64dae0408",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.GoogleWorkspace.Drive.dll",
+            "sha256": "9d36bcb1a71946f6bec67f50af48e2989fece92652d998c791b2e9feaf194ebb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "f27872345fb6e0d727290d5c4257e8cd11f37406eb0c7ee89ee475e66d61a67c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Core.dll",
+            "sha256": "3674bf1c3d8faa5f14a7da837ccb791b8afb27f5686f62afe6473c16344c9622",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.dll",
+            "sha256": "2a2a79b9b2913e39b7907602cfcb3ab495541410f4f175d96cdb2ef727f3cc69",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Pdf.dll",
+            "sha256": "04ad9a0f52fc0029075d776146ee1cb2e9e8fe82523ccf745567f86d8a8b3b1b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Rtf.dll",
+            "sha256": "8840322cc49e9bc1264b5531ba66f364bb6d370d96243240d170af97361dce65",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.IWork.dll",
+            "sha256": "63a6e94202d0b2b226d45460594364c5fb716efa536db7db7d914fd4f218e7b0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Latex.dll",
+            "sha256": "eb0519f9d44098ef345a919ee429c8174660d7475ba0ae23dc8ba51c99b4ebb0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Latex.Markdown.dll",
+            "sha256": "18add2db1be8264f2b2b4d3dd6f18cf5f8e3e90e7e3fdc5f882f04f092382aea",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.dll",
+            "sha256": "ac7a2595517649c57d2407ebe17da88557e43675ab64ae781a768de6262a64dd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.Html.dll",
+            "sha256": "9c7f1d63a724eb71f6f0a5ed4671aa75d246364ab172522f73571ec4fc3b509b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.Pdf.dll",
+            "sha256": "fcb4eb7774e6c6f62d459c0a42c5df9ef05f4e6e597197737aeede2093c468cd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Mhtml.dll",
+            "sha256": "ec293f2b9670527fd33450251fad59add1667c9815584a283023a5df93062c84",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.dll",
+            "sha256": "b8f82f475406a292355220c7fd569109c5b032987a7418e55b023d0180b81adc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.Process.dll",
+            "sha256": "0449398efb757d52db7abd3c11a94ad403fa9924c84ecf7dd6a39534d544b911",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.Tesseract.dll",
+            "sha256": "ed58af998e7895e9e00e32ee719b58920b0c14e4d83ec2c40a6079358457e516",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.dll",
+            "sha256": "89e58a92b33aa00931ff151efdef63f10b24d91cf80cc4b4d138f70eea63b67c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Html.dll",
+            "sha256": "3e0ff0721050ac1be224340437b9d5a9c088ce47ae34262cf9c2d31cb6dc59f0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Markdown.dll",
+            "sha256": "8842f4ca5f0a5f0361b72d8da9f83e36fdef497a4e1063ceeb0b16d86e3b9d8e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Pdf.dll",
+            "sha256": "43b7e7e189e7839cdad18e8f6f53aefd23891916a474c6032892ee867fe4e36d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OpenDocument.dll",
+            "sha256": "bfd04ebf42ed6ce14716938b6e8828113983484946648c0eb59e93de6948a064",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Opml.dll",
+            "sha256": "10b5b4e5ac39a9b8e58039e67d113fb5a94a7e76f3846b9b9dea27d3d902917d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Pdf.dll",
+            "sha256": "b5d11003a45946a7a04195ebd04a60dea2d195b64d162226bf2153b8eeaab0eb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Pdf.Ocr.dll",
+            "sha256": "f97cd91f7760dc68b69dcd946f89e0327c1db80c4bcbc225738d24636dc0e04d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.dll",
+            "sha256": "7edbae478e93aee7f054c660423f96191bedf78d88e269960b43f98f6f15b340",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.Html.dll",
+            "sha256": "c4322d40461c65ec9ed90e029d2a2805e30d4b6b8d55ef9f5d5b67df90ae11ef",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.IWork.dll",
+            "sha256": "45492a09ca6707d0e915e4c8472693480d9fbd7ce54ba3a1727fc9ee3e5d2805",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.OpenDocument.dll",
+            "sha256": "ab0dadcf54231c2444d5f3ca2fad6cfc30a4bfa1ca53f7cda001f37a35c73e20",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.Pdf.dll",
+            "sha256": "68b6a5525d10129de58661211d03bc10a50857073d2f42fb76b02949fbe401c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Provenance.C2pa.dll",
+            "sha256": "ef271fec6703d3447a3704030caaeaf452d414467e57b94ed6a33574edaa7b7d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.All.dll",
+            "sha256": "1f9eca7dd92b14ce44ba81b2ededd201e2c1aee0431d7bb906d064ecfb4fc090",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.AsciiDoc.dll",
+            "sha256": "2eebfc99e54289348bb3a2616ffc4f041501ff0adca4c120afe50a278b988882",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Core.dll",
+            "sha256": "ac3f7886045965d599e1fe969f49a9b666aca137f13446c5d0877b412bde4fd2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Csv.dll",
+            "sha256": "0f4c4022c9e51b4c8f62e5717a4c5ada541d07d122e0e3742afcc3f2c619d134",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.DocBook.dll",
+            "sha256": "9d2f196205ecae239c0aea66da00a28ad4bee64dbc46c0e18f5bd3c588686970",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Email.dll",
+            "sha256": "30792f08cb6e8007255af7fb8e4f0393693d1dd1fe55779e7498acd239c060c5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Epub.dll",
+            "sha256": "cf466039c8a1c05c0d5298668635eaaa0f8956433a3b32b7336d9f10d9d1b3cc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Excel.dll",
+            "sha256": "85eb07b559692d05e5f7f3fe2dbf2841fa8642538657966a0a8ead9c0b4022b4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Html.dll",
+            "sha256": "c2ae98733f3ecf973a58a5c8c54268224d681bac554e3553d5abae40bf602f74",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Image.dll",
+            "sha256": "d463175ef4079260e5e72db4d40e4fdaa2ac944afd51f6282e58cc8d7fffef07",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Json.dll",
+            "sha256": "8bdbb141eec3788235223d1d4c1f5fce633c1650c06ccf3e9a9ee3a95b0a2668",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Latex.dll",
+            "sha256": "dd864686ad658cc61dc146e1daeb708286b673720c8665430368e7b9e7de92da",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Markdown.dll",
+            "sha256": "98d21a42f57c1d782cd6c4ddf6ec73a3caffa821367b2b100fabdd10f23f04b0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Notebook.dll",
+            "sha256": "76aeab8b526062855135c7f0a4146ac1d5aca72148243cf24dab19b62012b9d4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Ocr.dll",
+            "sha256": "7339997ef88878e7c120e8e5560914dc704eb6b18961eee0f956afaa2339ec85",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.OneNote.dll",
+            "sha256": "da286bd076e089820574cab3a354a16522e1e9cb75710b6a868f781c4cc329c9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.OpenDocument.dll",
+            "sha256": "34c03cb1be3944ae3a0e027937f60dbce74e23a7efc5d9544b553ca5aff0f66f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Opml.dll",
+            "sha256": "42e9cebd2f40e00f97bd46363bf81f342de62c967d0d28dfd4536d57c8b68ab8",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Pdf.dll",
+            "sha256": "537dc8927e7c51fb3ac89812080086d3dae9e411e1acffd0b796a25d74fc5475",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.PowerPoint.dll",
+            "sha256": "40681351717758cb1d1fee29be9da69c3cd3f6af8e42617a5188b31501d052e0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Rtf.dll",
+            "sha256": "4132f76e8a9268b4b3540dc771f624ecc56cda75ce8f42965d1d219f02f12e49",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Subtitles.dll",
+            "sha256": "56649fb61145e39d8985bce2c21921224a28718a44016bab2d27196ccab88efc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Visio.dll",
+            "sha256": "9b395ed1bdf2144ab02753b498e8fe6b6a2bda2d1b5249290ed8a6e62499bb6e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Word.dll",
+            "sha256": "ec5a35e9eeaabed1318b5e7e234dac52162c799d945620da657d21ddf1de0d32",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Xml.dll",
+            "sha256": "a5f98ad941d05af090d95d40bbf1cb6281df43a7fd2cbfb18e69422915d6ec04",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Yaml.dll",
+            "sha256": "f5a53aa267584a7102d435ce5cf8ee29dd9d81b47e2ffa20b15547b05db2e1fb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Zip.dll",
+            "sha256": "9f9b030f17d616408ea89546c4bc6fdaa44da4f19e54120fe046e8e10a015486",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.dll",
+            "sha256": "a35a0d2ccc790f71a288d8b8be7758ee1170dead588843d31a8a28e86a042eea",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.Markdown.dll",
+            "sha256": "5fa0f209264566089a72ab446c35816376a26fa3dce6c02bfe3e3b8ef1f3cea0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.Pdf.dll",
+            "sha256": "a90ca5411dbc71037788860ad2dc6c00ce29ecb656e5c8494de8d1461e2e0f1a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Visio.dll",
+            "sha256": "514b4bd79c858b39bf576ec1350d3cf7ce4a5103ce5d5ebccc21fe482398106e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.dll",
+            "sha256": "0c33e5da1a8fc1230c7990dbd5d5c6723f96a454caef83e5eac372a4810cab38",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.GoogleDocs.dll",
+            "sha256": "c6726b15bbfdd2ef33da1fed8eafab640c5c65f0ad6ced581eb575f08bdfd7b4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Html.dll",
+            "sha256": "2e6cd2364f6f6da1064b2037f22ca2207c121e85c1eea519e0a870f60da9995d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.IWork.dll",
+            "sha256": "82a46555eca5ee40480bcf0199dae1adc77119122a033a78a4f90647f9e0c38b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Markdown.dll",
+            "sha256": "4850c90d226203aa0af39be3f2214062ea52c1ac704d64a6957d7320ea8df0e6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.OpenDocument.dll",
+            "sha256": "298a373e7fac71148f5e40674eac907d181a01f52674afcf9e687c35c30d9392",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Pdf.dll",
+            "sha256": "1115806b142fce724633ed77c2ace33b842b836e11b17be53d9cbca3f4763fd1",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Rtf.dll",
+            "sha256": "e6942e83e13634209e8307878c4a08e41170117a0d2ceb0daad26f9aa82b7b2b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Zip.dll",
+            "sha256": "c1982d3d2d09cbb462943bb6b7ba17d4dd301f856f1a09298f9748393e159554",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/PowerForge.TargetFramework.txt",
+            "sha256": "c0152a36d87621015b873fa5727b665051540b49d39827e680926417a2536955",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.dll",
+            "sha256": "fd7ede6a74086d2b650cdc16f625a0beafe6bc7d0b7e12b842410d5000aeb08e",
+            "fileVersion": "3.0.8"
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.ModuleLoadContext.dll",
+            "sha256": "4c332731f19778fabbf5f21d20d1e0c75ca30d480c344c9831389daa1e504a53",
+            "fileVersion": "1.0.0.0"
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.xml",
+            "sha256": "e1fbc67217004740c2a150400b64c116765daf8acc44a2305cf30ba891fe212e",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/runtimes/browser/lib/net8.0/System.Text.Encodings.Web.dll",
+            "sha256": "28e2577c4e91b42d6a2000563cc74329c8e9fcaa8101f4454ac396b65c97561d",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/runtimes/win/lib/net8.0/System.Text.Encoding.CodePages.dll",
+            "sha256": "d671e5e6744cba8a915d627061802eb41a6953a7ab4842fe3778af9cc20fe33d",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Core/System.IO.Packaging.dll",
+            "sha256": "8e5720e0f87276adc6effa97dfac80c094ca65997b4e3bc9f5f1b0bb511b8f99",
+            "fileVersion": "10.0.826.23019"
+          },
+          {
+            "path": "Lib/Core/System.IO.Pipelines.dll",
+            "sha256": "0a5419362d6a56fecedf95d2d04b544f28b17a218f73cc9aba4bae091ce75e6f",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/System.Text.Encoding.CodePages.dll",
+            "sha256": "2ea37e46ff9617ee2fb2390791fec65b72f99ed4d19bf0582df241bf2a341945",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Core/System.Text.Encodings.Web.dll",
+            "sha256": "8d5d64652cbf4daf4f4caf442845719e0d97b208b7805a57078139b4dcb56ef2",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/System.Text.Json.dll",
+            "sha256": "b899ff9557e69ae25101812181658e6e2f858b9e278ae201e4fb01b92717a889",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/YamlDotNet.dll",
+            "sha256": "f50f761ae84b110826c5f6d38b06728343fcaf1457d2c08998cd66c25272e6ef",
+            "fileVersion": "18.0.0.0"
+          },
+          {
+            "path": "Lib/Default/AngleSharp.Css.dll",
+            "sha256": "25385280a4e7781ca19bc6bfc172d6ff78e5b84c5279372dded215f5823878d8",
+            "fileVersion": "1.0.1.0"
+          },
+          {
+            "path": "Lib/Default/AngleSharp.dll",
+            "sha256": "1e93082a543b612e9f6d7596cc5e39650a6ec7f479d8f96e59f6befdeea4f451",
+            "fileVersion": "1.7.1.0"
+          },
+          {
+            "path": "Lib/Default/ChartForgeX.dll",
+            "sha256": "1dcea8a9573a4f29ca500dbb4f45c09c26b8e9286e91b7558aa9b7ace03cb621",
+            "fileVersion": "1.6.0.0"
+          },
+          {
+            "path": "Lib/Default/DocumentFormat.OpenXml.dll",
+            "sha256": "40dd8b2cb50861d31cbfe16b1086eb7d0abe9619e7c01714e9c33eb171a2c5e8",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Default/DocumentFormat.OpenXml.Framework.dll",
+            "sha256": "4243ec6ca38a024040e708756bee68a8ba71195d56d8e68a1aad4c9348fd6468",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Default/Microsoft.Bcl.AsyncInterfaces.dll",
+            "sha256": "f251c93b08880a46320d6cc6e0d9225630794464f86e6e2729036f48124b331c",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Adf.dll",
+            "sha256": "09d9ad75e071f8b34da13007a8e1c1f44ada94f804b21de15d61f67f31a8f000",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.AsciiDoc.dll",
+            "sha256": "ffc90c329392538712cb1420b8a390b424d7d4ef90ecd799d60e56240ae37436",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.AsciiDoc.Markdown.dll",
+            "sha256": "1fea6450316dcf92bf8538bd7acd073ecf929df808a4465f2e8198749db8ae83",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.ChartForgeX.dll",
+            "sha256": "fa1636e00bd589a9ecc0da11f7d6bcbb7b13d5b487f4a1e0353a015043d5105f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Confluence.dll",
+            "sha256": "faff504532506673b4fd3a00746b75307fd4025ea50afe64923708530c9f8c4c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Core.dll",
+            "sha256": "b94d5080a65177bcc427c665d6f67d2d98d67d4652c4eb9015266a7e8394d1e9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.CSV.dll",
+            "sha256": "1afde9b67a74e495701fab312df036226ce67b6a558cda2336f7fe7d3878b0ae",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.DocBook.dll",
+            "sha256": "6067c9e904d2bce96d96cd3c0b6590504bb3e28032e4bf6a82c845b93083ee88",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Email.dll",
+            "sha256": "193024b98f6d3ea9f3adf373564047f1ecef97a153c7c61e5696a83e83c72ffb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Email.Html.dll",
+            "sha256": "ddfbb4862ab6ad43a03ffad6aee2c783e5d409989fa9cbbec91a046e1e6e5e25",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Epub.dll",
+            "sha256": "46afcb34cc7b355a03655a224f3828e06d03c57df79abbe25c9fee3bcfb0d87e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Csv.dll",
+            "sha256": "aa5fda9df12cc826724b5e84d85bfbea85922d40c29cc2612bcb9a6b890d33f3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.dll",
+            "sha256": "5c9d03ef0ece5d9794c2e6c075fe110725b91ccc888612aa5d77553bed86e699",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.GoogleSheets.dll",
+            "sha256": "03bc0dd15580108a48a01d132c089aad5727fdae769cba4fd6a778588708d9a5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Html.dll",
+            "sha256": "538d96fe4507076d900ab9f48faa9adefa3120154a1d6558a3a9ba66a63d211c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.IWork.dll",
+            "sha256": "5563369a654f6d801a544ae082ea99d415c3d3c80a704be926fb2c725b003219",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.OpenDocument.dll",
+            "sha256": "a8b49038429e01afd250569e99df1f1ea400c79cb875e7dab33710486469dbf7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Pdf.dll",
+            "sha256": "6edb448bc904c74465e484974fc9d14829b268c6389e586aa0b3db5dd9cf4a21",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.GoogleWorkspace.dll",
+            "sha256": "1c675335c25402f833403397ef538498d02e80f5ad092f9ef8e6eed5455e49cd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.GoogleWorkspace.Drive.dll",
+            "sha256": "3e5c20f49f0bd2de48a3813c2dcf704bb1eafcd63a836b07fc9606328753b5c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "127c45a0b1ed23dbb8a14a318c2d18fb0825efabbedaad3c97bb381c40876198",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Core.dll",
+            "sha256": "16d01b3fb0b7dac5c8a27beacada5f101c579de219684c8648007aae18354c8b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.dll",
+            "sha256": "7a31279bc0e839ab073959c2732e09460298ae234ba27b25750f629eb6730c96",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Pdf.dll",
+            "sha256": "2b16ba91ad663e794fbe34e612c74b20740bc0cc82df4bdc0f879a6d1b58b921",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Rtf.dll",
+            "sha256": "3bf24f048f16911a46cf71f879bc22be251fbad14a25d48ab613e28852ec289e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.IWork.dll",
+            "sha256": "dbcb03197a043fe1a9478737a372a1e7b0178bf5be9a5ccb9f7c0f4e75a2b681",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Latex.dll",
+            "sha256": "903e3d00e3935139fadc2c1ec37224c2b6287f8ad9865dd05e6cad7b2bf5acd7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Latex.Markdown.dll",
+            "sha256": "5cb4098814f176c3d956102cc427d7d0bd7374ebaa39c4af035fb90322e2fef3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.dll",
+            "sha256": "5587ec63fc04c88c1f3b09e759efe276f2614303dc66d3594acf9d4118761270",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.Html.dll",
+            "sha256": "7a21ae0bd8ceb55690cd82504725b979884fe3f86d4ecf2ba02175f5d7c5d9b6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.Pdf.dll",
+            "sha256": "f58f3a16e3459682bb360cea89457b5ade70cc14ce434630d0c7bc771e8ca404",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Mhtml.dll",
+            "sha256": "8ce07ccf08e26ba072a30be19ba330d5204ac310433f64811071bf368cd586c3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.dll",
+            "sha256": "dd374f0a974fcaae9706e6106280ae1c1364d1a2a14e6ae0c967ff0779d9eeba",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.Process.dll",
+            "sha256": "0a486e7e55ca0ba6e99cdb5787f094628e22ef3e636ddf5758aaec14e7d33c94",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.Tesseract.dll",
+            "sha256": "458091f1f873991b1250d59c183966f8a789f972d005cab158f46ae7e98a210b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.dll",
+            "sha256": "dcf9ba5213083195218a798d760b277bb3754e46bf28b18af0d37104c6f42916",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Html.dll",
+            "sha256": "fe4f2268c85661073501e02c2e3234bd1af3ff4eec2326b04e24d13ce56c8fab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Markdown.dll",
+            "sha256": "68527377b59f524fb989ad2bb9d9ae0edf7460f5b1a0c9d7d3a048be35fa3929",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Pdf.dll",
+            "sha256": "80d3c245343e22511ac90d7a94ea59b69c44b7f27f8a55655c44e95e0ec1c9ef",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OpenDocument.dll",
+            "sha256": "aa86363554d112bda2b4979b88a0b81a2aec5a83ed9720151bebbbbae0969c12",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Opml.dll",
+            "sha256": "47a689c5d00b71ce200d90de9b3dcce81a7b7d62029d645c96056cf96d704c9e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Pdf.dll",
+            "sha256": "6af45bc1df427978cb1d8bb1b05dc5a01aff233122b5c6f5d66abd1c06288ed3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Pdf.Ocr.dll",
+            "sha256": "de415e8e7f1af8585bd95f0e53abfadb21503f512126c341700ad30abf4410c2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.dll",
+            "sha256": "b6d3410ada1e4def2d907e6ed0907c5b5878c2011909f9d1ceb81829455b3bec",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.Html.dll",
+            "sha256": "57adb4a7fadefab3cacb0a0308164b27166006623a5b2c07d47c41f9e0f2e7d7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.IWork.dll",
+            "sha256": "ecca4465c6277f5457789bb986c5c123c16ede725a689fe2d17a18e0bd0d0280",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.OpenDocument.dll",
+            "sha256": "0b00b7e677ebe1359aa059bc8e6afe601b977f4e02cbc3f1d670548b488acf3e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.Pdf.dll",
+            "sha256": "d8b8b465d2c44e6bdec5a807a2ad3ccf4e8fd7b42f6689be647163394ae956ce",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Provenance.C2pa.dll",
+            "sha256": "4d8653a031e0f12b7f3421e3b4ca4adef76fda537be9c495785ecdfa0b144957",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.All.dll",
+            "sha256": "82fb61d8476a86aafa9ed32a8460fa9d1dc359fa5b1bcdca9d0fc13a6099f157",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.AsciiDoc.dll",
+            "sha256": "dff416a910d3de74c0824e95d65b2dfbc8638f0e7ae99dc5b4d32648979d5c9d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Core.dll",
+            "sha256": "8458f4b868d782e9ce726226a7509dbe6356a634c76237ecc1ef045240bb66d9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Csv.dll",
+            "sha256": "cac0c24367cc68a5cf0ffcbb72120f36d14c8c6936b3b21094b6d946fabb3796",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.DocBook.dll",
+            "sha256": "0ec7ac09b9880e209f56c9423229e2116c830df51e19e028fc1ce6039d8f5d63",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Email.dll",
+            "sha256": "35cfa84b737af7a88dc0c4c0607b64b903c7c7bce4217a00742c69f5a6c1dc44",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Epub.dll",
+            "sha256": "a95a98f2ef2f024d2dc16be27a302a356e2358cc0b74aca21c2fa7cae45b73c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Excel.dll",
+            "sha256": "a52798347a2758ce5856b5cdc969fb5200721641fbe7b8e518d09b728ebf5ee0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Html.dll",
+            "sha256": "c53691556d133ec1ed221abb959f731e705f997a105032627a08c539bf22a80a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Image.dll",
+            "sha256": "eee57a3aaea286bfb37225cef6f672fa02756d3438bdfef71040794430eb81f8",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Json.dll",
+            "sha256": "2f8ad4444220edd5731ebc32e452567285fa691cd90b543afbde2ef458974046",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Latex.dll",
+            "sha256": "2fbcd427b2be3419d51000ed083d1c85d72e1f4f8a1676ccc577834664fb2685",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Markdown.dll",
+            "sha256": "c6de45947c9526a5ebb540cffdaf7c64bf4303bd91abf0910a1a917a04ab4561",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Notebook.dll",
+            "sha256": "501c50bd21207a6014d12a88f31130adb82fef163e2809fa93890d7584511481",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Ocr.dll",
+            "sha256": "c9dbec4acf4548c3aec8e8c7ba2c699c73d7172b9102e6c04692cd1b14ef7c4e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.OneNote.dll",
+            "sha256": "ccb8b9661b4cef1bdb33e840cbf23673cc590ccfa5204247cc5a9464f85a340a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.OpenDocument.dll",
+            "sha256": "ff57d182a989439bc65bbf80da7bddaf3eb64da7c8cd547ab9e112fd254e1436",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Opml.dll",
+            "sha256": "d77368a7e0a5bbbab8d6e76edb3a91e2979a08dd95f636e47fca407a16b7c651",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Pdf.dll",
+            "sha256": "936a70fa635caf894c15ae295357ef9a14d8c4148d96dec004a91b094b37eec4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.PowerPoint.dll",
+            "sha256": "b5fe3c2d366b0ad21f6e69eacefc1cc34ed142dc10d6c0e084dae552b56e4ac3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Rtf.dll",
+            "sha256": "86c23a2c76065837f3b26ae52b1bd9b6d1d41d7d9c3ff495204c00eb530065aa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Subtitles.dll",
+            "sha256": "d9577ab93332d82f8ee6f82c0e8dfab8dc7c4ffabf38a469b742c8598c01f45f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Visio.dll",
+            "sha256": "6a790e1c04950058f4c8cd01e9ba23c0b9db003a64ac0529f00b4380c3ec4814",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Word.dll",
+            "sha256": "5eb89dcd6c8372f196a460c87f69f94263082fa092a80052e90107394a36e5c5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Xml.dll",
+            "sha256": "7e1332f9e275bac4ecf948c77839ab2226bb22efe573ce9ba46976a7f2f0d800",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Yaml.dll",
+            "sha256": "e725c662c07ce800c48267a486dfec92502348bea846bb9fe1a38d3231e57456",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Zip.dll",
+            "sha256": "3b06f9581f3e1b7dd771960207ba5671c78d66461539e2c4456488d63ae602e7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.dll",
+            "sha256": "0229eaad461308b5d42b0ad9849298da3df6f19f1652b9a9bd982aff56d4379d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.Markdown.dll",
+            "sha256": "492f4f5a646e9c58fbfb42e0a78f011b78c55c4582c6fd6c7a16d03d3012898c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.Pdf.dll",
+            "sha256": "75d6de69ec620603ba284a1797a71b82201057b4fe7c0a36f5f263c7d7968ce6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Visio.dll",
+            "sha256": "f48aebd40799640441dc3e66bf98bb83cd16d994d69e18693c091790bd88ad4f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.dll",
+            "sha256": "90419203949b76d058bdf0a4d74f63af8957ded1f6565127f2c15227844305b2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.GoogleDocs.dll",
+            "sha256": "32e385909c087eb6a23eea3dccd74d69df2456c328af7e9e38766f373d6f07ab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Html.dll",
+            "sha256": "fd917ca166ae7e412ee5705fd4ef6ce1a1e64f109f77f3a2f5f7a92e82d2c822",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.IWork.dll",
+            "sha256": "b1c9b8277cc4287e6b23065984942df7e8d69eea34f165bf09add1a3802dceaa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Markdown.dll",
+            "sha256": "196d705e21ff27d3ab1f83b92b2976c27e41a46bbd695b521c1d18bcc70d00b6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.OpenDocument.dll",
+            "sha256": "40453c5a6071d0e18e0744b95fb0b514ce87e1610948b4b74f4338c4de0795a7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Pdf.dll",
+            "sha256": "d5779378addf46d08d52c0b1bfeb6beb522c35d8a2cdaf7c9cb3cec095f8feaa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Rtf.dll",
+            "sha256": "d3a2dd0429060c28052dc8464e0aa03e610190ecbdf2c453c0d37b428e741b14",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Zip.dll",
+            "sha256": "5bb6dc4a86be91b935f0c23864e9f3c9e40e200335b7e1e4c8926ee08d4b2090",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/PowerForge.TargetFramework.txt",
+            "sha256": "aeacfcfb0a9a11c70c9d8426e3789561c2662508f52aebaa0b8fa7a145d4be82",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.dll",
+            "sha256": "3daca2ac0ba7a883394d2bce9095f6426e8f9d8af155915e30724cef1066004f",
+            "fileVersion": "3.0.8"
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.ModuleLoadContext.dll",
+            "sha256": "50550336d64b0c61ead043277d4a42f9cadc9967eb180f9c7dceb5242ed01baf",
+            "fileVersion": "1.0.0.0"
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.xml",
+            "sha256": "e1fbc67217004740c2a150400b64c116765daf8acc44a2305cf30ba891fe212e",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Default/System.Buffers.dll",
+            "sha256": "2d78d770c9cb997199154ae8c018b9f1d1efbc86729f7264dde6dbad2a12cac3",
+            "fileVersion": "4.600.125.16908"
+          },
+          {
+            "path": "Lib/Default/System.IO.Packaging.dll",
+            "sha256": "277e88144db76056740a9405da5b99ef846113e4a29ecf9a0b87fa5fb4ab6616",
+            "fileVersion": "10.0.826.23019"
+          },
+          {
+            "path": "Lib/Default/System.IO.Pipelines.dll",
+            "sha256": "6663b9955ad95ec93d085353f7769c2d93df07b3146faddcef27aa9bb51ba22c",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Memory.dll",
+            "sha256": "d5e8e4866f9cfa66f7765660f84b210198893e55335487afe5ebda342c0e913d",
+            "fileVersion": "4.600.325.20307"
+          },
+          {
+            "path": "Lib/Default/System.Numerics.Vectors.dll",
+            "sha256": "20c2fa81b8c70d651099d762954f285fd4f942e63b2d7217c145dab8d4b2f4c9",
+            "fileVersion": "4.600.125.16908"
+          },
+          {
+            "path": "Lib/Default/System.Runtime.CompilerServices.Unsafe.dll",
+            "sha256": "08cbd7278b66f1e68425a82d4b97181a4130d93e3dd91831407aba7212ccdacf",
+            "fileVersion": "6.100.225.20307"
+          },
+          {
+            "path": "Lib/Default/System.Text.Encoding.CodePages.dll",
+            "sha256": "3904bcaa55174a95695a04b57430833ab8144bf8f7049a6915785061c9862d5d",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Default/System.Text.Encodings.Web.dll",
+            "sha256": "55749856fa60f1e70bbf0917df99f592738ec6971220115ba9bf18f6180e465f",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Text.Json.dll",
+            "sha256": "8f160de9a7a85665e2e695fa8a504861dcae21115ed3567b18b026f6974411b1",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Threading.Tasks.Extensions.dll",
+            "sha256": "af4e13ef418fd89b432de20cd1dfb7fa10a7179c8dd049c9856316e50c5949ca",
+            "fileVersion": "4.600.325.20307"
+          },
+          {
+            "path": "Lib/Default/YamlDotNet.dll",
+            "sha256": "cbbe106e8e9ddfd31b38acafc667ea3b49fa6b086027955a3ed067e2b87a1428",
+            "fileVersion": "18.0.0.0"
+          },
+          {
+            "path": "LICENSE",
+            "sha256": "382b2199369e8fd868385c6da5de6ed28c0a611473e5fa57f0577597240fd858",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.Libraries.ps1",
+            "sha256": "2456a70ed41c83e5f1621423c42570f3f78919f910fc8fdeeb70d55f1d1dd762",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.psd1",
+            "sha256": "87b8d1fce155f659b3166d8d09d0292144e8c6d832ee7f292c18a2e7e7a22d44",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.psm1",
+            "sha256": "c959c1789681121d8907a4520609baca502fa772ab62dab77f89d541b4ac9dde",
+            "fileVersion": null
+          }
+        ]
+      },
+      "conversions": [
+        {
+          "outputPath": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
+          "outputSha256": "bd6cc8410b3787ae1686fc41633902f08b9383b5e71da394256a44d0093a1ea8",
+          "routeId": "docx-pdf",
+          "command": "Export-OfficeDocumentPdf",
+          "routeEvidence": "recipe-uses-single-document-DOCX-export",
+          "report": {
+            "IsReadOnly": false,
+            "Warnings": [
+              {
+                "Converter": "OfficeIMO.Word.Pdf",
+                "Code": "NativeFontFamilySubstituted",
+                "Source": "word:font[Calibri]",
+                "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "Severity": 1,
+                "LossKind": 1,
+                "LayoutDiagnostic": null,
+                "Details": {
+                  "fontFamily": "Calibri",
+                  "fallbackSlot": "Helvetica"
+                }
+              },
+              {
+                "Converter": "OfficeIMO.Word.Pdf",
+                "Code": "NativeFontFamilySubstituted",
+                "Source": "word:font[Calibri Light]",
+                "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "Severity": 1,
+                "LossKind": 1,
+                "LayoutDiagnostic": null,
+                "Details": {
+                  "fontFamily": "Calibri Light",
+                  "fallbackSlot": "Helvetica"
+                }
+              }
+            ],
+            "HasWarnings": true,
+            "HasErrors": false,
+            "HasLoss": true,
+            "FidelityDiagnostics": [
+              {
+                "Code": "NativeFontFamilySubstituted",
+                "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "LossKind": 1,
+                "Source": "OfficeIMO.Word.Pdf",
+                "Location": "word:font[Calibri]"
+              },
+              {
+                "Code": "NativeFontFamilySubstituted",
+                "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "LossKind": 1,
+                "Source": "OfficeIMO.Word.Pdf",
+                "Location": "word:font[Calibri Light]"
+              }
+            ],
+            "FidelityStatus": 1
+          },
+          "warnings": [
+            {
+              "Converter": "OfficeIMO.Word.Pdf",
+              "Code": "NativeFontFamilySubstituted",
+              "Source": "word:font[Calibri]",
+              "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+              "Severity": 1,
+              "LossKind": 1,
+              "LayoutDiagnostic": null,
+              "Details": {
+                "fontFamily": "Calibri",
+                "fallbackSlot": "Helvetica"
+              }
+            },
+            {
+              "Converter": "OfficeIMO.Word.Pdf",
+              "Code": "NativeFontFamilySubstituted",
+              "Source": "word:font[Calibri Light]",
+              "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+              "Severity": 1,
+              "LossKind": 1,
+              "LayoutDiagnostic": null,
+              "Details": {
+                "fontFamily": "Calibri Light",
+                "fallbackSlot": "Helvetica"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
+          "sha256": "fd4994ffc544328bbf6a8d8df153e91cc5fdc93c713c06f04c139244e846736c",
+          "diagnostics": null
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
+          "sha256": "bd6cc8410b3787ae1686fc41633902f08b9383b5e71da394256a44d0093a1ea8",
+          "diagnostics": {
+            "pageCount": 1,
+            "fonts": [
+              {
+                "name": "Arial-Regular",
+                "subtype": "Type0",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              },
+              {
+                "name": "Arial-Bold",
+                "subtype": "Type0",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              },
+              {
+                "name": "Arial-Regular",
+                "subtype": "CIDFontType2",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              },
+              {
+                "name": "Arial-Bold",
+                "subtype": "CIDFontType2",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              }
+            ]
+          }
+        }
+      ],
+      "previews": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
+          "rendering": {
+            "tool": "pdftocairo",
+            "version": "pdftocairo version 25.07.0",
+            "executableSha256": "a8f2030e248c99a4cdb0252160eafba59b5f5f8dee4b419b59b8019636ffa4bb",
+            "page": 1,
+            "inputSha256": "bd6cc8410b3787ae1686fc41633902f08b9383b5e71da394256a44d0093a1ea8",
+            "sha256": "70b9c31b995b3db2958e0ea67b4a1fbd581a1be3f39f45d9015ca43e58e0d59e",
+            "diagnostics": []
+          }
+        }
+      ],
+      "receiptSha256": "40ae6189f9933a7b6ad9ed7b223d05d03e6bd7d52dc0caa68a36b133f973eb3d",
+      "previewReview": {
+        "state": "reviewed",
+        "reviewedUtc": "2026-10-11T21:34:51.5524712Z",
+        "artifacts": [
+          {
+            "path": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
+            "sha256": "70b9c31b995b3db2958e0ea67b4a1fbd581a1be3f39f45d9015ca43e58e0d59e"
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
+          "sha256": "fd4994ffc544328bbf6a8d8df153e91cc5fdc93c713c06f04c139244e846736c"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.pdf",
+          "sha256": "bd6cc8410b3787ae1686fc41633902f08b9383b5e71da394256a44d0093a1ea8"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/patch-compliance-report-page1.png",
+          "sha256": "70b9c31b995b3db2958e0ea67b4a1fbd581a1be3f39f45d9015ca43e58e0d59e"
+        },
+        {
+          "path": "/downloads/showcase/source/PowerShell/PatchComplianceReport.ps1.txt",
+          "sha256": "d2bb764fec596ef2e2e4bec416268a0875f497fefc652e19211b2cbff3b689bc"
+        }
+      ]
+    },
+    {
+      "exampleId": "pswriteoffice-project-delivery",
+      "state": "generated",
+      "startedUtc": "2026-10-12T07:10:44.6233686Z",
+      "completedUtc": "2026-10-12T07:10:46.415192Z",
+      "host": {
+        "powershell": "7.6.6",
+        "os": "Microsoft Windows 10.0.26300",
+        "architecture": "X64"
+      },
+      "sources": [
+        {
+          "path": "OfficeIMO.Examples/PowerShell/Data/ProjectMilestones.csv",
+          "sha256": "da0b5b88df370224e9d561f7c540f52ca3f5a22e9bfb06aca832b5afc0c811fd"
+        },
+        {
+          "path": "OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1",
+          "sha256": "3231be706c199b770221807b729b59427085dc261f70870c6bd597364491d7fe"
+        }
+      ],
+      "evidenceProducer": {
+        "path": "Website/scripts/Invoke-ShowcasePowerShellExample.ps1",
+        "sha256": "8df5042eac093a45254040faf0777ad89c61175fc4184173435c376244e3c1a2",
+        "dependencies": [
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Helpers.ps1",
+            "sha256": "5eb84ad7864f43a1a5af237419de3f389f1ba4efb5dfddd66758aa976708b957"
+          },
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Provenance.ps1",
+            "sha256": "4ffa4b9f9e5a7685cc7e8900a090e33b06e6738567c6bc433266f6253fd3701d"
+          },
+          {
+            "path": "Website/scripts/Build-ShowcaseEvidence.ps1",
+            "sha256": "8470645f79b4a8cb384ed3eef2e382d9c8cab1533850165ea01b9fcc3f828da6"
+          }
+        ]
+      },
+      "package": {
+        "name": "PSWriteOffice",
+        "version": "3.0.8",
+        "fileCount": 222,
+        "files": [
+          {
+            "path": "en-US/PSWriteOffice-help.xml",
+            "sha256": "e65c478b5cfa2404909441f270a9417c19f38eb1197ca86563b4bec3b8b21dc5",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/AngleSharp.Css.dll",
+            "sha256": "80800a191d8f4fe582cb4e16a63ced11b8e9d1e46684720ffa4bd02459398d81",
+            "fileVersion": "1.0.1.0"
+          },
+          {
+            "path": "Lib/Core/AngleSharp.dll",
+            "sha256": "ac4b43a13f68df641d2887acbb58f1b273941069c60f1e7be9ee367a52116ca3",
+            "fileVersion": "1.7.1.0"
+          },
+          {
+            "path": "Lib/Core/ChartForgeX.dll",
+            "sha256": "d60609ef586fbd635a8ae8e01b26f21cb41951a8fac12ecaa37409332f44e981",
+            "fileVersion": "1.6.0.0"
+          },
+          {
+            "path": "Lib/Core/DocumentFormat.OpenXml.dll",
+            "sha256": "5f96d580164cc1546978b712fec9dc425f2ddd1b18ded5f8b776bebc60ca9742",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Core/DocumentFormat.OpenXml.Framework.dll",
+            "sha256": "9545e02b8a88d3df6b7befe5fde7618ede3521154898bb78db548599608b9e4b",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Core/en-US/PSWriteOffice.dll-Help.xml",
+            "sha256": "c7b965eb33116888ab16a53dbbad8cc044b614efb820c95461e44f9860be17ac",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Adf.dll",
+            "sha256": "7b455d885db5918b6b5e38c54b770b2d94f25962bc4a3687750b70b55b353db3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.AsciiDoc.dll",
+            "sha256": "f3c5656fdddb5baa2b7201fbfa01ac74952d37135f6df6844dfade32052e8ae5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.AsciiDoc.Markdown.dll",
+            "sha256": "72cb0db2864ce5229f009fe097913e108e9c2cf670c321a4a3f6f12380cec60f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.ChartForgeX.dll",
+            "sha256": "878f1c3ecfd21c6cefc33cce2807a7646dc4dc2dbd0e2c515202c88fc00a8596",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Confluence.dll",
+            "sha256": "9184c4a2a65cb6c6a70a42b1be682196a54e0b6d8521499594db0ce2e86d6572",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Core.dll",
+            "sha256": "339caf6eac4bf94761f23df903db7caae6c8f8226d204f161c197e75f32d36bb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.CSV.dll",
+            "sha256": "7cd14f56a9701dfdb531257210f447ed46d44550635de760fe1a291e032f2be4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.DocBook.dll",
+            "sha256": "c2799e7905ea9466e0055d7a3a424248b1811c71a33fec6a7a6361374f4609b3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Email.dll",
+            "sha256": "a2e9932cb7db035f2066bdda5b07b9165927dff509c54215b6a28e71e50dbcb2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Email.Html.dll",
+            "sha256": "481d0edfcb789131c1e7421ba73ad03df67e00651b9448e570fed524761c303f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Epub.dll",
+            "sha256": "a0e0f35cea664fc0e0cbf652e8d481f7cff7fcfc15f6ba1845350a0bcf522721",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Csv.dll",
+            "sha256": "0cbcee56697d550674735050593fa620a0f49bc451c1cb755a868027be4cbb6f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.dll",
+            "sha256": "91f9a3c5f563f2c41dc95b077bd46ac0ad1bb8f57b6cb005d6f44b5f10bc9b61",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.GoogleSheets.dll",
+            "sha256": "1e650c0f4696b7d7d3f3171a7ad448b7e78f03ea4bddd54e0bea2f18a9c1ca2f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Html.dll",
+            "sha256": "f97a852100432eee47698b584309443ed8098c32d2b155c4dc6e89f9d9a2d666",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.IWork.dll",
+            "sha256": "2d7fb1dad00808e1e433710f7a7cd74d7f933875ebdbdce3cc65ebbfb28023ab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.OpenDocument.dll",
+            "sha256": "b488c813d64c5f84a70f2f470022ff5013d4486e7d658cf0150712b5ea2d3887",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Pdf.dll",
+            "sha256": "d2dbb070beba55dd2ca8d8ba3f4fbdc0910424018922055457a0638d0af571df",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.GoogleWorkspace.dll",
+            "sha256": "69e52e3eee69a78989b498d2f293220253a5147e1e9659725a520bf64dae0408",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.GoogleWorkspace.Drive.dll",
+            "sha256": "9d36bcb1a71946f6bec67f50af48e2989fece92652d998c791b2e9feaf194ebb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "f27872345fb6e0d727290d5c4257e8cd11f37406eb0c7ee89ee475e66d61a67c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Core.dll",
+            "sha256": "3674bf1c3d8faa5f14a7da837ccb791b8afb27f5686f62afe6473c16344c9622",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.dll",
+            "sha256": "2a2a79b9b2913e39b7907602cfcb3ab495541410f4f175d96cdb2ef727f3cc69",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Pdf.dll",
+            "sha256": "04ad9a0f52fc0029075d776146ee1cb2e9e8fe82523ccf745567f86d8a8b3b1b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Rtf.dll",
+            "sha256": "8840322cc49e9bc1264b5531ba66f364bb6d370d96243240d170af97361dce65",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.IWork.dll",
+            "sha256": "63a6e94202d0b2b226d45460594364c5fb716efa536db7db7d914fd4f218e7b0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Latex.dll",
+            "sha256": "eb0519f9d44098ef345a919ee429c8174660d7475ba0ae23dc8ba51c99b4ebb0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Latex.Markdown.dll",
+            "sha256": "18add2db1be8264f2b2b4d3dd6f18cf5f8e3e90e7e3fdc5f882f04f092382aea",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.dll",
+            "sha256": "ac7a2595517649c57d2407ebe17da88557e43675ab64ae781a768de6262a64dd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.Html.dll",
+            "sha256": "9c7f1d63a724eb71f6f0a5ed4671aa75d246364ab172522f73571ec4fc3b509b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.Pdf.dll",
+            "sha256": "fcb4eb7774e6c6f62d459c0a42c5df9ef05f4e6e597197737aeede2093c468cd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Mhtml.dll",
+            "sha256": "ec293f2b9670527fd33450251fad59add1667c9815584a283023a5df93062c84",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.dll",
+            "sha256": "b8f82f475406a292355220c7fd569109c5b032987a7418e55b023d0180b81adc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.Process.dll",
+            "sha256": "0449398efb757d52db7abd3c11a94ad403fa9924c84ecf7dd6a39534d544b911",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.Tesseract.dll",
+            "sha256": "ed58af998e7895e9e00e32ee719b58920b0c14e4d83ec2c40a6079358457e516",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.dll",
+            "sha256": "89e58a92b33aa00931ff151efdef63f10b24d91cf80cc4b4d138f70eea63b67c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Html.dll",
+            "sha256": "3e0ff0721050ac1be224340437b9d5a9c088ce47ae34262cf9c2d31cb6dc59f0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Markdown.dll",
+            "sha256": "8842f4ca5f0a5f0361b72d8da9f83e36fdef497a4e1063ceeb0b16d86e3b9d8e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Pdf.dll",
+            "sha256": "43b7e7e189e7839cdad18e8f6f53aefd23891916a474c6032892ee867fe4e36d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OpenDocument.dll",
+            "sha256": "bfd04ebf42ed6ce14716938b6e8828113983484946648c0eb59e93de6948a064",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Opml.dll",
+            "sha256": "10b5b4e5ac39a9b8e58039e67d113fb5a94a7e76f3846b9b9dea27d3d902917d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Pdf.dll",
+            "sha256": "b5d11003a45946a7a04195ebd04a60dea2d195b64d162226bf2153b8eeaab0eb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Pdf.Ocr.dll",
+            "sha256": "f97cd91f7760dc68b69dcd946f89e0327c1db80c4bcbc225738d24636dc0e04d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.dll",
+            "sha256": "7edbae478e93aee7f054c660423f96191bedf78d88e269960b43f98f6f15b340",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.Html.dll",
+            "sha256": "c4322d40461c65ec9ed90e029d2a2805e30d4b6b8d55ef9f5d5b67df90ae11ef",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.IWork.dll",
+            "sha256": "45492a09ca6707d0e915e4c8472693480d9fbd7ce54ba3a1727fc9ee3e5d2805",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.OpenDocument.dll",
+            "sha256": "ab0dadcf54231c2444d5f3ca2fad6cfc30a4bfa1ca53f7cda001f37a35c73e20",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.Pdf.dll",
+            "sha256": "68b6a5525d10129de58661211d03bc10a50857073d2f42fb76b02949fbe401c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Provenance.C2pa.dll",
+            "sha256": "ef271fec6703d3447a3704030caaeaf452d414467e57b94ed6a33574edaa7b7d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.All.dll",
+            "sha256": "1f9eca7dd92b14ce44ba81b2ededd201e2c1aee0431d7bb906d064ecfb4fc090",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.AsciiDoc.dll",
+            "sha256": "2eebfc99e54289348bb3a2616ffc4f041501ff0adca4c120afe50a278b988882",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Core.dll",
+            "sha256": "ac3f7886045965d599e1fe969f49a9b666aca137f13446c5d0877b412bde4fd2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Csv.dll",
+            "sha256": "0f4c4022c9e51b4c8f62e5717a4c5ada541d07d122e0e3742afcc3f2c619d134",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.DocBook.dll",
+            "sha256": "9d2f196205ecae239c0aea66da00a28ad4bee64dbc46c0e18f5bd3c588686970",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Email.dll",
+            "sha256": "30792f08cb6e8007255af7fb8e4f0393693d1dd1fe55779e7498acd239c060c5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Epub.dll",
+            "sha256": "cf466039c8a1c05c0d5298668635eaaa0f8956433a3b32b7336d9f10d9d1b3cc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Excel.dll",
+            "sha256": "85eb07b559692d05e5f7f3fe2dbf2841fa8642538657966a0a8ead9c0b4022b4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Html.dll",
+            "sha256": "c2ae98733f3ecf973a58a5c8c54268224d681bac554e3553d5abae40bf602f74",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Image.dll",
+            "sha256": "d463175ef4079260e5e72db4d40e4fdaa2ac944afd51f6282e58cc8d7fffef07",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Json.dll",
+            "sha256": "8bdbb141eec3788235223d1d4c1f5fce633c1650c06ccf3e9a9ee3a95b0a2668",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Latex.dll",
+            "sha256": "dd864686ad658cc61dc146e1daeb708286b673720c8665430368e7b9e7de92da",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Markdown.dll",
+            "sha256": "98d21a42f57c1d782cd6c4ddf6ec73a3caffa821367b2b100fabdd10f23f04b0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Notebook.dll",
+            "sha256": "76aeab8b526062855135c7f0a4146ac1d5aca72148243cf24dab19b62012b9d4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Ocr.dll",
+            "sha256": "7339997ef88878e7c120e8e5560914dc704eb6b18961eee0f956afaa2339ec85",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.OneNote.dll",
+            "sha256": "da286bd076e089820574cab3a354a16522e1e9cb75710b6a868f781c4cc329c9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.OpenDocument.dll",
+            "sha256": "34c03cb1be3944ae3a0e027937f60dbce74e23a7efc5d9544b553ca5aff0f66f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Opml.dll",
+            "sha256": "42e9cebd2f40e00f97bd46363bf81f342de62c967d0d28dfd4536d57c8b68ab8",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Pdf.dll",
+            "sha256": "537dc8927e7c51fb3ac89812080086d3dae9e411e1acffd0b796a25d74fc5475",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.PowerPoint.dll",
+            "sha256": "40681351717758cb1d1fee29be9da69c3cd3f6af8e42617a5188b31501d052e0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Rtf.dll",
+            "sha256": "4132f76e8a9268b4b3540dc771f624ecc56cda75ce8f42965d1d219f02f12e49",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Subtitles.dll",
+            "sha256": "56649fb61145e39d8985bce2c21921224a28718a44016bab2d27196ccab88efc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Visio.dll",
+            "sha256": "9b395ed1bdf2144ab02753b498e8fe6b6a2bda2d1b5249290ed8a6e62499bb6e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Word.dll",
+            "sha256": "ec5a35e9eeaabed1318b5e7e234dac52162c799d945620da657d21ddf1de0d32",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Xml.dll",
+            "sha256": "a5f98ad941d05af090d95d40bbf1cb6281df43a7fd2cbfb18e69422915d6ec04",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Yaml.dll",
+            "sha256": "f5a53aa267584a7102d435ce5cf8ee29dd9d81b47e2ffa20b15547b05db2e1fb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Zip.dll",
+            "sha256": "9f9b030f17d616408ea89546c4bc6fdaa44da4f19e54120fe046e8e10a015486",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.dll",
+            "sha256": "a35a0d2ccc790f71a288d8b8be7758ee1170dead588843d31a8a28e86a042eea",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.Markdown.dll",
+            "sha256": "5fa0f209264566089a72ab446c35816376a26fa3dce6c02bfe3e3b8ef1f3cea0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.Pdf.dll",
+            "sha256": "a90ca5411dbc71037788860ad2dc6c00ce29ecb656e5c8494de8d1461e2e0f1a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Visio.dll",
+            "sha256": "514b4bd79c858b39bf576ec1350d3cf7ce4a5103ce5d5ebccc21fe482398106e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.dll",
+            "sha256": "0c33e5da1a8fc1230c7990dbd5d5c6723f96a454caef83e5eac372a4810cab38",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.GoogleDocs.dll",
+            "sha256": "c6726b15bbfdd2ef33da1fed8eafab640c5c65f0ad6ced581eb575f08bdfd7b4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Html.dll",
+            "sha256": "2e6cd2364f6f6da1064b2037f22ca2207c121e85c1eea519e0a870f60da9995d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.IWork.dll",
+            "sha256": "82a46555eca5ee40480bcf0199dae1adc77119122a033a78a4f90647f9e0c38b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Markdown.dll",
+            "sha256": "4850c90d226203aa0af39be3f2214062ea52c1ac704d64a6957d7320ea8df0e6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.OpenDocument.dll",
+            "sha256": "298a373e7fac71148f5e40674eac907d181a01f52674afcf9e687c35c30d9392",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Pdf.dll",
+            "sha256": "1115806b142fce724633ed77c2ace33b842b836e11b17be53d9cbca3f4763fd1",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Rtf.dll",
+            "sha256": "e6942e83e13634209e8307878c4a08e41170117a0d2ceb0daad26f9aa82b7b2b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Zip.dll",
+            "sha256": "c1982d3d2d09cbb462943bb6b7ba17d4dd301f856f1a09298f9748393e159554",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/PowerForge.TargetFramework.txt",
+            "sha256": "c0152a36d87621015b873fa5727b665051540b49d39827e680926417a2536955",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.dll",
+            "sha256": "fd7ede6a74086d2b650cdc16f625a0beafe6bc7d0b7e12b842410d5000aeb08e",
+            "fileVersion": "3.0.8"
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.ModuleLoadContext.dll",
+            "sha256": "4c332731f19778fabbf5f21d20d1e0c75ca30d480c344c9831389daa1e504a53",
+            "fileVersion": "1.0.0.0"
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.xml",
+            "sha256": "e1fbc67217004740c2a150400b64c116765daf8acc44a2305cf30ba891fe212e",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/runtimes/browser/lib/net8.0/System.Text.Encodings.Web.dll",
+            "sha256": "28e2577c4e91b42d6a2000563cc74329c8e9fcaa8101f4454ac396b65c97561d",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/runtimes/win/lib/net8.0/System.Text.Encoding.CodePages.dll",
+            "sha256": "d671e5e6744cba8a915d627061802eb41a6953a7ab4842fe3778af9cc20fe33d",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Core/System.IO.Packaging.dll",
+            "sha256": "8e5720e0f87276adc6effa97dfac80c094ca65997b4e3bc9f5f1b0bb511b8f99",
+            "fileVersion": "10.0.826.23019"
+          },
+          {
+            "path": "Lib/Core/System.IO.Pipelines.dll",
+            "sha256": "0a5419362d6a56fecedf95d2d04b544f28b17a218f73cc9aba4bae091ce75e6f",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/System.Text.Encoding.CodePages.dll",
+            "sha256": "2ea37e46ff9617ee2fb2390791fec65b72f99ed4d19bf0582df241bf2a341945",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Core/System.Text.Encodings.Web.dll",
+            "sha256": "8d5d64652cbf4daf4f4caf442845719e0d97b208b7805a57078139b4dcb56ef2",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/System.Text.Json.dll",
+            "sha256": "b899ff9557e69ae25101812181658e6e2f858b9e278ae201e4fb01b92717a889",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/YamlDotNet.dll",
+            "sha256": "f50f761ae84b110826c5f6d38b06728343fcaf1457d2c08998cd66c25272e6ef",
+            "fileVersion": "18.0.0.0"
+          },
+          {
+            "path": "Lib/Default/AngleSharp.Css.dll",
+            "sha256": "25385280a4e7781ca19bc6bfc172d6ff78e5b84c5279372dded215f5823878d8",
+            "fileVersion": "1.0.1.0"
+          },
+          {
+            "path": "Lib/Default/AngleSharp.dll",
+            "sha256": "1e93082a543b612e9f6d7596cc5e39650a6ec7f479d8f96e59f6befdeea4f451",
+            "fileVersion": "1.7.1.0"
+          },
+          {
+            "path": "Lib/Default/ChartForgeX.dll",
+            "sha256": "1dcea8a9573a4f29ca500dbb4f45c09c26b8e9286e91b7558aa9b7ace03cb621",
+            "fileVersion": "1.6.0.0"
+          },
+          {
+            "path": "Lib/Default/DocumentFormat.OpenXml.dll",
+            "sha256": "40dd8b2cb50861d31cbfe16b1086eb7d0abe9619e7c01714e9c33eb171a2c5e8",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Default/DocumentFormat.OpenXml.Framework.dll",
+            "sha256": "4243ec6ca38a024040e708756bee68a8ba71195d56d8e68a1aad4c9348fd6468",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Default/Microsoft.Bcl.AsyncInterfaces.dll",
+            "sha256": "f251c93b08880a46320d6cc6e0d9225630794464f86e6e2729036f48124b331c",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Adf.dll",
+            "sha256": "09d9ad75e071f8b34da13007a8e1c1f44ada94f804b21de15d61f67f31a8f000",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.AsciiDoc.dll",
+            "sha256": "ffc90c329392538712cb1420b8a390b424d7d4ef90ecd799d60e56240ae37436",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.AsciiDoc.Markdown.dll",
+            "sha256": "1fea6450316dcf92bf8538bd7acd073ecf929df808a4465f2e8198749db8ae83",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.ChartForgeX.dll",
+            "sha256": "fa1636e00bd589a9ecc0da11f7d6bcbb7b13d5b487f4a1e0353a015043d5105f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Confluence.dll",
+            "sha256": "faff504532506673b4fd3a00746b75307fd4025ea50afe64923708530c9f8c4c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Core.dll",
+            "sha256": "b94d5080a65177bcc427c665d6f67d2d98d67d4652c4eb9015266a7e8394d1e9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.CSV.dll",
+            "sha256": "1afde9b67a74e495701fab312df036226ce67b6a558cda2336f7fe7d3878b0ae",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.DocBook.dll",
+            "sha256": "6067c9e904d2bce96d96cd3c0b6590504bb3e28032e4bf6a82c845b93083ee88",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Email.dll",
+            "sha256": "193024b98f6d3ea9f3adf373564047f1ecef97a153c7c61e5696a83e83c72ffb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Email.Html.dll",
+            "sha256": "ddfbb4862ab6ad43a03ffad6aee2c783e5d409989fa9cbbec91a046e1e6e5e25",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Epub.dll",
+            "sha256": "46afcb34cc7b355a03655a224f3828e06d03c57df79abbe25c9fee3bcfb0d87e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Csv.dll",
+            "sha256": "aa5fda9df12cc826724b5e84d85bfbea85922d40c29cc2612bcb9a6b890d33f3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.dll",
+            "sha256": "5c9d03ef0ece5d9794c2e6c075fe110725b91ccc888612aa5d77553bed86e699",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.GoogleSheets.dll",
+            "sha256": "03bc0dd15580108a48a01d132c089aad5727fdae769cba4fd6a778588708d9a5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Html.dll",
+            "sha256": "538d96fe4507076d900ab9f48faa9adefa3120154a1d6558a3a9ba66a63d211c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.IWork.dll",
+            "sha256": "5563369a654f6d801a544ae082ea99d415c3d3c80a704be926fb2c725b003219",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.OpenDocument.dll",
+            "sha256": "a8b49038429e01afd250569e99df1f1ea400c79cb875e7dab33710486469dbf7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Pdf.dll",
+            "sha256": "6edb448bc904c74465e484974fc9d14829b268c6389e586aa0b3db5dd9cf4a21",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.GoogleWorkspace.dll",
+            "sha256": "1c675335c25402f833403397ef538498d02e80f5ad092f9ef8e6eed5455e49cd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.GoogleWorkspace.Drive.dll",
+            "sha256": "3e5c20f49f0bd2de48a3813c2dcf704bb1eafcd63a836b07fc9606328753b5c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "127c45a0b1ed23dbb8a14a318c2d18fb0825efabbedaad3c97bb381c40876198",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Core.dll",
+            "sha256": "16d01b3fb0b7dac5c8a27beacada5f101c579de219684c8648007aae18354c8b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.dll",
+            "sha256": "7a31279bc0e839ab073959c2732e09460298ae234ba27b25750f629eb6730c96",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Pdf.dll",
+            "sha256": "2b16ba91ad663e794fbe34e612c74b20740bc0cc82df4bdc0f879a6d1b58b921",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Rtf.dll",
+            "sha256": "3bf24f048f16911a46cf71f879bc22be251fbad14a25d48ab613e28852ec289e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.IWork.dll",
+            "sha256": "dbcb03197a043fe1a9478737a372a1e7b0178bf5be9a5ccb9f7c0f4e75a2b681",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Latex.dll",
+            "sha256": "903e3d00e3935139fadc2c1ec37224c2b6287f8ad9865dd05e6cad7b2bf5acd7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Latex.Markdown.dll",
+            "sha256": "5cb4098814f176c3d956102cc427d7d0bd7374ebaa39c4af035fb90322e2fef3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.dll",
+            "sha256": "5587ec63fc04c88c1f3b09e759efe276f2614303dc66d3594acf9d4118761270",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.Html.dll",
+            "sha256": "7a21ae0bd8ceb55690cd82504725b979884fe3f86d4ecf2ba02175f5d7c5d9b6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.Pdf.dll",
+            "sha256": "f58f3a16e3459682bb360cea89457b5ade70cc14ce434630d0c7bc771e8ca404",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Mhtml.dll",
+            "sha256": "8ce07ccf08e26ba072a30be19ba330d5204ac310433f64811071bf368cd586c3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.dll",
+            "sha256": "dd374f0a974fcaae9706e6106280ae1c1364d1a2a14e6ae0c967ff0779d9eeba",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.Process.dll",
+            "sha256": "0a486e7e55ca0ba6e99cdb5787f094628e22ef3e636ddf5758aaec14e7d33c94",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.Tesseract.dll",
+            "sha256": "458091f1f873991b1250d59c183966f8a789f972d005cab158f46ae7e98a210b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.dll",
+            "sha256": "dcf9ba5213083195218a798d760b277bb3754e46bf28b18af0d37104c6f42916",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Html.dll",
+            "sha256": "fe4f2268c85661073501e02c2e3234bd1af3ff4eec2326b04e24d13ce56c8fab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Markdown.dll",
+            "sha256": "68527377b59f524fb989ad2bb9d9ae0edf7460f5b1a0c9d7d3a048be35fa3929",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Pdf.dll",
+            "sha256": "80d3c245343e22511ac90d7a94ea59b69c44b7f27f8a55655c44e95e0ec1c9ef",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OpenDocument.dll",
+            "sha256": "aa86363554d112bda2b4979b88a0b81a2aec5a83ed9720151bebbbbae0969c12",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Opml.dll",
+            "sha256": "47a689c5d00b71ce200d90de9b3dcce81a7b7d62029d645c96056cf96d704c9e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Pdf.dll",
+            "sha256": "6af45bc1df427978cb1d8bb1b05dc5a01aff233122b5c6f5d66abd1c06288ed3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Pdf.Ocr.dll",
+            "sha256": "de415e8e7f1af8585bd95f0e53abfadb21503f512126c341700ad30abf4410c2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.dll",
+            "sha256": "b6d3410ada1e4def2d907e6ed0907c5b5878c2011909f9d1ceb81829455b3bec",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.Html.dll",
+            "sha256": "57adb4a7fadefab3cacb0a0308164b27166006623a5b2c07d47c41f9e0f2e7d7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.IWork.dll",
+            "sha256": "ecca4465c6277f5457789bb986c5c123c16ede725a689fe2d17a18e0bd0d0280",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.OpenDocument.dll",
+            "sha256": "0b00b7e677ebe1359aa059bc8e6afe601b977f4e02cbc3f1d670548b488acf3e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.Pdf.dll",
+            "sha256": "d8b8b465d2c44e6bdec5a807a2ad3ccf4e8fd7b42f6689be647163394ae956ce",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Provenance.C2pa.dll",
+            "sha256": "4d8653a031e0f12b7f3421e3b4ca4adef76fda537be9c495785ecdfa0b144957",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.All.dll",
+            "sha256": "82fb61d8476a86aafa9ed32a8460fa9d1dc359fa5b1bcdca9d0fc13a6099f157",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.AsciiDoc.dll",
+            "sha256": "dff416a910d3de74c0824e95d65b2dfbc8638f0e7ae99dc5b4d32648979d5c9d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Core.dll",
+            "sha256": "8458f4b868d782e9ce726226a7509dbe6356a634c76237ecc1ef045240bb66d9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Csv.dll",
+            "sha256": "cac0c24367cc68a5cf0ffcbb72120f36d14c8c6936b3b21094b6d946fabb3796",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.DocBook.dll",
+            "sha256": "0ec7ac09b9880e209f56c9423229e2116c830df51e19e028fc1ce6039d8f5d63",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Email.dll",
+            "sha256": "35cfa84b737af7a88dc0c4c0607b64b903c7c7bce4217a00742c69f5a6c1dc44",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Epub.dll",
+            "sha256": "a95a98f2ef2f024d2dc16be27a302a356e2358cc0b74aca21c2fa7cae45b73c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Excel.dll",
+            "sha256": "a52798347a2758ce5856b5cdc969fb5200721641fbe7b8e518d09b728ebf5ee0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Html.dll",
+            "sha256": "c53691556d133ec1ed221abb959f731e705f997a105032627a08c539bf22a80a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Image.dll",
+            "sha256": "eee57a3aaea286bfb37225cef6f672fa02756d3438bdfef71040794430eb81f8",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Json.dll",
+            "sha256": "2f8ad4444220edd5731ebc32e452567285fa691cd90b543afbde2ef458974046",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Latex.dll",
+            "sha256": "2fbcd427b2be3419d51000ed083d1c85d72e1f4f8a1676ccc577834664fb2685",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Markdown.dll",
+            "sha256": "c6de45947c9526a5ebb540cffdaf7c64bf4303bd91abf0910a1a917a04ab4561",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Notebook.dll",
+            "sha256": "501c50bd21207a6014d12a88f31130adb82fef163e2809fa93890d7584511481",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Ocr.dll",
+            "sha256": "c9dbec4acf4548c3aec8e8c7ba2c699c73d7172b9102e6c04692cd1b14ef7c4e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.OneNote.dll",
+            "sha256": "ccb8b9661b4cef1bdb33e840cbf23673cc590ccfa5204247cc5a9464f85a340a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.OpenDocument.dll",
+            "sha256": "ff57d182a989439bc65bbf80da7bddaf3eb64da7c8cd547ab9e112fd254e1436",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Opml.dll",
+            "sha256": "d77368a7e0a5bbbab8d6e76edb3a91e2979a08dd95f636e47fca407a16b7c651",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Pdf.dll",
+            "sha256": "936a70fa635caf894c15ae295357ef9a14d8c4148d96dec004a91b094b37eec4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.PowerPoint.dll",
+            "sha256": "b5fe3c2d366b0ad21f6e69eacefc1cc34ed142dc10d6c0e084dae552b56e4ac3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Rtf.dll",
+            "sha256": "86c23a2c76065837f3b26ae52b1bd9b6d1d41d7d9c3ff495204c00eb530065aa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Subtitles.dll",
+            "sha256": "d9577ab93332d82f8ee6f82c0e8dfab8dc7c4ffabf38a469b742c8598c01f45f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Visio.dll",
+            "sha256": "6a790e1c04950058f4c8cd01e9ba23c0b9db003a64ac0529f00b4380c3ec4814",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Word.dll",
+            "sha256": "5eb89dcd6c8372f196a460c87f69f94263082fa092a80052e90107394a36e5c5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Xml.dll",
+            "sha256": "7e1332f9e275bac4ecf948c77839ab2226bb22efe573ce9ba46976a7f2f0d800",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Yaml.dll",
+            "sha256": "e725c662c07ce800c48267a486dfec92502348bea846bb9fe1a38d3231e57456",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Zip.dll",
+            "sha256": "3b06f9581f3e1b7dd771960207ba5671c78d66461539e2c4456488d63ae602e7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.dll",
+            "sha256": "0229eaad461308b5d42b0ad9849298da3df6f19f1652b9a9bd982aff56d4379d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.Markdown.dll",
+            "sha256": "492f4f5a646e9c58fbfb42e0a78f011b78c55c4582c6fd6c7a16d03d3012898c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.Pdf.dll",
+            "sha256": "75d6de69ec620603ba284a1797a71b82201057b4fe7c0a36f5f263c7d7968ce6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Visio.dll",
+            "sha256": "f48aebd40799640441dc3e66bf98bb83cd16d994d69e18693c091790bd88ad4f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.dll",
+            "sha256": "90419203949b76d058bdf0a4d74f63af8957ded1f6565127f2c15227844305b2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.GoogleDocs.dll",
+            "sha256": "32e385909c087eb6a23eea3dccd74d69df2456c328af7e9e38766f373d6f07ab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Html.dll",
+            "sha256": "fd917ca166ae7e412ee5705fd4ef6ce1a1e64f109f77f3a2f5f7a92e82d2c822",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.IWork.dll",
+            "sha256": "b1c9b8277cc4287e6b23065984942df7e8d69eea34f165bf09add1a3802dceaa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Markdown.dll",
+            "sha256": "196d705e21ff27d3ab1f83b92b2976c27e41a46bbd695b521c1d18bcc70d00b6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.OpenDocument.dll",
+            "sha256": "40453c5a6071d0e18e0744b95fb0b514ce87e1610948b4b74f4338c4de0795a7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Pdf.dll",
+            "sha256": "d5779378addf46d08d52c0b1bfeb6beb522c35d8a2cdaf7c9cb3cec095f8feaa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Rtf.dll",
+            "sha256": "d3a2dd0429060c28052dc8464e0aa03e610190ecbdf2c453c0d37b428e741b14",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Zip.dll",
+            "sha256": "5bb6dc4a86be91b935f0c23864e9f3c9e40e200335b7e1e4c8926ee08d4b2090",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/PowerForge.TargetFramework.txt",
+            "sha256": "aeacfcfb0a9a11c70c9d8426e3789561c2662508f52aebaa0b8fa7a145d4be82",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.dll",
+            "sha256": "3daca2ac0ba7a883394d2bce9095f6426e8f9d8af155915e30724cef1066004f",
+            "fileVersion": "3.0.8"
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.ModuleLoadContext.dll",
+            "sha256": "50550336d64b0c61ead043277d4a42f9cadc9967eb180f9c7dceb5242ed01baf",
+            "fileVersion": "1.0.0.0"
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.xml",
+            "sha256": "e1fbc67217004740c2a150400b64c116765daf8acc44a2305cf30ba891fe212e",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Default/System.Buffers.dll",
+            "sha256": "2d78d770c9cb997199154ae8c018b9f1d1efbc86729f7264dde6dbad2a12cac3",
+            "fileVersion": "4.600.125.16908"
+          },
+          {
+            "path": "Lib/Default/System.IO.Packaging.dll",
+            "sha256": "277e88144db76056740a9405da5b99ef846113e4a29ecf9a0b87fa5fb4ab6616",
+            "fileVersion": "10.0.826.23019"
+          },
+          {
+            "path": "Lib/Default/System.IO.Pipelines.dll",
+            "sha256": "6663b9955ad95ec93d085353f7769c2d93df07b3146faddcef27aa9bb51ba22c",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Memory.dll",
+            "sha256": "d5e8e4866f9cfa66f7765660f84b210198893e55335487afe5ebda342c0e913d",
+            "fileVersion": "4.600.325.20307"
+          },
+          {
+            "path": "Lib/Default/System.Numerics.Vectors.dll",
+            "sha256": "20c2fa81b8c70d651099d762954f285fd4f942e63b2d7217c145dab8d4b2f4c9",
+            "fileVersion": "4.600.125.16908"
+          },
+          {
+            "path": "Lib/Default/System.Runtime.CompilerServices.Unsafe.dll",
+            "sha256": "08cbd7278b66f1e68425a82d4b97181a4130d93e3dd91831407aba7212ccdacf",
+            "fileVersion": "6.100.225.20307"
+          },
+          {
+            "path": "Lib/Default/System.Text.Encoding.CodePages.dll",
+            "sha256": "3904bcaa55174a95695a04b57430833ab8144bf8f7049a6915785061c9862d5d",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Default/System.Text.Encodings.Web.dll",
+            "sha256": "55749856fa60f1e70bbf0917df99f592738ec6971220115ba9bf18f6180e465f",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Text.Json.dll",
+            "sha256": "8f160de9a7a85665e2e695fa8a504861dcae21115ed3567b18b026f6974411b1",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Threading.Tasks.Extensions.dll",
+            "sha256": "af4e13ef418fd89b432de20cd1dfb7fa10a7179c8dd049c9856316e50c5949ca",
+            "fileVersion": "4.600.325.20307"
+          },
+          {
+            "path": "Lib/Default/YamlDotNet.dll",
+            "sha256": "cbbe106e8e9ddfd31b38acafc667ea3b49fa6b086027955a3ed067e2b87a1428",
+            "fileVersion": "18.0.0.0"
+          },
+          {
+            "path": "LICENSE",
+            "sha256": "382b2199369e8fd868385c6da5de6ed28c0a611473e5fa57f0577597240fd858",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.Libraries.ps1",
+            "sha256": "2456a70ed41c83e5f1621423c42570f3f78919f910fc8fdeeb70d55f1d1dd762",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.psd1",
+            "sha256": "87b8d1fce155f659b3166d8d09d0292144e8c6d832ee7f292c18a2e7e7a22d44",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.psm1",
+            "sha256": "c959c1789681121d8907a4520609baca502fa772ab62dab77f89d541b4ac9dde",
+            "fileVersion": null
+          }
+        ]
+      },
+      "conversions": [
+        {
+          "outputPath": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
+          "outputSha256": "5e50544f968d84fd0c7abfd98fc37ec71ca1052edca3c13645f9aa2a1abe4b95",
+          "routeId": "docx-pdf",
+          "command": "Export-OfficeDocumentPdf",
+          "routeEvidence": "recipe-uses-single-document-DOCX-export",
+          "report": {
+            "IsReadOnly": false,
+            "Warnings": [
+              {
+                "Converter": "OfficeIMO.Word.Pdf",
+                "Code": "NativeFontFamilySubstituted",
+                "Source": "word:font[Calibri]",
+                "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "Severity": 1,
+                "LossKind": 1,
+                "LayoutDiagnostic": null,
+                "Details": {
+                  "fontFamily": "Calibri",
+                  "fallbackSlot": "Helvetica"
+                }
+              },
+              {
+                "Converter": "OfficeIMO.Word.Pdf",
+                "Code": "NativeFontFamilySubstituted",
+                "Source": "word:font[Calibri Light]",
+                "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "Severity": 1,
+                "LossKind": 1,
+                "LayoutDiagnostic": null,
+                "Details": {
+                  "fontFamily": "Calibri Light",
+                  "fallbackSlot": "Helvetica"
+                }
+              }
+            ],
+            "HasWarnings": true,
+            "HasErrors": false,
+            "HasLoss": true,
+            "FidelityDiagnostics": [
+              {
+                "Code": "NativeFontFamilySubstituted",
+                "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "LossKind": 1,
+                "Source": "OfficeIMO.Word.Pdf",
+                "Location": "word:font[Calibri]"
+              },
+              {
+                "Code": "NativeFontFamilySubstituted",
+                "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "LossKind": 1,
+                "Source": "OfficeIMO.Word.Pdf",
+                "Location": "word:font[Calibri Light]"
+              }
+            ],
+            "FidelityStatus": 1
+          },
+          "warnings": [
+            {
+              "Converter": "OfficeIMO.Word.Pdf",
+              "Code": "NativeFontFamilySubstituted",
+              "Source": "word:font[Calibri]",
+              "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+              "Severity": 1,
+              "LossKind": 1,
+              "LayoutDiagnostic": null,
+              "Details": {
+                "fontFamily": "Calibri",
+                "fallbackSlot": "Helvetica"
+              }
+            },
+            {
+              "Converter": "OfficeIMO.Word.Pdf",
+              "Code": "NativeFontFamilySubstituted",
+              "Source": "word:font[Calibri Light]",
+              "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+              "Severity": 1,
+              "LossKind": 1,
+              "LayoutDiagnostic": null,
+              "Details": {
+                "fontFamily": "Calibri Light",
+                "fallbackSlot": "Helvetica"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx",
+          "sha256": "18afbdf683a5c0264f11469773569daa59cd0c1411378f98c6bab2834afb9eca",
+          "diagnostics": null
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
+          "sha256": "e19bbf17ad1a2b430c9f8a3f6263aab034366d6b96ae42c7ff8e4e3ac8714ff6",
+          "diagnostics": null
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
+          "sha256": "5e50544f968d84fd0c7abfd98fc37ec71ca1052edca3c13645f9aa2a1abe4b95",
+          "diagnostics": {
+            "pageCount": 1,
+            "fonts": [
+              {
+                "name": "Arial-Regular",
+                "subtype": "Type0",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              },
+              {
+                "name": "Arial-Bold",
+                "subtype": "Type0",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              },
+              {
+                "name": "Arial-Regular",
+                "subtype": "CIDFontType2",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              },
+              {
+                "name": "Arial-Bold",
+                "subtype": "CIDFontType2",
+                "embedded": true,
+                "programKind": "FontFile2",
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "not-exposed-by-public-font-diagnostics"
+              }
+            ]
+          }
+        }
+      ],
+      "previews": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+          "rendering": {
+            "tool": "pdftocairo",
+            "version": "pdftocairo version 25.07.0",
+            "executableSha256": "a8f2030e248c99a4cdb0252160eafba59b5f5f8dee4b419b59b8019636ffa4bb",
+            "page": 1,
+            "inputSha256": "5e50544f968d84fd0c7abfd98fc37ec71ca1052edca3c13645f9aa2a1abe4b95",
+            "sha256": "0c19eae993f6b723d47b875f21fdddd875ab24a362306aefe8aa52bd6ae99a25",
+            "diagnostics": []
+          }
+        }
+      ],
+      "receiptSha256": "3392def0f7936b4926e1dcc4ab32e49bfdf83371b06597bc5a6a4727133ff3cb",
+      "previewReview": {
+        "state": "reviewed",
+        "reviewedUtc": "2026-10-12T07:12:00.0940249Z",
+        "artifacts": [
+          {
+            "path": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+            "sha256": "0c19eae993f6b723d47b875f21fdddd875ab24a362306aefe8aa52bd6ae99a25"
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx",
+          "sha256": "18afbdf683a5c0264f11469773569daa59cd0c1411378f98c6bab2834afb9eca"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx",
+          "sha256": "e19bbf17ad1a2b430c9f8a3f6263aab034366d6b96ae42c7ff8e4e3ac8714ff6"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack.pdf",
+          "sha256": "5e50544f968d84fd0c7abfd98fc37ec71ca1052edca3c13645f9aa2a1abe4b95"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/project-delivery-pack-page1.png",
+          "sha256": "0c19eae993f6b723d47b875f21fdddd875ab24a362306aefe8aa52bd6ae99a25"
+        },
+        {
+          "path": "/downloads/showcase/source/PowerShell/ProjectDeliveryPack.ps1.txt",
+          "sha256": "3231be706c199b770221807b729b59427085dc261f70870c6bd597364491d7fe"
+        },
+        {
+          "path": "/downloads/showcase/source/PowerShell/Data/ProjectMilestones.csv",
+          "sha256": "da0b5b88df370224e9d561f7c540f52ca3f5a22e9bfb06aca832b5afc0c811fd"
+        }
+      ]
+    },
+    {
+      "exampleId": "pswriteoffice-budget-review",
+      "state": "generated",
+      "startedUtc": "2026-10-12T07:10:47.3942941Z",
+      "completedUtc": "2026-10-12T07:10:48.6704251Z",
+      "host": {
+        "powershell": "7.6.6",
+        "os": "Microsoft Windows 10.0.26300",
+        "architecture": "X64"
+      },
+      "sources": [
+        {
+          "path": "OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1",
+          "sha256": "5e0077e0d9519db7d5a3a9a69430136d5b60aeb9ffc18bd16857a56b881d2231"
+        },
+        {
+          "path": "OfficeIMO.Examples/PowerShell/Data/BudgetForecast.csv",
+          "sha256": "121aa5914ede8c0c9e42ab9898ab0b2422f77c56134faa60af6666064cc38d0c"
+        }
+      ],
+      "evidenceProducer": {
+        "path": "Website/scripts/Invoke-ShowcasePowerShellExample.ps1",
+        "sha256": "8df5042eac093a45254040faf0777ad89c61175fc4184173435c376244e3c1a2",
+        "dependencies": [
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Helpers.ps1",
+            "sha256": "5eb84ad7864f43a1a5af237419de3f389f1ba4efb5dfddd66758aa976708b957"
+          },
+          {
+            "path": "Website/scripts/ShowcaseEvidence.Provenance.ps1",
+            "sha256": "4ffa4b9f9e5a7685cc7e8900a090e33b06e6738567c6bc433266f6253fd3701d"
+          },
+          {
+            "path": "Website/scripts/Build-ShowcaseEvidence.ps1",
+            "sha256": "8470645f79b4a8cb384ed3eef2e382d9c8cab1533850165ea01b9fcc3f828da6"
+          }
+        ]
+      },
+      "package": {
+        "name": "PSWriteOffice",
+        "version": "3.0.8",
+        "fileCount": 222,
+        "files": [
+          {
+            "path": "en-US/PSWriteOffice-help.xml",
+            "sha256": "e65c478b5cfa2404909441f270a9417c19f38eb1197ca86563b4bec3b8b21dc5",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/AngleSharp.Css.dll",
+            "sha256": "80800a191d8f4fe582cb4e16a63ced11b8e9d1e46684720ffa4bd02459398d81",
+            "fileVersion": "1.0.1.0"
+          },
+          {
+            "path": "Lib/Core/AngleSharp.dll",
+            "sha256": "ac4b43a13f68df641d2887acbb58f1b273941069c60f1e7be9ee367a52116ca3",
+            "fileVersion": "1.7.1.0"
+          },
+          {
+            "path": "Lib/Core/ChartForgeX.dll",
+            "sha256": "d60609ef586fbd635a8ae8e01b26f21cb41951a8fac12ecaa37409332f44e981",
+            "fileVersion": "1.6.0.0"
+          },
+          {
+            "path": "Lib/Core/DocumentFormat.OpenXml.dll",
+            "sha256": "5f96d580164cc1546978b712fec9dc425f2ddd1b18ded5f8b776bebc60ca9742",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Core/DocumentFormat.OpenXml.Framework.dll",
+            "sha256": "9545e02b8a88d3df6b7befe5fde7618ede3521154898bb78db548599608b9e4b",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Core/en-US/PSWriteOffice.dll-Help.xml",
+            "sha256": "c7b965eb33116888ab16a53dbbad8cc044b614efb820c95461e44f9860be17ac",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Adf.dll",
+            "sha256": "7b455d885db5918b6b5e38c54b770b2d94f25962bc4a3687750b70b55b353db3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.AsciiDoc.dll",
+            "sha256": "f3c5656fdddb5baa2b7201fbfa01ac74952d37135f6df6844dfade32052e8ae5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.AsciiDoc.Markdown.dll",
+            "sha256": "72cb0db2864ce5229f009fe097913e108e9c2cf670c321a4a3f6f12380cec60f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.ChartForgeX.dll",
+            "sha256": "878f1c3ecfd21c6cefc33cce2807a7646dc4dc2dbd0e2c515202c88fc00a8596",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Confluence.dll",
+            "sha256": "9184c4a2a65cb6c6a70a42b1be682196a54e0b6d8521499594db0ce2e86d6572",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Core.dll",
+            "sha256": "339caf6eac4bf94761f23df903db7caae6c8f8226d204f161c197e75f32d36bb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.CSV.dll",
+            "sha256": "7cd14f56a9701dfdb531257210f447ed46d44550635de760fe1a291e032f2be4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.DocBook.dll",
+            "sha256": "c2799e7905ea9466e0055d7a3a424248b1811c71a33fec6a7a6361374f4609b3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Email.dll",
+            "sha256": "a2e9932cb7db035f2066bdda5b07b9165927dff509c54215b6a28e71e50dbcb2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Email.Html.dll",
+            "sha256": "481d0edfcb789131c1e7421ba73ad03df67e00651b9448e570fed524761c303f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Epub.dll",
+            "sha256": "a0e0f35cea664fc0e0cbf652e8d481f7cff7fcfc15f6ba1845350a0bcf522721",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Csv.dll",
+            "sha256": "0cbcee56697d550674735050593fa620a0f49bc451c1cb755a868027be4cbb6f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.dll",
+            "sha256": "91f9a3c5f563f2c41dc95b077bd46ac0ad1bb8f57b6cb005d6f44b5f10bc9b61",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.GoogleSheets.dll",
+            "sha256": "1e650c0f4696b7d7d3f3171a7ad448b7e78f03ea4bddd54e0bea2f18a9c1ca2f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Html.dll",
+            "sha256": "f97a852100432eee47698b584309443ed8098c32d2b155c4dc6e89f9d9a2d666",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.IWork.dll",
+            "sha256": "2d7fb1dad00808e1e433710f7a7cd74d7f933875ebdbdce3cc65ebbfb28023ab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.OpenDocument.dll",
+            "sha256": "b488c813d64c5f84a70f2f470022ff5013d4486e7d658cf0150712b5ea2d3887",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Excel.Pdf.dll",
+            "sha256": "d2dbb070beba55dd2ca8d8ba3f4fbdc0910424018922055457a0638d0af571df",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.GoogleWorkspace.dll",
+            "sha256": "69e52e3eee69a78989b498d2f293220253a5147e1e9659725a520bf64dae0408",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.GoogleWorkspace.Drive.dll",
+            "sha256": "9d36bcb1a71946f6bec67f50af48e2989fece92652d998c791b2e9feaf194ebb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "f27872345fb6e0d727290d5c4257e8cd11f37406eb0c7ee89ee475e66d61a67c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Core.dll",
+            "sha256": "3674bf1c3d8faa5f14a7da837ccb791b8afb27f5686f62afe6473c16344c9622",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.dll",
+            "sha256": "2a2a79b9b2913e39b7907602cfcb3ab495541410f4f175d96cdb2ef727f3cc69",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Pdf.dll",
+            "sha256": "04ad9a0f52fc0029075d776146ee1cb2e9e8fe82523ccf745567f86d8a8b3b1b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Html.Rtf.dll",
+            "sha256": "8840322cc49e9bc1264b5531ba66f364bb6d370d96243240d170af97361dce65",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.IWork.dll",
+            "sha256": "63a6e94202d0b2b226d45460594364c5fb716efa536db7db7d914fd4f218e7b0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Latex.dll",
+            "sha256": "eb0519f9d44098ef345a919ee429c8174660d7475ba0ae23dc8ba51c99b4ebb0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Latex.Markdown.dll",
+            "sha256": "18add2db1be8264f2b2b4d3dd6f18cf5f8e3e90e7e3fdc5f882f04f092382aea",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.dll",
+            "sha256": "ac7a2595517649c57d2407ebe17da88557e43675ab64ae781a768de6262a64dd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.Html.dll",
+            "sha256": "9c7f1d63a724eb71f6f0a5ed4671aa75d246364ab172522f73571ec4fc3b509b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Markdown.Pdf.dll",
+            "sha256": "fcb4eb7774e6c6f62d459c0a42c5df9ef05f4e6e597197737aeede2093c468cd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Mhtml.dll",
+            "sha256": "ec293f2b9670527fd33450251fad59add1667c9815584a283023a5df93062c84",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.dll",
+            "sha256": "b8f82f475406a292355220c7fd569109c5b032987a7418e55b023d0180b81adc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.Process.dll",
+            "sha256": "0449398efb757d52db7abd3c11a94ad403fa9924c84ecf7dd6a39534d544b911",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Ocr.Tesseract.dll",
+            "sha256": "ed58af998e7895e9e00e32ee719b58920b0c14e4d83ec2c40a6079358457e516",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.dll",
+            "sha256": "89e58a92b33aa00931ff151efdef63f10b24d91cf80cc4b4d138f70eea63b67c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Html.dll",
+            "sha256": "3e0ff0721050ac1be224340437b9d5a9c088ce47ae34262cf9c2d31cb6dc59f0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Markdown.dll",
+            "sha256": "8842f4ca5f0a5f0361b72d8da9f83e36fdef497a4e1063ceeb0b16d86e3b9d8e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OneNote.Pdf.dll",
+            "sha256": "43b7e7e189e7839cdad18e8f6f53aefd23891916a474c6032892ee867fe4e36d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.OpenDocument.dll",
+            "sha256": "bfd04ebf42ed6ce14716938b6e8828113983484946648c0eb59e93de6948a064",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Opml.dll",
+            "sha256": "10b5b4e5ac39a9b8e58039e67d113fb5a94a7e76f3846b9b9dea27d3d902917d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Pdf.dll",
+            "sha256": "b5d11003a45946a7a04195ebd04a60dea2d195b64d162226bf2153b8eeaab0eb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Pdf.Ocr.dll",
+            "sha256": "f97cd91f7760dc68b69dcd946f89e0327c1db80c4bcbc225738d24636dc0e04d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.dll",
+            "sha256": "7edbae478e93aee7f054c660423f96191bedf78d88e269960b43f98f6f15b340",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.Html.dll",
+            "sha256": "c4322d40461c65ec9ed90e029d2a2805e30d4b6b8d55ef9f5d5b67df90ae11ef",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.IWork.dll",
+            "sha256": "45492a09ca6707d0e915e4c8472693480d9fbd7ce54ba3a1727fc9ee3e5d2805",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.OpenDocument.dll",
+            "sha256": "ab0dadcf54231c2444d5f3ca2fad6cfc30a4bfa1ca53f7cda001f37a35c73e20",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.PowerPoint.Pdf.dll",
+            "sha256": "68b6a5525d10129de58661211d03bc10a50857073d2f42fb76b02949fbe401c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Provenance.C2pa.dll",
+            "sha256": "ef271fec6703d3447a3704030caaeaf452d414467e57b94ed6a33574edaa7b7d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.All.dll",
+            "sha256": "1f9eca7dd92b14ce44ba81b2ededd201e2c1aee0431d7bb906d064ecfb4fc090",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.AsciiDoc.dll",
+            "sha256": "2eebfc99e54289348bb3a2616ffc4f041501ff0adca4c120afe50a278b988882",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Core.dll",
+            "sha256": "ac3f7886045965d599e1fe969f49a9b666aca137f13446c5d0877b412bde4fd2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Csv.dll",
+            "sha256": "0f4c4022c9e51b4c8f62e5717a4c5ada541d07d122e0e3742afcc3f2c619d134",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.DocBook.dll",
+            "sha256": "9d2f196205ecae239c0aea66da00a28ad4bee64dbc46c0e18f5bd3c588686970",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Email.dll",
+            "sha256": "30792f08cb6e8007255af7fb8e4f0393693d1dd1fe55779e7498acd239c060c5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Epub.dll",
+            "sha256": "cf466039c8a1c05c0d5298668635eaaa0f8956433a3b32b7336d9f10d9d1b3cc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Excel.dll",
+            "sha256": "85eb07b559692d05e5f7f3fe2dbf2841fa8642538657966a0a8ead9c0b4022b4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Html.dll",
+            "sha256": "c2ae98733f3ecf973a58a5c8c54268224d681bac554e3553d5abae40bf602f74",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Image.dll",
+            "sha256": "d463175ef4079260e5e72db4d40e4fdaa2ac944afd51f6282e58cc8d7fffef07",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Json.dll",
+            "sha256": "8bdbb141eec3788235223d1d4c1f5fce633c1650c06ccf3e9a9ee3a95b0a2668",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Latex.dll",
+            "sha256": "dd864686ad658cc61dc146e1daeb708286b673720c8665430368e7b9e7de92da",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Markdown.dll",
+            "sha256": "98d21a42f57c1d782cd6c4ddf6ec73a3caffa821367b2b100fabdd10f23f04b0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Notebook.dll",
+            "sha256": "76aeab8b526062855135c7f0a4146ac1d5aca72148243cf24dab19b62012b9d4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Ocr.dll",
+            "sha256": "7339997ef88878e7c120e8e5560914dc704eb6b18961eee0f956afaa2339ec85",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.OneNote.dll",
+            "sha256": "da286bd076e089820574cab3a354a16522e1e9cb75710b6a868f781c4cc329c9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.OpenDocument.dll",
+            "sha256": "34c03cb1be3944ae3a0e027937f60dbce74e23a7efc5d9544b553ca5aff0f66f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Opml.dll",
+            "sha256": "42e9cebd2f40e00f97bd46363bf81f342de62c967d0d28dfd4536d57c8b68ab8",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Pdf.dll",
+            "sha256": "537dc8927e7c51fb3ac89812080086d3dae9e411e1acffd0b796a25d74fc5475",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.PowerPoint.dll",
+            "sha256": "40681351717758cb1d1fee29be9da69c3cd3f6af8e42617a5188b31501d052e0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Rtf.dll",
+            "sha256": "4132f76e8a9268b4b3540dc771f624ecc56cda75ce8f42965d1d219f02f12e49",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Subtitles.dll",
+            "sha256": "56649fb61145e39d8985bce2c21921224a28718a44016bab2d27196ccab88efc",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Visio.dll",
+            "sha256": "9b395ed1bdf2144ab02753b498e8fe6b6a2bda2d1b5249290ed8a6e62499bb6e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Word.dll",
+            "sha256": "ec5a35e9eeaabed1318b5e7e234dac52162c799d945620da657d21ddf1de0d32",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Xml.dll",
+            "sha256": "a5f98ad941d05af090d95d40bbf1cb6281df43a7fd2cbfb18e69422915d6ec04",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Yaml.dll",
+            "sha256": "f5a53aa267584a7102d435ce5cf8ee29dd9d81b47e2ffa20b15547b05db2e1fb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Reader.Zip.dll",
+            "sha256": "9f9b030f17d616408ea89546c4bc6fdaa44da4f19e54120fe046e8e10a015486",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.dll",
+            "sha256": "a35a0d2ccc790f71a288d8b8be7758ee1170dead588843d31a8a28e86a042eea",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.Markdown.dll",
+            "sha256": "5fa0f209264566089a72ab446c35816376a26fa3dce6c02bfe3e3b8ef1f3cea0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Rtf.Pdf.dll",
+            "sha256": "a90ca5411dbc71037788860ad2dc6c00ce29ecb656e5c8494de8d1461e2e0f1a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Visio.dll",
+            "sha256": "514b4bd79c858b39bf576ec1350d3cf7ce4a5103ce5d5ebccc21fe482398106e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.dll",
+            "sha256": "0c33e5da1a8fc1230c7990dbd5d5c6723f96a454caef83e5eac372a4810cab38",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.GoogleDocs.dll",
+            "sha256": "c6726b15bbfdd2ef33da1fed8eafab640c5c65f0ad6ced581eb575f08bdfd7b4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Html.dll",
+            "sha256": "2e6cd2364f6f6da1064b2037f22ca2207c121e85c1eea519e0a870f60da9995d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.IWork.dll",
+            "sha256": "82a46555eca5ee40480bcf0199dae1adc77119122a033a78a4f90647f9e0c38b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Markdown.dll",
+            "sha256": "4850c90d226203aa0af39be3f2214062ea52c1ac704d64a6957d7320ea8df0e6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.OpenDocument.dll",
+            "sha256": "298a373e7fac71148f5e40674eac907d181a01f52674afcf9e687c35c30d9392",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Pdf.dll",
+            "sha256": "1115806b142fce724633ed77c2ace33b842b836e11b17be53d9cbca3f4763fd1",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Word.Rtf.dll",
+            "sha256": "e6942e83e13634209e8307878c4a08e41170117a0d2ceb0daad26f9aa82b7b2b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/OfficeIMO.Zip.dll",
+            "sha256": "c1982d3d2d09cbb462943bb6b7ba17d4dd301f856f1a09298f9748393e159554",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Core/PowerForge.TargetFramework.txt",
+            "sha256": "c0152a36d87621015b873fa5727b665051540b49d39827e680926417a2536955",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.dll",
+            "sha256": "fd7ede6a74086d2b650cdc16f625a0beafe6bc7d0b7e12b842410d5000aeb08e",
+            "fileVersion": "3.0.8"
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.ModuleLoadContext.dll",
+            "sha256": "4c332731f19778fabbf5f21d20d1e0c75ca30d480c344c9831389daa1e504a53",
+            "fileVersion": "1.0.0.0"
+          },
+          {
+            "path": "Lib/Core/PSWriteOffice.xml",
+            "sha256": "e1fbc67217004740c2a150400b64c116765daf8acc44a2305cf30ba891fe212e",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Core/runtimes/browser/lib/net8.0/System.Text.Encodings.Web.dll",
+            "sha256": "28e2577c4e91b42d6a2000563cc74329c8e9fcaa8101f4454ac396b65c97561d",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/runtimes/win/lib/net8.0/System.Text.Encoding.CodePages.dll",
+            "sha256": "d671e5e6744cba8a915d627061802eb41a6953a7ab4842fe3778af9cc20fe33d",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Core/System.IO.Packaging.dll",
+            "sha256": "8e5720e0f87276adc6effa97dfac80c094ca65997b4e3bc9f5f1b0bb511b8f99",
+            "fileVersion": "10.0.826.23019"
+          },
+          {
+            "path": "Lib/Core/System.IO.Pipelines.dll",
+            "sha256": "0a5419362d6a56fecedf95d2d04b544f28b17a218f73cc9aba4bae091ce75e6f",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/System.Text.Encoding.CodePages.dll",
+            "sha256": "2ea37e46ff9617ee2fb2390791fec65b72f99ed4d19bf0582df241bf2a341945",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Core/System.Text.Encodings.Web.dll",
+            "sha256": "8d5d64652cbf4daf4f4caf442845719e0d97b208b7805a57078139b4dcb56ef2",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/System.Text.Json.dll",
+            "sha256": "b899ff9557e69ae25101812181658e6e2f858b9e278ae201e4fb01b92717a889",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Core/YamlDotNet.dll",
+            "sha256": "f50f761ae84b110826c5f6d38b06728343fcaf1457d2c08998cd66c25272e6ef",
+            "fileVersion": "18.0.0.0"
+          },
+          {
+            "path": "Lib/Default/AngleSharp.Css.dll",
+            "sha256": "25385280a4e7781ca19bc6bfc172d6ff78e5b84c5279372dded215f5823878d8",
+            "fileVersion": "1.0.1.0"
+          },
+          {
+            "path": "Lib/Default/AngleSharp.dll",
+            "sha256": "1e93082a543b612e9f6d7596cc5e39650a6ec7f479d8f96e59f6befdeea4f451",
+            "fileVersion": "1.7.1.0"
+          },
+          {
+            "path": "Lib/Default/ChartForgeX.dll",
+            "sha256": "1dcea8a9573a4f29ca500dbb4f45c09c26b8e9286e91b7558aa9b7ace03cb621",
+            "fileVersion": "1.6.0.0"
+          },
+          {
+            "path": "Lib/Default/DocumentFormat.OpenXml.dll",
+            "sha256": "40dd8b2cb50861d31cbfe16b1086eb7d0abe9619e7c01714e9c33eb171a2c5e8",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Default/DocumentFormat.OpenXml.Framework.dll",
+            "sha256": "4243ec6ca38a024040e708756bee68a8ba71195d56d8e68a1aad4c9348fd6468",
+            "fileVersion": "3.5.1"
+          },
+          {
+            "path": "Lib/Default/Microsoft.Bcl.AsyncInterfaces.dll",
+            "sha256": "f251c93b08880a46320d6cc6e0d9225630794464f86e6e2729036f48124b331c",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Adf.dll",
+            "sha256": "09d9ad75e071f8b34da13007a8e1c1f44ada94f804b21de15d61f67f31a8f000",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.AsciiDoc.dll",
+            "sha256": "ffc90c329392538712cb1420b8a390b424d7d4ef90ecd799d60e56240ae37436",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.AsciiDoc.Markdown.dll",
+            "sha256": "1fea6450316dcf92bf8538bd7acd073ecf929df808a4465f2e8198749db8ae83",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.ChartForgeX.dll",
+            "sha256": "fa1636e00bd589a9ecc0da11f7d6bcbb7b13d5b487f4a1e0353a015043d5105f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Confluence.dll",
+            "sha256": "faff504532506673b4fd3a00746b75307fd4025ea50afe64923708530c9f8c4c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Core.dll",
+            "sha256": "b94d5080a65177bcc427c665d6f67d2d98d67d4652c4eb9015266a7e8394d1e9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.CSV.dll",
+            "sha256": "1afde9b67a74e495701fab312df036226ce67b6a558cda2336f7fe7d3878b0ae",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.DocBook.dll",
+            "sha256": "6067c9e904d2bce96d96cd3c0b6590504bb3e28032e4bf6a82c845b93083ee88",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Email.dll",
+            "sha256": "193024b98f6d3ea9f3adf373564047f1ecef97a153c7c61e5696a83e83c72ffb",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Email.Html.dll",
+            "sha256": "ddfbb4862ab6ad43a03ffad6aee2c783e5d409989fa9cbbec91a046e1e6e5e25",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Epub.dll",
+            "sha256": "46afcb34cc7b355a03655a224f3828e06d03c57df79abbe25c9fee3bcfb0d87e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Csv.dll",
+            "sha256": "aa5fda9df12cc826724b5e84d85bfbea85922d40c29cc2612bcb9a6b890d33f3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.dll",
+            "sha256": "5c9d03ef0ece5d9794c2e6c075fe110725b91ccc888612aa5d77553bed86e699",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.GoogleSheets.dll",
+            "sha256": "03bc0dd15580108a48a01d132c089aad5727fdae769cba4fd6a778588708d9a5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Html.dll",
+            "sha256": "538d96fe4507076d900ab9f48faa9adefa3120154a1d6558a3a9ba66a63d211c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.IWork.dll",
+            "sha256": "5563369a654f6d801a544ae082ea99d415c3d3c80a704be926fb2c725b003219",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.OpenDocument.dll",
+            "sha256": "a8b49038429e01afd250569e99df1f1ea400c79cb875e7dab33710486469dbf7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Excel.Pdf.dll",
+            "sha256": "6edb448bc904c74465e484974fc9d14829b268c6389e586aa0b3db5dd9cf4a21",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.GoogleWorkspace.dll",
+            "sha256": "1c675335c25402f833403397ef538498d02e80f5ad092f9ef8e6eed5455e49cd",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.GoogleWorkspace.Drive.dll",
+            "sha256": "3e5c20f49f0bd2de48a3813c2dcf704bb1eafcd63a836b07fc9606328753b5c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.AngleSharp.dll",
+            "sha256": "127c45a0b1ed23dbb8a14a318c2d18fb0825efabbedaad3c97bb381c40876198",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Core.dll",
+            "sha256": "16d01b3fb0b7dac5c8a27beacada5f101c579de219684c8648007aae18354c8b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.dll",
+            "sha256": "7a31279bc0e839ab073959c2732e09460298ae234ba27b25750f629eb6730c96",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Pdf.dll",
+            "sha256": "2b16ba91ad663e794fbe34e612c74b20740bc0cc82df4bdc0f879a6d1b58b921",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Html.Rtf.dll",
+            "sha256": "3bf24f048f16911a46cf71f879bc22be251fbad14a25d48ab613e28852ec289e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.IWork.dll",
+            "sha256": "dbcb03197a043fe1a9478737a372a1e7b0178bf5be9a5ccb9f7c0f4e75a2b681",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Latex.dll",
+            "sha256": "903e3d00e3935139fadc2c1ec37224c2b6287f8ad9865dd05e6cad7b2bf5acd7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Latex.Markdown.dll",
+            "sha256": "5cb4098814f176c3d956102cc427d7d0bd7374ebaa39c4af035fb90322e2fef3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.dll",
+            "sha256": "5587ec63fc04c88c1f3b09e759efe276f2614303dc66d3594acf9d4118761270",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.Html.dll",
+            "sha256": "7a21ae0bd8ceb55690cd82504725b979884fe3f86d4ecf2ba02175f5d7c5d9b6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Markdown.Pdf.dll",
+            "sha256": "f58f3a16e3459682bb360cea89457b5ade70cc14ce434630d0c7bc771e8ca404",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Mhtml.dll",
+            "sha256": "8ce07ccf08e26ba072a30be19ba330d5204ac310433f64811071bf368cd586c3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.dll",
+            "sha256": "dd374f0a974fcaae9706e6106280ae1c1364d1a2a14e6ae0c967ff0779d9eeba",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.Process.dll",
+            "sha256": "0a486e7e55ca0ba6e99cdb5787f094628e22ef3e636ddf5758aaec14e7d33c94",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Ocr.Tesseract.dll",
+            "sha256": "458091f1f873991b1250d59c183966f8a789f972d005cab158f46ae7e98a210b",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.dll",
+            "sha256": "dcf9ba5213083195218a798d760b277bb3754e46bf28b18af0d37104c6f42916",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Html.dll",
+            "sha256": "fe4f2268c85661073501e02c2e3234bd1af3ff4eec2326b04e24d13ce56c8fab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Markdown.dll",
+            "sha256": "68527377b59f524fb989ad2bb9d9ae0edf7460f5b1a0c9d7d3a048be35fa3929",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OneNote.Pdf.dll",
+            "sha256": "80d3c245343e22511ac90d7a94ea59b69c44b7f27f8a55655c44e95e0ec1c9ef",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.OpenDocument.dll",
+            "sha256": "aa86363554d112bda2b4979b88a0b81a2aec5a83ed9720151bebbbbae0969c12",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Opml.dll",
+            "sha256": "47a689c5d00b71ce200d90de9b3dcce81a7b7d62029d645c96056cf96d704c9e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Pdf.dll",
+            "sha256": "6af45bc1df427978cb1d8bb1b05dc5a01aff233122b5c6f5d66abd1c06288ed3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Pdf.Ocr.dll",
+            "sha256": "de415e8e7f1af8585bd95f0e53abfadb21503f512126c341700ad30abf4410c2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.dll",
+            "sha256": "b6d3410ada1e4def2d907e6ed0907c5b5878c2011909f9d1ceb81829455b3bec",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.Html.dll",
+            "sha256": "57adb4a7fadefab3cacb0a0308164b27166006623a5b2c07d47c41f9e0f2e7d7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.IWork.dll",
+            "sha256": "ecca4465c6277f5457789bb986c5c123c16ede725a689fe2d17a18e0bd0d0280",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.OpenDocument.dll",
+            "sha256": "0b00b7e677ebe1359aa059bc8e6afe601b977f4e02cbc3f1d670548b488acf3e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.PowerPoint.Pdf.dll",
+            "sha256": "d8b8b465d2c44e6bdec5a807a2ad3ccf4e8fd7b42f6689be647163394ae956ce",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Provenance.C2pa.dll",
+            "sha256": "4d8653a031e0f12b7f3421e3b4ca4adef76fda537be9c495785ecdfa0b144957",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.All.dll",
+            "sha256": "82fb61d8476a86aafa9ed32a8460fa9d1dc359fa5b1bcdca9d0fc13a6099f157",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.AsciiDoc.dll",
+            "sha256": "dff416a910d3de74c0824e95d65b2dfbc8638f0e7ae99dc5b4d32648979d5c9d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Core.dll",
+            "sha256": "8458f4b868d782e9ce726226a7509dbe6356a634c76237ecc1ef045240bb66d9",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Csv.dll",
+            "sha256": "cac0c24367cc68a5cf0ffcbb72120f36d14c8c6936b3b21094b6d946fabb3796",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.DocBook.dll",
+            "sha256": "0ec7ac09b9880e209f56c9423229e2116c830df51e19e028fc1ce6039d8f5d63",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Email.dll",
+            "sha256": "35cfa84b737af7a88dc0c4c0607b64b903c7c7bce4217a00742c69f5a6c1dc44",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Epub.dll",
+            "sha256": "a95a98f2ef2f024d2dc16be27a302a356e2358cc0b74aca21c2fa7cae45b73c6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Excel.dll",
+            "sha256": "a52798347a2758ce5856b5cdc969fb5200721641fbe7b8e518d09b728ebf5ee0",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Html.dll",
+            "sha256": "c53691556d133ec1ed221abb959f731e705f997a105032627a08c539bf22a80a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Image.dll",
+            "sha256": "eee57a3aaea286bfb37225cef6f672fa02756d3438bdfef71040794430eb81f8",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Json.dll",
+            "sha256": "2f8ad4444220edd5731ebc32e452567285fa691cd90b543afbde2ef458974046",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Latex.dll",
+            "sha256": "2fbcd427b2be3419d51000ed083d1c85d72e1f4f8a1676ccc577834664fb2685",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Markdown.dll",
+            "sha256": "c6de45947c9526a5ebb540cffdaf7c64bf4303bd91abf0910a1a917a04ab4561",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Notebook.dll",
+            "sha256": "501c50bd21207a6014d12a88f31130adb82fef163e2809fa93890d7584511481",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Ocr.dll",
+            "sha256": "c9dbec4acf4548c3aec8e8c7ba2c699c73d7172b9102e6c04692cd1b14ef7c4e",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.OneNote.dll",
+            "sha256": "ccb8b9661b4cef1bdb33e840cbf23673cc590ccfa5204247cc5a9464f85a340a",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.OpenDocument.dll",
+            "sha256": "ff57d182a989439bc65bbf80da7bddaf3eb64da7c8cd547ab9e112fd254e1436",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Opml.dll",
+            "sha256": "d77368a7e0a5bbbab8d6e76edb3a91e2979a08dd95f636e47fca407a16b7c651",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Pdf.dll",
+            "sha256": "936a70fa635caf894c15ae295357ef9a14d8c4148d96dec004a91b094b37eec4",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.PowerPoint.dll",
+            "sha256": "b5fe3c2d366b0ad21f6e69eacefc1cc34ed142dc10d6c0e084dae552b56e4ac3",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Rtf.dll",
+            "sha256": "86c23a2c76065837f3b26ae52b1bd9b6d1d41d7d9c3ff495204c00eb530065aa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Subtitles.dll",
+            "sha256": "d9577ab93332d82f8ee6f82c0e8dfab8dc7c4ffabf38a469b742c8598c01f45f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Visio.dll",
+            "sha256": "6a790e1c04950058f4c8cd01e9ba23c0b9db003a64ac0529f00b4380c3ec4814",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Word.dll",
+            "sha256": "5eb89dcd6c8372f196a460c87f69f94263082fa092a80052e90107394a36e5c5",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Xml.dll",
+            "sha256": "7e1332f9e275bac4ecf948c77839ab2226bb22efe573ce9ba46976a7f2f0d800",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Yaml.dll",
+            "sha256": "e725c662c07ce800c48267a486dfec92502348bea846bb9fe1a38d3231e57456",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Reader.Zip.dll",
+            "sha256": "3b06f9581f3e1b7dd771960207ba5671c78d66461539e2c4456488d63ae602e7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.dll",
+            "sha256": "0229eaad461308b5d42b0ad9849298da3df6f19f1652b9a9bd982aff56d4379d",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.Markdown.dll",
+            "sha256": "492f4f5a646e9c58fbfb42e0a78f011b78c55c4582c6fd6c7a16d03d3012898c",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Rtf.Pdf.dll",
+            "sha256": "75d6de69ec620603ba284a1797a71b82201057b4fe7c0a36f5f263c7d7968ce6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Visio.dll",
+            "sha256": "f48aebd40799640441dc3e66bf98bb83cd16d994d69e18693c091790bd88ad4f",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.dll",
+            "sha256": "90419203949b76d058bdf0a4d74f63af8957ded1f6565127f2c15227844305b2",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.GoogleDocs.dll",
+            "sha256": "32e385909c087eb6a23eea3dccd74d69df2456c328af7e9e38766f373d6f07ab",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Html.dll",
+            "sha256": "fd917ca166ae7e412ee5705fd4ef6ce1a1e64f109f77f3a2f5f7a92e82d2c822",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.IWork.dll",
+            "sha256": "b1c9b8277cc4287e6b23065984942df7e8d69eea34f165bf09add1a3802dceaa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Markdown.dll",
+            "sha256": "196d705e21ff27d3ab1f83b92b2976c27e41a46bbd695b521c1d18bcc70d00b6",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.OpenDocument.dll",
+            "sha256": "40453c5a6071d0e18e0744b95fb0b514ce87e1610948b4b74f4338c4de0795a7",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Pdf.dll",
+            "sha256": "d5779378addf46d08d52c0b1bfeb6beb522c35d8a2cdaf7c9cb3cec095f8feaa",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Word.Rtf.dll",
+            "sha256": "d3a2dd0429060c28052dc8464e0aa03e610190ecbdf2c453c0d37b428e741b14",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/OfficeIMO.Zip.dll",
+            "sha256": "5bb6dc4a86be91b935f0c23864e9f3c9e40e200335b7e1e4c8926ee08d4b2090",
+            "fileVersion": "3.4.4.0"
+          },
+          {
+            "path": "Lib/Default/PowerForge.TargetFramework.txt",
+            "sha256": "aeacfcfb0a9a11c70c9d8426e3789561c2662508f52aebaa0b8fa7a145d4be82",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.dll",
+            "sha256": "3daca2ac0ba7a883394d2bce9095f6426e8f9d8af155915e30724cef1066004f",
+            "fileVersion": "3.0.8"
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.ModuleLoadContext.dll",
+            "sha256": "50550336d64b0c61ead043277d4a42f9cadc9967eb180f9c7dceb5242ed01baf",
+            "fileVersion": "1.0.0.0"
+          },
+          {
+            "path": "Lib/Default/PSWriteOffice.xml",
+            "sha256": "e1fbc67217004740c2a150400b64c116765daf8acc44a2305cf30ba891fe212e",
+            "fileVersion": null
+          },
+          {
+            "path": "Lib/Default/System.Buffers.dll",
+            "sha256": "2d78d770c9cb997199154ae8c018b9f1d1efbc86729f7264dde6dbad2a12cac3",
+            "fileVersion": "4.600.125.16908"
+          },
+          {
+            "path": "Lib/Default/System.IO.Packaging.dll",
+            "sha256": "277e88144db76056740a9405da5b99ef846113e4a29ecf9a0b87fa5fb4ab6616",
+            "fileVersion": "10.0.826.23019"
+          },
+          {
+            "path": "Lib/Default/System.IO.Pipelines.dll",
+            "sha256": "6663b9955ad95ec93d085353f7769c2d93df07b3146faddcef27aa9bb51ba22c",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Memory.dll",
+            "sha256": "d5e8e4866f9cfa66f7765660f84b210198893e55335487afe5ebda342c0e913d",
+            "fileVersion": "4.600.325.20307"
+          },
+          {
+            "path": "Lib/Default/System.Numerics.Vectors.dll",
+            "sha256": "20c2fa81b8c70d651099d762954f285fd4f942e63b2d7217c145dab8d4b2f4c9",
+            "fileVersion": "4.600.125.16908"
+          },
+          {
+            "path": "Lib/Default/System.Runtime.CompilerServices.Unsafe.dll",
+            "sha256": "08cbd7278b66f1e68425a82d4b97181a4130d93e3dd91831407aba7212ccdacf",
+            "fileVersion": "6.100.225.20307"
+          },
+          {
+            "path": "Lib/Default/System.Text.Encoding.CodePages.dll",
+            "sha256": "3904bcaa55174a95695a04b57430833ab8144bf8f7049a6915785061c9862d5d",
+            "fileVersion": "10.0.926.27113"
+          },
+          {
+            "path": "Lib/Default/System.Text.Encodings.Web.dll",
+            "sha256": "55749856fa60f1e70bbf0917df99f592738ec6971220115ba9bf18f6180e465f",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Text.Json.dll",
+            "sha256": "8f160de9a7a85665e2e695fa8a504861dcae21115ed3567b18b026f6974411b1",
+            "fileVersion": "10.0.726.21808"
+          },
+          {
+            "path": "Lib/Default/System.Threading.Tasks.Extensions.dll",
+            "sha256": "af4e13ef418fd89b432de20cd1dfb7fa10a7179c8dd049c9856316e50c5949ca",
+            "fileVersion": "4.600.325.20307"
+          },
+          {
+            "path": "Lib/Default/YamlDotNet.dll",
+            "sha256": "cbbe106e8e9ddfd31b38acafc667ea3b49fa6b086027955a3ed067e2b87a1428",
+            "fileVersion": "18.0.0.0"
+          },
+          {
+            "path": "LICENSE",
+            "sha256": "382b2199369e8fd868385c6da5de6ed28c0a611473e5fa57f0577597240fd858",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.Libraries.ps1",
+            "sha256": "2456a70ed41c83e5f1621423c42570f3f78919f910fc8fdeeb70d55f1d1dd762",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.psd1",
+            "sha256": "87b8d1fce155f659b3166d8d09d0292144e8c6d832ee7f292c18a2e7e7a22d44",
+            "fileVersion": null
+          },
+          {
+            "path": "PSWriteOffice.psm1",
+            "sha256": "c959c1789681121d8907a4520609baca502fa772ab62dab77f89d541b4ac9dde",
+            "fileVersion": null
+          }
+        ]
+      },
+      "conversions": [
+        {
+          "outputPath": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
+          "outputSha256": "ae6f6fb3780d536c7c11fe35b7106905e73e56102f6a25c5c5ead20e1c454a7b",
+          "routeId": "docx-pdf",
+          "command": "Export-OfficeDocumentPdf",
+          "routeEvidence": "recipe-uses-single-document-DOCX-export",
+          "report": {
+            "IsReadOnly": false,
+            "Warnings": [
+              {
+                "Converter": "OfficeIMO.Word.Pdf",
+                "Code": "NativeFontFamilySubstituted",
+                "Source": "word:font[Calibri]",
+                "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "Severity": 1,
+                "LossKind": 1,
+                "LayoutDiagnostic": null,
+                "Details": {
+                  "fontFamily": "Calibri",
+                  "fallbackSlot": "Helvetica"
+                }
+              },
+              {
+                "Converter": "OfficeIMO.Word.Pdf",
+                "Code": "NativeFontFamilySubstituted",
+                "Source": "word:font[Calibri Light]",
+                "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "Severity": 1,
+                "LossKind": 1,
+                "LayoutDiagnostic": null,
+                "Details": {
+                  "fontFamily": "Calibri Light",
+                  "fallbackSlot": "Helvetica"
+                }
+              }
+            ],
+            "HasWarnings": true,
+            "HasErrors": false,
+            "HasLoss": true,
+            "FidelityDiagnostics": [
+              {
+                "Code": "NativeFontFamilySubstituted",
+                "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "LossKind": 1,
+                "Source": "OfficeIMO.Word.Pdf",
+                "Location": "word:font[Calibri]"
+              },
+              {
+                "Code": "NativeFontFamilySubstituted",
+                "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+                "LossKind": 1,
+                "Source": "OfficeIMO.Word.Pdf",
+                "Location": "word:font[Calibri Light]"
+              }
+            ],
+            "FidelityStatus": 1
+          },
+          "warnings": [
+            {
+              "Converter": "OfficeIMO.Word.Pdf",
+              "Code": "NativeFontFamilySubstituted",
+              "Source": "word:font[Calibri]",
+              "Message": "The source font family 'Calibri' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+              "Severity": 1,
+              "LossKind": 1,
+              "LayoutDiagnostic": null,
+              "Details": {
+                "fontFamily": "Calibri",
+                "fallbackSlot": "Helvetica"
+              }
+            },
+            {
+              "Converter": "OfficeIMO.Word.Pdf",
+              "Code": "NativeFontFamilySubstituted",
+              "Source": "word:font[Calibri Light]",
+              "Message": "The source font family 'Calibri Light' was unavailable or could not be embedded; generated text uses the mapped PDF family Helvetica.",
+              "Severity": 1,
+              "LossKind": 1,
+              "LayoutDiagnostic": null,
+              "Details": {
+                "fontFamily": "Calibri Light",
+                "fallbackSlot": "Helvetica"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
+          "sha256": "172f046cabad4c51a110fbc3a41ab55dab4328a98225c052182477456fc8d6fb",
+          "diagnostics": null
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx",
+          "sha256": "9cb850319dd272375370eed04b46965d3fd72426c662251293178a824b2a90ff",
+          "diagnostics": null
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
+          "sha256": "ae6f6fb3780d536c7c11fe35b7106905e73e56102f6a25c5c5ead20e1c454a7b",
+          "diagnostics": {
+            "pageCount": 1,
+            "fonts": [
+              {
+                "name": "Helvetica",
+                "subtype": "Type1",
+                "embedded": false,
+                "programKind": null,
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "viewer-resolved-no-embedded-program"
+              },
+              {
+                "name": "Helvetica-Bold",
+                "subtype": "Type1",
+                "embedded": false,
+                "programKind": null,
+                "requiresEmbeddingReview": false,
+                "requiresToUnicodeReview": false,
+                "programVersion": null,
+                "programSha256": null,
+                "identityStatus": "viewer-resolved-no-embedded-program"
+              }
+            ]
+          }
+        }
+      ],
+      "previews": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+          "rendering": {
+            "tool": "pdftocairo",
+            "version": "pdftocairo version 25.07.0",
+            "executableSha256": "a8f2030e248c99a4cdb0252160eafba59b5f5f8dee4b419b59b8019636ffa4bb",
+            "page": 1,
+            "inputSha256": "ae6f6fb3780d536c7c11fe35b7106905e73e56102f6a25c5c5ead20e1c454a7b",
+            "sha256": "72d28cddf9b96f40566de4132fd2b9d394bac2d6507603e27a278594243b9acd",
+            "diagnostics": [
+              "Syntax Error: No display font for 'Symbol'",
+              "Syntax Error: No display font for 'ArialUnicode'"
+            ]
+          }
+        }
+      ],
+      "receiptSha256": "8d793888388e0ec83664d9a87b940ef0e1da07fa45bc20cbeba365760c330f65",
+      "previewReview": {
+        "state": "reviewed",
+        "reviewedUtc": "2026-10-12T07:12:00.1277840Z",
+        "artifacts": [
+          {
+            "path": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+            "sha256": "72d28cddf9b96f40566de4132fd2b9d394bac2d6507603e27a278594243b9acd"
+          }
+        ]
+      },
+      "artifacts": [
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx",
+          "sha256": "172f046cabad4c51a110fbc3a41ab55dab4328a98225c052182477456fc8d6fb"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.docx",
+          "sha256": "9cb850319dd272375370eed04b46965d3fd72426c662251293178a824b2a90ff"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review.pdf",
+          "sha256": "ae6f6fb3780d536c7c11fe35b7106905e73e56102f6a25c5c5ead20e1c454a7b"
+        },
+        {
+          "path": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
+          "sha256": "72d28cddf9b96f40566de4132fd2b9d394bac2d6507603e27a278594243b9acd"
+        },
+        {
+          "path": "/downloads/showcase/source/PowerShell/BudgetForecastReview.ps1.txt",
+          "sha256": "5e0077e0d9519db7d5a3a9a69430136d5b60aeb9ffc18bd16857a56b881d2231"
+        },
+        {
+          "path": "/downloads/showcase/source/PowerShell/Data/BudgetForecast.csv",
+          "sha256": "121aa5914ede8c0c9e42ab9898ab0b2422f77c56134faa60af6666064cc38d0c"
+        }
+      ]
     }
   ]
 }

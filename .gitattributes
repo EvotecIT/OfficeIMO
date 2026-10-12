@@ -3,6 +3,17 @@
 ###############################################################################
 * text=auto
 
+# Published integration downloads are bound to raw-byte hashes, including EML,
+# executable source copies and ASCII PDF stream/xref offsets.
+Website/static/downloads/integrations/** -text -whitespace
+Website/static/downloads/integrations/**/*.pdf -diff
+
+# Imported PowerShell API components are bound to release fingerprints.
+Website/data/apidocs/powershell/PSWriteOffice.psd1 -text -diff
+Website/data/apidocs/powershell/PSWriteOffice-Help.xml -text -diff
+Website/data/apidocs/powershell/command-metadata.json -text -diff
+Website/data/apidocs/powershell/bundle-manifest.json text eol=lf
+
 # Access producer exports and expected-value captures have manifest-bound bytes.
 OfficeIMO.Access.Tests/Fixtures/** -text -whitespace
 OfficeIMO.Access.Tests/Fixtures/**/*.mdb -diff
@@ -96,6 +107,14 @@ OfficeIMO.TestAssets/Documents/Epub/IdpfPublishing/childrens-literature/** -text
 # Public showcase downloads are generated binary evidence. Preserve exact bytes
 # so the committed manifest hashes remain stable across platforms and checkouts.
 Website/static/downloads/showcase/** -text -diff
+
+# Showcase generation receipts bind the exact recipe and CSV input bytes.
+OfficeIMO.Examples/PowerShell/*.ps1 text eol=lf
+OfficeIMO.Examples/PowerShell/Data/*.csv text eol=lf
+Website/scripts/Invoke-ShowcasePowerShellExample.ps1 text eol=lf
+Website/scripts/Build-ShowcaseEvidence.ps1 text eol=lf
+Website/scripts/ShowcaseEvidence.Helpers.ps1 text eol=lf
+Website/scripts/ShowcaseEvidence.Provenance.ps1 text eol=lf
 
 # Published benchmark payloads are integrity-checked byte-for-byte against the
 # catalog. Keep their committed line endings unchanged on every platform.

@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.Pdf {
             float[] widths = new float[columnCount];
             float[] gridWidths = new float[columnCount];
             bool[] explicitCellWidthColumns = new bool[columnCount];
+            var spanningWidths = new List<(int Column, int Span, float Width)>();
 
             List<int> gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
@@ -44,8 +45,13 @@ namespace OfficeIMO.Word.Pdf {
                     int columnSpan = System.Math.Max(1, cell.ColumnSpan);
                     float width = 0f;
                     bool hasExplicitCellWidth = false;
-                    if (IsExplicitDxaCellWidth(cell)) {
-                        width = cell.Width!.Value / 20f;
+                    double? absoluteWidth = TablePreferredWidth.AbsoluteCellPoints(cell);
+                    if (absoluteWidth.HasValue) {
+                        width = (float)absoluteWidth.Value;
+                        hasExplicitCellWidth = true;
+                    } else if (TablePreferredWidth.PreservesCellGrid(cell)) {
+                        for (int column = logicalColumn; column < logicalColumn + columnSpan && column < gridWidths.Length; column++)
+                            width += gridWidths[column];
                         hasExplicitCellWidth = true;
                     }
 
@@ -57,7 +63,15 @@ namespace OfficeIMO.Word.Pdf {
                         }
                     }
 
-                    if (width > 0f) {
+                    if (width > 0f || hasExplicitCellWidth) {
+                        if (columnSpan > 1) {
+                            // A merged preference constrains the complete span.
+                            // Resolve single-column preferences first so a wide
+                            // merged cell cannot erase an unequal source grid.
+                            spanningWidths.Add((logicalColumn, columnSpan, width));
+                            logicalColumn += columnSpan;
+                            continue;
+                        }
                         float widthPerColumn = width / columnSpan;
                         for (int columnIndex = logicalColumn; columnIndex < logicalColumn + columnSpan && columnIndex < widths.Length; columnIndex++) {
                             if (hasExplicitCellWidth) {
@@ -77,8 +91,40 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             for (int i = 0; i < widths.Length; i++) {
-                if (widths[i] <= 0f) {
+                if (widths[i] <= 0f && !explicitCellWidthColumns[i]) {
                     widths[i] = gridWidths[i];
+                }
+            }
+
+            // A zero merged preference clears cached columns only where an
+            // independent cell has not supplied its own absolute preference.
+            foreach (var constraint in spanningWidths.Where(constraint => constraint.Width == 0F)) {
+                int end = System.Math.Min(widths.Length, constraint.Column + constraint.Span);
+                for (int column = constraint.Column; column < end; column++)
+                    if (!explicitCellWidthColumns[column]) widths[column] = 0F;
+            }
+
+            foreach (var constraint in spanningWidths) {
+                int end = System.Math.Min(widths.Length, constraint.Column + constraint.Span);
+                float spanWidth = 0F;
+                int missingColumns = 0;
+                for (int column = constraint.Column; column < end; column++) {
+                    spanWidth += widths[column];
+                    if (widths[column] <= 0F) missingColumns++;
+                }
+                if (missingColumns > 0) {
+                    float missingWidth = constraint.Width > spanWidth
+                        ? (constraint.Width - spanWidth) / missingColumns
+                        : constraint.Width / (end - constraint.Column);
+                    for (int column = constraint.Column; column < end; column++)
+                        if (widths[column] <= 0F) widths[column] = missingWidth;
+                    spanWidth += missingWidth * missingColumns;
+                }
+                if (spanWidth >= constraint.Width) continue;
+                for (int column = constraint.Column; column < end; column++) {
+                    widths[column] = spanWidth > 0F
+                        ? widths[column] * constraint.Width / spanWidth
+                        : constraint.Width / (end - constraint.Column);
                 }
             }
 
@@ -144,9 +190,5 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool IsExplicitDxaCellWidth(WordTableCell cell) =>
-            cell.Width.HasValue &&
-            cell.WidthType == WordTableWidthUnit.Dxa &&
-            cell.Width.Value > 0;
     }
 }
