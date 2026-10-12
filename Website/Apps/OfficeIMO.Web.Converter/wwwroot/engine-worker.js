@@ -84,7 +84,10 @@ async function prepare(kind, assemblies) {
     await runtime.INTERNAL.loadLazyAssembly(name);
     loaded.add(name);
   }
-  if (kind) engine.Warmup(kind);
+  // Entering .NET warm-up can resolve lazy profile types before its kind check.
+  if ((kind === "convert" || kind === "pdf") &&
+      loaded.has("OfficeIMO.Html.Pdf.wasm") &&
+      loaded.has("OfficeIMO.Web.Fonts.wasm")) engine.Warmup(kind);
   return { ms: Math.round(performance.now() - started), bytes: downloaded };
 }
 
