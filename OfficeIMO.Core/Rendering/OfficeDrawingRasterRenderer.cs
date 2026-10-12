@@ -148,6 +148,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 : PushClipPolygons(canvas, contours, drawingGroup.ClipPath.FillRule);
         }
 
+        if (drawingGroup.ClipPath.Kind == OfficeClipPathKind.Path)
+            return canvas.PushClipRectangle(0, 0, 0, 0);
+
         if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
             OfficeTransform transform = drawingGroup.FrameTransform.Value.CreateDestinationTransform();
             return canvas.PushClipPolygon(new[] {

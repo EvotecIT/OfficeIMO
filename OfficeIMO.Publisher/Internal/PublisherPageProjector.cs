@@ -111,7 +111,7 @@ internal sealed partial class PublisherPageProjector {
         if (!shape.LayoutTransform.TryInvert(out _) || !shape.GroupTransform.TryInvert(out _)) {
             _context.Add("PUB_DEGENERATE_OBJECT_OMITTED", "An object in a collapsed group was omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
-        if (shape.Type == 20 && (width > 0 || height > 0)) { width = Math.Max(width, 0.01); height = Math.Max(height, 0.01); }
+        if ((shape.Type == 20 || OfficeArtCustomPathProjector.HasPath(shape.Properties)) && (width > 0 || height > 0)) { width = Math.Max(width, 0.01); height = Math.Max(height, 0.01); }
         if (width <= 0 || height <= 0) {
             _context.Add("PUB_DEGENERATE_OBJECT_OMITTED", "A zero-sized drawing object was omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
