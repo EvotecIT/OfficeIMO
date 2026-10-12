@@ -14,7 +14,7 @@ internal static class NativeNumbersIntegerFunctionSmoke {
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = result.Projection.Sheets.Single().Tables.Single();
         Require(table.Cells.Count(c => c.Kind == IWorkCellKind.Formula) == 70
-            && table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 21,
+            && table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 33,
             "Integer-function qualification boundary changed.");
         Require(!table.GetCell(10, 6)!.FormulaIsComplete && (double)table.GetCell(10, 6)!.Value! == 0
             && !table.GetCell(14, 7)!.FormulaIsComplete
@@ -22,15 +22,17 @@ internal static class NativeNumbersIntegerFunctionSmoke {
             "Incompatible native coercion/precision caches were made editable.");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        Require(reopened.Calculate() == 21 && reopened.Sheets[0].CellAt(2, 7).GetValue<double>() == 12
+        Require(reopened.Calculate() == 33 && reopened.Sheets[0].CellAt(2, 7).GetValue<double>() == 12
             && reopened.Sheets[0].CellAt(2, 8).GetValue<double>() == 360,
-            "Qualified integer literals did not recalculate after save/reopen.");
-        reopened.Sheets[0].CellFormula(2, 7, "GCD(B2:D2)"); reopened.Sheets[0].CellValue(2, 2, 30d);
-        reopened.Calculate(); Require(reopened.Sheets[0].CellAt(2, 7).GetValue<double>() == 6,
+            "Qualified integer literals and numeric references did not recalculate after save/reopen.");
+        reopened.Sheets[0].CellValue(2, 2, 30d);
+        reopened.Calculate(); Require(reopened.Sheets[0].CellAt(2, 5).GetValue<double>() == 6
+            && reopened.Sheets[0].CellAt(2, 6).GetValue<double>() == 180,
             "Edited integer operands did not reach the shared evaluator.");
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
-        Require(final.Sheets[0].CellAt(2, 7).GetValue<double>() == 6 && !final.ValidateOpenXml().Any(),
+        Require(final.Sheets[0].CellAt(2, 5).GetValue<double>() == 6
+            && final.Sheets[0].CellAt(2, 6).GetValue<double>() == 180 && !final.ValidateOpenXml().Any(),
             "Saved integer edit or OpenXML validation failed.");
         using var native = ExcelDocument.Load(nativeXlsx);
         Require(native.Calculate() == 68 && native.Sheets[0].CellAt(10, 6).GetValue<double>() == 360
@@ -52,7 +54,7 @@ internal static class NativeNumbersIntegerFunctionSmoke {
             "Shared reference qualification or aggregate cell budget failed.");
         Require(Hash(source) == sourceHash && Hash(nativeXlsx) == xlsxHash, "Integer conversion changed native input.");
         Console.WriteLine("PASS | native Numbers integer functions | " + sourceHash
-            + " | 19 bounded literal calls, incompatible cache retention, saved/reopened operand edits, native Excel coercion, typed overflow, shared reference qualification and cell budget");
+            + " | 19 bounded literal calls, 12 populated numeric ranges, incompatible cache retention, saved/reopened operand edits, native Excel coercion, typed overflow, shared reference qualification and cell budget");
     }
 
     private static string Hash(string path) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)));

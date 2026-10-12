@@ -1,0 +1,26 @@
+[
+  {
+    "source": "pages-created-headers-v15.4.pages",
+    "pdfSha256": "7fe1a9f9b4a61d47e25fd147375528165e637d9e1cae6641e5d1c29ef216e947",
+    "pages": 2,
+    "pageSizePoints": [
+      612.0,
+      792.0
+    ],
+    "bodyParagraphs": 73,
+    "orderedUniqueBodyLines": 72,
+    "headerFooterEachPage": true
+  },
+  {
+    "source": "pages-created-headers-edited-v15.4.pages",
+    "pdfSha256": "f6e5380ce7a9c61398d80c49d0dc0eb05af00cc6343fe161a97a16665eeac473",
+    "pages": 2,
+    "pageSizePoints": [
+      612.0,
+      792.0
+    ],
+    "bodyParagraphs": 73,
+    "orderedUniqueBodyLines": 72,
+    "headerFooterEachPage": true
+  }
+]

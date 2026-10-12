@@ -4,7 +4,7 @@ using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
 internal static class NativeNumbersWriterSmoke {
-    private const string AcceptedSha256 = "08F6F8C2B82B99514D657FDBB0402E3FAD25EF7C7005C9B84AFAFD929D1E719C";
+    private const string AcceptedSha256 = "6436E88B042C639E7D512A295CF988CA230D71505F3DFDF13637546FA1705786";
 
     internal static void Run() {
         var document = IWorkNumbersDocument.Create();
@@ -18,7 +18,7 @@ internal static class NativeNumbersWriterSmoke {
             "Totals", 40, 300, 130, 36);
         document.AddSheet("Empty grid").AddTable(IWorkTableData.Create(2, 3), "Empty", 30, 40, 80, 28);
         byte[] bytes = document.SaveBytes();
-        Require(Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedSha256 && bytes.Length == 22_090,
+        Require(Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedSha256 && bytes.Length == 22_573,
             "The NativeAOT Numbers creator differs from the independently decoded Apple-accepted package.");
         Require(bytes.SequenceEqual(document.SaveBytes()), "Numbers creation is not deterministic.");
         using var destination = new MemoryStream(); destination.WriteByte(9); document.Save(destination);

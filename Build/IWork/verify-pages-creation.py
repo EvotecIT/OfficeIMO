@@ -26,7 +26,7 @@ SCHEMAS = {10000: 'TP.DocumentArchive', 11006: 'TSP.PackageMetadata', 10001: 'TP
     6006: 'TST.HeaderStorageBucket', 6008: 'TST.TableStylePresetArchive', 6247: 'TST.TableStyleNetworkArchive'}
 
 
-def verify(path, descriptor):
+def verify(path, descriptor, page_text=False):
     pool = descriptor_pool.DescriptorPool()
     descriptor_bytes = descriptor.read_bytes()
     for file in descriptor_pb2.FileDescriptorSet.FromString(descriptor_bytes).file:
@@ -66,7 +66,11 @@ def verify(path, descriptor):
         body = decoded[root.body_storage.identifier]
         settings = decoded[root.settings.identifier]
         assert body.kind == 0 and body.in_document and settings.body
-        assert not settings.headers and not settings.footers
+        if not page_text:
+            assert not settings.headers and not settings.footers
+        else:
+            assert settings.headers or settings.footers
+            assert not root.lays_out_body_vertically and not root.change_tracking_enabled
         text = ''.join(body.text)
         encoded = text.encode('utf-16-le')
         decimal_items = verify_decimal_lists(graph, decoded, body, text)
@@ -149,11 +153,39 @@ def verify(path, descriptor):
         assert len(body.table_section.entries) == 1
         section = decoded[body.table_section.entries[0].object.identifier]
         assert section.section_page_number_start == 1
+        assert not page_text or not (section.section_template_first_page_different
+            or section.section_template_even_odd_pages_different or section.section_template_first_page_hides_header_footer)
+        page_texts = []
         for reference in (section.first_section_template_page, section.even_section_template_page, section.odd_section_template_page):
             template = decoded[reference.identifier]
             assert len(template.headers) == len(template.footers) == 3
-            for storage in list(template.headers) + list(template.footers):
-                assert graph[storage.identifier][0] == 2001 and ''.join(decoded[storage.identifier].text) == '\n'
+            for index, storage in enumerate(list(template.headers) + list(template.footers)):
+                assert graph[storage.identifier][0] == 2001
+                content = decoded[storage.identifier]
+                if not page_text:
+                    assert ''.join(content.text) == '\n'
+                    continue
+                assert content.kind == 1 and content.in_document
+                value = ''.join(content.text)
+                assert not any(character in value for character in '\n\r\t\u2028\u2029')
+                enabled = settings.headers if index < 3 else settings.footers
+                if index not in (0, 3) or not enabled:
+                    assert value == ''
+                    continue
+                distance = root.header_margin if index == 0 else root.footer_margin
+                margin = root.top_margin if index == 0 else root.bottom_margin
+                assert 0 <= distance < margin
+                attributes = content.table_char_style.entries
+                assert len(attributes) == 1 and attributes[0].character_index == 0
+                style = decoded[attributes[0].object.identifier].char_properties
+                paragraph = decoded[content.table_para_style.entries[0].object.identifier].para_properties
+                assert paragraph.alignment == 0 and paragraph.line_spacing.amount == 1
+                if reference.identifier == section.odd_section_template_page.identifier and not any(
+                        item['storage'] == storage.identifier for item in page_texts):
+                    page_texts.append({'kind': 'header' if index == 0 else 'footer', 'storage': storage.identifier,
+                        'text': value, 'distancePoints': distance, 'font': style.font_name, 'size': style.font_size,
+                        'bold': style.bold, 'italic': style.italic, 'underline': int(style.underline),
+                        'strikethrough': int(style.strikethru)})
         return {'source': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
             'descriptorSha256': hashlib.sha256(descriptor_bytes).hexdigest(), 'recordCount': len(graph),
             'page': {'width': root.page_width, 'height': root.page_height,
@@ -161,6 +193,7 @@ def verify(path, descriptor):
             'paragraphCount': len(para_positions), 'text': text, 'runs': runs, 'paragraphLayouts': paragraph_layouts, 'objects': objects,
             'nativeTables': tables, 'inlineTables': inline_tables,
             'imageResources': images, 'inlineImages': inline_images, 'decimalItems': decimal_items,
+            **({'pageTexts': page_texts} if page_text else {}),
             'scope': 'Owned body paragraphs, inline PNG/JPEG images, scalar tables and graph declarations; native application acceptance is separate.'}
 
 
@@ -169,7 +202,8 @@ if __name__ == '__main__':
     parser.add_argument('source', type=Path)
     parser.add_argument('--descriptor', required=True, type=Path)
     parser.add_argument('--out', required=True, type=Path)
+    parser.add_argument('--page-text', action='store_true', help='Verify the bounded default header/footer extension.')
     arguments = parser.parse_args()
-    result = verify(arguments.source, arguments.descriptor)
+    result = verify(arguments.source, arguments.descriptor, arguments.page_text)
     arguments.out.write_text(json.dumps(result, indent=2) + '\n')
     print(f"Verified {result['recordCount']} records and {result['paragraphCount']} paragraphs: {result['sha256']}")

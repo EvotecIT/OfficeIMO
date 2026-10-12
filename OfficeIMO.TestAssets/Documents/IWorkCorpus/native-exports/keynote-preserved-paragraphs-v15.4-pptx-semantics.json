@@ -1,0 +1,135 @@
+{
+  "nativeSha256": "b4b6a57fbcd4fc724fa34aeb78a8ea7702cc350439069278492e3332d26ad254",
+  "pptxSha256": "a34123354593b6e687f90d5c2249f26d92c99595edb9b620bc1a6b4526995634",
+  "descriptorSha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216",
+  "numbersParser": "4.19.0",
+  "protobuf": "7.36.2",
+  "recordsIncludingAuxiliary": 205,
+  "slideSizePoints": [
+    960,
+    540
+  ],
+  "slides": [
+    {
+      "slide": 112,
+      "drawables": [
+        {
+          "kind": "text",
+          "text": "Edited PNG — image behind text",
+          "geometry": [
+            60.0,
+            30.0,
+            840.0,
+            60.0
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "Covered source label",
+          "geometry": [
+            100.0,
+            200.0,
+            500.0,
+            60.0
+          ]
+        },
+        {
+          "kind": "image",
+          "sha256": "bf73f362a623cc7177e6e7ced0f063de2927f9c4b7f917ba07f891eaf18a5f05",
+          "description": "Opaque four-color PNG 😀",
+          "geometry": [
+            60.0,
+            110.0,
+            480.0,
+            320.0
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "TEXT IN FRONT",
+          "geometry": [
+            100.0,
+            220.0,
+            400.0,
+            60.0
+          ]
+        }
+      ]
+    },
+    {
+      "slide": 131,
+      "drawables": [
+        {
+          "kind": "text",
+          "text": "Edited alpha PNG",
+          "geometry": [
+            60.0,
+            30.0,
+            840.0,
+            60.0
+          ]
+        },
+        {
+          "kind": "image",
+          "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+          "description": "Transparent, half-alpha, opaque purple",
+          "geometry": [
+            60.0,
+            120.0,
+            480.0,
+            320.0
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "0% / 50% / 100% alpha",
+          "geometry": [
+            60.0,
+            450.0,
+            840.0,
+            60.0
+          ]
+        }
+      ]
+    },
+    {
+      "slide": 146,
+      "drawables": [
+        {
+          "kind": "text",
+          "text": "Edited JPEG",
+          "geometry": [
+            60.0,
+            30.0,
+            840.0,
+            60.0
+          ]
+        },
+        {
+          "kind": "image",
+          "sha256": "1ca2456aa1ab1722c1dda972586b6df41efffa39c534788e04015f739da7404c",
+          "description": "Four-color JPEG, intentionally stretched frame",
+          "geometry": [
+            80.0,
+            120.0,
+            600.0,
+            240.0
+          ]
+        },
+        {
+          "kind": "text",
+          "text": "JPEG / stretched frame",
+          "geometry": [
+            60.0,
+            400.0,
+            840.0,
+            60.0
+          ]
+        }
+      ]
+    }
+  ],
+  "geometryTolerancePoints": 0.001,
+  "allOrderedTextGeometryImageBytesAndDescriptionsMatch": true,
+  "limits": "Selected records in the recorded three-slide profile. Auxiliary/opaque records and full native appearance are unassessed."
+}

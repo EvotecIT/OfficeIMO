@@ -3,7 +3,7 @@ using System.Threading;
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Builds the Numbers document, sheet/sidebar, table and editable empty header/footer graph.</summary>
-internal sealed class IWorkNumbersArchiveBuilder : IWorkNativeCreationGraph {
+internal sealed partial class IWorkNumbersArchiveBuilder : IWorkNativeCreationGraph {
     private const ulong DocumentId = 1, MetadataId = 2, SidebarId = 3, ThemeId = 4;
     private const ulong CalculationId = 6, NamesId = 7, TrackerId = 8, CustomFormatsId = 9, FunctionsId = 10;
     private const ulong SheetStyleId = 11, CharacterId = 12, ParagraphId = 13, FrameId = 15, PresetId = 16, ImageStyleId = 17;
@@ -18,8 +18,6 @@ internal sealed class IWorkNumbersArchiveBuilder : IWorkNativeCreationGraph {
             .Message(8, P().Message(1, P().String(4, "en_US")).String(3, "en")
                 .Reference(4, CalculationId).Reference(6, FunctionsId).Reference(12, CustomFormatsId))
             .String(11, "na-letter").Message(12, Size(612, 792));
-        Add(CalculationId, 4000, P().Message(2, P().Message(3, P()).UInt(5, 0))
-            .Reference(3, NamesId).UInt(4, 1).UInt(6, 0).Message(7, P()).Message(13, P()));
         Add(NamesId, 4003, P().Reference(1, TrackerId));
         var tracker = IWorkCreationIdentity.Create(_modelHash, "reference-tracker", _kind);
         Add(TrackerId, 4004, P().Message(1, P().UInt(1, tracker.Upper >> 32).UInt(2, (uint)tracker.Upper)
@@ -44,7 +42,8 @@ internal sealed class IWorkNumbersArchiveBuilder : IWorkNativeCreationGraph {
                 .UInt(21, 0).Reference(22, SheetStyleId).Bool(23, true).Bool(24, false);
             var sheetNode = P().Reference(3, sheetId);
             foreach (IWorkNativeTableData table in input.Tables) {
-                ulong tableId = AddTable(sheetId, table), tableNodeId = Allocate();
+                ulong tableId = AddTable(sheetId, table, out var identifier), tableNodeId = Allocate();
+                _calculationTables.Add((tableId, identifier.Lower, identifier.Upper, table.RowCount, table.ColumnCount));
                 sheet.Reference(2, tableId); sheetNode.Reference(2, tableNodeId);
                 Add(tableNodeId, 205, P().Reference(3, tableId));
             }
@@ -59,6 +58,7 @@ internal sealed class IWorkNumbersArchiveBuilder : IWorkNativeCreationGraph {
             Add(sheetId, 2, sheet); Add(sheetNodeId, 205, sheetNode);
             root.Reference(1, sheetId); sidebar.Reference(2, sheetNodeId);
         }
+        AddCalculationGraph();
         Add(DocumentId, 1, root); Add(SidebarId, 205, sidebar);
         var theme = P().String(3, "OfficeIMO").Reference(4, StylesheetId)
             .Message(100, P().Reference(4, FrameId).Reference(5, FrameId).Reference(6, FrameId)

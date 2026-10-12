@@ -5,7 +5,9 @@ internal static partial class IWorkFormulaReader {
         int? firstColumn, int? lastColumn, int? firstRow, int? lastRow,
         bool firstColumnAbsolute, bool lastColumnAbsolute, bool firstRowAbsolute, bool lastRowAbsolute,
         int maximumCharacters, IReadOnlyDictionary<Guid, IWorkFormulaTableBinding>? tableQualifiers,
-        IWorkFormulaTableBinding? owningTable, ref bool complete, ref bool boundedBodyRanges) {
+        IWorkFormulaTableBinding? owningTable, ref bool complete, ref bool boundedBodyRanges,
+        out IntegerReference? integerReference) {
+        integerReference = null;
         string address = ReferenceAddress(firstColumn, lastColumn, firstRow, lastRow,
             firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute);
         if (address == "#REF!") { complete = false; return address; }
@@ -17,8 +19,13 @@ internal static partial class IWorkFormulaReader {
                 || !tableQualifiers.TryGetValue(identifier.Value, out target))
                 return PreserveUnresolvedTableReference(node, address, ref complete);
         } else {
-            if (!wholeColumns && !wholeRows || owningTable == null) return address;
             target = owningTable;
+            if (!wholeColumns && !wholeRows) {
+                integerReference = new IntegerReference(target?.Table, firstColumn!.Value, lastColumn!.Value,
+                    firstRow!.Value, lastRow!.Value, singleCellSyntax: node.GetUnsigned(1) == 36);
+                return address;
+            }
+            if (target == null) return address;
         }
         if (wholeColumns || wholeRows) {
             IWorkTable table = target.Table;
@@ -41,6 +48,11 @@ internal static partial class IWorkFormulaReader {
                 boundedBodyRanges = true;
             }
         }
+        // Whole-axis operands retain their existing rendering contract, but are not
+        // part of the bounded integer-reference qualification.
+        if (!wholeColumns && !wholeRows)
+            integerReference = new IntegerReference(target.Table, firstColumn!.Value, lastColumn!.Value,
+                firstRow!.Value, lastRow!.Value, singleCellSyntax: node.GetUnsigned(1) == 36);
         return Bound(target.Qualifier + address, maximumCharacters, ref complete);
     }
 

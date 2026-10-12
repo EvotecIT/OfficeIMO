@@ -1,0 +1,196 @@
+{
+  "title": "Native Pages default left header/footer creation",
+  "recordedUtc": "2026-10-11T01:48:22.356883+00:00",
+  "license": "Newly authored OfficeIMO documents and evidence use the repository MIT license. No seed package or standalone font files are distributed.",
+  "producer": {
+    "application": "Pages Creator Studio",
+    "version": "15.4",
+    "build": "7051.0.79",
+    "operatingSystem": "27.0.1",
+    "architecture": "arm64"
+  },
+  "creation": {
+    "example": "IWorkPagesHeaderFooterWritingTests.Example()",
+    "pagePoints": [
+      612,
+      792
+    ],
+    "bodyMarginsPoints": [
+      72,
+      72,
+      72,
+      72
+    ],
+    "bodyParagraphs": 73,
+    "header": {
+      "text": "OfficeIMO — Pages header",
+      "font": "Arial",
+      "fontSizePoints": 14,
+      "color": "003366",
+      "bold": true,
+      "distancePoints": 30
+    },
+    "footer": {
+      "text": "Zażółć café — footer",
+      "font": "Arial",
+      "fontSizePoints": 12,
+      "color": "555555",
+      "italic": true,
+      "distancePoints": 36
+    },
+    "profile": "One left paragraph per area, repeated on every page in one section; remaining native positions empty; no page fields or alternate-page behavior."
+  },
+  "files": [
+    {
+      "path": "native-exports/pages-created-headers-v15.4.pages",
+      "sha256": "9a8a0dc6ace759e222054a2b7365a53dda88cc561c8706322645e5b92c2b66f2",
+      "bytes": 41485,
+      "role": "Frozen deterministic OfficeIMO creation"
+    },
+    {
+      "path": "native-exports/pages-created-headers-edited-v15.4.pages",
+      "sha256": "646b208c135743b886353bc8a63264ebe4b1f4981300d9c88fb7cdf018c8c16f",
+      "bytes": 216099,
+      "role": "Pages 15.4 header/footer edit, save, close and reopen"
+    },
+    {
+      "path": "native-exports/pages-created-headers-edited-v15.4.docx",
+      "sha256": "f8aea4861c6e7e9abae5e23fc55edee0254d39ea392a92ad09968948cedffd44",
+      "bytes": 10125,
+      "role": "Apple Word export; text/distances oracle with typography limitation"
+    },
+    {
+      "path": "native-exports/pages-created-headers-edited-v15.4.pdf",
+      "sha256": "4b3e32c746a6246f6cd07ba2406281cd5f8bc7da757294824c3b6846580f0c56",
+      "bytes": 51755,
+      "role": "Apple two-page PDF export"
+    },
+    {
+      "path": "native-exports/pages-created-headers-officeimo-v15.4.docx",
+      "sha256": "8a468b11d54b932c3a82a3047e6f51cdc367f2989a6107a810d95e7aa4efc3b7",
+      "bytes": 20022,
+      "role": "Strict saved/reopened OfficeIMO DOCX"
+    },
+    {
+      "path": "native-exports/pages-created-headers-officeimo-v15.4.pdf",
+      "sha256": "7fe1a9f9b4a61d47e25fd147375528165e637d9e1cae6641e5d1c29ef216e947",
+      "bytes": 17545,
+      "role": "Complete managed PDF route; two pages and four selected source units"
+    },
+    {
+      "path": "native-exports/pages-created-headers-edited-officeimo-v15.4.docx",
+      "sha256": "7eab4952c4b8c5efd99058916e0f07e74a0f0ffe4289a9aac6fc14e961ddc5bc",
+      "bytes": 20137,
+      "role": "Strict saved/reopened OfficeIMO DOCX"
+    },
+    {
+      "path": "native-exports/pages-created-headers-edited-officeimo-v15.4.pdf",
+      "sha256": "f6e5380ce7a9c61398d80c49d0dc0eb05af00cc6343fe161a97a16665eeac473",
+      "bytes": 17548,
+      "role": "Complete managed PDF route; two pages and four selected source units"
+    },
+    {
+      "path": "native-exports/pages-created-headers-native-pdfkit-1-v15.4.png",
+      "sha256": "aa369b9c2bbe0be03f25edbcdd089368fa39a29474d77b4b2fc3357b738d3741",
+      "bytes": 256408,
+      "role": "Inspected native page 1; PDFKit thumbnail"
+    },
+    {
+      "path": "native-exports/pages-created-headers-native-pdfkit-2-v15.4.png",
+      "sha256": "3a49dc6408dfca944b7a835bf488bc62207f0310ed592a5973714a6fefba4796",
+      "bytes": 175366,
+      "role": "Inspected native page 2; PDFKit thumbnail"
+    },
+    {
+      "path": "native-exports/pages-created-headers-composed-preview-1-v15.4.png",
+      "sha256": "8acc5a3c37356eccfe13a246f7cd1b480619d04888aaf4d0ffdaf16f8028092b",
+      "bytes": 170083,
+      "role": "Inspected composed page 1; Preview UI"
+    },
+    {
+      "path": "native-exports/pages-created-headers-composed-preview-2-v15.4.png",
+      "sha256": "0996ac0d695fdf97c5b8a2fa829a9cc67e64aabe96d8e653ead3d43c25a8f273",
+      "bytes": 124123,
+      "role": "Inspected composed page 2; Preview UI"
+    },
+    {
+      "path": "native-exports/pages-created-headers-native-reopen-v15.4.png",
+      "sha256": "0090cca7f1fe741518e0b51cf581e72e4da864310b008061ebf842b9f30695f6",
+      "bytes": 221389,
+      "role": "Pages native reopen after editing both areas"
+    },
+    {
+      "path": "native-exports/pages-created-headers-graph-v15.4.json",
+      "sha256": "8d1318667983b6ee68720bba127faf69d24142bca028ec4e8c5c851b202e84f4",
+      "bytes": 57161,
+      "role": "Independent schema or PDF extraction evidence"
+    },
+    {
+      "path": "native-exports/pages-created-headers-edited-decode-v15.4.json",
+      "sha256": "4b7530eb59e2aa7f8c0c33d4bd4b0715288973671ea9fa5c35f0db5b6b8e2437",
+      "bytes": 1512,
+      "role": "Independent schema or PDF extraction evidence"
+    },
+    {
+      "path": "native-exports/pages-created-headers-composed-decode-v15.4.json",
+      "sha256": "4c9ed6a58ee0115b7e454a265943ce4c6783d9c3e6b26fe2af630e6db8b16c47",
+      "bytes": 630,
+      "role": "Independent schema or PDF extraction evidence"
+    }
+  ],
+  "independentDecode": {
+    "schemaSource": "https://github.com/orcastor/iwork-converter",
+    "schemaCommit": "be4828260466c9c022ec12f9dc9dbfeb15ab1dea",
+    "schemaLicense": "MIT, Steve Dunham",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+    "numbersParserVersion": "4.19.0",
+    "records": 171,
+    "requiredFieldsComplete": true,
+    "referencesComplete": true,
+    "utf16CharacterRangesComplete": true,
+    "explicitDecorationResets": true,
+    "nativeEditedPrimaryRecords": 231,
+    "nativeEditedPhysicalRecords": 231,
+    "allSixHeaderFooterPositionsComplete": true,
+    "enabledSettingsAndDefaultTemplateVerified": true,
+    "nativeTextStylesAndDistancesVerified": true,
+    "nativeWordTextAndDistancesVerified": true
+  },
+  "nativeAcceptance": {
+    "openedWithoutRepair": true,
+    "headerEdit": "OfficeIMO — Native header",
+    "footerEdit": "Zażółć café — native footer",
+    "savedClosedReopened": true,
+    "exportedPdfPages": 2,
+    "allNativePdfPagesInspected": true,
+    "pagesAndPreviewClosedAfterValidation": true,
+    "wordExportBoundary": "Pages maps Arial to Arial Unicode MS and clears explicit bold/italic declarations in DOCX. Native saved source, native PDF and strict OfficeIMO DOCX retain those styles."
+  },
+  "composedPdf": {
+    "routes": [
+      "pages-pdf"
+    ],
+    "sourceCases": [
+      "pages-created-headers-v15.4.pages",
+      "pages-created-headers-edited-v15.4.pages"
+    ],
+    "pagesPerCase": 2,
+    "selectedSourceUnitsPerCase": 4,
+    "all72BodyLinesOrderedAndUnique": true,
+    "headerFooterEachPage": true,
+    "allEditedPagesInspectedInPreview": true,
+    "fontInputs": "Repository Carlito Regular/Bold/Italic/BoldItalic, Noto Emoji and Noto JP Common; portable deterministic PDF resource policy. ASCII Arial uses Helvetica standard fonts; Unicode footer fallback embeds Carlito Italic.",
+    "paginationBoundary": "Native page 2 begins at body line45; composed page2 begins at46. Font metrics and pagination equivalence are not qualified.",
+    "rendererBoundary": "Headless PDFKit thumbnail, direct Quartz and Poppler Cairo/Splash runs disagree about some repeated header/footer areas or font appearance. Native Pages and Preview UI show both areas. Retained captures identify their renderer; headless raster equivalence is unqualified."
+  },
+  "fontProvenance": "Installed Apple/Microsoft Arial fonts for native acceptance. Native PDF embeds Arial-BoldMT and Arial-ItalicMT. No standalone fonts are distributed with this fixture.",
+  "reproduction": "Generate the example, run verify-pages-creation.py --page-text using the pinned descriptor, open a copy in Pages15.4, edit both areas as recorded, save/close/reopen, export PDF and Word. Run verify-pages-header-footer.py against the edited package/native Word export; run the complete pages-pdf routes with the recorded portable font profile and inspect every page.",
+  "boundaries": [
+    "One uniform-style left paragraph per area only; center/right positions, mixed runs, alternate first/even pages, fields and additional sections remain unimplemented.",
+    "Creation setters require at least one character and reject zero-length text before mutation; ClearHeader and ClearFooter disable their area. Styled blank runs are outside this profile.",
+    "Loaded-source header/footer editing is not provided by the creation model.",
+    "Other native versions, fonts, scripts, wrapping and pagination contexts require separate qualification.",
+    "Native Word typography and headless rasterizer equivalence are unqualified.",
+    "Managed PDF appearance is separate from NativeAOT conversion and native creation proof."
+  ]
+}

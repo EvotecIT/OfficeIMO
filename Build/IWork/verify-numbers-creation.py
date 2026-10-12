@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import plistlib
+import uuid
 from importlib.metadata import version
 from pathlib import Path
 from zipfile import ZipFile
@@ -17,7 +18,8 @@ from iwork_table_creation_evidence import verify_tables
 SCHEMAS = {1: 'TN.DocumentArchive', 2: 'TN.SheetArchive', 12009: 'TN.ThemeArchive',
     11006: 'TSP.PackageMetadata', 401: 'TSS.StylesheetArchive', 205: 'TSK.TreeNode',
     4000: 'TSCE.CalculationEngineArchive', 4003: 'TSCE.NamedReferenceManagerArchive',
-    4004: 'TSCE.TrackedReferenceStoreArchive', 222: 'TSK.CustomFormatListArchive',
+    4004: 'TSCE.TrackedReferenceStoreArchive', 4008: 'TSCE.FormulaOwnerDependenciesArchive',
+    222: 'TSK.CustomFormatListArchive',
     601: 'TSA.FunctionBrowserStateArchive', 12050: 'TN.SheetStyleArchive',
     2021: 'TSWP.CharacterStyleArchive', 2022: 'TSWP.ParagraphStyleArchive',
     2023: 'TSWP.ListStyleArchive', 2025: 'TSWP.ShapeStyleArchive', 2050: 'TSWP.TextStylePresetArchive',
@@ -27,7 +29,7 @@ SCHEMAS = {1: 'TN.DocumentArchive', 2: 'TN.SheetArchive', 12009: 'TN.ThemeArchiv
     6006: 'TST.HeaderStorageBucket', 6008: 'TST.TableStylePresetArchive', 6247: 'TST.TableStyleNetworkArchive'}
 
 
-def verify(path, descriptor):
+def verify(path, descriptor, require_calculation_owners=False):
     pool = descriptor_pool.DescriptorPool()
     descriptor_bytes = descriptor.read_bytes()
     for file in descriptor_pb2.FileDescriptorSet.FromString(descriptor_bytes).file:
@@ -63,6 +65,36 @@ def verify(path, descriptor):
         sidebar=decoded[root.sidebar_order.identifier]
         assert len(sidebar.children)==len(root.sheets)
         tables=verify_tables(graph,decoded)
+        calculation=decoded[getattr(root,'super').calculation_engine.identifier]
+        tracker=calculation.dependency_tracker
+        table_infos={identifier:message for identifier,message in decoded.items() if graph[identifier][0]==6000}
+        assert tracker.number_of_formulas==0
+        if require_calculation_owners or tracker.formula_owner_dependencies:
+            assert len(tracker.formula_owner_dependencies)==len(table_infos)
+        owner_map={entry.internal_owner_id:entry.owner_id for entry in tracker.owner_id_map.map_entry}
+        assert len(owner_map)==len(tracker.formula_owner_dependencies)
+        calculation_owners=[]
+        seen_tables=set()
+        for ref in tracker.formula_owner_dependencies:
+            owner=decoded[ref.identifier]
+            info_id=owner.formula_owner.identifier
+            assert info_id in table_infos and info_id not in seen_tables
+            seen_tables.add(info_id)
+            info=table_infos[info_id]; model=decoded[info.tableModel.identifier]
+            assert info.formula_coord_space==0 and owner.owner_kind==1
+            identity=uuid.UUID(model.table_id).bytes
+            assert owner.formula_owner_uid.lower==int.from_bytes(identity[:8],'little')
+            assert owner.formula_owner_uid.upper==int.from_bytes(identity[8:],'little')
+            mapped=owner_map[owner.internal_formula_owner_id]
+            assert [mapped.uuid_w0,mapped.uuid_w1,mapped.uuid_w2,mapped.uuid_w3]==[
+                int.from_bytes(identity[offset:offset+4],'little') for offset in range(0,16,4)]
+            for spanning in (owner.spanning_column_dependencies,owner.spanning_row_dependencies):
+                for area in (spanning.total_range_for_table,spanning.body_range_for_table):
+                    assert (area.top_left_column,area.top_left_row,area.bottom_right_column,area.bottom_right_row)==(
+                        0,0,model.number_of_columns-1,model.number_of_rows-1)
+            calculation_owners.append({'tableInfo':info_id,'tableModel':info.tableModel.identifier,
+                'uuid':model.table_id,'ownerIndex':owner.internal_formula_owner_id,
+                'rows':model.number_of_rows,'columns':model.number_of_columns,'coordinateSpace':info.formula_coord_space})
         sheets=[]
         for index, ref in enumerate(root.sheets):
             sheet=decoded[ref.identifier]
@@ -84,11 +116,14 @@ def verify(path, descriptor):
     return {'source':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'bytes':path.stat().st_size,
         'descriptor_sha256':hashlib.sha256(descriptor_bytes).hexdigest(),'numbers_parser_version':version('numbers-parser'),
         'required_fields_complete':True,'references_complete':True,'deterministic_zip_profile':True,
-        'records':len(objects),'objects':objects,'sheets':sheets,'native_tables':tables}
+        'records':len(objects),'objects':objects,'sheets':sheets,'native_tables':tables,
+        'table_calculation_owners':calculation_owners,
+        'table_calculation_owners_complete':len(calculation_owners)==len(table_infos)}
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('package',type=Path);parser.add_argument('--descriptor',required=True,type=Path);parser.add_argument('--out',required=True,type=Path)
+    parser.add_argument('--require-calculation-owners',action='store_true',help='Require the current formula-entry-ready table graph; historical scalar-only references can omit it.')
     args=parser.parse_args();assert version('numbers-parser')=='4.19.0'
-    result=verify(args.package,args.descriptor);args.out.write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
+    result=verify(args.package,args.descriptor,args.require_calculation_owners);args.out.write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
     print({k:v for k,v in result.items() if k not in ('objects','sheets','native_tables')})

@@ -17,8 +17,9 @@ records 18 semantically validated reading, conversion/save and native encoding/s
 samples on macOS, with separate memory observations and explicit host limits.
 
 The [phase cancellation run](../Docs/benchmarks/officeimo.iwork-phase-cancellation-2026-10-11.md)
-records twelve successful projection/native-encoding cancellations, each followed
-by complete 1,000-slide recovery. Timer scheduling and host contention remain
+records twelve successful owned projection/native-encoding cancellations with
+complete 1,000-slide recovery, plus six Apple-produced source projection
+cancellations with complete 512-slide recovery. Timer scheduling and host contention remain
 explicit limits; these observations do not establish portable latency budgets.
 
 The [2026-10-04 portable run](../Docs/benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md)
@@ -74,11 +75,22 @@ measurement. The timer callback is joined before its resources are released.
 These timer-dependent cases are opt-in and stay outside the ordinary correctness
 command below. To validate them once without collecting a benchmark, run
 `dotnet run --project OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0 -- --validate-phase-cancellation`.
+
+`NativeLarge` also supports `CancelDuringProjection` against the preloaded
+Apple-produced 512-slide source. Recovery checks every ordered native identity,
+text drawable, note, frame and background using the same pinned profile as normal
+reading. Native encoding cancellation requires `NativeCreated`.
+
+```powershell
+./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 -Scale NativeLarge -Kind Keynote -Operation CancelDuringProjection -OutputRoot $env:EVOTEC_SCRATCH_ROOT/iwork-native-phase-cancellation
+dotnet run --project OfficeIMO.IWork.Benchmarks/OfficeIMO.IWork.Benchmarks.csproj -c Release -f net8.0 -- --validate-native-phase-cancellation OfficeIMO.TestAssets/Documents/IWorkCorpus
+```
+
 A run fails if it finishes before cancellation, reaches stream
 copying, or lacks the required active-work observations. CPU includes observer
 and host activity; scheduling does not identify an internal parser or encoder
 checkpoint. The cases do not qualify destination construction, atomic path
-staging, large independent Apple documents, or portable stop-latency budgets.
+staging, varied large independent Apple documents, or portable stop-latency budgets.
 
 Use a fresh PowerShell 7 process. The runner requires PowerForge operation allocation
 measurement and its operation-memory sampling policy API. It fails when allocation

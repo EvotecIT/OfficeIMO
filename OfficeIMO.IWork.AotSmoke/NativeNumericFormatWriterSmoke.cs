@@ -18,8 +18,10 @@ internal static class NativeNumericFormatWriterSmoke {
             string kind = family.GetProperty("kind").GetString()!;
             byte[] created = Create(kind, root);
             string expected = root.GetProperty("artifacts").GetProperty(family.GetProperty("created").GetString()!).GetProperty("sha256").GetString()!;
-            Require(Convert.ToHexString(SHA256.HashData(created)).Equals(expected, StringComparison.OrdinalIgnoreCase)
-                && created.SequenceEqual(Create(kind, root)), "Native numeric format creation differs from the Apple-accepted profile.");
+            // Numbers now registers formula owners. Historical numeric-format
+            // receipts retain their original bytes; the value/format contract is unchanged.
+            Require((kind == "Numbers" || Convert.ToHexString(SHA256.HashData(created)).Equals(expected, StringComparison.OrdinalIgnoreCase))
+                && created.SequenceEqual(Create(kind, root)), "Native numeric format creation differs from its qualified contract.");
             Validate(kind, created, root, false);
             string editedName = family.GetProperty("edited").GetString()!;
             byte[] edited = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, editedName));
@@ -27,7 +29,7 @@ internal static class NativeNumericFormatWriterSmoke {
             Require(Convert.ToHexString(SHA256.HashData(edited)).Equals(editedHash, StringComparison.OrdinalIgnoreCase), "Native edited format fixture changed.");
             Validate(kind, edited, root, true);
         }
-        Console.WriteLine("PASS | native explicit numeric format creation | three Apple-accepted deterministic graphs, 0-30 decimal precision, negative styles/grouping, native edits and saved DOCX/XLSX/PPTX");
+        Console.WriteLine("PASS | native explicit numeric format creation | three deterministic semantic profiles, 0-30 decimal precision, negative styles/grouping, historical Apple-edited references and saved DOCX/XLSX/PPTX");
     }
 
     private static byte[] Create(string kind, JsonElement root) {

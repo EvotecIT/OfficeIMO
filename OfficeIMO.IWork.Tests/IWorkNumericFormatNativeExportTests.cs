@@ -23,7 +23,6 @@ public sealed class IWorkNumericFormatNativeExportTests {
     }
 
     [Theory]
-    [InlineData(IWorkDocumentKind.Numbers)]
     [InlineData(IWorkDocumentKind.Pages)]
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Created_bytes_match_the_independently_decoded_Apple_accepted_profile(IWorkDocumentKind kind) {
@@ -40,7 +39,9 @@ public sealed class IWorkNumericFormatNativeExportTests {
     [InlineData(IWorkDocumentKind.Keynote, true)]
     public void Created_and_Apple_edited_values_and_formats_survive_source_read_and_saved_destinations(IWorkDocumentKind kind, bool edited) {
         using var manifest = Manifest(); var root = manifest.RootElement; var family = Family(root, kind);
-        var source = IWorkSourceDocument.Open(Corpus(family.GetProperty(edited ? "edited" : "created").GetString()!));
+        var source = edited
+            ? IWorkSourceDocument.Open(Corpus(family.GetProperty("edited").GetString()!))
+            : IWorkSourceDocument.Open(CreateExample(kind, root));
         IWorkTable table = ReadTable(source, kind);
         Assert.Equal(20, table.RowCount); Assert.Equal(2, table.ColumnCount);
         foreach (JsonElement row in root.GetProperty("expectedRows").EnumerateArray()) {

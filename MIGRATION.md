@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Formula entry in generated Numbers files
+
+Regenerate Numbers files created by the earlier scalar-table codec when native formula editing is required. The current creator registers every table with the native calculation engine; earlier generated files can leave newly entered formulas blank. Preservation-aware source saving retains the original graph and does not repair those registrations. Reading and converting existing scalar values remain supported.
+
 ## Numbers table-cell padding
 
 Numbers conversion reads padding from applicable body, header and footer cell styles, including empty cells. XLSX has no equivalent four-sided cell padding setting, so these tables produce `IWORK_NUMBERS_CELL_PADDING_OMITTED`. A conversion previously reported as complete can now require explicit partial acceptance.

@@ -26,9 +26,10 @@ internal sealed partial class IWorkPagesArchiveBuilder : IWorkNativeCreationGrap
             .Float(30, (float)document.PageSize.WidthPoints).Float(31, (float)document.PageSize.HeightPoints)
             .Float(32, document.LeftMarginPoints).Float(33, document.RightMarginPoints)
             .Float(34, document.TopMarginPoints).Float(35, document.BottomMarginPoints)
-            .Float(36, 0).Float(37, 0).Float(38, 1).Bool(39, false).Bool(40, false)
+            .Float(36, document.HeaderDistancePoints).Float(37, document.FooterDistancePoints)
+            .Float(38, 1).Bool(39, false).Bool(40, false)
             .UInt(42, document.PageSize.WidthPoints > document.PageSize.HeightPoints ? 1u : 0u));
-        Add(SettingsId, 10012, P().Bool(1, true).Bool(2, false).Bool(3, false).Bool(8, true).Bool(9, false)
+        Add(SettingsId, 10012, P().Bool(1, true).Bool(2, document.Header != null).Bool(3, document.Footer != null).Bool(8, true).Bool(9, false)
             .Bool(10, true).String(20, ".").String(21, "en").String(23, "en_US"));
         Add(SectionId, 10011, P().Bool(17, true).Bool(18, false).Bool(19, false).UInt(20, 0).UInt(21, 0).UInt(22, 1)
             .Reference(23, TemplateId).Reference(24, TemplateId).Reference(25, TemplateId).String(26, "OfficeIMO").Bool(28, false));
@@ -37,10 +38,8 @@ internal sealed partial class IWorkPagesArchiveBuilder : IWorkNativeCreationGrap
         var template = P();
         for (uint index = 0; index < 6; index++) {
             ulong storageId = 16 + index;
-            Add(storageId, 2001, P().UInt(1, 1).Reference(2, StylesheetId).String(3, "\n").Bool(10, true)
-                .Message(5, Attribute(HeaderParagraphId)).Message(7, Attribute(ListId)).Message(8, Attribute(HeaderCharacterId))
-                .Message(12, Attribute(ColumnId)).Message(28, P().Message(1, P().UInt(1, 0)))
-                .Message(6, EmptyParagraphData()).Message(14, EmptyParagraphData()).Message(24, EmptyParagraphData()));
+            IWorkTextRunData? pageRun = index == 0 ? document.Header : index == 3 ? document.Footer : null;
+            AddPageTextStorage(storageId, pageRun, document.Header != null || document.Footer != null);
             template.Reference(index < 3 ? 1 : 2, storageId);
         }
         Add(TemplateId, 10143, template);

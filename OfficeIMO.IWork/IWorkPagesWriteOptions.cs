@@ -2,11 +2,11 @@ namespace OfficeIMO.IWork;
 
 /// <summary>Operation-level limits for template-free native Pages creation.</summary>
 public sealed class IWorkPagesWriteOptions {
-    /// <summary>Gets or sets the maximum number of body paragraphs, including image and table attachment paragraphs.</summary>
+    /// <summary>Gets or sets the maximum number of authored paragraphs, including headers/footers and image/table attachments.</summary>
     public int MaximumParagraphs { get; set; } = 65_536;
-    /// <summary>Gets or sets the maximum combined body character runs, including attachment markers.</summary>
+    /// <summary>Gets or sets the maximum combined body and header/footer character runs, including attachment markers.</summary>
     public int MaximumTextRuns { get; set; } = 65_536;
-    /// <summary>Gets or sets the maximum UTF-16 text length across body text, image descriptions, table names and cells, including attachment markers and paragraph terminators.</summary>
+    /// <summary>Gets or sets the maximum UTF-16 text length across body and header/footer text, image descriptions, table names and cells, including attachment markers and body paragraph terminators.</summary>
     public int MaximumTextCharacters { get; set; } = 8_000_000;
     /// <summary>Gets or sets the maximum combined custom tab stops across body paragraphs.</summary>
     public int MaximumTabStops { get; set; } = 65_536;

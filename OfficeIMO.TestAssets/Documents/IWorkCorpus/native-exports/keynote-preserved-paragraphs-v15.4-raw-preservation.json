@@ -1,0 +1,62 @@
+{
+  "source": "keynote-created-images-edited-v15.4.key",
+  "output": "keynote-preserved-paragraphs-frozen-v15.4.key",
+  "sourceSha256": "c0bc70026c2c977fde0879f37849c14cd819dc055a3cd7f95e97cac789828a17",
+  "outputSha256": "b4b6a57fbcd4fc724fa34aeb78a8ea7702cc350439069278492e3332d26ad254",
+  "fileEntries": 24,
+  "recordsIncludingAuxiliary": 205,
+  "textBoxes": [
+    {
+      "textBox": 118,
+      "storage": 119,
+      "slide": 112
+    },
+    {
+      "textBox": 137,
+      "storage": 138,
+      "slide": 131
+    },
+    {
+      "textBox": 152,
+      "storage": 153,
+      "slide": 146
+    }
+  ],
+  "paragraphs": [
+    {
+      "paragraph": 1,
+      "payloadByteOffset": 6,
+      "bytes": 32,
+      "before": "Native PNG — image behind text",
+      "after": "Edited PNG — image behind text",
+      "storageRecordId": 119
+    },
+    {
+      "paragraph": 1,
+      "payloadByteOffset": 6,
+      "bytes": 16,
+      "before": "Native alpha PNG",
+      "after": "Edited alpha PNG",
+      "storageRecordId": 138
+    },
+    {
+      "paragraph": 1,
+      "payloadByteOffset": 6,
+      "bytes": 11,
+      "before": "Native JPEG",
+      "after": "Edited JPEG",
+      "storageRecordId": 153
+    }
+  ],
+  "changedEntries": [
+    "Index/Slide-131-2.iwa",
+    "Index/Slide-146-2.iwa",
+    "Index/Slide.iwa"
+  ],
+  "onlyDeclaredUtf8RangesDiffer": true,
+  "rawHeadersSiblingsAndOtherBytesIdentical": true,
+  "nativeStoragePropertiesIdenticalExceptText": true,
+  "numbersParser": "4.19.0",
+  "protobuf": "7.36.2",
+  "descriptorSha256": "2c46d6ee3eaf4d8419d0cc8329b74776f69517c1e14de0571e0434e29c4fc216"
+}

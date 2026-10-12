@@ -194,7 +194,8 @@ internal static partial class IWorkTextReader {
         return result;
     }
 
-    private static IEnumerable<TextSpan> ParagraphSpans(string text) {
+    // Native text edits reuse the same source offsets and delimiter rules as projection.
+    internal static IEnumerable<TextSpan> ParagraphSpans(string text) {
         if (text.Length == 0) yield break;
         int start = 0;
         for (int index = 0; index < text.Length; index++) {
@@ -364,7 +365,7 @@ internal static partial class IWorkTextReader {
             KeepLinesTogether, Text.ToPublic(), LineSpacingMultiplier, TabStops, DecimalTabSymbol, DecimalTabSymbolDeclared);
     }
 
-    private sealed class TextSpan {
+    internal sealed class TextSpan {
         internal TextSpan(int start, int end, IWorkParagraphBreakKind breakKind) {
             Start = start;
             End = end;

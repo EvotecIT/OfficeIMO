@@ -80,6 +80,7 @@ Console.WriteLine("PASS | bounded iWork NativeAOT destination conversions | "
     + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
 NativeKeynoteWriterSmoke.Run();
 NativePagesWriterSmoke.Run();
+NativePagesHeaderFooterWriterSmoke.Run();
 NativePagesParagraphWriterSmoke.Run();
 NativePagesTableWriterSmoke.Run();
 NativePagesImageWriterSmoke.Run();
@@ -89,12 +90,17 @@ NativePagesListCounterSmoke.Run();
 NativePagesBorderSmoke.Run();
 NativeNumbersFixedDurationSmoke.Run();
 NativeNumbersIntegerFunctionSmoke.Run();
+NativeNumbersIntegerReferenceSmoke.Run();
+NativeNumbersCrossTableIntegerSmoke.Run();
+NativeNumbersIntegerTextSmoke.Run();
 NativeNumbersBorderSmoke.Run();
 NativeNumbersWriterSmoke.Run();
 NativeNumericFormatWriterSmoke.Run();
 NativePreservationSmoke.Run();
 NativeImageResizeSmoke.Run();
 NativeNumbersCellEditingSmoke.Run();
+NativePagesParagraphEditingSmoke.Run();
+NativeKeynoteParagraphEditingSmoke.Run();
 
 static void Require(bool condition, string message) {
     if (!condition) throw new InvalidOperationException(message);

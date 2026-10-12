@@ -4,9 +4,9 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>Creates template-free native Pages body documents with page settings, rich paragraphs, images and scalar tables.</summary>
+/// <summary>Creates template-free native Pages documents with page settings, headers/footers, rich body paragraphs, images and scalar tables.</summary>
 /// <remarks>Instances are not thread safe. This model does not modify loaded packages or measure pagination.</remarks>
-public sealed class IWorkPagesDocument {
+public sealed partial class IWorkPagesDocument {
     private readonly List<IWorkPagesParagraphData> _paragraphs = new();
     private readonly List<IWorkPagesTable> _tables = new();
     private readonly List<IWorkPagesImage> _images = new();

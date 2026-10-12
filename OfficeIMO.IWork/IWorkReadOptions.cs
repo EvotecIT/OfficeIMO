@@ -96,12 +96,14 @@ public sealed class IWorkReadOptions {
     public int MaximumTableMergedRanges { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of syntax nodes decoded from one iWork formula.</summary>
+    /// <remarks>Also bounds the cumulative referenced cell positions inspected while qualifying GCD/LCM operands in that formula. Repeated references count again; larger references retain their caches with incomplete expressions.</remarks>
     public int MaximumFormulaNodes { get; set; } = 4096;
 
     /// <summary>Gets or sets the maximum reconstructed formula length in characters.</summary>
     public int MaximumFormulaCharacters { get; set; } = 8192;
 
     /// <summary>Gets or sets the maximum combined formula-rendering work across one semantic projection, counting repeated formula uses.</summary>
+    /// <remarks>Includes numeric cell inspections for bounded GCD/LCM reference qualification.</remarks>
     public long MaximumFormulaRenderingOperations { get; set; } = 64L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum number of projected text items across one semantic projection.</summary>

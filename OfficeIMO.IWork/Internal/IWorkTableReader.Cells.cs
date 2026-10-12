@@ -277,7 +277,7 @@ internal static partial class IWorkTableReader {
                                 cachedValueIsComplete: richText.IsTextComplete,
                                 richText: richText)
                             : new IWorkTableCell(row, column, IWorkCellKind.Text, text,
-                                richText: richText);
+                                richText: richText, cachedValueIsComplete: richText.IsTextComplete);
                     }
                     return hasFormula
                         ? Formula(row, column, formulaIdentifier, formulas, options,

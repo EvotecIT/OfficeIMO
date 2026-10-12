@@ -19,7 +19,11 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-created-edited-v15.4.key" Link="Corpus\unicode.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-slide-links-v15.4.key" Link="Corpus\slide-links.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-headers-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-headers-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-layout-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-preserved-paragraphs-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-preserved-paragraphs-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-tables-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-images-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-created-images-edited-v15.4.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -39,6 +43,8 @@
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-created-tables-pdf-export-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-preserved-resized-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-preserved-resized-edited-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-preserved-paragraphs-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\keynote-preserved-paragraphs-edited-v15.4.key" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-*.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\NotoSansJP-OfficeIMO-Common.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoEmoji-VariableFont_wght.ttf" Link="Fonts\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

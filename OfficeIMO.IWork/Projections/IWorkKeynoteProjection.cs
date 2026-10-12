@@ -445,7 +445,7 @@ internal static partial class IWorkKeynoteReader {
             storage.EntryPath, storage.Identifier));
     }
 
-    private static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable,
+    internal static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable,
         IWorkSourceReferenceIssueCollector references,
         out bool complete) {
         complete = true;

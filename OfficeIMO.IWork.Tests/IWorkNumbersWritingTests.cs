@@ -10,9 +10,9 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed class IWorkNumbersWritingTests {
     [Fact]
-    public void Creation_matches_the_independently_decoded_package_opened_and_edited_by_Numbers() {
+    public void Creation_preserves_the_qualified_scalar_table_values_styles_and_order() {
         byte[] bytes = Example().SaveBytes();
-        Assert.Equal(File.ReadAllBytes(Fixture("numbers-created-v14.5.numbers")), bytes);
+        Assert.Equal(File.ReadAllBytes(Fixture("numbers-created-scalar-calculation-v14.5.numbers")), bytes);
         Assert.Equal(bytes, Example().SaveBytes());
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(bytes).ReadNumbers();
         VerifyTables(projection, 12.5);

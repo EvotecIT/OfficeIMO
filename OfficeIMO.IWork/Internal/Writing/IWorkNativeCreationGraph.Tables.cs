@@ -5,7 +5,9 @@ namespace OfficeIMO.IWork.Internal;
 internal abstract partial class IWorkNativeCreationGraph {
     private readonly List<ulong> _tablePresets = new();
 
-    protected ulong AddTable(ulong parentId, IWorkNativeTableData table) {
+    protected ulong AddTable(ulong parentId, IWorkNativeTableData table) => AddTable(parentId, table, out _);
+
+    protected ulong AddTable(ulong parentId, IWorkNativeTableData table, out (ulong Lower, ulong Upper) identifier) {
         ulong infoId = Allocate(), modelId = Allocate(), tableStyleId = Allocate(), cellStyleId = Allocate();
         ulong characterId = Allocate(), paragraphId = Allocate(), frameStyleId = Allocate();
         ulong rowHeaderId = Allocate(), columnHeaderId = Allocate(), tileId = Allocate(), stringsId = Allocate();
@@ -15,7 +17,7 @@ internal abstract partial class IWorkNativeCreationGraph {
         var drawable = P().Message(1, P().Message(1, Point(table.Geometry.LeftPoints, table.Geometry.TopPoints))
             .Message(2, Size(table.Geometry.WidthPoints, table.Geometry.HeightPoints)).UInt(3, 3).Float(4, 0)).Reference(2, parentId);
         AddBodyAttachmentWrap(drawable);
-        Add(infoId, 6000, P().Message(1, drawable).Reference(2, modelId).UInt(10, _kind == IWorkDocumentKind.Pages ? 0u : 1u));
+        Add(infoId, 6000, P().Message(1, drawable).Reference(2, modelId).UInt(10, _kind == IWorkDocumentKind.Keynote ? 1u : 0u));
 
         var stringKeys = new Dictionary<string, uint>(StringComparer.Ordinal);
         var counts = new Dictionary<string, uint>(StringComparer.Ordinal);
@@ -46,7 +48,9 @@ internal abstract partial class IWorkNativeCreationGraph {
             Add(id, 6005, catalog.Item1 == 22 ? numberFormats.Catalog(P) : P().UInt(1, catalog.Item2).UInt(2, 1));
             store.Reference(catalog.Item1, id);
         }
-        var model = P().String(1, IWorkCreationIdentity.Create(_modelHash, "table-" + modelId.ToString(CultureInfo.InvariantCulture), _kind).Text)
+        var identity = IWorkCreationIdentity.Create(_modelHash, "table-" + modelId.ToString(CultureInfo.InvariantCulture), _kind);
+        identifier = (identity.Lower, identity.Upper);
+        var model = P().String(1, identity.Text)
             .Reference(3, tableStyleId).Message(4, store).UInt(6, (uint)table.RowCount).UInt(7, (uint)table.ColumnCount)
             .String(8, table.Name).UInt(9, 0).UInt(10, 0).UInt(11, 0).Bool(12, false).Bool(13, false)
             .Double(16, table.Geometry.HeightPoints / table.RowCount).Double(17, table.Geometry.WidthPoints / table.ColumnCount)

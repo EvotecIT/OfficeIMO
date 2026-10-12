@@ -8,7 +8,9 @@ internal static class IWorkPagesPackageWriter {
     internal static byte[] Write(IWorkPagesDocument document, IWorkPagesWriteOptions limits, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document.BodyBlocks.Count == 0) throw new InvalidOperationException("A native Pages document requires at least one body block.");
-        if (document.BodyBlocks.Count > limits.MaximumParagraphs) throw new InvalidDataException("The native Pages paragraph limit was exceeded.");
+        int pageTextParagraphs = (document.Header != null ? 1 : 0) + (document.Footer != null ? 1 : 0);
+        if ((long)document.BodyBlocks.Count + pageTextParagraphs > limits.MaximumParagraphs)
+            throw new InvalidDataException("The native Pages paragraph limit was exceeded.");
         IWorkPagesBodyBlock[] blocks = document.BodyBlocks.ToArray();
         long runs = 0, characters = 0, tabs = 0, tables = 0, cells = 0;
         long images = 0, encodedImageBytes = 0, decodedImageBytes = 0;
@@ -17,6 +19,18 @@ internal static class IWorkPagesPackageWriter {
             .Float(1, (float)document.PageSize.WidthPoints).Float(2, (float)document.PageSize.HeightPoints)
             .Float(3, document.LeftMarginPoints).Float(4, document.RightMarginPoints)
             .Float(5, document.TopMarginPoints).Float(6, document.BottomMarginPoints);
+        foreach (var pageText in new[] { (document.Header, document.HeaderDistancePoints, 10),
+                                        (document.Footer, document.FooterDistancePoints, 11) }) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (pageText.Item1 is not { } run) continue;
+            runs++; characters += run.Text.Length;
+            if (runs > limits.MaximumTextRuns) throw new InvalidDataException("The native Pages character-run limit was exceeded.");
+            if (characters > limits.MaximumTextCharacters) throw new InvalidDataException("The native Pages text-character limit was exceeded.");
+            model.Message(pageText.Item3, new IWorkProtoWriter(limits.MaximumPackageBytes, cancellationToken)
+                .String(1, run.Text).String(2, run.FontName).Float(3, run.FontSizePoints).String(4, run.Color.RgbHex)
+                .Bool(5, run.Bold).Bool(6, run.Italic).Bool(7, run.Underline).Bool(8, run.Strikethrough)
+                .Float(9, pageText.Item2));
+        }
         foreach (IWorkPagesBodyBlock block in blocks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (block is IWorkPagesImage image) {

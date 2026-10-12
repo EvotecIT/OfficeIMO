@@ -9,7 +9,11 @@ namespace OfficeIMO.Workflows.IWork.Tests;
 public sealed partial class IWorkWorkflowTests {
     [Theory]
     [InlineData("pages-created-edited-v15.4.pages", "pages-pdf", 2, "8")]
+    [InlineData("pages-created-headers-v15.4.pages", "pages-pdf", 2, "4")]
+    [InlineData("pages-created-headers-edited-v15.4.pages", "pages-pdf", 2, "4")]
     [InlineData("pages-created-layout-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-preserved-paragraphs-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-preserved-paragraphs-edited-v15.4.pages", "pages-pdf", 1, "8")]
     [InlineData("pages-created-tables-edited-v15.4.pages", "pages-pdf", 1, "10")]
     [InlineData("pages-created-images-v15.4.pages", "pages-pdf", 1, "12")]
     [InlineData("pages-created-images-edited-v15.4.pages", "pages-pdf", 1, "12")]
@@ -22,6 +26,8 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-preserved-resized-v15.4.key", "keynote-pdf", 3, "14")]
     [InlineData("keynote-preserved-resized-edited-v15.4.key", "keynote-pdf", 3, "14")]
+    [InlineData("keynote-preserved-paragraphs-v15.4.key", "keynote-pdf", 3, "14")]
+    [InlineData("keynote-preserved-paragraphs-edited-v15.4.key", "keynote-pdf", 3, "14")]
     public async Task Native_content_pdf_routes_retain_every_page_with_caller_fonts(
         string fixture, string route, int expectedPages, string expectedSourceUnits) {
         using var files = new Files(Path.GetExtension(fixture)[1..], "pdf");
@@ -57,7 +63,11 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Equal(expectedPages, pages.Count);
         switch (route) {
             case "pages-pdf":
-                if (fixture == "pages-created-layout-edited-v15.4.pages") AssertNativePagesLayoutText(pages);
+                if (fixture.StartsWith("pages-created-headers", StringComparison.Ordinal))
+                    AssertNativePagesPageText(pdf, fixture.Contains("-edited-"));
+                else if (fixture == "pages-created-layout-edited-v15.4.pages") AssertNativePagesLayoutText(pages);
+                else if (fixture.StartsWith("pages-preserved-paragraphs", StringComparison.Ordinal))
+                    AssertNativePagesLayoutText(pages, true, fixture.Contains("-edited", StringComparison.Ordinal));
                 else if (fixture == "pages-created-tables-edited-v15.4.pages") AssertNativePagesTableText(pages);
                 else if (fixture.StartsWith("pages-created-images", StringComparison.Ordinal)) {
                     string text = Assert.Single(pages); int previous = -1;
@@ -77,24 +87,35 @@ public sealed partial class IWorkWorkflowTests {
                 else if (fixture.StartsWith("pages-created-rich-numbering", StringComparison.Ordinal))
                     AssertCreatedPagesRichList(pdf, fixture.Contains("edited", StringComparison.Ordinal));
                 else AssertNativePagesText(pages);
+                if (fixture == "pages-created-layout-edited-v15.4.pages"
+                    || fixture.StartsWith("pages-preserved-paragraphs", StringComparison.Ordinal)) {
+                    var spans = Assert.Single(pdf.Pages).GetTextSpans();
+                    Assert.Contains(spans, span => span.Text == "Rich" && span.IsBold && span.FontSize == 14);
+                    Assert.Contains(spans, span => span.Text == "plain" && !span.IsBold && span.FontSize == 12);
+                }
                 break;
             case "keynote-pdf":
                 if (fixture.StartsWith("keynote-preserved-resized", StringComparison.Ordinal))
-                    AssertResizedKeynoteImages(pdf, fixture.Contains("edited", StringComparison.Ordinal));
+                    AssertKeynoteImages(pdf, fixture.Contains("edited", StringComparison.Ordinal));
+                else if (fixture.StartsWith("keynote-preserved-paragraphs", StringComparison.Ordinal))
+                    AssertKeynoteImages(pdf, fixture.Contains("-edited", StringComparison.Ordinal), paragraphEdits: true);
                 else AssertNativeKeynoteText(pages);
                 break;
         }
     }
 
-    private static void AssertResizedKeynoteImages(PdfReadDocument pdf, bool edited) {
-        string[] titles = ["Native PNG — image behind text", "Native alpha PNG", "Native JPEG"];
+    private static void AssertKeynoteImages(PdfReadDocument pdf, bool edited, bool paragraphEdits = false) {
+        string[] titles = paragraphEdits
+            ? ["Edited PNG — image behind text", "Edited alpha PNG", edited ? "Native checked JPEG" : "Edited JPEG"]
+            : ["Native PNG — image behind text", "Native alpha PNG", "Native JPEG"];
         for (int index = 0; index < 3; index++) {
             var page = pdf.Pages[index]; Assert.Contains(titles[index], page.ExtractText());
             var image = Assert.Single(page.GetImagePlacements());
-            Assert.Equal(index == 2 ? 100 : 80, image.X);
-            Assert.Equal(index == 1 ? 360 : index == 2 && edited ? 421 : 420, image.Width);
-            Assert.Equal(index == 1 ? 180 : 168, image.Height);
-            Assert.Equal(540 - (index == 0 ? 125 : 135) - image.Height, image.Y);
+            Assert.Equal(paragraphEdits ? (index == 2 ? 80 : 60) : (index == 2 ? 100 : 80), image.X);
+            Assert.Equal(paragraphEdits ? (index == 2 ? 600 : 480) : (index == 1 ? 360 : index == 2 && edited ? 421 : 420), image.Width);
+            Assert.Equal(paragraphEdits ? (index == 2 ? 240 : 320) : (index == 1 ? 180 : 168), image.Height);
+            double top = paragraphEdits ? (index == 0 ? 110 : 120) : (index == 0 ? 125 : 135);
+            Assert.Equal(540 - top - image.Height, image.Y);
         }
         Assert.Contains("Covered source label", pdf.Pages[0].ExtractText());
         Assert.Contains("TEXT IN FRONT", pdf.Pages[0].ExtractText());
@@ -103,6 +124,8 @@ public sealed partial class IWorkWorkflowTests {
         var images = pdf.ExtractImages(); Assert.Equal(3, images.Count);
         Assert.All(images, image => { Assert.Equal(96, image.Width); Assert.Equal(64, image.Height); });
         Assert.Single(images, image => image.HasTransparencyMask && image.TransparencyMaskResolved);
+        Assert.Contains(pdf.Pages[1].GetTextSpans(),
+            span => span.Text.StartsWith("100%", StringComparison.Ordinal) && span.IsBold && span.FontSize == 28);
     }
 
     [Theory]
@@ -188,13 +211,36 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Contains("Paragraph 80:", pages[^1]);
     }
 
-    private static void AssertNativePagesLayoutText(IReadOnlyList<string> pages) {
+    private static void AssertNativePagesPageText(PdfReadDocument pdf, bool edited) {
+        string header = "OfficeIMO — " + (edited ? "Native" : "Pages") + " header";
+        string footer = "Zażółć café — " + (edited ? "native " : "") + "footer";
+        foreach (var page in pdf.Pages) {
+            string text = page.ExtractText();
+            Assert.Contains(header, text); Assert.Contains(footer, text);
+            var spans = page.GetTextSpans();
+            Assert.Contains(spans, span => span.Text.Contains("OfficeIMO") && span.IsBold && span.FontSize == 14);
+            var footerEnd = Assert.Single(spans, span => span.Text.Contains("café"));
+            var footerSpans = spans.Where(span => Math.Abs(span.Y - footerEnd.Y) < 0.001).ToArray();
+            Assert.Equal(footer.Replace(" ", string.Empty), string.Concat(footerSpans.Select(span => span.Text)).Replace(" ", string.Empty));
+            Assert.All(footerSpans, span => { Assert.True(span.IsItalic); Assert.Equal(12, span.FontSize); });
+        }
+        string all = string.Join("\n", pdf.Pages.Select(page => page.ExtractText()));
+        int previous = -1;
+        for (int index = 1; index <= 72; index++) {
+            string expected = $"Body line {index:D2} — header/footer creation";
+            int at = all.IndexOf(expected, StringComparison.Ordinal);
+            Assert.True(at > previous, "Missing or reordered body paragraph: " + expected); previous = at;
+            Assert.Equal(-1, all.IndexOf(expected, at + expected.Length, StringComparison.Ordinal));
+        }
+    }
+
+    private static void AssertNativePagesLayoutText(IReadOnlyList<string> pages, bool preservedEdit = false, bool nativeEdit = false) {
         string text = string.Join(" ", string.Join("\n", pages).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         int previous = -1;
         foreach (string expected in new[] {
-            "Native paragraph layout", "Relative spacing 1.5: this paragraph has six points before and nine points after.",
-            "Start Left Center Right 123.45", "Double spacing: this paragraph has twelve points before and eighteen points after.",
-            "Rich layout plain Zażółć 😀", "Default reset Native layout edit."
+            preservedEdit ? "Edited paragraph layout" : "Native paragraph layout", "Relative spacing 1.5: this paragraph has six points before and nine points after.",
+            "Start Left Center Right " + (preservedEdit ? "234.56" : "123.45"), "Double spacing: this paragraph has twelve points before and eighteen points after.",
+            "Rich layout plain Zażółć 😀", nativeEdit ? "Native checked paragraph." : (preservedEdit ? "Updated" : "Default") + " reset Native layout edit."
         }) {
             int at = text.IndexOf(expected, StringComparison.Ordinal);
             Assert.True(at > previous, "Missing or reordered content: " + expected);

@@ -82,6 +82,14 @@ python Build/IWork/verify-native-scalar-preservation.py OfficeIMO.TestAssets/Doc
 
 The descriptor and decoder versions are hash-pinned. Native visual caches remain unrefreshed and require explicit acceptance. This profile admits Decimal128 numbers and native booleans in active BNC storage with empty legacy placeholders; formulas, insertion, type changes, shared tiles and nested-index mutations are rejected. XLSX padding loss and the resulting complete-PDF rejection remain explicit. Other versions, fonts and broader edits require separate qualification.
 
+The [Pages paragraph-edit manifest](native-exports/pages-preserved-paragraphs-v15.4.json) qualifies three fixed-length replacements in an Apple-saved layout document. Pages 15.4 opens the output without repair, changes the final paragraph again and retains that change after save/close/reopen. Native DOCX/PDF, strict OfficeIMO DOCX and complete composed PDF cover the authored body, spacing, tabs and untouched rich paragraph. Reproduce the raw comparison of all 13 file entries and 93 IWA messages with:
+
+```sh
+python Build/IWork/verify-native-text-preservation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-edited-v15.4.pages OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-preserved-paragraphs-v15.4.pages --descriptor <pages-descriptor.pb> --changes OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-preserved-paragraphs-v15.4-changes.json --out <evidence.json>
+```
+
+Only the requested UTF-8 ranges differ; native text properties, offsets, headers, siblings and all other entry payloads remain identical. Both UTF-16 and UTF-8 lengths are retained. Native caches remain unrefreshed, font substitution affects composed appearance, and broader text/structural edits require separate evidence.
+
 ## Native Pages body creation
 
 The [inline scalar-table manifest](native-exports/pages-created-tables-v15.4.json) pins mixed body/table and table-only creation, independent graph decoding and Pages 15.4 acceptance. `IWorkPagesTableWritingTests.Example()` reproduces the mixed document. A numeric edit survives native save/reopen and DOCX export; the original PDF and screenshots qualify sequential placement. These are newly authored MIT fixtures. Native typography, localized display, broader table formatting and receiving-application DOCX row sizing remain separate limits.
@@ -95,6 +103,17 @@ python Build/IWork/verify-pages-creation.py OfficeIMO.TestAssets/Documents/IWork
 ```
 
 The manifest identifies the schema revision, descriptor hash and isolated numbers-parser version. Native Pages/PDF retain the rich styling after the text edit. Apple's DOCX export agrees with the complete authored content and page dimensions/margins but changes selected font runs and bold/italic overrides; native DOCX typography is not qualified as equivalent. Strict OfficeIMO DOCX separately preserves source run properties and includes the empty paragraph projected from the final LF. Other native versions, fonts, scripts, pagination contexts and broader authored objects remain open.
+
+## Native Pages default headers and footers
+
+The [default header/footer manifest](native-exports/pages-created-headers-v15.4.json) pins a two-page body with one left header and footer, explicit 30/36-point distances, bold/color header styling and italic Unicode footer text. `IWorkPagesHeaderFooterWritingTests.Example()` reproduces the deterministic creation. Pages 15.4 edits both areas, saves and reopens without repair. Native PDF and strict OfficeIMO DOCX retain the styles; Apple's Word export retains text and distances while changing font and bold/italic declarations. Complete composed PDFs retain all body lines and repeat both areas on every page. Preview captures qualify this rendering; the manifest records pagination and headless rasterizer differences.
+
+```sh
+python Build/IWork/verify-pages-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-headers-v15.4.pages --descriptor <pages-descriptor.pb> --page-text --out <graph.json>
+python Build/IWork/verify-pages-header-footer.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-headers-edited-v15.4.pages OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-headers-edited-v15.4.docx --descriptor <pages-descriptor.pb> --out <native-edit.json>
+```
+
+Both decoders use the pinned schemas and isolated numbers-parser version recorded in the manifest. Center/right positions, mixed runs, alternate-page templates, fields, more sections and loaded-source page-text editing remain outside this authored profile.
 
 ## Native default paragraph layout
 
@@ -570,7 +589,7 @@ and screenshots are hash-pinned under the repository MIT license. The independen
 decoder records function identities 58 (`GCD`) and 75 (`LCM`), source values,
 formula text and both producers' saved results.
 
-Nineteen literal calls qualify reconstruction and local recalculation. References,
+Nineteen literal calls and twelve populated numeric-range calls qualify reconstruction and local recalculation. Blank, mixed-type, formula-dependent and whole-axis references,
 text, Booleans and large operands retain the narrower source reconstruction
 boundary. Native Numbers stores a numeric-text range LCM as zero where Excel
 recalculates 360. Native `2^53` and `2^53-1` power caches both round to
@@ -580,6 +599,24 @@ Excel 16.113.3 accepts referenced `2^53` in GCD despite the documented error
 boundary. Neither that observation nor matching function names qualifies a wider
 domain. Native Numbers errors still have no XLSX error code; their PDF cells are
 blank. The complete native PDF and both app screenshots were inspected.
+
+The [native reference-edit fixture](native-exports/numbers-integer-references-v14.5.json)
+changes B2 from 24 to 30 and replaces two literal calls with `GCD(B2,C2,D2)` and
+`LCM($B$2,$C$2:$D$2,1)`. Numbers 14.5 retains 6 and 180 after save/close/reopen.
+The pinned independent decoder checks fourteen reference calls against the native
+XLSX and integer arithmetic. Saved OfficeIMO XLSX retains the expressions and
+recalculates to 12 and 360 after restoring B2 to 24. Native screenshots and the
+one-page PDF are inspected. The separate [cross-table reference](native-exports/numbers-integer-cross-table-v14.5-decode.json) qualifies eight numeric calls across tables and sheets. Complete PDF reconstruction and broader coercion remain unqualified.
+
+```sh
+python Build/IWork/verify-numbers-integer-references.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-references-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-references-v14.5.xlsx integer-references-decode.json
+```
+
+The [integer-text reference](native-exports/numbers-integer-text-reference-v14.5.json) records four direct scalar calls with a text operand, `"12"`, changed natively to text `"18"`. Numbers 14.5 retains the text type and dependent results after save/close/reopen. The pinned independent decoder verifies native single-cell AST nodes, table UUIDs and caches against native XLSX and integer arithmetic. Saved OfficeIMO XLSX preserves text, formulas and recalculation. The native one-cell range entries normalize to single-cell nodes; text rectangles and colon ranges retain their separate incomplete-expression boundary. Ten blank, mixed-range, Boolean and arbitrary-text controls remain partial. This reference does not qualify complete PDF or appearance equivalence.
+
+```sh
+python Build/IWork/verify-numbers-integer-text.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-changed-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-text-reference-changed-v14.5.xlsx integer-text-reference-decode.json
+```
 
 Reproduce the controlled fixture decode with the pinned oracle:
 
@@ -656,3 +693,9 @@ The [rich-item reference](native-exports/pages-created-rich-numbering-v15.4.json
 [`native-exports/iwork-created-numeric-formats.json`](native-exports/iwork-created-numeric-formats.json) pins newly authored MIT tables with explicit decimal, percentage and scientific formats. Each of Numbers 14.5, Pages 15.4 and Keynote 15.4 opens its independently decoded template-free graph, recognizes the format families, retains three numeric edits after save/close/reopen and exports native editable and PDF references. All 57 typed cells and formats survive; all three PDF pages are inspected. The manifest records source/export hashes, precision, grouping, negative styles, locale, table-placement differences and qualification limits. Native PDFs embed application fonts; no standalone font is redistributed.
 
 Reproduce each created graph with its family-specific `Build/IWork/verify-*-creation.py` command and pinned descriptor. Decode the selected formats after native edits with `Build/IWork/extract-native-table-formats.py <package> --descriptor <descriptor.pb> --out <decode.json>` using isolated numbers-parser 4.19.0. These are opt-in qualification tools, with no production dependency. Executable creation and saved-destination checks live in `IWorkNumericFormatNativeExportTests`; the smoke runner uses the same manifest under actual NativeAOT execution.
+
+## Native Numbers calculation registration
+
+The [calculation reference](native-exports/numbers-created-calculation-v14.5.json) pins the current scalar creator and a two-sheet, three-table input with complete native table formula-owner registrations. Numbers 14.5 opens both without repair and calculates newly entered formulas. The [independent call checks](native-exports/numbers-integer-cross-table-v14.5-decode.json) compare eight numeric cross-table GCD/LCM calls and an arithmetic control against native XLSX and integer arithmetic. A native operand edit changes the dependent caches; all three native PDF pages are inspected. The manifest records fonts, default print pagination, source/export hashes and the existing XLSX padding and placement limits. Historical creation and format references retain their original packages.
+
+Use `Build/IWork/verify-numbers-creation.py --require-calculation-owners` with the pinned Numbers descriptor for the current created graphs. Historical scalar-only references omit that flag and report their missing calculation registrations. Reproduce the call evidence with `Build/IWork/verify-numbers-integer-cross-table.py <source.numbers> <native.xlsx> <changed.numbers> <changed.xlsx> <output.json>` in the isolated numbers-parser 4.19.0 environment. These tools are opt-in evidence runners with no product runtime role.

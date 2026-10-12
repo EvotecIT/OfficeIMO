@@ -38,11 +38,12 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Native_integer_functions_reconstruct_qualified_literals_and_retain_incompatible_caches() {
+    public void Native_integer_functions_reconstruct_qualified_literals_and_numeric_ranges_and_retain_incompatible_caches() {
         using var manifest = ReadNativeIntegerFunctionManifest();
         JsonElement evidence = manifest.RootElement;
         var qualified = new HashSet<string>(new[] { "G2", "H2", "G3", "H3", "G4", "H4", "G5", "H5", "G6", "H6",
-            "G12", "H12", "G15", "G16", "H16", "G17", "H17", "G18", "H18", "B13", "B14" });
+            "G12", "H12", "G15", "G16", "H16", "G17", "H17", "G18", "H18", "B13", "B14",
+            "E2", "F2", "E4", "F4", "E5", "F5", "E6", "F6", "E17", "F17", "E18", "F18" });
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" + evidence.GetProperty("source").GetString()),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
@@ -70,15 +71,17 @@ public sealed partial class IWorkBoundaryTests {
         }
         Assert.Equal(qualified.Count, reopened.Calculate());
         foreach (JsonElement expected in evidence.GetProperty("cells").EnumerateArray()
-            .Where(c => qualified.Contains(c.GetProperty("address").GetString()!) && c.GetProperty("column").GetInt32() >= 7)) {
+            .Where(c => qualified.Contains(c.GetProperty("address").GetString()!) && c.GetProperty("column").GetInt32() >= 5)) {
             Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), destination.CellAt(
                 expected.GetProperty("row").GetInt32(), expected.GetProperty("column").GetInt32()).GetValue<double>());
         }
-        destination.CellFormula(2, 7, "GCD(B2:D2)"); destination.CellValue(2, 2, 30d);
-        reopened.Calculate(); Assert.Equal(6d, destination.CellAt(2, 7).GetValue<double>());
+        destination.CellValue(2, 2, 30d);
+        reopened.Calculate(); Assert.Equal(6d, destination.CellAt(2, 5).GetValue<double>());
+        Assert.Equal(180d, destination.CellAt(2, 6).GetValue<double>());
         using var edited = new MemoryStream(); reopened.Save(edited); edited.Position = 0;
         using var final = ExcelDocument.Load(edited);
-        Assert.Equal(6d, final.Sheets[0].CellAt(2, 7).GetValue<double>());
+        Assert.Equal(6d, final.Sheets[0].CellAt(2, 5).GetValue<double>());
+        Assert.Equal(180d, final.Sheets[0].CellAt(2, 6).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
     }
 

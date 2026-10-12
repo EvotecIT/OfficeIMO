@@ -1,0 +1,15 @@
+{
+  "source": "keynote-preserved-resized-officeimo-v15.4.pdf",
+  "sourceSha256": "922968316724b2954760b3fec1d39ffb08791e88b7985bb6fba8f29dad66e80e",
+  "renderer": "pdftocairo 26.09.0",
+  "dpi": 96,
+  "regionPixels": [
+    80,
+    600,
+    1200,
+    667
+  ],
+  "comparedPixels": 75040,
+  "changedPixels": 0,
+  "result": "Untouched rich caption is pixel-identical to the earlier qualified composed PDF. Saved PPTX b=1 and PDF Helvetica-Bold at 28pt retain bold semantics; Apple Arial-Bold appearance differs."
+}

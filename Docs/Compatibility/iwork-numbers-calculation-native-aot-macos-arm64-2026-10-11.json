@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "host": {
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64",
+    "model": "Mac16,10 AppleM4",
+    "dotnetSdk": "10.0.112"
+  },
+  "project": "OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj",
+  "recordedUtc": "2026-10-11T03:00:05.110702+00:00",
+  "sourceRevision": "58363542ae7af9ad3c593c27226001aff0699483",
+  "buildCheckoutBase": "892658ba61efa35fbf46cfbd354d73e352734ac4",
+  "buildCheckoutNote": "Local source-only Numbers calculation registration and cross-table formula qualification candidate; source commit precedes this receipt.",
+  "sourceOnly": true,
+  "executions": [
+    {
+      "targetFramework": "net8.0",
+      "runtimeVersion": "8.0.31",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "e8e9583901471bf5dda894b138bdb7d3789e7afcac7a060975c8f9f487e934a8",
+      "executableBytes": 97732904,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 39,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "320fa7b08b404cef5745866b4cf5e268ede1394a602fb6dd3a61c52e925cbd47",
+      "nativeRunLogSha256": "10d5c3e5c25a368a76bfc2d58c6869d735e8a2de579f64108a405048985405ea",
+      "linkerWarnings": [
+        "ld: warning: -ld_classic is no longer supported and will be ignored"
+      ]
+    },
+    {
+      "targetFramework": "net10.0",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "eddb7264f5eff590db562ea43311ba0fd4f37fbd4fd8924e986d30c5a4829ffc",
+      "executableBytes": 53637688,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 39,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "15aed84ef6a178ea4909e762be1c6cf0d65a36df50860d485d3560040ee7990a",
+      "nativeRunLogSha256": "1cf9f1239f685e4d042c3a52f9dbf196f0ae07c9beac4214eb531ea78e7bdfa4",
+      "linkerWarnings": []
+    }
+  ],
+  "managedCorrectness": {
+    "iworkTestsPerRuntime": 2910,
+    "targets": [
+      "net8.0",
+      "net10.0"
+    ],
+    "focusedCalculationNet10": 27,
+    "netstandard2BuildExitCode": 0,
+    "workflowTestsPerRuntime": 1797,
+    "workflowPassedPerRuntime": 1794,
+    "workflowSkippedPerRuntime": 3,
+    "workflowSkipReason": "Three opt-in invoice standards workflows; outside iWork contract."
+  },
+  "managedValidation": {
+    "full-iwork-net8.0": {
+      "total": 2910,
+      "passed": 2910,
+      "failed": 0,
+      "trxSha256": "ef6bae161c1a4a55c4685622b8f686c5a6090c7c30f4d53fcb0cbfd8671e45a8"
+    },
+    "full-iwork-net10.0": {
+      "total": 2910,
+      "passed": 2910,
+      "failed": 0,
+      "trxSha256": "accb50dadb26d7de939c087c3b7452c13e93917f33e6f70f0ef405f4c9f43f8d"
+    },
+    "full-workflows-net8.0": {
+      "total": 1797,
+      "passed": 1794,
+      "failed": 0,
+      "notExecuted": 0,
+      "trxSha256": "07113f56f28a4ddb5a203a55f75cebf3ff4937984a174d6e7449ebd061b65a77"
+    },
+    "full-workflows-net10.0": {
+      "total": 1797,
+      "passed": 1794,
+      "failed": 0,
+      "notExecuted": 0,
+      "trxSha256": "c2ea7b6888719acd293beb9d9213ce82bcf5171d3fd4f71129c996fba4aa3c20"
+    }
+  },
+  "netstandardBuild": {
+    "targetFramework": "netstandard2.0",
+    "exitCode": 0,
+    "logSha256": "d8f3f20759f2f68d0491f3da32d573c8dc2b04e5d99e2e5e5d1e09267decdfbf"
+  },
+  "nativeManifest": {
+    "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-calculation-v14.5.json",
+    "sha256": "56b3bf6a28274a13a7464b8c6a90b3e34839b3a8583b0b0532c3a94371446665"
+  },
+  "nativeApplicationEvidence": {
+    "application": "Numbers",
+    "version": "14.5",
+    "build": "7045.0.17",
+    "createdPackages": [
+      "numbers-created-calculation-v14.5.numbers",
+      "numbers-created-scalar-calculation-v14.5.numbers"
+    ],
+    "actions": [
+      "Open generated three-table package including empty table without repair",
+      "Enter eight GCD/LCM cross-table and cross-sheet formulas plus literal control",
+      "Save, close, reopen and independently decode native cached results",
+      "Edit numeric operand 30 to 24 and independently validate changed native XLSX caches",
+      "Export native PDF and inspect all three pages",
+      "Open exact current scalar example, retain original scalars/styles, enter cross-table GCD and save"
+    ],
+    "independentDecoder": "numbers-parser 4.19.0, isolated opt-in validation",
+    "strictCreatedRecords": 111,
+    "calculationOwnersPerCreatedPackage": 3
+  },
+  "qualificationLimits": [
+    "macOS arm64 only; additional runtimes/architectures and application versions remain open.",
+    "NativeAOT covers bounded reading, projection, editable save/reopen, native creation and existing preservation profiles; no PDF NativeAOT claim.",
+    "Eight native cross-table integer calls plus scalar control qualify finite numeric reference cells; broader coercion, formula-dependent operands, whole axes and integer boundaries remain open.",
+    "Native source padding remains an explicit reconstruction loss; no complete PDF, native/destination layout equivalence or renderer parity claim.",
+    "Legacy generated scalar packages remain readable but require regeneration for native formula entry; source-preservation saving does not rebuild calculation registrations."
+  ],
+  "publication": "None; local source only. No push, PR, public merge, package publication, deployment, signed sandbox or physical-device acceptance.",
+  "review": {
+    "reviewer": "/root/iwork_numbers_calculation_review",
+    "baseRevision": "892658ba61efa35fbf46cfbd354d73e352734ac4",
+    "fullPassRevision": "57b96513bb251a13659940e53925f3262f7c452d",
+    "boundaryState": "current",
+    "technicalFindings": 0,
+    "evidenceWordingGap": "Numeric-format smoke summary narrowed to deterministic semantic profiles and historical Apple-edited references in 58363542ae7af9ad3c593c27226001aff0699483. Both native executables were republished and executed after this wording change.",
+    "recommendation": "Accept as shaped for bounded runtime contract. No public API or production dependency added.",
+    "targetedConfirmationsUsed": 0,
+    "readOnly": true,
+    "testsRunByReviewer": false
+  }
+}

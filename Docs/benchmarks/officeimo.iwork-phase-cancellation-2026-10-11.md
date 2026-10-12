@@ -13,6 +13,13 @@ source `54a8a91706b9406529884f28ab63897399c28be4`. The input is an OfficeIMO-cre
 `CE2D0BF12301FEDDED7294815E77392D0C90F357A1CE5041BF9FFB69639936BD`.
 This is owned-producer scale evidence.
 
+Six additional measured samples cancel projection of the
+[512-slide Apple-produced source](officeimo.iwork-native-large-runtime-2026-10-11.md).
+Every sample retains the package content hash and checks all ordered native
+identities, text drawables, presenter notes, frames, backgrounds and visible
+states after recovery. The file repeats two native layouts; opaque auxiliary
+records and varied presentation objects remain outside this selected profile.
+
 ## Observation boundary
 
 A timer requests cancellation after 25 ms. A successful sample requires at
@@ -48,6 +55,28 @@ and retains automatic-decimal and border-width approximations. Preview fallback,
 unrelated losses and unresolved selected content fail validation. This benchmark
 policy does not change production conversion or complete PDF acceptance.
 
+## Apple-produced projection observations
+
+Source candidate `81f4a8730b97e5ffbac5dae99d0ff63ebb8f04f8` extends the same timer
+and recovery harness to the 1,286,730-byte Apple Keynote 15.4 package, SHA-256
+`805f383fc8055b52a6527f1e57bb9bd923b8f629aa32c0cdd78c772b8b827692`.
+Two fresh PowerShell processes used the same host, runner and iteration policy
+described above. No task-owned builds ran concurrently; unrelated Swift builds
+were present in the pre-run snapshot. The new record has its own candidate,
+assembly hashes, raw samples and correctness results under `nativeLargeProjection`
+in the [machine-readable evidence](iwork-phase-cancellation-2026-10-11.json).
+
+Pre-request elapsed time was 26.90–35.25 ms and process CPU advancement was
+23.04–42.85 ms. Request-to-exception latency was 0.055–0.223 ms. All six samples
+observed cancellation, retained the untouched sentinel stream and recovered
+every selected property of all 512 slides. These observations do not set budgets.
+
+The opt-in Apple-source command passes on .NET 8 and .NET 10, as do the
+eighteen-operation ordinary command and both owned phase operations. Runtime and
+wrapper checks reject unsupported native encoding and mixed operation profiles.
+Two consecutive recovery validations each report all 512 slides and exactly one
+cancellation boundary. Native encoding still requires the owned creation model.
+
 ## Reproduction and limits
 
 Build the workload and PowerForge module with their pinned SDKs as described in
@@ -62,8 +91,17 @@ PowerShell processes, run:
     -WarmupCount 1 -IterationCount 3
 ```
 
+For the pinned Apple source, select only projection cancellation:
+
+```powershell
+./Build/Benchmarks/Run-IWorkRuntimeBenchmarks.ps1 `
+    -BinaryRoot $binaryRoot -ModulePath $modulePath -OutputRoot $outputRoot `
+    -Scale NativeLarge -Kind Keynote -Operation CancelDuringProjection `
+    -WarmupCount 1 -IterationCount 3
+```
+
 Keep competing work idle before selecting host-specific budgets. These
 timer-dependent cases remain outside ordinary correctness CI. They do not
-qualify large independent Apple documents, destination construction, atomic
+qualify varied large independent Apple documents, destination construction, atomic
 path staging, other platforms, peak/native-memory retention, or physical Apple
 host acceptance.
