@@ -2179,4 +2179,5 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Annuler le redimensionnement</value></data>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Annuler les modifications</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>Le fichier de destination est en lecture seule ; il n&apos;a pas été modifié. Choisissez un autre nom ou dossier, ou retirez l&apos;attribut lecture seule.</value></data>
+  <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>En cours…</value></data>
 </root>

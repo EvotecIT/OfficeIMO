@@ -5651,4 +5651,5 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Größenänderung abbrechen</value></data>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Änderungen verwerfen</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>Die Zieldatei ist schreibgeschützt und wurde nicht geändert. Wählen Sie einen anderen Namen oder Ordner oder heben Sie den Schreibschutz auf.</value></data>
+  <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>In Arbeit…</value></data>
 </root>

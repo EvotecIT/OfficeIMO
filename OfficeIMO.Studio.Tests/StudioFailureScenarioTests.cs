@@ -154,6 +154,32 @@ public sealed class StudioFailureScenarioTests {
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task Closing_with_work_running_lists_that_work_so_waiting_or_cancelling_is_an_informed_choice() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            var history = new StudioJobHistory(StudioLocalization.Current);
+            StudioJobRecord running = history.Start("Conversion", Path.Combine(Path.GetTempPath(), "Quarterly report.docx"), null, () => { });
+            StudioJobRecord finished = history.Start("Searchable PDF", Path.Combine(Path.GetTempPath(), "Scan.pdf"), null, () => { });
+            finished.Complete(OfficeWorkflowStatus.Completed, null, "Done.");
+            var content = new ActiveOperationsDialogContent([], StudioLocalization.Current, jobs: history);
+
+            var list = (Avalonia.Controls.ScrollViewer)Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(content)
+                .OfType<Avalonia.Controls.ScrollViewer>().Single(viewer => viewer.Name == "RunningWork");
+            string[] titles = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(list).OfType<Avalonia.Controls.TextBlock>()
+                .Select(text => text.Text ?? string.Empty).ToArray();
+            Assert.True(list.IsVisible);
+            Assert.Contains("Conversion · Quarterly report.docx", titles);
+            Assert.DoesNotContain(titles, title => title.StartsWith("Searchable PDF", StringComparison.Ordinal));
+
+            // Work that finishes leaves the list.
+            running.Complete(OfficeWorkflowStatus.Completed, null, "Done.");
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.False(list.IsVisible);
+            return true;
+        }, CancellationToken.None);
+    }
+
     private sealed class TestDirectory : IDisposable {
         internal string Path { get; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "studio-failure-tests-" + Guid.NewGuid().ToString("N"));
         internal TestDirectory() => Directory.CreateDirectory(Path);

@@ -555,7 +555,8 @@ public sealed partial class MainWindow : Window {
     }
 
     private Task<bool> ConfirmActiveCloseAsync(IEnumerable<MainWindowViewModel> documents, bool wholeWindow = false) =>
-        new ActiveOperationsDialog(documents, _services.Localizer, wholeWindow ? TabHost : null, wholeWindow ? _session : null).ShowDialog<bool>(this);
+        new ActiveOperationsDialog(documents, _services.Localizer, wholeWindow ? TabHost : null, wholeWindow ? _session : null,
+            wholeWindow ? _services.Jobs : null).ShowDialog<bool>(this);
 
     private async Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync() {
         var dialog = new UnsavedChangesDialog(ViewModel.DocumentName.TrimEnd(' ', '*'), _services.Localizer);

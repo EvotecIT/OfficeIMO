@@ -5651,4 +5651,5 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Anuluj zmianę rozmiaru</value></data>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Odrzuć zmiany</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>Plik docelowy jest tylko do odczytu, więc pozostał bez zmian. Wybierz inną nazwę lub folder albo wyłącz jego atrybut tylko do odczytu.</value></data>
+  <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>Trwa praca…</value></data>
 </root>
