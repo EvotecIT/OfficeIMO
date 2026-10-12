@@ -49,6 +49,45 @@ namespace OfficeIMO.Tests {
             AssertSavedDates(document);
         }
 
+        [Theory]
+        [InlineData("replace")]
+        [InlineData("append")]
+        [InlineData("dataset")]
+        [InlineData("replace-table")]
+        [InlineData("append-table")]
+        public void ImportStopsPriorDeferredMaterializationWhenValueConversionCancels(string route) {
+            using var source = new MemoryStream();
+            using var document = ExcelDocument.Create(source);
+            document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
+            ExcelSheet sheet = document.AddWorksheet("First");
+            using DataTable prior = Dates();
+            sheet.InsertDataTableAsTable(prior, tableName: "Existing");
+            using var next = new DataTable("Replacement");
+            next.Columns.Add("Value", typeof(string));
+            next.Rows.Add("New value");
+            using var cancellation = new CancellationTokenSource();
+            int convertedDates = 0;
+            document.DateTimeOffsetWriteStrategy = value => {
+                convertedDates++;
+                cancellation.Cancel();
+                return value.UtcDateTime;
+            };
+            using var dataSet = new DataSet();
+            if (route == "dataset") dataSet.Tables.Add(next);
+
+            OperationCanceledException error = Assert.Throws<OperationCanceledException>(() => {
+                if (route == "dataset") document.InsertDataSet(dataSet, ct: cancellation.Token);
+                else if (route == "replace-table") sheet.InsertDataTableAsTable(next, ct: cancellation.Token);
+                else if (route == "append-table") sheet.AppendDataTableToTable(next, "Existing", ct: cancellation.Token);
+                else sheet.InsertDataTable(next, startRow: route == "append" ? 10 : 1, ct: cancellation.Token);
+            });
+
+            Assert.Equal(cancellation.Token, error.CancellationToken);
+            Assert.Equal(1, convertedDates);
+            document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
+            AssertSavedDates(document);
+        }
+
         [Fact]
         public void ReaderDomFallbackStopsBeforeWritingLaterCellsAfterCancellation() {
             using var source = new MemoryStream();

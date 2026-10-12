@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(cancellationToken: cancellationToken)) {
                 return false;
             }
 
