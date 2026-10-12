@@ -48,7 +48,8 @@ internal sealed partial class ArchiveFixtures : IDisposable {
         bool directoryCycle = false, bool wrongSize = false, bool missingCabinet = false,
         object?[][]? directoryRows = null, string firstDirectory = "LOCALE", string secondDirectory = "LOCALE",
         bool twoCabinets = false, bool backwardMedia = false, bool lowercaseCabinetKey = false,
-        int cabinetCount = 0, bool emptyPayloads = false, bool emptySecondPayload = false, int emptySecondCompression = 0) {
+        int cabinetCount = 0, bool emptyPayloads = false, bool emptySecondPayload = false, int emptySecondCompression = 0,
+        byte[]? unmappedCabinet = null) {
         const string key = "PayloadKey";
         byte[] payload = Encoding.UTF8.GetBytes("hello");
         var schemas = MsiSchemas(wideMedia);
@@ -75,6 +76,10 @@ internal sealed partial class ArchiveFixtures : IDisposable {
                 index, index, null, "#payload" + index + ".cab", null, null }).ToArray();
         }
         var streams = new List<OfficeCompoundStream>();
+        if (unmappedCabinet != null) {
+            rows["Media"] = rows["Media"].Concat(new[] { new object?[] { 2, 2, null, "#unmapped.cab", null, null } }).ToArray();
+            streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("unmapped.cab", false), unmappedCabinet));
+        }
         if (cabinetCount > 0) {
             for (int index = 1; index <= cabinetCount; index++) {
                 byte[] content = emptyPayloads ? Array.Empty<byte>() : payload;

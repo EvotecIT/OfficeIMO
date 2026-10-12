@@ -6,7 +6,7 @@ public sealed class MsiPayloadAliasTests {
     [InlineData(true, false)]
     [InlineData(false, true)]
     [InlineData(true, true)]
-    public void IdenticalAliasesPublishOneDeterministicFileAcrossMemberAndCabinetOrder(bool reverseRows, bool separateCabinets) {
+    public void IdenticalAliasesPublishOneDeterministicFileAcrossTableAndCabinetOrder(bool reverseRows, bool separateCabinets) {
         using var fixture = new ArchiveFixtures();
         string package = fixture.Package(ArchiveFixtures.MsiAliasFiles(reverseRows,
             new MsiFixtureFile("fidoauth.adml"), new MsiFixtureFile("FidoAuth.adml", cabinet: separateCabinets ? 2 : 1),

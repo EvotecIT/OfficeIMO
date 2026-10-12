@@ -54,7 +54,10 @@ internal sealed partial class ArchiveFixtures {
 
     internal static byte[] MsiAliasFiles(bool reverseRows, params MsiFixtureFile[] files) => MsiAliasFiles(reverseRows, null, files);
 
-    internal static byte[] MsiAliasFiles(bool reverseRows, int? wordCount, params MsiFixtureFile[] files) {
+    internal static byte[] MsiAliasFiles(bool reverseRows, int? wordCount, params MsiFixtureFile[] files) =>
+        MsiFiles(reverseRows, false, 1, wordCount, files);
+
+    internal static byte[] MsiFiles(bool reverseRows, bool reverseCabinet, int firstDisk, int? wordCount, params MsiFixtureFile[] files) {
         var directoryRows = new List<object?[]> { new object?[] { "TARGETDIR", null, "SourceDir" } };
         var directories = new Dictionary<string, string>(StringComparer.Ordinal) { [string.Empty] = "TARGETDIR" };
         var components = new List<object?[]>(); var fileRows = new List<object?[]>();
@@ -82,8 +85,8 @@ internal sealed partial class ArchiveFixtures {
         foreach (var cabinet in cabinetFiles.OrderBy(pair => pair.Key)) {
             last += cabinet.Value.Count;
             string name = "payload" + cabinet.Key + ".cab";
-            media.Add(new object?[] { cabinet.Key, last, null, "#" + name, null, null });
-            var payloads = reverseRows ? cabinet.Value.AsEnumerable().Reverse().ToArray() : cabinet.Value.ToArray();
+            media.Add(new object?[] { cabinet.Key + firstDisk - 1, last, null, "#" + name, null, null });
+            var payloads = reverseCabinet ? cabinet.Value.AsEnumerable().Reverse().ToArray() : cabinet.Value.ToArray();
             streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName(name, false), StoredCab(payloads)));
         }
         if (reverseRows) fileRows.Reverse();

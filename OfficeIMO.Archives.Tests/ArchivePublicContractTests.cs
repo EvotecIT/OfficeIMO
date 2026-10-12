@@ -75,7 +75,7 @@ public sealed class ArchivePublicContractTests {
     public void EmbeddedCabinetOpensReuseTheCompoundDirectoryAndAllocationIndex() {
         using var source = new CountingStream(ArchiveFixtures.Msi(cabinetCount: 16, emptyPayloads: true));
         using var database = new MsiPackageReader(source, new ArchiveLimits(new ArchiveExtractionOptions()), CancellationToken.None);
-        IReadOnlyList<MsiPayloadFile> files = database.ReadFiles();
+        IReadOnlyList<MsiPayloadFile> files = database.ReadFiles(out _);
         long before = source.BytesRead;
         foreach (MsiPayloadFile file in files) {
             using Stream cabinet = database.OpenCabinet(file.Cabinet);

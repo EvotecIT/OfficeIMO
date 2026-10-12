@@ -6,7 +6,7 @@ using System.Linq;
 namespace OfficeIMO.Archives;
 
 internal sealed partial class MsiPackageReader {
-    internal IReadOnlyList<MsiPayloadFile> ReadFiles() {
+    internal IReadOnlyList<MsiPayloadFile> ReadFiles(out IReadOnlyList<string> cabinets) {
         var directories = Index(Table("Directory", "Directory", "Directory_Parent", "DefaultDir"), "Directory");
         var components = Index(Table("Component", "Component", "ComponentId", "Directory_", "Attributes", "Condition", "KeyPath"), "Component");
         object?[][] fileRows = Table("File", "File", "Component_", "FileName", "FileSize", "Version", "Language", "Attributes", "Sequence");
@@ -35,11 +35,14 @@ internal sealed partial class MsiPackageReader {
             media.Add(Tuple.Create(disk, last, cabinet.Substring(1)));
         }
         media = media.OrderBy(item => item.Item1).ToList();
+        if (media.Count != 0 && media[0].Item1 != 1)
+            throw new InvalidDataException("MSI first media DiskId must be 1.");
         int previousSequence = -1;
         foreach (var disk in media) {
             if (disk.Item2 < previousSequence) throw new InvalidDataException("MSI media sequence boundaries move backwards in disk order.");
             previousSequence = disk.Item2;
         }
+        cabinets = media.Select(item => item.Item3).Distinct(StringComparer.Ordinal).ToArray();
         var sequences = new HashSet<int>();
         var directoryCache = new Dictionary<string, MsiResolvedDirectory>(StringComparer.Ordinal);
         if (directories.Count(pair => pair.Value[1] == null || string.Equals(pair.Key, pair.Value[1] as string, StringComparison.Ordinal)) != 1)
@@ -67,7 +70,7 @@ internal sealed partial class MsiPackageReader {
             int sequence = RequiredInteger(row[7], "File.Sequence");
             if (sequence <= 0 || !sequences.Add(sequence)) throw new InvalidDataException("MSI file sequences are invalid or duplicated.");
             string cabinet = FindCabinet(media, sequence);
-            result.Add(new MsiPayloadFile(id, path, length, cabinet));
+            result.Add(new MsiPayloadFile(id, path, length, cabinet, sequence));
         }
         PlanTargets(result);
         return result;
@@ -90,10 +93,11 @@ internal sealed partial class MsiPackageReader {
 }
 
 internal sealed class MsiPayloadFile {
-    internal MsiPayloadFile(string id, string path, long length, string cabinet) { Id = id; Path = path; Length = length; Cabinet = cabinet; }
+    internal MsiPayloadFile(string id, string path, long length, string cabinet, int sequence) { Id = id; Path = path; Length = length; Cabinet = cabinet; Sequence = sequence; }
     internal string Id { get; }
     internal string Path { get; }
     internal long Length { get; }
     internal string Cabinet { get; }
+    internal int Sequence { get; }
     internal MsiPayloadTarget Target { get; set; } = null!;
 }
