@@ -3,6 +3,11 @@ title: "Turn Windows event logs into an investigation handoff"
 seo_title: "Windows event investigation reports with PowerShell"
 description: "Collect Windows errors with PSEventViewer, explain the snapshot in a Word and PDF brief, and keep the full messages in an editable Excel register."
 layout: docs
+meta.schema.type: Article
+meta.author.name: Evotec
+meta.author.type: Organization
+meta.author.url: https://evotec.xyz/
+image: /downloads/integrations/events/preview.png
 ---
 
 A server has been reporting errors overnight, and someone else is taking over the investigation. You can send them a screenshot of Event Viewer, but it leaves out the messages they need to search, the computer that raised each event, and the scope of the collection. Sending hundreds of rows has the opposite problem: the important information gets lost in the list.

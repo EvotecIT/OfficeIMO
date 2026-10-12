@@ -3,6 +3,11 @@ title: "Compare supplier quotes without retyping an HTML table"
 seo_title: "Compare HTML supplier quotes with PowerShell"
 description: "Read supplier offers with PSParseHTML, compare price and delivery, and create an editable Word review, PDF and numeric Excel workbook with PSWriteOffice."
 layout: docs
+meta.schema.type: Article
+meta.author.name: Evotec
+meta.author.type: Organization
+meta.author.url: https://evotec.xyz/
+image: /downloads/integrations/supplier/preview.png
 ---
 
 You have a supplier price list in an HTML page and need to buy equipment for a team. Copying the table into Excel is easy enough once. Doing it again when a quote changes, fixing prices that became text, and copying the comparison into a Word document is where the time goes.

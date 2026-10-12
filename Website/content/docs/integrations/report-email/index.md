@@ -2,6 +2,11 @@
 title: "Review a report email before sending it"
 description: "Attach a generated PDF and Excel workbook with Mailozaurr, inspect a saved email, and send the reports through your SMTP service when ready."
 layout: docs
+meta.schema.type: Article
+meta.author.name: Evotec
+meta.author.type: Organization
+meta.author.url: https://evotec.xyz/
+image: /downloads/integrations/supplier/preview.png
 ---
 
 The report looks right. Then the email goes out with yesterday's PDF, no workbook, or a subject that tells the recipient nothing. Report generation is only part of the job; the person receiving it needs the right files and a clear explanation of what to do with them.
@@ -73,6 +78,8 @@ Get-Item -LiteralPath $eml | Select-Object Name, Length
 The saved message contains the actual attachment bytes, not links back to files on your machine. Check that the recipients are correct, open both attachments, and make sure the email asks the reviewer for the decision you need. Saving an EML does not deliver it or add it to a mail client's Drafts folder.
 
 You can inspect the [example email](/downloads/integrations/mail/ReportReview.eml) and its [attached PDF](/downloads/integrations/supplier/SupplierReview.pdf). The email is built from the illustrative supplier offers, with the same PDF and workbook linked in that article.
+
+![The supplier review PDF attached to the example email](/downloads/integrations/supplier/preview.png)
 
 ## Add delivery when the review is ready
 
