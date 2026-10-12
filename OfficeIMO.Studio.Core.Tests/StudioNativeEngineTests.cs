@@ -186,6 +186,114 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task Ink_markup_keeps_its_width_and_opacity_and_lists_where_it_was_drawn() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(1), null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanEditAnnotations);
+        StudioNativePoint[] stroke = [new(50, 60), new(120, 80), new(200, 70)];
+
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("ink", 1, Strokes: [stroke],
+            Color: new StudioNativeColor(0.9, 0.1, 0.1), StrokeWidth: 6, Opacity: 0.5, Author: "Reviewer"), default);
+
+        StudioNativeAnnotation ink = Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations);
+        Assert.Equal("Ink", ink.Subtype);
+        Assert.Equal("Reviewer", ink.Author);
+        // The listed area covers the stroke in the displayed page's points, widened by half the stroke.
+        Assert.InRange(ink.Bounds.X, 40D, 50D);
+        Assert.InRange(ink.Bounds.Y, 50D, 60D);
+        Assert.InRange(ink.Bounds.X + ink.Bounds.Width, 200D, 210D);
+        Assert.InRange(ink.Bounds.Y + ink.Bounds.Height, 80D, 90D);
+        PdfAnnotation saved = Assert.Single(PdfDocument.Load(await SavedBytesAsync(document)).Annotations.GetForEditing());
+        Assert.Equal(6D, saved.BorderWidth);
+        Assert.Equal(0.5D, saved.Opacity);
+        Assert.True(saved.HasNormalAppearance);
+    }
+
+    [Fact]
+    public async Task Notes_change_and_go_as_undoable_edits() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(1), null, default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("note", 1, Bounds: new StudioNativeRectangle(100, 100, 18, 18),
+            Text: "Check this figure", Author: "Ann"), default);
+        StudioNativeAnnotation note = Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations);
+        Assert.Equal(("Text", "Check this figure"), (note.Subtype, note.Contents));
+
+        await document.UpdateAnnotationAsync(new StudioNativeAnnotationUpdate(note.ObjectNumber, Contents: "Figure checked"), default);
+        StudioNativeAnnotation changed = Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations);
+        Assert.Equal(("Figure checked", "Ann"), (changed.Contents, changed.Author));
+
+        await document.RemoveAnnotationAsync(changed.ObjectNumber, default);
+        Assert.Empty((await document.GetAnnotationsAsync(1, default)).Annotations);
+        await document.UndoAsync(default);
+        Assert.Equal("Figure checked", Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations).Contents);
+        await Assert.ThrowsAsync<ArgumentException>(() => document.RemoveAnnotationAsync(9999, default));
+    }
+
+    [Fact]
+    public async Task Markup_on_a_rotated_page_lands_where_it_was_drawn_on_screen() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(1), null, default);
+        await document.RotatePagesAsync([1], 90, default);
+        // Displayed, the 300 x 400 page is 400 wide and 300 high.
+        var drawn = new StudioNativeRectangle(300, 40, 60, 30);
+
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("rectangle", 1, Bounds: drawn), default);
+
+        StudioNativeRectangle listed = Assert.Single((await document.GetAnnotationsAsync(1, default)).Annotations).Bounds;
+        Assert.Equal(drawn.X, listed.X, 1);
+        Assert.Equal(drawn.Y, listed.Y, 1);
+        Assert.Equal(drawn.Width, listed.Width, 1);
+        Assert.Equal(drawn.Height, listed.Height, 1);
+    }
+
+    [Fact]
+    public async Task Markup_requests_outside_the_contract_are_refused() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(1), null, default);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => document.AddAnnotationAsync(new StudioNativeAnnotationRequest("redact", 1,
+            Bounds: new StudioNativeRectangle(10, 10, 20, 20)), default));
+        await Assert.ThrowsAsync<ArgumentException>(() => document.AddAnnotationAsync(new StudioNativeAnnotationRequest("ink", 1), default));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => document.AddAnnotationAsync(new StudioNativeAnnotationRequest("rectangle", 2,
+            Bounds: new StudioNativeRectangle(10, 10, 20, 20)), default));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => document.AddAnnotationAsync(new StudioNativeAnnotationRequest("ink", 1,
+            Strokes: [[new(1, 1), new(5, 5)]], Opacity: 2), default));
+        Assert.False((await document.GetInfoAsync(default)).IsDirty);
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_adds_and_lists_annotations_as_json() {
+        string source = CreatePdf(1);
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, byte*, nint, byte**, int> add = &StudioNativeExports.DocumentAddAnnotationJson;
+        delegate* unmanaged<nint, int, nint, byte**, byte**, int> list = &StudioNativeExports.DocumentAnnotationsJson;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+
+        nint document = 0; byte* error = null;
+        fixed (byte* path = Encoding.UTF8.GetBytes(source + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(path, null, 0, &document, &error));
+        try {
+            const string request = """{"tool":"ink","page":1,"strokes":[[{"x":20,"y":20},{"x":80,"y":40}]],"color":{"red":0,"green":0.4,"blue":1},"strokeWidth":3}""";
+            fixed (byte* body = Encoding.UTF8.GetBytes(request + "\0")) Assert.Equal(StudioNativeAbi.Ok, add(document, body, 0, &error));
+            fixed (byte* body = Encoding.UTF8.GetBytes("{not json\0")) Assert.Equal(StudioNativeAbi.InvalidArgument, add(document, body, 0, &error));
+            free(error);
+
+            byte* json = null;
+            Assert.Equal(StudioNativeAbi.Ok, list(document, 1, 0, &json, &error));
+            using JsonDocument result = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            free(json);
+            JsonElement ink = Assert.Single(result.RootElement.GetProperty("annotations").EnumerateArray());
+            Assert.Equal("Ink", ink.GetProperty("subtype").GetString());
+            Assert.True(ink.GetProperty("objectNumber").GetInt32() > 0);
+            Assert.Equal(0.4D, ink.GetProperty("color").GetProperty("green").GetDouble(), 3);
+        } finally { close(document); }
+    }
+
+    private static async Task<byte[]> SavedBytesAsync(StudioNativeDocument document) {
+        string copy = Path.Combine(Path.GetTempPath(), "officeimo-native-annotations-" + Guid.NewGuid().ToString("N") + ".pdf");
+        try {
+            await document.SaveAsync(copy, default);
+            return File.ReadAllBytes(copy);
+        } finally { File.Delete(copy); }
+    }
+
+    [Fact]
     public async Task Page_sizes_are_the_rendered_size_at_the_page_user_unit() {
         string path = Path.Combine(_root, "user-unit.pdf");
         File.WriteAllBytes(path, Encoding.ASCII.GetBytes("""

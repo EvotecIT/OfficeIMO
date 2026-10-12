@@ -1,6 +1,6 @@
 /*
  * The engine's document journey from a native host: open, read facts, render, rotate, undo, redo, organize pages,
- * extract and search, save a copy and reopen it. A .NET process cannot host the library on macOS or Linux, because its runtime and the library's handle
+ * extract, search and mark up, save a copy and reopen it. A .NET process cannot host the library on macOS or Linux, because its runtime and the library's handle
  * the same thread-suspension signal, so the journey runs from C like the native apps do.
  *
  * Usage: officeimo_journey <library> <pdf> <work-directory>
@@ -44,7 +44,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_render_page) X(officeimo_document_render_region) X(officeimo_document_rotate_pages) X(officeimo_document_undo) \
     X(officeimo_document_redo) X(officeimo_document_save) X(officeimo_document_delete_pages) \
     X(officeimo_document_duplicate_pages) X(officeimo_document_reorder_pages) X(officeimo_document_insert_blank_page) \
-    X(officeimo_document_extract_pages) X(officeimo_document_search_json)
+    X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
+    X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -235,6 +236,33 @@ int main(int argc, char **argv) {
 
     CHECK("search", engine_officeimo_document_search_json(document, "no such words", 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "hits", "[]"), "unexpected search hits", json);
+    engine_officeimo_free(json);
+
+    /* Markup: an ink stroke and a note, listed, changed and removed, then undone back to the rotated page. */
+    CHECK("add ink", engine_officeimo_document_add_annotation_json(document,
+          "{\"tool\":\"ink\",\"page\":1,\"strokes\":[[{\"x\":20,\"y\":20},{\"x\":120,\"y\":60}]],"
+          "\"color\":{\"red\":0.9,\"green\":0.1,\"blue\":0.1},\"strokeWidth\":4,\"opacity\":0.8}", 0, &error), OFFICEIMO_OK);
+    CHECK("add note", engine_officeimo_document_add_annotation_json(document,
+          "{\"tool\":\"note\",\"page\":1,\"bounds\":{\"x\":40,\"y\":40,\"width\":18,\"height\":18},\"text\":\"Journey\"}",
+          0, &error), OFFICEIMO_OK);
+    CHECK("add unknown tool", engine_officeimo_document_add_annotation_json(document, "{\"tool\":\"redact\",\"page\":1}", 0, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
+    CHECK("list annotations", engine_officeimo_document_annotations_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "subtype", "\"Ink\"") && has(json, "contents", "\"Journey\""), "the markup is not listed", json);
+    int note = 0;
+    const char *found = json ? strstr(json, "\"subtype\":\"Text\"") : NULL;
+    for (const char *at = found; at && at > json; at--) {
+        if (strncmp(at, "\"objectNumber\":", 15) == 0) { note = atoi(at + 15); break; }
+    }
+    engine_officeimo_free(json);
+    char update[128];
+    snprintf(update, sizeof update, "{\"objectNumber\":%d,\"contents\":\"Checked\"}", note);
+    CHECK("update note", engine_officeimo_document_update_annotation_json(document, update, 0, &error), OFFICEIMO_OK);
+    CHECK("remove note", engine_officeimo_document_remove_annotation(document, note, 0, &error), OFFICEIMO_OK);
+    CHECK("remove missing", engine_officeimo_document_remove_annotation(document, note, 0, &error), OFFICEIMO_INVALID_ARGUMENT);
+    for (int edit = 0; edit < 4; edit++) CHECK("undo markup", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    CHECK("list after undo", engine_officeimo_document_annotations_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "annotations", "[]"), "markup not undone", json);
     engine_officeimo_free(json);
 
     CHECK("save copy", engine_officeimo_document_save(document, copy, 0, &error), OFFICEIMO_OK);

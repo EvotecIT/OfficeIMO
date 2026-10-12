@@ -169,6 +169,42 @@ internal static unsafe class StudioNativeExports {
         });
     }
 
+    /// <summary>Adds a markup annotation described by a UTF-8 JSON request as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_add_annotation_json")]
+    internal static int DocumentAddAnnotationJson(nint document, byte* request, nint cancellation, byte** error) {
+        StudioNativeAnnotationRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeAnnotationRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The annotation request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => target.AddAnnotationAsync(parsed, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>The markup annotations on a page as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_annotations_json")]
+    internal static int DocumentAnnotationsJson(nint document, int page, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeAnnotationList list = target.GetAnnotationsAsync(page, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(list, StudioNativeJson.Default.StudioNativeAnnotationList));
+        });
+    }
+
+    /// <summary>Changes an annotation's text, author or colour, described by a UTF-8 JSON update, as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_update_annotation_json")]
+    internal static int DocumentUpdateAnnotationJson(nint document, byte* update, nint cancellation, byte** error) {
+        StudioNativeAnnotationUpdate? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(update) ?? "null", StudioNativeJson.Default.StudioNativeAnnotationUpdate); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The annotation update is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(update)));
+        return WithDocument(document, error, cancellation, (target, token) => target.UpdateAnnotationAsync(parsed, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Removes an annotation, by its object number from the annotation list, as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_remove_annotation")]
+    internal static int DocumentRemoveAnnotation(nint document, int objectNumber, nint cancellation, byte** error) =>
+        WithDocument(document, error, cancellation, (target, token) => target.RemoveAnnotationAsync(objectNumber, token).GetAwaiter().GetResult());
+
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_undo")]
     internal static int DocumentUndo(nint document, nint cancellation, byte** error) =>
         WithDocument(document, error, cancellation, (target, token) => target.UndoAsync(token).GetAwaiter().GetResult());

@@ -67,10 +67,11 @@ void officeimo_document_close(officeimo_document document);
  * Document facts as JSON:
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
- *   "maxRenderPixels", "canMutatePages", "canExtractPages" }
+ *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
- * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages.
+ * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
+ * allows adding, changing and removing annotations, which a tagged or signed document may take as an appended revision.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
  * render scales apply to. The revision changes with every edit, undo and redo.
  */
@@ -135,6 +136,40 @@ int32_t officeimo_document_extract_pages(officeimo_document document, const int3
  */
 int32_t officeimo_document_search_json(officeimo_document document, const char *query, officeimo_cancellation cancellation,
                                        char **json, char **error);
+
+/*
+ * Adds a markup annotation as one undoable change, described as JSON:
+ * { "tool", "page", "bounds": { "x", "y", "width", "height" }, "strokes": [ [ { "x", "y" } ] ],
+ *   "quads": [ { "x", "y", "width", "height" } ], "text", "author", "color": { "red", "green", "blue" },
+ *   "strokeWidth", "opacity", "fontSize" }
+ * tool is one of ink, note, freeText, highlight, underline, strikeOut, squiggly, rectangle, ellipse, line and polygon.
+ * Geometry is in points of the page as displayed, from its top-left corner, the space of officeimo_document_search_json.
+ * Ink takes its strokes; a line its first stroke's first and last points; a polygon its first stroke; text markup its
+ * quads, or bounds without them; the others take bounds. bounds may be left out when strokes are given. Colours are
+ * from 0 through 1, strokeWidth is in points and opacity above 0 through 1; text is the annotation's contents.
+ */
+int32_t officeimo_document_add_annotation_json(officeimo_document document, const char *request,
+                                               officeimo_cancellation cancellation, char **error);
+
+/*
+ * The markup annotations on a page as JSON:
+ * { "abiVersion", "revision", "page", "canEdit", "annotations": [ { "objectNumber", "page", "subtype",
+ *   "bounds": { "x", "y", "width", "height" }, "contents", "author", "color": { "red", "green", "blue" } } ] }
+ * Bounds are in points of the page as displayed. Links, form fields and popups are not listed.
+ */
+int32_t officeimo_document_annotations_json(officeimo_document document, int32_t page, officeimo_cancellation cancellation,
+                                            char **json, char **error);
+
+/*
+ * Changes an annotation's contents, author or colour as one undoable change: { "objectNumber", "contents", "author",
+ * "color": { "red", "green", "blue" } }. Fields left out are kept.
+ */
+int32_t officeimo_document_update_annotation_json(officeimo_document document, const char *update,
+                                                  officeimo_cancellation cancellation, char **error);
+
+/* Removes an annotation, by its objectNumber from officeimo_document_annotations_json, as one undoable change. */
+int32_t officeimo_document_remove_annotation(officeimo_document document, int32_t object_number,
+                                             officeimo_cancellation cancellation, char **error);
 
 int32_t officeimo_document_undo(officeimo_document document, officeimo_cancellation cancellation, char **error);
 int32_t officeimo_document_redo(officeimo_document document, officeimo_cancellation cancellation, char **error);

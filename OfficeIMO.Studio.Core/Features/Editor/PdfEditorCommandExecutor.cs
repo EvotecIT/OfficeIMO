@@ -105,6 +105,8 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             IconName = iconName,
             CreatePopup = createPopup,
             PopupOpen = false,
@@ -129,6 +131,7 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
             GenerateAppearance = true
         });
         return result;
@@ -149,6 +152,8 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             GenerateAppearance = true
         });
         return result;
@@ -167,6 +172,8 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             GenerateAppearance = true
         });
     }
@@ -182,6 +189,8 @@ internal static class PdfEditorCommandExecutor {
                 Contents = command.Properties.Text,
                 Title = command.Properties.Author,
                 Color = Color(command.Properties.Color),
+                Opacity = command.Properties.Opacity,
+                BorderWidth = command.Properties.StrokeWidth,
                 GenerateAppearance = true
             });
         }
@@ -194,6 +203,8 @@ internal static class PdfEditorCommandExecutor {
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
+            Opacity = command.Properties.Opacity,
+            BorderWidth = command.Properties.StrokeWidth,
             GenerateAppearance = true
         });
         return result;

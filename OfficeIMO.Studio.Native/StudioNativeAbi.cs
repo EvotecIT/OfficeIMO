@@ -57,4 +57,7 @@ internal static class StudioNativeAbi {
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(StudioNativeDocumentInfo))]
 [JsonSerializable(typeof(StudioNativeSearchResult))]
+[JsonSerializable(typeof(StudioNativeAnnotationRequest))]
+[JsonSerializable(typeof(StudioNativeAnnotationList))]
+[JsonSerializable(typeof(StudioNativeAnnotationUpdate))]
 internal sealed partial class StudioNativeJson : JsonSerializerContext;
