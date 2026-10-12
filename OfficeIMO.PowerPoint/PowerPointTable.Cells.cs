@@ -240,7 +240,7 @@ namespace OfficeIMO.PowerPoint {
                 .GetRelationshipIds(cell.TextBody);
             cell.TextBody.RemoveAllChildren<A.Paragraph>();
             cell.TextBody.Append(new A.Paragraph(new A.Run(new A.Text(string.Empty))));
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
         }
 

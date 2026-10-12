@@ -178,7 +178,7 @@ namespace OfficeIMO.PowerPoint {
 
             textBody.RemoveAllChildren<A.Paragraph>();
             textBody.Append(CreateEmptyParagraph(templateParagraph));
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
                 discardedSoundIds);
         }
 
@@ -232,7 +232,7 @@ namespace OfficeIMO.PowerPoint {
 
                     textBody.Append(paragraph);
                 }
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
                     discardedSoundIds);
             }
         }
@@ -676,7 +676,7 @@ namespace OfficeIMO.PowerPoint {
                 textBody.Append(CreateEmptyParagraph(templateParagraph));
             }
 
-            PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+            PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
                 discardedSoundIds);
 
             return results;

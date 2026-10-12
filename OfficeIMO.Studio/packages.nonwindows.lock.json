@@ -708,8 +708,11 @@
         "type": "Project",
         "dependencies": {
           "OfficeIMO.Excel.IWork": "[3.4.5, )",
+          "OfficeIMO.Excel.Pdf": "[3.4.5, )",
           "OfficeIMO.PowerPoint.IWork": "[3.4.5, )",
+          "OfficeIMO.PowerPoint.Pdf": "[3.4.5, )",
           "OfficeIMO.Word.IWork": "[3.4.5, )",
+          "OfficeIMO.Word.Pdf": "[3.4.5, )",
           "OfficeIMO.Workflows": "[3.4.5, )"
         }
       },

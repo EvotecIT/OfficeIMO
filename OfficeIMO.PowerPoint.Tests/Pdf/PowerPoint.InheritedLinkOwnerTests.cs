@@ -8,7 +8,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PowerPointInheritedLinkOwnerTests {
+public sealed partial class PowerPointInheritedLinkOwnerTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -52,7 +52,7 @@ public sealed class PowerPointInheritedLinkOwnerTests {
         if (kind == "external") owner.AddHyperlinkRelationship(new Uri("https://example.com/correct-owner"), true, "inherited-link");
         else if (kind == "slide") owner.AddHyperlinkRelationship(PowerPointHyperlinkResolver.CreatePartRelativeUri(owner, second.SlidePart), false, "inherited-link");
         first.SlidePart.AddHyperlinkRelationship(new Uri("https://example.com/wrong-owner"), true, "inherited-link");
-        run.RunProperties!.Append(new A.HyperlinkOnClick {
+        (run.Run.RunProperties ??= new A.RunProperties()).Append(new A.HyperlinkOnClick {
             Id = kind == "next" ? string.Empty : "inherited-link",
             Action = kind == "next" ? "ppaction://hlinkshowjump?jump=nextslide" : kind == "slide" ? "ppaction://hlinksldjump" : null
         });
