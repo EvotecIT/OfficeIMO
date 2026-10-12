@@ -1,5 +1,16 @@
 # Upgrading OfficeIMO
 
+## Asynchronous CSV aggregation batch size
+
+`CsvDocument.AggregateRowsAsParallelAsync` uses 1,024 records per worker batch
+when `ParallelRowMappingOptions.BatchSize` is omitted, replacing the previous
+default of 256. Its copied text allowance grows with the effective batch
+capacity, up to 262,144 characters per batch. This reduces scheduling overhead
+while allowing more buffered input and later first-callback delivery. Set
+`BatchSize = 256` explicitly to retain smaller worker batches. Explicit batch
+sizes, bounded worker counts, source-ordered merges and caller stream ownership
+keep their existing behavior.
+
 ## Excel import cancellation and date conversion
 
 `ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
