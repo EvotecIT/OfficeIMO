@@ -59,10 +59,15 @@ Native custom paths retain their declared frame canvas, including inset and
 negative coordinates. Literal vertices, open or closed line and cubic paths,
 subpaths, and no-fill/no-line controls use the shared drawing model. Custom
 picture paths clip the processed image without changing its original asset.
-Geometry guides, advanced commands and separately painted path groups use a
-reported geometry fallback. Native winding and picture-mask appearance remain
-unqualified against Publisher output. `Limits.MaxItems` bounds cumulative native
-path decoding and copied shape/mask commands as well as drawing elements.
+Geometry guides resolve arithmetic, conditional, trigonometric and ellipse
+formulas using geometry-space dimensions, signed adjustments, earlier guides,
+stroke state and frame sizes in EMUs. The table is limited to 128 integer results.
+Invalid references or arithmetic, unsupported device-pixel parameters,
+limousine scaling, advanced commands and separately painted path groups use a
+reported geometry fallback. Producer rounding, native winding and picture-mask
+appearance remain unqualified against Publisher output. `Limits.MaxItems` bounds
+cumulative native vertex, guide and command work and copied shape/mask commands
+as well as drawing elements.
 
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
 column settings and wrap-object references. Linked stories follow their native

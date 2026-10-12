@@ -1,0 +1,7 @@
+Milestone,Owner,DueDate,Progress,NextAction
+Discovery sign-off,Ana,2026-09-04,100,Archive the approved scope
+Access model,Paweł,2026-09-18,100,Keep the approval evidence
+Data migration rehearsal,Markus,2026-09-25,75,Approve the retry window and migration owner
+Support handover,Chloé,2026-09-29,50,Confirm the on-call rota and escalation path
+User acceptance,Saoirse,2026-10-09,40,Book acceptance testing with business owners
+Release approval,Aleksandra,2026-10-16,0,Review acceptance results before approving release

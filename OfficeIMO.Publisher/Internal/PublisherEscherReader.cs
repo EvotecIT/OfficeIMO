@@ -11,22 +11,34 @@ internal sealed class PublisherEscherReader {
     private readonly PublisherParseContext _context;
     private readonly PublisherEscherData _result = new();
     private readonly HashSet<uint> _shapeIds = new();
+    private readonly List<OfficeArtProperty> _defaultProperties = new();
     private readonly OfficeArtBlipStoreEntryReader.DelayedBlipReadCache? _delayedImages;
     internal PublisherEscherReader(PublisherBinaryData data, PublisherBinaryData? delay, PublisherParseContext context) {
         _data = data; _delay = delay; _context = context;
         if (delay != null) _delayedImages = new OfficeArtBlipStoreEntryReader.DelayedBlipReadCache(delay.Bytes);
     }
     internal PublisherEscherData Read() {
-        foreach (PublisherEscherRecord record in Records(0, _data.Length)) Visit(record, null, 0);
+        IReadOnlyList<PublisherEscherRecord> records = Records(0, _data.Length);
+        var groupChildren = new Dictionary<int, IReadOnlyList<PublisherEscherRecord>>();
+        // Dgg FOPT blocks define document-wide defaults, even if a drawing
+        // appears first. Cache their children so record limits charge one read.
+        foreach (PublisherEscherRecord record in records.Where(item => item.Kind == 0xF000 && (item.Initial & 15) == 15)) {
+            IReadOnlyList<PublisherEscherRecord> children = Records(record.Offset, record.End);
+            groupChildren.Add(record.Offset, children);
+            _defaultProperties.AddRange(ReadProperties(children));
+        }
+        foreach (PublisherEscherRecord record in records)
+            Visit(record, null, 0, groupChildren.TryGetValue(record.Offset, out var children) ? children : null);
         return _result;
     }
-    private void Visit(PublisherEscherRecord record, PublisherGroupSpace? space, int depth) {
+    private void Visit(PublisherEscherRecord record, PublisherGroupSpace? space, int depth,
+        IReadOnlyList<PublisherEscherRecord>? cachedChildren = null) {
         _context.CheckDepth(depth);
         if (record.Kind == 0xF001) { ReadImages(record); return; }
         if (record.Kind == 0xF004) { ReadShape(record, space); return; }
         if ((record.Initial & 15) != 15) return;
         PublisherGroupSpace? childSpace = space;
-        foreach (PublisherEscherRecord child in Records(record.Offset, record.End)) {
+        foreach (PublisherEscherRecord child in cachedChildren ?? Records(record.Offset, record.End)) {
             if (record.Kind == 0xF003 && child.Kind == 0xF004) {
                 PublisherEscherShape? shape = ReadShape(child, childSpace);
                 if (shape != null && shape.IsGroup) {
@@ -46,6 +58,14 @@ internal sealed class PublisherEscherReader {
         _data.Range(fsp.Offset, 8, fsp.End);
         uint flags = _data.U32(fsp.Offset + 4);
         IReadOnlyList<OfficeArtProperty> properties = ReadProperties(children);
+        if (_defaultProperties.Count != 0) {
+            // Like client-property pairs, inherited property applications are
+            // native record work. Charge before copying the expanded table.
+            foreach (OfficeArtProperty _ in _defaultProperties) _context.Record();
+            // Boolean use masks preserve independent inherited bits; scalar
+            // consumers select the last value so local properties win.
+            properties = _defaultProperties.Concat(properties).ToArray();
+        }
         uint id = 0;
         if (client != null) {
             Dictionary<ushort, uint> values = ClientValues(client);
@@ -84,6 +104,7 @@ internal sealed class PublisherEscherReader {
             if (count * 6 > property.Length) throw new InvalidDataException("Truncated Publisher OfficeArt property table.");
             var decoded = OfficeArtPropertyTableReader.Read(_data.Bytes, property.Offset, property.Length, (ushort)count);
             foreach (OfficeArtProperty value in decoded) {
+                _context.Record();
                 if (value.IsComplex && !value.HasCompleteComplexData)
                     throw new InvalidDataException("Truncated Publisher OfficeArt complex property.");
                 result.Add(value);

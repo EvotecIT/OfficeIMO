@@ -88,11 +88,10 @@
                 <h4>What to check</h4><p>{{ card.proof }}</p>
                 <h4>Scope</h4><p>{{ card.limit }}</p>
                 <nav class="imo-example__references" aria-label="{{ card.title | html.escape }} implementation">
-                  <a href="{{ card.source_url }}" aria-label="View {{ source_language_label }} source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View {{ source_language_label }} source</a>
+                  {{ if source_language == "powershell" }}<a href="{{ card.walkthrough_url }}#example-code" aria-label="Read PowerShell code: {{ card.title | html.escape }}">Read PowerShell code</a>{{ else }}<a href="{{ card.source_url }}" aria-label="View {{ source_language_label }} source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View {{ source_language_label }} source</a>{{ end }}
                   <a href="{{ card.guide_url }}" aria-label="Read guide: {{ card.title | html.escape }}">Read guide</a><a href="{{ card.api_url }}" aria-label="API reference: {{ card.title | html.escape }}">API reference</a>
                 </nav>
-                {{ include "showcase-run-command" }}
-                <details class="imo-example__run"><summary>{{ if source_language == "powershell" }}Run downloaded script{{ else }}Reproduce from source{{ end }}</summary>{{ if source_language == "powershell" }}<p>Save the script{{ for download in card.downloads }}{{ if download.file_name && download.file_name != card.source_download_name }} and <a href="{{ download.url }}" download="{{ download.file_name | html.escape }}">{{ download.label }}</a>{{ end }}{{ end }} in one folder, then run these commands there. Skip installation if PSWriteOffice is already installed.</p>{{ end }}<pre tabindex="0"><code>{{ run_command | html.escape }}</code></pre>{{ if source_language == "powershell" }}<button type="button" data-copy="{{ run_command | html.escape }}" aria-label="Copy run command: {{ card.title | html.escape }}">Copy</button>{{ end }}</details>
+                {{ if source_language == "powershell" }}<p><a href="{{ card.walkthrough_url }}#example-code">View code: {{ card.title | html.escape }}</a>: follow the input, calculations and document code in the walkthrough.</p>{{ else }}{{ include "showcase-run-command" }}<details class="imo-example__run"><summary>Contributor reproduction</summary><pre tabindex="0"><code>{{ run_command | html.escape }}</code></pre></details>{{ end }}
               </div>
             </details>
           </div>
