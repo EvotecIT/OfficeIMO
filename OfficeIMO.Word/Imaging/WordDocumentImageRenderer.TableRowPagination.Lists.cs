@@ -68,12 +68,12 @@ namespace OfficeIMO.Word {
                         : OfficeTextParagraphIndent.Empty;
                     double maxFontSize = richRuns.Max(run => run.FontSize);
                     double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
-                    OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                    OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
                         richRuns,
                         Math.Max(1D, contentWidth - segmentIndent),
                         double.MaxValue,
                         Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
-                        CreateRichTextMeasure(context.CancellationToken),
+                        CreateRichTextMeasure(context),
                         wrap: true,
                         shrinkToFit: false,
                         minimumFontSize: Math.Min(6D, maxFontSize),

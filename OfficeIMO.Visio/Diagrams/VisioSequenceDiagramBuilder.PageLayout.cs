@@ -56,6 +56,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 AddFragments(page, firstMessageY);
                 AddNotes(page, firstMessageY);
                 EnsureNotesFitPage(page);
+                VisioDiagramPageBackground.Apply(page, _theme.PageBackgroundColor);
                 _document.RequestRecalcOnOpen();
                 return page;
             } finally {
