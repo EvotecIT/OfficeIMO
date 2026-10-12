@@ -57,6 +57,119 @@ public sealed class DrawingMissingSpaceMetricsTests {
         Assert.Equal(24.5D, width, 6);
     }
 
+    [Theory]
+    [InlineData("A\u2003")]
+    [InlineData("\u2003A")]
+    [InlineData("\u2003")]
+    public void MissingEmSynthesisHonorsTheRequestedFamilyRangeInEitherOrder(string text) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(250, 'A'), OfficeFontStyle.Regular, Ranges('A'));
+
+        Assert.False(fonts.TryResolveFaceForText("\u2003", "Scoped", OfficeFontFaceDescriptor.Regular, out _));
+        Assert.False(fonts.TryMeasureText(text, 20D, "Scoped", OfficeFontStyle.Regular, out _));
+    }
+
+    [Theory]
+    [InlineData("A\u2003")]
+    [InlineData("\u2003A")]
+    public void ExplicitResourceRequestCanSynthesizeBeyondTheFamilyRange(string text) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(250, 'A'), OfficeFontStyle.Regular, Ranges('A'));
+        string resource = Assert.Single(fonts.Faces).ResourceFamilyName;
+
+        Assert.True(fonts.TryMeasureText(text, 20D, resource, OfficeFontStyle.Regular, out double width));
+        Assert.Equal(25D, width, 6);
+    }
+
+    [Theory]
+    [InlineData("A\u2003", false)]
+    [InlineData("\u2003A", true)]
+    public void RangeEligibleFallbackSynthesizesTheMissingEmInEitherOrder(string text, bool spaceFirst) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", FontWithAdvance(250, 'A'), OfficeFontStyle.Regular, Ranges('A'))
+            .Add("Blank", FontWithAdvance(725, 'B'), OfficeFontStyle.Regular, Ranges(0x2003))
+            .AddFallbackFamily("Blank");
+        string primary = fonts.Faces[0].ResourceFamilyName;
+        string fallback = fonts.Faces[1].ResourceFamilyName;
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns(text, "Scoped");
+
+        Assert.Equal(spaceFirst ? new[] { fallback, primary } : new[] { primary, fallback },
+            runs.Select(run => run.FamilyName));
+        Assert.True(fonts.TryMeasureText(text, 20D, "Scoped", OfficeFontStyle.Regular, out double width));
+        Assert.Equal(25D, width, 6);
+    }
+
+    [Theory]
+    [InlineData("A\u2003\u0301A", false)]
+    [InlineData("\u2003\u0301A", true)]
+    public void MissingEmAndCombiningMarkSelectOneEligibleFallbackFace(string text, bool spaceFirst) {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", FontWithAdvance(250, 'A'))
+            .Add("Fallback", FontWithAdvance(725, 0x0301))
+            .AddFallbackFamily("Fallback");
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns(text, "Primary");
+
+        Assert.Equal(spaceFirst ? new[] { "Fallback", "Primary" } : new[] { "Primary", "Fallback", "Primary" },
+            runs.Select(run => run.FamilyName));
+        Assert.Equal("\u2003\u0301", runs[spaceFirst ? 0 : 1].Text);
+        Assert.True(fonts.TryMeasureText(text, 20D, "Primary", OfficeFontStyle.Regular, out double width));
+        Assert.Equal((spaceFirst ? 25D : 30D) + 14.5D, width, 6);
+    }
+
+    [Fact]
+    public void CompleteMappedGraphemeWinsBeforeAnyMissingEmSynthesis() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", FontWithAdvance(250, 'A'))
+            .Add("Synthetic", FontWithAdvance(500, 0x0301))
+            .Add("Mapped", FontWithAdvance(725, 0x2003, 0x0301))
+            .AddFallbackFamily("Synthetic")
+            .AddFallbackFamily("Mapped");
+
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns("A\u2003\u0301A", "Primary");
+
+        Assert.Equal(new[] { "Primary", "Mapped", "Primary" }, runs.Select(run => run.FamilyName));
+        Assert.Equal("\u2003\u0301", runs[1].Text);
+        Assert.True(fonts.TryMeasureText("A\u2003\u0301A", 20D, "Primary", OfficeFontStyle.Regular, out double width));
+        Assert.Equal(39D, width, 6);
+    }
+
+    [Fact]
+    public void SynthesizedGraphemeRequiresTheCombiningMarkInsideTheDeclaredRange() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", FontWithAdvance(250, 'A'))
+            .Add("Fallback", FontWithAdvance(725, 0x0301), OfficeFontStyle.Regular, Ranges(0x2003))
+            .AddFallbackFamily("Fallback");
+
+        Assert.False(fonts.TryResolveFaceForText("\u2003\u0301", "Primary", OfficeFontFaceDescriptor.Regular, out _));
+        Assert.False(fonts.TryMeasureText("A\u2003\u0301A", 20D, "Primary", OfficeFontStyle.Regular, out _));
+    }
+
+    [Fact]
+    public void SynthesizedGraphemeRequiresARealCombiningMarkGlyph() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", FontWithAdvance(250, 'A'))
+            .Add("Fallback", FontWithAdvance(725, 'B'))
+            .AddFallbackFamily("Fallback");
+
+        Assert.False(fonts.TryResolveFaceForText("\u2003\u0301", "Primary", OfficeFontFaceDescriptor.Regular, out _));
+        Assert.False(fonts.TryMeasureText("A\u2003\u0301A", 20D, "Primary", OfficeFontStyle.Regular, out _));
+    }
+
+    [Fact]
+    public void EligiblePrecedingFaceRetainsTheWholeSynthesizedGrapheme() {
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Primary", FontWithAdvance(250, 'A', 0x0301))
+            .Add("Fallback", FontWithAdvance(725, 'B', 0x0301))
+            .AddFallbackFamily("Fallback");
+
+        IReadOnlyList<OfficeFontFallbackRun> runs = fonts.PlanFallbackRuns("B\u2003\u0301A", "Primary");
+
+        Assert.Equal(new[] { "Fallback", "Primary" }, runs.Select(run => run.FamilyName));
+        Assert.Equal("B\u2003\u0301", runs[0].Text);
+        Assert.True(fonts.TryMeasureText("B\u2003\u0301A", 20D, "Primary", OfficeFontStyle.Regular, out double width));
+        Assert.Equal(54D, width, 6);
+    }
+
     [Fact]
     public void CoveredWhitespaceKeepsTheCurrentFallbackFamily() {
         var fonts = new OfficeFontFaceCollection()
@@ -172,6 +285,9 @@ public sealed class DrawingMissingSpaceMetricsTests {
 
     private static IOfficeFontProgram LoadFont(byte[] data) =>
         Assert.Single(new OfficeFontFaceCollection().Add("Synthetic", data).Faces).Program;
+
+    private static OfficeFontUnicodeRangeSet Ranges(params int[] scalars) =>
+        new OfficeFontUnicodeRangeSet(scalars.Select(scalar => new OfficeFontUnicodeRange(scalar, scalar)));
 
     private static byte[] FontWithAdvance(ushort advance, params int[] scalars) {
         byte[] data = ManagedTextShapingTestAssets.CreateFont(scalars);

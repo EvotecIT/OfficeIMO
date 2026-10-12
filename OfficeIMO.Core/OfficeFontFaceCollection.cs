@@ -454,10 +454,13 @@ public sealed partial class OfficeFontFaceCollection {
                         break;
                     }
                     resolvedFamily = face?.ResourceFamilyName ??
-                        (OfficeMissingSpaceMetrics.ContainsEmSpace(element) ? currentFamily ?? requestedFamilies : requestedFamilies);
-                    // Uncovered EM spaces inherit the preceding face only after
-                    // every registered glyph candidate was considered. That
-                    // choice depends on this position, so do not cache it by text.
+                        (OfficeMissingSpaceMetrics.ContainsEmSpace(element)
+                            ? ResolveSynthesizedSpaceFace(element, currentFamily, candidates, explicitlySelectedFaces)?.ResourceFamilyName
+                                ?? requestedFamilies
+                            : requestedFamilies);
+                    // Synthesis follows every mapped-glyph candidate and requires
+                    // an eligible face for the complete element. Its preference
+                    // for the preceding face depends on position, so do not cache it.
                     if (face != null || !OfficeMissingSpaceMetrics.ContainsEmSpace(element))
                         resolvedFamilies.Add(element, resolvedFamily);
                 }
