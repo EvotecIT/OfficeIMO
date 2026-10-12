@@ -349,6 +349,157 @@ public sealed class PdfImportedLineFrameFitTests {
         AssertPanelTopBorder(pdf, 2, 90D);
     }
 
+    [Theory]
+    [InlineData("heading", false)]
+    [InlineData("heading", true)]
+    [InlineData("list", false)]
+    [InlineData("list", true)]
+    public void StrictContainerMovesItsOrdinarySingleLineBeforeOpeningDecoration(string kind, bool multiple) {
+        var spacing = multiple ? PdfLineSpacing.Multiple(1.4D) : PdfLineSpacing.Exactly(14D);
+        var document = PdfDocument.Create(Options(50D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+            FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(35D), SpacingBefore = 0D, SpacingAfter = 0D
+        }).Panel(panel => {
+            if (kind == "heading") panel.Heading(1, "A", style: new PdfHeadingStyle {
+                FontSize = 10D, LineSpacing = spacing, KeepWithNext = false, SpacingBefore = 0D, SpacingAfter = 0D
+            });
+            else panel.Numbered(new[] { "A" }, style: new PdfListStyle {
+                FontSize = 10D, MarkerFontSize = 10D, LineSpacing = spacing, KeepTogether = false,
+                SpacingBefore = 0D, SpacingAfter = 0D, ItemSpacing = 0D
+            });
+        }, StrictPanel(1D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("Lead", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(pdf.GetPage(1).Paths, path => path.IsStroked);
+        Assert.Single(pdf.GetPage(2).Letters, letter => letter.Value == "A");
+        AssertPanelTopBorder(pdf, 2, 70D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StrictContainerMovesALaterKeptBlockWithItsClosingPadding(bool row) {
+        var document = PdfDocument.Create(Options(70D)).Panel(panel => {
+            panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+                FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(29D), SpacingBefore = 0D, SpacingAfter = 0D
+            });
+            if (row) panel.Row(builder => builder.Style(new PdfRowStyle {
+                Gap = 0D, KeepTogether = true, SpacingBefore = 0D, SpacingAfter = 0D
+            }).PercentColumn(100D, column => column.Paragraph(p => p.Text("A\nB"), style: new PdfParagraphStyle {
+                FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(20D), KeepTogether = false, WidowControl = false,
+                SpacingBefore = 0D, SpacingAfter = 0D
+            })));
+            else panel.Table(new[] { new[] { "A" }, new[] { "B" } }, style: new PdfTableStyle {
+                HeaderRowCount = 0, FontSize = 10D, LineHeight = 2D, CellPaddingX = 0D, CellPaddingY = 0D,
+                SpacingBefore = 0D, SpacingAfter = 0D, BorderWidth = 0D, KeepTogether = true
+            });
+        }, StrictPanel(1D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("Lead", pdf.GetPage(1).Text);
+        Assert.Equal("AB", string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value)));
+        Assert.All(pdf.GetPages().SelectMany(page => page.Paths).Where(path => path.IsStroked), path =>
+            Assert.True(path.GetBoundingRectangle() is { } bounds && bounds.Bottom >= 20D - .001D));
+    }
+
+    [Fact]
+    public void StrictZeroPaddingContainerReservesTrailingColumnPanelAndRowSpacing() {
+        var innerStyle = StrictPanel(0D);
+        innerStyle.SpacingAfter = 10D;
+        var document = PdfDocument.Create(Options(60D)).Panel(panel => panel
+            .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+                FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(35D), SpacingBefore = 0D, SpacingAfter = 0D
+            }).Row(row => row.Style(new PdfRowStyle {
+                Gap = 0D, KeepTogether = false, SpacingBefore = 0D, SpacingAfter = 5D
+            }).PercentColumn(100D, column => column.Panel(inner => inner.Paragraph(p => p.Text("A"),
+                style: new PdfParagraphStyle {
+                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(20D), SpacingBefore = 0D, SpacingAfter = 0D
+                }), innerStyle))), StrictPanel(0D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("Lead", pdf.GetPage(1).Text);
+        Assert.Equal("A", pdf.GetPage(2).Text);
+        Assert.All(pdf.GetPages().SelectMany(page => page.Paths).Where(path => path.IsStroked), path =>
+            Assert.True(path.GetBoundingRectangle() is { } bounds && bounds.Bottom >= 20D - .001D));
+    }
+
+    [Fact]
+    public void StrictContainerRetainsIntermediateTableCapacityBeforeLargeTerminalSpacing() {
+        var document = PdfDocument.Create(Options(60D)).Panel(panel => panel.Table(
+            new[] { new[] { "A\nB\nC\nD\nE\nF" } }, style: new PdfTableStyle {
+                HeaderRowCount = 0, FontSize = 10D, LineHeight = 2D, CellPaddingX = 0D, CellPaddingY = 0D,
+                SpacingBefore = 0D, SpacingAfter = 25D, BorderWidth = 0D,
+                RowAllowBreakAcrossPages = new System.Collections.Generic.List<bool?> { true }
+            }), StrictPanel(0D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal("ABC", pdf.GetPage(1).Text);
+        Assert.Equal("DE", pdf.GetPage(2).Text);
+        Assert.Equal("F", pdf.GetPage(3).Text);
+    }
+
+    [Theory]
+    [InlineData("paragraph")]
+    [InlineData("table")]
+    [InlineData("list-item")]
+    [InlineData("list-items")]
+    public void StrictContainerMovesLaterKeptColumnContentWithClosingPadding(string kind) {
+        var document = PdfDocument.Create(Options(70D)).Panel(panel => panel.Row(row => row
+            .Style(new PdfRowStyle { Gap = 0D, KeepTogether = false, SpacingBefore = 0D, SpacingAfter = 0D })
+            .PercentColumn(100D, column => {
+                column.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(29D), SpacingBefore = 0D, SpacingAfter = 0D
+                });
+                if (kind == "paragraph") column.Paragraph(p => p.Text("A\nB"), style: new PdfParagraphStyle {
+                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(20D), KeepTogether = true, WidowControl = false,
+                    SpacingBefore = 0D, SpacingAfter = 0D
+                });
+                else if (kind == "table") column.Table(new[] { new[] { "A" }, new[] { "B" } }, style: new PdfTableStyle {
+                    HeaderRowCount = 0, FontSize = 10D, LineHeight = 2D, CellPaddingX = 0D, CellPaddingY = 0D,
+                    SpacingBefore = 0D, SpacingAfter = 0D, BorderWidth = 0D, KeepTogether = true
+                });
+                else column.Numbered(kind == "list-item" ? new[] { "A\nB" } : new[] { "A", "B" },
+                    style: new PdfListStyle {
+                        FontSize = 10D, MarkerFontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(20D), KeepTogether = true,
+                        SpacingBefore = 0D, SpacingAfter = 0D, ItemSpacing = 0D
+                    });
+            })), StrictPanel(1D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal("Lead", pdf.GetPage(1).Text);
+        Assert.Equal("AB", string.Concat(pdf.GetPage(2).Letters.Where(letter => letter.Value is "A" or "B")
+            .Select(letter => letter.Value)));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StrictZeroPaddingContainerReservesTerminalColumnTableSpacing(bool split) {
+        var document = PdfDocument.Create(Options(60D)).Panel(panel => panel.Row(row => row
+            .Style(new PdfRowStyle { Gap = 0D, KeepTogether = false, SpacingBefore = 0D, SpacingAfter = 0D })
+            .PercentColumn(100D, column => {
+                if (!split) column.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+                    FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(40D), SpacingBefore = 0D, SpacingAfter = 0D
+                });
+                column.Table(new[] { new[] { split ? "A\nB\nC\nD\nE\nF" : "A" } }, style: new PdfTableStyle {
+                    HeaderRowCount = 0, FontSize = 10D, LineHeight = 2D, CellPaddingX = 0D, CellPaddingY = 0D,
+                    SpacingBefore = 0D, SpacingAfter = split ? 25D : 5D, BorderWidth = 0D,
+                    RowAllowBreakAcrossPages = new System.Collections.Generic.List<bool?> { split }
+                });
+            })), StrictPanel(0D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(split ? 3 : 2, pdf.NumberOfPages);
+        Assert.Equal(split ? "ABC" : "Lead", pdf.GetPage(1).Text);
+        Assert.Equal(split ? "DE" : "A", pdf.GetPage(2).Text);
+        if (split) Assert.Equal("F", pdf.GetPage(3).Text);
+    }
+
     private static void AssertPanelTopBorder(PdfPigDocument document, int pageNumber, double y) =>
         Assert.Contains(document.GetPage(pageNumber).Paths.Where(path => path.IsStroked)
             .SelectMany(path => path).SelectMany(subpath => subpath.Commands).OfType<UglyToad.PdfPig.Core.PdfSubpath.Line>(),
