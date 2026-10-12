@@ -151,47 +151,10 @@ internal static partial class PdfWriter {
                 || Math.Abs(cdB) <= tolerance && CanvasPointOnSegment(b.X, b.Y, c, d, tolerance);
         }
 
-        private static List<List<OfficePoint>> FlattenCanvasClipContours(IReadOnlyList<OfficePathCommand> commands) {
-            const int curveSegments = 16;
-            var contours = new List<List<OfficePoint>>();
-            List<OfficePoint>? contour = null;
-            OfficePoint current = default;
-            foreach (OfficePathCommand command in commands) {
-                if (command.Kind == OfficePathCommandKind.MoveTo) {
-                    if (contour != null && contour.Count > 1) contours.Add(contour);
-                    contour = new List<OfficePoint> { command.Point };
-                    current = command.Point;
-                } else if (contour != null && command.Kind == OfficePathCommandKind.LineTo) {
-                    contour.Add(command.Point);
-                    current = command.Point;
-                } else if (contour != null && command.Kind == OfficePathCommandKind.QuadraticBezierTo) {
-                    OfficePoint start = current;
-                    for (int index = 1; index <= curveSegments; index++) {
-                        double t = index / (double)curveSegments;
-                        double inverse = 1D - t;
-                        contour.Add(new OfficePoint(
-                            inverse * inverse * start.X + 2D * inverse * t * command.ControlPoint1.X + t * t * command.Point.X,
-                            inverse * inverse * start.Y + 2D * inverse * t * command.ControlPoint1.Y + t * t * command.Point.Y));
-                    }
-                    current = command.Point;
-                } else if (contour != null && command.Kind == OfficePathCommandKind.CubicBezierTo) {
-                    OfficePoint start = current;
-                    for (int index = 1; index <= curveSegments; index++) {
-                        double t = index / (double)curveSegments;
-                        double inverse = 1D - t;
-                        contour.Add(new OfficePoint(
-                            inverse * inverse * inverse * start.X + 3D * inverse * inverse * t * command.ControlPoint1.X + 3D * inverse * t * t * command.ControlPoint2.X + t * t * t * command.Point.X,
-                            inverse * inverse * inverse * start.Y + 3D * inverse * inverse * t * command.ControlPoint1.Y + 3D * inverse * t * t * command.ControlPoint2.Y + t * t * t * command.Point.Y));
-                    }
-                    current = command.Point;
-                } else if (contour != null && command.Kind == OfficePathCommandKind.Close) {
-                    if (contour.Count > 1) contours.Add(contour);
-                    contour = null;
-                }
-            }
-            if (contour != null && contour.Count > 1) contours.Add(contour);
-            return contours;
-        }
+        private static List<List<OfficePoint>> FlattenCanvasClipContours(IReadOnlyList<OfficePathCommand> commands) =>
+            OfficePathFlattener.Flatten(commands, 0, 0, 1, curveSegments: 16)
+                .Where(contour => contour.Points.Count > 1)
+                .Select(contour => new List<OfficePoint>(contour.Points)).ToList();
 
         private static bool CanvasPointOnSegment(double x, double y, OfficePoint a, OfficePoint b, double tolerance) {
             double cross = CanvasCross(a, b, x, y);

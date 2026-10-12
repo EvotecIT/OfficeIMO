@@ -100,7 +100,7 @@ internal sealed partial class PublisherPageProjector {
             return;
         }
         if (shape.IsGroup) { _projected.Add(shape.Id); return; }
-        if (shape.Style.Hidden == true) { _projected.Add(shape.Id); return; }
+        if (shape.Hidden) { _projected.Add(shape.Id); return; }
         if (!shape.Bounds.HasValue) {
             _context.Add("PUB_OBJECT_ANCHOR_UNRESOLVED", "A publication object has no resolved native anchor.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
@@ -108,12 +108,16 @@ internal sealed partial class PublisherPageProjector {
         double x = bounds.X, y = bounds.Y, width = bounds.Width, height = bounds.Height;
         double rotation = shape.Transform.RotationDegrees.GetValueOrDefault();
         double geometryWidth = width, geometryHeight = height;
+        if (!shape.LayoutTransform.TryInvert(out _) || !shape.GroupTransform.TryInvert(out _)) {
+            _context.Add("PUB_DEGENERATE_OBJECT_OMITTED", "An object in a collapsed group was omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
+        }
         if (shape.Type == 20 && (width > 0 || height > 0)) { width = Math.Max(width, 0.01); height = Math.Max(height, 0.01); }
         if (width <= 0 || height <= 0) {
             _context.Add("PUB_DEGENERATE_OBJECT_OMITTED", "A zero-sized drawing object was omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
         if (!FiniteRectangle(x, y, width, height)) throw new InvalidDataException("Publisher group projection produced invalid geometry.");
-        if (x < 0 || y < 0 || x + width > page.Width || y + height > page.Height)
+        var printableBounds = PageTransform(shape, bounds).TransformRectangleBounds(x, y, width, height);
+        if (printableBounds.Left < 0 || printableBounds.Top < 0 || printableBounds.Right > page.Width || printableBounds.Bottom > page.Height)
             _context.Add("PUB_PAGE_BLEED_CLIPPED", "Artwork outside the publication page remains in the scene but is clipped to the printable page in exports.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(shape.Id));
         var local = new OfficeDrawing(width, height);
         ProjectGraphic(shape, local, geometryWidth, geometryHeight);
@@ -133,10 +137,29 @@ internal sealed partial class PublisherPageProjector {
                     OfficeConversionLossKind.Approximation, "Quill");
             } else _context.Add("PUB_TEXT_REFERENCE_UNRESOLVED", "A text frame refers to an unavailable story.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
         }
+        if (local.Elements.Count == 0) {
+            // A valid empty frame remains recovered without a retained raster surface.
+            _projected.Add(shape.Id);
+            return;
+        }
         foreach (OfficeDrawingElement element in local.Elements) element.SourceElementIds = new[] { "publisher-object-" + shape.Id };
         var transform = new OfficeImageFrameTransform(rotation, x + width / 2, y + height / 2, shape.Transform.FlipHorizontal, shape.Transform.FlipVertical);
         _context.AccountProjection(local);
-        page.AddDrawingForClippedRendering(local, x, y, transform);
+        if (shape.GroupTransform == shape.LayoutTransform && (rotation == 0 || shape.LayoutTransform.M11 == shape.LayoutTransform.M22))
+            page.AddDrawingForClippedRendering(local, x, y, transform);
+        else {
+            OfficeTransform groupTransform = GroupPageTransform(shape);
+            if (!groupTransform.TryInvert(out _))
+                throw new InvalidDataException("Publisher group projection produced a singular transform.");
+            var paint = GroupChildPaintBounds(local);
+            // Retain this child's paint before transforming it onto the page.
+            // A page-sized intermediate per child needlessly exhausts raster budgets.
+            if (!local.TryExpandViewportCanvas(paint.Left, paint.Top, paint.Right, paint.Bottom,
+                    double.MaxValue, double.MaxValue, out OfficeDrawing retained, out double left, out double top))
+                throw new InvalidDataException("Publisher group projection produced invalid viewport geometry.");
+            page.AddEffectDrawing(retained, OfficeTransform.Translate(left + x, top + y)
+                .Then(PageTransform(shape, bounds)));
+        }
         if (local.Elements.Count > 0 || _textFrames.ContainsKey(shape.Id)) _projected.Add(shape.Id);
     }
     private OfficeTextPadding TextPadding(PublisherEscherShape shape) => new(

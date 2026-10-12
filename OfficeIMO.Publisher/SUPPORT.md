@@ -17,6 +17,10 @@ The generation signature does not establish qualification for every Publisher
 release or object type. Independent producer files exercise real native storage;
 they are not produced by an OfficeIMO writer.
 
+Inline OfficeArt picture data stays in the preserved source and reports omitted
+artwork; positioned reconstruction uses image-store references. Cleared picture
+references do not report missing images.
+
 ## Reconstruction
 
 | Content | Current behavior | Limit |
@@ -26,8 +30,9 @@ they are not produced by an OfficeIMO writer.
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
-| Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and non-solid fills report approximation; compound strokes and arrowheads remain unassessed |
-| Groups | Native child coordinate spaces and nested placement | Group rotation/mirroring reports approximation when present |
+| Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and non-solid fills report approximation; compound and non-solid strokes remain unassessed |
+| Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; marker shadows and decorations on unsupported open geometry are omitted with diagnostics |
+| Groups | Native child coordinate spaces, non-uniform scale after child rotation, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder; recoloring and other picture effects are unassessed |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
@@ -55,7 +60,14 @@ from managed measurement, not claimed as native cached break positions. Later
 empty frames have zero-length ranges. Native chains are checked for reciprocal
 links, matching story ownership, consecutive ordinals, cycles and disconnected
 frames. Ambiguous unlinked roots report omission instead of guessed ordering.
-A missing printable frame stops subsequent assignment for that story.
+A missing printable frame stops subsequent assignment for that story. Frame
+`X`, `Y`, `Width` and `Height` describe its unrotated rectangle; `PageTransform`
+maps frame-local points into page-local points after object and ancestor-group
+rotation/reflection and scale. Child-anchor rotations use `relRotation` when
+explicitly stored, including zero; otherwise they use the ordinary rotation
+property. The same transforms reach artwork and rectangular wrap
+exclusions. Hidden group descendants retain their source stories and assets but
+do not paint or exclude printable text.
 
 ## Qualification and limits
 
@@ -73,6 +85,17 @@ cancellation and caller stream ownership. The native newsletter exercises ten
 linked stories, including chains whose object order differs from story order,
 and declared picture exclusions. Multi-column property and malformed-link
 mutations protect the native codec boundary; they are synthetic evidence.
+Group rotation/reflection mutations verify text-frame corners, picture placement,
+hidden-child wrapping and scene copying. A reflected picture starting above the
+page retains its pixels through the group transform and final page clip.
+Constructed nested native records check
+composition about distinct centres, quarter-turn anchor dimensions and the
+projected-item ceiling. These tests do not establish Publisher-rendered fidelity.
+Native line-property mutations check caps, joins, fixed-point miter limits,
+dash order and spacing, all five supported marker kinds, disabled strokes,
+unknown values and scene copying. SVG, raster and PDF retain open arrows as
+outlines and other markers as filled geometry. Marker dimensions and native dash
+rendering remain unqualified against Publisher-produced output.
 The brochure and newsletter also verify referenced style defaults, direct
 formatting precedence, native bullet labels and tab-array positions. Those
 checks compare decoded values with the native records, not Publisher-rendered

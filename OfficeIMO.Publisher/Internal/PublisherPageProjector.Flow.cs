@@ -19,7 +19,7 @@ internal sealed partial class PublisherPageProjector {
                 _context.Record();
                 uint? owner = Owner(frame.Chunk.Id, 0);
                 if (!owner.HasValue || !artwork.TryGetValue(frame.Chunk.Id, out PublisherEscherShape? shape)
-                    || !shape.Bounds.HasValue || shape.IsGroup || shape.Style.Hidden == true) {
+                    || !shape.Bounds.HasValue || shape.IsGroup || shape.Hidden || !shape.LayoutTransform.TryInvert(out _) || !shape.GroupTransform.TryInvert(out _)) {
                     // Subsequent frames cannot safely be assigned the missing frame's text.
                     unavailable = true;
                     _context.Add("PUB_TEXT_CHAIN_FRAME_UNAVAILABLE", "A story frame has no printable resolved drawing. Continuation after this frame remains unplaced; the complete story is retained.",
@@ -62,7 +62,8 @@ internal sealed partial class PublisherPageProjector {
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
                 var model = new PublisherTextFrame(frame.Chunk.Id, story.Id, owner.Value, PreviousFrame(frame), NextFrame(frame),
                     frame.Value(0x28) ?? 0, bounds.X, bounds.Y, bounds.Width, bounds.Height,
-                    (int)columns, gap, start, end - start, overflow, frame.WrapObjects);
+                    (int)columns, gap, start, end - start, overflow, frame.WrapObjects,
+                    OfficeTransform.Translate(bounds.X, bounds.Y).Then(PageTransform(shape, bounds)));
                 _textFrames.Add(frame.Chunk.Id, new PreparedTextFrame(model, content));
                 if (!unavailable) _usedStories.Add(story.Id);
             }
@@ -114,12 +115,11 @@ internal sealed partial class PublisherPageProjector {
     }
 
     private static FrameRectangle FrameBounds(PublisherEscherShape shape, double pageWidth, double pageHeight) {
-        PublisherNativeRectangle native = shape.Bounds!.Value;
-        double x = Math.Min(native.X1, native.X2) / 12700 + pageWidth / 2;
-        double y = Math.Min(native.Y1, native.Y2) / 12700 + pageHeight / 2;
-        double width = Math.Abs(native.X2 - native.X1) / 12700, height = Math.Abs(native.Y2 - native.Y1) / 12700;
-        double angle = ((shape.Transform.RotationDegrees.GetValueOrDefault() % 360) + 360) % 360;
-        if (angle is >= 45 and < 135 or >= 225 and < 315) { x += (width - height) / 2; y += (height - width) / 2; (width, height) = (height, width); }
+        PublisherNativeRectangle native = shape.Bounds!.Value.Unrotated(shape.Transform.RotationDegrees.GetValueOrDefault());
+        var mapped = shape.LayoutTransform.TransformRectangleBounds(Math.Min(native.X1, native.X2), Math.Min(native.Y1, native.Y2),
+            Math.Abs(native.X2 - native.X1), Math.Abs(native.Y2 - native.Y1));
+        double x = mapped.Left / 12700 + pageWidth / 2, y = mapped.Top / 12700 + pageHeight / 2;
+        double width = (mapped.Right - mapped.Left) / 12700, height = (mapped.Bottom - mapped.Top) / 12700;
         return new FrameRectangle(x, y, width, height);
     }
 
