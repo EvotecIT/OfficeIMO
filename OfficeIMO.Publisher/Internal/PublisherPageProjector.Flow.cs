@@ -19,7 +19,7 @@ internal sealed partial class PublisherPageProjector {
                 _context.Record();
                 uint? owner = Owner(frame.Chunk.Id, 0);
                 if (!owner.HasValue || !artwork.TryGetValue(frame.Chunk.Id, out PublisherEscherShape? shape)
-                    || !shape.Bounds.HasValue || shape.IsGroup || shape.Hidden) {
+                    || !shape.Bounds.HasValue || shape.IsGroup || shape.Hidden || !shape.LayoutTransform.TryInvert(out _) || !shape.GroupTransform.TryInvert(out _)) {
                     // Subsequent frames cannot safely be assigned the missing frame's text.
                     unavailable = true;
                     _context.Add("PUB_TEXT_CHAIN_FRAME_UNAVAILABLE", "A story frame has no printable resolved drawing. Continuation after this frame remains unplaced; the complete story is retained.",

@@ -8,23 +8,32 @@ internal static partial class PdfWriter {
     /// <summary>Measures projected fill and stroke after the shape's actual clip geometry.</summary>
     private static bool TryGetShapePaintBounds(OfficeShape shape, double x, double bottomY,
         PdfOptions? options, string source, string contentKind,
-        out double left, out double bottom, out double width, out double height) {
+        out double left, out double bottom, out double width, out double height, bool conservativeWhenUnmeasured = false) {
         try {
             return TryMeasureShapePaintBounds(shape, x, bottomY, options, source, contentKind,
-                out left, out bottom, out width, out height);
+                out left, out bottom, out width, out height, conservativeWhenUnmeasured);
         } catch (Exception error) when (error is InvalidOperationException or NotSupportedException) {
             // Diagnostic inspection may exhaust its bounded geometry work even
             // when the native writer can emit the original path and dash array.
             options?.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
                 source + " " + contentKind + " paint bounds exceed the geometry inspection limit; physical page clipping is unassessed.");
             left = bottom = width = height = 0D;
-            return false;
+            if (!conservativeWhenUnmeasured) return false;
+            var bounds = shape.Kind == OfficeShapeKind.Path ? OfficePathGeometry.Bounds(shape.PathCommands)
+                : (Left: 0D, Top: 0D, Right: shape.Width, Bottom: shape.Height);
+            double outset = shape.StrokeWidth > 0 && HasVisibleBoundsPaint(shape.StrokeColor, shape.StrokeGradient, shape.StrokeRadialGradient, shape.StrokeOpacity)
+                ? shape.StrokeWidth / 2 * Math.Max(1D, PdfPaintMiterLimit(shape)) : 0D;
+            var mapped = (shape.Transform ?? OfficeTransform.Identity).TransformRectangleBounds(
+                bounds.Left - outset, bounds.Top - outset, bounds.Right - bounds.Left + 2 * outset, bounds.Bottom - bounds.Top + 2 * outset);
+            left = x + mapped.Left; bottom = bottomY + shape.Height - mapped.Bottom;
+            width = mapped.Right - mapped.Left; height = mapped.Bottom - mapped.Top;
+            return width > 0 && height > 0;
         }
     }
 
     private static bool TryMeasureShapePaintBounds(OfficeShape shape, double x, double bottomY,
         PdfOptions? options, string source, string contentKind,
-        out double left, out double bottom, out double width, out double height) {
+        out double left, out double bottom, out double width, out double height, bool conservativeWhenUnmeasured) {
         left = bottom = width = height = 0D;
         if (shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return false;
         IReadOnlyList<OfficeTextInkClip>? clips = shape.ClipPath == null ? null : new[] {
@@ -63,12 +72,20 @@ internal static partial class PdfWriter {
             Measure(paint, geometry.FillRule, geometry, false);
         }
         void Measure(List<List<OfficePoint>> paint, OfficeFillRule rule, OfficeShape geometry, bool stroke) {
+            List<List<OfficePoint>>? mapped = null;
+            List<List<OfficePoint>> MappedPaint() {
+                if (mapped != null) return mapped;
+                mapped = new List<List<OfficePoint>>();
+                foreach (var ring in paint) mapped.Add(Map(ring, geometry));
+                return mapped;
+            }
             var effectiveClips = clips == null ? new List<OfficeTextInkClip>() : new List<OfficeTextInkClip>(clips);
             var linear = stroke ? geometry.StrokeGradient : geometry.FillGradient;
             var radial = stroke ? geometry.StrokeRadialGradient : geometry.FillRadialGradient;
             if (!TryCreateGradientAlphaContours(geometry, paint, linear, radial, out var alpha)) {
                 options?.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
                     source + " " + contentKind + " gradient alpha bounds are unassessed; physical page clipping is unassessed.");
+                if (conservativeWhenUnmeasured) IncludeUnmeasuredGeometry(MappedPaint());
                 return;
             }
             if (alpha != null) {
@@ -77,16 +94,25 @@ internal static partial class PdfWriter {
                 foreach (var ring in alpha) mappedAlpha.Add(Map(ring, geometry));
                 effectiveClips.Add(OfficeTextInkClip.FromFilledContours(mappedAlpha, OfficeFillRule.EvenOdd));
             }
-            var mapped = new List<List<OfficePoint>>();
-            foreach (var ring in paint) mapped.Add(Map(ring, geometry));
-            var bounds = OfficeRasterCanvas.MeasureNominalFilledContourBounds(mapped, rule, effectiveClips);
+            var bounds = OfficeRasterCanvas.MeasureNominalFilledContourBounds(MappedPaint(), rule, effectiveClips);
             if (!bounds.IsMeasured) {
                 options?.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
                     source + " " + contentKind + " paint bounds exceed the contour inspection limit; physical page clipping is unassessed.");
+                if (conservativeWhenUnmeasured) IncludeUnmeasuredGeometry(MappedPaint());
             } else if (bounds.HasInk) {
                 IncludeShapeBounds(bounds.Left, bounds.Top, bounds.Right - bounds.Left, bounds.Bottom - bounds.Top,
                     ref hasBounds, ref paintLeft, ref paintBottom, ref paintWidth, ref paintHeight);
             }
+        }
+        void IncludeUnmeasuredGeometry(List<List<OfficePoint>> mapped) {
+            double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
+            double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+            foreach (var ring in mapped) foreach (var point in ring) {
+                minX = Math.Min(minX, point.X); minY = Math.Min(minY, point.Y);
+                maxX = Math.Max(maxX, point.X); maxY = Math.Max(maxY, point.Y);
+            }
+            if (maxX > minX && maxY > minY) IncludeShapeBounds(minX, minY, maxX - minX, maxY - minY,
+                ref hasBounds, ref paintLeft, ref paintBottom, ref paintWidth, ref paintHeight);
         }
         List<OfficePoint> Map(IReadOnlyList<OfficePoint> ring, OfficeShape geometry) {
             var mapped = new List<OfficePoint>(ring.Count);

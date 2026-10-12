@@ -962,6 +962,7 @@ namespace OfficeIMO.Tests.Pdf {
             shape.StrokeColor = OfficeColor.Black;
             shape.StrokeWidth = 4;
             shape.StrokeLineJoin = OfficeStrokeLineJoin.Miter;
+            shape.StrokeMiterLimit = 200;
             shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 30D, 0D);
             var report = new PdfConversionReport();
             var options = new PdfOptions {

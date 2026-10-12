@@ -8,15 +8,16 @@ public static partial class OfficeDrawingSvgExporter {
     private static bool UsesSharedMarkerField(OfficeShape shape) {
         if (shape.Kind is not (OfficeShapeKind.Line or OfficeShapeKind.Path)
             || (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null)) return false;
-        OfficeFlattenedPathContour? first = null, last = null;
-        foreach (var contour in OfficeStrokeGeometry.FlattenShape(shape, 1D)) {
-            if (contour.Closed || contour.Points.Count < 2) continue;
-            first ??= contour; last = contour;
-        }
-        bool Paints(OfficeLineMarker? marker, OfficePoint tip, OfficePoint adjacent) =>
-            OfficeLineMarkerGeometry.CreateContour(marker, tip, new OfficePoint(tip.X - adjacent.X, tip.Y - adjacent.Y)).Count >= 3;
-        return first != null && Paints(shape.StrokeStartMarker, first.Points[0], first.Points[1])
-            || last != null && Paints(shape.StrokeEndMarker, last.Points[last.Points.Count - 1], last.Points[last.Points.Count - 2]);
+        if (!OfficeLineMarkerGeometry.TryEndpoints(shape, out var start, out var startDirection, out var end, out var endDirection)) return false;
+        return OfficeLineMarkerGeometry.CreateContour(shape.StrokeStartMarker, start, startDirection).Count >= 3
+            || OfficeLineMarkerGeometry.CreateContour(shape.StrokeEndMarker, end, endDirection).Count >= 3;
+    }
+
+    private static void AppendPathMarkers(StringBuilder sb, OfficeShape shape, double originX, double originY, string transform, string? strokeGradientId) {
+        if (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null) return;
+        if (!OfficeLineMarkerGeometry.TryEndpoints(shape, out var start, out var startDirection, out var end, out var endDirection)) return;
+        AppendLineMarker(sb, shape.StrokeStartMarker, new(start.X + originX, start.Y + originY), startDirection, shape, transform, strokeGradientId);
+        AppendLineMarker(sb, shape.StrokeEndMarker, new(end.X + originX, end.Y + originY), endDirection, shape, transform, strokeGradientId);
     }
 
     private static OfficeTransform GetStrokeFieldCoordinates(OfficeDrawingShape drawing) {
