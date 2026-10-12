@@ -15,7 +15,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         lock (snapshot) {
             byte[]? previous = snapshot.Data;
             if (previous == null || !string.Equals(snapshot.RequestedFamilyName, requestedFamilyName, StringComparison.Ordinal)
-                || !previous.AsSpan().SequenceEqual(caller)) {
+                || !MatchesCaller(previous, caller)) {
                 // The caller can edit or reuse its buffer between constructions.
                 // Never expose that buffer or change an earlier family's snapshot.
                 snapshot.Data = (byte[])caller.Clone();
@@ -23,6 +23,18 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
             return snapshot.Data!;
         }
+    }
+
+    private static bool MatchesCaller(byte[] snapshot, byte[] caller) {
+#if NET8_0_OR_GREATER
+        return snapshot.AsSpan().SequenceEqual(caller);
+#else
+        // Older supported targets do not require a span compatibility package.
+        for (int index = 0; index < snapshot.Length; index++) {
+            if (snapshot[index] != caller[index]) return false;
+        }
+        return true;
+#endif
     }
 
     private sealed class FaceSnapshot {
