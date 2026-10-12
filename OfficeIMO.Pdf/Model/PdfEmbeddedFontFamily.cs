@@ -42,10 +42,10 @@ public sealed partial class PdfEmbeddedFontFamily {
         if (boldItalic != null) PdfFontInput.EnsureWithinLimit(boldItalic.LongLength);
 
         FamilyName = familyName.Trim();
-        _regular = (byte[])regular.Clone();
-        _bold = CloneOptional(bold);
-        _italic = CloneOptional(italic);
-        _boldItalic = CloneOptional(boldItalic);
+        _regular = SnapshotFace(regular);
+        _bold = bold == null ? null : SnapshotFace(bold);
+        _italic = italic == null ? null : SnapshotFace(italic);
+        _boldItalic = boldItalic == null ? null : SnapshotFace(boldItalic);
     }
 
     /// <summary>Family name used for generated PDF font resource names.</summary>
