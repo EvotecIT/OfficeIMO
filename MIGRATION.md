@@ -55,6 +55,16 @@ Use the typed `ReadVbaProject()` and
 `SetVbaProject(...)` workflow for explicit source changes and signature policy;
 use `RemoveMacros()` only when removing the entire project is intended.
 
+## Word native DOC font alignment
+
+Native DOC loading and saving use the format's top, center, baseline, bottom and
+automatic font-alignment values. Earlier OfficeIMO DOC saves with an explicit
+`WordParagraph.VerticalCharacterAlignmentOnLine` could encode a different
+alignment than requested; loading those files now follows the stored native value.
+For affected OfficeIMO-produced DOC files, reload the original DOCX source or
+reapply the intended `WordVerticalCharacterAlignment` value after loading, then
+save again. Use the named enum values when setting alignment.
+
 ## PDF named composite font mappings
 
 Text extraction throws `NotSupportedException` when shown text uses a named
