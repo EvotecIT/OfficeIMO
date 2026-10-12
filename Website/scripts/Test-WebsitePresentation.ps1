@@ -75,6 +75,7 @@ function Assert-ContainsPattern {
 
 $showcase = Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/showcase.json') -Raw | ConvertFrom-Json -Depth 40
 $galleryHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'showcase/index.html')
+$powerShellProductHtml = Get-RequiredText -Path (Join-Path $siteRootPath 'products/pswriteoffice/index.html')
 Assert-ContainsAttribute -Text $galleryHtml -Name 'id' -Value 'showcase-language' -Contract 'showcase language selection'
 foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
     $cardId = [regex]::Escape($card.id)
@@ -91,6 +92,10 @@ foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
     Assert-ContainsAttribute -Text $walkthroughHtml -Name 'class' -Value "language-$($card.source_language)" -Contract "$($card.id) syntax highlighting"
     if ($card.source_language -eq 'powershell') {
         Assert-ContainsLiteral -Text $walkthroughHtml -Expected 'Import-Module PSWriteOffice' -Contract "$($card.id) ordinary module usage"
+        $sourceHref = [regex]::Escape($card.source_url)
+        if (($galleryHtml + $walkthroughHtml + $powerShellProductHtml) -cmatch ('<a\b[^>]*\shref=["'']?' + $sourceHref + '["'']?(?=\s|>)')) {
+            throw "PowerShell example '$($card.id)' must present its code in the walkthrough without a script-download link."
+        }
         $source = (Get-Content -LiteralPath (Join-Path $sourceRootPath 'data/showcase_sources.json') -Raw | ConvertFrom-Json).($card.id)
         $codeBlocks = [regex]::Matches($walkthroughHtml, '(?s)<code\b[^>]*>(?<code>.*?)</code>')
         $matchingCode = @($codeBlocks | Where-Object { [Net.WebUtility]::HtmlDecode($_.Groups['code'].Value) -ceq $source })

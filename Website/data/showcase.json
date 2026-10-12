@@ -1935,11 +1935,6 @@
       "run_command": "pwsh -NoProfile -File ./PatchComplianceReport.ps1 -OutputDirectory ./out",
       "downloads": [
         {
-          "label": "PowerShell script",
-          "url": "/downloads/showcase/source/PowerShell/PatchComplianceReport.ps1.txt",
-          "file_name": "PatchComplianceReport.ps1"
-        },
-        {
           "label": "DOCX",
           "url": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
         },
@@ -1986,8 +1981,7 @@
           "width": 868,
           "height": 1123
         }
-      ],
-      "source_download_name": "PatchComplianceReport.ps1"
+      ]
     },
     {
       "id": "pswriteoffice-project-delivery",
@@ -2023,11 +2017,6 @@
       "source_path": "OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1",
       "run_command": "pwsh -NoProfile -File ./ProjectDeliveryPack.ps1 -InputPath ./ProjectMilestones.csv -OutputDirectory ./out",
       "downloads": [
-        {
-          "label": "PowerShell script",
-          "url": "/downloads/showcase/source/PowerShell/ProjectDeliveryPack.ps1.txt",
-          "file_name": "ProjectDeliveryPack.ps1"
-        },
         {
           "label": "XLSX",
           "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx"
@@ -2084,8 +2073,7 @@
           "width": 868,
           "height": 1123
         }
-      ],
-      "source_download_name": "ProjectDeliveryPack.ps1"
+      ]
     },
     {
       "id": "pswriteoffice-budget-review",
@@ -2121,11 +2109,6 @@
       "source_path": "OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1",
       "run_command": "pwsh -NoProfile -File ./BudgetForecastReview.ps1 -InputPath ./BudgetForecast.csv -OutputDirectory ./out",
       "downloads": [
-        {
-          "label": "PowerShell script",
-          "url": "/downloads/showcase/source/PowerShell/BudgetForecastReview.ps1.txt",
-          "file_name": "BudgetForecastReview.ps1"
-        },
         {
           "label": "XLSX",
           "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
@@ -2182,8 +2165,7 @@
           "width": 868,
           "height": 1123
         }
-      ],
-      "source_download_name": "BudgetForecastReview.ps1"
+      ]
     },
     {
       "id": "executive-pdf-dashboard",

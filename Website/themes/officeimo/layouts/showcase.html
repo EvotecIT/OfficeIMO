@@ -88,7 +88,7 @@
                 <h4>What to check</h4><p>{{ card.proof }}</p>
                 <h4>Scope</h4><p>{{ card.limit }}</p>
                 <nav class="imo-example__references" aria-label="{{ card.title | html.escape }} implementation">
-                  <a href="{{ card.source_url }}" aria-label="View {{ source_language_label }} source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View {{ source_language_label }} source</a>
+                  {{ if source_language == "powershell" }}<a href="{{ card.walkthrough_url }}#example-code" aria-label="Read PowerShell code: {{ card.title | html.escape }}">Read PowerShell code</a>{{ else }}<a href="{{ card.source_url }}" aria-label="View {{ source_language_label }} source: {{ card.title | html.escape }}" target="_blank" rel="noopener">View {{ source_language_label }} source</a>{{ end }}
                   <a href="{{ card.guide_url }}" aria-label="Read guide: {{ card.title | html.escape }}">Read guide</a><a href="{{ card.api_url }}" aria-label="API reference: {{ card.title | html.escape }}">API reference</a>
                 </nav>
                 {{ if source_language == "powershell" }}<p><a href="{{ card.walkthrough_url }}#example-code">View code: {{ card.title | html.escape }}</a>: follow the input, calculations and document code in the walkthrough.</p>{{ else }}{{ include "showcase-run-command" }}<details class="imo-example__run"><summary>Contributor reproduction</summary><pre tabindex="0"><code>{{ run_command | html.escape }}</code></pre></details>{{ end }}

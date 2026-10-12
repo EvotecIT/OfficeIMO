@@ -34,7 +34,7 @@
     <p>{{ if source_language == "powershell" }}Follow the code below to see how the input becomes the report. Change the data and output folder for your own review.{{ else }}The example below shows the document API and layout used for this report. Follow the {{ card.format }} guide for package setup in your own project.{{ end }}</p>
     {{ if source_language == "powershell" }}<p>Use PSWriteOffice in your reporting session:</p><pre class="language-powershell" tabindex="0"><code class="language-powershell">Import-Module PSWriteOffice</code></pre>{{ end }}
     <pre class="language-{{ source_language }}" tabindex="0" aria-label="Scrollable {{ source_language_label }} source"><code class="language-{{ source_language }}">{{ source | html.escape }}</code></pre>
-    <a href="{{ card.source_url }}"{{ if source_language == "powershell" }} download="{{ card.source_download_name | html.escape }}"{{ end }}>{{ if source_language == "powershell" }}Download {{ card.source_download_name }}{{ else }}Open the {{ source_language_label }} source file{{ end }}</a>
+    {{ if source_language != "powershell" }}<a href="{{ card.source_url }}">Open the {{ source_language_label }} source file</a>{{ end }}
     {{~ api_links_title = "API used in this example"; api_links_path = card.walkthrough_url ~}}
     {{ include "api-links" }}
   </section>
