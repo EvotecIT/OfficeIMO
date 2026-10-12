@@ -131,8 +131,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
         bool supportsFolderNavigation = true,
         Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null,
-        MainWindowViewModel? sharedWorkbenches = null) {
+        MainWindowViewModel? sharedWorkbenches = null,
+        Func<CancellationToken, Task<OfficeIMO.Ocr.IOcrEngine>>? orientationEngineFactory = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
+        _createOrientationEngine = orientationEngineFactory ?? CreateOrientationEngineAsync;
         _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
@@ -664,6 +666,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.Signatures.Changed -= OnSavedSignaturesChanged;
         DisposeSavedSignaturePreviews();
         ClearTextReview();
+        ClearOrientationReview();
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         _services.DocumentHistory.RecentDocumentsChanged -= OnRecentDocumentsChanged;
@@ -711,6 +714,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyCollection<int>? organizerSelection = null) {
         IsReplacingReaderPresentation = true;
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
+        ClearOrientationReview();
         ClearFormPreview();
         if (isDocumentTransition) SaveDocumentViewState();
         CancelPendingRedaction();

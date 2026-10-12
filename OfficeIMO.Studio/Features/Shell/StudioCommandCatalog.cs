@@ -56,6 +56,8 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
             () => Allowed(document.CanRotateSelection));
         Add("NormalizePageRotation", "Normalize saved rotation", "Keep the selected pages' appearance while baking saved rotation into content and page geometry.", "Organize", document.NormalizePageRotationCommand,
             () => Allowed(document.CanNormalizePageRotation));
+        Add("DetectPageOrientation", "Review page orientation", "Detect suggested corrections, preview them, and accept individual pages before rotating the document.", "Organize", document.DetectPageOrientationCommand,
+            () => Loaded() ?? Infrastructure.StudioOcrProvider.UnavailableReason ?? Allowed(document.CanDetectPageOrientation));
         Add("DuplicatePages", "Duplicate selected pages", "Insert copies of the selected pages after them.", "Organize", document.DuplicateSelectedCommand,
             () => Allowed(document.CanMutateSelection));
         Add("ExtractPages", "Extract selected pages", "Save the selected pages as a new PDF.", "Organize", document.ExtractSelectedCommand,

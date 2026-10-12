@@ -3040,4 +3040,13 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Return the reader to the PDF's saved page orientation.</value></data>
   <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Normalize saved rotation</value></data>
   <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Keep the selected pages' appearance while baking saved rotation into content and page geometry.</value></data>
+  <data name="Commands.DetectPageOrientation.Title" xml:space="preserve"><value>Review page orientation</value></data>
+  <data name="Commands.DetectPageOrientation.Description" xml:space="preserve"><value>Detect suggested corrections, preview them, and accept individual pages before rotating the document.</value></data>
+  <data name="Orientation.Hint" xml:space="preserve"><value>Preview each suggested correction before accepting it. Confidence is provider-specific; no page is selected automatically.</value></data>
+  <data name="Orientation.Page" xml:space="preserve"><value>Page {0}: {1}° clockwise · confidence {2}</value></data>
+  <data name="Orientation.Preview" xml:space="preserve"><value>Preview this page</value></data>
+  <data name="Orientation.Before" xml:space="preserve"><value>Original</value></data>
+  <data name="Orientation.After" xml:space="preserve"><value>Proposed correction</value></data>
+  <data name="Orientation.Accept" xml:space="preserve"><value>Accept this page correction</value></data>
+  <data name="Orientation.Apply" xml:space="preserve"><value>Apply accepted corrections</value></data>
 </root>

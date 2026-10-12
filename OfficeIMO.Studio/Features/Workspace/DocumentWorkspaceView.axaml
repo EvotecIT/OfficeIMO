@@ -1037,6 +1037,25 @@
                 <Button Classes="tool" Command="{Binding Commands[NormalizePageRotation]}" Content="{loc:Loc Commands.NormalizePageRotation.Title}"
                         ToolTip.Tip="{Binding Commands[NormalizePageRotation].StatusToolTip}" ToolTip.ShowOnDisabled="True"
                         AutomationProperties.Name="{loc:Loc Commands.NormalizePageRotation.Title}" />
+                <Button Classes="tool" Command="{Binding Commands[DetectPageOrientation]}" Content="{loc:Loc Commands.DetectPageOrientation.Title}"
+                        ToolTip.Tip="{Binding Commands[DetectPageOrientation].StatusToolTip}" ToolTip.ShowOnDisabled="True" />
+                <StackPanel IsVisible="{Binding HasOrientationReview}" Spacing="{StaticResource StudioSpaceS}">
+                  <TextBlock Text="{loc:Loc Orientation.Hint}" TextWrapping="Wrap" Classes="muted" />
+                  <ComboBox ItemsSource="{Binding OrientationChoices}" SelectedItem="{Binding SelectedOrientationChoice, Mode=TwoWay}" HorizontalAlignment="Stretch">
+                    <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:PageOrientationChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
+                  </ComboBox>
+                  <Button Content="{loc:Loc Orientation.Preview}" Command="{Binding PreviewPageOrientationCommand}" />
+                  <StackPanel IsVisible="{Binding HasOrientationPreview}" Spacing="4">
+                    <TextBlock Text="{loc:Loc Orientation.Before}" Classes="groupLabel" />
+                    <Border Background="{DynamicResource StudioPanelMutedBrush}" Padding="6" CornerRadius="4"><Image Source="{Binding OrientationBefore}" Height="160" Stretch="Uniform" /></Border>
+                    <TextBlock Text="{loc:Loc Orientation.After}" Classes="groupLabel" />
+                    <Border Background="{DynamicResource StudioPanelMutedBrush}" Padding="6" CornerRadius="4"><Image Source="{Binding OrientationAfter}" Height="160" Stretch="Uniform" /></Border>
+                  </StackPanel>
+                  <TextBlock Text="{Binding SelectedOrientationChoice.Diagnostics}" TextWrapping="Wrap" Classes="muted" />
+                  <CheckBox Content="{loc:Loc Orientation.Accept}" IsChecked="{Binding SelectedOrientationChoice.IsAccepted, Mode=TwoWay}" IsEnabled="{Binding SelectedOrientationChoice.CanAccept}" />
+                  <Button Content="{loc:Loc Orientation.Apply}" Command="{Binding ApplyPageOrientationReviewCommand}" IsEnabled="{Binding CanApplyOrientationReview}" />
+                  <Button Content="{loc:Loc Inspector.Cancel}" Command="{Binding DismissPageOrientationReviewCommand}" />
+                </StackPanel>
                 <TextBlock Text="{loc:Loc DocumentWorkspace.CropMargin}" Classes="groupLabel" Margin="0,4,0,0" /><TextBox Text="{Binding CropMargin}" PlaceholderText="{loc:Loc DocumentWorkspace.Points}" />
                 <TextBlock Text="{loc:Loc Crop.PreviewHint}" IsVisible="{Binding HasPendingCrop}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
                 <TextBlock Text="{loc:Loc Crop.VisibilityHint}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />

@@ -115,6 +115,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanMutateSelection));
         OnPropertyChanged(nameof(CanRotateSelection));
         OnPropertyChanged(nameof(CanNormalizePageRotation));
+        OnPropertyChanged(nameof(CanDetectPageOrientation));
         OnPropertyChanged(nameof(CanCropSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
@@ -412,6 +413,7 @@ public sealed partial class MainWindowViewModel {
 
     private void RefreshWorkspacePresentation(IReadOnlyCollection<int>? organizerSelection = null) {
         if (_workspace is null) return;
+        ClearOrientationReview();
         CancelPendingRedaction();
         ClearObjectSelection();
         int selectedPage = Math.Clamp(SelectedPage?.PageNumber ?? 1, 1, _workspace.Pages.Count);
@@ -454,6 +456,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanMutatePages));
         OnPropertyChanged(nameof(CanRotatePages));
         OnPropertyChanged(nameof(CanNormalizePageRotation));
+        OnPropertyChanged(nameof(CanDetectPageOrientation));
         OnPropertyChanged(nameof(CanCropPages));
         OnPropertyChanged(nameof(CanExtractPages));
         OnPropertyChanged(nameof(CanImportPages));
