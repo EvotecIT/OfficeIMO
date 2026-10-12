@@ -500,7 +500,7 @@ internal static partial class PdfWriter {
 
             foreach (OfficeShape marker in CreateLineMarkerShapes(shape.Shape)) {
                 if (!TryGetShapePaintBounds(marker, x, topY - marker.Height, null, "Body", "marker",
-                        out double markerX, out double markerY, out double markerWidth, out double markerHeight)) continue;
+                        out double markerX, out double markerY, out double markerWidth, out double markerHeight, conservativeWhenUnmeasured: true)) continue;
                 x1 = Math.Min(x1, markerX); x2 = Math.Max(x2, markerX + markerWidth);
                 y1 = Math.Min(y1, markerY); y2 = Math.Max(y2, markerY + markerHeight);
             }

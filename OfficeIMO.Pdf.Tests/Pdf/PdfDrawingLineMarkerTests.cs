@@ -254,6 +254,56 @@ public sealed class PdfDrawingLineMarkerTests {
         Assert.True(report.HasLoss);
     }
 
+    [Fact]
+    public void MarkerTangentsSelectTheFirstAndLastEligibleOpenContours() {
+        var shape = OfficeShape.Path(100, 60,
+            OfficePathCommand.MoveTo(0, 0), OfficePathCommand.LineTo(1, 1), OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(20, 20), OfficePathCommand.CubicBezierTo(20, 20, 40, 20, 40, 40),
+            OfficePathCommand.MoveTo(70, 10), OfficePathCommand.LineTo(70, 10),
+            OfficePathCommand.MoveTo(80, 40), OfficePathCommand.LineTo(81, 41), OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(90, 50));
+        shape.StrokeWidth = 1; shape.StrokeColor = OfficeColor.Red;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
+        byte[] bytes = PdfDocument.Create().Compose(b => b.Page(p => p.Size(100, 60).Margin(0)
+            .Canvas(c => c.Drawing(new OfficeDrawing(100, 60).AddShape(shape, 0, 0), 0, 0, 100, 60)))).ToBytes();
+        Assert.Equal(2, Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Count(item => item.Shape.FillColor == OfficeColor.Red));
+        OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));
+        Assert.True(image.GetPixel(29, 17).R > 200 && image.GetPixel(29, 17).G < 50);
+        Assert.True(image.GetPixel(43, 31).R > 200 && image.GetPixel(43, 31).G < 50);
+    }
+
+    [Fact]
+    public void NativeCurvedMarkersDoNotRequirePhysicalResolutionFlattening() {
+        var commands = new List<OfficePathCommand> { OfficePathCommand.MoveTo(0, 1) };
+        for (int i = 0; i < 500; i++) commands.Add(OfficePathCommand.CubicBezierTo(i, 2, i + 1, 0, i + 1, 1));
+        var shape = OfficeShape.Path(500, 2, commands);
+        shape.Transform = OfficeTransform.Scale(1E14, 1E14);
+        shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 1;
+        shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 1, 1);
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 1, 1);
+        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 1000, PageHeight = 1000,
+            MarginLeft = 10, MarginRight = 10 }).Shape(shape).ToBytes();
+        string text = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains(" c", text);
+        Assert.DoesNotContain("/Subtype /Image", text);
+    }
+
+    [Fact]
+    public void UnmeasuredRadialMarkerPaintStillExpandsTheLinkGeometry() {
+        var shape = OfficeShape.Line(0, 0, 80, 0);
+        shape.StrokeWidth = 2;
+        shape.StrokeRadialGradient = new OfficeRadialGradient(0, 0, 0, .5, .5, 1,
+            new OfficeGradientStop(0, OfficeColor.Transparent),
+            new OfficeGradientStop(1, new OfficeColor(0, 0, 255, 128)));
+        shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, 40, 40);
+        var options = new PdfOptions { PageWidth = 200, PageHeight = 200, MarginLeft = 30, MarginRight = 30,
+            MarginTop = 30, MarginBottom = 30 };
+        byte[] bytes = PdfDocument.Create(options).Shape(shape, linkUri: "https://example.test/marker").ToBytes();
+        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
+        Assert.True(link.Y2 - link.Y1 >= 39.99);
+    }
+
     private static IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing drawing) {
         foreach (OfficeDrawingElement element in drawing.Elements) {
             if (element is OfficeDrawingShape shape) yield return shape;

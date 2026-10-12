@@ -207,6 +207,7 @@ internal static partial class PdfWriter {
     }
 
     private static string BuildHeaderFooterShapes(
+        RunningShapePaintCache paintCache,
         LayoutResult.Page page,
         PdfOptions options,
         int variantPageNumber,
@@ -215,6 +216,7 @@ internal static partial class PdfWriter {
         int documentPages) {
         var sb = new StringBuilder();
         AddHeaderFooterShapes(
+            paintCache,
             sb,
             page,
             options,
@@ -225,6 +227,7 @@ internal static partial class PdfWriter {
             documentPages,
             isHeader: true);
         AddHeaderFooterShapes(
+            paintCache,
             sb,
             page,
             options,
@@ -239,6 +242,7 @@ internal static partial class PdfWriter {
     }
 
     private static void AddHeaderFooterShapes(
+        RunningShapePaintCache paintCache,
         StringBuilder sb,
         LayoutResult.Page page,
         PdfOptions options,
@@ -271,12 +275,13 @@ internal static partial class PdfWriter {
                 (imagesWidth > 0D ? imagesWidth + HeaderFooterInlineGap : 0D) +
                 consumedWidth;
 
-            AddHeaderFooterShape(sb, page, options, shape, shapeX, isHeader);
+            AddHeaderFooterShape(paintCache, sb, page, options, shape, shapeX, isHeader);
             consumedWidths[shape.Align] = consumedWidth + shape.Width + HeaderFooterInlineGap;
         }
     }
 
     private static void AddHeaderFooterShape(
+        RunningShapePaintCache paintCache,
         StringBuilder sb,
         LayoutResult.Page page,
         PdfOptions options,
@@ -291,14 +296,13 @@ internal static partial class PdfWriter {
         double bottomY = isHeader
             ? options.PageHeight - options.MarginTop + options.HeaderOffsetY - block.Shape.Height
             : options.MarginBottom - options.FooterOffsetY;
-        if (TryGetHeaderFooterShapeBounds(block.Shape, x, bottomY, options, source, out double visibleX, out double visibleY, out double visibleWidth, out double visibleHeight)) {
-            ReportHeaderFooterBounds(options, source, "shape", visibleX, visibleY, visibleWidth, visibleHeight);
-        }
-        foreach (OfficeShape marker in CreateLineMarkerShapes(block.Shape)) {
-            double markerBottomY = bottomY + block.Shape.Height - marker.Height;
-            if (TryGetShapePaintBounds(marker, x, markerBottomY, options, source, "marker", out double markerX, out double markerY, out double markerWidth, out double markerHeight))
-                ReportHeaderFooterBounds(options, source, "marker", markerX, markerY, markerWidth, markerHeight);
-        }
+        RunningShapePaint paint = paintCache.Get(headerFooterShape, block.Shape);
+        foreach (string message in paint.UnmeasuredMessages)
+            options.AddUnassessedLayoutWarning("HeaderFooterPaintBoundsUnmeasured", source,
+                message.Replace("Running shape", source));
+        foreach (RunningPaintBounds bounds in paint.Bounds)
+            ReportHeaderFooterBounds(options, source, bounds.Kind,
+                x + bounds.X, bottomY + bounds.Y, bounds.Width, bounds.Height);
 
         DrawHeaderFooterShapeGeometryAt(sb, page, block.Shape, x, bottomY);
     }
