@@ -33,8 +33,8 @@ namespace OfficeIMO.Excel.Utilities {
         /// Explicit stored widths already include cell padding. Implicit base widths exclude
         /// five pixels of padding and round upward to the next eight-pixel default-column boundary.
         /// </summary>
-        internal static int GetWidthPixels(Column? column, SheetFormatProperties? format, double maximumDigitWidth) {
-            if (column?.Hidden?.Value == true) return 0;
+        internal static int GetWidthPixels(Column? column, SheetFormatProperties? format, double maximumDigitWidth, bool includeHidden = false) {
+            if (!includeHidden && column?.Hidden?.Value == true) return 0;
             double? stored = column?.Width?.Value > 0D && column.CustomWidth?.Value == true
                 ? column.Width.Value : format?.DefaultColumnWidth?.Value;
             double pixels;

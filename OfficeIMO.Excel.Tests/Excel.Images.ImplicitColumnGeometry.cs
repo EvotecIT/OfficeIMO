@@ -26,9 +26,11 @@ namespace OfficeIMO.Tests {
 
             ExcelImage image = sheet.AddImageToRange("A1:C2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
             Assert.Equal(expectedPixels, image.WidthPixels);
+            Assert.Equal((double)expectedPixels, sheet.Range("A1:C2").CreateVisualSnapshot().Columns.Sum(column => column.Width));
             byte[] package = document.ToBytes(ExcelFileFormat.Xlsx);
             using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(package));
             Assert.Equal(expectedPixels, reopened.Sheets[0].Images.Single().WidthPixels);
+            Assert.Equal((double)expectedPixels, reopened.Sheets[0].Range("A1:C2").CreateVisualSnapshot().Columns.Sum(column => column.Width));
         }
 
         [Fact]
