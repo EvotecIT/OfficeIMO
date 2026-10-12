@@ -343,7 +343,9 @@ the default inset is zero. Flow images with `ScaleDownToFit` account for the
 panel's padding and inset when choosing their size.
 Continued images use the space available after the first fragment's top padding.
 Continuous panels reserve final text's full line advance and closing padding.
-If that content fits a fresh page or column, it moves there before the panel's decoration opens.
+They also reserve terminal table and row spacing. Lists and tables that must stay
+together are measured before the panel's decoration opens. Content that fits a
+fresh page or column moves there as needed.
 Intermediate fragments keep their normal capacity. Content that cannot leave
 closing space even in a fresh frame is rejected.
 

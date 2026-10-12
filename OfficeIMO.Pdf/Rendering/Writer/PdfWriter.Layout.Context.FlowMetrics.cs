@@ -99,10 +99,6 @@ internal static partial class PdfWriter {
 
         private PdfParagraphStyle? EffectiveParagraphStyle(RichParagraphBlock paragraph) => paragraph.Style ?? currentOpts.DefaultParagraphStyleSnapshot;
 
-        private double MeasureNextParagraphFirstVisualHeight(RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize,
-            bool suppressSpacingBefore = false, ContainerClosingSpace closingSpace = default) =>
-            MeasureParagraphFirstVisual(paragraph, frameX, frameWidth, fontSize, suppressSpacingBefore, closingSpace).Height;
-
         private static double MeasureParagraphFirstLinesFrameFitHeight(
             IReadOnlyList<List<RichSeg>> lines, IReadOnlyList<double> heights, double leading, int count,
             ContainerClosingSpace closingSpace = default, double spacingAfter = 0D) {
@@ -176,10 +172,8 @@ internal static partial class PdfWriter {
             if (blocks.Length == 0) return (0D, PdfKeepTogetherOverflowBehavior.Reject);
             ContainerClosingSpace closingSpace = blocks.Length == 1 ? enclosingClosingSpace.Include(style) : default;
             return MeasureWithContainerPaddingReservation(style, () =>
-                blocks[0] is RichParagraphBlock paragraph
-                    ? MeasureParagraphFirstVisual(paragraph, contentX, contentWidth, currentOpts.DefaultFontSize, closingSpace: closingSpace)
-                    : (MeasureNextBlockFirstVisualHeight(blocks[0], contentX, contentWidth,
-                        currentOpts.DefaultFontSize, allowTableFragments: true, closingSpace: closingSpace), PdfKeepTogetherOverflowBehavior.Reject));
+                MeasureFirstVisualAdmission(blocks[0], contentX, contentWidth, currentOpts.DefaultFontSize,
+                    allowTableFragments: true, closingSpace: closingSpace));
         }
 
         private const int MaxKeepWithNextChainBlocks = 256;
@@ -361,27 +355,34 @@ internal static partial class PdfWriter {
 
         private double MeasureNextBlockFirstVisualHeight(IPdfBlock block, double frameX, double frameWidth, double fontSize,
             bool allowTableFragments = false, bool suppressParagraphSpacingBefore = false,
+            ContainerClosingSpace closingSpace = default) =>
+            MeasureFirstVisualAdmission(block, frameX, frameWidth, fontSize, allowTableFragments,
+                suppressParagraphSpacingBefore, closingSpace).Height;
+
+        private (double Height, PdfKeepTogetherOverflowBehavior Overflow) MeasureFirstVisualAdmission(
+            IPdfBlock block, double frameX, double frameWidth, double fontSize,
+            bool allowTableFragments = false, bool suppressParagraphSpacingBefore = false,
             ContainerClosingSpace closingSpace = default) {
             if (block is SemanticBlock semantic) {
-                return MeasureFirstNestedVisualHeight(semantic.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
+                return MeasureFirstNestedVisual(semantic.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
             }
 
             if (block is LayerBlock layer) {
-                return MeasureFirstNestedVisualHeight(layer.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
+                return MeasureFirstNestedVisual(layer.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
             }
 
             if (block is SectionBlock section) {
                 if (section.Options.StartOnNewPage) {
-                    return 0D;
+                    return (0D, PdfKeepTogetherOverflowBehavior.Reject);
                 }
 
                 if (section.Options.IncludeHeading) {
                     var sectionHeading = new HeadingBlock(section.Options.Level, section.Title, PdfAlign.Left, color: null, style: section.Options.HeadingStyle);
-                    return MeasureNextBlockFirstVisualHeight(sectionHeading, frameX, frameWidth, fontSize,
+                    return MeasureFirstVisualAdmission(sectionHeading, frameX, frameWidth, fontSize,
                         closingSpace: section.Blocks.Count == 0 ? closingSpace : default);
                 }
 
-                return MeasureFirstNestedVisualHeight(section.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
+                return MeasureFirstNestedVisual(section.Blocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
             }
 
             if (block is ContainerBlock container) {
@@ -392,28 +393,29 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Container padding must leave positive content width.");
                 }
 
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset +
-                       MeasureWithContainerPaddingReservation(style, () =>
-                           MeasureFirstNestedVisualHeight(container.Blocks, containerFrame.X + style.PaddingX, contentWidth, fontSize,
-                               allowTableFragments, suppressParagraphSpacingBefore, closingSpace.Include(style)));
+                var visual = MeasureWithContainerPaddingReservation(style, () =>
+                    MeasureFirstNestedVisual(container.Blocks, containerFrame.X + style.PaddingX, contentWidth, fontSize,
+                        allowTableFragments, suppressParagraphSpacingBefore, closingSpace.Include(style)));
+                return (ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.TopPadding + style.FragmentPaddingReservation +
+                    style.FragmentBottomInset + visual.Height, visual.Overflow);
             }
 
             if (block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null) {
-                return MeasureFirstNestedVisualHeight(flow.StaticBlocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
+                return MeasureFirstNestedVisual(flow.StaticBlocks, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
             }
 
             if (block is MultiColumnBlock columns) {
                 double totalGap = columns.Options.Gap * (columns.Options.ColumnCount - 1);
                 if (totalGap >= frameWidth) {
-                    return 0D;
+                    return (0D, PdfKeepTogetherOverflowBehavior.Reject);
                 }
 
                 double columnWidth = (frameWidth - totalGap) / columns.Options.ColumnCount;
-                return MeasureFirstNestedVisualHeight(columns.Blocks, frameX, columnWidth, fontSize);
+                return MeasureFirstNestedVisual(columns.Blocks, frameX, columnWidth, fontSize);
             }
 
             if (block is RichParagraphBlock paragraph) {
-                return MeasureNextParagraphFirstVisualHeight(paragraph, frameX, frameWidth, fontSize, suppressParagraphSpacingBefore, closingSpace);
+                return MeasureParagraphFirstVisual(paragraph, frameX, frameWidth, fontSize, suppressParagraphSpacingBefore, closingSpace);
             }
 
             if (block is HeadingBlock heading) {
@@ -427,94 +429,79 @@ internal static partial class PdfWriter {
                     var runs = CreateHeadingTextRuns(heading, headingStyle, heading.Color ?? headingStyle.Color);
                     var wrap = WrapRichRunsWithSpacing(runs, frameWidth, headingSize, ChooseNormal(currentOpts.DefaultFont),
                         headingLeading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle.LineSpacing);
-                    return spacingBefore + (wrap.Lines.Count == 0 ? 0D :
+                    return (spacingBefore + (wrap.Lines.Count == 0 ? 0D :
                         (wrap.Lines.Count == 1 ? closingSpace : default).GetTextHeight(wrap.Lines[0], wrap.LineHeights[0],
-                            GetHeadingSpacingAfter(headingStyle, headingLeading)));
+                            GetHeadingSpacingAfter(headingStyle, headingLeading))), PdfKeepTogetherOverflowBehavior.Reject);
                 }
-                return spacingBefore + headingLeading;
+                return (spacingBefore + headingLeading, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is SpacerBlock spacer) {
-                return spacer.Height;
+                return (spacer.Height, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is PdfListBlock list) {
-                PdfListStyle? listStyle = ResolveListStyle(list, currentOpts);
-                double size = GetListFontSize(listStyle, fontSize);
-                double markerSize = GetListMarkerFontSize(listStyle, size);
-                double leading = Math.Max(GetListLeading(listStyle, size), GetListLeading(listStyle, markerSize));
-                string? firstItem = list.Items.Count > 0 ? list.Items[0] : null;
-                if (firstItem == null) {
-                    return listStyle?.SpacingBefore ?? 0D;
-                }
-
-                if (listStyle?.LineSpacing?.FontLineBoxMultiplier != null && listStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
-                    PreparedListLayout prepared = PrepareListLayout(list, frameWidth, fontSize, topLevelSpacing: true);
-                    TableCellTextLayout first = prepared.Items[0].TextLayout;
-                    return listStyle.SpacingBefore + (first.LineCount == 0 ? 0D :
-                        (prepared.Items.Count == 1 && first.LineCount == 1 ? closingSpace : default).GetTextHeight(
-                            first.Lines[0], GetRichLineHeight(first.LineHeights, 0, leading), prepared.SpacingAfter));
-                }
-                return (listStyle?.SpacingBefore ?? 0D) + leading;
+                return MeasureListFirstVisual(list, frameWidth, fontSize, closingSpace);
             }
 
 
             if (block is TableBlock table) {
-                return MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: true, allowTableFragments);
+                return (MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: true, allowTableFragments, closingSpace), PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is DeferredTableBlock deferredTable) {
-                return MeasureDeferredTableFirstVisualHeight(deferredTable, frameWidth, fontSize);
+                return (MeasureDeferredTableFirstVisualHeight(deferredTable, frameWidth, fontSize), PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.Thickness + style.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(style.SpacingBefore) + style.Thickness + style.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is TextFieldBlock textField) {
-                return ResolveTopLevelSpacingBefore(textField.SpacingBefore) + textField.Height + textField.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(textField.SpacingBefore) + textField.Height + textField.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is TextAnnotationBlock textAnnotation)
-                return ResolveTopLevelSpacingBefore(textAnnotation.SpacingBefore) + textAnnotation.Height + textAnnotation.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(textAnnotation.SpacingBefore) + textAnnotation.Height + textAnnotation.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
             if (block is FreeTextAnnotationBlock freeTextAnnotation)
-                return ResolveTopLevelSpacingBefore(freeTextAnnotation.SpacingBefore) + freeTextAnnotation.Height + freeTextAnnotation.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(freeTextAnnotation.SpacingBefore) + freeTextAnnotation.Height + freeTextAnnotation.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
             if (block is HighlightAnnotationBlock highlightAnnotation)
-                return ResolveTopLevelSpacingBefore(highlightAnnotation.SpacingBefore) + highlightAnnotation.Height + highlightAnnotation.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(highlightAnnotation.SpacingBefore) + highlightAnnotation.Height + highlightAnnotation.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
 
             if (block is CheckBoxBlock checkBox) {
-                return ResolveTopLevelSpacingBefore(checkBox.SpacingBefore) + checkBox.Size + checkBox.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(checkBox.SpacingBefore) + checkBox.Size + checkBox.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is ChoiceFieldBlock choiceField) {
-                return ResolveTopLevelSpacingBefore(choiceField.SpacingBefore) + choiceField.Height + choiceField.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(choiceField.SpacingBefore) + choiceField.Height + choiceField.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is RadioButtonGroupBlock radioButtonGroup) {
-                return ResolveTopLevelSpacingBefore(radioButtonGroup.SpacingBefore) + radioButtonGroup.Height + radioButtonGroup.SpacingAfter;
+                return (ResolveTopLevelSpacingBefore(radioButtonGroup.SpacingBefore) + radioButtonGroup.Height + radioButtonGroup.SpacingAfter, PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is ImageBlock image) {
-                return MeasureImageBlockHeight(image, frameWidth);
+                return (MeasureImageBlockHeight(image, frameWidth), PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is ShapeBlock shape) {
-                return MeasureShapeBlockHeight(shape);
+                return (MeasureShapeBlockHeight(shape), PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is DrawingBlock drawing) {
-                return MeasureDrawingBlockHeight(drawing, frameWidth);
+                return (MeasureDrawingBlockHeight(drawing, frameWidth), PdfKeepTogetherOverflowBehavior.Reject);
             }
 
             if (block is RowBlock row) {
-                return MeasureRowBlockHeight(row, frameX, frameWidth, fontSize, firstVisualOnly: true);
+                return (MeasureRowBlockHeight(row, frameX, frameWidth, fontSize, firstVisualOnly: true, closingSpace), PdfKeepTogetherOverflowBehavior.Reject);
             }
 
-            return 0D;
+            return (0D, PdfKeepTogetherOverflowBehavior.Reject);
         }
 
-        private double MeasureFirstNestedVisualHeight(IReadOnlyList<IPdfBlock> blocks, double frameX, double frameWidth, double fontSize,
+        private (double Height, PdfKeepTogetherOverflowBehavior Overflow) MeasureFirstNestedVisual(
+            IReadOnlyList<IPdfBlock> blocks, double frameX, double frameWidth, double fontSize,
             bool allowTableFragments = false, bool suppressParagraphSpacingBefore = false,
             ContainerClosingSpace closingSpace = default) {
             for (int index = 0; index < blocks.Count; index++) {
@@ -527,14 +514,14 @@ internal static partial class PdfWriter {
                 for (int next = index + 1; next < blocks.Count; next++) {
                     if (!IsNonVisualFlowMarker(blocks[next])) { closesSequence = false; break; }
                 }
-                double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize, allowTableFragments,
+                var visual = MeasureFirstVisualAdmission(block, frameX, frameWidth, fontSize, allowTableFragments,
                     suppressParagraphSpacingBefore, closesSequence ? closingSpace : default);
-                if (height <= .001D && (block is SemanticBlock or LayerBlock or ContainerBlock or SpacerBlock ||
+                if (visual.Height <= .001D && (block is SemanticBlock or LayerBlock or ContainerBlock or SpacerBlock ||
                     block is FlowBlock flow && !flow.IsReplayable && flow.Options.ShowIf == null && flow.StaticBlocks != null)) continue;
-                return height;
+                return visual;
             }
 
-            return 0D;
+            return (0D, PdfKeepTogetherOverflowBehavior.Reject);
         }
 
         private double MeasureDeferredTableFirstVisualHeight(DeferredTableBlock table, double frameWidth, double fontSize) {
@@ -564,7 +551,8 @@ internal static partial class PdfWriter {
         }
 
 
-        private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly) {
+        private double MeasureRowBlockHeight(RowBlock row, double frameX, double frameWidth, double fontSize, bool firstVisualOnly,
+            ContainerClosingSpace closingSpace = default) {
             int columns = row.Columns.Count;
             PdfRowStyle? rowStyle = row.StyleSnapshot ?? currentOpts.DefaultRowStyleSnapshot;
             double spacingBefore = ResolveTopLevelSpacingBefore(rowStyle?.SpacingBefore ?? 0D);
@@ -590,20 +578,23 @@ internal static partial class PdfWriter {
                 }
             }
 
-            if (firstVisualOnly) {
+            if (firstVisualOnly && !closingSpace.RequiresFullAdvance) {
                 return spacingBefore + tallestFirstVisual;
             }
 
             var columnItems = BuildRowColumnItems(row, columnWidths);
+            if (firstVisualOnly && rowStyle?.KeepTogether != true && !CanRowCompleteOnItsFirstVisual(columnItems))
+                return spacingBefore + tallestFirstVisual;
             double contentHeight = 0D;
             foreach (var items in columnItems) {
                 contentHeight = Math.Max(contentHeight, MeasureRowKeepTogetherHeight(items));
             }
 
-            return spacingBefore + contentHeight + (rowStyle?.SpacingAfter ?? 0D);
+            return spacingBefore + contentHeight + (rowStyle?.SpacingAfter ?? 0D) + (firstVisualOnly ? closingSpace.Padding : 0D);
         }
 
-        private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly, bool allowTableFragments = false) {
+        private double MeasureTableBlockHeight(TableBlock table, double frameWidth, double fontSize, bool firstVisualOnly,
+            bool allowTableFragments = false, ContainerClosingSpace closingSpace = default) {
             PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0) {
@@ -636,12 +627,18 @@ internal static partial class PdfWriter {
                 captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter;
             }
 
-            int measuredRowCount = firstVisualOnly ? 1 : rowHeights.Length;
-            double rowHeight = firstVisualOnly && allowTableFragments
-                ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap)
+            bool reserveWholeTable = firstVisualOnly && style.KeepTogether && style.Position == null;
+            int measuredRowCount = firstVisualOnly && !reserveWholeTable ? 1 : rowHeights.Length;
+            bool completesFirstRow = true;
+            double rowHeight = firstVisualOnly && allowTableFragments && !reserveWholeTable
+                ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap, out completesFirstRow)
                 : GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
             double tableHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore) : 0D) + captionHeight + rowHeight;
-            return firstVisualOnly || style.Position != null ? tableHeight : tableHeight + style.SpacingAfter;
+            if (style.Position != null) return tableHeight;
+            if (!firstVisualOnly) return tableHeight + style.SpacingAfter;
+            bool completesTable = reserveWholeTable || table.Rows.Count == 1 && completesFirstRow;
+            return tableHeight + (reserveWholeTable || completesTable && closingSpace.RequiresFullAdvance ? style.SpacingAfter : 0D) +
+                (completesTable ? closingSpace.Padding : 0D);
         }
 
         private void ConsumeSpacer(double height) {

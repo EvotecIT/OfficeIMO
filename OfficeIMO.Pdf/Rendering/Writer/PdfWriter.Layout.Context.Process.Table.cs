@@ -486,9 +486,11 @@ internal static partial class PdfWriter {
                     rowIndex, startLine, available, MaximumContinuationHeight(),
                     (canMoveToNextFrame ?? y < GetCurrentFramePageStartY() - 0.001D) ||
                         MaximumContinuationHeight() > maxContentHeight + 0.001D, requireDefaultFirstFragment);
-                if (rowIndex == tb.Rows.Count - 1 && startLine + take == rowLineCounts[rowIndex] && GetClosingContainerPadding() > 0D)
+                double closingPadding = rowIndex == tb.Rows.Count - 1 && startLine + take == rowLineCounts[rowIndex]
+                    ? GetClosingTextPadding(style.SpacingAfter) : 0D;
+                if (closingPadding > 0D)
                     take = GetPreparedTableRowSegmentLineCountThatFits(tb, style, preparedRows, cols, colPixel, colGapPx,
-                        rowIndex, startLine, available - GetClosingTextPadding(style.SpacingAfter), MaximumContinuationHeight(),
+                        rowIndex, startLine, available - closingPadding, MaximumContinuationHeight(),
                         (canMoveToNextFrame ?? y < GetCurrentFramePageStartY() - .001D) ||
                             MaximumContinuationHeight() > maxContentHeight + .001D, requireDefaultFirstFragment);
                 return take;

@@ -151,7 +151,7 @@ internal static partial class PdfWriter {
                     ResumeColumnGroups(activeGroups, colXs[ci], ref yCol, ref remain, ref consumed);
                     while (idx < items.Count && (remain > 0.1 || items[idx] is ColGroupEnd)) {
                         var it = items[idx];
-                        double closingPadding = GetClosingColumnGroupPadding(items, idx);
+                        double closingPadding = GetClosingColumnGroupPadding(items, idx, rowSpacingAfter);
                         double remainingForFinalItem = remain - closingPadding;
                         xCol = colXs[ci] + it.ColumnXOffset;
                         wCol = it.ColumnWidth;

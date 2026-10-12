@@ -230,8 +230,7 @@ public sealed class PdfImportedLineFrameFitTests {
         var letters = page.Letters.Where(letter => letter.Value is "A" or "B").ToArray();
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(28D, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 3);
-        Assert.Contains(page.Paths, path => path.IsStroked &&
-            path.GetBoundingRectangle() is { } bounds && Math.Abs(bounds.Bottom - 90D) < .001D);
+        AssertPanelTopBorder(pdf, 2, 90D);
     }
 
     [Theory]
@@ -271,8 +270,7 @@ public sealed class PdfImportedLineFrameFitTests {
         Assert.Contains("Lead", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.DoesNotContain(pdf.GetPage(1).Paths, path => path.IsStroked);
         Assert.Equal("A", pdf.GetPage(2).Text);
-        Assert.Contains(pdf.GetPage(2).Paths, path => path.IsStroked &&
-            path.GetBoundingRectangle() is { } bounds && Math.Abs(bounds.Bottom - (80D + padding + inset)) < .001D);
+        AssertPanelTopBorder(pdf, 2, 80D + padding + inset);
     }
 
     [Fact]
@@ -289,8 +287,7 @@ public sealed class PdfImportedLineFrameFitTests {
         Assert.Contains("Lead", pdf.GetPage(1).Text, StringComparison.Ordinal);
         Assert.DoesNotContain(pdf.GetPage(1).Paths, path => path.IsStroked);
         Assert.Equal("AB", string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value)));
-        Assert.Contains(pdf.GetPage(2).Paths, path => path.IsStroked &&
-            path.GetBoundingRectangle() is { } bounds && Math.Abs(bounds.Bottom - 90D) < .001D);
+        AssertPanelTopBorder(pdf, 2, 90D);
     }
 
     [Theory]
@@ -319,6 +316,45 @@ public sealed class PdfImportedLineFrameFitTests {
         Assert.All(pdf.GetPages().SelectMany(page => page.Paths).Where(path => path.IsStroked), path =>
             Assert.True(path.GetBoundingRectangle() is { } bounds && bounds.Bottom >= 20D - .001D));
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ImportedStrictContainerStartsOversizedKeptListBeforeDecoration(bool nested, bool splitPages) {
+        var document = PdfDocument.Create(Options(70D)).Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle {
+            FontSize = 10D, LineSpacing = PdfLineSpacing.Exactly(30D), SpacingBefore = 0D, SpacingAfter = 0D
+        });
+        void AddList(PdfContentBuilder content) => content.Numbered(new[] { "A\nB\nC" }, style: new PdfListStyle {
+            FontSize = 10D, MarkerFontSize = 10D, KeepTogether = true,
+            LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D),
+            SpacingBefore = 0D, SpacingAfter = 0D, ItemSpacing = 0D,
+            KeepTogetherOverflow = splitPages ? PdfKeepTogetherOverflowBehavior.SplitAcrossPages :
+                PdfKeepTogetherOverflowBehavior.SplitAcrossFrames
+        });
+        document.Panel(panel => {
+            if (nested) panel.Panel(inner => inner.Semantic(PdfSemanticRole.Division, AddList), StrictPanel(1D));
+            else AddList(panel);
+        }, StrictPanel(1D));
+
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Contains("Lead", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(pdf.GetPage(1).Paths, path => path.IsStroked);
+        Assert.Equal("AB", string.Concat(pdf.GetPage(2).Letters.Where(letter => letter.Value is "A" or "B" or "C")
+            .Select(letter => letter.Value)));
+        Assert.Equal("C", string.Concat(pdf.GetPage(3).Letters.Where(letter => letter.Value is "A" or "B" or "C")
+            .Select(letter => letter.Value)));
+        AssertPanelTopBorder(pdf, 2, 90D);
+    }
+
+    private static void AssertPanelTopBorder(PdfPigDocument document, int pageNumber, double y) =>
+        Assert.Contains(document.GetPage(pageNumber).Paths.Where(path => path.IsStroked)
+            .SelectMany(path => path).SelectMany(subpath => subpath.Commands).OfType<UglyToad.PdfPig.Core.PdfSubpath.Line>(),
+            line => Math.Abs(line.From.Y - y) < .001D && Math.Abs(line.To.Y - y) < .001D &&
+                Math.Abs(Math.Min(line.From.X, line.To.X) - 20D) < .001D &&
+                Math.Abs(Math.Max(line.From.X, line.To.X) - 180D) < .001D);
 
     private static PdfPanelStyle StrictPanel(double padding, double inset = 0D) => new() {
         PaddingX = 0D, PaddingY = padding, FragmentBottomInset = inset, RepeatFragmentDecoration = false,

@@ -82,7 +82,7 @@ internal static partial class PdfWriter {
                 spacingAfter, topGaps?[last] ?? 0D);
         }
 
-        private double GetClosingColumnGroupPadding(List<ColItem> items, int itemIndex) {
+        private double GetClosingColumnGroupPadding(List<ColItem> items, int itemIndex, double rowSpacingAfter = 0D) {
             double padding = 0D;
             double trailingSpacing = 0D;
             for (int next = itemIndex + 1; next < items.Count; next++) {
@@ -93,8 +93,9 @@ internal static partial class PdfWriter {
                 }
                 else if (items[next] is not ColBookmark) return padding;
             }
-            double outerClosing = GetClosingContainerPadding();
-            return padding + outerClosing + (outerClosing > 0D ? trailingSpacing : 0D);
+            ContainerClosingSpace outerClosing = GetClosingContainerSpace();
+            return padding + outerClosing.Padding + (outerClosing.Padding > 0D ? trailingSpacing : 0D) +
+                (outerClosing.RequiresFullAdvance ? rowSpacingAfter : 0D);
         }
 
         private double GetClosingTextPadding(double spacingAfter) {
