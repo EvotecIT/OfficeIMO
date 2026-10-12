@@ -158,7 +158,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
 
     private void OnNoteClick(object? sender, RoutedEventArgs e) {
         if (Document?.CanEditAnnotations != true) {
-            if (Document is { } document) document.ErrorMessage = "Annotations are unavailable for this document.";
+            if (Document is { } document) document.ErrorMessage = Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.AnnotationsUnavailable");
             return;
         }
         ShowSheet("New note", NotePanel, sender as Control);

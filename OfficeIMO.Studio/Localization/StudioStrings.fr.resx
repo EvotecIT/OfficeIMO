@@ -2180,4 +2180,17 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Annuler les modifications</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>Le fichier de destination est en lecture seule ; il n&apos;a pas été modifié. Choisissez un autre nom ou dossier, ou retirez l&apos;attribut lecture seule.</value></data>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>En cours…</value></data>
+  <data name="Mobile.ChoosePdf" xml:space="preserve"><value>Choisissez un document PDF.</value></data>
+  <data name="Mobile.NothingToShare" xml:space="preserve"><value>Le document enregistré n&apos;a pas d&apos;emplacement à partager.</value></data>
+  <data name="Mobile.ReadingPositionFailed" xml:space="preserve"><value>La position de lecture n&apos;a pas pu être enregistrée : {0}</value></data>
+  <data name="Mobile.ClipboardUnavailable" xml:space="preserve"><value>Le presse-papiers n&apos;est pas disponible.</value></data>
+  <data name="Mobile.AnswerSourceChanged" xml:space="preserve"><value>La source ou la destination a changé. Exportez la réponse actuelle dans un fichier distinct.</value></data>
+  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve"><value>Le dossier de documents de Studio sur cet appareil n&apos;est pas disponible.</value></data>
+  <data name="Mobile.BrowseOutputFolder" xml:space="preserve"><value>Parcourez le dossier de sortie sélectionné dans Fichiers. Ouvrez un résultat pour le partager.</value></data>
+  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve"><value>Studio n&apos;est pas encore prêt à ouvrir un lien.</value></data>
+  <data name="Mobile.ChooseFolder" xml:space="preserve"><value>Choisir un dossier</value></data>
+  <data name="Mobile.UseOutputFormat" xml:space="preserve"><value>Utilisez le format de sortie sélectionné : {0}.</value></data>
+  <data name="Mobile.FileName" xml:space="preserve"><value>Nom du fichier</value></data>
+  <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Choisissez ensuite un dossier dans Fichiers. Le document est écrit une fois la vérification terminée.</value></data>
+  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Les annotations ne sont pas disponibles pour ce document.</value></data>
 </root>

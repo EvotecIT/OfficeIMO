@@ -142,14 +142,9 @@
     </Grid>
     <Border x:Name="FooterBar" Grid.Row="4" Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,1,0,0" Padding="12,2">
       <StackPanel>
-        <StackPanel IsVisible="{Binding HasVisibleError}" Spacing="4" Margin="8">
-          <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" MaxHeight="72"/>
-          <WrapPanel ItemSpacing="8">
-            <Button Classes="touch" Content="{loc:Loc Shell.SaveCopyInstead}" Command="{Binding SaveAsCommand}" IsVisible="{Binding CanRecoverWithSaveAs}"/>
-            <Button Classes="touch" Content="{loc:Loc MainWindow.Dismiss}" Command="{Binding DismissErrorCommand}"/>
-          </WrapPanel>
-        </StackPanel>
-        <TextBlock Text="{Binding SecurityWarning}" IsVisible="{Binding HasSecurityWarning}" TextWrapping="Wrap" Foreground="{DynamicResource StudioWarningBrush}" MaxHeight="72" Margin="8"/>
+        <!-- The same notices as the desktop window, with finger-sized actions. -->
+        <shell:DocumentNoticesView Classes="touch" />
+
         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsWorkspaceBusy}" Height="2"/>
         <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsOpening}" Height="2"/>
         <Grid x:Name="CompactTools" ColumnDefinitions="*,*,*,*,*" IsEnabled="{Binding HasDocument}" IsVisible="False" Margin="0,4">

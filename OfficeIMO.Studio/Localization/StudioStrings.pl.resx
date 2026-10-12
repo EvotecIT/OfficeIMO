@@ -5652,4 +5652,17 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Odrzuć zmiany</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>Plik docelowy jest tylko do odczytu, więc pozostał bez zmian. Wybierz inną nazwę lub folder albo wyłącz jego atrybut tylko do odczytu.</value></data>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>Trwa praca…</value></data>
+  <data name="Mobile.ChoosePdf" xml:space="preserve"><value>Wybierz dokument PDF.</value></data>
+  <data name="Mobile.NothingToShare" xml:space="preserve"><value>Zapisany dokument nie ma lokalizacji, którą można udostępnić.</value></data>
+  <data name="Mobile.ReadingPositionFailed" xml:space="preserve"><value>Nie udało się zapisać pozycji czytania: {0}</value></data>
+  <data name="Mobile.ClipboardUnavailable" xml:space="preserve"><value>Schowek jest niedostępny.</value></data>
+  <data name="Mobile.AnswerSourceChanged" xml:space="preserve"><value>Źródło lub miejsce docelowe uległo zmianie. Wyeksportuj bieżącą odpowiedź do osobnego pliku.</value></data>
+  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve"><value>Folder dokumentów Studio na tym urządzeniu jest niedostępny.</value></data>
+  <data name="Mobile.BrowseOutputFolder" xml:space="preserve"><value>Przeglądaj wybrany folder wyjściowy w aplikacji Pliki. Otwórz pojedynczy wynik, aby go udostępnić.</value></data>
+  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve"><value>Studio nie jest jeszcze gotowe do otwarcia łącza.</value></data>
+  <data name="Mobile.ChooseFolder" xml:space="preserve"><value>Wybierz folder</value></data>
+  <data name="Mobile.UseOutputFormat" xml:space="preserve"><value>Użyj wybranego formatu wyjściowego: {0}.</value></data>
+  <data name="Mobile.FileName" xml:space="preserve"><value>Nazwa pliku</value></data>
+  <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Następnie wybierz folder w aplikacji Pliki. Dokument zostanie zapisany po zakończeniu przeglądu.</value></data>
+  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Adnotacje są niedostępne dla tego dokumentu.</value></data>
 </root>

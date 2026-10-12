@@ -5652,4 +5652,17 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Änderungen verwerfen</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>Die Zieldatei ist schreibgeschützt und wurde nicht geändert. Wählen Sie einen anderen Namen oder Ordner oder heben Sie den Schreibschutz auf.</value></data>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>In Arbeit…</value></data>
+  <data name="Mobile.ChoosePdf" xml:space="preserve"><value>Wählen Sie ein PDF-Dokument.</value></data>
+  <data name="Mobile.NothingToShare" xml:space="preserve"><value>Das gespeicherte Dokument hat keinen Speicherort zum Teilen.</value></data>
+  <data name="Mobile.ReadingPositionFailed" xml:space="preserve"><value>Die Leseposition konnte nicht gespeichert werden: {0}</value></data>
+  <data name="Mobile.ClipboardUnavailable" xml:space="preserve"><value>Die Zwischenablage ist nicht verfügbar.</value></data>
+  <data name="Mobile.AnswerSourceChanged" xml:space="preserve"><value>Quelle oder Ziel hat sich geändert. Exportieren Sie die aktuelle Antwort in eine separate Datei.</value></data>
+  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve"><value>Der Dokumentordner von Studio auf diesem Gerät ist nicht verfügbar.</value></data>
+  <data name="Mobile.BrowseOutputFolder" xml:space="preserve"><value>Öffnen Sie den ausgewählten Ausgabeordner in der Dateien-App. Öffnen Sie ein einzelnes Ergebnis, um es zu teilen.</value></data>
+  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve"><value>Studio ist noch nicht bereit, einen Link zu öffnen.</value></data>
+  <data name="Mobile.ChooseFolder" xml:space="preserve"><value>Ordner wählen</value></data>
+  <data name="Mobile.UseOutputFormat" xml:space="preserve"><value>Verwenden Sie das ausgewählte Ausgabeformat: {0}.</value></data>
+  <data name="Mobile.FileName" xml:space="preserve"><value>Dateiname</value></data>
+  <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Wählen Sie als Nächstes einen Ordner in der Dateien-App. Das Dokument wird nach Abschluss der Prüfung geschrieben.</value></data>
+  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Anmerkungen sind für dieses Dokument nicht verfügbar.</value></data>
 </root>

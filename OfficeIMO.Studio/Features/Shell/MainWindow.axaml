@@ -257,20 +257,7 @@
                    PaneBackground="{DynamicResource StudioPanelBrush}">
           <SplitView.Pane><Border IsVisible="{Binding IsAssistantVisible}"><ai:AssistantView DataContext="{Binding Assistant}" /></Border></SplitView.Pane>
           <Grid RowDefinitions="Auto,*">
-            <StackPanel Grid.Row="0">
-              <!-- Persistent notices: failures first, then restrictions on the current task, then how faithfully pages are drawn, then storage problems. -->
-              <infra:StudioNoticeBar Severity="Error" IsVisible="{Binding HasVisibleError}" Message="{Binding ErrorMessage}"
-                                     ActionText="{loc:Loc Shell.SaveCopyInstead}" ActionCommand="{Binding Commands[SaveAs]}" IsActionVisible="{Binding CanRecoverWithSaveAs}"
-                                     DismissCommand="{Binding DismissErrorCommand}" />
-              <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding HasSecurityWarning}" Message="{Binding SecurityWarning}"
-                                     ActionText="{loc:Loc Notices.BackToReading}" ActionCommand="{Binding Commands[Read]}" IsActionVisible="{Binding CanReturnToReading}"
-                                     DismissCommand="{Binding DismissSecurityWarningCommand}" />
-              <infra:StudioNoticeBar Severity="Information" IsVisible="{Binding HasRenderingNotice}" Message="{Binding RenderingNotice}"
-                                     ActionText="{Binding RenderingNoticeAction}" ActionCommand="{Binding ShowRenderingNoticePageCommand}"
-                                     DismissCommand="{Binding DismissRenderingNoticeCommand}" />
-              <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding Session.HasStorageError}" Message="{Binding Session.StorageError}"
-                                     ActionText="{loc:Loc Session.RetryStorage}" ActionCommand="{Binding Session.RetryStorageCommand}" />
-            </StackPanel>
+            <shell:DocumentNoticesView Grid.Row="0" />
 
             <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
             <home:ToolsView Grid.Row="1" IsVisible="{Binding IsToolsMode}" />

@@ -44,7 +44,7 @@ internal sealed partial class MobileDocumentHost(
     internal async Task<string?> PickWorkingCopyAsync(string title, StudioFileType type, CancellationToken token) {
         string? location = await PickOpenFileAsync(title, type, token);
         if (location is null) return null;
-        var root = services.LocalDocuments ?? throw new IOException("The mobile document folder is unavailable.");
+        var root = services.LocalDocuments ?? throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.DocumentFolderUnavailable"));
         StudioStorageSnapshot source = await services.Storage.ReadSnapshotAsync(location, token);
         return await root.WriteWorkingCopyAsync(services.Storage.Describe(location).Name, source.Bytes, token);
     }
@@ -73,12 +73,12 @@ internal sealed partial class MobileDocumentHost(
     internal async Task OpenUriAsync(Uri uri) {
         string location = uri.IsFile ? uri.LocalPath : uri.AbsoluteUri;
         if (services.Storage.IsFolder(location) || uri.IsFile && Directory.Exists(location))
-            throw new IOException("Browse the selected output folder in Files. Open an individual result to share it.");
+            throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.BrowseOutputFolder"));
         if (uri.IsFile || services.Storage.IsKnownLocation(location)) {
             await MobileFileSharing.ShareAsync(services, location, share);
             return;
         }
-        var topLevel = TopLevel.GetTopLevel(workspace) ?? throw new IOException("The application is not ready to open a link.");
+        var topLevel = TopLevel.GetTopLevel(workspace) ?? throw new IOException(Infrastructure.Localization.StudioLocalization.Current.Get("Mobile.NotReadyToOpenLink"));
         if (!await topLevel.Launcher.LaunchUriAsync(uri)) throw new IOException(services.Localizer.Get("Error.CouldNotOpenLink"));
     }
 

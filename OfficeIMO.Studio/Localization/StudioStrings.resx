@@ -3000,4 +3000,17 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Forms.DiscardAll" xml:space="preserve"><value>Discard changes</value></data>
   <data name="Errors.ReadOnly" xml:space="preserve"><value>The destination file is read-only, so it was left unchanged. Choose another name or folder, or clear its read-only setting.</value></data>
   <data name="Dialog.ActiveOperations.Working" xml:space="preserve"><value>Working…</value></data>
+  <data name="Mobile.ChoosePdf" xml:space="preserve"><value>Choose a PDF document.</value></data>
+  <data name="Mobile.NothingToShare" xml:space="preserve"><value>The saved document has no location to share.</value></data>
+  <data name="Mobile.ReadingPositionFailed" xml:space="preserve"><value>The reading position could not be saved: {0}</value></data>
+  <data name="Mobile.ClipboardUnavailable" xml:space="preserve"><value>The clipboard is unavailable.</value></data>
+  <data name="Mobile.AnswerSourceChanged" xml:space="preserve"><value>The source or destination changed. Export the current answer to a separate file.</value></data>
+  <data name="Mobile.DocumentFolderUnavailable" xml:space="preserve"><value>Studio&apos;s document folder on this device is unavailable.</value></data>
+  <data name="Mobile.BrowseOutputFolder" xml:space="preserve"><value>Browse the selected output folder in Files. Open an individual result to share it.</value></data>
+  <data name="Mobile.NotReadyToOpenLink" xml:space="preserve"><value>Studio is not ready to open a link yet.</value></data>
+  <data name="Mobile.ChooseFolder" xml:space="preserve"><value>Choose folder</value></data>
+  <data name="Mobile.UseOutputFormat" xml:space="preserve"><value>Use the selected output format: {0}.</value></data>
+  <data name="Mobile.FileName" xml:space="preserve"><value>File name</value></data>
+  <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Choose a folder in Files next. Your document is written after you finish the review.</value></data>
+  <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Annotations are unavailable for this document.</value></data>
 </root>
