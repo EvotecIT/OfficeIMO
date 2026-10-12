@@ -97,6 +97,27 @@ static void path_in(char *buffer, size_t size, const char *directory, const char
     snprintf(buffer, size, "%s%s%s", directory, PATH_SEPARATOR, name);
 }
 
+/* Escapes UTF-8 string contents for JSON without changing the referenced path. */
+static int json_escape(char *buffer, size_t size, const char *text) {
+    static const char hex[] = "0123456789abcdef";
+    size_t used = 0;
+    for (const unsigned char *p = (const unsigned char *)text; *p; p++) {
+        size_t needed = *p < 0x20 ? 6 : (*p == '"' || *p == '\\') ? 2 : 1;
+        if (used >= size || needed >= size - used) return 0;
+        if (*p < 0x20) {
+            buffer[used++] = '\\'; buffer[used++] = 'u';
+            buffer[used++] = '0'; buffer[used++] = '0';
+            buffer[used++] = hex[*p >> 4]; buffer[used++] = hex[*p & 15];
+        } else {
+            if (needed == 2) buffer[used++] = '\\';
+            buffer[used++] = (char)*p;
+        }
+    }
+    if (used >= size) return 0;
+    buffer[used] = '\0';
+    return 1;
+}
+
 int main(int argc, char **argv) {
     if (argc != 4) {
         fprintf(stderr, "Usage: %s <library> <pdf> <work-directory>\n", argv[0]);
@@ -284,11 +305,15 @@ int main(int argc, char **argv) {
     }
 
     /* A scan: the rendered page image becomes a PDF page with a recognized word as searchable text. */
-    char scan[1024], scan_request[2048];
+    char scan[1024], escaped_page_png[6 * sizeof page_png], scan_request[sizeof escaped_page_png + 256];
     path_in(scan, sizeof scan, work, "scan.pdf");
+    if (!json_escape(escaped_page_png, sizeof escaped_page_png, page_png)) {
+        fprintf(stderr, "The scan image path exceeds the JSON request buffer.\n");
+        return 1;
+    }
     snprintf(scan_request, sizeof scan_request,
              "{\"pages\":[{\"image\":\"%s\",\"words\":[{\"text\":\"Journey\",\"x\":0.1,\"y\":0.1,\"width\":0.3,\"height\":0.1}]}]}",
-             page_png);
+             escaped_page_png);
     CHECK("scan to pdf", engine_officeimo_create_pdf_from_scan_json(scan_request, scan, 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "searchablePages", "1"), "the scan is not searchable", json);
     engine_officeimo_free(json);
