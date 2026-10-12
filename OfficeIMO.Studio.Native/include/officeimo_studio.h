@@ -79,12 +79,13 @@ void officeimo_document_close(officeimo_document document);
  * Document facts as JSON:
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
- *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint" }
+ *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint", "canImportPages" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
  * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
  * allows adding, changing and removing annotations, which a tagged or signed document may take as an appended revision.
- * canPrint is false when the document's permissions forbid printing and it was not opened with its owner password.
+ * canPrint is false when the document's permissions forbid printing and it was not opened with its owner password;
+ * canImportPages allows officeimo_document_import_pages_json.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
  * render scales apply to. The revision changes with every edit, undo and redo.
  */
@@ -137,6 +138,18 @@ int32_t officeimo_document_insert_blank_page(officeimo_document document, int32_
 /* Writes pages to a new PDF at path, a different file from the document's; the open document is unchanged. */
 int32_t officeimo_document_extract_pages(officeimo_document document, const int32_t *pages, int32_t count, const char *path,
                                          officeimo_cancellation cancellation, char **error);
+
+/*
+ * Inserts pages from other PDFs as one undoable change. The request is JSON:
+ * { "insertBefore", "sources": [ { "path", "password", "pages": [ ] } ] }
+ * Pages from each source, in the order listed, all of them when "pages" is absent or empty, go before page insertBefore,
+ * or after the last page when it is the page count + 1; "password" opens a protected source. On success json receives
+ * { "abiVersion", "imported", "revision" }. When a source needs its password, or the one given is wrong, the call fails
+ * with OFFICEIMO_PASSWORD_REQUIRED or OFFICEIMO_INVALID_PASSWORD and json receives { "abiVersion", "source", "name" }:
+ * the source's position in the request, from zero, and its file name, so the host can ask for that password and retry.
+ */
+int32_t officeimo_document_import_pages_json(officeimo_document document, const char *request,
+                                             officeimo_cancellation cancellation, char **json, char **error);
 
 /*
  * Finds text, ignoring case, as JSON:

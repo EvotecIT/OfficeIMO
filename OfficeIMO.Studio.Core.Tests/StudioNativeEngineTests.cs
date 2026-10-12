@@ -4,6 +4,7 @@ using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Scan;
+using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Studio.Native;
 
 namespace OfficeIMO.Studio.Core.Tests;
@@ -62,8 +63,10 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     // Pages of distinct widths, so a page's width identifies it after an edit.
-    private string CreatePagesOfWidths(params double[] widths) {
-        string path = Path.Combine(_root, "widths.pdf");
+    private string CreatePagesOfWidths(params double[] widths) => CreatePagesOfWidthsAt("widths.pdf", widths);
+
+    private string CreatePagesOfWidthsAt(string name, params double[] widths) {
+        string path = Path.Combine(_root, name);
         PdfDocument.Create(document => {
             foreach (double width in widths) document.Page(content => content.Size(width, 400));
         }).Save(path);
@@ -124,6 +127,85 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.Equal(allowed, (await document.GetInfoAsync(default)).CanPrint);
         using StudioNativeDocument open = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
         Assert.True((await open.GetInfoAsync(default)).CanPrint);
+    }
+
+    [Fact]
+    public async Task Pages_from_other_PDFs_are_inserted_as_one_undoable_change() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310), null, default);
+        string first = CreatePagesOfWidthsAt("first.pdf", 400, 410, 420);
+        string second = CreatePagesOfWidthsAt("second.pdf", 500);
+        Assert.True((await document.GetInfoAsync(default)).CanImportPages);
+
+        StudioNativeImportResult result = await document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(first, Pages: [3, 1]), new StudioNativeImportSource(second)], InsertBefore: 2), default);
+
+        Assert.Equal(3, result.Imported);
+        Assert.Equal(new[] { 300D, 420D, 400D, 500D, 310D }, await WidthsAsync(document));
+        await document.UndoAsync(default);
+        Assert.Equal(new[] { 300D, 310D }, await WidthsAsync(document));
+    }
+
+    [Fact]
+    public async Task Importing_reports_which_source_needs_its_password() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
+        string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
+        string locked = Path.Combine(_root, "locked.pdf");
+        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(CreatePagesOfWidthsAt("unlocked.pdf", 500)))
+            .Security.Encrypt(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
+
+        var missing = await Assert.ThrowsAsync<PdfImportPasswordException>(() => document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(plain), new StudioNativeImportSource(locked)], 2), default));
+        Assert.Equal((1, "locked.pdf", false), (missing.SourceIndex, missing.Name, missing.Invalid));
+        Assert.Equal(StudioNativeAbi.PasswordRequired, StudioNativeAbi.StatusOf(missing));
+        var wrong = await Assert.ThrowsAsync<PdfImportPasswordException>(() => document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(locked, "nope")], 2), default));
+        Assert.Equal(StudioNativeAbi.InvalidPassword, StudioNativeAbi.StatusOf(wrong));
+        Assert.Equal(new[] { 300D }, await WidthsAsync(document));
+
+        await document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(plain), new StudioNativeImportSource(locked, "open")], 2), default);
+        Assert.Equal(new[] { 300D, 400D, 500D }, await WidthsAsync(document));
+    }
+
+    [Fact]
+    public async Task Importing_refuses_requests_outside_the_document() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
+        string source = CreatePagesOfWidthsAt("source.pdf", 400, 410);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => document.ImportPagesAsync(new StudioNativeImportRequest([], 1), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(source, Pages: [3])], 1), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(source)], 3), default));
+        await Assert.ThrowsAnyAsync<Exception>(() => document.ImportPagesAsync(new StudioNativeImportRequest([new StudioNativeImportSource(Path.Combine(_root, "missing.pdf"))], 1), default));
+        Assert.False((await document.GetInfoAsync(default)).IsDirty);
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_imports_pages_and_names_a_source_that_needs_its_password() {
+        string target = CreatePagesOfWidths(300);
+        string plain = CreatePagesOfWidthsAt("plain.pdf", 400);
+        string locked = Path.Combine(_root, "locked.pdf");
+        File.WriteAllBytes(locked, PdfDocument.Load(File.ReadAllBytes(plain)).Security.Encrypt(new PdfStandardEncryptionOptions("open")).Pdf);
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, byte*, nint, byte**, byte**, int> import = &StudioNativeExports.DocumentImportPagesJson;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+
+        nint document = 0; byte* error = null; byte* json = null;
+        fixed (byte* location = Encoding.UTF8.GetBytes(target + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(location, null, 0, &document, &error));
+        try {
+            string request = JsonSerializer.Serialize(new { insertBefore = 2, sources = new object[] { new { path = plain }, new { path = locked } } });
+            fixed (byte* body = Encoding.UTF8.GetBytes(request + "\0")) Assert.Equal(StudioNativeAbi.PasswordRequired, import(document, body, 0, &json, &error));
+            using (JsonDocument needed = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!)) {
+                Assert.Equal(1, needed.RootElement.GetProperty("source").GetInt32());
+                Assert.Equal("locked.pdf", needed.RootElement.GetProperty("name").GetString());
+            }
+            free(json); free(error);
+
+            request = JsonSerializer.Serialize(new { insertBefore = 2, sources = new object[] { new { path = plain }, new { path = locked, password = "open" } } });
+            fixed (byte* body = Encoding.UTF8.GetBytes(request + "\0")) Assert.Equal(StudioNativeAbi.Ok, import(document, body, 0, &json, &error));
+            using JsonDocument done = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            free(json);
+            Assert.Equal(2, done.RootElement.GetProperty("imported").GetInt32());
+        } finally { close(document); }
     }
 
     [Fact]

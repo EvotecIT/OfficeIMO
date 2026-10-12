@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Serialization;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Native;
 
@@ -23,6 +24,8 @@ internal static class StudioNativeAbi {
     /// <summary>Maps an engine exception to a status code; the message travels separately as text the host may show.</summary>
     internal static int StatusOf(Exception error) => error switch {
         OperationCanceledException => Cancelled,
+        PdfImportPasswordException { Invalid: true } => InvalidPassword,
+        PdfImportPasswordException => PasswordRequired,
         PdfPasswordRequiredException => PasswordRequired,
         PdfInvalidPasswordException => InvalidPassword,
         PdfUnsupportedEncryptionException => Unsupported,
@@ -63,6 +66,9 @@ internal static class StudioNativeAbi {
 [JsonSerializable(typeof(StudioNativePageText))]
 [JsonSerializable(typeof(StudioNativeScanRequest))]
 [JsonSerializable(typeof(StudioNativeScanResult))]
+[JsonSerializable(typeof(StudioNativeImportRequest))]
+[JsonSerializable(typeof(StudioNativeImportResult))]
+[JsonSerializable(typeof(StudioNativeImportPassword))]
 internal sealed partial class StudioNativeJson : JsonSerializerContext;
 
 internal sealed record StudioNativeScanWord(string? Text, double X, double Y, double Width, double Height, double? Confidence = null);
@@ -72,3 +78,11 @@ internal sealed record StudioNativeScanPage(string? Image, IReadOnlyList<StudioN
 internal sealed record StudioNativeScanRequest(IReadOnlyList<StudioNativeScanPage>? Pages);
 
 internal sealed record StudioNativeScanResult(int AbiVersion, int Pages, int SearchablePages, int Words);
+
+internal sealed record StudioNativeImportSource(string? Path, string? Password = null, IReadOnlyList<int>? Pages = null);
+
+internal sealed record StudioNativeImportRequest(IReadOnlyList<StudioNativeImportSource>? Sources, int InsertBefore);
+
+internal sealed record StudioNativeImportResult(int AbiVersion, int Imported, long Revision);
+
+internal sealed record StudioNativeImportPassword(int AbiVersion, int Source, string Name);

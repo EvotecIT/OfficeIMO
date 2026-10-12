@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Scan;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Native;
 
@@ -179,6 +180,31 @@ internal static unsafe class StudioNativeExports {
         int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
         string? destination = StudioNativeAbi.FromUtf8(path);
         return WithDocument(document, error, cancellation, (target, token) => target.ExtractPagesAsync(selected, destination!, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>
+    /// Inserts pages from other PDFs, described by a UTF-8 JSON request, as one undoable change. The result, or for a
+    /// source that needs its password the source's position and name, is returned as UTF-8 JSON.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_import_pages_json")]
+    internal static int DocumentImportPagesJson(nint document, byte* request, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        StudioNativeImportRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeImportRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The import request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => {
+            try {
+                StudioNativeImportResult result = target.ImportPagesAsync(parsed, token).GetAwaiter().GetResult();
+                *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeImportResult));
+            } catch (PdfImportPasswordException password) {
+                *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(
+                    new StudioNativeImportPassword(StudioNativeAbi.Version, password.SourceIndex, password.Name),
+                    StudioNativeJson.Default.StudioNativeImportPassword));
+                throw;
+            }
+        });
     }
 
     /// <summary>Finds text, ignoring case, and returns the hits with their page rectangles as UTF-8 JSON.</summary>

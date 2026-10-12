@@ -46,7 +46,7 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_duplicate_pages) X(officeimo_document_reorder_pages) X(officeimo_document_insert_blank_page) \
     X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
     X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation) \
-    X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json)
+    X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json) X(officeimo_document_import_pages_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -91,6 +91,19 @@ static int has(const char *json, const char *name, const char *value) {
     char pattern[128];
     snprintf(pattern, sizeof pattern, "\"%s\":%s", name, value);
     return json && strstr(json, pattern) != NULL;
+}
+
+/* Writes a path as a JSON string, escaping the backslashes of Windows paths and quotes. */
+static void json_string(char *buffer, size_t size, const char *value) {
+    size_t used = 0;
+    if (size < 3) return;
+    buffer[used++] = '"';
+    for (; *value && used + 3 < size; value++) {
+        if (*value == '\\' || *value == '"') buffer[used++] = '\\';
+        buffer[used++] = *value;
+    }
+    buffer[used++] = '"';
+    buffer[used] = '\0';
 }
 
 static void path_in(char *buffer, size_t size, const char *directory, const char *name) {
@@ -230,6 +243,17 @@ int main(int argc, char **argv) {
         engine_officeimo_free(json);
         engine_officeimo_document_close(extract);
     }
+
+    /* Import: the extracted page goes back in at the start as one change, then is undone. */
+    char quoted[2200], import_request[2400];
+    json_string(quoted, sizeof quoted, extracted);
+    snprintf(import_request, sizeof import_request, "{\"insertBefore\":1,\"sources\":[{\"path\":%s}]}", quoted);
+    CHECK("import pages", engine_officeimo_document_import_pages_json(document, import_request, 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "imported", "1"), "the page was not imported", json);
+    engine_officeimo_free(json);
+    CHECK("undo import", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    CHECK("import nothing", engine_officeimo_document_import_pages_json(document, "{\"insertBefore\":1,\"sources\":[]}", 0, &json,
+          &error), OFFICEIMO_INVALID_ARGUMENT);
 
     for (int edit = 0; edit < 4; edit++) CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
