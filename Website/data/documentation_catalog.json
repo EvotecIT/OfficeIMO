@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 301,
-    "productionComponentCount": 152,
+    "projectCount": 302,
+    "productionComponentCount": 153,
     "testProjectCount": 58,
     "benchmarkProjectCount": 36,
     "validationProjectCount": 56,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54768
+    "conceptualWordCount": 54794
   },
   "categories": [
     {
@@ -80,8 +80,8 @@
         81,
         93,
         94,
-        137,
-        138
+        138,
+        139
       ]
     },
     {
@@ -101,7 +101,7 @@
         72,
         92,
         132,
-        151
+        152
       ]
     },
     {
@@ -131,14 +131,14 @@
         88,
         89,
         90,
-        139,
         140,
         141,
         142,
         143,
         144,
         145,
-        146
+        146,
+        147
       ]
     },
     {
@@ -183,7 +183,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 25,
+      "componentCount": 26,
       "componentIndexes": [
         0,
         2,
@@ -206,10 +206,11 @@
         134,
         135,
         136,
-        147,
+        137,
         148,
         149,
-        150
+        150,
+        151
       ]
     }
   ],
@@ -637,7 +638,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1143,
+      "sourceFileCount": 1144,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1950,7 +1951,7 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 272,
+      "sourceFileCount": 289,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1978,6 +1979,19 @@
       "projectPath": "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj",
       "sourceFileCount": 2,
       "referencingTestProjectCount": 0,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": null
+    },
+    {
+      "name": "OfficeIMO.Studio.Native",
+      "packageId": "OfficeIMO.Studio.Native",
+      "category": "Specialized components",
+      "description": "OfficeIMO Studio document engine with a C interface for native host applications.",
+      "kind": "library",
+      "projectPath": "OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": null
@@ -2028,7 +2042,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 778,
+      "sourceFileCount": 779,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
