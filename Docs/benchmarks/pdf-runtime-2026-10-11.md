@@ -270,3 +270,104 @@ The companion’s separate `rendererComparison` object preserves all twelve exac
 A separate resource-audit replay is retained in the companion’s archive mapping: 14 entry-verified files, 9,485,414 compressed bytes and 25,612,488 expanded bytes. Its before/after DLLs retain their documented informational-version limitation and are separate from the frozen performance snapshots. The cleanup receipt records 1,137,128,631 logical temporary bytes removed; it makes no physical-reclamation claim. The frozen renderer binaries, 168 measured records and their encoded/pixel evidence remain retained.
 
 The complete renderer comparison is retained in the companion’s `rendererComparison.retention.measuredComparisonArchive` mapping: a 123,593,478-byte ZIP containing both 37-file frozen binary snapshots and the complete measured-output tree, with 1,267 files, 392 directories and 389,512,293 raw file bytes. The entry map resolves each original absolute path to its archive entry and preserves empty directories. All 1,266 analysis references within those source trees match the mapped lengths and hashes. The archive also retains the failed `a0` preflight receipt, which remains excluded from the 168 measured records. Archiving leaves the immutable analysis, hash-pinned qualification receipts and measured results unchanged. The separate cleanup receipt confirms removal of the three expanded evidence trees, totaling 389,512,293 logical bytes; it makes no physical-reclamation claim.
+
+
+## Final integrated checkpoint — 2026-10-12
+
+This checkpoint compares frozen product `90e061551cee67b9b92443e273ffc2e81316c416` with the completed integration at `43b3c8b4fe7b4c8918155b78741ab7ab73614c9f`, using the same `2ed26d029163294b5b2113c979ea59530bd895ff` harness. It is a separate broad-source cohort. The historical results above and the isolated 168-record renderer comparison retain their original identities and values.
+
+All 924 measured observations passed output validation in 12 wrapper calls: 672 runtime, 84 structured-read and 168 destination-write records. The analysis reconciles 66 paired operation/size/domain comparisons and all raw observations. Prepared input variables and fingerprints match in every comparison. Timing covers the declared operation; input preparation, readback and output validation remain outside it. This does not attribute a broad final-source change to one patch or establish pixel equivalence for every rendered output.
+
+Rendering mean managed allocation is lower in all 12 comparisons, by 18.56–28.03%. Across the complete matrix, median latency is lower in 23 cells and higher in 43; observed p95 is lower in 21 and higher in 45; mean allocation is lower in 25 and higher in 41. All twelve destination-write medians are higher. Five of six structured-read medians are higher, including the 100-page domain-A observation of 31.3075 to 119.1141ms (+280.47%). These losses remain part of the result. The cohort supports a bounded rendering-allocation improvement, not a universal latency improvement.
+
+Fresh native cache evidence identifies two group0 96 MiB L3 domains: A uses `0xFFFF`; B uses `0xFFFF0000`. Normal priority, two warmups, seven measurements per cell and rotated operation order apply on both sides. A runs baseline then final; B runs final then baseline. Coordinated heavy work was stopped before the capture at 01:33:16 UTC and held until execution finished at 01:38:05 UTC. This remains a shared-host diagnostic: process counts are not CPU utilization or continuous contention telemetry, and seven samples do not establish production tails or capacity. No outlier is removed.
+
+The final graph contains 37 files/137,139,639 bytes; baseline90 contains 37 files/137,122,452 bytes. Their manifests, all 17 harness blobs, actual run reports and saved output evidence are bound to the analysis. Independent text validation uses Poppler `pdftotext` 25.07.0 SHA `E66E7ADA660A910918DD2974CE6486170A20C2AC73A78B003E9888B97152A82A`; the separate layout image check uses the admitted `pdftoppm` 26.07.0 executable. The two tools are distinct.
+
+The following tables retain every paired cell. Negative change means lower measured cost. Allocation is process-wide cumulative managed allocation, not retained heap, native allocation or true peak memory. SVG renders the first min(pages,12) pages; PNG renders the first min(pages,4) at 384×512. Destination completion observes stream/OS-cache acceptance, not durable storage delivery.
+
+### CPU domain A
+
+| Operation | Source pages | Median ms:90 → final | Median change | Observed p95 change | Mean allocation change | Final mean allocation MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `GenerateBuffered` | 1 | 2.1173 → 2.4494 | +15.69% | +8.50% | +0.24% | 4.661 |
+| `GenerateForward` | 1 | 2.1064 → 2.3399 | +11.09% | -48.88% | +0.23% | 4.733 |
+| `InspectCold` | 1 | 0.7789 → 0.7881 | +1.18% | +69.28% | +0.37% | 2.901 |
+| `InspectReused` | 1 | 0.4160 → 0.4532 | +8.94% | +5.51% | +0.45% | 2.365 |
+| `RenderSvg` | 1 | 6.3204 → 10.8424 | +71.55% | +107.50% | -20.37% | 7.962 |
+| `RenderPng` | 1 | 11.1421 → 12.7299 | +14.25% | +19.05% | -18.56% | 8.933 |
+| `ReplaceRegion` | 1 | 3.7617 → 4.3493 | +15.62% | +100.34% | +0.17% | 5.170 |
+| `MoveRegion` | 1 | 3.7057 → 4.2047 | +13.47% | +270.97% | +0.18% | 5.191 |
+| `GenerateBuffered` | 20 | 5.4329 → 7.3794 | +35.83% | +16.56% | +0.09% | 8.320 |
+| `GenerateForward` | 20 | 5.3166 → 16.2274 | +205.22% | +142.77% | +0.10% | 8.344 |
+| `InspectCold` | 20 | 1.3808 → 1.7258 | +24.99% | +153.93% | +0.31% | 3.491 |
+| `InspectReused` | 20 | 0.6658 → 0.5897 | -11.43% | -11.27% | +0.46% | 2.569 |
+| `RenderSvg` | 20 | 74.0097 → 71.7760 | -3.02% | +43.51% | -27.93% | 65.602 |
+| `RenderPng` | 20 | 40.5447 → 71.1271 | +75.43% | +64.06% | -23.36% | 27.790 |
+| `ReplaceRegion` | 20 | 22.6440 → 26.1671 | +15.56% | +3.45% | -0.05% | 28.449 |
+| `MoveRegion` | 20 | 23.3519 → 30.5744 | +30.93% | -5.72% | -0.05% | 28.469 |
+| `GenerateBuffered` | 100 | 18.5728 → 27.0275 | +45.52% | +23.42% | -0.04% | 23.739 |
+| `GenerateForward` | 100 | 18.6291 → 26.3268 | +41.32% | +32.22% | -0.04% | 23.622 |
+| `InspectCold` | 100 | 3.7593 → 3.9571 | +5.26% | +24.28% | +0.17% | 5.833 |
+| `InspectReused` | 100 | 1.4329 → 1.5236 | +6.33% | -16.56% | +0.30% | 3.317 |
+| `RenderSvg` | 100 | 66.9184 → 59.8702 | -10.53% | +55.10% | -27.96% | 65.959 |
+| `RenderPng` | 100 | 42.8761 → 38.9797 | -9.09% | +64.84% | -23.10% | 28.291 |
+| `ReplaceRegion` | 100 | 105.7254 → 125.5134 | +18.72% | +29.06% | -0.16% | 126.429 |
+| `MoveRegion` | 100 | 95.6195 → 129.7295 | +35.67% | +22.05% | -0.17% | 126.447 |
+| `StructuredRead` | 20 | 5.7426 → 21.4082 | +272.80% | +217.40% | +0.27% | 6.357 |
+| `StructuredRead` | 100 | 31.3075 → 119.1141 | +280.47% | +196.63% | +0.52% | 23.256 |
+| `StructuredRead` | 500 | 182.0173 → 633.5833 | +248.09% | +153.78% | +0.55% | 107.329 |
+| `DestinationDirect` | 1 | 4.7672 → 5.7283 | +20.16% | +11.64% | -0.15% | 4.567 |
+| `DestinationCopied` | 1 | 4.6292 → 5.2119 | +12.59% | +11.94% | -0.14% | 4.732 |
+| `DestinationDirect` | 20 | 11.5045 → 23.9754 | +108.40% | -2.32% | +0.73% | 8.237 |
+| `DestinationCopied` | 20 | 18.2232 → 23.0048 | +26.24% | +15.93% | +0.46% | 8.427 |
+| `DestinationDirect` | 100 | 83.7159 → 98.3612 | +17.49% | +8.10% | +0.97% | 23.691 |
+| `DestinationCopied` | 100 | 80.3896 → 112.3326 | +39.74% | +3.21% | +0.95% | 24.129 |
+
+### CPU domain B
+
+| Operation | Source pages | Median ms:90 → final | Median change | Observed p95 change | Mean allocation change | Final mean allocation MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `GenerateBuffered` | 1 | 2.2078 → 2.2501 | +1.92% | +47.20% | +0.01% | 4.651 |
+| `GenerateForward` | 1 | 2.1938 → 2.2981 | +4.75% | +282.34% | -0.00% | 4.723 |
+| `InspectCold` | 1 | 0.7735 → 0.7844 | +1.41% | -16.50% | -0.02% | 2.891 |
+| `InspectReused` | 1 | 0.3841 → 0.4707 | +22.55% | +666.68% | -0.03% | 2.355 |
+| `RenderSvg` | 1 | 7.3733 → 4.6249 | -37.28% | -43.21% | -20.56% | 7.947 |
+| `RenderPng` | 1 | 31.3096 → 10.0019 | -68.05% | +122.00% | -18.74% | 8.917 |
+| `ReplaceRegion` | 1 | 3.9030 → 3.7564 | -3.76% | +7.54% | +0.00% | 5.160 |
+| `MoveRegion` | 1 | 4.0119 → 4.1051 | +2.32% | -21.42% | +0.00% | 5.181 |
+| `GenerateBuffered` | 20 | 6.2542 → 5.4046 | -13.58% | +79.59% | +0.01% | 8.317 |
+| `GenerateForward` | 20 | 9.1301 → 7.8881 | -13.60% | +62.10% | +0.01% | 8.339 |
+| `InspectCold` | 20 | 1.9038 → 1.3579 | -28.67% | -54.52% | -0.02% | 3.481 |
+| `InspectReused` | 20 | 0.9192 → 0.5910 | -35.70% | +55.00% | -0.02% | 2.559 |
+| `RenderSvg` | 20 | 97.9181 → 45.6155 | -53.41% | -51.73% | -28.03% | 65.538 |
+| `RenderPng` | 20 | 51.5027 → 32.8451 | -36.23% | -19.59% | -23.46% | 27.768 |
+| `ReplaceRegion` | 20 | 25.1022 → 18.3599 | -26.86% | -17.95% | +0.12% | 28.464 |
+| `MoveRegion` | 20 | 21.2907 → 19.4595 | -8.60% | +58.98% | +0.12% | 28.485 |
+| `GenerateBuffered` | 100 | 24.1411 → 18.3827 | -23.85% | -39.98% | +0.07% | 23.764 |
+| `GenerateForward` | 100 | 18.5999 → 17.9066 | -3.73% | -10.52% | +0.08% | 23.648 |
+| `InspectCold` | 100 | 3.8969 → 3.8223 | -1.91% | -8.01% | +0.03% | 5.825 |
+| `InspectReused` | 100 | 1.6449 → 1.2902 | -21.56% | -10.17% | +0.05% | 3.310 |
+| `RenderSvg` | 100 | 74.6383 → 49.7824 | -33.30% | -35.64% | -27.90% | 66.038 |
+| `RenderPng` | 100 | 45.6740 → 48.1162 | +5.35% | -24.75% | -23.12% | 28.292 |
+| `ReplaceRegion` | 100 | 138.3351 → 123.7709 | -10.53% | +7.06% | +0.17% | 126.639 |
+| `MoveRegion` | 100 | 127.1490 → 119.0660 | -6.36% | +29.52% | +0.17% | 126.660 |
+| `StructuredRead` | 20 | 6.8980 → 10.6281 | +54.08% | -10.94% | +0.49% | 6.352 |
+| `StructuredRead` | 100 | 35.4406 → 42.4490 | +19.78% | -19.13% | +0.18% | 23.200 |
+| `StructuredRead` | 500 | 219.7094 → 212.7586 | -3.16% | -30.63% | +0.11% | 107.012 |
+| `DestinationDirect` | 1 | 4.0248 → 5.2241 | +29.80% | +3.38% | +0.00% | 4.578 |
+| `DestinationCopied` | 1 | 4.4407 → 4.6411 | +4.51% | +35.35% | +0.03% | 4.742 |
+| `DestinationDirect` | 20 | 8.5136 → 20.9478 | +146.05% | +59.21% | +0.81% | 8.191 |
+| `DestinationCopied` | 20 | 9.1407 → 18.0296 | +97.25% | +95.09% | +0.83% | 8.390 |
+| `DestinationDirect` | 100 | 23.6638 → 72.3555 | +205.76% | +95.38% | +1.76% | 23.485 |
+| `DestinationCopied` | 100 | 24.9446 → 82.0201 | +228.81% | +122.13% | +2.47% | 23.997 |
+
+### Correctness and native scope of the final source
+
+Nine fresh source-bound PDF/Word/Excel lanes across net10.0, net8.0 and net472 pass 44,774 tests with zero failures and 18 actual expected COM opt-in skips. All 948 selected critical executions pass exactly once; nine TRXs and 39 physical DLL records bind the proof to 43b. The explicit SourceRevisionId property is controller-supplied and supported by clean Git checks and physical DLL/TRX hashes. Earlier failed attempts and their original producers remain retained; their results are not relabelled as final-head execution.
+
+All five final PDF layout artifacts match the qualified geometry and PNGs under the admitted renderer, and all five were visually inspected. The separate Word comparison has 50 passing executions over 49 source/native pairs: 114 complete PDF pages per side and 108 selected visual pages in 50 inspected contact sheets. Ordered text, numeric order/multiplicity/page assignment and native glyph origins pass their unchanged 0.30 pt X/0.25 pt Y limits; maxima are 0.162003 pt X/0.179993 pt Y. The three earlier body-spacing failures pass, as do both body pages in the tall 48/64 pt controls.
+
+This is finite fixture evidence. The tall controls retain native width 260.040009 pt versus actual 260 pt at equal 300 pt height; exact page-size equality is not claimed. Watermark text proportions and image opacity still visibly differ. General font fidelity, including Cambria Math, and the separate 100 pt physical-margin overflow remain open. Generated NUMBER payload has a separately guarded caller contract without a native oracle; its admitted 0.01 pt horizontal bbox precision does not weaken native glyph, origin, page, text or multiplicity guards.
+
+The companion's `finalCheckpoint` object retains the complete 924 raw observations, all 66 summaries/losses, source/tool/environment bindings, output-validation records and the bounded quality references. Source analysis is `final-runtime-checkpoint-analysis.json`, SHA `4C43DB1CA419394DA52358D4DD23F690504CD2BBF3C88080731C1C17891EFA35`; actual checkpoint qualification is SHA `551D835175A794103CC348FD532DA513042EAE848ACEA00DA7BC601AD5816D15`. Reproduction uses the existing runtime/evidence wrappers with the declared sizes, frozen binaries, affinity masks, two warmups and seven iterations; the earlier 334-record, profile and 168-record renderer cohorts are not rerun or pooled with this checkpoint.
