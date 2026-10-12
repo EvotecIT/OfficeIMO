@@ -6,7 +6,8 @@ namespace OfficeIMO.Word.IWork;
 
 public static partial class WordIWorkConverter {
     private static string? FindWordProjectionLimitation(IWorkPagesProjection projection,
-        bool allowPartialEditableReconstruction, CancellationToken cancellationToken) {
+        bool allowPartialEditableReconstruction, HashSet<ulong> standaloneInlineTables, HashSet<ulong> inlineDrawables,
+        CancellationToken cancellationToken) {
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
         string? inlineLimitation = FindInlineObjectLimitation(projection);
@@ -111,17 +112,16 @@ public static partial class WordIWorkConverter {
             if (WordTableDimensions(table).Any(size => !FitsSignedTwips(size, allowPartialEditableReconstruction))) {
                 return $"Pages table '{table.Name}' has sizing outside the DOCX measurement range.";
             }
-            if (table.Cells.Any(cell => cell.Padding != null
-                && PaddingPoints(cell.Padding).Any(points => Math.Round(points * 20d, MidpointRounding.AwayFromZero) > short.MaxValue
+            if (table.CellPaddings.Any(padding => PaddingPoints(padding).Any(points => Math.Round(points * 20d, MidpointRounding.AwayFromZero) > short.MaxValue
                     || !allowPartialEditableReconstruction && !IsExactDestinationUnit(points, 20d)))) {
                 return $"Pages table '{table.Name}' has cell padding outside the DOCX cell-margin range or twip precision.";
             }
-            if (!allowPartialEditableReconstruction && table.Geometry is { } geometry
-                && (Math.Abs(geometry.LeftPoints) > 0.000001d
-                    || Math.Abs(geometry.TopPoints) > 0.000001d
-                    || Math.Abs(geometry.WidthPoints) > 0.000001d
-                    || Math.Abs(geometry.HeightPoints) > 0.000001d
-                    || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
+            if (WordTableRowHeights(table, cancellationToken)
+                .Any(height => height is > 31_680 || table.AutoResizeRows != true && height is <= 0)) {
+                return $"Pages table '{table.Name}' has a row height outside Word's DOCX range, or a fixed physical row box too small for its bottom padding.";
+            }
+            if (!allowPartialEditableReconstruction && HasTableGeometry(table)
+                && !CanApplyInlineTableGeometry(table, projection.PageLayout, standaloneInlineTables, cancellationToken)) {
                 return $"Pages table '{table.Name}' has positioned, sized, or rotated drawable geometry that the DOCX table owner cannot preserve.";
             }
             destinationTableCells += tableCells;
@@ -137,12 +137,15 @@ public static partial class WordIWorkConverter {
             }
         }
         foreach (IWorkImageAsset image in projection.Images) {
+            // A body attachment determines inline placement. Pages may save a fractional
+            // cached flow position, which is not a destination offset and is not rounded.
+            bool positioned = !IsInlineImage(image, inlineDrawables);
             if (image.Geometry is { } geometry
                 && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0
                     || !FitsEmuExtent(geometry.WidthPoints, allowPartialEditableReconstruction)
                     || !FitsEmuExtent(geometry.HeightPoints, allowPartialEditableReconstruction)
-                    || !FitsEmuOffset(geometry.LeftPoints, allowPartialEditableReconstruction)
-                    || !FitsEmuOffset(geometry.TopPoints, allowPartialEditableReconstruction)
+                    || positioned && (!FitsEmuOffset(geometry.LeftPoints, allowPartialEditableReconstruction)
+                        || !FitsEmuOffset(geometry.TopPoints, allowPartialEditableReconstruction))
                     || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
                 return "A Pages image has unsupported placement, rotation, or extent for the DOCX image owner.";
             }
@@ -187,7 +190,8 @@ public static partial class WordIWorkConverter {
         yield return padding.BottomPoints;
     }
 
-    private static bool RequiresWordRounding(IWorkPagesProjection projection, CancellationToken cancellationToken) =>
+    private static bool RequiresWordRounding(IWorkPagesProjection projection, HashSet<ulong> inlineDrawables,
+        CancellationToken cancellationToken) =>
         WordTwipMeasurements(projection).Any(value => value.HasValue && !IsExactDestinationUnit(value.Value, 20d))
         || projection.Tables.SelectMany(table => TableBorderWidths(table, cancellationToken)).Any(width => !IsExactDestinationUnit(width, 8d))
         || AllPagesParagraphStyles(projection).Any(style => style.LineSpacingMultiplier is double multiplier
@@ -195,12 +199,17 @@ public static partial class WordIWorkConverter {
         || AllPagesRunStyles(projection)
             .Any(style => style.FontSizePoints is double size && !IsExactDestinationUnit(size, 2d))
         || AllPagesRunStyles(projection).Any(style => style.CharacterSpacingPoints is double spacing && !IsExactDestinationUnit(spacing, 20d))
-        || projection.TextBoxObjects.Select(box => box.Geometry)
-            .Concat(projection.Images.Select(image => image.Geometry))
-            .Any(geometry => geometry != null && (!IsExactDestinationUnit(geometry.LeftPoints, 12700d)
-                || !IsExactDestinationUnit(geometry.TopPoints, 12700d)
-                || !IsExactDestinationUnit(geometry.WidthPoints, 12700d)
-                || !IsExactDestinationUnit(geometry.HeightPoints, 12700d)));
+        || projection.TextBoxObjects.Any(box => RequiresWordGeometryRounding(box.Geometry, positioned: true))
+        || projection.Images.Any(image => RequiresWordGeometryRounding(image.Geometry, !IsInlineImage(image, inlineDrawables)));
+
+    private static bool IsInlineImage(IWorkImageAsset image, HashSet<ulong> inlineDrawables) =>
+        image.SourceIdentity is { } identity && inlineDrawables.Contains(identity.RecordIdentifier);
+
+    private static bool RequiresWordGeometryRounding(IWorkGeometry? geometry, bool positioned) => geometry != null
+        && (positioned && (!IsExactDestinationUnit(geometry.LeftPoints, 12700d)
+                || !IsExactDestinationUnit(geometry.TopPoints, 12700d))
+            || !IsExactDestinationUnit(geometry.WidthPoints, 12700d)
+            || !IsExactDestinationUnit(geometry.HeightPoints, 12700d));
 
     private static IEnumerable<double?> WordTwipMeasurements(IWorkPagesProjection projection) {
         if (projection.PageLayout is { } layout) {
@@ -215,9 +224,8 @@ public static partial class WordIWorkConverter {
         }
         foreach (IWorkTable table in projection.Tables) {
             foreach (double? size in WordTableDimensions(table)) yield return size;
-            foreach (IWorkTableCell cell in table.Cells)
-                if (cell.Padding != null)
-                    foreach (double points in PaddingPoints(cell.Padding)) yield return points;
+            foreach (IWorkCellPadding padding in table.CellPaddings)
+                foreach (double points in PaddingPoints(padding)) yield return points;
         }
         foreach (IWorkParagraphStyle style in AllPagesParagraphStyles(projection)) {
             yield return style.FirstLineIndentPoints;

@@ -15,11 +15,11 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(expected.GetProperty("nativeDocxSha256").GetString(), BorderCorpusHash(reference));
         using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
-        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.False(result.Report.IsPartialEditableReconstruction);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_DOCX_PRECISION");
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED");
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED");
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
+        result.Report.RequireCompleteEditableReconstruction();
         Assert.False(result.IsVisualFallback);
         var table = Assert.Single(result.Projection.Tables);
         Assert.Equal(4, table.RowCount); Assert.Equal(4, table.ColumnCount);

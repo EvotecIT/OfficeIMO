@@ -1,19 +1,21 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>An immutable body paragraph in a newly created native Pages document.</summary>
-public sealed class IWorkPagesParagraphData {
-    internal IWorkPagesParagraphData(IEnumerable<IWorkTextRunData> runs, IWorkPagesParagraphLayout? layout = null) {
+public sealed class IWorkPagesParagraphData : IWorkPagesBodyBlock {
+    internal IWorkPagesParagraphData(IEnumerable<IWorkTextRunData> runs, IWorkPagesParagraphLayout? layout = null,
+        IWorkPagesNumberedList? numberedList = null, int listLevel = -1, int? listNumber = null, int? listRestartNumber = null) {
         if (runs == null) throw new ArgumentNullException(nameof(runs));
         IWorkTextRunData[] input = runs.ToArray();
         if (input.Length == 0 || input.Any(run => run == null))
             throw new ArgumentException("At least one non-null character run is required.", nameof(runs));
-        if (input.Any(run => run.Text.IndexOf('\n') >= 0))
-            throw new ArgumentException("Add each body paragraph separately; character runs cannot contain line breaks.", nameof(runs));
+        if (input.Any(run => run.Text.IndexOf('\n') >= 0 || run.Text.IndexOf('\u2028') >= 0 || run.Text.IndexOf('\u2029') >= 0))
+            throw new ArgumentException("Add each body paragraph separately; character runs cannot contain line or paragraph breaks.", nameof(runs));
         IWorkTextRunData[] retained = input.Where(run => run.Text.Length > 0).ToArray();
         if (retained.Length == 0) retained = new[] { input[0] };
         Runs = Array.AsReadOnly(retained);
         Text = string.Concat(retained.Select(run => run.Text));
         Layout = layout ?? IWorkPagesParagraphLayout.Default;
+        NumberedList = numberedList; ListLevel = listLevel; ListNumber = listNumber; ListRestartNumber = listRestartNumber;
     }
 
     /// <summary>Gets the paragraph text, without the native paragraph terminator.</summary>
@@ -22,4 +24,12 @@ public sealed class IWorkPagesParagraphData {
     public IReadOnlyList<IWorkTextRunData> Runs { get; }
     /// <summary>Gets immutable paragraph spacing and custom tabs.</summary>
     public IWorkPagesParagraphLayout Layout { get; }
+    /// <summary>Gets the owning numbered list, or null for an ordinary body paragraph.</summary>
+    public IWorkPagesNumberedList? NumberedList { get; }
+    /// <summary>Gets the zero-based decimal level, or -1 for an ordinary paragraph.</summary>
+    public int ListLevel { get; }
+    /// <summary>Gets the evaluated authored counter, or null for an ordinary paragraph.</summary>
+    public int? ListNumber { get; }
+    /// <summary>Gets the caller's explicit restart, or null for continuation and the default initial start.</summary>
+    public int? ListRestartNumber { get; }
 }

@@ -219,7 +219,7 @@ public sealed class IWorkCorpusTests {
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
 
         Assert.False(result.IsVisualFallback);
-        result.Report.RequireCompleteEditableReconstruction();
+        IWorkTestPolicy.AssertCellPaddingOmission(result.Report);
         ExcelSheet first = result.Value.Sheets[0];
         Assert.Equal("A1+A2", first.GetFormulaText(2, 2));
         Assert.Equal("SUM(A1:A2)", first.GetFormulaText(6, 2));

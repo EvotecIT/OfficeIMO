@@ -2,7 +2,7 @@ using System.Threading;
 
 namespace OfficeIMO.IWork.Internal;
 
-/// <summary>Owns deterministic object allocation and shared style/table records for native creation graphs.</summary>
+/// <summary>Owns deterministic object allocation and shared style, image and table records for native creation graphs.</summary>
 internal abstract partial class IWorkNativeCreationGraph {
     protected readonly int _maximumBytes;
     protected readonly CancellationToken _cancellationToken;
@@ -27,6 +27,12 @@ internal abstract partial class IWorkNativeCreationGraph {
     }
     protected void Add(ulong id, uint type, IWorkProtoWriter message) => _records.Add((id, type, message));
 
+    protected void AddBodyAttachmentWrap(IWorkProtoWriter drawable) {
+        // Absent exterior wrap makes Pages wrap surrounding body text around attachments.
+        if (_kind == IWorkDocumentKind.Pages)
+            drawable.Message(3, P().UInt(1, 0).UInt(2, 2).UInt(3, 0).Float(4, 12).Float(5, 0.5f).Bool(6, false));
+    }
+
     protected static void Version(IWorkProtoWriter message, int field, params uint[] values) {
         foreach (uint value in values) message.UInt(field, value);
     }
@@ -36,7 +42,7 @@ internal abstract partial class IWorkNativeCreationGraph {
     protected IWorkProtoWriter Color(IWorkColor color) => P().UInt(1, 1).Float(3, color.Red / 255f)
         .Float(4, color.Green / 255f).Float(5, color.Blue / 255f).Float(6, 1).UInt(12, 1);
 
-    protected IWorkProtoWriter Style(ulong id, string name) {
+    protected virtual IWorkProtoWriter Style(ulong id, string name) {
         string identifier = "officeimo-style-" + id.ToString(System.Globalization.CultureInfo.InvariantCulture);
         _styles.Add((id, identifier));
         return P().String(1, name).String(2, identifier).Reference(5, StylesheetId);

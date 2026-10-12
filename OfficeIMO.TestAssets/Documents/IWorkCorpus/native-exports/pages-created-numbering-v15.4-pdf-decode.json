@@ -1,0 +1,100 @@
+{
+  "provider": "pypdf",
+  "version": "6.10.0",
+  "outputs": [
+    {
+      "source": "pages-created-numbering-v15.4.pdf",
+      "sha256": "233736b896266e0c1a59816ddf3742a3774b9c38f194eabff7c799015bad1bf5",
+      "pages": 1,
+      "numberedItems": 14,
+      "text": "Owned decimal lists \n\ud83d\ude00 \n7.Parent seven \n8.Parent eight \nPlain gap \n9.Continued nine \n1.Child one \n2.Child two \n10.Parent ten \n1.Reset child one \n5.Child restart five \n3.Separate parent three \n \n6.Resumed child six \n11.Resumed parent eleven \n1.Reset child one again \n4.Parent restart four \n5.Parent five \nBetween list items\n",
+      "numbers": [
+        7,
+        8,
+        9,
+        1,
+        2,
+        10,
+        1,
+        5,
+        3,
+        6,
+        11,
+        1,
+        4,
+        5
+      ]
+    },
+    {
+      "source": "pages-created-numbering-edited-v15.4.pdf",
+      "sha256": "45d1d063e86a478bbd39e9332e08f91d56f4ab5c593745d1dc69513bad821002",
+      "pages": 1,
+      "numberedItems": 15,
+      "text": "Owned decimal lists \n\ud83d\ude00 \n7.Parent seven \n8.Inserted parent eight \n9.Parent eight \nPlain gap \n10.Continued nine \n1.Child one \n2.Child two \n11.Parent ten \n1.Reset child one \n5.Child restart five \n3.Separate parent three \n \n6.Resumed child six \n11.Resumed parent eleven \n1.Reset child one again \n4.Parent restart four \n5.Parent five \nBetween list items\n",
+      "numbers": [
+        7,
+        8,
+        9,
+        10,
+        1,
+        2,
+        11,
+        1,
+        5,
+        3,
+        6,
+        11,
+        1,
+        4,
+        5
+      ]
+    },
+    {
+      "source": "pages-created-numbering-officeimo-v15.4.pdf",
+      "sha256": "d5aaa13633b5f23e363e2f1a4edf1c9d04e9d9f00ff4a2b731552b839fb2b4d0",
+      "pages": 1,
+      "numberedItems": 14,
+      "text": "Owned decimal lists \ud83d\ude00\n7. Parent seven\n8. Parent eight\nPlain gap\n9. Continued nine\n1. Child one\n2. Child two\nBetween list items\n10.Parent ten\n1. Reset child one\n5. Child restart five\n3. Separate parent three\n6. Resumed child six\n11.Resumed parent eleven\n1. Reset child one again\n4. Parent restart four\n5. Parent five\n",
+      "numbers": [
+        7,
+        8,
+        9,
+        1,
+        2,
+        10,
+        1,
+        5,
+        3,
+        6,
+        11,
+        1,
+        4,
+        5
+      ]
+    },
+    {
+      "source": "pages-created-numbering-edited-officeimo-v15.4.pdf",
+      "sha256": "62384557eee9ff853a3256a2085f1751567a9669bb278f6976458eef01ba0370",
+      "pages": 1,
+      "numberedItems": 15,
+      "text": "Owned decimal lists \ud83d\ude00\n7. Parent seven\n8. Inserted parent eight\n9. Parent eight\nPlain gap\n10.Continued nine\n1. Child one\n2. Child two\nBetween list items\n11.Parent ten\n1. Reset child one\n5. Child restart five\n3. Separate parent three\n6. Resumed child six\n11.Resumed parent eleven\n1. Reset child one again\n4. Parent restart four\n5. Parent five\n",
+      "numbers": [
+        7,
+        8,
+        9,
+        10,
+        1,
+        2,
+        11,
+        1,
+        5,
+        3,
+        6,
+        11,
+        1,
+        4,
+        5
+      ]
+    }
+  ]
+}

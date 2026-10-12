@@ -33,7 +33,7 @@
     "One- and two-point solid strokes and one hidden shared edge; merged borders and other stroke kinds remain separate.",
     "Inactive inherited rounded defaults are outside the visible-edge qualification; this source explicitly replaces all 40 physical grid segments with supported solid or invisible strokes.",
     "The explicit partial DOCX policy retains all source values and qualified edges and maps positioned geometry to a flowing table. It reports IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED. Every row and column has an explicit size that fits DOCX precision, so the unused fractional default height is not a loss. Complete iWork PDF conversion rejects this source, including when partial editable acceptance is requested.",
-    "The separate Word PDF appearance probe substitutes source fonts under the portable resource policy. It retains bold font selection but its table is taller and starts lower than the native source. These outputs qualify visible edge recovery, not complete layout or typography equivalence."
+    "The original separate Word PDF appearance probe retained below substitutes source fonts, starts lower and has taller rows. The physicalRowHeightQualification reference records the corrected fixed-row mapping and native Word comparison; font substitution, placement and native Pages reimport sizing remain separate limits."
   ],
   "artifacts": [
     {
@@ -150,6 +150,16 @@
       "path": "pages-table-borders-effective-dimensions.json",
       "bytes": 3646,
       "sha256": "0f582d4605c5fc966f0d4714ee2da3e4da7686add0a676bb54046ba465171e14"
+    },
+    {
+      "path": "pages-table-row-height-word-v16.113.3.json",
+      "bytes": 20837,
+      "sha256": "fe535631a339d83ca9e7b49e71fdc67ac47db5e02bbf2eb7644df6c2a7418975"
+    },
+    {
+      "path": "pages-inline-table-flow-word-v16.113.3.json",
+      "bytes": 16133,
+      "sha256": "0f4ae8b9baa0072af43cb8b7f53c4770115ae5fb3fd8cf123ad6933a1643efa6"
     }
   ],
   "fontProvenance": {
@@ -297,6 +307,28 @@
       "renderedPdfsByteIdenticalToInspectedArtifacts": true,
       "nativeApplicationReopenedCurrentDocx": false,
       "boundary": "The change affects validation and reporting. Prior native acceptance remains tied to the retained managed DOCX; all current package parts agree after relationship-ID and section-revision normalization."
+    },
+    "physicalRowHeightQualification": {
+      "reference": "pages-table-row-height-word-v16.113.3.json",
+      "currentManagedDocx": "pages-table-row-height-officeimo.docx",
+      "nativeApplication": "Microsoft Word 16.113.3 (16.113.26092714)",
+      "physicalHeightPoints": 127,
+      "placementStillApproximate": true,
+      "nativePagesReimportOfCurrentDocx": false
+    },
+    "inlineTableFlowQualification": {
+      "reference": "pages-inline-table-flow-word-v16.113.3.json",
+      "currentManagedDocx": "pages-inline-flow.docx",
+      "strictCompleteEditable": true,
+      "completeManagedPdf": true,
+      "nativeWordFramePoints": [
+        432,
+        127
+      ],
+      "nativePagesReimportFramePoints": [
+        432,
+        150
+      ]
     }
   }
 }

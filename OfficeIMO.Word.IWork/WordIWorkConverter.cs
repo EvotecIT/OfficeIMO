@@ -27,9 +27,12 @@ public static partial class WordIWorkConverter {
         }
 
         IWorkPagesProjection projection = source.ReadPages();
+        HashSet<ulong> standaloneInlineTables = FindStandaloneInlineTableBlocks(projection,
+            out HashSet<ulong> inlineDrawables, cancellationToken);
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction, cancellationToken);
+            : FindWordProjectionLimitation(projection, settings.AllowPartialEditableReconstruction,
+                standaloneInlineTables, inlineDrawables, cancellationToken);
         bool hasEditableContent = projection.HasEditableContent
             || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
         bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
@@ -39,16 +42,15 @@ public static partial class WordIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection, cancellationToken)) {
+        if (editable && settings.AllowPartialEditableReconstruction && RequiresWordRounding(projection, inlineDrawables, cancellationToken)) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_DOCX_PRECISION",
                     "Source geometry, spacing, or font sizes were rounded to the nearest supported DOCX measurement unit; original values remain available on the projection.")
             }).ToArray();
         }
         if (editable && settings.AllowPartialEditableReconstruction && projection.Tables.Any(table =>
-                table.Geometry is { } geometry && (Math.Abs(geometry.LeftPoints) > 0.000001d
-                    || Math.Abs(geometry.TopPoints) > 0.000001d || Math.Abs(geometry.WidthPoints) > 0.000001d
-                    || Math.Abs(geometry.HeightPoints) > 0.000001d || Math.Abs(geometry.RotationDegrees) > 0.000001d))) {
+                HasTableGeometry(table) && !CanApplyInlineTableGeometry(table, projection.PageLayout,
+                    standaloneInlineTables, cancellationToken))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED",
                     "Positioned source tables were retained as editable flowing DOCX tables; source geometry remains available on the projection.",
@@ -130,8 +132,6 @@ public static partial class WordIWorkConverter {
                 var pageHosts = new Dictionary<int, WordParagraph>();
                 var pageTableAnchors = new Dictionary<int, WordTable>();
                 int currentPageIndex = 1;
-                var inlineDrawables = new HashSet<ulong>(projection.Body.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                    .Where(run => run.InlineObject != null).Select(run => run.InlineObject!.Drawable.RecordIdentifier));
                 var drawableLookup = projection.Drawables.ToDictionary(DrawableIdentifier);
                 AddRichText(projection.Body, value => {
                         WordParagraph paragraph = document.AddParagraph(value);
@@ -152,9 +152,15 @@ public static partial class WordIWorkConverter {
                             semanticSections.Add(section);
                             currentPageIndex++;
                         }
-                    }, cancellationToken: cancellationToken, addInlineObject: (paragraph, run) =>
-                        AddInlineObject(document, paragraph, drawableLookup[run.InlineObject!.Drawable.RecordIdentifier],
-                            nativeLists, contentWidth, contentHeight, cellComments, cancellationToken));
+                    }, cancellationToken: cancellationToken, addInlineObject: (paragraph, run) => {
+                        ulong identifier = run.InlineObject!.Drawable.RecordIdentifier;
+                        if (AddInlineObject(document, paragraph, drawableLookup[identifier],
+                                nativeLists, contentWidth, contentHeight, cellComments, standaloneInlineTables,
+                                projection.PageLayout, cancellationToken)
+                            && pageHosts.TryGetValue(currentPageIndex, out WordParagraph? host) && host == paragraph) {
+                            pageHosts.Remove(currentPageIndex);
+                        }
+                    });
                 if (projection.PageLayout != null) {
                     foreach (WordSection section in document.Sections) ApplyPageLayout(section, projection.PageLayout);
                 }
@@ -204,7 +210,8 @@ public static partial class WordIWorkConverter {
                 WordSection section = document.Sections[0];
                 (double contentWidth, double contentHeight) = ContentBox(section);
                 (double width, double height) = PreviewSize(preview, contentWidth, contentHeight);
-                document.AddParagraph().AddImage(image, PreviewFileName(preview), width, height,
+                document.AddParagraph().AddImage(image, PreviewFileName(preview),
+                    Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height),
                     description: "Visual fallback from the source Pages package");
             }
 
@@ -261,7 +268,7 @@ public static partial class WordIWorkConverter {
             (width, height) = FitInside(width, height, contentWidth, contentHeight);
         }
         WordImage target = (pageHost ?? document.AddParagraph()).InsertImage(image, source.FileName,
-            width, height, WordImageTextWrapping.Square,
+            Helpers.ConvertPointsToPixels(width), Helpers.ConvertPointsToPixels(height), WordImageTextWrapping.Square,
             source.AccessibilityDescription ?? "Image imported from Pages");
         if (source.Geometry is { } geometry) {
             target.horizontalPosition.RelativeFrom =

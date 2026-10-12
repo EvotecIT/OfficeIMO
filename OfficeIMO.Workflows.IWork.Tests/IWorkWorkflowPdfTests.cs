@@ -9,11 +9,11 @@ namespace OfficeIMO.Workflows.IWork.Tests;
 public sealed partial class IWorkWorkflowTests {
     [Theory]
     [InlineData("pages", "pages-pdf", "hello pages", 1)]
-    [InlineData("numbers", "numbers-pdf", "Z", 1)]
+    [InlineData("numbers", "numbers-pdf", "42", 1)]
     [InlineData("key", "keynote-pdf", "hello keynote", 2)]
     public async Task Registered_pdf_routes_honor_verified_shared_compression(string source, string route, string text, int pages) {
         using var files = new Files(source, "pdf");
-        if (source == "key") CreateNoteFreeKeynoteInput(files.Input);
+        UseCompletePdfFixture(files, source);
         OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner();
         Assert.True(runner.ConversionRoutes.Single(item => item.Id == route).SupportsPdfCompression);
         OfficeWorkflowRequest request = files.Request(route);
@@ -157,7 +157,7 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("key", "keynote-pdf")]
     public async Task Cancellation_after_pdf_reopen_preserves_the_destination_and_removes_staging(string source, string route) {
         using var files = new Files(source, "pdf");
-        if (source == "key") CreateNoteFreeKeynoteInput(files.Input);
+        UseCompletePdfFixture(files, source);
         File.WriteAllText(files.Output, "keep existing");
         OfficeWorkflowRequest request = files.Request(route);
         request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
@@ -179,11 +179,11 @@ public sealed partial class IWorkWorkflowTests {
 
     [Theory]
     [InlineData("pages", "pages-pdf", "hello pages", 1)]
-    [InlineData("numbers", "numbers-pdf", "Z", 1)]
+    [InlineData("numbers", "numbers-pdf", "42", 1)]
     [InlineData("key", "keynote-pdf", "hello keynote", 2)]
     public async Task Complete_iwork_pdf_routes_reopen_every_page_and_retain_both_stages(string source, string route, string text, int pages) {
         using var files = new Files(source, "pdf");
-        if (source == "key") CreateNoteFreeKeynoteInput(files.Input);
+        UseCompletePdfFixture(files, source);
         OfficeWorkflowRequest request = files.Request(route);
         request.RegisteredConversionSettings = new IWorkWorkflowSettings();
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
@@ -242,6 +242,7 @@ public sealed partial class IWorkWorkflowTests {
         request.RegisteredConversionSettings = settings;
         OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(result.Succeeded);
+        Assert.Contains("every sheet, row, and column", result.Summary);
         Assert.False(File.Exists(files.Output));
     }
 

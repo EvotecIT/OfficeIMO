@@ -27,7 +27,7 @@ def fields(data):
     return result
 
 
-def archive_messages(package):
+def archive_messages(package, primary_only=False):
     """Yield every message, including secondary payloads sharing an archive identity."""
     for name in package.namelist():
         if not name.endswith('.iwa'):
@@ -37,11 +37,12 @@ def archive_messages(package):
             header, payload = get_archive_info_and_remainder(data)
             assert header.message_infos
             offset = 0
-            for info in header.message_infos:
+            for index, info in enumerate(header.message_infos):
                 content = payload[offset:offset + info.length]
                 assert len(content) == info.length
                 offset += info.length
-                yield name, header, info, content
+                if not primary_only or index == 0:
+                    yield name, header, info, content
             data = payload[offset:]
 
 

@@ -36,12 +36,14 @@ public static partial class WordIWorkConverter {
             }
             table.ColumnWidth = widths;
         }
+        int?[] rowHeights = WordTableRowHeights(source, cancellationToken);
         bool hasBorderDeclarations = source.HasBorderDeclarations;
+
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (source.GetRowHeight(row) is double height) {
-                if (source.AutoResizeRows == true) rows[row - 1].MinimumHeight = ToSignedTwips(height);
-                else rows[row - 1].Height = ToSignedTwips(height);
+            if (rowHeights[row - 1] is int height) {
+                if (source.AutoResizeRows == true) rows[row - 1].MinimumHeight = height;
+                else rows[row - 1].Height = height;
             }
         }
         for (int row = 1; row <= source.RowCount; row++) {
@@ -52,10 +54,25 @@ public static partial class WordIWorkConverter {
                 var borders = mergedBorders.TryGetValue((row, column), out var perimeter)
                     ? perimeter : source.GetBorders(row, column);
                 IWorkParagraphStyle? style = source.GetParagraphStyle(row, column);
-                if (fill == null && style == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null && !hasBorderDeclarations) continue;
+                IWorkCellPadding? padding = source.GetPadding(row, column);
+                IWorkCellVerticalAlignment? vertical = source.GetVerticalAlignment(row, column);
+                if (fill == null && style == null && padding == null && vertical == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null && !hasBorderDeclarations) continue;
                 targetCells ??= rows[row - 1].Cells;
                 WordTableCell target = targetCells[column - 1];
                 ApplyTableBorders(target, borders, hasBorderDeclarations);
+                if (padding != null) {
+                    target.MarginLeftWidth = checked((short)ToSignedTwips(padding.LeftPoints));
+                    target.MarginTopWidth = checked((short)ToSignedTwips(padding.TopPoints));
+                    target.MarginRightWidth = checked((short)ToSignedTwips(padding.RightPoints));
+                    target.MarginBottomWidth = checked((short)ToSignedTwips(padding.BottomPoints));
+                }
+                if (vertical.HasValue) target.VerticalAlignment = vertical.Value switch {
+                    IWorkCellVerticalAlignment.Top => WordTableVerticalAlignment.Top,
+                    IWorkCellVerticalAlignment.Middle => WordTableVerticalAlignment.Center,
+                    _ => WordTableVerticalAlignment.Bottom
+                };
+
+
                 if (fill != null) {
                     if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
                     else target.ShadingPattern = WordShadingPattern.Nil;
@@ -76,17 +93,6 @@ public static partial class WordIWorkConverter {
                 sourceRowCells = rows[sourceRow - 1].Cells;
             }
             WordTableCell target = sourceRowCells![sourceCell.Column - 1];
-            if (sourceCell.Padding is { } padding) {
-                target.MarginLeftWidth = checked((short)ToSignedTwips(padding.LeftPoints));
-                target.MarginTopWidth = checked((short)ToSignedTwips(padding.TopPoints));
-                target.MarginRightWidth = checked((short)ToSignedTwips(padding.RightPoints));
-                target.MarginBottomWidth = checked((short)ToSignedTwips(padding.BottomPoints));
-            }
-            if (sourceCell.VerticalAlignment is { } vertical) target.VerticalAlignment = vertical switch {
-                IWorkCellVerticalAlignment.Top => WordTableVerticalAlignment.Top,
-                IWorkCellVerticalAlignment.Middle => WordTableVerticalAlignment.Center,
-                _ => WordTableVerticalAlignment.Bottom
-            };
             IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 bool first = true;

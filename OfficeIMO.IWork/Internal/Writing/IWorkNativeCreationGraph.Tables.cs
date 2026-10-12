@@ -5,7 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 internal abstract partial class IWorkNativeCreationGraph {
     private readonly List<ulong> _tablePresets = new();
 
-    protected ulong AddTable(ulong slideId, IWorkNativeTableData table) {
+    protected ulong AddTable(ulong parentId, IWorkNativeTableData table) {
         ulong infoId = Allocate(), modelId = Allocate(), tableStyleId = Allocate(), cellStyleId = Allocate();
         ulong characterId = Allocate(), paragraphId = Allocate(), frameStyleId = Allocate();
         ulong rowHeaderId = Allocate(), columnHeaderId = Allocate(), tileId = Allocate(), stringsId = Allocate();
@@ -13,8 +13,9 @@ internal abstract partial class IWorkNativeCreationGraph {
         AddTableStyles(tableStyleId, cellStyleId, table.FontName);
         ulong presetId = AddTablePreset(tableStyleId, cellStyleId, paragraphId, frameStyleId);
         var drawable = P().Message(1, P().Message(1, Point(table.Geometry.LeftPoints, table.Geometry.TopPoints))
-            .Message(2, Size(table.Geometry.WidthPoints, table.Geometry.HeightPoints)).UInt(3, 3).Float(4, 0)).Reference(2, slideId);
-        Add(infoId, 6000, P().Message(1, drawable).Reference(2, modelId).UInt(10, 1));
+            .Message(2, Size(table.Geometry.WidthPoints, table.Geometry.HeightPoints)).UInt(3, 3).Float(4, 0)).Reference(2, parentId);
+        AddBodyAttachmentWrap(drawable);
+        Add(infoId, 6000, P().Message(1, drawable).Reference(2, modelId).UInt(10, _kind == IWorkDocumentKind.Pages ? 0u : 1u));
 
         var stringKeys = new Dictionary<string, uint>(StringComparer.Ordinal);
         var counts = new Dictionary<string, uint>(StringComparer.Ordinal);
@@ -32,7 +33,8 @@ internal abstract partial class IWorkNativeCreationGraph {
 
         Add(rowHeaderId, 6006, Headers(table.RowCount, (float)(table.Geometry.HeightPoints / table.RowCount), table.ColumnCount));
         Add(columnHeaderId, 6006, Headers(table.ColumnCount, (float)(table.Geometry.WidthPoints / table.ColumnCount), table.RowCount));
-        Add(tileId, 6002, ScalarTile(table, stringKeys));
+        var numberFormats = new IWorkTableNumberFormatWriter(table.Cells, _cancellationToken);
+        Add(tileId, 6002, ScalarTile(table, stringKeys, numberFormats));
         var store = P().Message(1, P().UInt(1, 1).Reference(2, rowHeaderId)).Reference(2, columnHeaderId)
             .Message(3, P().Message(1, P().UInt(1, 0).Reference(2, tileId)).UInt(2, 256))
             .Reference(4, stringsId).UInt(7, 1).UInt(8, 0)
@@ -41,7 +43,7 @@ internal abstract partial class IWorkNativeCreationGraph {
         foreach (var catalog in new[] { (5, 4u), (6, 3u), (11, 2u), (12, 5u), (16, 7u),
                      (17, 8u), (18, 9u), (19, 10u), (20, 11u), (21, 12u), (22, 2u) }) {
             ulong id = Allocate();
-            Add(id, 6005, P().UInt(1, catalog.Item2).UInt(2, 1));
+            Add(id, 6005, catalog.Item1 == 22 ? numberFormats.Catalog(P) : P().UInt(1, catalog.Item2).UInt(2, 1));
             store.Reference(catalog.Item1, id);
         }
         var model = P().String(1, IWorkCreationIdentity.Create(_modelHash, "table-" + modelId.ToString(CultureInfo.InvariantCulture), _kind).Text)
@@ -72,7 +74,7 @@ internal abstract partial class IWorkNativeCreationGraph {
         if (_tablePresets.Count == 0) return;
         var presets = P();
         foreach (ulong id in _tablePresets) presets.Reference(1, id);
-        // Keynote's native table presets use extension 200; extension 120 owns chart presets.
+        // Native table presets use extension 200; extension 120 owns chart presets.
         theme.Message(200, presets);
     }
 
@@ -83,7 +85,8 @@ internal abstract partial class IWorkNativeCreationGraph {
         return headers;
     }
 
-    private IWorkProtoWriter ScalarTile(IWorkNativeTableData table, IReadOnlyDictionary<string, uint> strings) {
+    private IWorkProtoWriter ScalarTile(IWorkNativeTableData table, IReadOnlyDictionary<string, uint> strings,
+        IWorkTableNumberFormatWriter numberFormats) {
         var tile = P().UInt(1, (uint)table.ColumnCount - 1).UInt(2, (uint)table.RowCount - 1)
             .UInt(3, (uint)(table.RowCount * table.ColumnCount)).UInt(4, (uint)table.RowCount)
             .UInt(6, 5).Bool(7, true).Bool(8, false);
@@ -101,7 +104,7 @@ internal abstract partial class IWorkNativeCreationGraph {
                 // Apple marks pre-BNC cells empty while the modern buffer owns their values.
                 legacy[column * 12] = 4;
                 cells.TryGetValue(row * table.ColumnCount + column, out var cell);
-                byte[] bytes = IWorkTableCellStorageWriter.Encode(cell, strings);
+                byte[] bytes = IWorkTableCellStorageWriter.Encode(cell, strings, numberFormats.GetKey(cell));
                 buffer.Write(bytes, 0, bytes.Length);
             }
             tile.Message(5, P().UInt(1, (uint)row).UInt(2, (uint)table.ColumnCount).Bytes(3, legacy)

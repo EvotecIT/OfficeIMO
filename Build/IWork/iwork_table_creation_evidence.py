@@ -16,6 +16,10 @@ def verify_tables(graph, decoded):
         assert 1 <= model.number_of_rows <= 256 and 1 <= model.number_of_columns <= 256
         assert model.number_of_header_rows == model.number_of_header_columns == model.number_of_footer_rows == 0
         assert not decoded[model.table_style.identifier].table_properties.auto_resize and not model.table_name_enabled
+        layout = decoded[model.body_cell_style.identifier].cell_properties
+        assert layout.HasField('padding') and layout.HasField('vertical_alignment') and layout.vertical_alignment == 0
+        assert all(layout.padding.HasField(side) and getattr(layout.padding, side) == 4
+                   for side in ('left', 'top', 'right', 'bottom'))
         store = model.base_data_store
         assert len(store.tiles.tiles) == 1
         tile = decoded[store.tiles.tiles[0].tile.identifier]
@@ -25,6 +29,22 @@ def verify_tables(graph, decoded):
         values = {entry.key: entry.string for entry in strings.entries}
         assert len(values) == len(strings.entries)
         refcounts = Counter()
+        formats = decoded[store.format_table.identifier]
+        assert formats.listType == 2 and formats.nextListID == len(formats.entries) + 1
+        numeric_formats = {}
+        for entry in formats.entries:
+            assert entry.HasField('format') and not entry.HasField('reference')
+            item = entry.format
+            assert {field.number for field, _ in item.ListFields()} == {1, 2, 4, 5}
+            assert item.format_type in (256, 258, 259) and 0 <= item.decimal_places <= 30
+            assert 0 <= item.negative_style <= 3
+            assert item.format_type != 259 or item.negative_style == 0 and not item.show_thousands_separator
+            numeric_formats[entry.key] = {'kind': {256: 'Number', 258: 'Percentage', 259: 'Scientific'}[item.format_type],
+                'decimalPlaces': item.decimal_places, 'negativeStyle': item.negative_style,
+                'thousandsSeparator': item.show_thousands_separator}
+        assert len(numeric_formats) == len(formats.entries)
+        assert len({tuple(item.items()) for item in numeric_formats.values()}) == len(numeric_formats)
+        format_refcounts = Counter()
         cells = []
         for row_number, row in enumerate(tile.rowInfos):
             assert row.tile_row_index == row_number and row.cell_count == model.number_of_columns
@@ -43,9 +63,16 @@ def verify_tables(graph, decoded):
                 kind = {0: 'Empty', 2: 'Number', 3: 'Text', 6: 'Boolean'}[data[1]]
                 flags = struct.unpack_from('<I', data, 8)[0]
                 value = None
+                number_format = None
                 if kind == 'Number':
-                    assert flags == 1 and len(data) == 28
+                    assert flags in (1, 1 | (1 << 12) | (1 << 13)) and len(data) == (36 if flags != 1 else 28)
                     value = _unpack_decimal128(data[12:28])
+                    if flags != 1:
+                        assert struct.unpack_from('<H', data, 6)[0] == 1
+                        assert struct.unpack_from('<I', data, 28)[0] == 1
+                        key = struct.unpack_from('<I', data, 32)[0]
+                        number_format = numeric_formats[key]
+                        format_refcounts[key] += 1
                 elif kind == 'Text':
                     assert flags == 8 and len(data) == 16
                     key = struct.unpack_from('<I', data, 12)[0]
@@ -58,9 +85,13 @@ def verify_tables(graph, decoded):
                     value = bool(number)
                 else:
                     assert flags == 0 and len(data) == 12
-                cells.append({'row': row_number + 1, 'column': column + 1, 'kind': kind, 'value': value})
+                cell = {'row': row_number + 1, 'column': column + 1, 'kind': kind, 'value': value}
+                if number_format is not None:
+                    cell['numberFormat'] = number_format
+                cells.append(cell)
         assert tile.numCells == len(cells) == model.number_of_rows * model.number_of_columns
         assert all(entry.refcount == refcounts[entry.key] for entry in strings.entries)
+        assert all(entry.refcount == format_refcounts[entry.key] and entry.refcount > 0 for entry in formats.entries)
         row_headers = decoded[store.rowHeaders.buckets[0].identifier].headers
         column_headers = decoded[store.columnHeaders.identifier].headers
         assert len(row_headers) == model.number_of_rows and len(column_headers) == model.number_of_columns
@@ -75,5 +106,6 @@ def verify_tables(graph, decoded):
         assert network.body_text_style.identifier == model.body_text_style.identifier
         tables.append({'id': identifier, 'name': model.table_name, 'rows': model.number_of_rows,
                        'columns': model.number_of_columns, 'cells': cells,
-                       'row_offsets_and_counts_complete': True, 'style_preset_network_complete': True})
+                       'row_offsets_and_counts_complete': True, 'style_preset_network_complete': True,
+                       'bodyCellPaddingPoints': 4, 'bodyCellVerticalAlignment': 'Top'})
     return tables

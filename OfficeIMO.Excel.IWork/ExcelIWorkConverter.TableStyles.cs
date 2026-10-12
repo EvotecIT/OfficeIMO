@@ -14,7 +14,7 @@ public static partial class ExcelIWorkConverter {
         || table.FillStyles.HeaderColumn != null || table.FillStyles.FooterRow != null || table.FillStyles.BandedBody != null;
 
     private static bool HasTableDefaultStyles(IWorkTable table) =>
-        TableParagraphStyles(table).Any() || HasTableFillDefaults(table) || table.HasBorderDeclarations;
+        TableParagraphStyles(table).Any() || HasTableFillDefaults(table) || table.HasBorderDeclarations || table.HasDefaultVerticalAlignment;
 
     private static void ApplyTableStyles(ExcelSheet sheet, IWorkTable table, CancellationToken token) {
         if (!HasTableDefaultStyles(table)) return;
@@ -25,6 +25,11 @@ public static partial class ExcelIWorkConverter {
                 var borders = table.GetBorders(row, column);
                 if (borders.Left.HasValue || borders.Top.HasValue || borders.Right.HasValue || borders.Bottom.HasValue)
                     ApplyTableBorders(sheet.CellAt(row, column), borders);
+                if (table.GetVerticalAlignment(row, column) is { } vertical) sheet.CellVerticalAlign(row, column, vertical switch {
+                    IWorkCellVerticalAlignment.Top => ExcelVerticalAlignment.Top,
+                    IWorkCellVerticalAlignment.Middle => ExcelVerticalAlignment.Center,
+                    _ => ExcelVerticalAlignment.Bottom
+                });
                 if (table.GetParagraphStyle(row, column) is not { } style) continue;
                 ExcelCell cell = sheet.CellAt(row, column);
                 IWorkTextStyle text = style.TextStyle;

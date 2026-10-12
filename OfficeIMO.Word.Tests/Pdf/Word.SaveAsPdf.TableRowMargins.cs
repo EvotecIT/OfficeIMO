@@ -2,6 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
@@ -65,5 +66,66 @@ public partial class Word {
         Assert.Equal(advance, first - next, 3);
         double neighbor = words.Single(word => word.Text == "Frame1").Letters[0].StartBaseLine.Y;
         Assert.Equal(first, neighbor, 3);
+    }
+
+    [Theory]
+    [InlineData(false, false, false, 129D)]
+    [InlineData(true, false, false, 135D)]
+    [InlineData(false, true, false, 129D)]
+    [InlineData(true, true, false, 135D)]
+    [InlineData(false, true, true, 120D)]
+    public void SaveAsPdf_VerticalMergeContinuationMarginsContributeToPhysicalRowHeight(
+        bool minimum, bool conditional, bool clear, double advance) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateBorderFrameControl(document, 3, 2, 0);
+        foreach (WordTableRow row in table.Rows) {
+            if (minimum) row.MinimumHeight = 2400;
+            else row.Height = 2400;
+            foreach (WordTableCell cell in row.Cells) {
+                cell.MarginTopWidth = 120;
+                cell.MarginBottomWidth = conditional ? null : (short)0;
+            }
+        }
+        if (conditional) {
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new W.Style(new W.BasedOn { Val = "TableGrid" },
+                    new W.TableStyleProperties(new W.StyleTableCellProperties(
+                        new W.TableCellMargin(new W.BottomMargin { Width = "180", Type = W.TableWidthUnitValues.Dxa }))) {
+                        Type = W.TableStyleOverrideValues.FirstColumn
+                    }) { Type = W.StyleValues.Table, StyleId = "ContinuationPadding" });
+            table._tableProperties!.TableStyle = new W.TableStyle { Val = "ContinuationPadding" };
+            table.ConditionalFormattingFirstColumn = true;
+            if (clear) table.Rows[1].Cells[0].MarginBottomWidth = 0;
+        } else {
+            table.Rows[1].Cells[0].MarginBottomWidth = 180;
+        }
+        table.MergeCells(0, 0, 2, 1);
+        using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        Assert.Equal(xml, imported._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+        Assert.Single(pdf.GetPages());
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        double first = words.Single(word => word.Text == "Frame3").Letters[0].StartBaseLine.Y;
+        double next = words.Single(word => word.Text == "Frame5").Letters[0].StartBaseLine.Y;
+        Assert.Equal(advance, first - next, 3);
+    }
+
+    [Theory]
+    [InlineData(0, 54.5D)]
+    [InlineData(180, 63.5D)]
+    public void SaveAsPdf_SpacedVerticalMergeContinuationIncludesBottomMargin(short bottom, double advance) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateBorderFrameControl(document, 3, 2, 120);
+        foreach (WordTableRow row in table.Rows) row.Height = 960;
+        table.Rows[1].Cells[0].MarginBottomWidth = bottom;
+        table.MergeCells(0, 0, 2, 1);
+        using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdfBytes(BorderFramePdfOptions()));
+        Assert.Single(pdf.GetPages());
+        var words = pdf.GetPage(1).GetWords().ToArray();
+        double first = words.Single(word => word.Text == "Frame3").Letters[0].StartBaseLine.Y;
+        double next = words.Single(word => word.Text == "Frame5").Letters[0].StartBaseLine.Y;
+        Assert.Equal(advance, first - next, 3);
     }
 }

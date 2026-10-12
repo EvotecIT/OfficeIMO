@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.IO.Compression;
+using System.Xml.Linq;
 using OfficeIMO.IWork;
 using OfficeIMO.Word;
 using OfficeIMO.Word.IWork;
@@ -12,21 +14,33 @@ internal static class NativePagesBorderSmoke {
         Require(Hash(source) == expected.RootElement.GetProperty("sourceSha256").GetString(), "Native Pages border source changed.");
         Require(Hash(reference) == expected.RootElement.GetProperty("nativeDocxSha256").GetString(), "Native Pages DOCX changed.");
         using var result = WordIWorkConverter.ConvertPagesToWordResult(source,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
-        Require(result.Report.IsPartialEditableReconstruction
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        result.Report.RequireCompleteEditableReconstruction();
+        Require(!result.Report.IsPartialEditableReconstruction
             && !result.Report.Diagnostics.Any(d => d.Code == "IWORK_PAGES_DOCX_PRECISION")
-            && result.Report.Diagnostics.Any(d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED")
+            && !result.Report.Diagnostics.Any(d => d.Code == "IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED")
             && !result.Report.Diagnostics.Any(d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED"),
-            "Pages border support, effective sizing or explicit placement boundary changed.");
+            "Pages border support, effective sizing or qualified inline-table flow changed.");
         Require(!result.IsVisualFallback, "Bordered Pages table used a preview.");
         var table = result.Projection.Tables.Single();
         Require(table.RowCount == 4 && table.ColumnCount == 4 && table.HeaderRowCount == 1
             && table.HeaderColumnCount == 1 && table.FooterRowCount == 1 && table.AutoResizeRows == false,
             "Pages table regions or sizing changed.");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
+        using (var package = new ZipArchive(new MemoryStream(saved.ToArray()), ZipArchiveMode.Read)) {
+            using var xml = package.GetEntry("word/document.xml")!.Open();
+            XNamespace word = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+            Require(XDocument.Load(xml).Root!.Element(word + "body")!.Elements().First().Name == word + "tbl",
+                "Pages standalone table retained an extra leading attachment paragraph.");
+        }
         using var reopened = WordDocument.Load(saved);
         using var native = WordDocument.Load(reference);
         var output = reopened.Tables.Single();
+        Require(output.RowHeight.SequenceEqual(new[] { 560, 540, 560, 560 }),
+            "Pages physical row heights did not account for Word bottom padding.");
+        Require(output.LayoutMode == WordTableLayoutMode.Fixed && output.WidthType == WordTableWidthUnit.Dxa
+            && output.Width == 8640 && output.GridColumnWidth.SequenceEqual(new[] { 2160, 2160, 2160, 2160 }),
+            "Pages standalone table did not retain its fixed grid.");
         var exported = native.Tables.Single();
         int edges = 0;
         foreach (var cell in expected.RootElement.GetProperty("cells").EnumerateArray()) {
@@ -56,7 +70,7 @@ internal static class NativePagesBorderSmoke {
         }
         Require(edges == 64 && !reopened.ValidateDocument().Any(), "Bordered DOCX validation failed.");
         Require(Hash(source) == expected.RootElement.GetProperty("sourceSha256").GetString(), "Pages conversion changed source bytes.");
-        Console.WriteLine("PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, effective sizing, saved/native DOCX and explicit native placement limit");
+        Console.WriteLine("PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, physical row heights, fixed grid and complete inline-table flow");
     }
 
     private static (WordBorderStyle? Style, uint? Size, string? Color) Side(WordTableCellBorder border, string side) => side switch {

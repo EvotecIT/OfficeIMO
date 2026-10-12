@@ -11,12 +11,19 @@ from zipfile import ZipFile
 
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory
 from iwork_protobuf_evidence import fields, creation_records, creation_references
+from iwork_table_creation_evidence import verify_tables
+from iwork_image_creation_evidence import verify_images
+from iwork_list_creation_evidence import verify_decimal_lists
 
 SCHEMAS = {10000: 'TP.DocumentArchive', 11006: 'TSP.PackageMetadata', 10001: 'TP.ThemeArchive',
     401: 'TSS.StylesheetArchive', 10012: 'TP.SettingsArchive', 10011: 'TP.SectionArchive',
     10143: 'TP.SectionTemplateArchive', 2021: 'TSWP.CharacterStyleArchive', 2022: 'TSWP.ParagraphStyleArchive',
     2023: 'TSWP.ListStyleArchive', 2024: 'TSWP.ColumnStyleArchive', 2050: 'TSWP.TextStylePresetArchive',
-    2001: 'TSWP.StorageArchive', 2025: 'TSWP.ShapeStyleArchive', 3016: 'TSD.MediaStyleArchive'}
+    2001: 'TSWP.StorageArchive', 2003: 'TSWP.DrawableAttachmentArchive',
+    2025: 'TSWP.ShapeStyleArchive', 3005: 'TSD.ImageArchive', 3016: 'TSD.MediaStyleArchive',
+    6000: 'TST.TableInfoArchive', 6001: 'TST.TableModelArchive', 6002: 'TST.Tile',
+    6003: 'TST.TableStyleArchive', 6004: 'TST.CellStyleArchive', 6005: 'TST.TableDataList',
+    6006: 'TST.HeaderStorageBucket', 6008: 'TST.TableStylePresetArchive', 6247: 'TST.TableStyleNetworkArchive'}
 
 
 def verify(path, descriptor):
@@ -33,7 +40,7 @@ def verify(path, descriptor):
 
     with ZipFile(path) as package:
         graph = creation_records(package)
-        decoded, objects = {}, []
+        decoded, objects, data_references = {}, [], {}
         assert not ({71, 72} & graph.keys())
         for identifier, (kind, payload, header) in graph.items():
             decoded[identifier] = decode(SCHEMAS[kind], payload)
@@ -43,12 +50,15 @@ def verify(path, descriptor):
             refs = creation_references(message, omit_style_sheet_backrefs=native_variations)
             if kind == 10001:
                 theme = fields(fields(payload)[1][0])
-                for field, schema in [(100, 'TSD.ThemePresetsArchive'), (110, 'TSWP.ThemePresetsArchive')]:
+                for field, schema in [(100, 'TSD.ThemePresetsArchive'), (110, 'TSWP.ThemePresetsArchive'), (200, 'TST.ThemePresetsArchive')]:
                     for value in theme.get(field, []):
                         refs.update(creation_references(decode(schema, value), omit_style_sheet_backrefs=native_variations))
             assert set(header.message_infos[0].object_references) == refs, identifier
             assert refs.issubset(graph.keys()), (identifier, refs - graph.keys())
-            assert not header.message_infos[0].data_references
+            data_refs = creation_references(message, 'TSP.DataReference')
+            assert set(header.message_infos[0].data_references) == data_refs, identifier
+            if data_refs:
+                data_references[identifier] = data_refs
             objects.append({'id': identifier, 'type': kind, 'references': sorted(refs)})
         roots = [identifier for identifier, record in graph.items() if record[0] == 10000]
         assert len(roots) == 1
@@ -59,6 +69,43 @@ def verify(path, descriptor):
         assert not settings.headers and not settings.footers
         text = ''.join(body.text)
         encoded = text.encode('utf-16-le')
+        decimal_items = verify_decimal_lists(graph, decoded, body, text)
+        tables = verify_tables(graph, decoded)
+        images, resource_paths = verify_images(graph, decoded, decode, package, data_references)
+        assert package.namelist() == sorted(package.namelist())
+        assert len(package.namelist()) == 5 + len(resource_paths)
+        assert all(item.compress_type == 0 and item.date_time == (1980, 1, 1, 0, 0, 0)
+                   for item in package.infolist())
+        inline_tables, inline_images = [], []
+        for entry in body.table_attachment.entries:
+            attachment = decoded[entry.object.identifier]
+            assert graph[entry.object.identifier][0] == 2003
+            assert attachment.h_offset_type == attachment.v_offset_type == 0
+            assert attachment.h_offset == attachment.v_offset == 0
+            drawable = decoded[attachment.drawable.identifier]
+            kind = graph[attachment.drawable.identifier][0]
+            assert kind in (6000, 3005) and drawable.super.parent.identifier == root.body_storage.identifier
+            wrap = drawable.super.exterior_text_wrap
+            assert drawable.super.HasField('exterior_text_wrap') and wrap.type == 0 and wrap.direction == 2
+            assert wrap.fit_type == 0 and wrap.margin == 12 and wrap.alpha_threshold == 0.5 and not wrap.is_html_wrap
+            geometry = drawable.super.geometry
+            assert geometry.position.x == geometry.position.y == geometry.angle == 0
+            assert geometry.size.width <= root.page_width - root.left_margin - root.right_margin
+            assert geometry.size.height <= root.page_height - root.top_margin - root.bottom_margin
+            start = entry.character_index * 2
+            assert encoded[start:start + 4].decode('utf-16-le') == '\ufffc\n'
+            assert start == 0 or encoded[start - 2:start].decode('utf-16-le') == '\n'
+            item = {'start': entry.character_index, 'attachmentId': entry.object.identifier,
+                'drawableId': attachment.drawable.identifier,
+                'widthPoints': geometry.size.width, 'heightPoints': geometry.size.height}
+            if kind == 6000:
+                assert drawable.formula_coord_space == 0
+                inline_tables.append(dict(item, tableId=drawable.tableModel.identifier))
+            else:
+                inline_images.append(item)
+        assert len(inline_tables) == len(tables)
+        assert {table['id'] for table in tables} == {table['tableId'] for table in inline_tables}
+        assert {image['id'] for image in images} == {item['drawableId'] for item in inline_images}
         positions = [entry.character_index for entry in body.table_char_style.entries]
         assert positions and positions[0] == 0 and positions == sorted(set(positions))
         boundaries, offset = {0}, 0
@@ -112,7 +159,9 @@ def verify(path, descriptor):
             'page': {'width': root.page_width, 'height': root.page_height,
                 'margins': [root.left_margin, root.right_margin, root.top_margin, root.bottom_margin]},
             'paragraphCount': len(para_positions), 'text': text, 'runs': runs, 'paragraphLayouts': paragraph_layouts, 'objects': objects,
-            'scope': 'Owned body paragraphs and graph declarations; native application acceptance is separate.'}
+            'nativeTables': tables, 'inlineTables': inline_tables,
+            'imageResources': images, 'inlineImages': inline_images, 'decimalItems': decimal_items,
+            'scope': 'Owned body paragraphs, inline PNG/JPEG images, scalar tables and graph declarations; native application acceptance is separate.'}
 
 
 if __name__ == '__main__':

@@ -184,6 +184,14 @@ internal static partial class IWorkTableReader {
             diagnostics, ref supportsEditableReconstruction, out bool fillDefaultsSupported, out IWorkCellFill? bandedBodyFill);
         var fillStyles = new IWorkTableFillStyleReader(source, model, message, projectionBudget, references,
             rows, columns, headerRows, headerColumns, footerRows, fillDefaultsSupported, bandedBodyFill);
+        var cellLayouts = new IWorkTableCellLayoutReader(source, model, message, projectionBudget, references,
+            rows, columns, headerRows, headerColumns, footerRows);
+        if (!cellLayouts.FullyReconstructed) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_LAYOUT_DEFAULTS_UNSUPPORTED",
+                "Table-region padding or vertical alignment contains unsupported or unresolved declarations; selected cell layout and values remain available.",
+                model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
+        }
         var borderResolver = IWorkTableBorderReader.Read(source, model, message, projectionBudget, references,
             rows, columns, headerRows, headerColumns, footerRows, ordinaryLayout);
         if (!borderResolver.FullyReconstructed) MarkTableBordersUnsupported(model, diagnostics, ref supportsEditableReconstruction);
@@ -514,7 +522,7 @@ internal static partial class IWorkTableReader {
                 && new[] { 6, 7, 9, 10, 11 }.All(field => message.FieldCount(field) <= 1
                     && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint))
                 && (long)headerRows + footerRows <= rows, autoResizeRows, textStyles?.Defaults, fillStyles.Defaults,
-            hiddenRows.ToArray(), hiddenColumns.ToArray(), borderResolver);
+            hiddenRows.ToArray(), hiddenColumns.ToArray(), borderResolver, cellLayouts.Defaults);
             textStyles?.ChargeCellParagraphUses(table);
             return table;
         }

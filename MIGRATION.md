@@ -1,5 +1,28 @@
 # Upgrading OfficeIMO
 
+## Numbers table-cell padding
+
+Numbers conversion reads padding from applicable body, header and footer cell styles, including empty cells. XLSX has no equivalent four-sided cell padding setting, so these tables produce `IWORK_NUMBERS_CELL_PADDING_OMITTED`. A conversion previously reported as complete can now require explicit partial acceptance.
+
+To retain the editable values, formulas and supported styles while accepting this omission, use the result API and inspect its report:
+
+```csharp
+using OfficeIMO.Excel.IWork;
+using OfficeIMO.IWork;
+
+IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
+using NumbersToExcelResult result = source.ToExcelDocumentResult(
+    new IWorkConversionOptions {
+        Mode = IWorkConversionMode.EditableOnly,
+        AllowPartialEditableReconstruction = true
+    });
+foreach (var diagnostic in result.Report.Diagnostics)
+    Console.WriteLine(diagnostic.Code);
+result.Value.Save("converted.xlsx");
+```
+
+`ToExcelDocument` and the complete-reconstruction guards still reject partial output, including when the options permit it. Keep the default policy when completeness is required and handle rejection or an available permitted preview. The complete Numbers-to-PDF workflow also rejects padding loss; enabling partial editable reconstruction does not permit an incomplete PDF.
+
 ## Shared native iWork character runs
 
 Replace `IWorkKeynoteTextRun` with `IWorkTextRunData` when calling `AddRichText` or constructing native Keynote text runs. The immutable run contract and defaults are unchanged. The same type supplies runs to `IWorkPagesDocument.AddRichParagraph`; use an explicit 12-point size for ordinary Pages body text because the shared run constructor retains Keynote's 32-point default. `AddParagraph` defaults to 12 points.

@@ -54,7 +54,6 @@ public sealed partial class IWorkBoundaryTests {
     [Theory]
     [InlineData("unknown-flag")]
     [InlineData("restart-with-zero")]
-    [InlineData("carried-restart-with-zero")]
     [InlineData("restart-on-non-list")]
     [InlineData("restart-inside-paragraph")]
     [InlineData("restart-at-end")]
@@ -76,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
         var content = Assert.Single(Assert.Single(projection.Sheets).Tables).Cells[0].RichText!;
         Assert.False(content.IsFormattingComplete);
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath.StartsWith("6/1[", StringComparison.Ordinal));
-        Assert.Equal(fault == "carried-restart-with-zero" ? 7 : (int?)null, content.Paragraphs[0].ListNumber);
+        Assert.Null(content.Paragraphs[0].ListNumber);
         Assert.All(content.Paragraphs.Skip(1), paragraph => Assert.Null(paragraph.ListNumber));
     }
 

@@ -1,0 +1,1270 @@
+{
+  "source": "pages-created-numbering-v15.4.pages",
+  "sha256": "ec6ca0c63892a5d266478be084a585f25721f269723b861bc5f163354a91606d",
+  "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+  "recordCount": 87,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 18,
+  "text": "Owned decimal lists \ud83d\ude00\nParent seven\nParent eight\nPlain gap\nContinued nine\nChild one\nChild two\n\ufffc\nParent ten\nReset child one\nChild restart five\nSeparate parent three\n\ufffc\nResumed child six\nResumed parent eleven\nReset child one again\nParent restart four\nParent five\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 23,
+      "text": "Owned decimal lists \ud83d\ude00\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 23,
+      "end": 36,
+      "text": "Parent seven\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 36,
+      "end": 49,
+      "text": "Parent eight\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 49,
+      "end": 59,
+      "text": "Plain gap\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 59,
+      "end": 74,
+      "text": "Continued nine\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 74,
+      "end": 84,
+      "text": "Child one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 84,
+      "end": 94,
+      "text": "Child two\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 94,
+      "end": 96,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 96,
+      "end": 107,
+      "text": "Parent ten\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 107,
+      "end": 123,
+      "text": "Reset child one\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 123,
+      "end": 142,
+      "text": "Child restart five\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 142,
+      "end": 164,
+      "text": "Separate parent three\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 164,
+      "end": 166,
+      "text": "\ufffc\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 166,
+      "end": 184,
+      "text": "Resumed child six\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 184,
+      "end": 206,
+      "text": "Resumed parent eleven\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 206,
+      "end": 228,
+      "text": "Reset child one again\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 228,
+      "end": 248,
+      "text": "Parent restart four\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 248,
+      "end": 260,
+      "text": "Parent five\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 32,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 23,
+      "styleId": 35,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 36,
+      "styleId": 37,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 49,
+      "styleId": 39,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 59,
+      "styleId": 41,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 74,
+      "styleId": 43,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 84,
+      "styleId": 45,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 94,
+      "styleId": 74,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 96,
+      "styleId": 76,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 107,
+      "styleId": 78,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 123,
+      "styleId": 80,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 142,
+      "styleId": 83,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 164,
+      "styleId": 88,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 166,
+      "styleId": 90,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 184,
+      "styleId": 92,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 206,
+      "styleId": 94,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 228,
+      "styleId": 96,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 248,
+      "styleId": 98,
+      "lineSpacingMultiplier": 1.25,
+      "spaceBeforePoints": 3.0,
+      "spaceAfterPoints": 6.0,
+      "decimalTab": ".",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        22,
+        33,
+        59
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        22,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        49,
+        50,
+        51,
+        52,
+        53,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": []
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        22
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": []
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 22,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 33,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 34,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 35,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 36,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 37,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 38,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 39,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 40,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 41,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 42,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 43,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 44,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 45,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 46,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 47,
+      "type": 6000,
+      "references": [
+        3,
+        48
+      ]
+    },
+    {
+      "id": 48,
+      "type": 6001,
+      "references": [
+        49,
+        50,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70
+      ]
+    },
+    {
+      "id": 49,
+      "type": 6003,
+      "references": []
+    },
+    {
+      "id": 50,
+      "type": 6004,
+      "references": []
+    },
+    {
+      "id": 51,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 52,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 53,
+      "type": 2025,
+      "references": [
+        52
+      ]
+    },
+    {
+      "id": 54,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 55,
+      "type": 6006,
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 6002,
+      "references": []
+    },
+    {
+      "id": 57,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 58,
+      "type": 6247,
+      "references": [
+        49,
+        50,
+        52,
+        53
+      ]
+    },
+    {
+      "id": 59,
+      "type": 6008,
+      "references": [
+        58
+      ]
+    },
+    {
+      "id": 60,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 61,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 62,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 63,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 64,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 65,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 66,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 67,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 68,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 69,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 70,
+      "type": 6005,
+      "references": []
+    },
+    {
+      "id": 73,
+      "type": 2003,
+      "references": [
+        47
+      ]
+    },
+    {
+      "id": 74,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 75,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 76,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 77,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 78,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 79,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 80,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 81,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 82,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 83,
+      "type": 2022,
+      "references": [
+        22,
+        82
+      ]
+    },
+    {
+      "id": 84,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 86,
+      "type": 3005,
+      "references": [
+        3,
+        13
+      ]
+    },
+    {
+      "id": 87,
+      "type": 2003,
+      "references": [
+        86
+      ]
+    },
+    {
+      "id": 88,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 89,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 90,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 91,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 92,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 93,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 94,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 95,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 96,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 97,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 98,
+      "type": 2022,
+      "references": [
+        22,
+        34
+      ]
+    },
+    {
+      "id": 99,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "nativeTables": [
+    {
+      "id": 48,
+      "name": "Values",
+      "rows": 1,
+      "columns": 1,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Text",
+          "value": "Between list items"
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true,
+      "bodyCellPaddingPoints": 4,
+      "bodyCellVerticalAlignment": "Top"
+    }
+  ],
+  "inlineTables": [
+    {
+      "start": 94,
+      "attachmentId": 73,
+      "drawableId": 47,
+      "widthPoints": 180.0,
+      "heightPoints": 28.0,
+      "tableId": 48
+    }
+  ],
+  "imageResources": [
+    {
+      "id": 86,
+      "data_id": 85,
+      "path": "Data/image-85.png",
+      "bytes": 220,
+      "sha256": "9194f8bfabac27a556c56c6e48fef6772e388f912a319b6b5ef52d7768a7aec5",
+      "position": [
+        0.0,
+        0.0
+      ],
+      "frame": [
+        72.0,
+        48.0
+      ],
+      "pixel_size": [
+        96.0,
+        64.0
+      ],
+      "image_attributes_extension": 100,
+      "description": "Between lists"
+    }
+  ],
+  "inlineImages": [
+    {
+      "start": 164,
+      "attachmentId": 87,
+      "drawableId": 86,
+      "widthPoints": 72.0,
+      "heightPoints": 48.0
+    }
+  ],
+  "decimalItems": [
+    {
+      "offset": 23,
+      "styleId": 34,
+      "level": 0,
+      "number": 7,
+      "start": 7,
+      "text": "Parent seven",
+      "font": "Arial"
+    },
+    {
+      "offset": 36,
+      "styleId": 34,
+      "level": 0,
+      "number": 8,
+      "start": 0,
+      "text": "Parent eight",
+      "font": "Arial"
+    },
+    {
+      "offset": 59,
+      "styleId": 34,
+      "level": 0,
+      "number": 9,
+      "start": 0,
+      "text": "Continued nine",
+      "font": "Arial"
+    },
+    {
+      "offset": 74,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Child one",
+      "font": "Arial"
+    },
+    {
+      "offset": 84,
+      "styleId": 34,
+      "level": 1,
+      "number": 2,
+      "start": 0,
+      "text": "Child two",
+      "font": "Arial"
+    },
+    {
+      "offset": 96,
+      "styleId": 34,
+      "level": 0,
+      "number": 10,
+      "start": 0,
+      "text": "Parent ten",
+      "font": "Arial"
+    },
+    {
+      "offset": 107,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Reset child one",
+      "font": "Arial"
+    },
+    {
+      "offset": 123,
+      "styleId": 34,
+      "level": 1,
+      "number": 5,
+      "start": 5,
+      "text": "Child restart five",
+      "font": "Arial"
+    },
+    {
+      "offset": 142,
+      "styleId": 82,
+      "level": 0,
+      "number": 3,
+      "start": 3,
+      "text": "Separate parent three",
+      "font": "Arial"
+    },
+    {
+      "offset": 166,
+      "styleId": 34,
+      "level": 1,
+      "number": 6,
+      "start": 6,
+      "text": "Resumed child six",
+      "font": "Arial"
+    },
+    {
+      "offset": 184,
+      "styleId": 34,
+      "level": 0,
+      "number": 11,
+      "start": 11,
+      "text": "Resumed parent eleven",
+      "font": "Arial"
+    },
+    {
+      "offset": 206,
+      "styleId": 34,
+      "level": 1,
+      "number": 1,
+      "start": 0,
+      "text": "Reset child one again",
+      "font": "Arial"
+    },
+    {
+      "offset": 228,
+      "styleId": 34,
+      "level": 0,
+      "number": 4,
+      "start": 4,
+      "text": "Parent restart four",
+      "font": "Arial"
+    },
+    {
+      "offset": 248,
+      "styleId": 34,
+      "level": 0,
+      "number": 5,
+      "start": 0,
+      "text": "Parent five",
+      "font": "Arial"
+    }
+  ],
+  "scope": "Owned body paragraphs, inline PNG/JPEG images, scalar tables and graph declarations; native application acceptance is separate."
+}

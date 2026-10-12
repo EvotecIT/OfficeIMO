@@ -4,10 +4,14 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>Creates template-free native Pages body documents with page settings and rich paragraphs.</summary>
+/// <summary>Creates template-free native Pages body documents with page settings, rich paragraphs, images and scalar tables.</summary>
 /// <remarks>Instances are not thread safe. This model does not modify loaded packages or measure pagination.</remarks>
 public sealed class IWorkPagesDocument {
     private readonly List<IWorkPagesParagraphData> _paragraphs = new();
+    private readonly List<IWorkPagesTable> _tables = new();
+    private readonly List<IWorkPagesImage> _images = new();
+    private readonly List<IWorkPagesNumberedList> _numberedLists = new();
+    private readonly List<IWorkPagesBodyBlock> _bodyBlocks = new();
 
     private IWorkPagesDocument(float width, float height, float left, float right, float top, float bottom) {
         IWorkCreationValidation.ValidatePositive(width, nameof(width));
@@ -21,6 +25,8 @@ public sealed class IWorkPagesDocument {
         PageSize = new IWorkCanvasSize(width, height);
         LeftMarginPoints = left; RightMarginPoints = right; TopMarginPoints = top; BottomMarginPoints = bottom;
         Paragraphs = _paragraphs.AsReadOnly();
+        Tables = _tables.AsReadOnly(); Images = _images.AsReadOnly(); BodyBlocks = _bodyBlocks.AsReadOnly();
+        NumberedLists = _numberedLists.AsReadOnly();
     }
 
     /// <summary>Gets page dimensions in points.</summary>
@@ -35,6 +41,14 @@ public sealed class IWorkPagesDocument {
     public float BottomMarginPoints { get; }
     /// <summary>Gets the body paragraphs in insertion order.</summary>
     public IReadOnlyList<IWorkPagesParagraphData> Paragraphs { get; }
+    /// <summary>Gets authored inline tables in insertion order.</summary>
+    public IReadOnlyList<IWorkPagesTable> Tables { get; }
+    /// <summary>Gets authored inline images in insertion order.</summary>
+    public IReadOnlyList<IWorkPagesImage> Images { get; }
+    /// <summary>Gets the document's decimal lists. Empty lists do not create body content or native styles.</summary>
+    public IReadOnlyList<IWorkPagesNumberedList> NumberedLists { get; }
+    /// <summary>Gets paragraphs, images and tables in their shared body order.</summary>
+    public IReadOnlyList<IWorkPagesBodyBlock> BodyBlocks { get; }
 
     /// <summary>Creates an empty document, using US Letter and one-inch margins by default.</summary>
     public static IWorkPagesDocument Create(float widthPoints = 612, float heightPoints = 792,
@@ -60,6 +74,7 @@ public sealed class IWorkPagesDocument {
     public IWorkPagesParagraphData AddRichParagraph(IEnumerable<IWorkTextRunData> runs) {
         var paragraph = new IWorkPagesParagraphData(runs);
         _paragraphs.Add(paragraph);
+        _bodyBlocks.Add(paragraph);
         return paragraph;
     }
 
@@ -68,11 +83,58 @@ public sealed class IWorkPagesDocument {
         if (layout == null) throw new ArgumentNullException(nameof(layout));
         var paragraph = new IWorkPagesParagraphData(runs, layout);
         _paragraphs.Add(paragraph);
+        _bodyBlocks.Add(paragraph);
         return paragraph;
     }
 
+    /// <summary>Creates a decimal list; call its AddItem method to insert body paragraphs.</summary>
+    /// <remarks>Markers and text share a whole-point font size. Each list owns its counters and supports two non-tiered levels.</remarks>
+    public IWorkPagesNumberedList CreateNumberedList(string fontName = "Arial", float fontSizePoints = 12) {
+        var list = new IWorkPagesNumberedList(this, fontName, fontSizePoints);
+        _numberedLists.Add(list); return list;
+    }
+
+    internal void AddNumberedParagraph(IWorkPagesParagraphData paragraph) {
+        _paragraphs.Add(paragraph); _bodyBlocks.Add(paragraph);
+    }
+
+    /// <summary>Adds a snapshot of scalar data as an inline body table with equally sized rows and columns.</summary>
+    /// <remarks>The table occupies its own body paragraph and must fit the page's body area.
+    /// Names must be distinct without regard to case. Cells share the font/color, white fill,
+    /// black solid grid, wrapping and four-point padding. Formulas, merges and per-cell styling are not authored.</remarks>
+    public IWorkPagesTable AddTable(IWorkTableData data, string name = "Table 1", float columnWidthPoints = 100,
+        float rowHeightPoints = 24, string fontName = "Arial", float fontSizePoints = 12, string color = "000000") {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        IWorkCreationValidation.ValidatePositive(columnWidthPoints, nameof(columnWidthPoints));
+        IWorkCreationValidation.ValidatePositive(rowHeightPoints, nameof(rowHeightPoints));
+        if (_tables.Any(table => string.Equals(table.Name, name, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("Table names in a document must be unique without regard to case.", nameof(name));
+        float width = columnWidthPoints * data.ColumnCount, height = rowHeightPoints * data.RowCount;
+        if (width > PageSize.WidthPoints - LeftMarginPoints - RightMarginPoints
+            || height > PageSize.HeightPoints - TopMarginPoints - BottomMarginPoints)
+            throw new ArgumentException("An inline table must fit the page's body width and height.", nameof(data));
+        var table = new IWorkPagesTable(new IWorkNativeTableData(data, 0, 0, width, height, name, fontName,
+            fontSizePoints, IWorkCreationValidation.ParseColor(color)));
+        _tables.Add(table); _bodyBlocks.Add(table); return table;
+    }
+
+    /// <summary>Adds a validated PNG or JPEG snapshot as its own inline body paragraph.</summary>
+    /// <remarks>The full image fills the frame without a crop or mask. Its dimensions must fit the page's body area.
+    /// The optional accessibility description supports at most 4096 normalized UTF-16 code units.</remarks>
+    public IWorkPagesImage AddImage(byte[] data, float widthPoints, float heightPoints,
+        string? accessibilityDescription = null, CancellationToken cancellationToken = default) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        IWorkCreationValidation.ValidatePositive(widthPoints, nameof(widthPoints));
+        IWorkCreationValidation.ValidatePositive(heightPoints, nameof(heightPoints));
+        if (widthPoints > PageSize.WidthPoints - LeftMarginPoints - RightMarginPoints
+            || heightPoints > PageSize.HeightPoints - TopMarginPoints - BottomMarginPoints)
+            throw new ArgumentException("An inline image must fit the page's body width and height.", nameof(data));
+        var image = new IWorkPagesImage(data, widthPoints, heightPoints, accessibilityDescription, cancellationToken);
+        _images.Add(image); _bodyBlocks.Add(image); return image;
+    }
+
     /// <summary>Encodes a deterministic native Pages package without a template or native application.</summary>
-    /// <remarks>At least one paragraph is required. No font files are embedded; native fonts and pagination apply.</remarks>
+    /// <remarks>At least one body block is required. No font files are embedded; native fonts and pagination apply.</remarks>
     public byte[] SaveBytes(IWorkPagesWriteOptions? options = null, CancellationToken cancellationToken = default) =>
         IWorkPagesPackageWriter.Write(this, (options ?? new IWorkPagesWriteOptions()).Snapshot(), cancellationToken);
 

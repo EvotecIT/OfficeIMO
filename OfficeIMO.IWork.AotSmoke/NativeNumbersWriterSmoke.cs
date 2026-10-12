@@ -35,8 +35,10 @@ internal static class NativeNumbersWriterSmoke {
             && table.ColumnWidths[1] == 130 && empty.RowCount == 2 && empty.ColumnCount == 3 && empty.Cells.Count == 0,
             "Numbers scalar types, Unicode, dimensions or empty positions differ.");
         using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
-        converted.RequireCompleteEditableReconstruction();
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Require(converted.Report.IsPartialEditableReconstruction
+            && converted.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED")
+            && empty.GetPadding(2, 3)?.BottomPoints == 4, "Native Numbers region padding was silently discarded.");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Require(reopened.Sheets.Count == 3 && reopened.Sheets[0].CellAt(2, 2).GetValue<double>() == 12.5
@@ -51,7 +53,7 @@ internal static class NativeNumbersWriterSmoke {
         } catch (InvalidDataException) {
             Require(before.SequenceEqual(destination.ToArray()), "Numbers budget rejection mutated its destination.");
         }
-        Console.WriteLine($"PASS | native Numbers scalar creation | {AcceptedSha256} | {bytes.Length} bytes | deterministic sheets/tables, Decimal128, Unicode, booleans, empty grid, caller stream, strict saved/reopened XLSX and dense-grid bounds");
+        Console.WriteLine($"PASS | native Numbers scalar creation | {AcceptedSha256} | {bytes.Length} bytes | deterministic sheets/tables, Decimal128, Unicode, booleans, empty grid, caller stream, saved/reopened XLSX, explicit padding omission and dense-grid bounds");
     }
 
     private static void Require(bool condition, string message) {

@@ -1,0 +1,491 @@
+{
+  "method": "Independent Python stdlib ZIP/XML normalization, pypdf text/fonts, and Pillow/NumPy raster stroke centers; no OfficeIMO loads.",
+  "normalization": [
+    "Resolve internal relationship targets; replace generated relationship IDs by Type/Target/TargetMode tuples.",
+    "Remove only w:sectPr/@w:rsidR and structural relationship whitespace."
+  ],
+  "normalizedDocxPartsEqual": true,
+  "normalizedParts": [
+    {
+      "path": "[Content_Types].xml",
+      "sha256": "c63934b12fed05da2f6d3436203bad9fa6279f07a0f6ee2a9721119659413969"
+    },
+    {
+      "path": "_rels/.rels",
+      "sha256": "452316560c6acc8264b199f171e182f17c038d6f3a8474a6f45c25fe810eca43"
+    },
+    {
+      "path": "word/_rels/document.xml.rels",
+      "sha256": "b3f8d205893cdaa16196cf7df2732ef27e4eb355d8588bfbf554c53c1eaa578d"
+    },
+    {
+      "path": "word/document.xml",
+      "sha256": "9cab70ef7da2e834c0c37da2e1301c8769afa3307281de0edec6d31ca3351665"
+    },
+    {
+      "path": "word/endnotes.xml",
+      "sha256": "18198537fad9907f73f89851ca9c0bc7ee89dac4f301b8336572007a95ac3cc1"
+    },
+    {
+      "path": "word/fontTable.xml",
+      "sha256": "51e3a43845ba5c6174481229bc5d45301472aab5d2423b06152adedb5d380d83"
+    },
+    {
+      "path": "word/footer1.xml",
+      "sha256": "6046bcdc3448fa32f7f9deb9b60186a3b55bedc32e85b7d362e5f32b9f1b8113"
+    },
+    {
+      "path": "word/footnotes.xml",
+      "sha256": "6a75c4226ae0329e3207c45df8bfd862c4d2c60d7c705fd244a544ec29b280f3"
+    },
+    {
+      "path": "word/header1.xml",
+      "sha256": "7116caba58e54fcb172100a071918ff45bcdca41ca4eb6e782e076e1eec78304"
+    },
+    {
+      "path": "word/settings.xml",
+      "sha256": "599562d8ca2886d1855b70dc57cef05b6f7cfb5f4e5bbfbc1fc3173e800ca917"
+    },
+    {
+      "path": "word/styles.xml",
+      "sha256": "1746a2f40270226757ea967f0d231951585d2fc425590e57e1dd3bacfc8b4720"
+    },
+    {
+      "path": "word/theme/theme1.xml",
+      "sha256": "5c5ed68f44bd6f017d983f62fdcb70b958d3cab0bf11fb758ac7b21eb91ed37c"
+    },
+    {
+      "path": "word/webSettings.xml",
+      "sha256": "ff29f6044e37c57d18ea9225420f976f828a5852f162033aec18ecb826ccb87a"
+    }
+  ],
+  "rasterTolerancePoints": 0.5,
+  "pdfs": [
+    {
+      "role": "apple-source",
+      "pdf": "pages-table-borders-v15.4.pdf",
+      "pdfSha256": "f1a172da06024bbea6365363feb36155753e967527a0ca766f0d34a9f63bef2b",
+      "pages": 1,
+      "pageInspected": true,
+      "pageSizePoints": [
+        612.0,
+        792.0
+      ],
+      "orderedTextMatches": true,
+      "text": "Corner One Two Three\nRow A Red edge Hidden edge Body\nRow B Green edge Body\nFooter End Last Tail",
+      "textSpans": [
+        {
+          "text": "Corner",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "One",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Two",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Three",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Row A",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Red edge",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Hidden edge",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Body",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Row B",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Green edge",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Body",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Footer",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "End",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Last",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Tail",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        }
+      ],
+      "blueBorderStrokeCentersPoints": {
+        "left": 72.75,
+        "top": 72.75,
+        "right": 504.75,
+        "bottom": 199.5,
+        "width": 432.0,
+        "height": 126.75
+      },
+      "raster": "pages-table-borders-v15.4-page1.png",
+      "rasterSha256": "ed50d628c6980faf0d9597b0dd0415c68648e176590052cafccb01d9c361d4b8"
+    },
+    {
+      "role": "native-word",
+      "pdf": "pages-inline-flow-word-v16.113.3.pdf",
+      "pdfSha256": "1dc1239aef776633bce9167556bd7ce5bcd7bc0a204dd562285f32faee70540d",
+      "pages": 1,
+      "pageInspected": true,
+      "pageSizePoints": [
+        612.0,
+        792.0
+      ],
+      "orderedTextMatches": true,
+      "text": " \n \nCorner One Two Three Row A Red edge Hidden edge Body Row B Green edge Body  Footer End Last Tail  ",
+      "textSpans": [
+        {
+          "text": "Corner",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "One",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Two",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Three",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Row A",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Red edge",
+          "font": "/AAAAAI+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Hidden edge",
+          "font": "/AAAAAI+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Body",
+          "font": "/AAAAAI+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Row B",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Green edge",
+          "font": "/AAAAAI+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Body",
+          "font": "/AAAAAI+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Footer",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "End",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Last",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Tail",
+          "font": "/AAAAAE+Arial-BoldMT",
+          "points": 1.0
+        }
+      ],
+      "blueBorderStrokeCentersPoints": {
+        "left": 72.75,
+        "top": 72.75,
+        "right": 504.75,
+        "bottom": 199.75,
+        "width": 432.0,
+        "height": 127.0
+      },
+      "raster": "pages-inline-flow-word-v16.113.3-page1.png",
+      "rasterSha256": "6ced704df422ce3dcdc7b7d15c760a238e28b0dd97ca98d32181d0f2503d5979"
+    },
+    {
+      "role": "officeimo-workflow",
+      "pdf": "pages-inline-flow-workflow.pdf",
+      "pdfSha256": "6d5324586a3fd4aabb8bb3d769d6966cef5e6eea0087d852f8d449c3e04caabc",
+      "pages": 1,
+      "pageInspected": true,
+      "pageSizePoints": [
+        612.0,
+        792.0
+      ],
+      "orderedTextMatches": true,
+      "text": "Corner One Two Three\nRow A Red edge Hidden edge Body\nRow B Green edge Body \nFooter End Last Tail",
+      "textSpans": [
+        {
+          "text": "Corner",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "One",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "Two",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "Three",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "Row",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "A",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "Red",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "edge",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "Hidden",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "edge",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "Body",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "Row",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "B",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "Green",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "edge",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "Body",
+          "font": "/Helvetica",
+          "points": 14.0
+        },
+        {
+          "text": "Footer",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "End",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "Last",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        },
+        {
+          "text": "Tail",
+          "font": "/Helvetica-Bold",
+          "points": 14.0
+        }
+      ],
+      "blueBorderStrokeCentersPoints": {
+        "left": 72.75,
+        "top": 72.75,
+        "right": 504.75,
+        "bottom": 199.75,
+        "width": 432.0,
+        "height": 127.0
+      },
+      "raster": "pages-inline-flow-workflow-page1.png",
+      "rasterSha256": "9276e761f4a9a030f8ee6d080f3301e2af5476cf93a7ee9c950c825e817c8a8f"
+    },
+    {
+      "role": "pages-docx-reimport",
+      "pdf": "pages-inline-flow-pages-v15.4.pdf",
+      "pdfSha256": "1dee39a525ae85eb6cc2f0af1bcf3671a503e0707d08e6f9f93c09871bb4496c",
+      "pages": 1,
+      "pageInspected": true,
+      "pageSizePoints": [
+        612.0,
+        792.0
+      ],
+      "orderedTextMatches": true,
+      "text": "Corner One Two Three\nRow A Red edge Hidden edge Body\nRow B Green edge Body\nFooter End Last Tail",
+      "textSpans": [
+        {
+          "text": "Corner",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "One",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Two",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Three",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Row A",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Red edge",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Hidden edge",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Body",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Row B",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Green edge",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Body",
+          "font": "/AAAAAC+ArialMT",
+          "points": 1.0
+        },
+        {
+          "text": "Footer",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "End",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Last",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        },
+        {
+          "text": "Tail",
+          "font": "/AAAAAB+Arial-BoldMT",
+          "points": 1.0
+        }
+      ],
+      "blueBorderStrokeCentersPoints": {
+        "left": 72.75,
+        "top": 72.75,
+        "right": 504.75,
+        "bottom": 222.75,
+        "width": 432.0,
+        "height": 150.0
+      },
+      "raster": "pages-inline-flow-pages-v15.4-page1.png",
+      "rasterSha256": "f38c9830f731f026367d461a0d814c039edf0fff8091d6d3f4db63a41bce3113"
+    }
+  ],
+  "pagesDocxReimportHeightDifferencePoints": 23.0
+}

@@ -35,10 +35,12 @@ internal sealed class IWorkNativeTableData {
             .Float(6, (float)Geometry.WidthPoints).Float(7, (float)Geometry.HeightPoints)
             .String(8, FontName).Float(9, FontSizePoints).String(10, Color.RgbHex);
         foreach (IWorkTableCell cell in Cells) {
+            cancellationToken.ThrowIfCancellationRequested();
             var value = P().UInt(1, (uint)cell.Row).UInt(2, (uint)cell.Column).UInt(3, (uint)cell.Kind);
             if (cell.Kind == IWorkCellKind.Text) value.String(4, (string)cell.Value!);
             else if (cell.Kind == IWorkCellKind.Number) value.Double(5, (double)cell.Value!);
             else if (cell.Kind == IWorkCellKind.Boolean) value.Bool(6, (bool)cell.Value!);
+            if (cell.NumberFormat is { } format) value.Message(7, IWorkTableNumberFormatWriter.FormatFields(format, P()));
             data.Message(11, value);
         }
         return data;

@@ -57,7 +57,7 @@ internal static partial class IWorkTableReader {
             for (int bit = 0; bit < 5; bit++)
                 if ((flags & (1u << bit)) != 0) styleOffset += CellValueFieldSize(bit);
             IWorkTableCellStyle? style = cellStyles.Read(IWorkProtobuf.ReadUInt32(buffer, styleOffset));
-            cell = cell.WithStyle(style ?? new IWorkTableCellStyle(null, null, null, false));
+            cell = cell.WithStyle(style ?? new IWorkTableCellStyle(null, null, null, false, paddingIsComplete: false, verticalAlignmentIsComplete: false));
         }
         if (!cell.HasDecodeError && (flags & (1u << 6)) != 0) {
             int styleOffset = offset + 12;
@@ -71,7 +71,8 @@ internal static partial class IWorkTableReader {
             ? new IWorkTableCell(row, column, IWorkCellKind.Error, null,
                 error: cell.Error, sourceFormulaIsDeclared: true,
                 hasDecodeError: cell.HasDecodeError, fill: cell.Fill,
-                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle, hasUnresolvedFill: cell.HasUnresolvedFill, comment: cell.Comment)
+                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle, hasUnresolvedFill: cell.HasUnresolvedFill, comment: cell.Comment,
+                hasUnresolvedPadding: cell.HasUnresolvedPadding, hasUnresolvedVerticalAlignment: cell.HasUnresolvedVerticalAlignment)
             : cell;
         // DecodeModernCell validated the entire selected storage before these selectors
         // can establish feature presence or select a comment catalog entry.

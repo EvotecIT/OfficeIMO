@@ -92,7 +92,9 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableCell cell in layout.Rows[rowIndex]) {
                 if (IsNativeHorizontalMergeContinuation(cell)) continue;
                 int span = GetNativeCellColumnSpan(cell);
-                if (!IsNativeVerticalMergeContinuation(cell)) {
+                // Native Word includes continuation bottom margins in exact row boxes.
+                // Keep the separately qualified top/text-alignment policy unchanged.
+                if (!top || !IsNativeVerticalMergeContinuation(cell)) {
                     PdfCore.PdfCellPadding? padding = null;
                     style.CellPaddings?.TryGetValue((rowIndex, column), out padding);
                     double margin = top

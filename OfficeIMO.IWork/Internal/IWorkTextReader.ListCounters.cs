@@ -59,7 +59,10 @@ internal static partial class IWorkTextReader {
             bool explicitStart = boundary?.Index == offset && raw > 0;
             int levelUpper = UpperBound(levels, offset);
             AttributeBoundary? levelBoundary = levelUpper == 0 ? null : levels[levelUpper - 1];
-            if (levelBoundary?.SecondaryValue == 1
+            // Levels persist across sparse native boundaries. The restart flag
+            // belongs only to the paragraph at its boundary: Pages omits a new
+            // level entry when inserting a same-level continuation after it.
+            if (levelBoundary?.Index == offset && levelBoundary.SecondaryValue == 1
                 && (!explicitStart || kind != IWorkListMarkerKind.Number)) {
                 complete = false;
                 references.Declarations.Record(owner, LevelPath(levelBoundary), 1,

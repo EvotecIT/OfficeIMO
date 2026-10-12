@@ -53,6 +53,19 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(IWorkDocumentKind.Pages)]
+    [InlineData(IWorkDocumentKind.Numbers)]
+    [InlineData(IWorkDocumentKind.Keynote)]
+    public void Sparse_restart_level_boundary_applies_only_to_its_own_paragraph(IWorkDocumentKind kind) {
+        using var package = DecimalCounterPackage(kind,
+            levels: AttributeTable(6, ListLevelEntry(0, 0, 1), ListLevelEntry(11, 0, 1)));
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells).RichText!;
+        Assert.True(content.IsFormattingComplete);
+        Assert.Equal(new int?[] { 7, 8, 3, 4 }, content.Paragraphs.Select(paragraph => paragraph.ListNumber));
+        Assert.Equal(new int?[] { 7, null, 3, null }, content.Paragraphs.Select(paragraph => paragraph.ListStartNumber));
+    }
+
+    [Theory]
     [InlineData("missing-start")]
     [InlineData("invalid-value")]
     [InlineData("unknown-second")]

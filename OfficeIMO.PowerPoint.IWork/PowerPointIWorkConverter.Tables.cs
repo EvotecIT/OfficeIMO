@@ -37,6 +37,17 @@ public static partial class PowerPointIWorkConverter {
                     if (fill.IsNone) fillTarget.NoFill = true;
                     else fillTarget.FillColor = fill.Color!.RgbHex;
                 }
+                if (source.GetPadding(row, column) is { } padding) {
+                    fillTarget.PaddingLeftPoints = padding.LeftPoints;
+                    fillTarget.PaddingTopPoints = padding.TopPoints;
+                    fillTarget.PaddingRightPoints = padding.RightPoints;
+                    fillTarget.PaddingBottomPoints = padding.BottomPoints;
+                }
+                if (source.GetVerticalAlignment(row, column) is { } vertical) fillTarget.VerticalAlignment = vertical switch {
+                    IWorkCellVerticalAlignment.Top => PowerPointTextVerticalAlignment.Top,
+                    IWorkCellVerticalAlignment.Middle => PowerPointTextVerticalAlignment.Center,
+                    _ => PowerPointTextVerticalAlignment.Bottom
+                };
                 if (source.GetParagraphStyle(row, column) is { } style) {
                     PowerPointParagraph paragraph = table.GetCell(row - 1, column - 1).Paragraphs[0];
                     ApplyParagraphStyle(paragraph, style, string.Empty);
@@ -47,17 +58,6 @@ public static partial class PowerPointIWorkConverter {
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
-            if (sourceCell.Padding is { } padding) {
-                target.PaddingLeftPoints = padding.LeftPoints;
-                target.PaddingTopPoints = padding.TopPoints;
-                target.PaddingRightPoints = padding.RightPoints;
-                target.PaddingBottomPoints = padding.BottomPoints;
-            }
-            if (sourceCell.VerticalAlignment is { } vertical) target.VerticalAlignment = vertical switch {
-                IWorkCellVerticalAlignment.Top => PowerPointTextVerticalAlignment.Top,
-                IWorkCellVerticalAlignment.Middle => PowerPointTextVerticalAlignment.Center,
-                _ => PowerPointTextVerticalAlignment.Bottom
-            };
             IWorkParagraphStyle? defaultStyle = source.GetParagraphStyle(sourceCell.Row, sourceCell.Column);
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(

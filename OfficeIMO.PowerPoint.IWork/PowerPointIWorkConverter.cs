@@ -333,7 +333,7 @@ public static partial class PowerPointIWorkConverter {
                     && cell.RichText is { IsComplete: false })) {
                     return $"Keynote table '{table.Name}' contains formula cached text with incomplete formatting that the PPTX owner cannot preserve.";
                 }
-                if (table.Cells.Any(cell => cell.Padding != null && PaddingPoints(cell.Padding)
+                if (table.CellPaddings.Any(padding => PaddingPoints(padding)
                     .Any(points => Math.Round(points * 12700d) > int.MaxValue
                         || !allowPartialEditableReconstruction && !IsExactEmu(points)))) {
                     return $"Keynote table '{table.Name}' has cell padding outside the PPTX margin range or EMU precision.";
@@ -394,8 +394,8 @@ public static partial class PowerPointIWorkConverter {
             || projection.Slides.SelectMany(slide => slide.Tables)
                 .Any(table => TableSizingRequiresEmuRounding(table))
             || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => TableBorderWidths(table, cancellationToken)).Any(width => !IsExactEmu(width))
-            || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
-                .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)))
+            || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.CellPaddings)
+                .Any(padding => PaddingPoints(padding).Any(points => !IsExactEmu(points)))
             || projection.Slides.SelectMany(slide => slide.TextBoxes.Concat(slide.TitleBox == null
                     ? Array.Empty<IWorkTextBox>() : new[] { slide.TitleBox }))
                 .Any(box => box.Layout != null && new[] { box.Layout.LeftInsetPoints,

@@ -1,0 +1,448 @@
+{
+  "decoder": "Python ElementTree over native DOCX XML",
+  "outputs": [
+    {
+      "source": "pages-created-numbering-v15.4.docx",
+      "sha256": "46bf3c63d2838cdc012bbb50c0821fa6efc9f09839a2a1cc162c1b66206cfeb6",
+      "numberedParagraphs": [
+        {
+          "text": "Parent seven",
+          "level": 0,
+          "numId": "3",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent eight",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Continued nine",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Child one",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Child two",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent ten",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Reset child one",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Child restart five",
+          "level": 1,
+          "numId": "4",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Separate parent three",
+          "level": 0,
+          "numId": "7",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Resumed child six",
+          "level": 1,
+          "numId": "8",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Resumed parent eleven",
+          "level": 0,
+          "numId": "9",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Reset child one again",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent restart four",
+          "level": 0,
+          "numId": "10",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent five",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        }
+      ],
+      "levels": [
+        {
+          "abstractId": "1",
+          "level": 0,
+          "leftTwips": "360",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 1,
+          "leftTwips": "720",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 2,
+          "leftTwips": "1080",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 3,
+          "leftTwips": "1440",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 4,
+          "leftTwips": "1800",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 5,
+          "leftTwips": "2160",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 6,
+          "leftTwips": "2520",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 7,
+          "leftTwips": "2880",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 8,
+          "leftTwips": "3240",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 0,
+          "leftTwips": "360",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 1,
+          "leftTwips": "720",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 2,
+          "leftTwips": "1080",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 3,
+          "leftTwips": "1440",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 4,
+          "leftTwips": "1800",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 5,
+          "leftTwips": "2160",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 6,
+          "leftTwips": "2520",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 7,
+          "leftTwips": "2880",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 8,
+          "leftTwips": "3240",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        }
+      ]
+    },
+    {
+      "source": "pages-created-numbering-edited-v15.4.docx",
+      "sha256": "4171db680bf93e6cc01908b268a3a774e4a1828d0690ebad3e4e6d9dc675d038",
+      "numberedParagraphs": [
+        {
+          "text": "Parent seven",
+          "level": 0,
+          "numId": "3",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Inserted parent eight",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent eight",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Continued nine",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Child one",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Child two",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent ten",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Reset child one",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Child restart five",
+          "level": 1,
+          "numId": "4",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Separate parent three",
+          "level": 0,
+          "numId": "7",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Resumed child six",
+          "level": 1,
+          "numId": "8",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Resumed parent eleven",
+          "level": 0,
+          "numId": "9",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Reset child one again",
+          "level": 1,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent restart four",
+          "level": 0,
+          "numId": "10",
+          "paragraphFontHalfPoints": "24"
+        },
+        {
+          "text": "Parent five",
+          "level": 0,
+          "numId": "2",
+          "paragraphFontHalfPoints": "24"
+        }
+      ],
+      "levels": [
+        {
+          "abstractId": "1",
+          "level": 0,
+          "leftTwips": "360",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 1,
+          "leftTwips": "720",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 2,
+          "leftTwips": "1080",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 3,
+          "leftTwips": "1440",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 4,
+          "leftTwips": "1800",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 5,
+          "leftTwips": "2160",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 6,
+          "leftTwips": "2520",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 7,
+          "leftTwips": "2880",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "1",
+          "level": 8,
+          "leftTwips": "3240",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 0,
+          "leftTwips": "360",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 1,
+          "leftTwips": "720",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 2,
+          "leftTwips": "1080",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 3,
+          "leftTwips": "1440",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 4,
+          "leftTwips": "1800",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 5,
+          "leftTwips": "2160",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 6,
+          "leftTwips": "2520",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 7,
+          "leftTwips": "2880",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        },
+        {
+          "abstractId": "3",
+          "level": 8,
+          "leftTwips": "3240",
+          "hangingTwips": "360",
+          "markerFont": "ArialMT"
+        }
+      ]
+    }
+  ],
+  "scope": "Native list-level indents, fonts and body numbering selections; evaluated visible counters are qualified by paired native PDF and screenshots."
+}

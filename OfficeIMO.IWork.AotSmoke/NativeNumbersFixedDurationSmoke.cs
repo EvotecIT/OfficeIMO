@@ -19,8 +19,11 @@ internal static class NativeNumbersFixedDurationSmoke {
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == hash, "Duration source fixture changed.");
         string nativePath = Path.Combine(AppContext.BaseDirectory, fixture + "-native.xlsx");
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(nativePath))) == nativeHash, "Duration native XLSX fixture changed.");
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path);
-        result.Report.RequireCompleteEditableReconstruction();
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Require(result.Report.IsPartialEditableReconstruction
+            && result.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"),
+            "Native duration region padding was silently discarded.");
         Require(!result.IsVisualFallback && result.Projection.Sheets.Count == 3, "Native duration sheets are incomplete.");
         Require(result.Report.Diagnostics.Any(d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED"),
             "Duration display approximation was lost.");

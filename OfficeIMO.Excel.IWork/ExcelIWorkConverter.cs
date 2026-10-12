@@ -42,8 +42,7 @@ public static partial class ExcelIWorkConverter {
                     "Mixed formula-result styles, incomplete rich-text formatting, paragraph layout, list markers, mixed run links, highlights, character tracking, or transparent colors cannot be represented in XLSX; uniform formula-result fonts and alignment are retained as whole-cell formatting. Source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
-        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
-            .Any(cell => cell.Padding != null)) {
+        if (editable && projection.Sheets.SelectMany(sheet => sheet.Tables).Any(table => table.CellPaddings.Any())) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_PADDING_OMITTED",
                     "Four-sided native cell padding remains on the source projection; XLSX cell alignment has no equivalent padding setting.",

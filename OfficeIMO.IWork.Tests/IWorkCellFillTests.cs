@@ -272,17 +272,22 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream CellFillPackage(byte[][] styles, bool ambiguous = false,
         int listType = 4, bool additionalEntry = false, IWorkDocumentKind kind = IWorkDocumentKind.Pages,
-        bool merge = false, bool coveredContent = false) {
+        bool merge = false, bool coveredContent = false, byte[]? modelDeclarations = null,
+        ulong secondStyleReference = 30, int rowCount = 1, byte[]? mergeDeclarations = null,
+        byte[]? additionalTileRows = null) {
         byte[] first = new byte[24]; first[0] = 5; first[1] = 2; first[8] = 0x22;
         Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, first, 12, 8); first[20] = 1;
         byte[] second = new byte[16]; second[0] = 5; second[8] = 0x20; second[12] = 1;
+        if (secondStyleReference != 30) second[12] = 2;
         if (coveredContent) {
             second = new byte[24]; second[0] = 5; second[1] = 2; second[8] = 0x22;
             Buffer.BlockCopy(BitConverter.GetBytes(7d), 0, second, 12, 8); second[20] = 1;
         }
-        byte[] tile = Message(VarintField(1, 1), VarintField(2, 0), VarintField(3, 2), VarintField(4, 1),
+        byte[] tile = Message(VarintField(1, (ulong)(additionalTileRows == null ? 1 : rowCount)),
+            VarintField(2, 0), VarintField(3, 2), VarintField(4, (ulong)(additionalTileRows == null ? 1 : rowCount)),
             BytesField(5, Message(VarintField(1, 0), VarintField(2, 2),
                 BytesField(6, Message(first, second)), BytesField(7, new byte[] { 0, 0, 24, 0 }))),
+            additionalTileRows ?? Array.Empty<byte>(),
             VarintField(6, 5), VarintField(7, 1));
         var records = new List<byte[]>();
         if (kind == IWorkDocumentKind.Pages) {
@@ -301,12 +306,14 @@ public sealed partial class IWorkBoundaryTests {
             kind == IWorkDocumentKind.Keynote ? BytesField(1, GeometryDrawable(0, 0, 144, 24)) : Array.Empty<byte>())));
         byte[] tileList = BytesField(3, BytesField(1, Message(VarintField(1, 0), ReferenceField(2, 12))));
         byte[] store = Message(ReferenceField(5, 13), tileList);
-        records.Add(ArchiveRecord(11, 6001, Message(VarintField(6, 1), VarintField(7, 2), BytesField(4, store),
-            merge ? MergeTestOwner(MergeTestPair(0, 0, 0, 1)) : Array.Empty<byte>())));
+        records.Add(ArchiveRecord(11, 6001, Message(VarintField(6, (ulong)rowCount), VarintField(7, 2), BytesField(4, store),
+            mergeDeclarations ?? (merge ? MergeTestOwner(MergeTestPair(0, 0, 0, 1)) : Array.Empty<byte>()),
+            modelDeclarations ?? Array.Empty<byte>())));
         records.Add(ArchiveRecord(12, 6002, tile));
         byte[] entry = Message(VarintField(1, 1), ReferenceField(4, 30));
         records.Add(ArchiveRecord(13, 6005, Message(VarintField(1, (ulong)listType), BytesField(3, entry),
             ambiguous ? BytesField(3, entry) : Array.Empty<byte>(),
+            secondStyleReference != 30 ? BytesField(3, Message(VarintField(1, 2), ReferenceField(4, secondStyleReference))) : Array.Empty<byte>(),
             additionalEntry ? BytesField(3, Message(VarintField(1, 2), ReferenceField(4, 99))) : Array.Empty<byte>())));
         records.AddRange(styles);
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))), ("preview.png", ValidPreviewPng()));

@@ -29,6 +29,15 @@ public sealed class IWorkTableData {
         return Set(row, column, IWorkCellKind.Number, value);
     }
 
+    /// <summary>Sets a finite number with an immutable explicit decimal, percentage or scientific format.</summary>
+    /// <remarks>Formatting changes display, not the stored numeric value. Automatic, currency, temporal and custom formats are not supported by native creation.</remarks>
+    public IWorkTableData SetNumber(int row, int column, double value, IWorkNumberFormat numberFormat) {
+        if (numberFormat == null) throw new ArgumentNullException(nameof(numberFormat));
+        numberFormat.ValidateNativeNumericCreation();
+        if (double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(value), "A finite number is required.");
+        return Set(row, column, IWorkCellKind.Number, value, numberFormat);
+    }
+
     /// <summary>Sets a boolean value, retaining its type rather than a text label.</summary>
     public IWorkTableData SetBoolean(int row, int column, bool value) => Set(row, column, IWorkCellKind.Boolean, value);
 
@@ -43,8 +52,8 @@ public sealed class IWorkTableData {
 
     internal IWorkTableCell[] Snapshot() => _cells.OrderBy(entry => entry.Key).Select(entry => entry.Value).ToArray();
 
-    private IWorkTableData Set(int row, int column, IWorkCellKind kind, object value) {
-        _cells[Key(row, column)] = new IWorkTableCell(row, column, kind, value); return this;
+    private IWorkTableData Set(int row, int column, IWorkCellKind kind, object value, IWorkNumberFormat? numberFormat = null) {
+        _cells[Key(row, column)] = new IWorkTableCell(row, column, kind, value, numberFormat: numberFormat); return this;
     }
 
     private int Key(int row, int column) {

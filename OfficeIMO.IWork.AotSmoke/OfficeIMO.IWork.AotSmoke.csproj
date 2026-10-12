@@ -33,7 +33,14 @@
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-jpeg.jpg" Link="created-jpeg.jpg" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-table-borders-v15.4.key" Link="native-table-borders.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-edited-v15.4.pages" Link="preservation.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-tables-edited-v15.4.pages" Link="pages-created-tables-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-images-edited-v15.4.pages" Link="pages-created-images-edited.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-numbering-edited-v15.4.pages" Link="pages-created-numbering-edited.pages" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-edited-v14.5.numbers" Link="preservation.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-created-numeric-formats.json" Link="iwork-created-numeric-formats.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-formats-edited-v14.5.numbers" Link="numbers-created-formats-edited-v14.5.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-formats-edited-v15.4.pages" Link="pages-created-formats-edited-v15.4.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-formats-edited-v15.4.key" Link="keynote-created-formats-edited-v15.4.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-edited-v15.4.key" Link="preservation.key" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

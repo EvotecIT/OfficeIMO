@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "profile": "owned-native-pages-inline-scalar-tables",
+  "application": {
+    "name": "Pages",
+    "version": "15.4",
+    "build": "7051.0.79"
+  },
+  "host": {
+    "os": "macOS 27.0.1 (26A434)",
+    "architecture": "arm64"
+  },
+  "candidateBase": "7032cd4b3f84ed0a69fca85ca804de6faf1c722b",
+  "artifacts": {
+    "created": {
+      "path": "pages-created-tables-v15.4.pages",
+      "bytes": 17157,
+      "sha256": "0869946a8507ccf60c528507e270b481b293a6184a4a357ea30d080303c355b3"
+    },
+    "nativeEdited": {
+      "path": "pages-created-tables-edited-v15.4.pages",
+      "bytes": 63943,
+      "sha256": "f8a50c0312377a099c4c520b8dcdd3657391d9831c9c85d15474bfa740ade2cd"
+    },
+    "nativeDocx": {
+      "path": "pages-created-tables-v15.4.docx",
+      "bytes": 8280,
+      "sha256": "13dc8eed07b4d447c3193ef3229cb7eb8cc2de447bfdc578170fc25928265669"
+    },
+    "nativeEditedDocx": {
+      "path": "pages-created-tables-edited-v15.4.docx",
+      "bytes": 8278,
+      "sha256": "fd9a00f607eed583f5156636fcf4a212655a4b82afc44857a0f6ed73f2439cae"
+    },
+    "nativePdf": {
+      "path": "pages-created-tables-v15.4.pdf",
+      "bytes": 66880,
+      "sha256": "acf3e6fcb3443b5e113aa32b7545545c2edad3d4e92b7ce75be50f1274f202b3"
+    },
+    "nativeOpenScreenshot": {
+      "path": "pages-created-tables-open-v15.4.png",
+      "bytes": 61067,
+      "sha256": "53af99158627be962d26b2c98d369435848d4c18ed44f0ed1bf56f16653d759f"
+    },
+    "nativeEditedReopenScreenshot": {
+      "path": "pages-created-tables-edited-reopened-v15.4.png",
+      "bytes": 61110,
+      "sha256": "299b21fa0b1e2f639ef40dc232893afa0f2423e696826e71e1b8273826a46bfc"
+    },
+    "tableOnly": {
+      "path": "pages-created-table-only-v15.4.pages",
+      "bytes": 9912,
+      "sha256": "ef6dcbfa2ae664060670b779cb2b34e7a580b0d1197ad70685d0d9fd8f98d7fe"
+    },
+    "tableOnlyScreenshot": {
+      "path": "pages-created-table-only-open-v15.4.png",
+      "bytes": 48987,
+      "sha256": "7f94f5ec44055d5b747a38aed769c8edeff4715dd0618ff345c94e539abff518"
+    },
+    "independentCreatedGraph": {
+      "path": "pages-created-tables-graph-v15.4.json",
+      "bytes": 12724,
+      "sha256": "0ba5a8aeb63eaad908a50450cbd4ca091582e12648aa70aef8b3ff9199e9ce12"
+    },
+    "independentTableOnlyGraph": {
+      "path": "pages-created-table-only-graph-v15.4.json",
+      "bytes": 7079,
+      "sha256": "9df3a8f413990a30972da17a75d99288de97294c14bb14258d820d49ae042296"
+    },
+    "officeimoCreatedPdf": {
+      "path": "pages-created-tables-officeimo-v15.4.pdf",
+      "bytes": 23929,
+      "sha256": "ed23287e5bfd8e0f548a6da875923c0923b5d566b2673ef08e5d4c9d6fa36fc7"
+    },
+    "officeimoEditedPdf": {
+      "path": "pages-created-tables-edited-officeimo-v15.4.pdf",
+      "bytes": 23926,
+      "sha256": "a0e52b4c3775787dbc683484c27b1bb88eec82356cab47850b375af0094ddd3a"
+    },
+    "officeimoCreatedRaster": {
+      "path": "pages-created-tables-officeimo-v15.4.png",
+      "bytes": 15072,
+      "sha256": "0a849bbb491816e38aa10b0e2f606108725ee4aefedca0ec3ad870bdb3d2a8da"
+    },
+    "officeimoEditedRaster": {
+      "path": "pages-created-tables-edited-officeimo-v15.4.png",
+      "bytes": 14902,
+      "sha256": "21425dbdecf32771e29d9e5aa1175c160a07a6007c372a9e6c714c1e13d32a14"
+    },
+    "nativePdfRaster": {
+      "path": "pages-created-tables-native-rendered-v15.4.png",
+      "bytes": 17179,
+      "sha256": "c7d1df69147f8dbf4bc7752586f91835d5d24af186015e5340ef79e17a6c7cf8"
+    }
+  },
+  "acceptance": {
+    "created": "Opens without repair; paragraph/table/table/paragraph order, 3x3 scalar table and 2x2 empty table visually inspected.",
+    "nativeEdited": "Changed Values A2 from -1234.5 to 20.75, saved, closed and reopened. Native DOCX export retains the edit.",
+    "tableOnly": "A 2x2 table at body offset zero opens natively without repair.",
+    "independentDecoder": "Pinned-schema required fields, object-reference closure, all scalar cells, UTF-16 attachment offsets, explicit exterior wrap, native table presets and four-sided region layout.",
+    "managedDestination": "Native-edited source has no projection, declaration or reference diagnostics and converts to strict saved DOCX.",
+    "nativeUiCleanup": "Saved DOCX export stalled in macOS metadata tag handling. The sampled task-owned Pages process was released through Activity Monitor; relaunch and table-only open succeeded, followed by normal Pages quit. Both task-owned apps are closed."
+  },
+  "limits": [
+    "Fixed equally sized scalar grids only; no formulas, merges, rich/per-cell styles, floating placement, lists or source editing.",
+    "Fonts, localized scalar display, pagination and receiving-application DOCX row-height equivalence remain unqualified.",
+    "Native PDF covers the original mixed document; native edited export proof uses DOCX. Table-only proof covers opening; mixed-document proof covers editing and saving.",
+    "NativeAOT and composed OfficeIMO PDF are recorded separately."
+  ],
+  "independentDecoder": {
+    "command": "python Build/IWork/verify-pages-creation.py <created.pages> --descriptor <pages-tables-descriptor.pb> --out <graph.json>",
+    "isolatedNumbersParserVersion": "4.19.0",
+    "descriptorSha256": "d598411a07e0bbe0fe78833807eb36603a8baca1cfadfd3f8efd5f4c10c0b54d",
+    "compiledSchemas": [
+      "TPArchives.proto",
+      "TSTArchives.proto",
+      "TSPArchiveMessages.proto"
+    ],
+    "includeImports": true
+  },
+  "composedPdf": {
+    "route": "pages-pdf",
+    "resourcePolicy": "PortableDeterministic",
+    "fonts": [
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+        "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+        "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+        "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c"
+      },
+      {
+        "path": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+        "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517"
+      },
+      {
+        "path": "OfficeIMO.Drawing.Tests/TestAssets/NotoEmoji-VariableFont_wght.ttf",
+        "sha256": "dbd8394b0ee513b356b5a101fb0f64628ce9508294523e051a0efb1679bb34e3"
+      }
+    ],
+    "outputs": [
+      {
+        "artifact": "officeimoCreatedPdf",
+        "pages": 1,
+        "pageSizePoints": [
+          612.0,
+          792.0
+        ],
+        "selectedSourceUnits": 10,
+        "reconstructedSourceUnits": 10,
+        "omittedSourceUnits": 0,
+        "unassessedSourceUnits": 0,
+        "partialEditableReconstruction": false,
+        "textSha256": "aadd786f34ad9bd3f220cae6c98a6a8610cbb449365b0303f795efb91bbaab09",
+        "diagnostics": [
+          "IWORK_SOURCE_READ",
+          "IWORK_RECORD_FIDELITY_UNASSESSED",
+          "NativeFontFamilySubstituted"
+        ]
+      },
+      {
+        "artifact": "officeimoEditedPdf",
+        "pages": 1,
+        "pageSizePoints": [
+          612.0,
+          792.0
+        ],
+        "selectedSourceUnits": 10,
+        "reconstructedSourceUnits": 10,
+        "omittedSourceUnits": 0,
+        "unassessedSourceUnits": 0,
+        "partialEditableReconstruction": false,
+        "textSha256": "9e342f6ecc162dfd9db65d3b379fb91d114ea3f5975bf640a51da2d2c5ca3801",
+        "diagnostics": [
+          "IWORK_SOURCE_READ",
+          "IWORK_PAGES_NUMBER_FORMAT_APPROXIMATED",
+          "IWORK_RECORD_FIDELITY_UNASSESSED",
+          "NativeFontFamilySubstituted"
+        ]
+      }
+    ],
+    "independentTextDecoder": "pypdf",
+    "rasterizer": "pdftoppm at 100 DPI",
+    "visualInspection": "All three single-page rasters inspected: created and Apple-edited complete PDFs retain two grids and body order, multiline Unicode text, literals, booleans and the numeric edit. Table frames remain 324x144 and 200x56 points.",
+    "limits": [
+      "Arial-to-Helvetica substitution and embedded fallback faces alter text metrics and emoji appearance.",
+      "Native Polish numeric/boolean display differs from invariant destination display. Paragraph/table gaps and exact receiving-application typography remain unqualified.",
+      "Native Apple PDF covers the original source; edited-source independent Apple export uses DOCX."
+    ]
+  }
+}

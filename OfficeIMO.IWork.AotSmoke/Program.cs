@@ -48,8 +48,11 @@ foreach (var (name, hash) in fixtures) {
         Require(!reopened.ValidateDocument().Any(), "Saved PPTX failed validation.");
         Require(result.Report.PreservedRecords.Count > 0, "Keynote lost source evidence.");
     } else {
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input);
-        result.RequireCompleteEditableReconstruction();
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input,
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Require(result.Report.IsPartialEditableReconstruction
+            && result.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"),
+            "Numbers inherited padding omission was not reported.");
         Require(!result.IsVisualFallback, "Numbers unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -69,19 +72,25 @@ foreach (var (name, hash) in fixtures) {
     }
     Require(input.CanRead, "Conversion closed the caller-owned stream.");
     Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == hash, "Conversion changed source bytes.");
-    Console.WriteLine($"PASS | {name} | {hash} | complete editable conversion, save/reopen, source preservation");
+    string coverage = name.EndsWith(".numbers", StringComparison.Ordinal)
+        ? "editable conversion with explicit padding omission" : "complete editable conversion";
+    Console.WriteLine($"PASS | {name} | {hash} | {coverage}, save/reopen, source preservation");
 }
 Console.WriteLine("PASS | bounded iWork NativeAOT destination conversions | "
     + System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
 NativeKeynoteWriterSmoke.Run();
 NativePagesWriterSmoke.Run();
 NativePagesParagraphWriterSmoke.Run();
+NativePagesTableWriterSmoke.Run();
+NativePagesImageWriterSmoke.Run();
+NativePagesNumberedListWriterSmoke.Run();
 NativePagesListCounterSmoke.Run();
 NativePagesBorderSmoke.Run();
 NativeNumbersFixedDurationSmoke.Run();
 NativeNumbersIntegerFunctionSmoke.Run();
 NativeNumbersBorderSmoke.Run();
 NativeNumbersWriterSmoke.Run();
+NativeNumericFormatWriterSmoke.Run();
 NativePreservationSmoke.Run();
 
 static void Require(bool condition, string message) {

@@ -10,10 +10,12 @@ public sealed partial class IWorkWorkflowTests {
     [Theory]
     [InlineData("pages-created-edited-v15.4.pages", "pages-pdf", 2, "8")]
     [InlineData("pages-created-layout-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-created-tables-edited-v15.4.pages", "pages-pdf", 1, "10")]
+    [InlineData("pages-created-images-v15.4.pages", "pages-pdf", 1, "12")]
+    [InlineData("pages-created-images-edited-v15.4.pages", "pages-pdf", 1, "12")]
+    [InlineData("pages-created-numbering-v15.4.pages", "pages-pdf", 1, "10")]
+    [InlineData("pages-created-numbering-edited-v15.4.pages", "pages-pdf", 1, "10")]
     [InlineData("pages-list-continuation-v15.4.pages", "pages-pdf", 1, "2")]
-    [InlineData("numbers-created-edited-v14.5.numbers", "numbers-pdf", 4, "6")]
-    [InlineData("numbers-duration-seconds-v14.5.numbers", "numbers-pdf", 6, "7")]
-    [InlineData("numbers-duration-milliseconds-v14.5.numbers", "numbers-pdf", 6, "7")]
     [InlineData("keynote-created-tables-edited-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
     public async Task Native_content_pdf_routes_retain_every_page_with_caller_fonts(
@@ -52,18 +54,50 @@ public sealed partial class IWorkWorkflowTests {
         switch (route) {
             case "pages-pdf":
                 if (fixture == "pages-created-layout-edited-v15.4.pages") AssertNativePagesLayoutText(pages);
+                else if (fixture == "pages-created-tables-edited-v15.4.pages") AssertNativePagesTableText(pages);
+                else if (fixture.StartsWith("pages-created-images", StringComparison.Ordinal)) {
+                    string text = Assert.Single(pages); int previous = -1;
+                    foreach (string expected in new[] { "Before 😀", "Between", "Grid", "42", "After" }) {
+                        int at = text.IndexOf(expected, StringComparison.Ordinal); Assert.True(at > previous); previous = at;
+                    }
+                    var images = pdf.ExtractImages(); Assert.Equal(3, images.Count);
+                    Assert.All(images, image => { Assert.Equal(96, image.Width); Assert.Equal(64, image.Height); });
+                    Assert.Contains(images, image => image.HasTransparencyMask && image.TransparencyMaskResolved);
+                    var placements = Assert.Single(pdf.Pages).GetImagePlacements();
+                    Assert.Equal(new double[] { fixture.Contains("edited") ? 144 : 180, 120, 160 }, placements.Select(image => image.Width));
+                    Assert.Equal(new double[] { 120, 80, 80 }, placements.Select(image => image.Height));
+                }
                 else if (fixture == "pages-list-continuation-v15.4.pages") AssertNativePagesListText(pages);
+                else if (fixture.StartsWith("pages-created-numbering", StringComparison.Ordinal))
+                    AssertCreatedPagesListText(pages, fixture.Contains("edited", StringComparison.Ordinal));
                 else AssertNativePagesText(pages);
-                break;
-            case "numbers-pdf":
-                if (fixture is "numbers-duration-seconds-v14.5.numbers" or "numbers-duration-milliseconds-v14.5.numbers") {
-                    AssertNativeFixedDurationText(pages, fixture == "numbers-duration-milliseconds-v14.5.numbers");
-                    Assert.Contains(evidence.FidelityDiagnostics, item => item.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED"
-                        && item.LossKind == OfficeConversionLossKind.Approximation);
-                } else AssertNativeNumbersText(pages);
                 break;
             case "keynote-pdf": AssertNativeKeynoteText(pages); break;
         }
+    }
+
+    [Theory]
+    [InlineData("simple.numbers")]
+    [InlineData("numbers-created-edited-v14.5.numbers")]
+    [InlineData("numbers-duration-seconds-v14.5.numbers")]
+    [InlineData("numbers-duration-milliseconds-v14.5.numbers")]
+    public async Task Native_numbers_region_padding_prevents_complete_pdf_publication(string fixture) {
+        using var files = new Files("numbers", "pdf");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Corpus", fixture), files.Input, overwrite: true);
+        string sourceHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input)));
+        File.WriteAllText(files.Output, "keep existing");
+        var request = files.Request("numbers-pdf");
+        request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+        request.RegisteredConversionSettings = NativePdfSettings();
+
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("keep existing", File.ReadAllText(files.Output));
+        Assert.Contains("padding", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "OutputReopened");
+        Assert.Equal(sourceHash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))));
+        Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
     }
 
     private static IWorkWorkflowSettings NativePdfSettings() {
@@ -118,6 +152,13 @@ public sealed partial class IWorkWorkflowTests {
         }
     }
 
+    private static void AssertNativePagesTableText(IReadOnlyList<string> pages) {
+        string text = Assert.Single(pages);
+        Assert.True(text.IndexOf("Before 😀", StringComparison.Ordinal) < text.IndexOf("After", StringComparison.Ordinal));
+        foreach (string expected in new[] { "Before 😀", "A😀B", "Zażółć", "=SUM(A1:A2)", "20.75", "TRUE", "FALSE", "After" })
+            Assert.Contains(expected, text);
+    }
+
     private static void AssertNativePagesListText(IReadOnlyList<string> pages) {
         string text = string.Join("\n", pages);
         int previous = -1;
@@ -131,61 +172,23 @@ public sealed partial class IWorkWorkflowTests {
         }
     }
 
-    private static void AssertNativeNumbersText(IReadOnlyList<string> pages) {
-        foreach (string expected in new[] { "Item Value Flag", "Apples 20.75 TRUE", "Negative -0.125 FALSE", "Line1\nLine2 12345.6789 TRUE" })
-            Assert.Contains(expected, pages[0]);
-        foreach (string expected in new[] { "Notes", "Zażółć 😀", "=literal" }) Assert.Contains(expected, pages[1]);
-        Assert.Contains("Totals 99", pages[2]);
-        Assert.Contains("FALSE", pages[2]);
-        Assert.Equal(string.Empty, pages[3].Trim()); // The completely unset 2-by-3 table retains a drawn page.
-    }
-
-    private static void AssertNativeFixedDurationText(IReadOnlyList<string> pages, bool milliseconds) {
-        var singles = milliseconds
-            ? new[] { "36h 1m 1.000s", "2161m 1.000s", "129661.000s" }
-            : new[] { "36h 1m 1s", "2161m 1s", "129661s" };
-        var doubles = milliseconds
-            ? new[] { "72h 2m 2.000s", "4322m 2.000s", "259322.000s" }
-            : new[] { "72h 2m 2s", "4322m 2s", "259322s" };
-        for (int profile = 0; profile < 3; profile++) {
-            string input = pages[profile * 2], formulas = pages[profile * 2 + 1];
-            int previous = -1;
-            foreach (string label in new[] { "Zero", "Minute plus one", "Hour plus minute", "Beyond one day", "Negative",
-                "Fractional positive", "Fractional negative" }) {
-                int at = input.IndexOf(label, StringComparison.Ordinal);
-                Assert.True(at > previous, "Missing or reordered duration row: " + label);
-                previous = at;
-            }
-            Assert.Contains(singles[profile], input);
-            Assert.Contains(doubles[profile], formulas);
-            Assert.Contains("-3661", input);
-            Assert.Contains("3661.75", input);
-            Assert.Contains("-0.75", input);
-            Assert.Contains("Formula double", formulas);
-            // Width pagination places the formula column on a second page.
-            // Native Numbers uses three positioned-sheet pages instead.
-            Assert.Equal(8, formulas.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
-            if (milliseconds) AssertMillisecondDurationRows(profile, input, formulas);
+    private static void AssertCreatedPagesListText(IReadOnlyList<string> pages, bool edited) {
+        string text = System.Text.RegularExpressions.Regex.Replace(Assert.Single(pages), @"\s+", string.Empty);
+        var expected = new List<(int Number, string Text)> {
+            (7, "Parent seven"), (edited ? 9 : 8, "Parent eight"), (edited ? 10 : 9, "Continued nine"),
+            (1, "Child one"), (2, "Child two"), (edited ? 11 : 10, "Parent ten"), (1, "Reset child one"),
+            (5, "Child restart five"), (3, "Separate parent three"), (6, "Resumed child six"),
+            (11, "Resumed parent eleven"), (1, "Reset child one again"), (4, "Parent restart four"), (5, "Parent five")
+        };
+        if (edited) expected.Insert(1, (8, "Inserted parent eight"));
+        int previous = -1;
+        foreach (var item in expected) {
+            string wanted = System.Text.RegularExpressions.Regex.Replace(item.Number
+                .ToString(System.Globalization.CultureInfo.InvariantCulture) + "." + item.Text, @"\s+", string.Empty);
+            int at = text.IndexOf(wanted, previous + 1, StringComparison.Ordinal);
+            Assert.True(at > previous, "Missing or reordered numbered content: " + wanted); previous = at;
         }
-    }
-
-    private static void AssertMillisecondDurationRows(int profile, string input, string formulas) {
-        string[][] values = [
-            ["0h 0m 0.000s", "0h 1m 1.000s", "1h 1m 1.000s", "36h 1m 1.000s", "-1h 1m 1.000s", "1h 1m 1.750s", "-0h 0m 0.750s"],
-            ["0m 0.000s", "1m 1.000s", "61m 1.000s", "2161m 1.000s", "-61m 1.000s", "61m 1.750s", "-0m 0.750s"],
-            ["0.000s", "61.000s", "3661.000s", "129661.000s", "-3661.000s", "3661.750s", "-0.750s"]
-        ];
-        string[][] doubled = [
-            ["0h 0m 0.000s", "0h 2m 2.000s", "2h 2m 2.000s", "72h 2m 2.000s", "-2h 2m 2.000s", "2h 2m 3.500s", "-0h 0m 1.500s"],
-            ["0m 0.000s", "2m 2.000s", "122m 2.000s", "4322m 2.000s", "-122m 2.000s", "122m 3.500s", "-0m 1.500s"],
-            ["0.000s", "122.000s", "7322.000s", "259322.000s", "-7322.000s", "7323.500s", "-1.500s"]
-        ];
-        string[] inputLines = input.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        string[] formulaLines = formulas.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        for (int row = 0; row < 7; row++) {
-            Assert.EndsWith(values[profile][row], inputLines[row + 1].TrimEnd());
-            Assert.Equal(doubled[profile][row], formulaLines[row + 1].Trim());
-        }
+        Assert.Contains("Betweenlistitems", text);
     }
 
     private static void AssertNativeKeynoteText(IReadOnlyList<string> pages) {

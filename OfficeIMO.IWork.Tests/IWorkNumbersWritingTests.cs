@@ -24,6 +24,8 @@ public sealed class IWorkNumbersWritingTests {
         Assert.Equal(14, table.GetParagraphStyle(4, 4)!.TextStyle.FontSizePoints);
         Assert.Equal("003366", table.GetParagraphStyle(4, 4)!.TextStyle.Color!.RgbHex);
         Assert.Equal("FFFFFF", table.GetFill(4, 4)!.Color!.RgbHex);
+        Assert.Equal(4, table.GetPadding(4, 4)!.BottomPoints);
+        Assert.Equal(IWorkCellVerticalAlignment.Top, table.GetVerticalAlignment(4, 4));
         Assert.False(table.AutoResizeRows);
         Assert.Equal(new[] { "Data", "Totals" }, projection.Sheets[0].Drawables.Select(drawable => drawable.Table!.Name));
     }
@@ -32,9 +34,12 @@ public sealed class IWorkNumbersWritingTests {
     public void Native_edited_source_retains_all_tables_and_matches_Apple_saved_Excel_typed_values() {
         string path = Fixture("numbers-created-edited-v14.5.numbers");
         VerifyTables(IWorkSourceDocument.Open(path).ReadNumbers(), 20.75);
+        Assert.Throws<InvalidDataException>(() => ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly }));
         using var conversion = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
-        conversion.RequireCompleteEditableReconstruction();
+            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
+        Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireCompleteEditableReconstruction());
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using (var saved = SpreadsheetDocument.Open(output, false)) {
             Assert.Empty(new OpenXmlValidator().Validate(saved));
