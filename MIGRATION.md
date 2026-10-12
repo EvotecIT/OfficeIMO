@@ -1,5 +1,11 @@
 # Upgrading OfficeIMO
 
+## Excel import cancellation and date conversion
+
+`ExcelDocument.AddWorksheet(worksheetName, validationMode, cancellationToken)` observes cancellation while materializing an existing deferred import before adding the worksheet. The existing overloads keep their behavior. Pass the operation token when worksheet creation is part of a cancellable import.
+
+`DateTimeOffsetWriteStrategy` runs once for each `CellValue` write, including writes that cannot use the direct-save buffer. Numeric writes use that converted value; dates outside Excel's numeric range retain the ISO text fallback. Do not depend on repeated callback invocations when a write falls back to the worksheet DOM.
+
 ## Excel worksheet page-fit inspection
 
 `ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,

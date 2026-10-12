@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             out IReadOnlyList<ExcelDataSetImportResult> results) {
             results = Array.Empty<ExcelDataSetImportResult>();
-            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(cancellationToken: ct)) {
                 return false;
             }
 
@@ -60,11 +60,12 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
-        private bool TryBeginDeferredDirectSaveCandidateRegistration(bool replacingPendingDirectCellValues = false) {
+        private bool TryBeginDeferredDirectSaveCandidateRegistration(bool replacingPendingDirectCellValues = false, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var candidate = _directDataSetSaveCandidate;
             if (candidate != null) {
                 if (candidate.IsDeferred && candidate.IsValid) {
-                    MaterializeDeferredDataSetImport();
+                    MaterializeDeferredDataSetImport(cancellationToken);
                     return false;
                 } else {
                     ClearDirectDataSetSaveCandidate();
@@ -72,7 +73,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (_pendingDirectCellValueSheet != null && !replacingPendingDirectCellValues) {
-                MaterializePendingDirectCellValueSheetIfNeeded();
+                MaterializePendingDirectCellValueSheetIfNeeded(cancellationToken);
                 return false;
             }
 
