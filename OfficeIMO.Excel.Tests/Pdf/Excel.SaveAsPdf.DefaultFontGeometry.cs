@@ -30,15 +30,37 @@ public partial class Excel {
         Assert.InRange(Math.Abs(substitutedWidth - originalWidth), 0, 0.02);
     }
 
+    [Fact]
+    public void SaveAsPdf_WorksheetCanvas_Implicit_Columns_Use_Base_Width_And_Format_Padding() {
+        double storedEight = GetDefaultFontGeometryColumnWidth(10, 11, defaultColumnWidth: 8);
+        double baseEight = GetDefaultFontGeometryColumnWidth(10, 11, baseColumnWidth: 8);
+        double baseTwelve = GetDefaultFontGeometryColumnWidth(10, 11, baseColumnWidth: 12);
+
+        Assert.InRange(baseEight - storedEight, 3.73, 3.77);
+        Assert.InRange(Math.Abs((baseTwelve - baseEight) - storedEight / 2), 0, 0.02);
+    }
+
+    [Fact]
+    public void SaveAsPdf_WorksheetCanvas_Authored_Default_Width_Overrides_Base_Width() {
+        double baseEight = GetDefaultFontGeometryColumnWidth(10, 11, baseColumnWidth: 8, defaultColumnWidth: 13);
+        double baseTwelve = GetDefaultFontGeometryColumnWidth(10, 11, baseColumnWidth: 12, defaultColumnWidth: 13);
+
+        Assert.InRange(Math.Abs(baseTwelve - baseEight), 0, 0.02);
+    }
+
     private double GetDefaultFontGeometryColumnWidth(double defaultSize, double cellSize,
-        string defaultFamily = "GeometryDefault", bool substitute = false) {
-        string path = Path.Combine(_directoryWithFiles, $"ExcelPdfDefaultGeometry-{defaultSize}-{cellSize}-{defaultFamily}-{substitute}.xlsx");
+        string defaultFamily = "GeometryDefault", bool substitute = false, uint? baseColumnWidth = null,
+        double? defaultColumnWidth = null) {
+        string path = Path.Combine(_directoryWithFiles, $"ExcelPdfDefaultGeometry-{defaultSize}-{cellSize}-{defaultFamily}-{substitute}-{baseColumnWidth}-{defaultColumnWidth}.xlsx");
         using (ExcelDocument workbook = ExcelDocument.Create(path, "Geometry")) {
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.Cell(1, 1, "ARef");
             sheet.Cell(1, 2, "BRef");
-            sheet.SetColumnWidth(1, 12);
-            sheet.SetColumnWidth(2, 12);
+            if (!baseColumnWidth.HasValue && !defaultColumnWidth.HasValue) {
+                sheet.SetColumnWidth(1, 12);
+                sheet.SetColumnWidth(2, 12);
+            }
+            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(defaultColumnWidth.Value);
             sheet.SetRowHeight(1, 32);
             workbook.Save();
         }
@@ -46,6 +68,16 @@ public partial class Excel {
         // Native column units use workbook font zero. Cells explicitly use a
         // different font, so changing their size must not resize the grid.
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+            if (baseColumnWidth.HasValue) {
+                Worksheet worksheet = package.WorkbookPart!.WorksheetParts.First().Worksheet;
+                SheetFormatProperties? format = worksheet.GetFirstChild<SheetFormatProperties>();
+                if (format == null) {
+                    format = new SheetFormatProperties { DefaultRowHeight = 15 };
+                    worksheet.AddChild(format, true);
+                }
+                format.BaseColumnWidth = baseColumnWidth.Value;
+                worksheet.Save();
+            }
             Stylesheet styles = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet;
             Font defaultFont = styles.Fonts!.Elements<Font>().First();
             defaultFont.GetFirstChild<FontName>()!.Val = defaultFamily;
