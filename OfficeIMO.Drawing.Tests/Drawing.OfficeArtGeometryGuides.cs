@@ -7,6 +7,22 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(10, -469135819, 19330047, -197917335)]
+    [InlineData(9, 165050766, 65537, 2880576)]
+    [InlineData(16, 352534414, 65537, 6153604)]
+    [InlineData(8, 352534414, -6153605, -65538)]
+    public void OfficeArtGeometryGuides_InexactTrigResultsPreserveTheSideOfIntegerBoundaries(
+        ushort operation, int first, int second, int expected) {
+        // Independently evaluated at 100 and 180 decimal digits; each result is
+        // just below an integer that binary64 evaluation can round onto.
+        var properties = Guides(((ushort)(operation | 0x6000), (ushort)0x0147, (ushort)0x0148, (ushort)0));
+        properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.Equal(expected, Assert.Single(values));
+    }
+
+    [Theory]
     [InlineData(11, -2147482428, 825954780, 1982291472, -825954780)]
     [InlineData(12, -2147482428, 825954780, 1982291472, -1982291472)]
     [InlineData(11, 2147482428, 825954780, 1982291472, 825954780)]

@@ -65,6 +65,7 @@ internal static class OfficeArtGeometryGuides {
     private static bool TryCalculate(int kind, int first, int second, int third, out int value) {
         value = 0;
         if (kind == 1) return Product(first, second, third, out value);
+        if (kind is 8 or 9 or 10 or 16) return OfficeArtGuideTrigonometry.TryCalculate(kind, first, second, out value);
         if (kind == 7) {
             ulong magnitude = MagnitudeFloor(MagnitudeSquared(first, second, third));
             if (magnitude > int.MaxValue) return false;
@@ -83,12 +84,8 @@ internal static class OfficeArtGeometryGuides {
             4 => Math.Min(first, second),
             5 => Math.Max(first, second),
             6 => first > 0 ? second : third,
-            8 => first == 0 && second == 0 ? double.NaN : Math.Atan2(second, first) * (180D * 65536 / Math.PI),
-            9 => first * Sine(second),
-            10 => first * Cosine(second),
             13 => Math.Sqrt(first),
             14 => (long)first + (long)second * 65536 + (long)third * 65536,
-            16 => first * Tangent(second),
             _ => double.NaN
         };
         // Exact operations already have integral results. Inexact operations
@@ -144,37 +141,5 @@ internal static class OfficeArtGeometryGuides {
         value = (int)quotient; return true;
     }
 
-    private static double Sine(int angle) {
-        int turn = angle % (360 * 65536);
-        int normalized = turn < 0 ? turn + 360 * 65536 : turn;
-        if (turn % (90 * 65536) == 0) {
-            int quadrant = (turn / (90 * 65536) + 4) % 4;
-            return quadrant == 1 ? 1 : quadrant == 3 ? -1 : 0;
-        }
-        // These rational values are exact. Converting their angles to radians
-        // first can put an integral product just below its floor boundary.
-        if (normalized is 30 * 65536 or 150 * 65536) return 0.5;
-        if (normalized is 210 * 65536 or 330 * 65536) return -0.5;
-        return Math.Sin(turn * (Math.PI / (180D * 65536)));
-    }
-    private static double Cosine(int angle) {
-        int turn = angle % (360 * 65536);
-        int normalized = turn < 0 ? turn + 360 * 65536 : turn;
-        if (turn % (90 * 65536) == 0) {
-            int quadrant = (turn / (90 * 65536) + 4) % 4;
-            return quadrant == 0 ? 1 : quadrant == 2 ? -1 : 0;
-        }
-        if (normalized is 60 * 65536 or 300 * 65536) return 0.5;
-        if (normalized is 120 * 65536 or 240 * 65536) return -0.5;
-        return Math.Cos(turn * (Math.PI / (180D * 65536)));
-    }
-    private static double Tangent(int angle) {
-        int turn = angle % (180 * 65536);
-        if (Cosine(angle) == 0) return double.NaN;
-        if (turn == 0) return 0;
-        if (turn is 45 * 65536 or -135 * 65536) return 1;
-        if (turn is -45 * 65536 or 135 * 65536) return -1;
-        return Math.Tan(turn * (Math.PI / (180D * 65536)));
-    }
     private static ushort U16(OfficeArtComplexData bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
 }

@@ -138,6 +138,8 @@ toward zero, and inexact operations floor their results. Exact half-angle sine
 and cosine products retain their integral values; adjacent fractional angles
 retain flooring. These managed checks
 do not qualify Publisher's rounding or discontinuous guide behaviour.
+Trigonometric calculations use directed bounds to preserve the floor near
+integer boundaries. An unresolved bound retains the reported guide fallback.
 High-coordinate
 shape/mask checks retain the full unsigned compact range;
 eight-byte coordinates retain signed negative values. Shared array decoding
