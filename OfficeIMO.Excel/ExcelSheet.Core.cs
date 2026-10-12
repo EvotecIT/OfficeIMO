@@ -648,7 +648,7 @@ namespace OfficeIMO.Excel {
 
         private OfficeFontInfo? GetWorkbookDefaultFontInfo() {
             try {
-                return _excelDocument.GetNormalStyleFontInfo();
+                return _excelDocument.GetWorkbookDefaultFontInfo();
             } catch {
                 // ignore
             }

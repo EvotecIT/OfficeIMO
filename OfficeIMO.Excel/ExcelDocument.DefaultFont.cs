@@ -4,22 +4,12 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
-        /// Resolves the built-in Normal style's font through its style-format and
-        /// font indexes. Minimal workbooks without that style use font zero.
-        /// Column character units use this font independently of cell formatting.
+        /// Returns workbook font zero, which native worksheet column units use
+        /// independently of cell formatting and named style-format references.
         /// </summary>
-        internal OfficeFontInfo? GetNormalStyleFontInfo() {
+        internal OfficeFontInfo? GetWorkbookDefaultFontInfo() {
             Stylesheet? styles = WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            CellStyle? normal = styles?.CellStyles?.Elements<CellStyle>()
-                .FirstOrDefault(style => style.BuiltinId?.Value == 0U);
-            uint formatIndex = normal?.FormatId?.Value ?? 0U;
-            CellFormat? format = formatIndex <= int.MaxValue
-                ? styles?.CellStyleFormats?.Elements<CellFormat>().ElementAtOrDefault((int)formatIndex)
-                : null;
-            uint fontIndex = normal == null ? 0U : format?.FontId?.Value ?? 0U;
-            Font? font = fontIndex <= int.MaxValue
-                ? styles?.Fonts?.Elements<Font>().ElementAtOrDefault((int)fontIndex)
-                : null;
+            Font? font = styles?.Fonts?.Elements<Font>().FirstOrDefault();
             string? name = font?.GetFirstChild<FontName>()?.Val?.Value;
             if (string.IsNullOrWhiteSpace(name) || font == null) return null;
 

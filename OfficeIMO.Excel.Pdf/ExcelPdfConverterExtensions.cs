@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans = BuildWorksheetExportPlans(document, reader, sheetNames, options, hasExplicitSheetSelection, defaultFontFamily);
             cancellationToken.ThrowIfCancellationRequested();
             ReportAccountingUnderlineApproximations(exportPlans, options);
-            HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterWorksheetFonts(pdfOptions, exportPlans, options, preserveConfiguredFontSlots, document.GetNormalStyleFontInfo());
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterWorksheetFonts(pdfOptions, exportPlans, options, preserveConfiguredFontSlots, document.GetWorkbookDefaultFontInfo());
             ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots, exportPlans);
             ApplyWorksheetColumnFontMetrics(document, pdfOptions, options, exportPlans);
             var pdf = PdfCore.PdfDocument.Create(pdfOptions);

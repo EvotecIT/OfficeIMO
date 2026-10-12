@@ -10,17 +10,17 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     [Fact]
-    public void SaveAsPdf_WorksheetCanvas_Uses_Normal_Style_Font_For_Column_Units() {
-        double normalWidth = GetNormalFontGeometryColumnWidth(10, 11);
-        double largerNormalWidth = GetNormalFontGeometryColumnWidth(20, 11);
-        double largerCellFontWidth = GetNormalFontGeometryColumnWidth(10, 13);
+    public void SaveAsPdf_WorksheetCanvas_Uses_Workbook_Default_Font_For_Column_Units() {
+        double defaultWidth = GetDefaultFontGeometryColumnWidth(10, 11);
+        double largerDefaultWidth = GetDefaultFontGeometryColumnWidth(20, 11);
+        double largerCellFontWidth = GetDefaultFontGeometryColumnWidth(10, 13);
 
-        Assert.InRange(largerNormalWidth / normalWidth, 1.99, 2.01);
-        Assert.InRange(Math.Abs(largerCellFontWidth - normalWidth), 0, 0.02);
+        Assert.InRange(largerDefaultWidth / defaultWidth, 1.99, 2.01);
+        Assert.InRange(Math.Abs(largerCellFontWidth - defaultWidth), 0, 0.02);
     }
 
-    private double GetNormalFontGeometryColumnWidth(double normalSize, double cellSize) {
-        string path = Path.Combine(_directoryWithFiles, $"ExcelPdfNormalGeometry-{normalSize}-{cellSize}.xlsx");
+    private double GetDefaultFontGeometryColumnWidth(double defaultSize, double cellSize) {
+        string path = Path.Combine(_directoryWithFiles, $"ExcelPdfDefaultGeometry-{defaultSize}-{cellSize}.xlsx");
         using (ExcelDocument workbook = ExcelDocument.Create(path, "Geometry")) {
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.Cell(1, 1, "ARef");
@@ -31,18 +31,16 @@ public partial class Excel {
             workbook.Save();
         }
 
-        // The Normal style deliberately uses a nonzero font and style-format
-        // index. Cell font zero remains explicit and independent of its units.
+        // Native column units use workbook font zero. Cells explicitly use a
+        // different font, so changing their size must not resize the grid.
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
             Stylesheet styles = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet;
-            Font cellFont = styles.Fonts!.Elements<Font>().First();
-            cellFont.GetFirstChild<FontName>()!.Val = "Arial";
-            cellFont.GetFirstChild<FontSize>()!.Val = cellSize;
-            styles.Fonts.Append(new Font(new FontName { Val = "GeometryNormal" }, new FontSize { Val = normalSize }));
+            Font defaultFont = styles.Fonts!.Elements<Font>().First();
+            defaultFont.GetFirstChild<FontName>()!.Val = "GeometryDefault";
+            defaultFont.GetFirstChild<FontSize>()!.Val = defaultSize;
+            styles.Fonts.Append(new Font(new FontName { Val = "Arial" }, new FontSize { Val = cellSize }));
             styles.Fonts.Count = (uint)styles.Fonts.Count();
-            styles.CellStyleFormats!.Append(new CellFormat { FontId = 1U, FillId = 0U, BorderId = 0U, NumberFormatId = 0U });
-            styles.CellStyleFormats.Count = (uint)styles.CellStyleFormats.Count();
-            styles.CellStyles!.Elements<CellStyle>().Single(style => style.BuiltinId?.Value == 0U).FormatId = 1U;
+            styles.CellFormats!.Elements<CellFormat>().First().FontId = 1U;
             styles.CellFormats!.Elements<CellFormat>().First().ApplyFont = true;
             styles.Save();
         }
@@ -55,7 +53,7 @@ public partial class Excel {
             PageSize = new PdfCore.PageSize(500, 200),
             Margins = PdfCore.PageMargins.Uniform(24),
             PdfOptions = new PdfCore.PdfOptions().RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
-                "GeometryNormal", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
+                "GeometryDefault", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
         };
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(loaded.ToPdfBytes(options)));
         var page = pdf.GetPage(1);
