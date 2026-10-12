@@ -19,6 +19,7 @@ public sealed class StudioIWorkProviderPackageTests {
     [InlineData(false, 840)]
     [InlineData(false, 1280)]
     [InlineData(true, 840)]
+    [InlineData(true, 1280)]
     public async Task Registered_package_uses_folder_capture_and_rejects_replacement(bool replace, int width) {
         // On other hosts local folders use the existing local-package route; macOS selects provider access.
         if (!OperatingSystem.IsMacOS()) return;
@@ -42,28 +43,24 @@ public sealed class StudioIWorkProviderPackageTests {
                 }
             });
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services, publicationGuard: guard);
-            model.FileDialogs = new PackageDialogs(root);
+            var dialogs = new PackageDialogs(root);
+            model.FileDialogs = dialogs;
             var queue = model.ConversionWorkbench;
             queue.OutputFolder = services.Paths.Root;
             var view = new ConversionWorkbenchView { DataContext = model };
             var window = new Window { Width = width, Height = 720, Content = view };
             try {
                 window.Show(); window.UpdateLayout();
-                var button = Assert.Single(view.GetVisualDescendants().OfType<Button>(), b => ReferenceEquals(b.Command, queue.AddPackageCommand));
-                Assert.True(button.IsEnabled);
-                Point point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
-                Assert.InRange(point.X, 0, window.Bounds.Width);
-                window.MouseDown(point, MouseButton.Left);
-                window.MouseUp(point, MouseButton.Left);
+                Capture(window, $"package-empty-{width}-{replace}.png");
+                ClickVisibleAction(view, window, queue.AddPackageCommand);
+                Assert.Equal(1, dialogs.PickCount);
                 Assert.Single(queue.Jobs);
                 window.UpdateLayout();
-                string? visual = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
-                if (!string.IsNullOrWhiteSpace(visual)) {
-                    Directory.CreateDirectory(visual);
-                    using var frame = window.CaptureRenderedFrame();
-                    Assert.NotNull(frame);
-                    frame.Save(Path.Combine(visual, $"package-intake-{width}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-                }
+                // The populated queue has its own action; cancelling its picker preserves the job.
+                ClickVisibleAction(view, window, queue.AddPackageCommand);
+                Assert.Equal(2, dialogs.PickCount);
+                Assert.Single(queue.Jobs);
+                Capture(window, $"package-queued-{width}-{replace}.png");
             } finally { window.Close(); }
             var job = Assert.Single(queue.Jobs);
             Assert.False(job.AllowPartialEditableReconstruction);
@@ -74,6 +71,28 @@ public sealed class StudioIWorkProviderPackageTests {
             if (replace) Assert.Contains("replaced", job.Summary!, StringComparison.OrdinalIgnoreCase);
             return true;
         }, CancellationToken.None);
+    }
+
+    private static void ClickVisibleAction(Control view, Window window, System.Windows.Input.ICommand command) {
+        var button = Assert.Single(view.GetVisualDescendants().OfType<Button>(),
+            item => item.IsEffectivelyVisible && ReferenceEquals(item.Command, command));
+        Assert.True(button.IsEffectivelyEnabled);
+        Assert.True(button.Bounds.Width > 0 && button.Bounds.Height > 0);
+        Point origin = button.TranslatePoint(default, window)!.Value;
+        Assert.InRange(origin.X, 0, window.Bounds.Width - button.Bounds.Width);
+        Assert.InRange(origin.Y, 0, window.Bounds.Height - button.Bounds.Height);
+        Point center = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(center, MouseButton.Left);
+        window.MouseUp(center, MouseButton.Left);
+    }
+
+    private static void Capture(Window window, string name) {
+        string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
+        if (string.IsNullOrWhiteSpace(output)) return;
+        Directory.CreateDirectory(output);
+        using var frame = window.CaptureRenderedFrame();
+        Assert.NotNull(frame);
+        frame.Save(Path.Combine(output, name), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 
     [Fact]
@@ -106,7 +125,8 @@ public sealed class StudioIWorkProviderPackageTests {
     private static extern int Link(string source, string destination);
 
     private sealed class PackageDialogs(string path) : IStudioFileDialogs {
-        public Task<string?> PickFolderAsync(string title, CancellationToken token) => Task.FromResult<string?>(path);
+        public int PickCount { get; private set; }
+        public Task<string?> PickFolderAsync(string title, CancellationToken token) => Task.FromResult<string?>(++PickCount == 1 ? path : null);
         public Task<string?> PickOpenFileAsync(string title, StudioFileType type, CancellationToken token) => throw new NotSupportedException();
         public Task<string?> PickSaveFileAsync(string title, string name, StudioFileType type, CancellationToken token) => throw new NotSupportedException();
     }
