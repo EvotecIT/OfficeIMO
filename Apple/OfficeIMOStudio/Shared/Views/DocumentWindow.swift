@@ -80,6 +80,10 @@ struct DocumentWindow: View {
             .inspector(isPresented: $session.isInspectorShown) {
                 DocumentInspector(session: session)
                     .inspectorColumnWidth(min: 240, ideal: 280, max: 360)
+                    // In compact width the inspector is a sheet over the page.
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                    .presentationBackgroundInteraction(.enabled(upThrough: .medium))
             }
             .toolbar { DocumentToolbar(session: session, fileURL: fileURL, isCompact: isCompact) }
             .modifier(OptionalTitle(title: title))

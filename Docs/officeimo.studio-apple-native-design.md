@@ -86,14 +86,15 @@ Pages render through the engine's pixel rectangles, described under Rendering, s
 
 ### Delivered screens
 
-The first slice opens PDFs as documents and offers the Read and Pages tasks, on the Mac, iPad and iPhone. Pages show at the width of the widest page and zoom with pinch, double tap, the trackpad and View ▸ Zoom; the page list, inspector, rotation with undo and sharing work in every layout. **New Blank PDF** creates a one-page document at the region's paper size. The iPad and iPhone screens were captured through the development launch harness described in the [app README](../Apple/OfficeIMOStudio/README.md#development-harness), because the simulator's document browser cannot open files on this build host.
+The first slice opens PDFs as documents and offers the Read and Pages tasks, on the Mac, iPad and iPhone. Pages show at the width of the widest page and zoom with pinch, double tap, the trackpad and View ▸ Zoom; the page list, inspector, rotation with undo and sharing work in every layout. On iPad and iPhone the Pages task shows Undo and Redo in the navigation bar, as Apple's editing apps do; they act through the window's undo manager, as the Edit menu and the undo gestures do. **New Blank PDF** creates a one-page document at the region's paper size. The iPad and iPhone screens were captured through the development launch harness described in the [app README](../Apple/OfficeIMOStudio/README.md#development-harness), because the simulator's document browser cannot open files on this build host.
 
 | Screen | Image |
 | --- | --- |
 | Mac, Read: the system sidebar, the window toolbar with the task control, zoom, Share and the inspector | ![Mac document window in the Read task](Images/StudioApple/mac-read.jpg) |
 | iPad, Read: sidebar, page and inspector side by side | ![iPad document with the page list and the inspector](Images/StudioApple/ipad-read.jpg) |
 | iPad, Pages: three pages selected, with Rotate Left and Rotate Right in the bottom bar; the page list steps aside | ![iPad Pages task with three pages selected](Images/StudioApple/ipad-pages.jpg) |
-| iPhone, Read: the page fills the width; Pages, the task menu and Share sit in the bottom bar | ![iPhone document in the Read task](Images/StudioApple/iphone-read.jpg) |
+| iPhone, Read: the page fills the width; Pages, the task menu and Share are separate controls in the bottom bar | ![iPhone document in the Read task](Images/StudioApple/iphone-read.jpg) |
+| iPhone, page list: a sheet at half height over the page it controls; choosing a page shows it behind the sheet | ![iPhone page list sheet over page 10](Images/StudioApple/iphone-page-list.jpg) |
 
 ### Features on each platform
 

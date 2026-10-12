@@ -32,23 +32,25 @@ struct DocumentToolbar: ToolbarContent {
             inspectorToggle
         }
         #else
+        if session.task == .pages {
+            ToolbarItemGroup(placement: .topBarTrailing) { undoRedo }
+        }
         if isCompact {
             ToolbarItem(placement: .topBarTrailing) { inspectorToggle }
+            // Separate items with flexible spacers, so each is its own glass control in the bottom bar.
             if session.task == .pages {
-                ToolbarItemGroup(placement: .bottomBar) {
-                    taskMenu
-                    Spacer()
-                    pageActions
-                }
+                ToolbarItem(placement: .bottomBar) { taskMenu }
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+                ToolbarItemGroup(placement: .bottomBar) { pageActions }
             } else {
-                ToolbarItemGroup(placement: .bottomBar) {
+                ToolbarItem(placement: .bottomBar) {
                     Button("Pages", systemImage: "rectangle.grid.1x2") { session.isPageListShown = true }
                         .disabled(!session.isReady)
-                    Spacer()
-                    taskMenu
-                    Spacer()
-                    share
                 }
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+                ToolbarItem(placement: .bottomBar) { taskMenu }
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+                ToolbarItem(placement: .bottomBar) { share }
             }
         } else {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -66,6 +68,17 @@ struct DocumentToolbar: ToolbarContent {
         #endif
     }
 
+    #if os(iOS)
+    /// Undo and Redo while editing, as Apple's editing apps show them; they act through the window's undo manager,
+    /// which also serves the keyboard shortcuts and the three-finger gestures.
+    @ViewBuilder private var undoRedo: some View {
+        Button("Undo", systemImage: "arrow.uturn.backward") { session.undoManager?.undo() }
+            .disabled(session.facts?.canUndo != true || session.isWorking)
+        Button("Redo", systemImage: "arrow.uturn.forward") { session.undoManager?.redo() }
+            .disabled(session.facts?.canRedo != true || session.isWorking)
+    }
+    #endif
+
     /// Rotation for the selected pages, shown while the Pages task is open.
     @ViewBuilder private var pageActions: some View {
         if session.task == .pages {
@@ -76,14 +89,24 @@ struct DocumentToolbar: ToolbarContent {
         }
     }
 
+    /// The task menu: the current task's name, opening the list of tasks.
     private var taskMenu: some View {
-        Picker(selection: $session.task) {
-            ForEach(StudioTask.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+        Menu {
+            Picker("Task", selection: $session.task) {
+                ForEach(StudioTask.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+            }
+            .pickerStyle(.inline)
         } label: {
-            Label(session.task.title, systemImage: session.task.systemImage)
+            HStack(spacing: 4) {
+                Text(session.task.title)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+            .accessibilityLabel(Text("Task: \(Text(session.task.title))"))
         }
-        .pickerStyle(.menu)
-        .labelStyle(.titleOnly)
+        .menuIndicator(.hidden)
+        .fixedSize()
         .disabled(!session.isReady)
     }
 
