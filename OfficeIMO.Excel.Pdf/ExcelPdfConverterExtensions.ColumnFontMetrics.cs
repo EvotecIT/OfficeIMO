@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.Pdf {
                 !options.UseWorksheetColumnWidths ||
                 document.GetWorkbookDefaultFontInfo() is not OfficeFontInfo defaultFont ||
                 !pdfOptions.TryResolveNamedFontFace(defaultFont.FamilyName, defaultFont.IsBold, defaultFont.IsItalic,
-                    out PdfCore.PdfNamedFontFace face)) return;
+                    out PdfCore.PdfNamedFontFace face, allowSubstitution: false)) return;
 
             Func<string, double> measure;
             Func<int, bool> covers;

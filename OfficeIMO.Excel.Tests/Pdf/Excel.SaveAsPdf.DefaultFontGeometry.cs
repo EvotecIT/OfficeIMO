@@ -19,8 +19,20 @@ public partial class Excel {
         Assert.InRange(Math.Abs(largerCellFontWidth - defaultWidth), 0, 0.02);
     }
 
-    private double GetDefaultFontGeometryColumnWidth(double defaultSize, double cellSize) {
-        string path = Path.Combine(_directoryWithFiles, $"ExcelPdfDefaultGeometry-{defaultSize}-{cellSize}.xlsx");
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SaveAsPdf_WorksheetCanvas_Text_Substitution_Does_Not_Change_Column_Units(bool defaultFontAvailable) {
+        string family = defaultFontAvailable ? "GeometryDefault" : "OfficeIMO Missing Column Font";
+        double originalWidth = GetDefaultFontGeometryColumnWidth(10, 11, family);
+        double substitutedWidth = GetDefaultFontGeometryColumnWidth(10, 11, family, substitute: true);
+
+        Assert.InRange(Math.Abs(substitutedWidth - originalWidth), 0, 0.02);
+    }
+
+    private double GetDefaultFontGeometryColumnWidth(double defaultSize, double cellSize,
+        string defaultFamily = "GeometryDefault", bool substitute = false) {
+        string path = Path.Combine(_directoryWithFiles, $"ExcelPdfDefaultGeometry-{defaultSize}-{cellSize}-{defaultFamily}-{substitute}.xlsx");
         using (ExcelDocument workbook = ExcelDocument.Create(path, "Geometry")) {
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.Cell(1, 1, "ARef");
@@ -36,7 +48,7 @@ public partial class Excel {
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
             Stylesheet styles = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet;
             Font defaultFont = styles.Fonts!.Elements<Font>().First();
-            defaultFont.GetFirstChild<FontName>()!.Val = "GeometryDefault";
+            defaultFont.GetFirstChild<FontName>()!.Val = defaultFamily;
             defaultFont.GetFirstChild<FontSize>()!.Val = defaultSize;
             styles.Fonts.Append(new Font(new FontName { Val = "Arial" }, new FontSize { Val = cellSize }));
             styles.Fonts.Count = (uint)styles.Fonts.Count();
@@ -55,6 +67,13 @@ public partial class Excel {
             PdfOptions = new PdfCore.PdfOptions().RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
                 "GeometryDefault", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
         };
+        if (substitute) {
+            options.PdfOptions.RegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+                "GeometryColumnSubstitute", OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(
+                    Enumerable.Range('0', 10).ToArray())))
+                .RegisterFontFamilySubstitution(defaultFamily, "GeometryColumnSubstitute",
+                    PdfCore.PdfFontFamilySubstitutionImpact.LayoutSensitive);
+        }
         using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(loaded.ToPdfBytes(options)));
         var page = pdf.GetPage(1);
         return FindWordStartX(page, "BRef") - FindWordStartX(page, "ARef");
