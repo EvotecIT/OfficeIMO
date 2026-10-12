@@ -26,7 +26,7 @@
         <ItemsControl ItemsSource="{Binding SelectedCommentThread.Entries}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="comments:CommentEntryViewModel">
-              <StackPanel Spacing="{StaticResource StudioSpaceXS}" Margin="0,0,0,10">
+              <StackPanel Spacing="{StaticResource StudioSpaceXS}" Margin="0,0,0,12">
                 <TextBlock Text="{Binding Author}" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock IsVisible="{Binding IsReply}" Text="{Binding DepthLabel}" Classes="muted" FontSize="{StaticResource StudioLabelFontSize}" />
                 <TextBlock Text="{Binding Contents}" TextWrapping="Wrap" />

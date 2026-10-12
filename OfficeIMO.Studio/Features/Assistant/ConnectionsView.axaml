@@ -9,7 +9,7 @@
                  Background="Transparent" BorderThickness="0" AutomationProperties.Name="{loc:Loc Assistant.Provider}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="ai:StudioAiProvider">
-              <StackPanel Spacing="{StaticResource StudioSpaceXS}" Margin="3,8">
+              <StackPanel Spacing="{StaticResource StudioSpaceXS}" Margin="4,8">
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Category}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" />
               </StackPanel>

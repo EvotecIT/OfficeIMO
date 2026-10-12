@@ -17,7 +17,7 @@
     <Style Selector="Border.statusChip.missing"><Setter Property="Background" Value="{DynamicResource StudioWarningSoftBrush}" /></Style>
     <Style Selector="Border.statusChip.missing TextBlock"><Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" /></Style>
   </UserControl.Styles>
-  <Border x:Name="Banner" Classes="card" Padding="14,12">
+  <Border x:Name="Banner" Classes="card" Padding="16,12">
     <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding !IsBusy}">
       <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
         <Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource StudioAccentSoftBrush}" VerticalAlignment="Center">
@@ -28,7 +28,7 @@
           <TextBlock Text="{Binding PendingSummary}" Classes="caption" TextWrapping="Wrap" />
         </StackPanel>
         <WrapPanel Grid.Column="2" ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}" VerticalAlignment="Center" HorizontalAlignment="Right">
-          <Button Classes="primary" MinHeight="32" Padding="14,0" Content="{loc:Loc Session.Restore}" Command="{Binding RestoreCommand}"
+          <Button Classes="primary" MinHeight="32" Padding="16,0" Content="{loc:Loc Session.Restore}" Command="{Binding RestoreCommand}"
                   ToolTip.Tip="{loc:Loc Session.Description}" />
           <ToggleButton x:Name="ReviewToggle" Classes="tool" MinHeight="32" Content="{loc:Loc Session.Review}" />
           <Button Classes="icon" Click="OnDismissClick" AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" ToolTip.Tip="{loc:Loc Session.DismissTip}">

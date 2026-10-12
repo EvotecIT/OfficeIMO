@@ -2,7 +2,7 @@
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.ImageOcrReviewView" x:DataType="workflow:ImageOcrReviewViewModel">
-  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
       <StackPanel Spacing="{StaticResource StudioSpaceXS}">
         <TextBlock Text="{Binding SourceName}" Classes="sectionTitle" TextWrapping="Wrap" />
@@ -37,7 +37,7 @@
     <StackPanel Grid.Row="3" Spacing="{StaticResource StudioSpaceS}">
       <TextBlock Text="{Binding Diagnostics}" TextWrapping="Wrap" MaxHeight="60" />
       <WrapPanel>
-        <Button Classes="primary" Content="{loc:Loc ImageOcr.SaveText}" Command="{Binding CommitCommand}" Margin="0,0,10,0" />
+        <Button Classes="primary" Content="{loc:Loc ImageOcr.SaveText}" Command="{Binding CommitCommand}" Margin="0,0,12,0" />
         <Button Classes="tool" Content="{loc:Loc SearchablePdfOcr.Cancel}" Command="{Binding CancelCommand}" />
       </WrapPanel>
     </StackPanel>

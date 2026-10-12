@@ -35,7 +35,7 @@
     <TextBlock Text="{loc:Loc Provenance.CredentialHint}" Classes="muted" TextWrapping="Wrap" />
     <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Credentials}">
      <ItemsControl.ItemTemplate><DataTemplate x:DataType="workflows:ProvenanceCredentialViewModel">
-      <Border Classes="card" Margin="0,0,0,10"><StackPanel Spacing="{StaticResource StudioSpaceS}">
+      <Border Classes="card" Margin="0,0,0,12"><StackPanel Spacing="{StaticResource StudioSpaceS}">
        <TextBlock Text="{Binding Generator}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" TextWrapping="Wrap" />
        <TextBlock Text="{Binding Asset}" TextWrapping="Wrap" />
        <TextBlock IsVisible="{Binding DeclaresGenerativeAi}" Text="{loc:Loc Provenance.SourceGenerativeAi}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -45,7 +45,7 @@
        <TextBlock Text="{loc:Loc Provenance.TimelineHint}" Classes="muted" TextWrapping="Wrap" />
        <ItemsControl ItemsSource="{Binding Actions}"><ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="workflows:ProvenanceCredentialActionViewModel">
-         <Grid ColumnDefinitions="32,*" Margin="0,7">
+         <Grid ColumnDefinitions="32,*" Margin="0,8">
           <TextBlock Text="{Binding Position}" FontWeight="SemiBold" />
           <StackPanel Grid.Column="1" Spacing="{StaticResource StudioSpaceXS}">
            <TextBlock Text="{Binding Action}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -58,7 +58,7 @@
         </DataTemplate>
        </ItemsControl.ItemTemplate></ItemsControl>
        <ItemsControl ItemsSource="{Binding IngredientDescriptions}"><ItemsControl.ItemTemplate>
-        <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate>
+        <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,4" /></DataTemplate>
        </ItemsControl.ItemTemplate></ItemsControl>
        <Expander Header="{loc:Loc Provenance.RecordDetails}"><StackPanel Spacing="{StaticResource StudioSpaceSM}" Margin="8">
         <TextBlock Text="{Binding ManifestCountDescription}" TextWrapping="Wrap" />
@@ -71,7 +71,7 @@
    </StackPanel>
    <Border Classes="card"><StackPanel Spacing="{StaticResource StudioSpaceS}">
     <TextBlock Text="{loc:Loc Provenance.Findings}" FontWeight="SemiBold" />
-    <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Findings}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+    <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Findings}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,4" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
     <StackPanel Spacing="{StaticResource StudioSpaceXXS}" IsVisible="{Binding ProvenanceWorkbench.InputHash, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
      <TextBlock Text="{loc:Loc Provenance.InputHash}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" />
      <SelectableTextBlock Text="{Binding ProvenanceWorkbench.InputHash}" FontFamily="{StaticResource StudioMonoFont}" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />

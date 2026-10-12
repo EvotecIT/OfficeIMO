@@ -5,7 +5,7 @@
         x:Class="OfficeIMO.Studio.Features.Sign.SignatureDialogContent"
         Title="{loc:Loc FillSign.CreateSignature}" Width="560" Height="480" MinWidth="440" MinHeight="420" CanResize="False"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}">
-  <Grid Margin="22,20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+  <Grid Margin="24,24" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="{StaticResource StudioSpaceM}">
     <StackPanel Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock x:Name="HeadingText" Text="{loc:Loc FillSign.CreateSignature}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Classes="caption" Text="{loc:Loc FillSign.DialogHint}" TextWrapping="Wrap" />
@@ -31,7 +31,7 @@
           </ListBox.Styles>
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="sign:SignatureStyleChoice">
-              <Border Classes="paper" Padding="14,4" Height="64" Background="#FFFFFF" CornerRadius="8" BorderThickness="1">
+              <Border Classes="paper" Padding="16,4" Height="64" Background="#FFFFFF" CornerRadius="8" BorderThickness="1">
                 <TextBlock Text="{Binding Preview}" FontFamily="{Binding Family}" FontStyle="{Binding Style}" FontSize="30"
                            Foreground="#1B2A4A" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
               </Border>
@@ -44,7 +44,7 @@
       <Grid x:Name="DrawPanel" IsVisible="False" RowDefinitions="*,Auto" RowSpacing="{StaticResource StudioSpaceS}">
         <Border Background="#FFFFFF" CornerRadius="10" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" ClipToBounds="True">
           <Panel>
-            <Border Height="1" Background="#C9D1DC" VerticalAlignment="Bottom" Margin="28,0,28,38" IsHitTestVisible="False" />
+            <Border Height="1" Background="#C9D1DC" VerticalAlignment="Bottom" Margin="32,0,32,38" IsHitTestVisible="False" />
             <sign:SignaturePad x:Name="Pad" AutomationProperties.Name="{loc:Loc FillSign.DrawArea}" />
           </Panel>
         </Border>

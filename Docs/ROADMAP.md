@@ -157,7 +157,6 @@ Phases 1-3 are the first desktop usability scope. Phase 5 supplies its platform 
 
 ### Phase 1: consistent workspace
 
-- [ ] Move the remaining literal margins and padding in desktop views onto the spacing scale; gaps between controls, the type ramp, and page shells already use the shared tokens, and command layout is checked at 125-200% display scaling with expanded translations.
 - [ ] Route conversion loss and missing OCR prerequisites through the shared notice bar used for failures, restrictions, storage problems, and page rendering limitations. Give each notice a next action and optional page-linked details. Use consistent states for unsaved work, saved output, partial completion, cancellation, and failed publication while retaining the local diagnostics privacy contract.
 
 Completion evidence: open a document, find text, switch modes, edit a supported object, undo, and save without losing context. Inspect Home, Tools, document, OCR, conversion, output, and health surfaces at 960 x 620, 1280 x 800, and wide sizes, including long labels, empty states, busy states, and errors. Controls must remain reachable without overlap; headless bounds tests supplement rendered inspection.

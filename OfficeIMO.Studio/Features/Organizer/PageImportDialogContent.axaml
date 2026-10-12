@@ -3,7 +3,7 @@
         x:Class="OfficeIMO.Studio.Features.Organizer.PageImportDialogContent" x:DataType="local:PageImportPreviewViewModel"
         Title="{loc:Loc Organizer.ImportTitle}" Width="600" Height="590" MinWidth="380" MinHeight="440"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
-  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="{StaticResource StudioSpaceM}">
     <StackPanel Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Organizer.ImportTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{loc:Loc Organizer.ImportHint}" TextWrapping="Wrap" />

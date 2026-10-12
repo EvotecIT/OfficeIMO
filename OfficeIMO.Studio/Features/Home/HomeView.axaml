@@ -180,10 +180,10 @@
                       </Border>
                     </Panel>
                   </Border>
-                  <StackPanel Grid.Row="1" Margin="12,10,12,12" Spacing="{StaticResource StudioSpaceXXS}">
+                  <StackPanel Grid.Row="1" Margin="12,12,12,12" Spacing="{StaticResource StudioSpaceXXS}">
                     <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding DirectoryName}" Classes="caption" TextTrimming="PathSegmentEllipsis" />
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" Margin="0,3,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" Margin="0,4,0,0">
                       <Border CornerRadius="3" Padding="4,0" Background="{DynamicResource StudioErrorSoftBrush}">
                         <TextBlock Text="{loc:Loc Home.PDF}" FontSize="{StaticResource StudioMicroFontSize}" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}" />
                       </Border>

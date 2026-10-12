@@ -6,7 +6,7 @@
         x:DataType="local:PageMovePreviewViewModel"
         Title="{loc:Loc Organizer.MovePages}" Width="520" Height="520" MinWidth="380" MinHeight="400"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
-  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
     <StackPanel Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Organizer.MovePages}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{loc:Loc Organizer.MoveHint}" TextWrapping="Wrap" />

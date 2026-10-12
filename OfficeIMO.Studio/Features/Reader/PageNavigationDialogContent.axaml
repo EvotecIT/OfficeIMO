@@ -6,7 +6,7 @@
     x:Class="OfficeIMO.Studio.Features.Reader.PageNavigationDialogContent"
     Title="{loc:Loc Reader.GoToPage}" Width="360" Height="280" HasContentHeading="True"
     Background="{DynamicResource StudioPanelBrush}">
-  <StackPanel Margin="20" Spacing="{StaticResource StudioSpaceL}">
+  <StackPanel Margin="24" Spacing="{StaticResource StudioSpaceL}">
     <TextBlock Text="{loc:Loc Reader.GoToPage}" FontSize="{StaticResource StudioHeadlineFontSize}" FontWeight="SemiBold"/>
     <TextBlock x:Name="PageRange" TextWrapping="Wrap" Foreground="{DynamicResource StudioMutedTextBrush}"/>
     <TextBox x:Name="PageInput" MinHeight="44" FontSize="{StaticResource StudioTitleFontSize}" MaxLength="20"

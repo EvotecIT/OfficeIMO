@@ -40,7 +40,7 @@
         </ListBox.ItemContainerTheme>
         <ListBox.ItemTemplate>
           <DataTemplate x:DataType="workflow:StudioJobRecord">
-            <Border Classes="card" Padding="16" Margin="0,0,0,10">
+            <Border Classes="card" Padding="16" Margin="0,0,0,12">
               <StackPanel Spacing="{StaticResource StudioSpaceS}">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
                   <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />

@@ -58,7 +58,7 @@ public sealed partial class DocumentWorkspaceView : UserControl {
         bool phone = width < 700 || shortLandscape;
         Classes.Set("shortLandscape", shortLandscape);
         Grid.SetRow(OrganizerActionBar, shortLandscape ? 1 : 0);
-        OrganizerActionBar.Margin = shortLandscape ? new Thickness(8, 0, 8, 4) : new Thickness(16, 0, 16, 18);
+        OrganizerActionBar.Margin = shortLandscape ? new Thickness(8, 0, 8, 4) : new Thickness(16, 0, 16, 16);
         bool phoneChanged = _phoneLayout != phone;
         _phoneLayout = phone;
         UpdateOverlayWidths();

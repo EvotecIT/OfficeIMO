@@ -3,7 +3,7 @@
         x:Class="OfficeIMO.Studio.Features.Editor.PdfSigningDialogContent" x:DataType="local:PdfSigningPreviewViewModel"
         Title="{Binding Title}" Width="620" Height="700" MinWidth="380" MinHeight="440"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
-  <Grid Margin="20" RowDefinitions="Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
     <TextBlock Text="{Binding Title}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" TextWrapping="Wrap" />
     <ScrollViewer x:Name="ReviewContent" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
       <StackPanel Spacing="{StaticResource StudioSpaceM}">

@@ -75,7 +75,7 @@
     </Button>
     <Grid x:Name="TitleBar" Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}">
       <Grid x:Name="TitleDocuments" ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Stretch" ColumnSpacing="{StaticResource StudioSpaceXXS}">
-        <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,10,0"
+        <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,12,0"
                    x:Name="AppTitleText" x:DataType="shell:StudioDocumentTabHost" IsVisible="{Binding !HasTabs}" IsHitTestVisible="False" />
         <TabControl x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
                  ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
@@ -152,7 +152,7 @@
       </StackPanel>
       <TextBlock x:Name="CompactTitle" Grid.Column="0" Text="OfficeIMO Studio" IsVisible="False" Margin="16,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold" />
       <ComboBox x:Name="CompactDocumentPicker" Grid.Column="0" chrome:WindowDecorationProperties.ElementRole="User" IsVisible="False"
-                Margin="10,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                Margin="12,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Center"
                 x:DataType="shell:StudioDocumentTabHost" ItemsSource="{Binding Tabs}"
                 SelectedItem="{Binding SelectedTab, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc Apple.OpenDocuments}">
         <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel"><TextBlock Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
@@ -348,7 +348,7 @@
 
         <!-- Full-window drop target that explains what will happen. -->
         <Border x:Name="DropOverlay" IsVisible="False" Background="{DynamicResource StudioScrimBrush}" IsHitTestVisible="False">
-          <Border Classes="floating" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="36,28" CornerRadius="16"
+          <Border Classes="floating" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="36,32" CornerRadius="16"
                   BorderBrush="{DynamicResource StudioAccentBrush}" BorderThickness="2">
             <StackPanel Spacing="{StaticResource StudioSpaceM}" HorizontalAlignment="Center" MaxWidth="420">
               <Border Width="56" Height="56" CornerRadius="14" Background="{DynamicResource StudioAccentSoftBrush}" HorizontalAlignment="Center">

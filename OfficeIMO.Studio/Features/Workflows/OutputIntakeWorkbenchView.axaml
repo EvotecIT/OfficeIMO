@@ -31,7 +31,7 @@
       <Border Grid.Column="0" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <StackPanel Margin="20" Spacing="{StaticResource StudioSpaceM}">
+          <StackPanel Margin="24" Spacing="{StaticResource StudioSpaceM}">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PRINTSETUP}" Classes="eyebrow" />
             <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding OutputWorkbench.PrintPreview.CanChangePrintSettings}">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Document}" FontWeight="SemiBold" />
@@ -40,13 +40,13 @@
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" Content="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" HorizontalAlignment="Left"
                     Command="{Binding OutputWorkbench.PrintPreview.ChooseInputCommand}" />
 
-            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Pages}" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Pages}" FontWeight="SemiBold" Margin="0,6,0,0" />
             <TextBox Text="{Binding OutputWorkbench.PrintPreview.Pages, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.AllPagesOr13Last}" />
             <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PageSubsetChoices}"
                       SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPageSubset}"
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc PrintPreview.PageSubset}" />
 
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceS}" Margin="0,5,0,0">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceS}" Margin="0,6,0,0">
               <StackPanel Spacing="{StaticResource StudioSpaceSM}">
                 <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Paper}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PaperChoices}"
@@ -64,13 +64,13 @@
               </StackPanel>
             </Grid>
 
-            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PagesPerSheet}" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PagesPerSheet}" FontWeight="SemiBold" Margin="0,6,0,0" />
             <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PagesPerSheetChoices}"
                       SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPagesPerSheet, Mode=TwoWay}">
               <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:PrintPagesPerSheetChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
             </ComboBox>
 
-            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Scaling}" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Scaling}" FontWeight="SemiBold" Margin="0,6,0,0" />
             <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.ScaleChoices}"
                       SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedScale, Mode=TwoWay}">
               <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:PrintScaleChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
@@ -110,7 +110,7 @@
             <ProgressBar IsVisible="{Binding OutputWorkbench.PrintPreview.IsBusy}" Minimum="0" Maximum="1"
                          Value="{Binding OutputWorkbench.PrintPreview.ProgressFraction}" />
             <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding OutputWorkbench.PrintPreview.CanChangePrintSettings}">
-            <TextBlock Text="{loc:Loc PrintPreview.Printer}" FontWeight="SemiBold" Margin="0,10,0,0" />
+            <TextBlock Text="{loc:Loc PrintPreview.Printer}" FontWeight="SemiBold" Margin="0,12,0,0" />
             <ComboBox ItemsSource="{Binding OutputWorkbench.PrintPreview.PrinterChoices}" SelectedItem="{Binding OutputWorkbench.PrintPreview.SelectedPrinter}" HorizontalAlignment="Stretch" />
             <Button Content="{loc:Loc PrintPreview.RefreshPrinters}" Command="{Binding OutputWorkbench.PrintPreview.RefreshPrintersCommand}" IsEnabled="{Binding !OutputWorkbench.PrintPreview.IsDiscoveringPrinters}" />
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.PrinterDiscoveryError}" IsVisible="{Binding OutputWorkbench.PrintPreview.HasPrinterDiscoveryError}" TextWrapping="Wrap" Classes="muted" />
@@ -136,7 +136,7 @@
       </Border>
 
       <Grid Grid.Column="1" RowDefinitions="Auto,*">
-        <Grid Grid.Row="0" Margin="22,10">
+        <Grid Grid.Row="0" Margin="24,12">
           <StackPanel VerticalAlignment="Center" Spacing="{StaticResource StudioSpaceSM}">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.SheetPreview}" Classes="sectionTitle" />
             <TextBlock Text="{Binding OutputWorkbench.PrintPreview.Summary}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" />
@@ -186,18 +186,18 @@
       <Border Grid.Column="0" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <StackPanel Margin="20" Spacing="{StaticResource StudioSpaceM}">
+          <StackPanel Margin="24" Spacing="{StaticResource StudioSpaceM}">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.PAGEEXPORT}" Classes="eyebrow" />
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.SourcePDF}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OutputWorkbench.PageExport.InputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.ChooseAPDF}" />
             <TextBlock Text="{Binding OutputWorkbench.PageExport.InputName}" Classes="muted" TextWrapping="Wrap" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" Content="{loc:Loc OutputIntakeWorkbench.ChoosePDF}" HorizontalAlignment="Left" Command="{Binding OutputWorkbench.PageExport.ChooseInputCommand}" />
-            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.OutputFolder}" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.OutputFolder}" FontWeight="SemiBold" Margin="0,6,0,0" />
             <TextBox Text="{Binding OutputWorkbench.PageExport.OutputDirectory, Mode=TwoWay}" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChooseFolder}" Content="{loc:Loc OutputIntakeWorkbench.ChooseFolder}" HorizontalAlignment="Left" Command="{Binding OutputWorkbench.PageExport.ChooseOutputDirectoryCommand}" />
-            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Pages}" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Pages}" FontWeight="SemiBold" Margin="0,6,0,0" />
             <TextBox Text="{Binding OutputWorkbench.PageExport.Pages, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.AllPagesOr13Last}" />
-            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Format}" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <TextBlock Text="{loc:Loc OutputIntakeWorkbench.Format}" FontWeight="SemiBold" Margin="0,6,0,0" />
             <ComboBox ItemsSource="{Binding OutputWorkbench.PageExport.Formats}"
                       SelectedItem="{Binding OutputWorkbench.PageExport.SelectedFormat, Mode=TwoWay}">
               <ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:ImageExportFormatChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
@@ -207,13 +207,13 @@
               <StackPanel Spacing="{StaticResource StudioSpaceSM}"><TextBlock Text="{loc:Loc OutputIntakeWorkbench.TargetDPI}" FontWeight="SemiBold" /><NumericUpDown Minimum="36" Maximum="600" Increment="12" Value="{Binding OutputWorkbench.PageExport.TargetDpi, Mode=TwoWay}" /></StackPanel>
               <StackPanel Grid.Column="1" Spacing="{StaticResource StudioSpaceSM}"><TextBlock Text="{loc:Loc OutputIntakeWorkbench.MaxDimension}" FontWeight="SemiBold" /><NumericUpDown Minimum="0" Maximum="20000" Increment="100" Value="{Binding OutputWorkbench.PageExport.MaximumDimension, Mode=TwoWay}" /></StackPanel>
             </Grid>
-            <Button Classes="primary" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ExportPages}" Content="{loc:Loc OutputIntakeWorkbench.ExportPages}" Command="{Binding OutputWorkbench.PageExport.ExportCommand}" Margin="0,7,0,0" />
+            <Button Classes="primary" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ExportPages}" Content="{loc:Loc OutputIntakeWorkbench.ExportPages}" Command="{Binding OutputWorkbench.PageExport.ExportCommand}" Margin="0,8,0,0" />
           </StackPanel>
         </ScrollViewer>
       </Border>
       <Grid Grid.Column="1" Classes="pageContent" RowDefinitions="Auto,Auto,*" MaxWidth="760" HorizontalAlignment="Stretch">
         <StackPanel Classes="pageHeading"><TextBlock Text="{loc:Loc OutputIntakeWorkbench.ValidatedPageImages}" Classes="pageTitle" /><TextBlock Text="{loc:Loc OutputIntakeWorkbench.EveryPageIsDecodedAndCheckedBeforeItsOutputFolder}" Classes="muted" /></StackPanel>
-        <Border Grid.Row="1" Classes="panel" Margin="0,22,0,0" Padding="18">
+        <Border Grid.Row="1" Classes="panel" Margin="0,24,0,0" Padding="16">
           <StackPanel Spacing="{StaticResource StudioSpaceS}"><TextBlock Text="{Binding OutputWorkbench.PageExport.Status}" FontWeight="SemiBold" TextWrapping="Wrap" /><ProgressBar Minimum="0" Maximum="1" Value="{Binding OutputWorkbench.PageExport.ProgressFraction}" /><TextBlock Text="{Binding OutputWorkbench.PageExport.Summary}" Classes="muted" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Assembly.RecoveryNote}" IsVisible="{Binding OutputWorkbench.PageExport.HasRecovery}" TextWrapping="Wrap" /><TextBlock Text="{Binding OutputWorkbench.PageExport.PublishedDirectory, Converter={x:Static infra:StudioConverters.FileName}}" ToolTip.Tip="{Binding OutputWorkbench.PageExport.PublishedDirectory}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
             <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding OutputWorkbench.PageExport.HasBrowsableOutput}">
               <Button Classes="primary" Content="{loc:Loc Output.Open}" Command="{Binding OutputActions.OpenCommand}" CommandParameter="{Binding OutputWorkbench.PageExport.PublishedDirectory}" />
@@ -224,7 +224,7 @@
     </Grid>
 
     <Grid x:Name="AssemblyLayout" Grid.Row="1" IsVisible="{Binding OutputWorkbench.IsAssembly}" ColumnDefinitions="*,320">
-      <Grid Grid.Column="0" RowDefinitions="70,*" Margin="22,0,18,18">
+      <Grid Grid.Column="0" RowDefinitions="70,*" Margin="24,0,16,16">
         <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
           <StackPanel><TextBlock Text="{loc:Loc OutputIntakeWorkbench.AssemblyQueue}" Classes="sectionTitle" /><TextBlock Text="{Binding OutputWorkbench.Assembly.SourceSummary}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" /></StackPanel>
           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}">
@@ -242,7 +242,7 @@
                    SelectedItem="{Binding OutputWorkbench.Assembly.SelectedSource, Mode=TwoWay}">
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="workflow:PdfAssemblySourceViewModel">
-                <Grid ColumnDefinitions="44,*,Auto" Margin="10,7">
+                <Grid ColumnDefinitions="44,*,Auto" Margin="12,8">
                   <Border Width="34" Height="34" CornerRadius="7" Background="{DynamicResource StudioAccentSoftBrush}"><TextBlock Text="{Binding Kind}" FontSize="8" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" /></Border>
                   <StackPanel Grid.Column="1" Spacing="{StaticResource StudioSpaceXXS}" VerticalAlignment="Center"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" /><TextBlock Text="{Binding Path}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="NoWrap" TextTrimming="PathSegmentEllipsis" ToolTip.Tip="{Binding Path}" /></StackPanel>
                   <TextBlock Grid.Column="2" Text="{Binding Kind}" Classes="muted" VerticalAlignment="Center" />
@@ -270,14 +270,14 @@
       <Border Grid.Column="1" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
-          <StackPanel Margin="20" Spacing="{StaticResource StudioSpaceM}">
+          <StackPanel Margin="24" Spacing="{StaticResource StudioSpaceM}">
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.ASSEMBLYOUTPUT}" Classes="eyebrow" />
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.OutputPDF}" FontWeight="SemiBold" />
             <TextBox Text="{Binding OutputWorkbench.Assembly.OutputPath, Mode=TwoWay}" PlaceholderText="{loc:Loc OutputIntakeWorkbench.AssembledPdf}" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" Content="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" HorizontalAlignment="Left" Command="{Binding OutputWorkbench.Assembly.ChooseOutputCommand}" />
             <CheckBox Content="{loc:Loc OutputIntakeWorkbench.IncludeNestedFolderFiles}" IsChecked="{Binding OutputWorkbench.Assembly.IncludeSubdirectories, Mode=TwoWay}" Margin="0,6,0,0" />
             <TextBlock Text="{loc:Loc OutputIntakeWorkbench.FoldersAreOrderedByPathZIPEntriesAreExpandedIn}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
-            <Button Classes="primary" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.AssemblePDF}" Content="{loc:Loc OutputIntakeWorkbench.AssemblePDF}" Command="{Binding OutputWorkbench.Assembly.RunCommand}" Margin="0,7,0,0" />
+            <Button Classes="primary" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.AssemblePDF}" Content="{loc:Loc OutputIntakeWorkbench.AssemblePDF}" Command="{Binding OutputWorkbench.Assembly.RunCommand}" Margin="0,8,0,0" />
             <ProgressBar Minimum="0" Maximum="1" Value="{Binding OutputWorkbench.Assembly.ProgressFraction}" />
             <TextBlock Text="{Binding OutputWorkbench.Assembly.Status}" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Text="{Binding OutputWorkbench.Assembly.Summary}" Classes="muted" TextWrapping="Wrap" />

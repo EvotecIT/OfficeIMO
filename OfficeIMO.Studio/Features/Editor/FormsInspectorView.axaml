@@ -167,7 +167,7 @@
       </ItemsControl.ItemTemplate>
     </ItemsControl>
 
-    <Separator Margin="0,5" />
+    <Separator Margin="0,6" />
     <TextBlock Text="{loc:Loc DocumentWorkspace.CreateField}" FontSize="{StaticResource StudioSubtitleFontSize}" FontWeight="SemiBold" />
     <TextBlock IsVisible="{Binding !CanAuthorForms}" Classes="muted" Text="{loc:Loc DocumentWorkspace.FieldAuthoringIsUnavailableUnderThisDocumentSCurrentSecurity}" TextWrapping="Wrap" />
     <ComboBox ItemsSource="{Binding FormFieldCreationChoices}" SelectedItem="{Binding SelectedFormFieldCreationChoice, Mode=TwoWay}" IsEnabled="{Binding CanAuthorForms}">

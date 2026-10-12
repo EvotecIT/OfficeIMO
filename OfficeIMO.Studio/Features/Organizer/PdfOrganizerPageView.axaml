@@ -12,7 +12,7 @@
             BorderThickness="1"
             CornerRadius="4"
             BoxShadow="{DynamicResource StudioCardShadow}"
-            Padding="5">
+            Padding="6">
       <Grid>
         <Grid Width="{Binding ThumbnailWidth}" Height="{Binding ThumbnailHeight}" HorizontalAlignment="Center" VerticalAlignment="Center">
           <reader:PdfPageCanvas x:Name="ThumbnailCanvas"

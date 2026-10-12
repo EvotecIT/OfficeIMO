@@ -4,7 +4,7 @@
              xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.OcrReviewView"
              x:DataType="workflow:OcrReviewViewModel">
-  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
       <StackPanel Spacing="{StaticResource StudioSpaceXS}">
         <TextBlock Text="{loc:Loc Ocr.Review.Title}" Classes="sectionTitle" />

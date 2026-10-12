@@ -31,7 +31,7 @@
     <Border x:Name="PalettePanel" Classes="floating" MaxWidth="620" MaxHeight="520" Padding="0" CornerRadius="14"
             HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="16,36,16,16" KeyboardNavigation.TabNavigation="Cycle">
       <Grid RowDefinitions="Auto,*,Auto">
-        <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="14,6">
+        <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="16,6">
           <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
             <PathIcon Data="{StaticResource IconSearch}" Width="17" Height="17" Foreground="{DynamicResource StudioMutedTextBrush}" />
             <TextBox x:Name="QueryBox" Grid.Column="1" Text="{Binding Query, Mode=TwoWay}" FontSize="{StaticResource StudioSubtitleFontSize}"
@@ -86,7 +86,7 @@
             <TextBlock Text="{loc:Loc Commands.NoResults}" TextWrapping="Wrap" HorizontalAlignment="Center" />
           </StackPanel>
         </Panel>
-        <Border Grid.Row="2" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="14,8">
+        <Border Grid.Row="2" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="16,8">
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
             <TextBlock x:Name="KeyboardHelp" Text="{loc:Loc Commands.KeyboardHelp}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" />
             <Button x:Name="RunButton" Grid.Column="1" Classes="primary" MinHeight="30" Padding="12,4" Content="{loc:Loc Commands.Run}" Click="OnRunClick" IsEnabled="{Binding SelectedCommand.IsAvailable, FallbackValue=False, TargetNullValue=False}" />

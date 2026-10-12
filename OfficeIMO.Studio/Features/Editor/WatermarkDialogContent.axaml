@@ -3,11 +3,11 @@
         x:Class="OfficeIMO.Studio.Features.Editor.WatermarkDialogContent" x:DataType="local:WatermarkPreviewViewModel"
         Title="{loc:Loc Watermark.Title}" Width="1000" Height="740" MinWidth="720" MinHeight="540"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
-  <Grid Margin="20" RowDefinitions="Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceL}">
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceL}">
     <TextBlock Text="{loc:Loc Watermark.Title}" Classes="pageTitle" />
     <Grid x:Name="WatermarkLayout" Grid.Row="1" ColumnDefinitions="300,*" ColumnSpacing="{StaticResource StudioSpaceXL}">
       <ScrollViewer x:Name="OptionsPane" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding CanEdit}" Margin="0,0,14,0">
+        <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding CanEdit}" Margin="0,0,16,0">
           <ComboBox ItemsSource="{Binding Watermarks}" SelectedItem="{Binding SelectedWatermark}"
                     HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Watermark.Choose}" />
           <CheckBox Content="{loc:Loc Watermark.Image}" IsChecked="{Binding UseImage}" />

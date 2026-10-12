@@ -70,7 +70,7 @@
   <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource StudioCanvasBrush}">
     <!-- One command row: panes, mode, the mode's tools, and document actions. -->
     <Border x:Name="CommandRow" Grid.Row="0" IsVisible="{Binding !IsFocusReading}" Background="{DynamicResource StudioDocumentToolbarBrush}"
-            BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,0,1" Padding="8,7" MinHeight="48">
+            BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,0,1" Padding="8,8" MinHeight="48">
       <Grid x:Name="DocumentCommandGrid" ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceS}" RowSpacing="{StaticResource StudioSpaceXS}">
         <ToggleButton x:Name="NavigationToggle" Classes="icon" IsChecked="True" Click="OnNavigationToggleClick" VerticalAlignment="Center"
                       AutomationProperties.Name="{loc:Loc DocumentWorkspace.Navigation}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Navigation}">
@@ -265,7 +265,7 @@
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="shell:SavedSignatureViewModel">
                           <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                            <Button Classes="cardAction" HorizontalAlignment="Stretch" Height="52" Padding="10,4" Click="OnFillSignItemClick"
+                            <Button Classes="cardAction" HorizontalAlignment="Stretch" Height="52" Padding="12,4" Click="OnFillSignItemClick"
                                     Command="{Binding $parent[ItemsControl].((shell:MainWindowViewModel)DataContext).PlaceSignatureCommand}" CommandParameter="{Binding}"
                                     AutomationProperties.Name="{loc:Loc FillSign.UseSaved}">
                               <Border Background="#FFFFFF" CornerRadius="5" Padding="6,2"><Image Source="{Binding Preview}" Stretch="Uniform" MaxHeight="40" /></Border>
@@ -286,7 +286,7 @@
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="shell:SavedSignatureViewModel">
                           <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
-                            <Button Classes="cardAction" HorizontalAlignment="Stretch" Height="44" Padding="10,4" Click="OnFillSignItemClick"
+                            <Button Classes="cardAction" HorizontalAlignment="Stretch" Height="44" Padding="12,4" Click="OnFillSignItemClick"
                                     Command="{Binding $parent[ItemsControl].((shell:MainWindowViewModel)DataContext).PlaceSignatureCommand}" CommandParameter="{Binding}"
                                     AutomationProperties.Name="{loc:Loc FillSign.UseSavedInitials}">
                               <Border Background="#FFFFFF" CornerRadius="5" Padding="6,2"><Image Source="{Binding Preview}" Stretch="Uniform" MaxHeight="32" /></Border>
@@ -515,7 +515,7 @@
                       </Button.Flyout>
                     </Button>
                   </WrapPanel>
-                  <TextBox Grid.Row="1" x:Name="BookmarkTitleBox" Margin="10,6,10,2" Text="{Binding BookmarkTitleDraft}" KeyDown="OnBookmarkTitleKeyDown"
+                  <TextBox Grid.Row="1" x:Name="BookmarkTitleBox" Margin="12,6,12,2" Text="{Binding BookmarkTitleDraft}" KeyDown="OnBookmarkTitleKeyDown"
                            IsVisible="{Binding HasEditableBookmarkSelection}" IsEnabled="{Binding CanEditBookmarks}"
                            PlaceholderText="{loc:Loc Bookmarks.Title}" AutomationProperties.Name="{loc:Loc Bookmarks.Title}" ToolTip.Tip="{loc:Loc Bookmarks.RenameHint}" />
                   <ListBox Grid.Row="2" x:Name="BookmarksList" ItemsSource="{Binding Bookmarks}" SelectedItem="{Binding SelectedBookmark, Mode=TwoWay}"
@@ -523,7 +523,7 @@
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="reader:PdfBookmarkViewModel">
                         <Grid ColumnDefinitions="*,Auto" Margin="{Binding Indent, Converter={x:Static infra:StudioConverters.LeftMargin}}" ToolTip.Tip="{Binding Title}">
-                          <TextBlock Text="{Binding Title}" Margin="4,5" TextTrimming="CharacterEllipsis" />
+                          <TextBlock Text="{Binding Title}" Margin="4,6" TextTrimming="CharacterEllipsis" />
                           <TextBlock Grid.Column="1" Text="{Binding PageLabel}" Classes="caption" VerticalAlignment="Center" Margin="6,0,2,0" />
                         </Grid>
                       </DataTemplate>
@@ -538,7 +538,7 @@
               </TabItem>
               <TabItem AutomationProperties.Name="{loc:Loc DocumentWorkspace.Search}">
                 <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" ToolTip.Tip="{loc:Loc DocumentWorkspace.Search}"><PathIcon Data="{StaticResource IconSearch}" Width="12" Height="12" /><TextBlock Classes="paneTabLabel" Text="{loc:Loc DocumentWorkspace.Search}" /></StackPanel></TabItem.Header>
-                <Grid RowDefinitions="Auto,Auto,*" Margin="10,8">
+                <Grid RowDefinitions="Auto,Auto,*" Margin="12,8">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}">
                     <TextBox x:Name="SearchBox" KeyDown="OnSearchKeyDown" Text="{Binding SearchQuery}" PlaceholderText="{loc:Loc DocumentWorkspace.FindInPDF}"
                              AutomationProperties.Name="{loc:Loc DocumentWorkspace.FindInPDF}">
@@ -564,7 +564,7 @@
               </TabItem>
               <TabItem AutomationProperties.Name="{loc:Loc Attachments.Title}">
                 <TabItem.Header><StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" ToolTip.Tip="{loc:Loc Attachments.Title}"><PathIcon Data="{StaticResource IconAttachment}" Width="13" Height="13" /><TextBlock Classes="paneTabLabel" Text="{loc:Loc Attachments.Title}" /></StackPanel></TabItem.Header>
-                <Grid RowDefinitions="Auto,*" Margin="10,8">
+                <Grid RowDefinitions="Auto,*" Margin="12,8">
                   <Button Classes="tool" Command="{Binding AddAttachmentCommand}" HorizontalAlignment="Left" AutomationProperties.Name="{loc:Loc Attachments.Add}">
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><PathIcon Data="{StaticResource IconPlus}" Width="13" Height="13" /><TextBlock Text="{loc:Loc Attachments.Add}" /></StackPanel>
                   </Button>
@@ -595,9 +595,9 @@
 
             <!-- Selection actions float over the page grid in Pages mode. -->
             <Border x:Name="OrganizerActionBar" Classes="floating" IsVisible="False"
-                    HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,18" Padding="6">
+                    HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,16" Padding="6">
               <WrapPanel ItemSpacing="{StaticResource StudioSpaceXXS}" LineSpacing="{StaticResource StudioSpaceXS}" HorizontalAlignment="Center">
-                <TextBlock Text="{Binding OrganizerSelectionLabel}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,10,0" MaxWidth="200" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding OrganizerSelectionLabel}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,12,0" MaxWidth="200" TextTrimming="CharacterEllipsis" />
                 <Button Classes="cmd" Command="{Binding Commands[RotatePagesLeft]}"
                         AutomationProperties.Name="{loc:Loc DocumentWorkspace.RotateLeft}" ToolTip.Tip="{Binding Commands[RotatePagesLeft].StatusToolTip}" ToolTip.ShowOnDisabled="True"><PathIcon Data="{StaticResource IconRotateLeft}" /></Button>
                 <Button Classes="cmd" Command="{Binding Commands[RotatePagesRight]}"
@@ -720,7 +720,7 @@
 
         <Panel Grid.Row="1" Grid.Column="2" IsVisible="{Binding IsComparisonOpen}" Background="{DynamicResource StudioCanvasBrush}">
           <ScrollViewer IsVisible="{Binding ShowComparisonDifferenceImage}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Top" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
+            <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" Margin="12" HorizontalAlignment="Center" VerticalAlignment="Top" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
           </ScrollViewer>
           <ListBox ItemsSource="{Binding ComparisonReaderPages}"
                    ItemContainerTheme="{StaticResource ReaderPageContainerTheme}"
@@ -777,7 +777,7 @@
         </Border>
 
         <Button Grid.Row="1" Grid.ColumnSpan="3" Classes="tool" IsVisible="{Binding IsFocusReading}" Command="{Binding Commands[FocusReading]}"
-                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,14,18,0" Background="{DynamicResource StudioFloatingBrush}"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,16,0" Background="{DynamicResource StudioFloatingBrush}"
                 AutomationProperties.Name="{loc:Loc Shell.ExitFocus}">
           <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}">
             <PathIcon Data="{StaticResource IconFocus}" Width="14" Height="14" />
@@ -797,7 +797,7 @@
         <Border IsVisible="{Binding HasDocument}" Background="{DynamicResource StudioPanelBrush}"
                 BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="1,0,0,0">
           <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="14" Spacing="{StaticResource StudioSpaceM}">
+            <StackPanel Margin="16" Spacing="{StaticResource StudioSpaceM}">
               <StackPanel IsVisible="{Binding IsViewDocumentMode}" Spacing="{StaticResource StudioSpaceS}">
                 <TextBlock Text="{loc:Loc DocumentWorkspace.Document}" Classes="groupLabel" />
                 <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceM}">
@@ -849,7 +849,7 @@
                     <ItemsControl ItemsSource="{Binding ComplianceIssues}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="shell:ComplianceRequirementViewModel">
-                          <StackPanel Spacing="1" Margin="0,3">
+                          <StackPanel Spacing="1" Margin="0,4">
                             <TextBlock Text="{Binding Title}" FontWeight="Medium" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding Detail}" Classes="caption" TextWrapping="Wrap" />
                           </StackPanel>
@@ -1048,7 +1048,7 @@
                 <Button Classes="tool" Command="{Binding ResizeSelectedPagesCommand}" IsEnabled="{Binding CanMutateSelection}" Content="{loc:Loc Resize.Apply}" AutomationProperties.Name="{loc:Loc Resize.Apply}" />
                 <TextBlock Text="{loc:Loc DocumentWorkspace.PagesPerSplitFile}" Classes="groupLabel" Margin="0,6,0,0" /><NumericUpDown Minimum="1" Maximum="9999" Value="{Binding SplitPagesPerDocument}" />
                 <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SplitToFolder}" Content="{loc:Loc DocumentWorkspace.SplitToFolder}" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
-                <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="8" Padding="10,8" Margin="0,6,0,0">
+                <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="8" Padding="12,8" Margin="0,6,0,0">
                   <TextBlock Text="{loc:Loc Shell.OrganizerHelp}" Classes="caption" TextWrapping="Wrap" />
                 </Border>
               </StackPanel>
@@ -1154,7 +1154,7 @@
       </Grid>
 
       <Border IsVisible="{Binding IsOpening}" Grid.ColumnSpan="3" Background="{DynamicResource StudioScrimBrush}">
-        <Border Classes="floating" Padding="28,22" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Classes="floating" Padding="32,24" HorizontalAlignment="Center" VerticalAlignment="Center">
           <StackPanel Spacing="{StaticResource StudioSpaceM}"><ProgressBar Width="180" IsIndeterminate="True" /><TextBlock Text="{loc:Loc DocumentWorkspace.OpeningPDF}" FontWeight="SemiBold" HorizontalAlignment="Center" /></StackPanel>
         </Border>
       </Border>

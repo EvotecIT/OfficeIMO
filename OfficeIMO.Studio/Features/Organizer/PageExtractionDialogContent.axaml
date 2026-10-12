@@ -6,7 +6,7 @@
         x:DataType="local:PageExtractionPreviewViewModel"
         Title="{loc:Loc Organizer.ExtractTitle}" Width="580" Height="560" MinWidth="380" MinHeight="460"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
-  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+  <Grid Margin="24" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
     <StackPanel Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{Binding Destination}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Destination}" IsVisible="{Binding IsPreview}" />
@@ -28,8 +28,8 @@
              AutomationProperties.Name="{loc:Loc Organizer.ExtractOrder}">
       <ListBox.ItemTemplate><DataTemplate x:DataType="local:PageExtractionRow">
         <WrapPanel>
-          <TextBlock Text="{loc:Loc Organizer.ExtractOutputPage}" Margin="0,0,5,0" /><TextBlock Text="{Binding OutputPage}" Margin="0,0,12,0" />
-          <TextBlock Text="{loc:Loc Organizer.ExtractSourcePage}" Margin="0,0,5,0" /><TextBlock Text="{Binding SourcePage}" />
+          <TextBlock Text="{loc:Loc Organizer.ExtractOutputPage}" Margin="0,0,6,0" /><TextBlock Text="{Binding OutputPage}" Margin="0,0,12,0" />
+          <TextBlock Text="{loc:Loc Organizer.ExtractSourcePage}" Margin="0,0,6,0" /><TextBlock Text="{Binding SourcePage}" />
         </WrapPanel>
       </DataTemplate></ListBox.ItemTemplate>
     </ListBox>

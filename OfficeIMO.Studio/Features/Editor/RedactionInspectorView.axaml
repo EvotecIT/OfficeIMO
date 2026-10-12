@@ -48,7 +48,7 @@
       <Button Classes="tool" Content="{loc:Loc Redaction.RemoveMark}" Command="{Binding RemoveRedactionMarkCommand}" />
       <CheckBox Content="{loc:Loc Redaction.Sanitize}" IsChecked="{Binding SanitizeAfterRedaction}" />
       <TextBlock IsVisible="{Binding SanitizeAfterRedaction}" Classes="muted" Text="{loc:Loc Redaction.SanitizeScope}" TextWrapping="Wrap" />
-      <Border Background="{DynamicResource StudioErrorSoftBrush}" BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="1" CornerRadius="7" Padding="10">
+      <Border Background="{DynamicResource StudioErrorSoftBrush}" BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="1" CornerRadius="7" Padding="12">
         <StackPanel Spacing="{StaticResource StudioSpaceS}">
           <TextBlock Text="{Binding PendingRedactionSummary}" TextWrapping="Wrap" />
           <Button Classes="tool" Content="{loc:Loc Redaction.ReviewImpact}" Command="{Binding ReviewRedactionsCommand}" IsEnabled="{Binding CanReviewRedactions}" />

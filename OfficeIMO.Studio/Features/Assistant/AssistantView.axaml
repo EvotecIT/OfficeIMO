@@ -57,14 +57,14 @@
           <ItemsControl ItemsSource="{Binding Messages}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="ai:AssistantMessage">
-                <Border Margin="0,0,0,10" Padding="12,10" CornerRadius="12"
+                <Border Margin="0,0,0,12" Padding="12,12" CornerRadius="12"
                         Classes.question="{Binding IsQuestion}" Classes="message">
                   <StackPanel Spacing="{StaticResource StudioSpaceS}">
                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding Citations}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="ai:AssistantCitation">
-                          <Border Margin="0,3" Padding="8,6" CornerRadius="8" Background="{DynamicResource StudioPanelMutedBrush}"
+                          <Border Margin="0,4" Padding="8,6" CornerRadius="8" Background="{DynamicResource StudioPanelMutedBrush}"
                                   BorderBrush="{DynamicResource StudioSpineBrush}" BorderThickness="2,0,0,0">
                             <StackPanel Spacing="{StaticResource StudioSpaceXS}">
                               <Button Classes="link" Command="{Binding NavigateCommand}" HorizontalAlignment="Left" Padding="0">

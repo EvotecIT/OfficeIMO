@@ -20,7 +20,7 @@
   <Grid x:Name="SettingsLayout" ColumnDefinitions="220,*" Background="{DynamicResource StudioWindowBrush}">
     <Border x:Name="SectionNavigation" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,0,1,0">
-      <ListBox x:Name="SectionList" Margin="10,24,10,12" Background="Transparent" SelectionMode="Single"
+      <ListBox x:Name="SectionList" Margin="12,24,12,12" Background="Transparent" SelectionMode="Single"
                AutomationProperties.Name="{loc:Loc Settings.Sections}">
         <ListBoxItem Tag="AppearanceSection" Content="{loc:Loc Settings.AppearanceAndLanguage}" />
         <ListBoxItem Tag="ReadingSection" Content="{loc:Loc Settings.ReadingWorkspace}" />
