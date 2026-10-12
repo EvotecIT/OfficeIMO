@@ -97,20 +97,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || _generatedContent.Suppresses(element, HtmlPseudoElementKind.FootnoteCall)) {
             return;
         }
-        if (!hasCallStyle || !_styleResolver.IsPseudoPropertySpecified(element, HtmlPseudoElementKind.FootnoteCall, "font-size")) {
-            callStyle.Font = callStyle.Font.WithSize(Math.Max(1D, parentStyle.Font.Size * 0.7D));
+        if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "font-size")) {
+            callStyle.Font = callStyle.Font.WithSize(parentStyle.Font.Size * 0.7D);
         }
-        if (!hasCallStyle || !_styleResolver.IsPseudoPropertySpecified(element, HtmlPseudoElementKind.FootnoteCall, "vertical-align")) {
+        if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "vertical-align")) {
             callStyle.Baseline = OfficeTextBaseline.Superscript;
             callStyle.BaselineLevel = Math.Max(1, parentStyle.BaselineLevel + 1);
-            callStyle.BaselineScale = 0.7D;
-            callStyle.BaselineOffset = Math.Max(parentStyle.BaselineOffset, parentStyle.Font.Size * 0.3D);
+            callStyle.BaselineScale = 1D;
+            callStyle.BaselineOffset = parentStyle.BaselineOffset - parentStyle.Font.Size * 0.3D;
         }
         string? link = "#" + FootnoteNoteDestination(number);
         if (_generatedContent.TryGetContent(element, HtmlPseudoElementKind.FootnoteCall, out HtmlGeneratedContent authoredCall)) {
             AddGeneratedInlineFragments(authoredCall, element, callStyle, link, source, containingWidth, 0D, 0D, runs);
             return;
         }
+        if (callStyle.Font.Size <= 0D) return;
         runs.Add(new HtmlInlineRun(
             number.ToString(System.Globalization.CultureInfo.InvariantCulture),
             callStyle,

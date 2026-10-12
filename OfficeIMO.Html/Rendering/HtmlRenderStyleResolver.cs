@@ -136,6 +136,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         _computedStyles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle computed)
         && computed.IsSpecifiedValue(propertyName);
 
+    internal bool IsPseudoPropertyAuthored(IElement element, HtmlPseudoElementKind kind, string propertyName) =>
+        _computedStyles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle computed)
+        && HasAuthoredValue(computed, propertyName);
+
     internal bool IsPropertySpecified(IElement element, string propertyName) =>
         _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
         && computed.IsSpecifiedValue(propertyName);
@@ -165,7 +169,9 @@ internal sealed partial class HtmlRenderStyleResolver {
         _activeCharacterAdvance = ContainsCharacterUnit(fontSizeValue)
             ? _measureCharacterAdvance(parent ?? new HtmlRenderBoxStyle { Font = new OfficeFontInfo(_options.DefaultFontFamily, _options.DefaultFontSize) })
             : double.NaN;
-        double fontSize = computed.IsResetValue("font-size")
+        double fontSize = computed.IsOriginRevertedValue("font-size")
+            ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
+            : computed.IsResetValue("font-size")
             ? _options.DefaultFontSize
             : computed.IsImplicitlyInheritedValue("font-size")
             ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
@@ -226,17 +232,15 @@ internal sealed partial class HtmlRenderStyleResolver {
             : double.NaN;
         string fontPalette = ResolveInheritedKeyword(computed.GetValue("font-palette"), parent?.FontPalette, "normal");
 
-        int baselineLevel = ResolveTextBaselineLevel(
-            pseudoElement ? string.Empty : tag,
-            computed.GetValue("vertical-align"),
-            parent?.BaselineLevel ?? 0);
-        (double baselineScale, double baselineOffset) = ResolveTextBaselineGeometry(
-            pseudoElement ? string.Empty : tag,
-            computed.GetValue("vertical-align"),
-            parent?.BaselineScale ?? 1D,
+        double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent);
+        string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
+        int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
+        double baselineOffset = ResolveTextBaselineOffset(
+            verticalAlign,
             parent?.BaselineOffset ?? 0D,
             parent?.Font.Size ?? fontSize,
-            parent?.LineHeight ?? fontSize * 1.2D);
+            fontSize,
+            lineHeight);
         if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
         OfficeColor color = defaultLink && !HasAuthoredValue(computed, "color")
             ? OfficeColor.FromRgb(0, 0, 238)
@@ -263,7 +267,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 _ => OfficeTextBaseline.Normal
             },
             BaselineLevel = baselineLevel,
-            BaselineScale = baselineScale,
+            BaselineScale = 1D,
             BaselineOffset = baselineOffset,
             Color = color,
             DecorationColor = propagatedUnderline && !ownsUnderline
@@ -275,7 +279,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 : ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
-            LineHeight = ResolveComputedLineHeight(computed, fontSize, parent),
+            LineHeight = lineHeight,
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
@@ -728,37 +732,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         _ => OfficeTextDecorationStyle.Single
     };
 
-    private static int ResolveTextBaselineLevel(string tag, string value, int inherited) {
-        string normalized = value.Trim().ToLowerInvariant();
-        if (tag == "sup" || normalized == "super") return inherited + 1;
-        if (tag == "sub" || normalized == "sub") return inherited - 1;
-        if (normalized.Length == 0) return inherited;
-        if (normalized == "baseline") return inherited;
-        return 0;
-    }
-
-    private (double Scale, double Offset) ResolveTextBaselineGeometry(
-        string tag,
-        string value,
-        double inheritedScale,
-        double inheritedOffset,
-        double parentFontSize,
-        double parentLineHeight) {
-        string normalized = value.Trim().ToLowerInvariant();
-        double effectiveParentSize = Math.Max(0.01D, parentFontSize * inheritedScale);
-        if (tag == "sup" || normalized == "super") {
-            return (inheritedScale * 0.65D, inheritedOffset - effectiveParentSize * 0.30D);
-        }
-        if (tag == "sub" || normalized == "sub") {
-            return (inheritedScale * 0.65D, inheritedOffset + effectiveParentSize * 0.15D);
-        }
-        if (normalized.Length == 0 || normalized == "baseline") return (inheritedScale, inheritedOffset);
-        if (TryResolveLength(normalized, parentLineHeight, effectiveParentSize, _rootFontSize, out double shift)) {
-            return (inheritedScale, inheritedOffset - shift);
-        }
-        return (inheritedScale, inheritedOffset);
-    }
-
     private static bool TryFontWeight(string value, out int weight) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight);
 
     private static double ResolveDefaultTagFontSize(string tag, double inherited) {
@@ -770,6 +743,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             case "h5": return inherited * 0.83D;
             case "h6": return inherited * 0.67D;
             case "small": return inherited * 0.83D;
+            case "sup":
+            case "sub": return inherited / 1.2D;
             case "big": return inherited * 1.17D;
             default: return inherited;
         }
