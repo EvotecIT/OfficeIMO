@@ -73,9 +73,15 @@ internal static class OfficeCloudFontFiles {
                 try {
                     if (!entries.MoveNext()) break;
                     path = entries.Current;
-                    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
                 } catch (Exception exception) when (IsPathFailure(exception)) {
                     break;
+                }
+                try {
+                    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
+                } catch (Exception exception) when (IsPathFailure(exception)) {
+                    // A cache update can remove one entry while we enumerate.
+                    // Continue to inspect the remaining entries within the bound.
+                    continue;
                 }
                 yield return path;
             }
