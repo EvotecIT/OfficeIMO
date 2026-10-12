@@ -95,7 +95,6 @@ foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
         Assert-ContainsLiteral -Text $walkthroughHtml -Expected ([Net.WebUtility]::HtmlEncode($runCommand.Replace('pwsh -NoProfile', 'powershell -NoProfile'))) -Contract "$($card.id) Windows PowerShell command"
         foreach ($download in @($card.downloads | Where-Object file_name)) {
             $href = [regex]::Escape($download.url)
-            $fileName = [regex]::Escape($download.file_name)
             $anchor = [regex]::Match($walkthroughHtml, '<a\b(?=[^>]*\shref=["'']?' + $href + '["'']?(?=\s|>))[^>]*>').Value
             Assert-ContainsAttribute -Text $anchor -Name 'download' -Value $download.file_name -Contract "$($card.id) saved download filename"
         }
