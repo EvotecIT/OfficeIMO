@@ -59,6 +59,31 @@
     ]
   },
   {
+    "title": "Report Integrations",
+    "items": [
+      {
+        "title": "Reporting Tasks",
+        "path": "integrations/index.md",
+        "href": "/docs/integrations/"
+      },
+      {
+        "title": "Compare Supplier Quotes",
+        "path": "integrations/supplier-review/index.md",
+        "href": "/docs/integrations/supplier-review/"
+      },
+      {
+        "title": "Investigate Windows Events",
+        "path": "integrations/event-brief/index.md",
+        "href": "/docs/integrations/event-brief/"
+      },
+      {
+        "title": "Review Report Email",
+        "path": "integrations/report-email/index.md",
+        "href": "/docs/integrations/report-email/"
+      }
+    ]
+  },
+  {
     "title": "Platform Map",
     "items": [
       {
