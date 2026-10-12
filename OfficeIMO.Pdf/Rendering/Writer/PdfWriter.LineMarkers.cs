@@ -10,19 +10,14 @@ internal static partial class PdfWriter {
         if (source.StrokeWidth <= 0D || (source.StrokeColor == null && source.StrokeGradient == null && source.StrokeRadialGradient == null)
             || (source.StrokeStartMarker == null && source.StrokeEndMarker == null)) return Array.Empty<OfficeShape>();
         var markers = new List<OfficeShape>(2);
-        var contours = OfficeStrokeGeometry.FlattenShape(source, OfficeStrokeGeometry.LocalFlatteningDensity(source.Transform, 4D));
-        OfficeFlattenedPathContour? first = null, last = null;
-        foreach (OfficeFlattenedPathContour contour in contours) {
-            if (contour.Closed || contour.Points.Count < 2) continue;
-            first ??= contour; last = contour;
+        if (OfficeLineMarkerGeometry.TryEndpoints(source, out var start, out var startDirection, out var end, out var endDirection)) {
+            AddMarker(source.StrokeStartMarker, start, startDirection);
+            AddMarker(source.StrokeEndMarker, end, endDirection);
         }
-        if (first != null) AddMarker(source.StrokeStartMarker, first.Points[0], first.Points[1]);
-        if (last != null) AddMarker(source.StrokeEndMarker, last.Points[last.Points.Count - 1], last.Points[last.Points.Count - 2]);
         return markers;
 
-        void AddMarker(OfficeLineMarker? marker, OfficePoint tip, OfficePoint adjacent) {
-            IReadOnlyList<OfficePoint> points = OfficeLineMarkerGeometry.CreateContour(marker, tip,
-                new OfficePoint(tip.X - adjacent.X, tip.Y - adjacent.Y));
+        void AddMarker(OfficeLineMarker? marker, OfficePoint tip, OfficePoint direction) {
+            IReadOnlyList<OfficePoint> points = OfficeLineMarkerGeometry.CreateContour(marker, tip, direction);
             if (points.Count < 3) return;
             var commands = new List<OfficePathCommand> { OfficePathCommand.MoveTo(points[0]) };
             for (int i = 1; i < points.Count; i++) commands.Add(OfficePathCommand.LineTo(points[i]));

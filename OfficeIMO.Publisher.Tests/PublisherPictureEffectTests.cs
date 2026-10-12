@@ -106,7 +106,7 @@ public sealed class PublisherPictureEffectTests {
     public void Repeated_picture_references_share_the_cumulative_processing_bound() {
         byte[] input = PictureInput(new Dictionary<ushort, uint> { [0x013F] = 0x00040004 });
         input = PublisherDrawingFixture.Mutate(input, new Dictionary<ushort, uint> {
-            [0x0104] = 1, [0x013F] = 0x00040004
+            [0x4104] = 1, [0x013F] = 0x00040004
         }, 1, objectId: 367);
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
             new PublisherReadOptions { ImageCodec = new PictureCodec(), MaximumImageProcessingPixels = 7 }));

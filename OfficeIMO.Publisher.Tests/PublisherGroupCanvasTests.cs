@@ -51,7 +51,41 @@ public sealed class PublisherGroupCanvasTests {
         Assert.Equal(0, missing);
     }
 
-    private static PublisherDocument TextPaint(bool grouped, bool condensed) {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Collapsed_group_text_frames_preserve_the_story_without_projection(bool horizontal) {
+        PublisherDocument document = TextPaint(true, false, horizontal);
+        Assert.Empty(document.Pages[0].TextFrames);
+        Assert.Equal("j", Assert.Single(document.TextStories).Text);
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_CHAIN_FRAME_UNAVAILABLE");
+    }
+
+    [Fact]
+    public void Collapsed_wrap_obstacles_do_not_abort_available_text_frames() {
+        PublisherDocument document = TextPaint(true, false, collapsedObstacle: true);
+        Assert.Single(document.Pages[0].TextFrames);
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_WRAP_REFERENCE_UNRESOLVED");
+    }
+
+    [Fact]
+    public void Collapsed_group_lines_do_not_paint_minimum_sized_artwork() {
+        var source = new PublisherContents(612, 792, new Dictionary<uint, PublisherContentChunk>());
+        source.Pages.Add(new PublisherSourcePage(1, "", null, null));
+        source.Shapes.Add(2, new PublisherSourceShape(new PublisherContentChunk(2, 1, 0, 1), Array.Empty<PublisherBlock>()));
+        source.ObjectPages.Add(2, 1);
+        var escher = new PublisherEscherData();
+        escher.Shapes.Add(new PublisherEscherShape(2, 20, 0, new[] {
+            new OfficeArtProperty(0, 0x01C0, 0x000000FF), new OfficeArtProperty(1, 0x01CB, 12700)
+        }) { Bounds = new PublisherNativeRectangle(0, 0, 12700, 12700),
+            GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1) });
+        PublisherDocument document = new PublisherPageProjector(source, new PublisherQuillText(), escher,
+            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+        Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].Drawing), item => item is OfficeDrawingShape drawing && drawing.Shape.Kind == OfficeShapeKind.Line);
+        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_DEGENERATE_OBJECT_OMITTED");
+    }
+
+    private static PublisherDocument TextPaint(bool grouped, bool condensed, bool? collapseHorizontal = null, bool collapsedObstacle = false) {
         var source = new PublisherContents(612, 792, new Dictionary<uint, PublisherContentChunk>());
         source.Pages.Add(new PublisherSourcePage(1, "", null, null));
         source.Shapes.Add(2, new PublisherSourceShape(new PublisherContentChunk(2, 1, 0, 1),
@@ -71,8 +105,18 @@ public sealed class PublisherGroupCanvasTests {
         }) {
             Bounds = new PublisherNativeRectangle((x - 306) * 12700, (x - 396) * 12700,
                 (x + 25 - 306) * 12700, (x + 72 - 396) * 12700),
-            GroupTransform = grouped ? OfficeTransform.Translate(12700, 12700) : OfficeTransform.Identity
+            GroupTransform = collapseHorizontal.HasValue ? OfficeTransform.Scale(collapseHorizontal.Value ? 0 : 1, collapseHorizontal.Value ? 1 : 0) : grouped ? OfficeTransform.Translate(12700, 12700) : OfficeTransform.Identity,
+            LayoutTransform = collapseHorizontal.HasValue ? OfficeTransform.Scale(collapseHorizontal.Value ? 0 : 1, collapseHorizontal.Value ? 1 : 0) : OfficeTransform.Identity
         });
+        if (collapsedObstacle) {
+            source.Shapes[2].WrapObjects = new[] { 4U };
+            source.Shapes.Add(4, new PublisherSourceShape(new PublisherContentChunk(4, 1, 0, 1), Array.Empty<PublisherBlock>()));
+            source.ObjectPages.Add(4, 1);
+            escher.Shapes.Add(new PublisherEscherShape(4, 1, 0, Array.Empty<OfficeArtProperty>()) {
+                Bounds = new PublisherNativeRectangle(0, 0, 12700, 12700),
+                GroupTransform = OfficeTransform.Scale(0, 1), LayoutTransform = OfficeTransform.Scale(0, 1)
+            });
+        }
         return new PublisherPageProjector(source, text, escher,
             new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Project();
     }
