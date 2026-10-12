@@ -33,11 +33,7 @@ public static partial class WordPdfConverterExtensions {
         section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
 
     private static bool UsesNativeRunningStories(WordSection section, WordToPdfOptions? options, bool isFooter, params WordHeaderFooter?[] variants) {
-        // Required table/field stories retain flow. Configure each active sibling
-        // independently so its mixed text-box projection keeps its established path.
         if (variants.Any(RequiresNativeRunningStory)) return true;
-        if (variants.Any(story => story != null && story.ChildElements
-                .Any(element => element.Descendants<W.TextBoxContent>().Any()))) return false;
         bool hasNumberedParagraph = false;
         bool hasParagraph = false;
         bool ordinaryStoriesSupported = !HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter);
@@ -49,6 +45,9 @@ public static partial class WordPdfConverterExtensions {
             double minimumHeight = 0D;
             double joinedLineHeight = double.PositiveInfinity;
             ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph);
+            // Admission switches all active variants. Preserve the source-order
+            // text-box path until flow can retain its mixed and nested content.
+            if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any())) return false;
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
                 var paragraph = new WordParagraph(story.Document, source);
@@ -110,11 +109,11 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningHeader(section, options)) {
             double distance = section.Margins.HeaderDistance / 20D;
             page.Header(header => {
-                if (UsesNativeRunningVariant(section, options, false, section.ResolveDefaultHeader()))
+                if (section.ResolveDefaultHeader() != null)
                     header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DifferentFirstPage && UsesNativeRunningVariant(section, options, false, section.ResolveFirstHeader()))
+                if (section.DifferentFirstPage && section.ResolveFirstHeader() != null)
                     header.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DocumentOddEvenSettingEnabled && UsesNativeRunningVariant(section, options, false, section.ResolveEvenHeader()))
+                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null)
                     header.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.ResolveDefaultHeader(),
@@ -127,11 +126,11 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
             page.Footer(footer => {
-                if (UsesNativeRunningVariant(section, options, true, section.ResolveDefaultFooter()))
+                if (section.ResolveDefaultFooter() != null)
                     footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DifferentFirstPage && UsesNativeRunningVariant(section, options, true, section.ResolveFirstFooter()))
+                if (section.DifferentFirstPage && section.ResolveFirstFooter() != null)
                     footer.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DocumentOddEvenSettingEnabled && UsesNativeRunningVariant(section, options, true, section.ResolveEvenFooter()))
+                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
                     footer.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.ResolveDefaultFooter(),
@@ -150,11 +149,6 @@ public static partial class WordPdfConverterExtensions {
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: true);
     }
-
-    private static bool UsesNativeRunningVariant(WordSection section, WordToPdfOptions? options, bool isFooter, WordHeaderFooter? story) =>
-        // An implicit default paragraph owns blank geometry independently of
-        // presentation overrides on its visible siblings.
-        story != null && (!story.ChildElements.Any() || UsesNativeRunningStories(section, options, isFooter, story));
 
     private static Func<PdfCore.PdfRunningContentContext, Action<PdfCore.PdfContentBuilder>> CreateNativeRunningStory(
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,
