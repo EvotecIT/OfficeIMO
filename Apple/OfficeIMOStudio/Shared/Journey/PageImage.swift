@@ -20,21 +20,24 @@ enum PageImage {
     }
 }
 
-/// The display the measurements render for: pixels per point and the width a page fills, in points.
+/// The display the measurements render for: pixels per point and the area a page view fills, in points.
 struct DisplayTarget: Codable, Sendable {
     let scale: Double
     let widthPoints: Double
+    let heightPoints: Double
 
     /// The pixel width of a page that fills the target width at the display's pixel density.
     var pixelWidth: Double { scale * widthPoints }
+    var pixelHeight: Double { scale * heightPoints }
 
     @MainActor static var current: DisplayTarget {
         #if os(macOS)
         // A document window on a Mac rather than the whole display.
-        DisplayTarget(scale: Double(NSScreen.main?.backingScaleFactor ?? 2), widthPoints: 900)
+        DisplayTarget(scale: Double(NSScreen.main?.backingScaleFactor ?? 2), widthPoints: 900, heightPoints: 1000)
         #else
         let screen = UIScreen.main
-        return DisplayTarget(scale: Double(screen.scale), widthPoints: Double(min(screen.bounds.width, screen.bounds.height)))
+        return DisplayTarget(scale: Double(screen.scale), widthPoints: Double(min(screen.bounds.width, screen.bounds.height)),
+                             heightPoints: Double(max(screen.bounds.width, screen.bounds.height)))
         #endif
     }
 }

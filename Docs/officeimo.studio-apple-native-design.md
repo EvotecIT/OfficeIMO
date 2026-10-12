@@ -46,17 +46,43 @@ Saving writes beside the destination and replaces it only once the output is com
 
 Recovery copies of unsaved edits live under the folder given to `officeimo_initialize`. The document facts report `hasRecovery` when an earlier session left edits for the opened file.
 
+## Interface design
+
+The apps follow each platform's conventions rather than the desktop Studio's layout, while keeping its task names, commands and document behaviour. A first set of mockups covers the Mac, iPad, iPhone and iPhone Duo; the decisions it leaves open are on the [roadmap](ROADMAP.md#phase-7-native-apple-apps).
+
+**One document per window.** On the Mac each document has its own window, and the system's window tabs replace Studio's tab bar. On iPad each document is a scene, so documents sit side by side in split view or separate windows. An iPhone shows one document at a time.
+
+**Layout follows the width, not the device.** Three layout families cover every screen:
+
+| Width | Where | Document layout |
+| --- | --- | --- |
+| Compact | iPhone, a folded iPhone Duo, Slide Over and narrow split view | The page fills the screen. A bottom toolbar holds Pages, Search, Markup, Comments and Tasks; the sidebar's lists and the inspector open as sheets |
+| Regular | iPad in portrait, an unfolded iPhone Duo (about 626 points wide), wider split view | The page with one panel beside it: the sidebar, or the inspector over the page |
+| Wide | iPad in landscape, the Mac | Sidebar, page and inspector side by side |
+
+**The document.** The sidebar switches between Pages, Outline, search Results and Notes (comments). The inspector shows the document's facts, checks and exports, or the selected annotation, form field or page. The task picker offers Studio's tasks: Read, Markup, Edit, Pages, Forms and Protect. It is a segmented control in the Mac toolbar and a menu button on iPad and iPhone, and each task brings its own tools. Markup's tools form a row under the Mac toolbar, a floating palette for Apple Pencil on iPad, and a palette in the bottom sheet on iPhone. Pages shows the whole document as a grid with a floating action bar for the selection. Notices, such as a scanned page that search skips, appear above the page with their action.
+
+**Fold and unfold.** Changing between compact and regular width keeps the document, the page, the zoom relative to the page width, the selection, the task and any edit in progress. A sheet that is open in compact width becomes its column when the width grows, and a column that is open becomes a sheet when the width shrinks. Visible tiles render again at the new width.
+
+**Starting points.** The Mac opens a start window with recent documents and quick tasks (Convert, Combine PDFs, Make searchable, Protect and every command). Convert, OCR, Jobs and Settings open in their own windows from the Window menu, and Settings is the standard Settings window. On iPad and iPhone the documents screen is the system's document browser, with the quick tasks above it and Jobs and Settings in its sidebar.
+
+**Commands and accessibility.** Every command comes from Studio's command catalog. Unavailable commands say why, in menus and in the command palette (⌘K on the Mac and on iPad with a keyboard). The Mac menu bar and the iPad keyboard menus list the same commands. Controls are at least 44 points on touch screens, pages announce their number to VoiceOver, text follows Dynamic Type in the chrome, and the layout leaves room for the longest of the English, Polish, German and French strings.
+
 ## Rendering
 
-A page renders as PNG at the scale the app requests, in pixels per PDF point. The document facts report `maxRenderPixels`, the largest page image the engine produces (8.4 million pixels). The app clamps its scale to that budget, rounding each side up to whole pixels as the engine does, and a larger request fails with `OFFICEIMO_INVALID_ARGUMENT` before any page content is read. The app decodes the PNG with Image I/O.
+The app shows pages with `officeimo_document_render_region`. It renders a rectangle of the page image at a scale as opaque RGBA pixels, which the app wraps in a `CGImage` without copying and releases with `officeimo_free`. A page that fits the 8.4 million pixel budget (`maxRenderPixels` in the document facts) renders as one rectangle. Zooming further renders the visible tiles, which join without seams. The app clamps a whole-page scale to the budget, rounding each side up to whole pixels as the engine does. `officeimo_document_render_page` returns PNG for thumbnails, sharing and export.
+
+The engine keeps the drawings of the last two pages it rendered for the document's current revision, with up to 64 MiB of their decoded and prefiltered images. Further tiles, zoom levels and repeated views of those pages skip reading and decoding them. A page's drawing serves every zoom level unless the page has function shadings, which are drawn again for each power of two of the scale. Larger caches raised the peak footprint on scanned documents to 1.8 GB. The engine also runs its garbage collector in conserve-memory mode, which compacts the large-object heap sooner after a render's short-lived buffers.
 
 The renderer has a separate working budget of 64 million pixels for the page image, intermediate surfaces and decoded source images. Quartz, and so Preview, PDFKit and the Apple document scanner, marks drawn images `/Interpolate true`. The renderer's interpolated image path then needs several times the image's pixels: at a 13-inch iPad's width, a 300 dpi colour letter scan needs 41 million working pixels and an A3 scan 60 million.
 
 ### Measurements
 
-[`Measure-EngineProof.ps1`](../Apple/OfficeIMOStudio/Measurements/Measure-EngineProof.ps1) builds the app and runs the journey and the measurements on the Mac and in a temporary iPad simulator. Its measurement documents come from repository fixtures: a 600-page PDF of text, table, form and presentation pages from several producers, and a 40-page scan of 300 dpi colour JPEG pages, each with its own image. Each document is measured in its own launch, three times. The table gives medians from the [run on 2026-10-12](../Apple/OfficeIMOStudio/Measurements/Evidence/2026-10-12/summary.json), Mac mini M4 (`Mac16,10`) with Xcode 27.0. The Mac renders pages 900 pixels wide on its 1x display. The simulator is an iPad Pro 13-inch (M5) on iOS 27.0, rendering pages 2064 pixels wide, its portrait width at 2x.
+[`Measure-EngineProof.ps1`](../Apple/OfficeIMOStudio/Measurements/Measure-EngineProof.ps1) builds the app and runs the journey and the measurements on the Mac and in a temporary iPad simulator. Its measurement documents come from repository fixtures: a 600-page PDF of text, table, form and presentation pages from several producers, and a 40-page scan of 300 dpi colour JPEG pages, each with its own image. Each document is measured in its own launch, three times, and the tables give medians. The runs used a Mac mini M4 (`Mac16,10`) with Xcode 27.0. The Mac renders pages 900 pixels wide on its 1x display. The simulator is an iPad Pro 13-inch (M5) on iOS 27.0, rendering pages 2064 pixels wide, its portrait width at 2x.
 
-The host was heavily loaded by other work during the run (load average 360 to 600 on 10 cores), so the timings are upper bounds. The simulator runs on the Mac's CPU and is not device performance. Pixel sizes, budgets and sizes do not depend on load.
+The host was heavily loaded by other work during both runs (load average 140 to 600 on 10 cores), so the timings are upper bounds. The simulator runs on the Mac's CPU and is not device performance. Pixel sizes, budgets, sizes and memory do not depend on load.
+
+The [first run](../Apple/OfficeIMOStudio/Measurements/Evidence/2026-10-12/engine-proof.json) rendered whole pages as PNG and decoded them:
 
 | | Mac, long PDF | Mac, scan | Simulator, long PDF | Simulator, scan |
 | --- | --- | --- | --- | --- |
@@ -66,15 +92,25 @@ The host was heavily loaded by other work during the run (load average 360 to 60
 | PNG decode, median | 4 ms | 4 ms | 20 ms | 27 ms |
 | Peak footprint | 172 MB | 747 MB | 270 MB | 625 MB |
 
-The first engine call, which starts the runtime, takes 5 to 15 ms, and 350 ms in the simulator's first launch after it boots. Initialization takes under 40 ms. From process start the app's initializer runs after 35 to 45 ms on the Mac and 250 ms in the simulator. In a release build for iOS devices the engine contributes 26.7 MB of the 27.5 MB the linker places. The stripped executable is 22.7 MB, 9.7 MB compressed.
+Splitting one page's render in a NativeAOT build on the Mac, at about 1800 pixels wide, showed where the time went. For long-PDF pages, reading the page into a drawing took 5 to 70 ms and rasterizing 68 to 178 ms. Encoding the PNG took 141 to 261 ms, about half of the render. For scanned pages, decoding the 300 dpi JPEG took 1.1 to 1.3 s on every render. A letter page filling a 13-inch iPad's width is 5.5 million pixels, so zooming past 1.5 times exceeds the page budget.
 
-Splitting one page's render in a NativeAOT build on the Mac, at about 1800 pixels wide, shows where the time goes. For long-PDF pages, reading the page into a drawing takes 5 to 70 ms and rasterizing 68 to 178 ms. Encoding the PNG at the compression the engine uses takes 141 to 261 ms, about half of the render, or 22 to 44 ms at the fastest compression. A raw page buffer is 16.8 MB against 150 to 390 KB of PNG. For scanned pages, decoding the 300 dpi JPEG takes 1.1 to 1.3 s on every render, rasterizing 0.3 to 0.6 s and encoding 0.2 to 0.4 s.
+The [second run](../Apple/OfficeIMOStudio/Measurements/Evidence/2026-10-12/display-regions.json) shows pages as pixel rectangles with the engine's caches. A zoomed view is a screen-sized area of page 1 in tiles of up to 1024 pixels a side (one tile on the Mac, nine in the simulator):
+
+| | Mac, long PDF | Mac, scan | Simulator, long PDF | Simulator, scan |
+| --- | --- | --- | --- | --- |
+| First page, open to image | 391 ms | 932 ms | 748 ms | 2.03 s |
+| The same page again | 42 ms | 48 ms | 107 ms | 359 ms |
+| Render, median and 90th percentile of 24 pages | 53 / 189 ms | 823 / 930 ms | 151 / 557 ms | 1.63 / 1.78 s |
+| Zoomed view at 2x, 3x and 4x | 11 to 23 ms | 48 to 80 ms | 224 to 237 ms | 518 to 627 ms |
+| Peak footprint | 117 MB | 487 MB | 182 MB | 495 MB |
+
+In the simulator, page 1 of each document as pixels took 447 ms and 1.93 s, against 862 ms and 3.03 s for the same page as PNG and its decode. The first zoom step past the fitted page still filters a scan's image again for the new size: 0.8 s on the Mac and 1.8 s in the simulator.
 
 ### Decisions
 
-- **Raw pixel buffers for display.** PNG encoding is about half of a text page's render and the app decodes it again. The interface gains a render call that returns premultiplied pixels with their row stride, which the app wraps in a `CGImage` released through `officeimo_free`. PNG stays for thumbnails, sharing and export.
-- **Tiles for zoom.** A letter page filling a 13-inch iPad's width is 5.5 million pixels, so zooming past 1.5 times exceeds the page budget. The interface gains region rendering: a rectangle of the page at a scale, each tile within the budget.
-- **Reuse the page between renders.** Each render reads the page and decodes its images again, which costs scanned pages over a second before tiles multiply the renders. The document session keeps the page's drawing and decoded images for its revision. Source images decode at the resolution the render needs.
+- **Raw pixel buffers for display**, because PNG encoding was about half of a text page's render and the app decoded it again. Done: `officeimo_document_render_region`.
+- **Tiles for zoom**, because the page budget ends at about 1.5 times a 13-inch iPad's width. Done: region rendering, with tiles that join without seams.
+- **Reuse the page between renders**, because each render read the page and decoded its images again. Done for the drawing and its decoded and prefiltered images. Still open: decoding source images at the resolution a render needs, the interpolated image path's working set, and the drawing's copy of a scan image, which is re-encoded as a 25 MB PNG.
 
 ## Building the engine
 

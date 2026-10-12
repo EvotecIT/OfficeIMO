@@ -79,7 +79,8 @@ final class JourneyModel {
             try await refreshFacts()
             record("open \(source.lastPathComponent)", openTime, facts?.pages.isEmpty == false, "\(facts?.pages.count ?? 0) page(s)")
             try await show(page: 1, step: "render page 1")
-            record("first page", milliseconds(since: firstPage), page != nil, "open, render and decode")
+            record("first page", milliseconds(since: firstPage), page != nil, "open and render")
+            try await thumbnail(page: 1)
 
             try await edit("rotate page 1") { try await $0.rotatePages([1], degrees: 90) } expect: {
                 $0.pages[0].rotation == 90 && $0.isDirty && $0.canUndo
@@ -147,14 +148,22 @@ final class JourneyModel {
 
     private func show(page number: Int, step: String) async throws {
         guard let document, let facts else { return }
-        let target = DisplayTarget.current
-        let scale = facts.renderScale(page: number, fillingPixelWidth: target.pixelWidth)
-        let (rendered, renderTime) = try await measure { try await document.renderPage(number, scale: scale) }
-        let (image, decodeTime) = try await measure { try await Task.detached { try PageImage.decode(rendered.png) }.value }
+        let scale = facts.renderScale(page: number, fillingPixelWidth: DisplayTarget.current.pixelWidth)
+        let size = facts.pageImageSize(page: number, scale: scale)
+        let (image, elapsed) = try await measure {
+            try await document.renderRegion(number, scale: scale, x: 0, y: 0, width: size.width, height: size.height)
+        }
         page = image
-        record(step, renderTime + decodeTime, true,
-               String(format: "%d x %d px at %.2f px/pt, render %.0f ms, decode %.0f ms, %d KB PNG",
-                      rendered.pixelWidth, rendered.pixelHeight, scale, renderTime, decodeTime, rendered.png.count / 1024))
+        record(step, elapsed, true, String(format: "%d x %d px at %.2f px/pt", size.width, size.height, scale))
+    }
+
+    /// A page thumbnail as PNG, the format for thumbnails, sharing and export.
+    private func thumbnail(page number: Int) async throws {
+        guard let document else { return }
+        let (rendered, renderTime) = try await measure { try await document.renderPage(number, scale: 0.25) }
+        let (image, decodeTime) = try await measure { try await Task.detached { try PageImage.decode(rendered.png) }.value }
+        record("thumbnail page \(number)", renderTime + decodeTime, image.width == rendered.pixelWidth,
+               String(format: "%d x %d px PNG, render %.0f ms, decode %.0f ms", rendered.pixelWidth, rendered.pixelHeight, renderTime, decodeTime))
     }
 
     private func refreshFacts() async throws {

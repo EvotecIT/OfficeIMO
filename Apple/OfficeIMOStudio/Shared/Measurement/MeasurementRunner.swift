@@ -1,32 +1,40 @@
 import CoreGraphics
 import Foundation
 
-/// Feasibility measurements for one PDF: opening, the first page, rendering sampled pages at the display's scale,
-/// zooming page 1, and the process footprint. Run one document per launch so the peak footprint belongs to it.
+/// Feasibility measurements for one PDF: opening, the first page, a repeated view of it, sampled pages at the display's
+/// width, the PNG path for comparison, zoomed viewports rendered as tiles, and the process footprint. Run one document
+/// per launch so the peak footprint belongs to it.
 struct MeasurementReport: Codable, Sendable {
     struct Render: Codable, Sendable {
         let page: Int
         let scale: Double
         let pixelWidth: Int
         let pixelHeight: Int
-        let pngBytes: Int
-        let renderMilliseconds: Double
-        let decodeMilliseconds: Double
+        let milliseconds: Double
     }
 
-    struct Zoom: Codable, Sendable {
+    struct Png: Codable, Sendable {
+        let renderMilliseconds: Double
+        let decodeMilliseconds: Double
+        let pngBytes: Int
+    }
+
+    /// A screen-sized view of page 1 at a zoom of the fit-to-width scale, from its top-left corner, as tiles.
+    struct Viewport: Codable, Sendable {
         let zoom: Double
-        let render: Render?
+        let scale: Double
+        let tiles: Int
+        let pixelWidth: Int
+        let pixelHeight: Int
+        let milliseconds: Double
         let error: String?
     }
 
     struct Summary: Codable, Sendable {
         let count: Int
-        let medianRender: Double
-        let p90Render: Double
-        let maxRender: Double
-        let medianDecode: Double
-        let medianPngBytes: Int
+        let median: Double
+        let p90: Double
+        let max: Double
     }
 
     let file: String
@@ -38,12 +46,16 @@ struct MeasurementReport: Codable, Sendable {
     let engineVersion: String
     let launch: JourneyModel.LaunchTiming
     let openMilliseconds: Double
-    /// From the start of opening until page 1 is decoded and ready to show.
+    /// From the start of opening until page 1 is an image ready to show.
     let firstPageMilliseconds: Double
     let firstPage: Render
+    /// Page 1 again, with its drawing and images kept by the engine.
+    let repeatFirstPage: Render
+    /// Page 1 through the PNG path at the same scale.
+    let firstPagePng: Png
     let sampled: [Render]
     let sampledSummary: Summary
-    let zoom: [Zoom]
+    let zoom: [Viewport]
     let footprintBeforeOpen: ProcessMetrics.Footprint
     let footprintAfter: ProcessMetrics.Footprint
 }
@@ -51,8 +63,9 @@ struct MeasurementReport: Codable, Sendable {
 enum MeasurementRunner {
     /// Pages rendered beyond page 1, spread evenly through the document.
     static let sampleCount = 24
-    /// Zoom factors applied to page 1 on top of the fit-to-width scale.
-    static let zoomFactors: [Double] = [1, 1.5, 2, 3, 4]
+    /// Zoom factors of the fit-to-width scale for the tiled viewports.
+    static let zoomFactors: [Double] = [1.5, 2, 3, 4]
+    static let tileSize = 1024
 
     @MainActor
     static func run(_ url: URL, display: DisplayTarget, launch: JourneyModel.LaunchTiming, engineVersion: String) async throws -> MeasurementReport {
@@ -60,24 +73,29 @@ enum MeasurementRunner {
         let start = ContinuousClock.now
         let (document, openTime) = try await measure { try await EngineDocument.open(url) }
         let facts = try await document.facts()
-        let first = try await render(document, facts, page: 1, display: display, zoom: 1)
+        let first = try await render(document, facts, page: 1, display: display)
         let firstPageTime = milliseconds(since: start)
+        let repeated = try await render(document, facts, page: 1, display: display)
+
+        let (png, pngRender) = try await measure { try await document.renderPage(1, scale: first.scale) }
+        let (_, pngDecode) = try await measure { try await Task.detached { try PageImage.decode(png.png) }.value }
 
         var sampled: [MeasurementReport.Render] = []
         for page in samplePages(count: facts.pages.count) {
-            sampled.append(try await render(document, facts, page: page, display: display, zoom: 1))
+            sampled.append(try await render(document, facts, page: page, display: display))
         }
 
-        var zoom: [MeasurementReport.Zoom] = []
+        var zoom: [MeasurementReport.Viewport] = []
+        let fitScale = display.pixelWidth / facts.pages[0].displaySize.width
         for factor in zoomFactors {
-            do {
-                zoom.append(.init(zoom: factor, render: try await render(document, facts, page: 1, display: display, zoom: factor), error: nil))
-            } catch {
-                zoom.append(.init(zoom: factor, render: nil, error: error.localizedDescription))
-            }
+            zoom.append(await viewport(document, facts, scale: fitScale * factor, zoom: factor, display: display))
         }
 
         let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        let times = sampled.map(\.milliseconds).sorted()
+        func percentile(_ fraction: Double) -> Double {
+            times.isEmpty ? 0 : times[min(times.count - 1, Int((Double(times.count - 1) * fraction).rounded()))]
+        }
         return MeasurementReport(
             file: url.lastPathComponent,
             fileSize: (attributes?[.size] as? NSNumber)?.int64Value ?? 0,
@@ -90,22 +108,46 @@ enum MeasurementRunner {
             openMilliseconds: openTime,
             firstPageMilliseconds: firstPageTime,
             firstPage: first,
+            repeatFirstPage: repeated,
+            firstPagePng: .init(renderMilliseconds: pngRender, decodeMilliseconds: pngDecode, pngBytes: png.png.count),
             sampled: sampled,
-            sampledSummary: summarize(sampled),
+            sampledSummary: .init(count: times.count, median: percentile(0.5), p90: percentile(0.9), max: times.last ?? 0),
             zoom: zoom,
             footprintBeforeOpen: before,
             footprintAfter: ProcessMetrics.footprint())
     }
 
-    private static func render(_ document: EngineDocument, _ facts: DocumentFacts, page: Int, display: DisplayTarget, zoom: Double) async throws -> MeasurementReport.Render {
-        // Pages fill the display width within the engine's budget; zoom goes past it, to show where tiles are needed.
-        let scale = zoom == 1
-            ? facts.renderScale(page: page, fillingPixelWidth: display.pixelWidth)
-            : display.pixelWidth / facts.pages[page - 1].displaySize.width * zoom
-        let (rendered, renderTime) = try await measure { try await document.renderPage(page, scale: scale) }
-        let (_, decodeTime) = try await measure { try await Task.detached { try PageImage.decode(rendered.png) }.value }
-        return .init(page: page, scale: scale, pixelWidth: rendered.pixelWidth, pixelHeight: rendered.pixelHeight,
-                     pngBytes: rendered.png.count, renderMilliseconds: renderTime, decodeMilliseconds: decodeTime)
+    /// A page filling the display's width, within the engine's budget, as one region.
+    private static func render(_ document: EngineDocument, _ facts: DocumentFacts, page: Int, display: DisplayTarget) async throws -> MeasurementReport.Render {
+        let scale = facts.renderScale(page: page, fillingPixelWidth: display.pixelWidth)
+        let size = facts.pageImageSize(page: page, scale: scale)
+        let (_, elapsed) = try await measure {
+            try await document.renderRegion(page, scale: scale, x: 0, y: 0, width: size.width, height: size.height)
+        }
+        return .init(page: page, scale: scale, pixelWidth: size.width, pixelHeight: size.height, milliseconds: elapsed)
+    }
+
+    /// The display-sized area at the page's top-left corner, rendered as tiles of at most tileSize pixels a side.
+    private static func viewport(_ document: EngineDocument, _ facts: DocumentFacts, scale: Double, zoom: Double,
+                                 display: DisplayTarget) async -> MeasurementReport.Viewport {
+        let page = facts.pageImageSize(page: 1, scale: scale)
+        let width = min(page.width, Int(display.pixelWidth)), height = min(page.height, Int(display.pixelHeight))
+        var tiles = 0
+        let start = ContinuousClock.now
+        do {
+            for y in stride(from: 0, to: height, by: tileSize) {
+                for x in stride(from: 0, to: width, by: tileSize) {
+                    _ = try await document.renderRegion(1, scale: scale, x: x, y: y, width: min(tileSize, width - x),
+                                                        height: min(tileSize, height - y))
+                    tiles += 1
+                }
+            }
+            return .init(zoom: zoom, scale: scale, tiles: tiles, pixelWidth: width, pixelHeight: height,
+                         milliseconds: milliseconds(since: start), error: nil)
+        } catch {
+            return .init(zoom: zoom, scale: scale, tiles: tiles, pixelWidth: width, pixelHeight: height,
+                         milliseconds: milliseconds(since: start), error: error.localizedDescription)
+        }
     }
 
     /// Up to sampleCount pages after page 1, evenly spaced and including the last page.
@@ -113,18 +155,5 @@ enum MeasurementRunner {
         guard count > 1 else { return [] }
         let wanted = min(sampleCount, count - 1)
         return Array(Set((1...wanted).map { 1 + Int((Double($0) * Double(count - 1) / Double(wanted)).rounded()) })).sorted()
-    }
-
-    private static func summarize(_ renders: [MeasurementReport.Render]) -> MeasurementReport.Summary {
-        func percentile(_ values: [Double], _ fraction: Double) -> Double {
-            guard !values.isEmpty else { return 0 }
-            let sorted = values.sorted()
-            return sorted[min(sorted.count - 1, Int((Double(sorted.count - 1) * fraction).rounded()))]
-        }
-        let render = renders.map(\.renderMilliseconds)
-        let bytes = renders.map { Double($0.pngBytes) }
-        return .init(count: renders.count, medianRender: percentile(render, 0.5), p90Render: percentile(render, 0.9),
-                     maxRender: render.max() ?? 0, medianDecode: percentile(renders.map(\.decodeMilliseconds), 0.5),
-                     medianPngBytes: Int(percentile(bytes, 0.5)))
     }
 }

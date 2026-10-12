@@ -25,7 +25,7 @@ param(
     [int]$Runs = 3,
     [string]$SimulatorType = 'iPad Pro 13-inch (M5)',
     [string[]]$Documents = @('openpreserve-high-resolution-image.pdf', 'long.pdf', 'scanned.pdf'),
-    [ValidateSet('macOS', 'Simulator', 'Size')][string[]]$Part = @('macOS', 'Simulator', 'Size')
+    [ValidateSet('macOS', 'Simulator', 'Size', 'Summary')][string[]]$Part = @('macOS', 'Simulator', 'Size')
 )
 $ErrorActionPreference = 'Stop'
 $appRoot = Split-Path $PSScriptRoot
@@ -77,7 +77,7 @@ Invoke-Tool xcodebuild @('-project', $project, '-scheme', 'OfficeIMOStudio-macOS
 $macApp = Join-Path $derived 'Build/Products/Release/OfficeIMO Studio.app'
 $macExecutable = Join-Path $macApp 'Contents/MacOS/OfficeIMO Studio'
 for ($run = 1; $run -le $Runs; $run++) {
-    Save-Run 'macos' 'journey.json' $run (Read-Results (& $macExecutable -OfficeIMOJourney -OfficeIMOExit))
+    $null = Save-Run 'macos' 'journey.json' $run (Read-Results (& $macExecutable -OfficeIMOJourney -OfficeIMOExit))
 }
 # An ad hoc copy without entitlements runs outside the sandbox, so its folders can point into the work directory.
 $measureApp = Join-Path $WorkDirectory 'OfficeIMO Studio (measurement).app'
@@ -93,7 +93,7 @@ try {
         for ($run = 1; $run -le $Runs; $run++) {
             Write-Host "macOS: $document, run $run"
             $output = & (Join-Path $measureApp 'Contents/MacOS/OfficeIMO Studio') -OfficeIMOMeasure $document -OfficeIMOExit
-            Save-Run 'macos' "measure-$document.json" $run (Read-Results $output)
+            $null = Save-Run 'macos' "measure-$document.json" $run (Read-Results $output)
         }
     }
 } finally { Remove-Item Env:OFFICEIMO_STUDIO_FOLDER }
@@ -117,7 +117,7 @@ try {
     Invoke-Tool xcrun @('simctl', 'install', $simulator, (Join-Path $derived 'Build/Products/Release-iphonesimulator/OfficeIMO Studio.app'))
     for ($run = 1; $run -le $Runs; $run++) {
         $output = xcrun simctl launch --console-pty --terminate-running-process $simulator $bundleId -OfficeIMOJourney -OfficeIMOExit
-        Save-Run 'simulator' 'journey.json' $run (Read-Results $output)
+        $null = Save-Run 'simulator' 'journey.json' $run (Read-Results $output)
     }
     $container = (xcrun simctl get_app_container $simulator $bundleId data).Trim()
     $measurements = Join-Path $container 'Documents/Measurements'
@@ -127,7 +127,7 @@ try {
         for ($run = 1; $run -le $Runs; $run++) {
             Write-Host "Simulator: $document, run $run"
             $output = xcrun simctl launch --console-pty --terminate-running-process $simulator $bundleId -OfficeIMOMeasure $document -OfficeIMOExit
-            Save-Run 'simulator' "measure-$document.json" $run (Read-Results $output)
+            $null = Save-Run 'simulator' "measure-$document.json" $run (Read-Results $output)
         }
     }
 } finally {
@@ -203,11 +203,18 @@ foreach ($platform in 'macos', 'simulator') {
             openMs = Get-Median $reports.openMilliseconds
             firstPageMs = Get-Median $reports.firstPageMilliseconds
             firstPagePixels = "$($reports[0].firstPage.pixelWidth) x $($reports[0].firstPage.pixelHeight)"
-            sampledMedianRenderMs = Get-Median $reports.sampledSummary.medianRender
-            sampledP90RenderMs = Get-Median $reports.sampledSummary.p90Render
-            sampledMedianDecodeMs = Get-Median $reports.sampledSummary.medianDecode
-            sampledMedianPngBytes = Get-Median $reports.sampledSummary.medianPngBytes
-            zoom = @($reports[0].zoom | ForEach-Object { if ($_.render) { "x$($_.zoom): $($_.render.pixelWidth) x $($_.render.pixelHeight)" } else { "x$($_.zoom): $($_.error)" } })
+            firstPageRenderMs = Get-Median $reports.firstPage.milliseconds
+            repeatFirstPageMs = Get-Median $reports.repeatFirstPage.milliseconds
+            firstPagePngRenderMs = Get-Median $reports.firstPagePng.renderMilliseconds
+            firstPagePngDecodeMs = Get-Median $reports.firstPagePng.decodeMilliseconds
+            sampledMedianMs = Get-Median $reports.sampledSummary.median
+            sampledP90Ms = Get-Median $reports.sampledSummary.p90
+            zoom = @(foreach ($view in $reports[0].zoom) {
+                $factor = $view.zoom
+                $views = @($reports | ForEach-Object { $_.zoom } | Where-Object { $_.zoom -eq $factor })
+                if ($view.error) { "x$($factor): $($view.error)" }
+                else { "x$($factor): $($view.tiles) tiles, $($view.pixelWidth) x $($view.pixelHeight) px, $(Get-Median $views.milliseconds) ms" }
+            })
             peakFootprintMB = Get-Median ($reports.footprintAfter.peak | ForEach-Object { $_ / 1MB })
             processToAppMs = Get-Median $reports.launch.processToApp
         }

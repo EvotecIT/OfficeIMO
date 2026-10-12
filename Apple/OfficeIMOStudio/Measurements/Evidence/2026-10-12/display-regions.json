@@ -1,0 +1,138 @@
+{
+  "macos": {
+    "journeyPassed": true,
+    "engineFirstCallMs": 6.9,
+    "processToAppMs": 50.8,
+    "openpreserve-high-resolution-image.pdf": {
+      "device": "Mac16,10 (arm64)",
+      "pages": 1,
+      "openMs": 7.4,
+      "firstPageMs": 317.8,
+      "firstPagePixels": "900 x 457",
+      "firstPageRenderMs": 309.7,
+      "repeatFirstPageMs": 9.5,
+      "firstPagePngRenderMs": 319.3,
+      "firstPagePngDecodeMs": 3.4,
+      "sampledMedianMs": 0.0,
+      "sampledP90Ms": 0.0,
+      "zoom": [
+        "x1.5: 1 tiles, 900 x 685 px, 13.1 ms",
+        "x2: 1 tiles, 900 x 913 px, 14.3 ms",
+        "x3: 1 tiles, 900 x 1000 px, 14 ms",
+        "x4: 1 tiles, 900 x 1000 px, 13.7 ms"
+      ],
+      "peakFootprintMB": 105.7,
+      "processToAppMs": 32.1
+    },
+    "long.pdf": {
+      "device": "Mac16,10 (arm64)",
+      "pages": 600,
+      "openMs": 139.7,
+      "firstPageMs": 391.1,
+      "firstPagePixels": "901 x 1165",
+      "firstPageRenderMs": 250.2,
+      "repeatFirstPageMs": 41.6,
+      "firstPagePngRenderMs": 95.9,
+      "firstPagePngDecodeMs": 4.9,
+      "sampledMedianMs": 53.3,
+      "sampledP90Ms": 188.7,
+      "zoom": [
+        "x1.5: 1 tiles, 900 x 1000 px, 47.8 ms",
+        "x2: 1 tiles, 900 x 1000 px, 14.4 ms",
+        "x3: 1 tiles, 900 x 1000 px, 22.8 ms",
+        "x4: 1 tiles, 900 x 1000 px, 11.1 ms"
+      ],
+      "peakFootprintMB": 117.4,
+      "processToAppMs": 28.1
+    },
+    "scanned.pdf": {
+      "device": "Mac16,10 (arm64)",
+      "pages": 40,
+      "openMs": 47.6,
+      "firstPageMs": 932.4,
+      "firstPagePixels": "900 x 1161",
+      "firstPageRenderMs": 884.0,
+      "repeatFirstPageMs": 47.7,
+      "firstPagePngRenderMs": 972.0,
+      "firstPagePngDecodeMs": 6.0,
+      "sampledMedianMs": 822.9,
+      "sampledP90Ms": 930.2,
+      "zoom": [
+        "x1.5: 1 tiles, 900 x 1000 px, 804.6 ms",
+        "x2: 1 tiles, 900 x 1000 px, 80.1 ms",
+        "x3: 1 tiles, 900 x 1000 px, 49.9 ms",
+        "x4: 1 tiles, 900 x 1000 px, 47.7 ms"
+      ],
+      "peakFootprintMB": 487.0,
+      "processToAppMs": 32.8
+    }
+  },
+  "simulator": {
+    "journeyPassed": true,
+    "engineFirstCallMs": 23.3,
+    "processToAppMs": 261.9,
+    "openpreserve-high-resolution-image.pdf": {
+      "device": "Simulator: iPad17,4 on arm64",
+      "pages": 1,
+      "openMs": 39.3,
+      "firstPageMs": 1381.9,
+      "firstPagePixels": "2064 x 1047",
+      "firstPageRenderMs": 1351.7,
+      "repeatFirstPageMs": 113.4,
+      "firstPagePngRenderMs": 1720.8,
+      "firstPagePngDecodeMs": 20.1,
+      "sampledMedianMs": 0.0,
+      "sampledP90Ms": 0.0,
+      "zoom": [
+        "x1.5: 6 tiles, 2064 x 1570 px, 210.2 ms",
+        "x2: 9 tiles, 2064 x 2093 px, 513.8 ms",
+        "x3: 9 tiles, 2064 x 2752 px, 484.5 ms",
+        "x4: 9 tiles, 2064 x 2752 px, 520 ms"
+      ],
+      "peakFootprintMB": 121.8,
+      "processToAppMs": 238.7
+    },
+    "long.pdf": {
+      "device": "Simulator: iPad17,4 on arm64",
+      "pages": 600,
+      "openMs": 278.5,
+      "firstPageMs": 747.7,
+      "firstPagePixels": "2064 x 2672",
+      "firstPageRenderMs": 447.1,
+      "repeatFirstPageMs": 106.5,
+      "firstPagePngRenderMs": 831.1,
+      "firstPagePngDecodeMs": 30.9,
+      "sampledMedianMs": 151.2,
+      "sampledP90Ms": 557.1,
+      "zoom": [
+        "x1.5: 9 tiles, 2064 x 2752 px, 316.5 ms",
+        "x2: 9 tiles, 2064 x 2752 px, 224.7 ms",
+        "x3: 9 tiles, 2064 x 2752 px, 224.4 ms",
+        "x4: 9 tiles, 2064 x 2752 px, 237.3 ms"
+      ],
+      "peakFootprintMB": 182.0,
+      "processToAppMs": 235.3
+    },
+    "scanned.pdf": {
+      "device": "Simulator: iPad17,4 on arm64",
+      "pages": 40,
+      "openMs": 95.5,
+      "firstPageMs": 2028.0,
+      "firstPagePixels": "2064 x 2661",
+      "firstPageRenderMs": 1930.7,
+      "repeatFirstPageMs": 359.4,
+      "firstPagePngRenderMs": 2998.5,
+      "firstPagePngDecodeMs": 29.3,
+      "sampledMedianMs": 1627.3,
+      "sampledP90Ms": 1782.4,
+      "zoom": [
+        "x1.5: 9 tiles, 2064 x 2752 px, 1817.6 ms",
+        "x2: 9 tiles, 2064 x 2752 px, 536.7 ms",
+        "x3: 9 tiles, 2064 x 2752 px, 518.2 ms",
+        "x4: 9 tiles, 2064 x 2752 px, 626.9 ms"
+      ],
+      "peakFootprintMB": 494.6,
+      "processToAppMs": 258.8
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # OfficeIMO Studio for macOS and iPadOS
 
-The native Swift app for macOS and iPadOS, built on the shared C# engine through its C interface. It currently runs the engine journey: it starts the engine with a folder in the app container, opens a bundled PDF, shows page 1, rotates it, undoes and redoes the rotation, and saves a copy. The [native Apple apps design](../../Docs/officeimo.studio-apple-native-design.md) describes the boundary between the app and the engine.
+The native Swift app for macOS and iPadOS, built on the shared C# engine through its C interface. It currently runs the engine journey: it starts the engine with a folder in the app container, opens a bundled PDF, shows page 1 from the engine's pixels, renders a PNG thumbnail, rotates the page, undoes and redoes the rotation, and saves a copy. The [native Apple apps design](../../Docs/officeimo.studio-apple-native-design.md) describes the boundary between the app and the engine.
 
 ## Build
 
@@ -18,9 +18,9 @@ Then open `OfficeIMOStudio.xcodeproj` and run the `OfficeIMOStudio-macOS` or `Of
 
 | Folder | Contents |
 | --- | --- |
-| `Shared/Engine` | `Engine` for process-wide calls and `EngineDocument`, an actor per open document. Engine calls block, so each document actor runs on its own serial queue, off the main actor and Swift's cooperative pool. Task cancellation cancels the engine call. |
+| `Shared/Engine` | `Engine` for process-wide calls and `EngineDocument`, an actor per open document. Engine calls block, so each document actor runs on its own serial queue, off the main actor and Swift's cooperative pool. Task cancellation cancels the engine call. Page rectangles become `CGImage`s that own the engine's pixels. |
 | `Shared/Journey` | The journey model and view. |
-| `Shared/Measurement` | Process metrics and the feasibility measurements. |
+| `Shared/Measurement` | Process metrics and the measurements: first page, repeated views, sampled pages, tiled zoom, the PNG path and memory. |
 | `Measurements` | The measurement documents' generator and the runner for the Mac and an iPad simulator. |
 
 ## Unattended runs
