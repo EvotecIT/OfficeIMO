@@ -41,8 +41,12 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long Sylvan() => _workload.Sylvan();
 
-        internal long ExcelReaderStringsMaterialized() => _workload.ExcelReader(materializeStrings: true);
+        internal long ExcelReaderStringsMaterialized(bool prefetch = false) => _workload.ExcelReader(materializeStrings: true, prefetch: prefetch);
         internal long ExcelReaderPrefetch(bool memory) => _workload.ExcelReader(prefetch: true, memory: memory);
+#if OFFICEIMO_BENCHMARK_NEW_APIS
+        internal void QualifyBorrowedUtf8() => _workload.QualifyBorrowedUtf8();
+        internal long OfficeIMOBorrowedUtf8() => _workload.OfficeIMOBorrowedUtf8();
+#endif
     }
 
     /// <summary>Preserves the upstream ZIP-format decompression-prefetch cases separately from defaults.</summary>
@@ -81,6 +85,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         [Benchmark(Baseline = true)]
         public long ExcelReaderStringsMaterialized() => _workload.ExcelReaderStringsMaterialized();
+        [Benchmark]
+        public long ExcelReaderStringsMaterializedPrefetch() => _workload.ExcelReaderStringsMaterialized(prefetch: true);
         [Benchmark]
         public long OfficeIMOBytes() => _workload.OfficeIMOBytes();
         [Benchmark]

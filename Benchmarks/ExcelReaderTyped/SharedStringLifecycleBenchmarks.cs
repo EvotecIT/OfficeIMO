@@ -1,10 +1,8 @@
 using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Reader;
-using OfficeIMO.Data;
 using Sylvan.Data.Excel;
 using System.IO.Compression;
 using System.Security.Cryptography;
-using System.Text;
 using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
@@ -15,12 +13,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     internal sealed class SharedStringLifecycleWorkload {
         private byte[] _bytes = [];
         private readonly WorkbookScanWorkload _scan = new();
-        private int _rows;
         private ComparisonWorkbookFormat _format;
         private long _headerChecksum;
-#if OFFICEIMO_BENCHMARK_NEW_APIS
-        private long _borrowedChecksum;
-#endif
 
         internal async Task SetupAsync(int rows, SharedStringZipStorage storage,
             ComparisonWorkbookFormat format = ComparisonWorkbookFormat.Xlsx) {
@@ -35,7 +29,6 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             });
             if (configured != null) WrittenWorkbookValidation.ValidateSavedXlsxRowCount(deflated, rows, configured);
             _bytes = storage == SharedStringZipStorage.Stored ? Store(deflated) : deflated;
-            _rows = rows + 1;
             if (storage == SharedStringZipStorage.Stored) ValidateInflatedParts(deflated, _bytes);
             using (MemoryStream packageStream = new MemoryStream(_bytes, writable: false)) {
                 using ZipArchive package = new ZipArchive(packageStream, ZipArchiveMode.Read);
@@ -62,61 +55,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 #if OFFICEIMO_BENCHMARK_NEW_APIS
         internal async Task SetupBorrowedAsync(int rows, SharedStringZipStorage storage, ComparisonWorkbookFormat format) {
             await SetupAsync(rows, storage, format);
-            using MemoryStream stream = new MemoryStream(_bytes, writable: false);
-            using IExcelWorkbook peer = OpenPeer(stream);
-            using IExcelRowEnumerator peerRows = peer.FirstSheet.GetEnumerator();
-            using ExcelWorkbookDataReader office = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false });
-            int count = 0;
-            long checksum = 0;
-            while (office.Read()) {
-                if (!peerRows.MoveNext() || office.FieldCount != StringHeavyWorkbookGenerator.Headers.Length)
-                    throw new InvalidDataException("Borrowed SST row shape differs.");
-                object[] expected = count == 0 ? StringHeavyWorkbookGenerator.Headers.Cast<object>().ToArray()
-                    : StringHeavyWorkbookGenerator.ExpectedValues(count);
-                for (int column = 0; column < expected.Length; column++) {
-                    if (!Equals(office.GetValue(column), expected[column]))
-                        throw new InvalidDataException("Borrowed SST native field/type differs.");
-                    if (expected[column] is string text) {
-                        byte[] utf8 = Encoding.UTF8.GetBytes(text);
-                        if (!office.TryGetUtf8Text(column, out ReadOnlySpan<byte> borrowed) || !borrowed.SequenceEqual(utf8)
-                            || !peerRows.Current[column].Value.SequenceEqual(utf8))
-                            throw new InvalidDataException($"Borrowed SST bytes differ at row {count + 1}, column {column + 1}.");
-                        checksum = unchecked(checksum + utf8.Length);
-                    } else if (expected[column] is double number) checksum = unchecked(checksum + (long)number);
-                    else if (expected[column] is DateTime date) checksum = unchecked(checksum + date.Ticks);
-                    else throw new InvalidDataException("Unexpected SST fixture field type.");
-                }
-                count++;
-            }
-            if (count != _rows || peerRows.MoveNext() || office.NextResult())
-                throw new InvalidDataException("Borrowed SST row/result count differs.");
-            _borrowedChecksum = checksum;
-            if (OfficeIMOFullBorrowed() != checksum || ExcelReaderFullOriginal() != checksum
-                || ExcelReaderFullOriginal(prefetch: true) != checksum)
-                throw new InvalidDataException("Borrowed SST full scan checksum differs.");
-            Console.WriteLine($"Qualified public shared-string UTF8 {format}/{storage}: rows={_rows}, checksum={checksum}; "
-                + "every borrowed byte/native field verified. Every measured scan opens a new reader; "
-                + "OfficeIMO normalized-string UTF8 encoding and its bounded reader-owned cache are included.");
+            _scan.QualifyBorrowedUtf8();
         }
 
-        internal long OfficeIMOFullBorrowed() {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(_bytes, new ExcelReadOptions { HasHeaderRow = false });
-            long sum = 0;
-            int rows = 0;
-            while (reader.Read()) {
-                for (int column = 0; column < reader.FieldCount; column++) {
-                    if (reader.TryGetUtf8Text(column, out ReadOnlySpan<byte> text)) sum = unchecked(sum + text.Length);
-                    else switch (reader.GetValue(column)) {
-                        case double number: sum = unchecked(sum + (long)number); break;
-                        case DateTime date: sum = unchecked(sum + date.Ticks); break;
-                        default: throw new InvalidDataException("The SST text field must provide borrowed UTF8.");
-                    }
-                }
-                rows++;
-            }
-            return rows == _rows && sum == _borrowedChecksum ? sum
-                : throw new InvalidDataException("Borrowed SST field checksum/count differs.");
-        }
+        internal long OfficeIMOFullBorrowed() => _scan.OfficeIMOBorrowedUtf8();
 #endif
 
         internal bool ExcelReaderFirstRow() {

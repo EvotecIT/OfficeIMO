@@ -12,12 +12,13 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
     public enum ComparisonWorkbookFormat { Xlsx, Xlsm, Xlsb, Xls }
 
     /// <summary>Shares validated scan operations between the two larger input suites.</summary>
-    internal sealed class WorkbookScanWorkload {
+    internal sealed partial class WorkbookScanWorkload {
         private static readonly ExcelReaderOptions PrefetchOptions = new() { PrefetchDecompression = true };
         private static readonly ExcelReaderOptions InternOptions = new() { InternStrings = true };
         private byte[] _bytes = [];
         private ComparisonWorkbookFormat _format;
-        private int _rows;
+        private int _rows, _columns;
+        private Func<int, object[]>? _expectedValues;
         private long _spanChecksum, _stringChecksum;
 
         internal void Setup(byte[] bytes, ComparisonWorkbookFormat format, int rows, int columns,
@@ -25,48 +26,30 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _bytes = bytes;
             _format = format;
             _rows = rows;
+            _columns = columns;
+            _expectedValues = expectedValues;
             BenchmarkInput.WriteWorkbookFixtureIdentity($"validated-scan/{format}/rows={rows}/columns={columns}", bytes,
                 zipPackage: format != ComparisonWorkbookFormat.Xls);
-            using MemoryStream stream = new MemoryStream(bytes, writable: false);
-            using IExcelWorkbook workbook = OpenPeer(stream);
-            using ExcelWorkbookDataReader office = ExcelDocument.OpenDataReader(bytes, new ExcelReadOptions { HasHeaderRow = false, SheetIndex = 0 });
-            using MemoryStream sylvanStream = new MemoryStream(bytes, writable: false);
-            using Sylvan.Data.Excel.ExcelDataReader sylvan = OpenSylvan(sylvanStream);
-            int count = 0;
-            long raw = 0, materialized = 0;
-            foreach (Row row in workbook.FirstSheet) {
-                if (row.ColumnCount != columns || !office.Read() || !sylvan.Read()
-                    || office.FieldCount != columns || sylvan.FieldCount != columns)
-                    throw new InvalidDataException("Reader row count or width differs during full qualification.");
-                object[]? expected = expectedValues?.Invoke(count);
-                for (int column = 0; column < columns; column++) {
-                    object? value = PeerValue(row[column]);
-                    object? officeValue = office.IsDBNull(column) ? null : office.GetValue(column);
-                    object? sylvanValue = SylvanValue(sylvan, column);
-                    if (!Equals(value, officeValue) || !Equals(value, sylvanValue)
-                        || (expected != null && !Equals(value, expected[column])))
-                        throw new InvalidDataException($"Field/type mismatch at row {count + 1}, column {column + 1}: "
-                            + $"ExcelReader={value} ({value?.GetType().Name}), OfficeIMO={officeValue} ({officeValue?.GetType().Name}), "
-                            + $"Sylvan={sylvanValue} ({sylvanValue?.GetType().Name}).");
-                    raw = unchecked(raw + AccumulateValue(value, byteLength: true));
-                    materialized = unchecked(materialized + AccumulateValue(value, byteLength: false));
-                }
-                count++;
-            }
-            if (count != rows || office.Read() || sylvan.Read()) throw new InvalidDataException("Reader row counts differ.");
+            (long raw, long materialized, int sheets) = QualifyValues();
             _spanChecksum = raw;
             _stringChecksum = materialized;
+            if (format != ComparisonWorkbookFormat.Xls) {
+                (long prefetchedRaw, long prefetchedStrings, _) = QualifyValues(PrefetchOptions);
+                if (prefetchedRaw != raw || prefetchedStrings != materialized)
+                    throw new InvalidDataException("Prefetched reader values differ from the default scan.");
+            }
             ExcelReader();
             ExcelReader(prefetch: true);
             ExcelReader(memory: true);
             ExcelReader(prefetch: true, memory: true);
             ExcelReader(materializeStrings: true);
+            ExcelReader(materializeStrings: true, prefetch: true);
             ExcelReader(materializeStrings: true, intern: true);
             OfficeIMO();
             OfficeIMO(streamInput: true);
             Sylvan();
             Console.WriteLine($"Qualified {_format}: rowsRead={rows}, columns={columns}, bytes={bytes.Length}, "
-                + $"spanChecksum={raw}, stringChecksum={materialized}, peerSheetCount={workbook.SheetCount}.");
+                + $"spanChecksum={raw}, stringChecksum={materialized}, peerSheetCount={sheets}.");
         }
 
         internal long ExcelReader(bool materializeStrings = false, bool prefetch = false, bool memory = false, bool intern = false) {
@@ -150,10 +133,10 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             return Check(sum, rows, _stringChecksum);
         }
 
-        private IExcelWorkbook OpenPeer(Stream stream) => _format switch {
-            ComparisonWorkbookFormat.Xlsx or ComparisonWorkbookFormat.Xlsm => ExcelReaderApi.FromXlsx(stream),
-            ComparisonWorkbookFormat.Xlsb => ExcelReaderApi.FromXlsb(stream),
-            ComparisonWorkbookFormat.Xls => ExcelReaderApi.FromXls(stream),
+        private IExcelWorkbook OpenPeer(Stream stream, ExcelReaderOptions? options = null) => _format switch {
+            ComparisonWorkbookFormat.Xlsx or ComparisonWorkbookFormat.Xlsm => ExcelReaderApi.FromXlsx(stream, options: options),
+            ComparisonWorkbookFormat.Xlsb => ExcelReaderApi.FromXlsb(stream, options: options),
+            ComparisonWorkbookFormat.Xls => ExcelReaderApi.FromXls(stream, options: options),
             _ => throw new ArgumentOutOfRangeException(),
         };
 

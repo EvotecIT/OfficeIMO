@@ -249,13 +249,16 @@ API and OfficeIMO's `byte[]` API. OfficeIMO's `Stream` case uses its normal stre
 overload, including its input-buffering cost. None of these methods measures disk
 I/O. `PrefetchedRealDataReadBenchmarks` preserves the upstream ZIP decompression
 prefetch cases for XLSX/XLSM/XLSB; `MaterializedRealDataReadBenchmarks` reads
-materialized strings in every engine.
+materialized strings in every engine. Its `ExcelReaderStringsMaterializedPrefetch`
+method combines materialized strings with decompression prefetch. Select XLSX,
+XLSM, or XLSB for that method; prefetch has no effect on uncompressed XLS.
 
 `StringHeavyReadBenchmarks` uses the [upstream generator](https://github.com/GabrielMarquezMatte/ExcelReader/blob/ca5b50f99e8ef57ab476f0a2bc8043558d58b28d/tests/ExcelReader.Benchmarks/Shared/StringHeavyWorkbookGenerator.cs)
 with shared strings enabled: 65,536 data rows, one header, eight text columns, and
 `Id`, `Amount`, and `Date`. It preserves the original deterministic text pools
-and distributions. `MaterializedStringHeavyReadBenchmarks` includes ordinary and
-explicitly interned ExcelReader string access as separate methods. OfficeIMO and
+and distributions. `MaterializedStringHeavyReadBenchmarks` includes ordinary,
+explicitly interned, and prefetched materialized ExcelReader string access as
+separate methods. OfficeIMO and
 Sylvan use their normal reader defaults; cache settings are not silently matched
 through adapters. `OFFICEIMO_STRING_BENCHMARK_ROWS` selects diagnostic sizes.
 
@@ -274,6 +277,49 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-strings
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*RealDataReadBenchmarks*' '*StringHeavyReadBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/large-input-dry --noOverwrite
 ```
+
+## Public borrowed UTF-8 scans
+
+Enable `OfficeIMOBenchmarkNewApis=true` to compare borrowed text bytes through
+each library's public API:
+
+| Benchmark class | Input |
+| --- | --- |
+| `BorrowedRawReadBenchmarks` | Generated headerless XLSX/XLSB, 50,000 rows and four fields by default |
+| `BorrowedRealDataReadBenchmarks` | Pinned XLSX/XLSM/XLSB, 65,535 data rows plus header and fourteen fields |
+
+Both classes expose `ExcelReaderBorrowed`, `ExcelReaderBorrowedPrefetch`, and
+`OfficeIMOBorrowedUtf8`. The OfficeIMO method calls `TryGetUtf8Text`; nontext
+fields retain their native values through `GetValue`, including its numeric/date
+boxing cost. Each invocation opens a fresh reader and consumes spans before
+advancing the row. Provider decoding, UTF-8 encoding, and reader-owned caching
+remain part of the operation. A borrowed result does not imply allocation-free
+lookup. XLS uses the separate materialized scan classes.
+
+Setup checks exact UTF-8 bytes, native values/types, row order, width, and count
+for both default and prefetched peer reads. It compares values against the
+independent reader and generated expected records where available. Unsupported
+nonempty text fails qualification; it is never converted by a caller fallback.
+An already-qualified empty value can contribute zero bytes when borrowing is
+unavailable. Timed scans retain a count/checksum check.
+
+`--validate-public-utf8` runs these setup checks and the deflated XLSX/XLSB
+shared-string UTF-8 checks without collecting timing results. Generated raw sizes
+use `OFFICEIMO_TYPED_BENCHMARK_ROWS`; shared-string sizes use the separate
+`OFFICEIMO_SHARED_UTF8_BENCHMARK_ROWS`. Real-data sizes are fixed. Set
+`OFFICEIMO_BENCHMARK_DATA` as described above to reuse hash-verified local fixtures.
+
+```powershell
+$project = './Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj'
+$env:OFFICEIMO_TYPED_BENCHMARK_ROWS = '50000'
+$env:OFFICEIMO_SHARED_UTF8_BENCHMARK_ROWS = '65536'
+dotnet run -c Release --project $project -p:OfficeIMOBenchmarkNewApis=true -- --validate-public-utf8
+dotnet run -c Release --project $project -p:OfficeIMOBenchmarkNewApis=true -- --filter '*.BorrowedRawReadBenchmarks.*' '*.BorrowedRealDataReadBenchmarks.*' --job Dry --artifacts ./Ignore/Benchmarks/public-utf8-dry --noOverwrite
+```
+
+Report borrowed-byte and materialized-string scans separately. Keep default,
+decompression-prefetch, and string-interning policies labelled in their results;
+the original raw API comparisons perform different string-materialization work.
 
 ## Writer options and native binary formats
 
@@ -567,7 +613,8 @@ variants. Native XLSB calls the public reader's own borrowed UTF-8 provider;
 there is no caller string-to-byte adapter.
 `OFFICEIMO_SHARED_UTF8_BENCHMARK_ROWS` selects a labelled diagnostic size.
 Its text fields use public borrowed UTF-8 spans, and numeric/date values retain
-their native getters. Setup validates every borrowed byte, native field type,
+their native values through `GetValue`, including boxing. Setup validates every
+borrowed byte, native field type,
 count, and order against the generator, peer, and independent Sylvan reader.
 Each measured operation opens and disposes a new reader. OfficeIMO borrows
 canonical bytes for indexed plain ASCII shared strings. Other normalized

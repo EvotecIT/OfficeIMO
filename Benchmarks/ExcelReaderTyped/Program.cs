@@ -230,6 +230,20 @@ if (args is ["--validate-write-records"]) {
 }
 
 #if OFFICEIMO_BENCHMARK_NEW_APIS
+if (args is ["--validate-public-utf8"]) {
+    foreach (int rows in new BorrowedRawReadBenchmarks().RowCounts())
+        foreach (RawWorkbookFormat format in new[] { RawWorkbookFormat.Xlsx, RawWorkbookFormat.Xlsb })
+            await new BorrowedRawReadBenchmarks { RowCount = rows, Format = format }.SetupAsync();
+    foreach (ComparisonWorkbookFormat format in new[] {
+        ComparisonWorkbookFormat.Xlsx, ComparisonWorkbookFormat.Xlsm, ComparisonWorkbookFormat.Xlsb })
+        new BorrowedRealDataReadBenchmarks { Format = format }.Setup();
+    foreach (int rows in new SharedStringUtf8ReadBenchmarks().RowCounts())
+        foreach (ComparisonWorkbookFormat format in new[] { ComparisonWorkbookFormat.Xlsx, ComparisonWorkbookFormat.Xlsb })
+            await new SharedStringUtf8ReadBenchmarks {
+                RowCount = rows, Format = format, Storage = SharedStringZipStorage.Deflated,
+            }.SetupAsync();
+    return;
+}
 if (args is ["--validate-write-styled-rows"]) {
     StyledRowWriterBenchmarks workload = new StyledRowWriterBenchmarks();
     try { workload.Setup(); workload.SaveQualifiedArtifacts(); } finally { workload.Cleanup(); }
