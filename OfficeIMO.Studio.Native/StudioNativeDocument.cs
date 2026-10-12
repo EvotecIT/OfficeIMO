@@ -1,7 +1,6 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Workspace;
-using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Native;
 
@@ -107,11 +106,8 @@ internal sealed class StudioNativeDocument : IDisposable {
     /// <summary>Writes pages to a new PDF at <paramref name="path"/>; the open document is unchanged.</summary>
     internal Task ExtractPagesAsync(IReadOnlyList<int> pageNumbers, string path, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination is required.", nameof(path));
-        return RunAsync(async () => {
-            OfficeWorkflowResult result = await _workspace.ExtractAsync(RequirePages(pageNumbers), path, cancellationToken).ConfigureAwait(false);
-            if (result.Status == OfficeWorkflowStatus.Cancelled) throw new OperationCanceledException(cancellationToken);
-            if (result.Status is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Unconfirmed) throw new InvalidOperationException(result.Summary);
-        }, cancellationToken);
+        // The local path keeps the workflow runner, and the conversions it roots, out of the NativeAOT library.
+        return RunAsync(() => _workspace.ExtractToLocalFileAsync(RequirePages(pageNumbers), path, cancellationToken), cancellationToken);
     }
 
     /// <summary>
