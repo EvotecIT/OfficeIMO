@@ -540,13 +540,15 @@ public sealed partial class MainWindow : Window {
 
     private async void OnClosing(object? sender, WindowClosingEventArgs e) {
         if (_allowClose) return;
-        if (!TabHost.HasBusyDocuments && !_session.IsBusy && !TabHost.HasDirtyDocuments && !_closePromptOpen) { _session.CaptureForShutdown(); return; }
+        // Running jobs count as busy work: closing the window would abandon them without a choice.
+        bool busy = TabHost.HasBusyDocuments || _session.IsBusy || _services.Jobs.HasActive;
+        if (!busy && !TabHost.HasDirtyDocuments && !_closePromptOpen) { _session.CaptureForShutdown(); return; }
         e.Cancel = true;
         if (_closePromptOpen) return;
         _closePromptOpen = true;
         try {
-            if ((TabHost.HasBusyDocuments || _session.IsBusy) && !await ConfirmActiveCloseAsync(TabHost.OperationDocuments, wholeWindow: true)) return;
-            if (TabHost.HasBusyDocuments || _session.IsBusy) return;
+            if (busy && !await ConfirmActiveCloseAsync(TabHost.OperationDocuments, wholeWindow: true)) return;
+            if (TabHost.HasBusyDocuments || _session.IsBusy || _services.Jobs.HasActive) return;
             if (!await TabHost.RequestCloseAllAsync()) return;
             _allowClose = true;
             Close();

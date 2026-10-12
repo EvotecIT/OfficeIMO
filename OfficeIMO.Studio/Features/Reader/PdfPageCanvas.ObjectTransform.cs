@@ -31,10 +31,23 @@ public sealed partial class PdfPageCanvas {
         (double dx, double dy) = e.Key switch { Key.Left => (-amount, 0D), Key.Right => (amount, 0D), Key.Up => (0D, -amount), _ => (0D, amount) };
         var bounds = selected.Bounds;
         var target = resize
-            ? new PdfEditorVisualBounds(bounds.Left, bounds.Top, Math.Max(bounds.Left + 1D, bounds.Right + dx), Math.Max(bounds.Top + 1D, bounds.Bottom + dy))
+            ? KeyboardResize(bounds, dx, dy, keepAspect: selected.Kind == PdfEditorSelectionKind.Image)
             : new PdfEditorVisualBounds(bounds.Left + dx, bounds.Top + dy, bounds.Right + dx, bounds.Bottom + dy);
         ObjectTransformCompleted?.Invoke(new(selected, target, SelectedAnnotations.ToArray()));
         return true;
+    }
+
+    /// <summary>
+    /// Resizes from the right or bottom edge. Images keep their proportions, as with the pointer handles, so the other
+    /// dimension follows the one the arrow key changes.
+    /// </summary>
+    internal static PdfEditorVisualBounds KeyboardResize(PdfEditorVisualBounds bounds, double dx, double dy, bool keepAspect) {
+        double width = Math.Max(1D, bounds.Width + dx), height = Math.Max(1D, bounds.Height + dy);
+        if (keepAspect && bounds.Width > 0D && bounds.Height > 0D) {
+            if (dx != 0D) height = Math.Max(1D, bounds.Height * width / bounds.Width);
+            else width = Math.Max(1D, bounds.Width * height / bounds.Height);
+        }
+        return new PdfEditorVisualBounds(bounds.Left, bounds.Top, bounds.Left + width, bounds.Top + height);
     }
 
     private bool BeginObjectTransform(PointerPressedEventArgs e) {

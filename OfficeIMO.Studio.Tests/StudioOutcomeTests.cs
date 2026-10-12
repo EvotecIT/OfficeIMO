@@ -31,4 +31,20 @@ public sealed class StudioOutcomeTests {
         Assert.True(failed.IsFailed);
         Assert.False(failed.NeedsChecking);
     }
+
+    [Fact]
+    public void A_conversion_with_warnings_or_loss_keeps_its_notes_in_job_history() {
+        var history = new StudioJobHistory(StudioLocalization.Current);
+        StudioJobRecord noted = history.Start("Conversion", "input.docx", "output.pdf", () => { });
+        noted.Complete(OfficeWorkflowStatus.Completed, "output.pdf", "Converted with approximated content.", hasNotes: true);
+        Assert.Equal(StudioOutcome.CompletedWithNotes, noted.SharedOutcome);
+        Assert.True(noted.HasNotes);
+        Assert.False(noted.IsSucceeded);
+        Assert.True(noted.HasOutput);
+
+        // Notes describe a completed result only.
+        StudioJobRecord failed = history.Start("Conversion", "input.docx", "output.pdf", () => { });
+        failed.Complete(OfficeWorkflowStatus.Failed, null, "The input could not be read.", hasNotes: true);
+        Assert.Equal(StudioOutcome.Failed, failed.SharedOutcome);
+    }
 }

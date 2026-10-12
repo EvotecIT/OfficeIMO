@@ -60,7 +60,10 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
         foreach (MainWindowViewModel document in _documents) document.PropertyChanged += OnDocumentChanged;
         if (_host is not null) _host.Tabs.CollectionChanged += OnTabsChanged;
         if (_session is not null) _session.PropertyChanged += OnSessionChanged;
-        if (_jobs is not null) foreach (Workflows.StudioJobRecord record in _jobs.Entries) record.PropertyChanged += OnJobChanged;
+        if (_jobs is not null) {
+            foreach (Workflows.StudioJobRecord record in _jobs.Entries) record.PropertyChanged += OnJobChanged;
+            ((INotifyCollectionChanged)_jobs.Entries).CollectionChanged += OnJobsChanged;
+        }
         ShowRunningWork();
         Opened += (_, _) => keep.Focus();
         Closed += (_, _) => {
@@ -68,7 +71,10 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
             foreach (MainWindowViewModel document in _documents) document.PropertyChanged -= OnDocumentChanged;
             if (_host is not null) _host.Tabs.CollectionChanged -= OnTabsChanged;
             if (_session is not null) _session.PropertyChanged -= OnSessionChanged;
-            if (_jobs is not null) foreach (Workflows.StudioJobRecord record in _jobs.Entries) record.PropertyChanged -= OnJobChanged;
+            if (_jobs is not null) {
+                foreach (Workflows.StudioJobRecord record in _jobs.Entries) record.PropertyChanged -= OnJobChanged;
+                ((INotifyCollectionChanged)_jobs.Entries).CollectionChanged -= OnJobsChanged;
+            }
         };
     }
 
@@ -92,7 +98,14 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
 
     private void OnJobChanged(object? sender, PropertyChangedEventArgs args) {
         if (args.PropertyName is nameof(Workflows.StudioJobRecord.IsActive) or nameof(Workflows.StudioJobRecord.Status) or nameof(Workflows.StudioJobRecord.Progress))
-            this.Dispatcher.Post(ShowRunningWork);
+            this.Dispatcher.Post(CheckIdle);
+    }
+
+    // Work started while the dialog is open is listed, and the window waits for it too.
+    private void OnJobsChanged(object? sender, NotifyCollectionChangedEventArgs args) {
+        foreach (Workflows.StudioJobRecord record in args.OldItems?.OfType<Workflows.StudioJobRecord>() ?? []) record.PropertyChanged -= OnJobChanged;
+        foreach (Workflows.StudioJobRecord record in args.NewItems?.OfType<Workflows.StudioJobRecord>() ?? []) record.PropertyChanged += OnJobChanged;
+        this.Dispatcher.Post(CheckIdle);
     }
 
     private string Text(string key, string fallback) => _localizer.GetOrDefault("Dialog.ActiveOperations." + key, fallback);
@@ -108,6 +121,7 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
             _cancel.IsEnabled = false;
             _session?.CancelActiveOperation();
             foreach (MainWindowViewModel document in _documents.ToArray()) document.CancelCurrentOperation();
+            CancelJobs();
         }
         CheckIdle();
     }
@@ -139,7 +153,13 @@ internal sealed class ActiveOperationsDialogContent : StudioDialogContent {
         if (_cancelRequested) {
             _session?.CancelActiveOperation();
             foreach (MainWindowViewModel document in _documents.Where(document => document.CanCancelOperation).ToArray()) document.CancelCurrentOperation();
+            CancelJobs();
         }
-        if (_session?.IsBusy != true && _documents.All(document => !document.CanCancelOperation)) Close(true);
+        if (_session?.IsBusy != true && _documents.All(document => !document.CanCancelOperation) && _jobs?.HasActive != true) Close(true);
+    }
+
+    private void CancelJobs() {
+        foreach (Workflows.StudioJobRecord record in _jobs?.Entries.Where(record => record.IsActive).ToArray() ?? [])
+            if (record.CancelCommand.CanExecute(null)) record.CancelCommand.Execute(null);
     }
 }

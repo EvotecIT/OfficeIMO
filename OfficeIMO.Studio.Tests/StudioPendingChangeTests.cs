@@ -44,10 +44,13 @@ public sealed class StudioPendingChangeTests {
             Assert.False(document.HasPendingCrop);
             Assert.All(document.OrganizerPages, page => Assert.Null(page.CropPreviewMargin));
 
-            // Leaving the Pages task drops an unapplied outline.
+            // Leaving the Pages task hides an unapplied outline; returning shows it again until it is applied or cancelled.
             document.CropMargin = 30;
             document.ShowViewModeCommand.Execute(null);
-            Assert.False(document.HasPendingCrop);
+            Assert.True(document.HasPendingCrop);
+            Assert.All(document.OrganizerPages, page => Assert.Null(page.CropPreviewMargin));
+            document.ShowPagesModeCommand.Execute(null);
+            Assert.Equal(new double?[] { null, null, null, 30 }, document.OrganizerPages.Select(page => page.CropPreviewMargin));
         } finally { Directory.Delete(root, true); }
     }
 

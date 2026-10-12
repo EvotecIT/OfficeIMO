@@ -91,6 +91,21 @@ public sealed class StudioShellStabilityTests {
     }
 
     [Fact]
+    public async Task Instance_that_stops_answering_after_connecting_lets_the_later_launch_run_independently() {
+        string name = UniqueInstanceName();
+        using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
+        // A stalled owner: it takes the connection and the message but never replies.
+        await using var stalled = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        Task connected = stalled.WaitForConnectionAsync();
+        using StudioSingleInstance later = AcquireFromAnotherLaunch(name);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        Assert.False(await Task.Run(() => later.TryForward([Path.Combine(Path.GetTempPath(), "stalled.pdf")], TimeSpan.FromMilliseconds(500))));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(5));
+        await connected.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
     public void Linux_picker_globs_match_any_letter_case() {
         string[] globs = StudioPickerPatterns.CaseInsensitive(["*.pdf", "*.tar.gz"], platformIgnoresCase: false);
         Assert.Equal(new[] { "*.[pP][dD][fF]", "*.[tT][aA][rR].[gG][zZ]" }, globs);

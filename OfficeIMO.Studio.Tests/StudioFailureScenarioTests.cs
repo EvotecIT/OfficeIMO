@@ -14,7 +14,8 @@ namespace OfficeIMO.Studio.Tests;
 /// the user's work, states what happened to the output, and leaves no staging files behind.
 /// </summary>
 public sealed class StudioFailureScenarioTests {
-    private static Exception DiskFull() => new IOException("There is not enough space on the disk.", unchecked((int)0x80070070));
+    // Windows reports ERROR_DISK_FULL as an HRESULT; Linux and macOS report the raw ENOSPC errno.
+    private static Exception DiskFull() => new IOException("There is not enough space on the disk.", OperatingSystem.IsWindows() ? unchecked((int)0x80070070) : 28);
 
     [Fact]
     public async Task Saving_to_a_full_disk_keeps_the_edits_and_a_recovery_copy_and_says_the_disk_is_full() {
@@ -172,8 +173,18 @@ public sealed class StudioFailureScenarioTests {
             Assert.Contains("Conversion · Quarterly report.docx", titles);
             Assert.DoesNotContain(titles, title => title.StartsWith("Searchable PDF", StringComparison.Ordinal));
 
+            // Work started while the dialog is open joins the list, and cancelling from the dialog reaches it.
+            bool cancelled = false;
+            StudioJobRecord later = history.Start("Page images", Path.Combine(Path.GetTempPath(), "Deck.pdf"), null, () => cancelled = true);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Contains("Page images · Deck.pdf", Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(list).OfType<Avalonia.Controls.TextBlock>().Select(text => text.Text));
+            var cancel = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(content).OfType<Avalonia.Controls.Button>().Single(button => button.Name == "CancelWorkAndClose");
+            cancel.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
+            Assert.True(cancelled);
+
             // Work that finishes leaves the list.
             running.Complete(OfficeWorkflowStatus.Completed, null, "Done.");
+            later.Complete(OfficeWorkflowStatus.Cancelled, null, "Cancelled.");
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             Assert.False(list.IsVisible);
             return true;

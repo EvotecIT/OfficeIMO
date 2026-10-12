@@ -45,11 +45,14 @@ public sealed partial class StudioJobRecord : ObservableObject {
 
     /// <summary>Finished outcome for the progress colour, using the states shared with Convert and OCR.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSucceeded), nameof(IsFailed), nameof(IsCancelled), nameof(NeedsChecking))]
+    [NotifyPropertyChangedFor(nameof(IsSucceeded), nameof(HasNotes), nameof(IsFailed), nameof(IsCancelled), nameof(NeedsChecking))]
     private OfficeWorkflowStatus? _outcome;
+    private bool _completedWithNotes;
 
-    public bool IsSucceeded => Outcome == OfficeWorkflowStatus.Completed;
-    internal Infrastructure.StudioOutcome SharedOutcome => Infrastructure.StudioOutcomes.From(Outcome);
+    public bool IsSucceeded => SharedOutcome == Infrastructure.StudioOutcome.Succeeded;
+    /// <summary>Completed, with warnings or approximated content the user should read.</summary>
+    public bool HasNotes => SharedOutcome == Infrastructure.StudioOutcome.CompletedWithNotes;
+    internal Infrastructure.StudioOutcome SharedOutcome => Infrastructure.StudioOutcomes.From(Outcome, _completedWithNotes);
     public bool IsFailed => SharedOutcome == Infrastructure.StudioOutcome.Failed;
     /// <summary>The output may exist but was not confirmed; it is checked, not retried blindly.</summary>
     public bool NeedsChecking => SharedOutcome == Infrastructure.StudioOutcome.NeedsChecking;
@@ -107,7 +110,8 @@ public sealed partial class StudioJobRecord : ObservableObject {
         Summary = progress.Message;
     }
 
-    internal void Complete(OfficeWorkflowStatus status, string? outputPath, string summary, OfficeWorkflowOutputRecovery? recovery = null) {
+    internal void Complete(OfficeWorkflowStatus status, string? outputPath, string summary, OfficeWorkflowOutputRecovery? recovery = null,
+        bool hasNotes = false) {
         if (!IsActive) return;
         OutputPath = outputPath;
         HasOutput = status == OfficeWorkflowStatus.Completed && !string.IsNullOrWhiteSpace(outputPath);
@@ -116,11 +120,14 @@ public sealed partial class StudioJobRecord : ObservableObject {
         Recoveries.Clear();
         if (recovery is not null) Recoveries.Add(recovery);
         OnPropertyChanged(nameof(HasMultipleRecoveries));
+        _completedWithNotes = hasNotes && status == OfficeWorkflowStatus.Completed;
         Status = status == OfficeWorkflowStatus.Unconfirmed
             ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
+            : _completedWithNotes ? _localizer.GetOrDefault("Conversion.Job.CompletedWithWarnings", "Completed with warnings")
             : _localizer.GetOrDefault("Workflow.Status." + status, status.ToString());
         Progress = status == OfficeWorkflowStatus.Cancelled ? Progress : 1D;
         Outcome = status;
+        OnPropertyChanged(nameof(HasNotes)); OnPropertyChanged(nameof(IsSucceeded));
         _cancel = null;
         IsActive = false;
     }

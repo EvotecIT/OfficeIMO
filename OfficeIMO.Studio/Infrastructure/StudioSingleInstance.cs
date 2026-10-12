@@ -70,20 +70,27 @@ internal sealed class StudioSingleInstance : IDisposable {
         if (IsPrimary || paths.Count > MaximumPaths) return false;
         byte[] payload = JsonSerializer.SerializeToUtf8Bytes(new ForwardedLaunch(1, paths.ToArray()));
         if (payload.Length > MaximumMessageBytes) return false;
+        // One deadline covers connecting, sending and the reply, so a running instance that stops responding after
+        // accepting the connection cannot hold this launch: it falls back to opening its own window.
+        using var deadline = new CancellationTokenSource(timeout > TimeSpan.Zero ? timeout : TimeSpan.FromMilliseconds(1));
         try {
-            using var client = new NamedPipeClientStream(".", Name, PipeDirection.InOut, PipeOptions.CurrentUserOnly);
-            client.Connect((int)Math.Max(1, timeout.TotalMilliseconds));
-            AllowForegroundActivation();
-            Span<byte> length = stackalloc byte[4];
-            System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(length, payload.Length);
-            client.Write(length);
-            client.Write(payload);
-            client.Flush();
-            int reply = client.ReadByte();
-            return reply == Accepted;
-        } catch (Exception error) when (error is IOException or TimeoutException or UnauthorizedAccessException or InvalidOperationException) {
+            return ForwardAsync(payload, deadline.Token).GetAwaiter().GetResult();
+        } catch (Exception error) when (error is IOException or TimeoutException or UnauthorizedAccessException or InvalidOperationException or OperationCanceledException) {
             return false;
         }
+    }
+
+    private async Task<bool> ForwardAsync(byte[] payload, CancellationToken cancellation) {
+        await using var client = new NamedPipeClientStream(".", Name, PipeDirection.InOut, PipeOptions.CurrentUserOnly | PipeOptions.Asynchronous);
+        await client.ConnectAsync(cancellation).ConfigureAwait(false);
+        AllowForegroundActivation();
+        byte[] length = new byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(length, payload.Length);
+        await client.WriteAsync(length, cancellation).ConfigureAwait(false);
+        await client.WriteAsync(payload, cancellation).ConfigureAwait(false);
+        await client.FlushAsync(cancellation).ConfigureAwait(false);
+        byte[] reply = new byte[1];
+        return await client.ReadAsync(reply, cancellation).ConfigureAwait(false) == 1 && reply[0] == Accepted;
     }
 
     /// <summary>

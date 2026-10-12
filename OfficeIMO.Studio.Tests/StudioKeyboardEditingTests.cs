@@ -24,14 +24,25 @@ public sealed class StudioKeyboardEditingTests {
             Press(canvas, Key.Up, primary | KeyModifiers.Alt | KeyModifiers.Shift);
             Press(canvas, Key.Right, KeyModifiers.None);
 
+            bool image = kind == PdfEditorSelectionKind.Image;
             Assert.Equal(new[] {
                 new PdfEditorVisualBounds(101, 100, 201, 150), // moved one point
                 new PdfEditorVisualBounds(100, 110, 200, 160), // moved ten points with Shift
-                new PdfEditorVisualBounds(100, 100, 201, 150), // wider by one point
-                new PdfEditorVisualBounds(100, 100, 200, 140)  // shorter by ten points
+                // Wider by one point and shorter by ten; an image keeps its proportions.
+                new PdfEditorVisualBounds(100, 100, 201, image ? 150.5 : 150),
+                new PdfEditorVisualBounds(100, 100, image ? 180 : 200, 140)
             }, transforms);
             return true;
         }, CancellationToken.None);
+    }
+
+    [Fact]
+    public void Keyboard_resizing_keeps_an_image_in_proportion() {
+        // The engine resizes images only with one scale factor, as the pointer handles do.
+        var bounds = new PdfEditorVisualBounds(100, 100, 200, 150);
+        Assert.Equal(new PdfEditorVisualBounds(100, 100, 210, 155), PdfPageCanvas.KeyboardResize(bounds, 10, 0, keepAspect: true));
+        Assert.Equal(new PdfEditorVisualBounds(100, 100, 180, 140), PdfPageCanvas.KeyboardResize(bounds, 0, -10, keepAspect: true));
+        Assert.Equal(new PdfEditorVisualBounds(100, 100, 210, 150), PdfPageCanvas.KeyboardResize(bounds, 10, 0, keepAspect: false));
     }
 
     [Fact]

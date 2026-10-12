@@ -5680,4 +5680,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Invoice.FontFiles" xml:space="preserve"><value>Schriften</value></data>
   <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>Der PDF-Export ganzer Ordner benötigt dauerhaften Zugriff auf ganze Ordner, den diese Studio-Ausgabe nicht hat. Verwenden Sie „Dateien hinzufügen“ und „Ausstehende ausführen“, um mehrere Dokumente zu konvertieren.</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Alle Anmerkungen auswählen</value></data>
+  <data name="Workflow.Status.Completed" xml:space="preserve"><value>Abgeschlossen</value></data>
+  <data name="Workflow.Status.Failed" xml:space="preserve"><value>Fehlgeschlagen</value></data>
 </root>

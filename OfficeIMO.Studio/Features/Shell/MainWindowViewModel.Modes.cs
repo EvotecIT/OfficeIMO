@@ -100,7 +100,8 @@ public sealed partial class MainWindowViewModel {
             SelectedEditorToolChoice = EditorTools[0];
         }
         foreach (PdfPageViewModel page in Pages) page.SelectionMode = GetEditorSelectionMode();
-        if (value != StudioDocumentMode.Pages) EndCropPreview();
+        // The outline shows only in Pages; a pending crop survives a visit to another task until it is applied or cancelled.
+        UpdateCropPreview();
         OnPropertyChanged(nameof(EditorInstruction));
         UpdateFormAnchor();
         if ((value == StudioDocumentMode.Annotate && SelectedObject?.Kind != PdfEditorSelectionKind.Annotation) ||

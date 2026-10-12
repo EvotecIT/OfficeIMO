@@ -3028,4 +3028,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Invoice.FontFiles" xml:space="preserve"><value>Fonts</value></data>
   <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>Folder PDF export needs ongoing access to whole folders, which this edition of Studio does not have. Use Add files and Run pending to convert several documents.</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Select all annotations</value></data>
+  <data name="Workflow.Status.Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="Workflow.Status.Failed" xml:space="preserve"><value>Failed</value></data>
 </root>
