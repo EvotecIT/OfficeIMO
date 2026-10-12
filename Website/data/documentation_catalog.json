@@ -3,19 +3,20 @@
   "format": "officeimo.documentation-catalog",
   "repository": {
     "projectCount": 301,
-    "productionComponentCount": 152,
+    "productionComponentCount": 151,
     "testProjectCount": 58,
     "benchmarkProjectCount": 36,
-    "validationProjectCount": 56,
+    "validationProjectCount": 57,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54766
+    "conceptualWordCount": 54746
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 34,
       "componentIndexes": [
+        94,
         95,
         96,
         97,
@@ -48,27 +49,27 @@
         124,
         125,
         126,
-        127,
-        128
+        127
       ]
     },
     {
       "name": "Formats and interoperability",
       "componentCount": 26,
       "componentIndexes": [
+        12,
         13,
         14,
         15,
-        16,
-        19,
+        18,
+        21,
         22,
-        23,
+        26,
         27,
         28,
         29,
         30,
-        31,
-        54,
+        53,
+        72,
         73,
         74,
         75,
@@ -77,11 +78,10 @@
         78,
         79,
         80,
-        81,
+        92,
         93,
-        94,
-        137,
-        138
+        136,
+        137
       ]
     },
     {
@@ -89,56 +89,56 @@
       "componentCount": 14,
       "componentIndexes": [
         1,
-        17,
+        16,
+        24,
         25,
-        26,
+        63,
         64,
         65,
         66,
-        67,
+        69,
         70,
         71,
-        72,
-        92,
-        132,
-        151
+        91,
+        131,
+        150
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
+        38,
         39,
         40,
-        41,
-        42
+        41
       ]
     },
     {
       "name": "Office documents",
       "componentCount": 21,
       "componentIndexes": [
+        31,
         32,
         33,
         34,
         35,
         36,
         37,
-        38,
+        84,
         85,
         86,
         87,
         88,
         89,
-        90,
+        138,
         139,
         140,
         141,
         142,
         143,
         144,
-        145,
-        146
+        145
       ]
     },
     {
@@ -148,6 +148,7 @@
         5,
         6,
         7,
+        42,
         43,
         44,
         45,
@@ -158,32 +159,31 @@
         50,
         51,
         52,
-        53,
+        54,
         55,
         56,
         57,
         58,
         59,
-        60,
+        82,
         83,
-        84,
+        128,
         129,
-        130,
-        131
+        130
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
+        60,
         61,
-        62,
-        63
+        62
       ]
     },
     {
       "name": "Specialized components",
-      "componentCount": 25,
+      "componentCount": 24,
       "componentIndexes": [
         0,
         2,
@@ -193,23 +193,22 @@
         9,
         10,
         11,
-        12,
-        18,
+        17,
+        19,
         20,
-        21,
-        24,
+        23,
+        67,
         68,
-        69,
-        82,
-        91,
+        81,
+        90,
+        132,
         133,
         134,
         135,
-        136,
+        146,
         147,
         148,
-        149,
-        150
+        149
       ]
     }
   ],
@@ -356,19 +355,6 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/chart-forge-x/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.ChartForgeX"
-    },
-    {
-      "name": "OfficeIMO.ChartForgeX.Examples",
-      "packageId": "OfficeIMO.ChartForgeX.Examples",
-      "category": "Specialized components",
-      "description": "OfficeIMO.ChartForgeX.Examples is a focused component in the OfficeIMO managed document platform.",
-      "kind": "tool",
-      "projectPath": "OfficeIMO.ChartForgeX.Examples/OfficeIMO.ChartForgeX.Examples.csproj",
-      "sourceFileCount": 4,
-      "referencingTestProjectCount": 0,
-      "docsUrl": "/docs/capabilities/packages/",
-      "apiUrl": null,
-      "packageUrl": null
     },
     {
       "name": "OfficeIMO.ChartForgeX.Markdown",
