@@ -17,6 +17,13 @@ struct PageCanvas: UIViewRepresentable {
         if let request = session.canvasRequest { view.handle(request) }
         let drawing = session.task == .markup && session.canEditAnnotations
         view.markup.setActive(drawing)
+        view.textSelection.setEnabled(session.task == .read && session.canCopyText)
+        view.tiles.selectionColor = view.tintColor.withAlphaComponent(0.3).cgColor
+        if let selection = session.textSelection {
+            view.tiles.select(page: selection.page, rects: session.selectionRects)
+        } else {
+            view.tiles.select(page: 0, rects: [])
+        }
         // A double tap on the page draws a dot while marking up, rather than zooming.
         view.doubleTap.isEnabled = !drawing
         view.markup.update()
@@ -36,6 +43,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     var contentView: UIView { content }
     private(set) lazy var markup = MarkupController(session: session, scrollView: self)
     let doubleTap = UITapGestureRecognizer()
+    private(set) lazy var textSelection = TextSelectionController(session: session, scrollView: self)
     private var handledRequest: UUID?
     private var laidOutWidth: CGFloat = 0
     private var fitZoom: CGFloat = 1
@@ -54,6 +62,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         doubleTap.addTarget(self, action: #selector(doubleTapped(_:)))
         doubleTap.numberOfTapsRequired = 2
         addGestureRecognizer(doubleTap)
+        _ = textSelection
     }
 
     @available(*, unavailable)

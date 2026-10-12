@@ -96,6 +96,34 @@ final class PageTiles {
             }
             highlightLayers.removeAll()
             drawHighlights()
+            selectionLayers.removeAll()
+            drawSelection()
+        }
+    }
+
+    private var selection: (page: Int, rects: [CGRect])?
+    private var selectionLayers: [CALayer] = []
+    /// The selection's colour: the platform's text selection colour.
+    var selectionColor = CGColor(red: 0, green: 0.48, blue: 1, alpha: 0.3)
+
+    /// Shows a text selection's lines on a page, in the displayed page's points.
+    func select(page: Int, rects: [CGRect]) {
+        guard selection?.page != page || selection?.rects != rects else { return }
+        selection = rects.isEmpty ? nil : (page, rects)
+        withoutAnimation { drawSelection() }
+    }
+
+    private func drawSelection() {
+        selectionLayers.forEach { $0.removeFromSuperlayer() }
+        selectionLayers.removeAll()
+        guard let selection, clipLayers.indices.contains(selection.page - 1) else { return }
+        for rect in selection.rects {
+            let mark = CALayer()
+            mark.frame = rect.insetBy(dx: -0.5, dy: -0.5)
+            mark.backgroundColor = selectionColor
+            mark.zPosition = 11
+            clipLayers[selection.page - 1].addSublayer(mark)
+            selectionLayers.append(mark)
         }
     }
 

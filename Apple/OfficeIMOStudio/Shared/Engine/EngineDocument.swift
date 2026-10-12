@@ -114,6 +114,8 @@ struct AnnotationRequest: Encodable, Sendable {
     var color: EngineColor?
     var strokeWidth: Double?
     var opacity: Double?
+    /// Text markup's lines, in the displayed page's points.
+    var quads: [SearchResult.Rectangle]?
 }
 
 /// The markup annotations on a page, from officeimo_document_annotations_json.
@@ -302,6 +304,16 @@ actor EngineDocument {
             var error: UnsafeMutablePointer<CChar>?
             try check(json.withCString { officeimo_document_add_annotation_json(handle, $0, cancellation, &error) }, error)
         }
+    }
+
+    func pageText(page: Int) async throws -> PageText {
+        let json: String = try await withEngineCancellation { cancellation in
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_document_page_text_json(handle, Int32(page), cancellation, &json, &error), error)
+            return takeString(json) ?? "{}"
+        }
+        return try JSONDecoder().decode(PageText.self, from: Data(json.utf8))
     }
 
     func annotations(page: Int) async throws -> AnnotationList {

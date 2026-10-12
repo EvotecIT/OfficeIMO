@@ -198,6 +198,12 @@ struct ReadView: View {
             .onChange(of: session.searchText) { _, text in
                 if text.isEmpty { session.clearSearch() }
             }
+            .task(id: "\(session.currentPage)-\(session.revision)") {
+                // The page in view and its neighbours have their text ready for selection.
+                for page in [session.currentPage, session.currentPage + 1, session.currentPage - 1] where page >= 1 {
+                    await session.loadPageText(page)
+                }
+            }
             .task(id: session.currentPage) {
                 guard session.pageCount > 1 else { return }
                 withAnimation(.easeOut(duration: 0.15)) { isIndicatorShown = true }

@@ -5,6 +5,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 #if os(macOS)
 import AppKit
+#else
+import UIKit
 #endif
 
 /// The tasks a document window offers. Only tasks the engine supports are listed.
@@ -105,6 +107,12 @@ final class DocumentSession {
     /// The annotations on the current page, for the inspector and selection.
     private(set) var pageAnnotations: AnnotationList?
     var selectedAnnotation: Int?
+
+    // Text selection
+    /// Text selected in the Read task, on one page.
+    var textSelection: TextSelection?
+    @ObservationIgnored private var pageTexts: [Int: PageText] = [:]
+    @ObservationIgnored private var pageTextLoads: [Int: Task<PageText?, Never>] = [:]
 
     // Search
     var searchText = ""
@@ -244,6 +252,75 @@ final class DocumentSession {
         }
     }
 
+    // MARK: Text selection
+
+    var canCopyText: Bool { isReady && facts?.canExtractText != false }
+
+    /// A page's text, if loaded for the revision shown; loadPageText fetches it.
+    func pageText(_ page: Int) -> PageText? {
+        guard let text = pageTexts[page], text.revision == revision else { return nil }
+        return text
+    }
+
+    /// Loads a page's text once per revision, keeping a few pages.
+    @discardableResult
+    func loadPageText(_ page: Int) async -> PageText? {
+        if let text = pageText(page) { return text }
+        guard let engine, canCopyText, (1...max(pageCount, 1)).contains(page) else { return nil }
+        if let load = pageTextLoads[page] { return await load.value }
+        let load = Task<PageText?, Never> { try? await engine.pageText(page: page) }
+        pageTextLoads[page] = load
+        let text = await load.value
+        pageTextLoads[page] = nil
+        if let text, text.revision == revision {
+            pageTexts[page] = text
+            if pageTexts.count > 8, let far = pageTexts.keys.max(by: { abs($0 - page) < abs($1 - page) }) { pageTexts[far] = nil }
+        }
+        return pageText(page)
+    }
+
+    var selectedText: String? {
+        guard let selection = textSelection, let text = pageText(selection.page) else { return nil }
+        let string = text.string(selection.range)
+        return string.isEmpty ? nil : string
+    }
+
+    /// The selection's lines, in its page's displayed points.
+    var selectionRects: [CGRect] {
+        guard let selection = textSelection, let text = pageText(selection.page) else { return [] }
+        return text.lineRects(selection.range)
+    }
+
+    func copySelection() {
+        guard let text = selectedText else { return }
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #else
+        UIPasteboard.general.string = text
+        #endif
+    }
+
+    /// Highlights, underlines or strikes through the selected text, as one undoable change.
+    func markUpSelection(_ tool: AnnotationRequest.Tool) {
+        guard let selection = textSelection, canEditAnnotations else { return }
+        let rects = selectionRects
+        guard let first = rects.first else { return }
+        let bounds = rects.dropFirst().reduce(first) { $0.union($1) }
+        let color = tool == .highlight ? EngineColor(red: 1, green: 0.85, blue: 0.1) : EngineColor(red: 0.85, green: 0.12, blue: 0.1)
+        let request = AnnotationRequest(tool: tool, page: selection.page,
+                                        bounds: .init(x: bounds.minX, y: bounds.minY, width: bounds.width, height: bounds.height),
+                                        author: Self.author, color: color, opacity: tool == .highlight ? 0.5 : nil,
+                                        quads: rects.map { .init(x: $0.minX, y: $0.minY, width: $0.width, height: $0.height) })
+        let name: String = switch tool {
+        case .highlight: String(localized: "Highlight")
+        case .underline: String(localized: "Underline")
+        default: String(localized: "Strikethrough")
+        }
+        textSelection = nil
+        addMarkup([request], name: name)
+    }
+
     // MARK: Markup
 
     /// Adds drawn markup as one undoable change, however many annotations it takes.
@@ -358,6 +435,7 @@ final class DocumentSession {
             do {
                 try await edit(engine)
                 facts = try await engine.facts()
+                if textSelection?.revision != revision { textSelection = nil }
                 succeeded?(self)
                 if searchResult != nil { runSearch() }
             } catch {
