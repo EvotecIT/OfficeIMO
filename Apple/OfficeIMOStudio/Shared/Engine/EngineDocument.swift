@@ -34,6 +34,8 @@ struct DocumentFacts: Decodable, Sendable {
     /// Whether pages can be rotated, deleted, duplicated, reordered and inserted, and extracted to a new PDF.
     let canMutatePages: Bool?
     let canExtractPages: Bool?
+    /// Whether annotations can be added, changed and removed.
+    let canEditAnnotations: Bool?
 
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
@@ -60,7 +62,7 @@ struct DocumentFacts: Decodable, Sendable {
 /// Search hits from officeimo_document_search_json. Rectangles are in points of the page as displayed, from its
 /// top-left corner, the space the page layout uses.
 struct SearchResult: Decodable, Sendable {
-    struct Rectangle: Decodable, Sendable {
+    struct Rectangle: Codable, Sendable, Hashable {
         let x: Double
         let y: Double
         let width: Double
@@ -82,6 +84,64 @@ struct SearchResult: Decodable, Sendable {
     let query: String
     let revision: Int64
     let hits: [Hit]
+}
+
+/// A colour with components from 0 through 1, as the engine's JSON carries it.
+struct EngineColor: Codable, Sendable, Hashable {
+    let red: Double
+    let green: Double
+    let blue: Double
+}
+
+/// A point or rectangle in the displayed page's points, from its top-left corner.
+struct EnginePoint: Codable, Sendable {
+    let x: Double
+    let y: Double
+}
+
+/// A markup annotation to add, as officeimo_document_add_annotation_json takes it.
+struct AnnotationRequest: Encodable, Sendable {
+    enum Tool: String, Encodable, Sendable {
+        case ink, note, freeText, highlight, underline, strikeOut, squiggly, rectangle, ellipse, line, polygon
+    }
+
+    var tool: Tool
+    var page: Int
+    var bounds: SearchResult.Rectangle?
+    var strokes: [[EnginePoint]]?
+    var text: String?
+    var author: String?
+    var color: EngineColor?
+    var strokeWidth: Double?
+    var opacity: Double?
+}
+
+/// The markup annotations on a page, from officeimo_document_annotations_json.
+struct AnnotationList: Decodable, Sendable {
+    struct Annotation: Decodable, Sendable, Identifiable, Hashable {
+        let objectNumber: Int
+        let page: Int
+        let subtype: String
+        let bounds: SearchResult.Rectangle
+        let contents: String?
+        let author: String?
+        let color: EngineColor?
+
+        var id: Int { objectNumber }
+    }
+
+    let revision: Int64
+    let page: Int
+    let canEdit: Bool
+    let annotations: [Annotation]
+}
+
+/// A change to an annotation's contents, author or colour; nil fields are kept.
+struct AnnotationUpdate: Encodable, Sendable {
+    let objectNumber: Int
+    var contents: String?
+    var author: String?
+    var color: EngineColor?
 }
 
 /// A page rendered by the engine as PNG.
@@ -234,6 +294,39 @@ actor EngineDocument {
             return takeString(json) ?? "{}"
         }
         return try JSONDecoder().decode(SearchResult.self, from: Data(json.utf8))
+    }
+
+    func addAnnotation(_ request: AnnotationRequest) async throws {
+        let json = String(decoding: try JSONEncoder().encode(request), as: UTF8.self)
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            try check(json.withCString { officeimo_document_add_annotation_json(handle, $0, cancellation, &error) }, error)
+        }
+    }
+
+    func annotations(page: Int) async throws -> AnnotationList {
+        let json: String = try await withEngineCancellation { cancellation in
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_document_annotations_json(handle, Int32(page), cancellation, &json, &error), error)
+            return takeString(json) ?? "{}"
+        }
+        return try JSONDecoder().decode(AnnotationList.self, from: Data(json.utf8))
+    }
+
+    func updateAnnotation(_ update: AnnotationUpdate) async throws {
+        let json = String(decoding: try JSONEncoder().encode(update), as: UTF8.self)
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            try check(json.withCString { officeimo_document_update_annotation_json(handle, $0, cancellation, &error) }, error)
+        }
+    }
+
+    func removeAnnotation(_ objectNumber: Int) async throws {
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_document_remove_annotation(handle, Int32(objectNumber), cancellation, &error), error)
+        }
     }
 
     private func pageCall(_ pages: [Int],

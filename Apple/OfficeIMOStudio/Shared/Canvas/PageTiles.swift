@@ -33,6 +33,12 @@ final class PageTiles {
     private var tileTasks: [TileKey: Task<Void, Never>] = [:]
     private var needed = Set<TileKey>()
     private var tileScale = 0.0
+    /// Images of the earlier revision, shown over the new ones until those cover the view, so an edit never blanks it.
+    private var staleLayers: [CALayer] = []
+    private var lastVisible = CGRect.null
+    private var shownRevision: Int64?
+    /// Called once each revision's images cover the visible area.
+    var revisionShown: ((Int64) -> Void)?
     private var highlights: [SearchResult.Hit] = []
     private var currentHighlight: Int?
     private var highlightLayers: [CALayer] = []
@@ -45,10 +51,27 @@ final class PageTiles {
     func show(_ engine: EngineDocument, facts: DocumentFacts) {
         guard engine !== self.engine || facts.revision != self.facts?.revision else { return }
         cancelAll()
+        let newLayout = PageLayout(pages: facts.pages)
+        let keepsLayout = engine === self.engine && newLayout == layout
         self.engine = engine
         self.facts = facts
-        layout = PageLayout(pages: facts.pages)
+        shownRevision = nil
+        if keepsLayout {
+            withoutAnimation {
+                for layer in Array(previews.values) + Array(tiles.values) {
+                    layer.zPosition = 3
+                    staleLayers.append(layer)
+                }
+            }
+            previews.removeAll()
+            tiles.removeAll()
+            needed.removeAll()
+            return
+        }
+        layout = newLayout
         withoutAnimation {
+            staleLayers.forEach { $0.removeFromSuperlayer() }
+            staleLayers.removeAll()
             pageLayers.forEach { $0.removeFromSuperlayer() }
             pageLayers.removeAll()
             clipLayers.removeAll()
@@ -109,6 +132,7 @@ final class PageTiles {
     /// zoom and the system scales them; the gesture's end renders the new zoom.
     func update(visible: CGRect, pixelsPerPoint: Double, settled: Bool) {
         guard let facts, !layout.frames.isEmpty, !visible.isEmpty else { return }
+        lastVisible = visible
         if settled || tileScale == 0 { setTileScale(pixelsPerPoint) }
 
         // Previews for the visible pages and a screen above and below.
@@ -140,6 +164,21 @@ final class PageTiles {
         let missing = needed.filter { tiles[$0] == nil && tileTasks[$0] == nil }
             .sorted { distance(of: $0, to: middle) < distance(of: $1, to: middle) }
         for key in missing { renderTile(key) }
+        checkCoverage()
+    }
+
+    /// Once the current revision's previews and tiles cover the visible area, the earlier revision's images go.
+    private func checkCoverage() {
+        guard let facts, shownRevision != facts.revision, !lastVisible.isNull,
+              let visiblePages = layout.pages(in: lastVisible),
+              visiblePages.allSatisfy({ previews[$0] != nil }),
+              needed.allSatisfy({ tiles[$0] != nil }) else { return }
+        shownRevision = facts.revision
+        withoutAnimation {
+            staleLayers.forEach { $0.removeFromSuperlayer() }
+            staleLayers.removeAll()
+        }
+        revisionShown?(facts.revision)
     }
 
     func cancelAll() {
@@ -169,6 +208,7 @@ final class PageTiles {
             let preview = imageLayer(image, frame: CGRect(x: 0, y: 0, width: Double(size.width) / scale, height: Double(size.height) / scale))
             withoutAnimation { clipLayers[page - 1].insertSublayer(preview, at: 0) }
             previews[page] = preview
+            checkCoverage()
         }
     }
 
@@ -242,6 +282,7 @@ final class PageTiles {
             withoutAnimation { clipLayers[key.page - 1].addSublayer(tile) }
             tiles[key] = tile
             if needed.allSatisfy({ tiles[$0] != nil }) { removeTiles(outside: nil) }
+            checkCoverage()
         }
     }
 

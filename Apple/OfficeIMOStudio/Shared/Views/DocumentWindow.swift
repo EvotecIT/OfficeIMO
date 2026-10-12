@@ -5,6 +5,8 @@ import SwiftUI
 struct DocumentWindow: View {
     @State private var session: DocumentSession
     @State private var password = ""
+    @State private var isAddingNote = false
+    @State private var noteText = ""
     @Environment(\.undoManager) private var undoManager
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
@@ -91,7 +93,18 @@ struct DocumentWindow: View {
                     .presentationDragIndicator(.visible)
                     .presentationBackgroundInteraction(.enabled(upThrough: .medium))
             }
-            .toolbar { DocumentToolbar(session: session, fileURL: fileURL, isCompact: isCompact) }
+            .toolbar { DocumentToolbar(session: session, fileURL: fileURL, isCompact: isCompact, isAddingNote: $isAddingNote) }
+            .alert("Add Note", isPresented: $isAddingNote) {
+                TextField("Note", text: $noteText, axis: .vertical)
+                Button("Add") {
+                    let text = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    noteText = ""
+                    if !text.isEmpty { session.addNote(text, page: session.currentPage, at: session.viewCenterOnPage) }
+                }
+                Button("Cancel", role: .cancel) { noteText = "" }
+            } message: {
+                Text("The note goes in the middle of the page in view.")
+            }
             .modifier(OptionalTitle(title: title))
             #if os(iOS)
             .toolbarTitleDisplayMode(.inline)
@@ -111,7 +124,7 @@ struct DocumentWindow: View {
             }
         case .ready:
             switch session.task {
-            case .read: ReadView(session: session)
+            case .read, .markup: ReadView(session: session)
             case .pages: PagesTaskView(session: session, isCompact: isCompact)
             }
         }

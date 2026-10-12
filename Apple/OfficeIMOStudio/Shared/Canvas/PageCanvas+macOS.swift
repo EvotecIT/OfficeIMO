@@ -15,6 +15,7 @@ struct PageCanvas: NSViewRepresentable {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
+        view.setMarkupActive(session.task == .markup && session.canEditAnnotations)
     }
 
     static func dismantleNSView(_ view: PageScrollView, coordinator: ()) {
@@ -30,6 +31,7 @@ final class PageScrollView: NSScrollView {
     private var laidOutWidth: CGFloat = 0
     private var fitZoom: CGFloat = 1
     private var isMagnifying = false
+    private lazy var markup = MarkupInkView(session: session) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
 
     init(session: DocumentSession) {
         self.session = session
@@ -39,6 +41,7 @@ final class PageScrollView: NSScrollView {
         documentView = pages
         pages.wantsLayer = true
         pages.layer?.addSublayer(tiles.layer)
+        tiles.revisionShown = { [weak self] revision in self?.markup.revisionShown(revision) }
         hasVerticalScroller = true
         hasHorizontalScroller = true
         autohidesScrollers = true
@@ -56,8 +59,14 @@ final class PageScrollView: NSScrollView {
     func show(_ engine: EngineDocument, facts: DocumentFacts) {
         let previous = tiles.layout
         tiles.show(engine, facts: facts)
-        guard tiles.layout != previous else { return }
+        // A new revision of the same pages renders in place; the earlier images stay until the new ones cover them.
+        guard tiles.layout != previous else {
+            updateTiles()
+            return
+        }
         pages.frame = CGRect(origin: .zero, size: tiles.layout.size)
+        markup.frame = pages.bounds
+        window?.invalidateCursorRects(for: markup)
         laidOutWidth = 0
         needsLayout = true
     }
@@ -111,6 +120,18 @@ final class PageScrollView: NSScrollView {
     override func viewDidChangeBackingProperties() {
         super.viewDidChangeBackingProperties()
         updateTiles()
+    }
+
+    /// Adds the drawing view over the pages while Markup is open; it stays until its strokes show, then leaves.
+    func setMarkupActive(_ active: Bool) {
+        if active, markup.superview == nil {
+            markup.frame = pages.bounds
+            markup.autoresizingMask = [.width, .height]
+            pages.addSubview(markup)
+            window?.invalidateCursorRects(for: markup)
+        } else if !active, markup.superview != nil {
+            markup.removeFromSuperview()
+        }
     }
 
     // MARK: Zoom and position

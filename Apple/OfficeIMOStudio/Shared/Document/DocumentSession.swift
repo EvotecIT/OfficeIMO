@@ -3,10 +3,14 @@ import Foundation
 import Observation
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(macOS)
+import AppKit
+#endif
 
 /// The tasks a document window offers. Only tasks the engine supports are listed.
 enum StudioTask: String, CaseIterable, Identifiable {
     case read
+    case markup
     case pages
 
     var id: Self { self }
@@ -14,6 +18,7 @@ enum StudioTask: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self {
         case .read: "Read"
+        case .markup: "Markup"
         case .pages: "Pages"
         }
     }
@@ -21,6 +26,7 @@ enum StudioTask: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .read: "doc.text"
+        case .markup: "pencil.tip.crop.circle"
         case .pages: "square.grid.2x2"
         }
     }
@@ -84,6 +90,22 @@ final class DocumentSession {
     /// Pages written to a new PDF, waiting for the user to choose where to save them.
     var extractedPages: ExtractedPages?
 
+    // Markup
+    /// Whether drawing not yet added to the document is on the page.
+    var hasPendingMarkup = false
+    /// Asks the page view to add its pending drawing to the document, as Done does.
+    private(set) var markupCommitRequest: UUID?
+    /// The drawing style on the Mac, where the page view draws without PencilKit.
+    var markupStyle = MarkupStyle.pen
+    var markupColor = EngineColor(red: 0.85, green: 0.12, blue: 0.1)
+    /// The pending drawing's own history, which Undo and Redo act on before the window's.
+    @ObservationIgnored weak var markupUndoManager: UndoManager?
+    /// The middle of the page view, in the current page's displayed points, where a new note goes.
+    @ObservationIgnored var viewCenterOnPage = CGPoint(x: 72, y: 72)
+    /// The annotations on the current page, for the inspector and selection.
+    private(set) var pageAnnotations: AnnotationList?
+    var selectedAnnotation: Int?
+
     // Search
     var searchText = ""
     var isSearchFocused = false
@@ -139,6 +161,7 @@ final class DocumentSession {
     // MARK: Editing
 
     var canEditPages: Bool { isReady && facts?.canMutatePages != false }
+    var canEditAnnotations: Bool { isReady && facts?.canEditAnnotations != false }
     var canExtractPages: Bool { isReady && facts?.canExtractPages != false }
 
     /// The pages a page command applies to: the selection in the Pages task, otherwise the current page.
@@ -221,37 +244,112 @@ final class DocumentSession {
         }
     }
 
-    /// Runs an engine edit after any earlier one and registers its undo once it has succeeded.
-    private func edit(_ name: String, _ change: @escaping @Sendable (EngineDocument) async throws -> Void,
-                      then: ((DocumentSession) -> Void)? = nil) {
-        enqueue(change) { session in
-            session.registerUndo(name)
+    // MARK: Markup
+
+    /// Adds drawn markup as one undoable change, however many annotations it takes.
+    func addMarkup(_ requests: [AnnotationRequest], name: String, then: ((DocumentSession) -> Void)? = nil,
+                   failed: (() -> Void)? = nil) {
+        guard !requests.isEmpty else { return }
+        edit(name, steps: requests.count, { engine in
+            for (index, request) in requests.enumerated() {
+                do {
+                    try await engine.addAnnotation(request)
+                } catch {
+                    // Additions that went through are taken back, so the drawing stays one change or none.
+                    for _ in 0..<index { try? await engine.undo() }
+                    throw error
+                }
+            }
+        }, then: then, failed: failed)
+    }
+
+    /// Asks the page view to add its pending drawing, as Done and leaving the task do.
+    func commitMarkup() {
+        markupCommitRequest = UUID()
+    }
+
+    /// Adds a note at a point of a page, in the displayed page's points.
+    func addNote(_ text: String, page: Int, at point: CGPoint) {
+        let request = AnnotationRequest(tool: .note, page: page,
+                                        bounds: .init(x: point.x - 10, y: point.y - 10, width: 20, height: 20),
+                                        text: text, author: Self.author, color: EngineColor(red: 1, green: 0.8, blue: 0.1))
+        addMarkup([request], name: String(localized: "Add Note"))
+    }
+
+    var canUndoEdit: Bool { (hasPendingMarkup && markupUndoManager?.canUndo == true) || facts?.canUndo == true }
+    var canRedoEdit: Bool { (hasPendingMarkup && markupUndoManager?.canRedo == true) || facts?.canRedo == true }
+
+    /// Undo acts on the pending drawing first, then on the document, as ⌘Z does from the canvas.
+    func undoEdit() {
+        if hasPendingMarkup, let markup = markupUndoManager, markup.canUndo { markup.undo() } else { undoManager?.undo() }
+    }
+
+    func redoEdit() {
+        if hasPendingMarkup, let markup = markupUndoManager, markup.canRedo { markup.redo() } else { undoManager?.redo() }
+    }
+
+    func loadAnnotations() async {
+        guard let engine, isReady, facts?.canEditAnnotations != false else {
+            pageAnnotations = nil
+            return
+        }
+        let page = currentPage
+        guard pageAnnotations?.page != page || pageAnnotations?.revision != revision else { return }
+        pageAnnotations = try? await engine.annotations(page: page)
+    }
+
+    func removeAnnotation(_ annotation: AnnotationList.Annotation) {
+        if selectedAnnotation == annotation.objectNumber { selectedAnnotation = nil }
+        edit(String(localized: "Delete Annotation")) { try await $0.removeAnnotation(annotation.objectNumber) }
+    }
+
+    func updateNote(_ annotation: AnnotationList.Annotation, text: String) {
+        edit(String(localized: "Edit Note")) {
+            try await $0.updateAnnotation(AnnotationUpdate(objectNumber: annotation.objectNumber, contents: text))
+        }
+    }
+
+    /// The name markup carries as its author: the user's full name where the platform gives it.
+    static var author: String {
+        #if os(macOS)
+        NSFullUserName()
+        #else
+        ""
+        #endif
+    }
+
+    /// Runs an engine edit after any earlier one and registers its undo once it has succeeded. An edit that takes
+    /// several engine changes undoes them together.
+    private func edit(_ name: String, steps: Int = 1, _ change: @escaping @Sendable (EngineDocument) async throws -> Void,
+                      then: ((DocumentSession) -> Void)? = nil, failed: (() -> Void)? = nil) {
+        enqueue(change, failed: failed) { session in
+            session.registerUndo(name, steps: steps)
             then?(session)
         }
     }
 
     // While the system undoes or redoes, the inverse must be registered at once, so it goes on the opposite stack; the
     // engine call follows. A failed engine undo or redo would leave the two histories apart, so it clears the window's.
-    private func registerUndo(_ name: String) {
+    private func registerUndo(_ name: String, steps: Int) {
         guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { session in
-            session.registerRedo(name)
-            session.enqueue({ try await $0.undo() }, failureClearsHistory: true)
+            session.registerRedo(name, steps: steps)
+            session.enqueue({ engine in for _ in 0..<steps { try await engine.undo() } }, failureClearsHistory: true)
         }
         undoManager.setActionName(name)
     }
 
-    private func registerRedo(_ name: String) {
+    private func registerRedo(_ name: String, steps: Int) {
         guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { session in
-            session.registerUndo(name)
-            session.enqueue({ try await $0.redo() }, failureClearsHistory: true)
+            session.registerUndo(name, steps: steps)
+            session.enqueue({ engine in for _ in 0..<steps { try await engine.redo() } }, failureClearsHistory: true)
         }
         undoManager.setActionName(name)
     }
 
     private func enqueue(_ edit: @escaping @Sendable (EngineDocument) async throws -> Void, failureClearsHistory: Bool = false,
-                         succeeded: ((DocumentSession) -> Void)? = nil) {
+                         failed: (() -> Void)? = nil, succeeded: ((DocumentSession) -> Void)? = nil) {
         guard let engine else { return }
         let previous = edits
         isWorking = true
@@ -265,6 +363,7 @@ final class DocumentSession {
             } catch {
                 if failureClearsHistory { undoManager?.removeAllActions(withTarget: self) }
                 facts = try? await engine.facts()
+                failed?()
                 errorMessage = error.localizedDescription
             }
             isWorking = false
@@ -335,6 +434,19 @@ final class DocumentSession {
         currentPage = hit.page
         canvasRequest = CanvasRequest(kind: .reveal(page: hit.page, rect: hit.bounds.cgRect))
     }
+}
+
+/// The Mac's drawing styles, as Preview's Sketch and Draw tools offer them.
+enum MarkupStyle: String, CaseIterable, Identifiable {
+    case pen
+    case marker
+
+    var id: Self { self }
+    var title: LocalizedStringKey { self == .pen ? "Pen" : "Highlighter" }
+    var systemImage: String { self == .pen ? "pencil.tip" : "highlighter" }
+    /// Width in points and opacity of the stroke.
+    var strokeWidth: Double { self == .pen ? 2 : 12 }
+    var opacity: Double { self == .pen ? 1 : 0.4 }
 }
 
 /// A PDF of extracted pages in the app's temporary folder, saved where the user chooses.
