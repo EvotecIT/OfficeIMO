@@ -2535,9 +2535,27 @@ public sealed partial class PdfReadPage {
 
     // Type 3 charprocs, patterns and graphics-state masks can paint nested
     // content even when the page has no direct image or path paint operator.
-    private bool HasIndirectPaintResources(PdfDictionary? resources) =>
-        resources != null && (resources.Items.ContainsKey("Pattern") || resources.Items.ContainsKey("ExtGState") ||
-        _fontResourceCache.GetFonts(resources, _objects).Values.Any(static font => font.FontSubtype == "Type3"));
+    private bool HasIndirectPaintResources(
+        PdfDictionary? resources,
+        Action? operationCheck = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (resources == null) return false;
+        if (resources.Items.ContainsKey("Pattern") || resources.Items.ContainsKey("ExtGState")) return true;
+        if (!resources.Items.TryGetValue("Font", out PdfObject? fontsObject)) return false;
+        if (ResolveDictionary(fontsObject) is not PdfDictionary fonts) return true;
+        foreach (PdfObject fontObject in fonts.Items.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            operationCheck?.Invoke();
+            // Inspect only the declaration. Creating a font resource would decode
+            // unused CMaps and embedded programs just to decide whether to scan.
+            if (ResolveDictionary(fontObject) is not PdfDictionary font ||
+                !font.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ||
+                ResolveObject(subtypeObject) is not PdfName subtype || subtype.Name == "Type3") return true;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return false;
+    }
 
     private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) =>
         TryReadColorSpaceResource(value, evaluationBudget: null, functionResolutionContext: null, out colorSpace);

@@ -740,7 +740,9 @@ public sealed partial class PdfReadPage {
                 pageResources,
                 operationCheck);
             cancellationCheck?.Invoke();
-            if (!invokedResources.HasObjectPaint && !HasIndirectPaintResources(pageResources)) {
+            if (!invokedResources.HasObjectPaint &&
+                !HasIndirectPaintResources(pageResources, operationCheck, cancellationToken)) {
+                cancellationCheck?.Invoke();
                 return Array.Empty<PdfImagePlacement>();
             }
             CollectImagePlacementsAndForms(

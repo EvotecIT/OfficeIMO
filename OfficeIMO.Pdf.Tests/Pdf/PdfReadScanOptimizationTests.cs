@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -31,6 +32,55 @@ public sealed class PdfReadScanOptimizationTests {
         PdfLogicalPage page = Assert.Single(read.Pages);
         Assert.Contains("Nested text", read.Text);
         Assert.True(page.VectorPrimitiveCount > 0);
+    }
+
+    [Theory]
+    [InlineData("Encoding")]
+    [InlineData("ToUnicode")]
+    public void UnusedFontStreamsDoNotParticipateInEmptyPaintScans(string streamKey) {
+        // An unused font may be inherited from a shared resource dictionary.
+        // Its oversized declared decoded data must not affect an image scan.
+        string source = PdfEncoding.Latin1GetString(CreatePage("q Q"))
+            .Replace("/BaseFont /Helvetica", "/BaseFont /Helvetica /" + streamKey + " 7 0 R")
+            .Replace("trailer\n", "7 0 obj\n<< /Length 1 /Filter /CCITTFaxDecode /DecodeParms << /Columns 2147483647 /Rows 2 >> >>\nstream\nx\nendstream\nendobj\ntrailer\n");
+        PdfReadPage page = Assert.Single(PdfReadDocument.Open(PdfEncoding.Latin1GetBytes(source)).Pages);
+
+        Assert.Empty(page.GetImagePlacements());
+        Assert.Equal((0, 0), page.GetVisibleVisualPrimitiveCounts(Array.Empty<StructuredTable>()));
+    }
+
+    [Fact]
+    public void EmptyImageScanChargesFontAliasesToTheSharedWorkBudget() {
+        PdfReadPage page = CreatePageWithFontAliases();
+        Assert.Empty(page.GetImagePlacements()); // Prime the content summary.
+        long consumed = 0;
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
+            page.GetImagePlacements(1, 1, units => {
+                consumed += units;
+                if (consumed > 1) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingWork, 1, consumed);
+            }, static () => { }));
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, error.Kind);
+        Assert.True(error.Actual > error.Limit);
+    }
+
+    [Fact]
+    public void EmptyImageScanObservesCancellationBetweenFontAliases() {
+        PdfReadPage page = CreatePageWithFontAliases();
+        Assert.Empty(page.GetImagePlacements());
+        using var cancellation = new CancellationTokenSource();
+        long consumed = 0;
+        Assert.Throws<OperationCanceledException>(() =>
+            page.GetImagePlacements(1, 1, units => {
+                consumed += units;
+                cancellation.Cancel();
+            }, cancellation.Token.ThrowIfCancellationRequested));
+        Assert.Equal(1, consumed);
+    }
+
+    private static PdfReadPage CreatePageWithFontAliases() {
+        string source = PdfEncoding.Latin1GetString(CreatePage("q Q"))
+            .Replace("/F1 5 0 R", "/F1 5 0 R /F2 5 0 R /F3 5 0 R");
+        return Assert.Single(PdfReadDocument.Open(PdfEncoding.Latin1GetBytes(source)).Pages);
     }
 
     private static byte[] CreatePage(string content, string? formContent = null) {
