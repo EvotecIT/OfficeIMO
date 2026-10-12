@@ -10,7 +10,7 @@ endobj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
 endobj
 4 0 obj
-<< /Length 7879 >>
+<< /Length 7992 >>
 stream
 BT
 30 TL
@@ -211,7 +211,17 @@ Q
 q
 0 0 0 RG
 0.5 w
+169.823 624.565 m 172.881 624.565 l S
+Q
+q
+0 0 0 RG
+0.5 w
 172.881 624.565 m 219.95 624.565 l S
+Q
+q
+0 0 0 RG
+0.5 w
+219.95 624.565 m 223.008 624.565 l S
 Q
 q
 0 0 0 RG
@@ -745,16 +755,16 @@ ET
 endstream
 endobj
 5 0 obj
-<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (OfficeIMO examples directory) /Rect [120.312 623.795 265.182 634.355] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Examples) >> >>
+<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Contents (OfficeIMO examples directory) /Rect [120.312 623.795 265.182 634.355] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Examples) >> >>
 endobj
 6 0 obj
-<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Source repository) /Rect [79 478.61 299 535.41] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO) >> >>
+<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Contents (Source repository) /Rect [79 478.61 299 535.41] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO) >> >>
 endobj
 7 0 obj
-<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Published releases) /Rect [79 425.81 299 482.61] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO/releases) >> >>
+<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Contents (Published releases) /Rect [79 425.81 299 482.61] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO/releases) >> >>
 endobj
 8 0 obj
-<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Issue tracker) /Rect [79 373.01 299 429.81] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO/issues) >> >>
+<< /Type /Annot /Subtype /Link /F 4 /Border [0 0 0] /Contents (Issue tracker) /Rect [79 373.01 299 429.81] /A << /S /URI /URI (https://github.com/EvotecIT/OfficeIMO/issues) >> >>
 endobj
 9 0 obj
 << /Type /Page /Parent 1 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 2 0 R /F2 3 0 R >> >> /Contents 4 0 R /Annots [ 5 0 R 6 0 R 7 0 R 8 0 R ] >>
@@ -772,15 +782,15 @@ xref
 0000000074 00000 n 
 0000000171 00000 n 
 0000000273 00000 n 
-0000008204 00000 n 
-0000008443 00000 n 
-0000008629 00000 n 
-0000008825 00000 n 
-0000009014 00000 n 
-0000009186 00000 n 
-0000009236 00000 n 
+0000008317 00000 n 
+0000008561 00000 n 
+0000008752 00000 n 
+0000008953 00000 n 
+0000009147 00000 n 
+0000009319 00000 n 
+0000009369 00000 n 
 trailer
-<< /Size 12 /Root 10 0 R /Info 11 0 R /ID [<B20CAF8B197E591BB8358412BCCEC84D> <B20CAF8B197E591BB8358412BCCEC84D>] >>
+<< /Size 12 /Root 10 0 R /Info 11 0 R /ID [<7AD583F5F6A4BDBA96065D19ECE2C997> <7AD583F5F6A4BDBA96065D19ECE2C997>] >>
 startxref
-9387
+9520
 %%EOF

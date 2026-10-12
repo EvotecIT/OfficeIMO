@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
             var footer = _table.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
             if (main != null && (header != null || footer != null)) {
                 string id = header != null ? main.GetIdOfPart(header) : main.GetIdOfPart(footer!);
-                var owners = GetStoryLayoutOwners(id, header != null);
+                var owners = WordStoryLayoutResolver.GetOwners(_document, id, header != null);
                 var scope = _table.Annotation<LayoutSectionScope>();
                 if (scope != null && owners.Contains(scope.Section)) return scope.Section;
                 if (owners.Count == 0) return null;
@@ -66,24 +66,6 @@ namespace OfficeIMO.Word {
         private static int GetSectionTextWidth(WordSection section) =>
             Math.Max(0, (int)(section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips)
                 - (int)section.Margins.Left - (int)section.Margins.Right);
-
-        private List<WordSection> GetStoryLayoutOwners(string relationshipId, bool header) {
-            var owners = new List<WordSection>();
-            var inheritedTypes = new HashSet<HeaderFooterValues>();
-            foreach (WordSection section in _document.Sections) {
-                IEnumerable<HeaderFooterReferenceType> references = header
-                    ? section._sectionProperties.Elements<HeaderReference>()
-                    : section._sectionProperties.Elements<FooterReference>();
-                foreach (HeaderFooterReferenceType reference in references) {
-                    HeaderFooterValues type = reference.Type?.Value ?? HeaderFooterValues.Default;
-                    if (reference.Id?.Value == relationshipId) inheritedTypes.Add(type);
-                    else inheritedTypes.Remove(type);
-                }
-                // An omitted reference inherits the preceding section's story of that type.
-                if (inheritedTypes.Count > 0) owners.Add(section);
-            }
-            return owners;
-        }
 
         private int? GetUnscopedStoryGridWidth() {
             if (!_table.Ancestors<Header>().Any() && !_table.Ancestors<Footer>().Any()) return null;
