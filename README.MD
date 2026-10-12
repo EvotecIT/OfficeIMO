@@ -134,14 +134,17 @@ $sheetsBatch = Export-OfficeExcelGoogleSpreadsheet -Path .\Data.xlsx -AsBatch
 
 PSWriteOffice owns the document-workflow side of email: reading or writing standalone message and mailbox artifacts, and searching supported mail sources through the normalized `OfficeIMO.Reader` model. [Mailozaurr](https://github.com/EvotecIT/Mailozaurr) owns operational email and mailbox management, including transport, authentication, mailbox/store lifecycle, PST/OST import and conversion, querying, export, and delivery. Use PSWriteOffice when mail is an input to a report or mixed-document search; use Mailozaurr to acquire, manage, convert, or send the mail, then pass ordinary paths and attachments between the modules.
 
-The integration recipes make those boundaries executable:
+The [OfficeIMO integration examples](https://officeimo.com/docs/integrations/) display the complete recipes and provide script and sample-input downloads. Save an example in your working folder, install the modules it uses, and run it there:
 
 ```powershell
-.\Examples\Integrations\Recipe-Mailozaurr-PdfDelivery.ps1 -SmtpServer smtp.example.com
-.\Examples\Integrations\Recipe-PSEventViewer-OfficeReport.ps1 -LogName System -MaxEvents 200
+Install-Module PSWriteOffice, Mailozaurr -Scope CurrentUser
+./Recipe-Mailozaurr-PdfDelivery.ps1 -OutputDirectory ./Output/Mail
+
+# Offline event example
+./Recipe-PSEventViewer-OfficeReport.ps1 -OutputDirectory ./Output/EventBrief
 ```
 
-The Mailozaurr recipe generates a real PDF but keeps delivery under `-WhatIf` until `-Send` is supplied. The PSEventViewer recipe queries events once and turns the projected results into Word and Excel reports.
+The Mailozaurr recipe saves a local EML with a PDF attachment and sends only when `-Send` is supplied with a server and real recipients. The event recipe uses a synthetic snapshot by default; use `-CollectLive` with PSEventViewer on Windows for a bounded local query. Both create documents from ordinary objects and paths.
 
 Confluence writes can be reviewed before a session or tenant is involved:
 

@@ -16,7 +16,7 @@ param(
     [string[]] $To = @('Review team <review@example.invalid>'),
     [string] $OutputPath,
     [switch] $Send,
-    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output/Mail'),
+    [string] $OutputDirectory,
     [string[]] $AttachmentPath,
     [string] $Subject = 'Report review package',
     [ValidateRange(1, 65535)][int] $Port = 587,
@@ -24,10 +24,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot 'Output/Mail' }
 if ($Send -and [string]::IsNullOrWhiteSpace($SmtpServer)) { throw '-Send requires -SmtpServer.' }
 if ($PSBoundParameters.ContainsKey('AttachmentPath') -and -not $AttachmentPath) { throw 'Supply at least one attachment path.' }
 Import-Module Mailozaurr -MinimumVersion 3.0.2 -ErrorAction Stop
 $null = New-Item -ItemType Directory -Path $OutputDirectory -Force
+$OutputDirectory = (Get-Item -LiteralPath $OutputDirectory).FullName
 if (-not $AttachmentPath) {
     Import-Module PSWriteOffice -MinimumVersion 3.0.8 -ErrorAction Stop
     if (-not $OutputPath) { $OutputPath = Join-Path $OutputDirectory 'Daily-Service-Report.pdf' }

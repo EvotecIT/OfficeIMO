@@ -14,11 +14,13 @@ remain visible in both reports.
 #>
 [CmdletBinding()]
 param(
-    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output/SupplierReview'),
-    [string] $HtmlPath = (Join-Path $PSScriptRoot 'Input/SupplierOffers.html')
+    [string] $OutputDirectory,
+    [string] $HtmlPath
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot 'Output/SupplierReview' }
+if (-not $HtmlPath) { $HtmlPath = Join-Path $PSScriptRoot 'Input/SupplierOffers.html' }
 Import-Module PSParseHTML -MinimumVersion 3.0.3 -ErrorAction Stop
 Import-Module PSWriteOffice -MinimumVersion 3.0.8 -ErrorAction Stop
 
@@ -53,6 +55,7 @@ $reviewRows = $offers | Select-Object Item, Supplier,
 $itemCount = @($offers | Select-Object -ExpandProperty Item -Unique).Count
 
 $null = New-Item -ItemType Directory -Path $OutputDirectory -Force
+$OutputDirectory = (Get-Item -LiteralPath $OutputDirectory).FullName
 $docx = Join-Path $OutputDirectory 'SupplierReview.docx'
 $pdf = Join-Path $OutputDirectory 'SupplierReview.pdf'
 $xlsx = Join-Path $OutputDirectory 'SupplierOffers.xlsx'
