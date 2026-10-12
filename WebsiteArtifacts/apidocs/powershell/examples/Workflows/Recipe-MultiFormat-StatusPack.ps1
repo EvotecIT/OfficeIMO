@@ -28,11 +28,14 @@ WordNew -Path '.\Service-Status.docx' {
 
 ExcelNew -Path '.\Service-Status.xlsx' {
     ExcelSheet 'Services' {
-        ExcelTable -Data $services -TableName 'ServiceStatus' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
+        # Keep the chart's category and one numeric measure adjacent; owners and percentages remain in the table.
+        ExcelTable -Data ($services | Select-Object Service,Incidents,Owner,Availability,Status) -TableName 'ServiceStatus' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium9' -AutoFit
         ExcelFreeze -TopRows 1
         ExcelValidationList -TableName 'ServiceStatus' -HeaderName Status -Values Healthy,Watch,Action
-        ExcelConditionalColorScale -Range 'C2:C4' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
-        ExcelChart -Range 'A1:D4' -Row 7 -Column 1 -Type ColumnClustered -Title 'Availability and incidents' -WidthPixels 700 -HeightPixels 320
+        ExcelConditionalColorScale -Range 'D2:D4' -StartColor '#FEE2E2' -EndColor '#DCFCE7'
+        ExcelChart -Range 'A1:B4' -Row 7 -Column 1 -Type ColumnClustered -Title 'Incidents by service' -WidthPixels 700 -HeightPixels 320
+        ExcelOrientation -Orientation Landscape
+        ExcelPageSetup -FitToWidth 1 -FitToHeight 1
     }
     ExcelTableOfContents -SheetName 'Index' -AddBackLinks -BackLinkText 'Back to Index'
 }
@@ -46,9 +49,15 @@ PptNew -Path '.\Service-Status.pptx' {
     }
     PptSlide {
         PptTitle -Title 'Current status'
-        PptTable -Data $services -X 55 -Y 130 -Width 720 -Height 210
-        PptChart -Data $services -CategoryProperty Service -SeriesProperty Incidents -Type ClusteredColumn -Title 'Incidents' -X 120 -Y 370 -Width 600 -Height 230
-        PptNotes -Text 'Use the table for exact values and the chart for the discussion.'
+        PptTable -Data $services -X 55 -Y 130 -Width 840 -Height 210
+        PptTextBox -Run @{ Text = 'Decision: assign the Remote access action before the next service review.'; FontSize = 20; Color = '#0F172A' } -X 60 -Y 390 -Width 840 -Height 75
+        PptNotes -Text 'Use the table for exact values and confirm the action owner.'
+    }
+    PptSlide {
+        PptTitle -Title 'Where to focus the review'
+        PptChart -Data $services -CategoryProperty Service -SeriesProperty Incidents -Type ClusteredColumn -Title 'Incidents by service' -X 90 -Y 135 -Width 780 -Height 290
+        PptTextBox -Run @{ Text = 'Availability remains a percentage in the status table; this chart compares incident counts.'; FontSize = 18; Color = '#475569' } -X 60 -Y 450 -Width 840 -Height 55
+        PptNotes -Text 'Discuss incident reduction separately from availability targets.'
     }
 }
 

@@ -1,9 +1,24 @@
 $path = '.\Service-Invoice.pdf'
-$lines = @(
-    [pscustomobject]@{ Description = 'Automation assessment'; Quantity = 1; UnitPrice = '$1,200.00'; Amount = '$1,200.00' }
-    [pscustomobject]@{ Description = 'Report implementation'; Quantity = 3; UnitPrice = '$850.00'; Amount = '$2,550.00' }
-    [pscustomobject]@{ Description = 'Handover workshop'; Quantity = 1; UnitPrice = '$600.00'; Amount = '$600.00' }
+$items = @(
+    [pscustomobject]@{ Description = 'Automation assessment'; Quantity = 1; UnitPrice = [decimal]1200 }
+    [pscustomobject]@{ Description = 'Report implementation'; Quantity = 3; UnitPrice = [decimal]850 }
+    [pscustomobject]@{ Description = 'Handover workshop'; Quantity = 1; UnitPrice = [decimal]600 }
 )
+$currency = [Globalization.CultureInfo]::GetCultureInfo('en-US')
+$taxRate = [decimal]0.20 # Illustrative rate; use the rate and rounding rules appropriate to your invoice.
+$subtotal = [decimal]0
+$lines = foreach ($item in $items) {
+    $amount = [decimal]::Round($item.Quantity * $item.UnitPrice, 2, [MidpointRounding]::AwayFromZero)
+    $subtotal += $amount
+    [pscustomobject]@{
+        Description = $item.Description
+        Quantity = $item.Quantity
+        UnitPrice = $item.UnitPrice.ToString('C2', $currency)
+        Amount = $amount.ToString('C2', $currency)
+    }
+}
+$tax = [decimal]::Round($subtotal * $taxRate, 2, [MidpointRounding]::AwayFromZero)
+$total = $subtotal + $tax
 
 PdfNew -Path $path {
     PdfTheme Report
@@ -30,9 +45,10 @@ PdfNew -Path $path {
         -HeaderFill '#0F766E' -HeaderTextColor '#FFFFFF' `
         -RightAlignNumeric -AutoFitColumns
 
-    PdfText -Text 'Subtotal: $4,350.00' -Align Right -Bold
-    PdfText -Text 'Tax (20%): $870.00' -Align Right
-    PdfText -Text 'Total due: $5,220.00' -Align Right -Bold -FontSize 14 -Color '#0F766E'
+    PdfSpacer -Height 14
+    PdfText -Text ('Subtotal: ' + $subtotal.ToString('C2', $currency)) -Align Right -Bold
+    PdfText -Text ('Illustrative tax (' + $taxRate.ToString('0.##%', $currency) + '): ' + $tax.ToString('C2', $currency)) -Align Right
+    PdfText -Text ('Total due: ' + $total.ToString('C2', $currency)) -Align Right -Bold -FontSize 14 -Color '#0F766E'
 
     PdfPanel 'Payment terms: 14 days. Include the invoice number with the transfer.'
     PdfHeading 'Questions' -Level 2
