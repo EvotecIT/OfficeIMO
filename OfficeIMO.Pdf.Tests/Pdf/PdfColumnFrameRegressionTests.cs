@@ -123,6 +123,30 @@ public sealed class PdfColumnFrameRegressionTests {
         using var pdf = PdfPigDocument.Open(bytes);
         var continued = pdf.GetPage(1).Letters.Where(letter => letter.StartBaseLine.X >= 339.9).ToArray();
         Assert.NotEmpty(continued);
+        Assert.True(continued.Max(letter => letter.FontSize) < 12);
+        Assert.All(continued, letter => Assert.InRange(letter.BoundingBox.Right, 340, 440.1));
+        string rendered = string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text));
+        foreach (int index in Enumerable.Range(1, 20)) Assert.Contains($"LongMarker{index:D2}UnwrappedSuffix", rendered);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Columns_ContinuedCellTextFitsTheNarrowFrameWithoutRowShrinking(bool explicitSize, bool paragraphs) {
+        string text = string.Join("\n", Enumerable.Range(1, 20).Select(i => $"LongMarker{i:D2}UnwrappedSuffix"));
+        var runs = new[] { new PdfTextRun(text, fontSize: explicitSize ? 12 : null) };
+        var cell = (paragraphs
+            ? new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs) })
+            : new PdfTableCell(runs)).WithNoWrap().WithShrinkTextToFit();
+        byte[] bytes = PdfDocument.Create(Options()).Columns(content => content.Table(new[] { new[] { cell } },
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0,
+                FontSize = 12, LineHeight = 20D / 12D, ShrinkTextToFit = false, MinimumShrinkFontSize = 4,
+                BorderWidth = 0, SpacingBefore = 0, SpacingAfter = 0 }), Unequal()).ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        var continued = pdf.GetPage(1).Letters.Where(letter => letter.StartBaseLine.X >= 339.9).ToArray();
+        Assert.NotEmpty(continued);
         Assert.All(continued, letter => Assert.True(letter.FontSize < 12));
         Assert.All(continued, letter => Assert.InRange(letter.BoundingBox.Right, 340, 440.1));
         string rendered = string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text));

@@ -1,5 +1,18 @@
 # Upgrading OfficeIMO
 
+## Excel worksheet page-fit inspection
+
+`ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,
+`FitToWidth` and `FitToHeight` exposed stored dimensions even when worksheet
+`fitToPage` was disabled. They now return null in that case. When fitting is
+enabled, an omitted dimension now returns the native default of `1` instead of
+null; an explicit `0` remains `0` and means no page limit for that dimension.
+
+Update inspection and export code to treat null fit dimensions as inactive and
+to use `Scale` for percentage-based printing. To enable page fitting, configure
+it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
+with no height limit, instead of relying on cached dimensions in the worksheet XML.
+
 ## PDF form value assessment
 
 `PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
@@ -41,6 +54,16 @@ AllowSignatureRemoval = true })` to explicitly remove invalidated signatures.
 Use the typed `ReadVbaProject()` and
 `SetVbaProject(...)` workflow for explicit source changes and signature policy;
 use `RemoveMacros()` only when removing the entire project is intended.
+
+## Word native DOC font alignment
+
+Native DOC loading and saving use the format's top, center, baseline, bottom and
+automatic font-alignment values. Earlier OfficeIMO DOC saves with an explicit
+`WordParagraph.VerticalCharacterAlignmentOnLine` could encode a different
+alignment than requested; loading those files now follows the stored native value.
+For affected OfficeIMO-produced DOC files, reload the original DOCX source or
+reapply the intended `WordVerticalCharacterAlignment` value after loading, then
+save again. Use the named enum values when setting alignment.
 
 ## PDF named composite font mappings
 
@@ -3316,6 +3339,12 @@ PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches.
 Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 
 Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNoteToPdfOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
+
+### Native DOC paragraph spacing and alignment inheritance
+
+Loading a binary `.doc` file uses single line spacing and zero paragraph spacing when the source omits those values. Imported built-in styles inherit omitted spacing from their source base styles. Explicit source spacing remains in effect. This changes layout for files that previously acquired DOCX authoring spacing during import; remove any compensating spacing overrides that are no longer needed.
+
+Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine` to `null` removes that direct paragraph setting and restores style inheritance. Set `WordParagraphAlignment.Left` or `WordVerticalCharacterAlignment.Auto` explicitly when an inherited setting should be overridden.
 
 ## Upgrade checklist
 
