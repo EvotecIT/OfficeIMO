@@ -6,9 +6,9 @@ namespace OfficeIMO.Publisher;
 public sealed class PublisherTable {
     internal PublisherTable(uint id, uint? storyId, uint pageId, double x, double y, double width, double height,
         OfficeTransform pageTransform, IReadOnlyList<double> columns, IReadOnlyList<double> rows,
-        IReadOnlyList<PublisherTableCell> cells, bool hasTextMapping) {
+        IReadOnlyList<PublisherTableCell> cells, bool hasTextMapping, bool hasPlacement = true) {
         Id = id; StoryId = storyId; PageId = pageId; X = x; Y = y; Width = width; Height = height;
-        PageTransform = pageTransform; HasTextMapping = hasTextMapping;
+        PageTransform = pageTransform; HasTextMapping = hasTextMapping; HasPlacement = hasPlacement;
         ColumnWidths = Array.AsReadOnly(columns.ToArray()); RowHeights = Array.AsReadOnly(rows.ToArray());
         Cells = Array.AsReadOnly(cells.ToArray());
     }
@@ -26,6 +26,8 @@ public sealed class PublisherTable {
     public double Width { get; }
     /// <summary>Native frame height in points. The recovered grid tracks retain their own dimensions.</summary>
     public double Height { get; }
+    /// <summary>Whether the recovered native frame has usable page placement. False retains grid and cell data without paint geometry.</summary>
+    public bool HasPlacement { get; }
     /// <summary>Maps table-local points into page-local points, including object and enclosing-group rotation/reflection.</summary>
     public OfficeTransform PageTransform { get; }
     /// <summary>Native column widths in points, in grid order.</summary>

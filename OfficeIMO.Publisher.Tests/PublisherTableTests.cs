@@ -52,7 +52,7 @@ public sealed class PublisherTableTests {
     public void Native_table_exposes_tracks_cells_styled_text_and_page_placement(string fixture) {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture(fixture));
         PublisherTable table = Assert.Single(document.Pages[1].Tables);
-        Assert.Equal(299U, table.Id); Assert.Equal(document.Pages[1].Id, table.PageId);
+        Assert.True(table.HasPlacement); Assert.Equal(299U, table.Id); Assert.Equal(document.Pages[1].Id, table.PageId);
         Assert.True(table.HasTextMapping); Assert.NotNull(table.StoryId);
         Assert.Equal(3, table.RowCount); Assert.Equal(2, table.ColumnCount);
         Assert.Equal(new[] { "Table on page 2", "Top right", "P2 table left", "P2 table right", "Bottom Left", "Bottom Right" }, table.Cells.Select(cell => cell.Text));

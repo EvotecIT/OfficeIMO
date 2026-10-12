@@ -97,6 +97,9 @@ appears once. Cell coordinates are local to the table and use points. Table
 `PageTransform` maps those coordinates into the page, including rotation and
 enclosing groups. The frame size and the grid track dimensions remain distinct.
 Tables inherited from a master are listed on that master in `MasterPages`.
+Hidden tables and tables with unavailable geometry retain their grid and mapped
+cell text. `HasPlacement = false` identifies a table whose frame cannot be used
+for page placement; its recovered cell data remains available.
 
 ```csharp
 foreach (var page in publication.Pages)
