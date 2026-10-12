@@ -54,12 +54,16 @@ internal static partial class PdfWriter {
                 : null;
             bool fitsFullPage = fullPageMeasuredHeight.HasValue &&
                                 fullPageMeasuredHeight.Value <= GetMaximumBlockContinuationHeight() + 0.001D;
+            // A fit against full-page capacity in an unused partial column does not finish the width search.
+            bool widthAdaptiveKeep = flow.Options.KeepTogether && fullPageMeasuredHeight.HasValue && !fitsFullPage &&
+                PdfFlowNestingRules.IsColumnFlowSupported(flow);
+            bool needsWidthFit = widthAdaptiveKeep && CanFlowFitAnotherFlowWidth(blocks, width);
             bool moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
             bool moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
             bool moveForMinimumHeight = flow.Options.MinimumRemainingHeight > 0D &&
                 available + 0.001D < flow.Options.MinimumRemainingHeight;
-            while ((moveForKeepTogether || moveForOverflow || moveForMinimumHeight) &&
-                   ShouldAdvanceForBlockHeight(Math.Max(measuredHeight.GetValueOrDefault(), flow.Options.MinimumRemainingHeight))) {
+            while ((needsWidthFit || moveForKeepTogether || moveForOverflow || moveForMinimumHeight) &&
+                   (needsWidthFit || ShouldAdvanceForBlockHeight(Math.Max(measuredHeight.GetValueOrDefault(), flow.Options.MinimumRemainingHeight)))) {
                 NewBlockFrame();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
@@ -72,6 +76,7 @@ internal static partial class PdfWriter {
                 beforeFloatClearanceY = y;
                 cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
                 fitsFullPage = measuredHeight.HasValue && measuredHeight.Value <= GetMaximumBlockContinuationHeight() + .001D;
+                needsWidthFit = widthAdaptiveKeep && !fitsFullPage && CanFlowFitAnotherFlowWidth(blocks, width);
                 moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
                 moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
                 moveForMinimumHeight = flow.Options.MinimumRemainingHeight > 0D && available + .001D < flow.Options.MinimumRemainingHeight;
@@ -132,6 +137,13 @@ internal static partial class PdfWriter {
 
         private double? MeasureFlowBlocks(IReadOnlyList<IPdfBlock> blocks) {
             return MeasureBlockSequence(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+        }
+
+        private bool CanFlowFitAnotherFlowWidth(IReadOnlyList<IPdfBlock> blocks, double parentWidth) {
+            return CanFitAnotherFixedFlowWidth(parentWidth, candidateWidth =>
+                HasUsableContainerMeasurementWidths(blocks, candidateWidth, wholeContainer: true)
+                    ? MeasureBlockSequenceAtFrameStart(blocks, currentOpts.MarginLeft, candidateWidth, currentOpts.DefaultFontSize)
+                    : null);
         }
 
         private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfOptions startOptions, FloatingFlowCapture paintedRegions) {
