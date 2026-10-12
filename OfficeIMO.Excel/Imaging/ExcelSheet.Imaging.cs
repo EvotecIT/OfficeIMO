@@ -544,6 +544,7 @@ namespace OfficeIMO.Excel {
             }
 
             IReadOnlyList<ExcelColumnSnapshot> columns = GetColumnDefinitions();
+            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(WorksheetPart);
             Dictionary<int, ExcelRowSnapshot> rows = GetRowDefinitions().ToDictionary(row => row.Index);
             cancellationToken.ThrowIfCancellationRequested();
             bool defaultRowsHidden = DefaultRowsHidden;
@@ -551,9 +552,9 @@ namespace OfficeIMO.Excel {
                 foreach (ExcelImage image in Images) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
-                        ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                        ExpandAbsoluteVisualAnchor(geometry, absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                     } else if (options.IncludeHidden || !IsHiddenAnchor(image.RowIndex, image.ColumnIndex, rows, defaultRowsHidden, columns)) {
-                        ExpandVisualAnchor(
+                        ExpandVisualAnchor(geometry,
                             image.RowIndex,
                             image.ColumnIndex,
                             ExcelImageExportLimits.SaturatingAddExtent(image.WidthPixels, image.OffsetXPixels),
@@ -575,9 +576,9 @@ namespace OfficeIMO.Excel {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
                         if (chart.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
-                            ExpandAbsoluteVisualAnchor(absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                            ExpandAbsoluteVisualAnchor(geometry, absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                         } else if (options.IncludeHidden || !IsHiddenAnchor(snapshot.RowIndex, snapshot.ColumnIndex, rows, defaultRowsHidden, columns)) {
-                            ExpandVisualAnchor(
+                            ExpandVisualAnchor(geometry,
                                 snapshot.RowIndex,
                                 snapshot.ColumnIndex,
                                 ExcelImageExportLimits.SaturatingAddExtent(snapshot.WidthPixels, snapshot.OffsetXPixels),
@@ -599,7 +600,7 @@ namespace OfficeIMO.Excel {
                 foreach (ExcelWorksheetDrawingObjectInfo drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(WorksheetPart)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (drawing.IsRenderable && (options.IncludeHidden || !IsHiddenAnchor(drawing.Row, drawing.Column, rows, defaultRowsHidden, columns))) {
-                        ExpandVisualAnchor(
+                        ExpandVisualAnchor(geometry,
                             drawing.Row,
                             drawing.Column,
                             ExcelImageExportLimits.SaturatingAddExtent(drawing.WidthPixels, drawing.OffsetXPixels),
@@ -637,7 +638,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static void ExpandVisualAnchor(
+        private static void ExpandVisualAnchor(ExcelWorksheetGeometryIndex geometry,
             int rowIndex,
             int columnIndex,
             int widthPixels,
@@ -657,10 +658,10 @@ namespace OfficeIMO.Excel {
             firstRow = Math.Min(firstRow, rowIndex);
             firstColumn = Math.Min(firstColumn, columnIndex);
             lastRow = Math.Max(lastRow, ResolveLastVisualRow(rowIndex, heightPixels, rows, defaultRowsHidden, options));
-            lastColumn = Math.Max(lastColumn, ResolveLastVisualColumn(columnIndex, widthPixels, columns, options));
+            lastColumn = Math.Max(lastColumn, ResolveLastVisualColumn(geometry, columnIndex, widthPixels, columns, options));
         }
 
-        private static void ExpandAbsoluteVisualAnchor(
+        private static void ExpandAbsoluteVisualAnchor(ExcelWorksheetGeometryIndex geometry,
             int xPixels,
             int yPixels,
             int widthPixels,
@@ -672,8 +673,8 @@ namespace OfficeIMO.Excel {
             ref int firstColumn,
             ref int lastRow,
             ref int lastColumn) {
-            int startColumn = ResolveColumnAtAbsoluteOffset(ExcelImageExportLimits.ClampAbsoluteOffsetPixels(xPixels), columns, options);
-            int endColumn = ResolveColumnAtAbsoluteOffset(ExcelImageExportLimits.SaturatingAddAbsoluteOffset(xPixels, widthPixels), columns, options);
+            int startColumn = ResolveColumnAtAbsoluteOffset(geometry, ExcelImageExportLimits.ClampAbsoluteOffsetPixels(xPixels), columns, options);
+            int endColumn = ResolveColumnAtAbsoluteOffset(geometry, ExcelImageExportLimits.SaturatingAddAbsoluteOffset(xPixels, widthPixels), columns, options);
             int startRow = ResolveRowAtAbsoluteOffset(ExcelImageExportLimits.ClampAbsoluteOffsetPixels(yPixels), rows, options);
             int endRow = ResolveRowAtAbsoluteOffset(ExcelImageExportLimits.SaturatingAddAbsoluteOffset(yPixels, heightPixels), rows, options);
             firstColumn = Math.Min(firstColumn, startColumn);
@@ -682,13 +683,13 @@ namespace OfficeIMO.Excel {
             lastRow = Math.Max(lastRow, endRow);
         }
 
-        private static int ResolveColumnAtAbsoluteOffset(int offsetPixels, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
+        private static int ResolveColumnAtAbsoluteOffset(ExcelWorksheetGeometryIndex geometry, int offsetPixels, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
             offsetPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(offsetPixels);
             double cursor = 0D;
             int maximumColumn = Math.Min(16384, ExcelImageExportLimits.MaximumAnchorSpanCells);
             for (int column = 1; column <= maximumColumn; column++) {
                 ExcelColumnSnapshot? definition = columns.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
-                double width = ResolveColumnWidth(definition, options);
+                double width = ResolveColumnWidth(geometry, definition, options);
                 if (definition?.Hidden == true && !options.IncludeHidden) {
                     width = 0D;
                 }
@@ -724,12 +725,12 @@ namespace OfficeIMO.Excel {
             return maximumRow;
         }
 
-        private static int ResolveLastVisualColumn(int startColumn, int widthPixels, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
+        private static int ResolveLastVisualColumn(ExcelWorksheetGeometryIndex geometry, int startColumn, int widthPixels, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
             double remaining = Math.Max(1D, ExcelImageExportLimits.ClampExtentPixels(widthPixels));
             int column = startColumn;
             int stopColumn = Math.Min(16384, startColumn + ExcelImageExportLimits.MaximumAnchorSpanCells);
             while (column < stopColumn) {
-                remaining -= ResolveVisibleColumnWidth(column, columns, options);
+                remaining -= ResolveVisibleColumnWidth(geometry, column, columns, options);
                 if (remaining <= 0D) {
                     return column;
                 }
@@ -766,13 +767,13 @@ namespace OfficeIMO.Excel {
         private static bool IsHiddenColumn(int columnIndex, IReadOnlyList<ExcelColumnSnapshot> columns) =>
             columns.Any(definition => definition.Hidden && columnIndex >= definition.StartIndex && columnIndex <= definition.EndIndex);
 
-        private static double ResolveVisibleColumnWidth(int column, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
+        private static double ResolveVisibleColumnWidth(ExcelWorksheetGeometryIndex geometry, int column, IReadOnlyList<ExcelColumnSnapshot> columns, ExcelImageExportOptions options) {
             ExcelColumnSnapshot? definition = columns.FirstOrDefault(item => column >= item.StartIndex && column <= item.EndIndex);
             if (definition?.Hidden == true && !options.IncludeHidden) {
                 return 0D;
             }
 
-            return ResolveColumnWidth(definition, options);
+            return ResolveColumnWidth(geometry, definition, options);
         }
 
         private static double ResolveVisibleRowHeight(int rowIndex, ExcelRowSnapshot? definition, IReadOnlyDictionary<int, ExcelRowSnapshot> rows, bool defaultRowsHidden, ExcelImageExportOptions options) {
@@ -783,12 +784,8 @@ namespace OfficeIMO.Excel {
             return ResolveRowHeight(definition, options);
         }
 
-        private static double ResolveColumnWidth(ExcelColumnSnapshot? definition, ExcelImageExportOptions options) {
-            if (definition?.Width == null) {
-                return options.DefaultColumnWidthPixels;
-            }
-
-            return Math.Max(1D, Math.Round((definition.Width.Value * 7D) + 5D, 2));
+        private static double ResolveColumnWidth(ExcelWorksheetGeometryIndex geometry, ExcelColumnSnapshot? definition, ExcelImageExportOptions options) {
+            return geometry.GetExportColumnWidthPixels(definition?.StartIndex ?? 0, options.DefaultColumnWidthPixels);
         }
 
         private static double ResolveRowHeight(ExcelRowSnapshot? definition, ExcelImageExportOptions options) {
