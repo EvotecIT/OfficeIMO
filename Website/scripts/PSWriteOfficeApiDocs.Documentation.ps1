@@ -141,6 +141,14 @@ function Set-PSWriteOfficeDocumentationSnapshot {
         param($match)
         $match.Groups['prefix'].Value + $sourceRef
     }
+    # Format names distinguish the released cookbook's repeated example labels,
+    # matching the maintained guide without changing its versioned destinations.
+    $exampleLabelPattern = '\[[Oo]bject composition\](?<target>\(https://github\.com/' + $repository +
+        '/blob/[^/]+/Examples/(?<format>Word|Excel|PowerPoint|Markdown)/Recipe-\k<format>-ObjectComposition\.ps1(?:[?#][^)\s]*)?\))'
+    $exampleLabelReplacement = [System.Text.RegularExpressions.MatchEvaluator] {
+        param($match)
+        '[' + $match.Groups['format'].Value + ' object composition]' + $match.Groups['target'].Value
+    }
 
     $catalogPath = Join-Path $SiteRootPath 'data/pswriteoffice_command_catalog.json'
     $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json -Depth 20
@@ -165,6 +173,11 @@ function Set-PSWriteOfficeDocumentationSnapshot {
     foreach ($page in Get-ChildItem -LiteralPath $documentationRoot -Filter '*.md' -File -Recurse) {
         $content = [IO.File]::ReadAllText($page.FullName)
         $pinnedContent = [regex]::Replace($content, $pattern, $replacement)
+        $exampleFormats = @([regex]::Matches($pinnedContent, $exampleLabelPattern) |
+            ForEach-Object { $_.Groups['format'].Value } | Sort-Object -Unique)
+        if ($exampleFormats.Count -gt 1) {
+            $pinnedContent = [regex]::Replace($pinnedContent, $exampleLabelPattern, $exampleLabelReplacement)
+        }
         $family = @($catalog.families | Where-Object id -CEQ $page.Directory.Name)
         if ($page.Name -ceq 'index.md' -and $family.Count -eq 1) {
             # Imported and fallback summaries follow the same catalog totals.

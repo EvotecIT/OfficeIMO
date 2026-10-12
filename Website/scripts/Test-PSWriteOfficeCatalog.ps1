@@ -142,6 +142,33 @@ try {
     $navigation = Get-Content -LiteralPath $navigationToc -Raw | ConvertFrom-Json
     if ($navigation[0].items[0].title -cne 'Automate Word Documents') { throw 'Existing navigation titles were not refreshed.' }
     $cases.Add('existing-navigation-title')
+
+    # Repeated cookbook labels must identify their formats while preserving URLs.
+    $fixtureApi = Join-Path $siteFixture 'data/apidocs/powershell'
+    New-Item -ItemType Directory -Path $fixtureApi -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $apiRoot 'PSWriteOffice.psd1') -Destination $fixtureApi
+    Copy-Item -LiteralPath $catalogPath -Destination (Join-Path $siteFixture 'data/pswriteoffice_command_catalog.json')
+    $examplePage = Join-Path $fixtureDocs 'pswriteoffice/dsl-cookbook/index.md'
+    $exampleLinks = foreach ($format in 'Word', 'Excel', 'PowerPoint', 'Markdown') {
+        "[Object composition](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/$format/Recipe-$format-ObjectComposition.ps1)"
+    }
+    $otherLink = '[Object composition](https://github.com/example/other/blob/main/Examples/Word/Recipe-Word-ObjectComposition.ps1)'
+    $uniqueLink = '[Word pipeline recipe](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Word/Recipe-Word-ObjectComposition.ps1)'
+    [IO.File]::WriteAllText($examplePage, (($exampleLinks + @($otherLink, $uniqueLink)) -join "`n"))
+    $null = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $siteFixture -Source $source[0]
+    $qualified = [IO.File]::ReadAllText($examplePage)
+    foreach ($format in 'Word', 'Excel', 'PowerPoint', 'Markdown') {
+        $expectedLink = $exampleLinks | Where-Object { $_ -like "*/Examples/$format/*" }
+        $expectedLink = $expectedLink.Replace('[Object composition]', "[$format object composition]")
+        if (-not $qualified.Contains($expectedLink)) { throw "The '$format' label or its destination is incorrect." }
+    }
+    if (-not $qualified.Contains($otherLink) -or -not $qualified.Contains($uniqueLink)) { throw 'Unrelated example links changed.' }
+    $null = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $siteFixture -Source $source[0]
+    if ([IO.File]::ReadAllText($examplePage) -cne $qualified) { throw 'Example link qualification is not idempotent.' }
+    [IO.File]::WriteAllText($examplePage, $exampleLinks[0])
+    $null = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $siteFixture -Source $source[0]
+    if ([IO.File]::ReadAllText($examplePage) -cne $exampleLinks[0]) { throw 'A unique example link label changed.' }
+    $cases.Add('format-qualified-example-link-labels')
 } finally {
     # Git creates hidden metadata and read-only loose objects on Windows.
     # This unique test directory contains only the fixture created above.
