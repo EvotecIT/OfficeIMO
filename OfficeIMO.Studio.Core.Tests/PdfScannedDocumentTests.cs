@@ -16,10 +16,12 @@ public sealed class PdfScannedDocumentTests {
             using var workspace = await PdfWorkspace.OpenAsync(path, default);
             PdfDocumentSession session = PdfDocumentSession.FromWorkspace(workspace);
             Assert.Equal(pages, session.Pages.Count);
+            // The width of a 13-inch iPad in portrait, at its display scale.
+            const double scale = 2064D / 612D;
             for (int page = 1; page <= pages; page++) {
-                PdfRenderedPage rendered = await session.RenderPageAsync(page, 2D, default);
-                Assert.Equal(1224, rendered.PixelWidth);
-                Assert.Equal(1584, rendered.PixelHeight);
+                PdfRenderedPage rendered = await session.RenderPageAsync(page, scale, default);
+                Assert.Equal(2064, rendered.PixelWidth);
+                Assert.Equal(2672, rendered.PixelHeight);
             }
         } finally { File.Delete(path); }
     }
@@ -39,7 +41,8 @@ public sealed class PdfScannedDocumentTests {
             pixels.AsSpan(page * width * 3 * 10, width * 3 * 10).Fill(0x20);
             byte[] image = Compress(pixels);
             streams[objects.Count + 1] = image;
-            objects.Add($"<< /Type /XObject /Subtype /Image /Width {width} /Height {height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length {image.Length} >>");
+            // Quartz, and so Preview and the Apple document scanner, marks drawn images for interpolation.
+            objects.Add($"<< /Type /XObject /Subtype /Image /Width {width} /Height {height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate true /Filter /FlateDecode /Length {image.Length} >>");
             byte[] content = Encoding.ASCII.GetBytes("q 612 0 0 792 0 0 cm /Im0 Do Q");
             streams[objects.Count + 1] = content;
             objects.Add($"<< /Length {content.Length} >>");

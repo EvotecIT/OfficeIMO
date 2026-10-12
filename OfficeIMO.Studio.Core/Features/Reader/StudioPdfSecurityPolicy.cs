@@ -9,8 +9,8 @@ internal static class StudioPdfSecurityPolicy {
     // zoom levels.
     internal const long MaximumRasterPixels = 8_400_000;
     // The renderer's working budget for one page: the page image, intermediate surfaces and decoded source images.
-    // A 300 dpi colour A3 scan decodes to 17.4 million pixels beside a full-size page image.
-    internal const long MaximumRenderWorkingPixels = 32_000_000;
+    // An interpolated 300 dpi colour A3 scan, as Quartz writes it, needs 60.4 million at a 13-inch iPad's width.
+    internal const long MaximumRenderWorkingPixels = 64_000_000;
     // Uncompressed RGBA plus PNG framing, so the pixel budget rather than encoding governs a photographic page.
     internal const long MaximumRasterOutputBytes = MaximumRasterPixels * 4L + 1024L * 1024L;
     internal static readonly TimeSpan RenderTimeout = TimeSpan.FromSeconds(10);
