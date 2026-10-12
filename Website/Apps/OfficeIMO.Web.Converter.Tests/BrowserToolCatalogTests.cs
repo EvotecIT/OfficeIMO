@@ -123,6 +123,34 @@ public sealed class BrowserToolCatalogTests {
         Assert.All(lazy, assembly => Assert.Contains(assembly, used));
     }
 
+    public static IEnumerable<object[]> PdfToolIds => Tools
+        .Where(static tool => {
+            JsonElement engine = Engine(tool);
+            if (engine.GetProperty("kind").GetString() == "pdf") return true;
+            if (engine.GetProperty("kind").GetString() != "convert") return false;
+            var route = ConversionRouteCatalog.All.Single(route => route.Id == engine.GetProperty("target").GetString());
+            return route.Source == "PDF" || route.Target == "PDF";
+        })
+        .Select(static tool => new object[] { tool.GetProperty("id").GetString()! });
+
+    [Theory]
+    [MemberData(nameof(PdfToolIds))]
+    public void PdfToolsLoadPortableFontProfileDependencies(string toolId) {
+        JsonElement tool = Tools.Single(tool => tool.GetProperty("id").GetString() == toolId);
+        string[] declared = Engine(tool).GetProperty("assemblies").EnumerateArray()
+            .Select(static assembly => assembly.GetString()!).ToArray();
+        // PDF conversion, imports and previews share this font capability. Membership in the
+        // project's lazy list alone does not make its profile owner available in a fresh worker.
+        foreach (Type dependency in new[] {
+            typeof(PdfDocument),
+            typeof(OfficeIMO.Web.Fonts.BrowserFontResources),
+            typeof(OfficeIMO.Html.Pdf.HtmlPortableBrowserFontProfile)
+        }) {
+            string assembly = dependency.Assembly.GetName().Name + ".wasm";
+            Assert.True(declared.Contains(assembly, StringComparer.Ordinal), $"{toolId} must preload {assembly} for its portable PDF font profile.");
+        }
+    }
+
     [Fact]
     public void NextStepsAndLegacyLinksPointAtRealTools() {
         string[] ids = Tools.Select(static tool => tool.GetProperty("id").GetString()!).ToArray();

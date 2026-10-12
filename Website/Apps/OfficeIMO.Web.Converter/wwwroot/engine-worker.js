@@ -142,11 +142,15 @@ const handlers = {
   },
   artifact: async ({ index }) => { await boot(); return engine.Artifact(index); },
   probe: async ({ slot }) => { await boot(); return JSON.parse(engine.Probe(slot)); },
-  pages: async ({ source, index }) => { await boot(); return engine.PageCount(source, index); },
+  pages: async ({ source, index }) => {
+    // Preview sessions reference the shared profile before rendering; page counts do not need its font bytes.
+    await prepare(null, ["OfficeIMO.Html.Pdf.wasm"]);
+    return engine.PageCount(source, index);
+  },
   render: async ({ source, index, page, size }) => {
     // PDF previews may contain unembedded Japanese, Arabic or symbol fonts even when
     // the operation itself only edits PDF structure and never requests conversion fonts.
-    await prepare(null, ["OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"]);
+    await prepare(null, ["OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"]);
     return engine.RenderPage(source, index, page, size || 1280);
   },
   // WebAssembly memory only grows, so its size is the engine's peak footprint (used by the CI performance budget).
