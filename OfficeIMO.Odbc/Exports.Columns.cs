@@ -14,14 +14,13 @@ namespace OfficeIMO.Odbc {
             nuint* size, short* scale, short* nullable, bool wide) => DriverHandles.With<StatementHandle>(id, statement => {
             short result = EnsureMetadata(statement);
             if (result != 0) return result;
-            System.Data.Common.DbDataReader reader = statement.Reader!;
-            if (ordinal == 0 || ordinal > reader.FieldCount) return statement.Fail("07009", "Invalid column ordinal.");
-            short sqlType = NativeValue.SqlType(reader, ordinal - 1);
+            if (ordinal == 0 || ordinal > statement.ColumnCount) return statement.Fail("07009", "Invalid column ordinal.");
+            short sqlType = statement.ColumnType(ordinal - 1);
             if (type != null) *type = sqlType;
             if (size != null) *size = NativeValue.ColumnSize(sqlType);
             if (scale != null) *scale = sqlType == 93 ? (short)7 : (short)0;
             if (nullable != null) *nullable = 1;
-            result = NativeText.Write(reader.GetName(ordinal - 1), name, capacity, nameLength, wide);
+            result = NativeText.Write(statement.ColumnName(ordinal - 1), name, capacity, nameLength, wide);
             if (result == 1) statement.Diagnostics.Add(new("01004", "Column name was truncated."));
             return result;
         });
@@ -37,14 +36,14 @@ namespace OfficeIMO.Odbc {
             DriverHandles.With<StatementHandle>(id, statement => {
                 short result = EnsureMetadata(statement);
                 if (result != 0) return result;
-                System.Data.Common.DbDataReader reader = statement.Reader!;
-                if (field is 0 or 1001) { if (number != null) *number = reader.FieldCount; return 0; }
-                if (ordinal == 0 || ordinal > reader.FieldCount) return statement.Fail("07009", "Invalid column ordinal.");
-                short sqlType = NativeValue.SqlType(reader, ordinal - 1);
+                if (field is 0 or 1001) { if (number != null) *number = statement.ColumnCount; return 0; }
+                if (ordinal == 0 || ordinal > statement.ColumnCount) return statement.Fail("07009", "Invalid column ordinal.");
+                short sqlType = statement.ColumnType(ordinal - 1);
                 string? value = field switch {
-                    1 or 18 or 1011 => reader.GetName(ordinal - 1),
+                    1 or 18 or 1011 => statement.ColumnName(ordinal - 1),
                     14 => NativeValue.TypeName(sqlType),
-                    15 or 16 or 17 or 22 or 23 => "", _ => null
+                    17 => Snapshot(statement).CatalogName,
+                    15 or 16 or 22 or 23 => "", _ => null
                 };
                 if (value is not null) {
                     short units = 0;

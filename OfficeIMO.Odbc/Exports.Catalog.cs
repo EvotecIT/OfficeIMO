@@ -19,11 +19,11 @@ namespace OfficeIMO.Odbc {
                 string? name = Pattern(table, tableLength, wide), kind = Pattern(types, typesLength, wide);
                 DataTable result = NewMetadata([("TABLE_CAT", typeof(string)), ("TABLE_SCHEM", typeof(string)),
                     ("TABLE_NAME", typeof(string)), ("TABLE_TYPE", typeof(string)), ("REMARKS", typeof(string))]);
-                if (cat == "%" && owner == "" && name == "") result.Rows.Add("", DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
+                if (cat == "%" && owner == "" && name == "") result.Rows.Add(snapshot.CatalogName, DBNull.Value, DBNull.Value, DBNull.Value, DBNull.Value);
                 else if (owner == "%" && cat == "" && name == "") result.Rows.Add(DBNull.Value, "", DBNull.Value, DBNull.Value, DBNull.Value);
                 else if (kind == "%" && cat == "" && owner == "" && name == "") result.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value, "TABLE", DBNull.Value);
-                else if (Matches("", cat) && Matches("", owner) && (string.IsNullOrEmpty(kind) || kind.Split(',').Any(value => value.Trim(' ', '\'').Equals("TABLE", StringComparison.OrdinalIgnoreCase)))) {
-                    foreach (SnapshotTable item in snapshot.Tables.Where(item => Matches(item.Name, name)).OrderBy(item => item.Name, StringComparer.Ordinal)) result.Rows.Add(DBNull.Value, DBNull.Value, item.Name, "TABLE", "Read-only worksheet snapshot");
+                else if (Matches(snapshot.CatalogName, cat) && Matches("", owner) && (string.IsNullOrEmpty(kind) || kind.Split(',').Any(value => value.Trim(' ', '\'').Equals("TABLE", StringComparison.OrdinalIgnoreCase)))) {
+                    foreach (SnapshotTable item in snapshot.Tables.Where(item => Matches(item.Name, name)).OrderBy(item => item.Name, StringComparer.Ordinal)) result.Rows.Add(snapshot.CatalogName, DBNull.Value, item.Name, "TABLE", "Read-only worksheet snapshot");
                 }
                 SetMetadata(statement, result);
                 return 0;
@@ -47,12 +47,12 @@ namespace OfficeIMO.Odbc {
                     ("DECIMAL_DIGITS", typeof(short)), ("NUM_PREC_RADIX", typeof(short)), ("NULLABLE", typeof(short)), ("REMARKS", typeof(string)),
                     ("COLUMN_DEF", typeof(string)), ("SQL_DATA_TYPE", typeof(short)), ("SQL_DATETIME_SUB", typeof(short)),
                     ("CHAR_OCTET_LENGTH", typeof(int)), ("ORDINAL_POSITION", typeof(int)), ("IS_NULLABLE", typeof(string))]);
-                if (Matches("", cat) && Matches("", owner)) foreach (SnapshotTable item in snapshot.Tables.Where(item => Matches(item.Name, name)).OrderBy(item => item.Name, StringComparer.Ordinal)) {
+                if (Matches(snapshot.CatalogName, cat) && Matches("", owner)) foreach (SnapshotTable item in snapshot.Tables.Where(item => Matches(item.Name, name)).OrderBy(item => item.Name, StringComparer.Ordinal)) {
                     for (int i = 0; i < item.Columns.Length; i++) {
                         SnapshotColumn definition = item.Columns[i];
                         if (!Matches(definition.Name, field)) continue;
                         short type = definition.Type == typeof(double) ? (short)8 : definition.Type == typeof(bool) ? (short)-7 : definition.Type == typeof(DateTime) ? (short)93 : (short)-9;
-                        result.Rows.Add(DBNull.Value, DBNull.Value, item.Name, definition.Name, type, NativeValue.TypeName(type),
+                        result.Rows.Add(snapshot.CatalogName, DBNull.Value, item.Name, definition.Name, type, NativeValue.TypeName(type),
                             (int)NativeValue.CatalogColumnSize(type), (int)NativeValue.CatalogOctetLength(type), type == 8 ? DBNull.Value : (object)(short)(type == 93 ? 7 : 0),
                             type is 8 or -7 ? (object)(short)10 : DBNull.Value, (short)1, DBNull.Value, DBNull.Value,
                             (short)(type == 93 ? 9 : type), type == 93 ? (object)(short)3 : DBNull.Value,

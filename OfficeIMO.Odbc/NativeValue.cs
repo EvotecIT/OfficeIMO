@@ -19,14 +19,26 @@ namespace OfficeIMO.Odbc {
                 managed == typeof(byte[]) ? (short)-3 : (short)-9;
         }
 
+        internal static short DeclaredSqlType(string typeName) {
+            string type = typeName.ToUpperInvariant();
+            if (type.Contains("BOOL", StringComparison.Ordinal)) return -7;
+            if (type.Contains("DATETIME", StringComparison.Ordinal) || type.Contains("TIMESTAMP", StringComparison.Ordinal)) return 93;
+            if (type.Contains("INT", StringComparison.Ordinal)) return -5;
+            if (type.Contains("CHAR", StringComparison.Ordinal) || type.Contains("CLOB", StringComparison.Ordinal) || type.Contains("TEXT", StringComparison.Ordinal)) return -9;
+            if (type.Contains("REAL", StringComparison.Ordinal) || type.Contains("DOUBLE", StringComparison.Ordinal) || type.Contains("FLOAT", StringComparison.Ordinal)) return 8;
+            if (type.Contains("BLOB", StringComparison.Ordinal)) return -3;
+            // Expressions and dynamic numeric affinities have no value-independent SQL type.
+            return 0;
+        }
+
         // SELECT expressions can exceed imported-cell bounds; unknown variable result sizes are not maxima.
         internal static nuint ColumnSize(short sqlType) => sqlType switch { 8 => 15, -5 => 19, 4 => 10, 5 => 5, -7 => 1, 93 => 27, _ => 0 };
         internal static nuint CatalogColumnSize(short sqlType) => sqlType == -9 ? 32 * 1024 * 1024 : ColumnSize(sqlType);
         internal static short Precision(short sqlType) => sqlType switch { 8 => 53, -5 => 19, 4 => 10, 5 => 5, -7 => 1, 93 => 7, _ => 0 };
-        internal static nint OctetLength(short sqlType) => sqlType switch { -9 or -3 => -4, -7 => 1, 5 => 2, 4 => 4, 93 => 16, _ => 8 };
+        internal static nint OctetLength(short sqlType) => sqlType switch { 0 or -9 or -3 => -4, -7 => 1, 5 => 2, 4 => 4, 93 => 16, _ => 8 };
         internal static nint CatalogOctetLength(short sqlType) => sqlType == -9 ? 64 * 1024 * 1024 : OctetLength(sqlType);
-        internal static nint DisplaySize(short sqlType) => sqlType switch { 8 => 24, -5 => 20, 4 => 11, 5 => 6, -9 or -3 => -4, _ => (nint)ColumnSize(sqlType) };
-        internal static string TypeName(short sqlType) => sqlType switch { 8 => "DOUBLE", -5 => "BIGINT", 4 => "INTEGER", 5 => "SMALLINT", -7 => "BIT", 93 => "TIMESTAMP", -3 => "VARBINARY", _ => "WVARCHAR" };
+        internal static nint DisplaySize(short sqlType) => sqlType switch { 8 => 24, -5 => 20, 4 => 11, 5 => 6, 0 or -9 or -3 => -4, _ => (nint)ColumnSize(sqlType) };
+        internal static string TypeName(short sqlType) => sqlType switch { 0 => "", 8 => "DOUBLE", -5 => "BIGINT", 4 => "INTEGER", 5 => "SMALLINT", -7 => "BIT", 93 => "TIMESTAMP", -3 => "VARBINARY", _ => "WVARCHAR" };
 
         internal static short Write(StatementHandle statement, ushort column, short targetType, nint buffer, nint capacity, nint indicator, bool advance) {
             if (statement.Reader is not { } reader || !statement.OnRow) return statement.Fail("24000", "Fetch a row before reading column data.");
@@ -212,7 +224,12 @@ namespace OfficeIMO.Odbc {
 
         private static DateTime ReadDate(nint buffer, bool timestamp) {
             ushort* parts = (ushort*)buffer;
-            DateTime result = new(parts[0], parts[1], parts[2], timestamp ? parts[3] : 0, timestamp ? parts[4] : 0, timestamp ? parts[5] : 0);
+            DateTime result;
+            try {
+                result = new DateTime(*(short*)buffer, parts[1], parts[2], timestamp ? parts[3] : 0, timestamp ? parts[4] : 0, timestamp ? parts[5] : 0);
+            } catch (ArgumentOutOfRangeException) {
+                throw new ParameterValueException("22008", "Date or timestamp fields are outside the supported calendar range.");
+            }
             if (!timestamp) return result;
             uint fraction = *(uint*)((byte*)buffer + 12);
             if (fraction >= 1_000_000_000 || fraction % 100 != 0)

@@ -12,19 +12,25 @@ namespace OfficeIMO.Odbc {
         private readonly SQLite _queries;
         private readonly DbConnection _anchor;
         private readonly string _connectionString;
+        private readonly string _database;
         internal IReadOnlyList<SnapshotTable> Tables { get; }
         internal string Path { get; }
+        internal string CatalogName => System.IO.Path.GetFileName(Path);
 
         internal WorkbookSnapshot(string path, CancellationToken cancellationToken) {
             Path = System.IO.Path.GetFullPath(path);
+            cancellationToken.ThrowIfCancellationRequested();
+            ConnectionSettings.ValidateStoragePath(Path);
             // A random named in-memory database lets independently owned query readers share one snapshot.
             string database = "file:officeimo-" + Guid.NewGuid().ToString("N") + "?mode=memory&cache=shared";
+            _database = database;
             _anchor = _writer.OpenDbConnection(database, new SQLiteConnectionOptions {
                 Pooling = false, EnableWriteAheadLogging = false, UseNormalSynchronousMode = false
             });
             _connectionString = _anchor.ConnectionString;
             _queries = new SQLite {
                 MaxRetryAttempts = 1,
+                ConnectionOptions = new SQLiteConnectionOptions { Pooling = false, EnableWriteAheadLogging = false, UseNormalSynchronousMode = false },
                 ConfigureConnection = connection => {
                     using DbCommand command = connection.CreateCommand();
                     command.CommandText = "PRAGMA query_only=ON; PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY;";
@@ -41,11 +47,12 @@ namespace OfficeIMO.Odbc {
 
         private List<SnapshotTable> Import(CancellationToken cancellationToken) {
             // Buffer the source once, so all worksheets belong to the same file snapshot.
-            using FileStream input = File.Open(Path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            cancellationToken.ThrowIfCancellationRequested();
+            using FileStream input = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
             const int maxInputBytes = 64 * 1024 * 1024;
             if (input.Length > maxInputBytes) throw new InvalidDataException("Workbook exceeds the 64 MiB input limit.");
             byte[] bytes = new byte[checked((int)input.Length)];
-            input.ReadExactly(bytes);
+            input.ReadExactlyAsync(bytes, cancellationToken).AsTask().GetAwaiter().GetResult();
             ExcelReadOptions options = new ExcelReadOptions {
                 MaxInputBytes = maxInputBytes, MaxWorksheets = 64, CancellationToken = cancellationToken,
                 HasHeaderRow = true, InferSchema = false, MaxDataReaderColumns = 256,
@@ -118,6 +125,11 @@ namespace OfficeIMO.Odbc {
             QueryEnvelope.Validate(sql);
             return _queries.QueryReaderWithConnectionStringAsync(_connectionString, sql, parameters,
                 cancellationToken: cancellationToken).GetAwaiter().GetResult();
+        }
+
+        internal IReadOnlyList<SQLiteQueryColumn> QueryColumns(string sql, CancellationToken cancellationToken) {
+            QueryEnvelope.Validate(sql);
+            return _queries.GetQueryColumns(_database, sql, cancellationToken);
         }
 
         private static object Normalize(object? value, Type type) => value is null ? DBNull.Value :

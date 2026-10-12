@@ -57,6 +57,7 @@ class Manager:
             "SQLGetConnectAttrW": [h, i, p, i, p], "SQLEndTran": [s, h, s],
             "SQLFetchScroll": [h, s, n], "SQLGetTypeInfoW": [h, s],
             "SQLColAttributeW": [h, u, u, p, s, p, p],
+            "SQLDescribeColW": [h, u, p, s, p, p, p, p, p],
         }
         for name, args in signatures.items():
             function = getattr(self.dll, name)
@@ -373,7 +374,7 @@ def verify_native_widths(driver):
         length = c.c_int()
         m.check(m.SQLGetDescFieldW(descriptor, 0, 25, canary, 0, c.byref(length)), 4, descriptor)
         assert canary[0] == 0 and canary[1] == 0x12345678 and length.value == 4
-        for attribute, expected in [(0, 30), (4, 1), (6, 0), (7, 1), (11, 1)]:
+        for attribute, expected in [(0, 30), (2, 1), (4, 0), (6, 0), (7, 1), (11, 1)]:
             value = c.c_size_t(-1)
             m.check(m.SQLGetStmtAttrW(statement, attribute, c.byref(value), 0, None), 3, statement)
             assert value.value == expected
@@ -403,8 +404,10 @@ def verify_native_compatibility(driver, path):
         assert m.SQLCloseCursor(statement) == -1
         assert m.diagnostics(3, statement)[0][0] == "24000"
         m.check(m.SQLFreeStmt(statement, 0), 3, statement)
-        assert m.SQLSetStmtAttrW(statement, 4, 0, 0) == -1
-        m.check(m.SQLSetStmtAttrW(statement, 4, 1, 0), 3, statement)
+        assert m.SQLSetStmtAttrW(statement, 2, 0, 0) == -1
+        m.check(m.SQLSetStmtAttrW(statement, 2, 1, 0), 3, statement)
+        m.check(m.SQLSetStmtAttrW(statement, 4, 0, 0), 3, statement)
+        assert m.SQLSetStmtAttrW(statement, 4, 1, 0) == -1
         catalog, length = c.create_unicode_buffer(2), c.c_int()
         assert m.SQLGetConnectAttrW(connection, 109, catalog, c.sizeof(catalog), c.byref(length)) == 1
         assert m.diagnostics(2, connection)[0][0] == "01004"
@@ -435,6 +438,42 @@ def verify_native_compatibility(driver, path):
         m.check(m.SQLFetch(statement), 3, statement)
         assert m.text(statement, 1) == "1"
         m.check(m.SQLCloseCursor(statement), 3, statement)
+        m.check(m.SQLFreeStmt(statement, 3), 3, statement)
+        for catalog_call in (m.SQLTablesW, m.SQLColumnsW):
+            m.check(catalog_call(statement, path.name, -3, None, 0, None, 0, None, 0), 3, statement)
+            m.check(m.SQLFetch(statement), 3, statement)
+            assert m.text(statement, 1) == path.name
+        m.check(m.SQLTablesW(statement, "%", -3, "", 0, "", 0, None, 0), 3, statement)
+        m.check(m.SQLFetch(statement), 3, statement)
+        assert m.text(statement, 1) == path.name and m.SQLFetch(statement) == 100
+        m.check(m.SQLFreeStmt(statement, 0), 3, statement)
+        # Metadata must not read an application buffer or evaluate a value-sensitive LIMIT or expression.
+        m.check(m.SQLBindParameter(statement, 1, 1, 4, 4, 10, 0, c.c_void_p(1), 4, None), 3, statement)
+        m.check(m.SQLPrepareW(statement, 'SELECT Name AS same, Amount AS same, abs(-9223372036854775808) AS unevaluated FROM Customers LIMIT ?', -3), 3, statement)
+        count = c.c_short()
+        m.check(m.SQLNumResultCols(statement, c.byref(count)), 3, statement)
+        assert count.value == 3
+        for ordinal, expected_name, expected_type in [(1, 'same', -9), (2, 'same', 8), (3, 'unevaluated', 0)]:
+            name, sql_type = c.create_unicode_buffer(32), c.c_short()
+            m.check(m.SQLDescribeColW(statement, ordinal, name, 32, None, c.byref(sql_type), None, None, None), 3, statement)
+            assert name.value == expected_name and sql_type.value == expected_type
+        result_descriptor = c.c_void_p()
+        m.check(m.SQLGetStmtAttrW(statement, 10012, c.byref(result_descriptor), 0, None), 3, statement)
+        m.check(m.SQLGetDescFieldW(result_descriptor, 0, 1001, c.byref(count), 2, None), 4, result_descriptor)
+        assert count.value == 3
+        assert m.SQLFetch(statement) == -1 and m.diagnostics(3, statement)[0][0] == '24000'
+        m.check(m.SQLPrepareW(statement, 'SELECT Name FROM Customers LIMIT ?', -3), 3, statement)
+        m.check(m.SQLNumResultCols(statement, c.byref(count)), 3, statement)
+        assert count.value == 1
+        m.check(m.SQLBindParameter(statement, 1, 1, 4, 4, 10, 0, c.byref(integer), 4, None), 3, statement)
+        m.check(m.SQLExecute(statement), 3, statement)
+        m.check(m.SQLFetch(statement), 3, statement)
+        assert m.text(statement, 1) == 'Alicja Żółć' and m.SQLFetch(statement) == 100
+        for date_type, fields in [(91, (2026, 13, 1, 0, 0, 0, 0, 0)), (93, (2026, 1, 1, 24, 0, 0, 0, 0))]:
+            date = (c.c_short * 8)(*fields)
+            m.check(m.SQLBindParameter(statement, 1, 1, date_type, date_type, 27, 7, date, 16, None), 3, statement)
+            m.check(m.SQLPrepareW(statement, 'SELECT ?', -3), 3, statement)
+            assert m.SQLExecute(statement) == -1 and m.diagnostics(3, statement)[0][0] == '22008'
         m.check(m.SQLFreeStmt(statement, 3), 3, statement)
         for sql, expected in [("SELECT '1,2'", "22018"), ("SELECT '1e999'", "22003")]:
             for target, scalar in [(7, c.c_float), (8, c.c_double)]:

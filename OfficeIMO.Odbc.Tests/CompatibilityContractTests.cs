@@ -193,11 +193,14 @@ namespace OfficeIMO.Odbc.Tests {
             delegate* unmanaged<nint, int, nint, int, short> set = &Exports.SQLSetStmtAttrW;
             delegate* unmanaged<nint, int, nint, int, int*, short> get = &Exports.SQLGetStmtAttrW;
             nint noscan = 0;
-            Assert.Equal(0, get(handles.Statement, 4, (nint)(&noscan), 0, null));
+            Assert.Equal(0, get(handles.Statement, 2, (nint)(&noscan), 0, null));
             Assert.Equal((nint)1, noscan);
-            Assert.Equal(-1, set(handles.Statement, 4, 0, 0));
+            Assert.Equal(-1, set(handles.Statement, 2, 0, 0));
             Assert.Equal("HYC00", Assert.Single(statement.Diagnostics).State);
-            Assert.Equal(0, set(handles.Statement, 4, 1, 0));
+            Assert.Equal(0, set(handles.Statement, 2, 1, 0));
+            Assert.Equal(0, set(handles.Statement, 4, 0, 0));
+            Assert.Equal(-1, set(handles.Statement, 4, 1, 0));
+            Assert.Equal("HYC00", Assert.Single(statement.Diagnostics).State);
         }
 
         [Theory]
@@ -253,6 +256,105 @@ namespace OfficeIMO.Odbc.Tests {
             *(uint*)(timestamp + 12) = 123_400_001;
             error = Assert.Throws<ParameterValueException>(() => NativeValue.Read(binding));
             Assert.Equal("22008", error.State);
+        }
+
+        [Fact]
+        public unsafe void PreparedMetadataDoesNotEvaluateRowsOrReadParameterBuffers() {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            delegate* unmanaged<nint, nint, int, short> prepare = &Exports.SQLPrepareW;
+            delegate* unmanaged<nint, short*, short> columns = &Exports.SQLNumResultCols;
+            delegate* unmanaged<nint, ushort, short, short, short, nuint, short, nint, nint, nint, short> bind = &Exports.SQLBindParameter;
+            // A metadata call must not dereference this validly bound but unavailable value buffer.
+            Assert.Equal(0, bind(handles.Statement, 1, 1, 4, 4, 10, 0, 1, 4, 0));
+            string sql = "SELECT Name AS same, Amount AS same, abs(-9223372036854775808) AS unevaluated FROM Customers LIMIT ?";
+            fixed (char* pointer = sql) Assert.Equal(0, prepare(handles.Statement, (nint)pointer, -3));
+            short count = 0;
+            Assert.Equal(0, columns(handles.Statement, &count));
+            Assert.Equal(3, count);
+            Assert.Null(statement.Reader);
+            Assert.Equal("same", statement.ColumnName(0));
+            Assert.Equal("same", statement.ColumnName(1));
+            Assert.Equal(-9, statement.ColumnType(0));
+            Assert.Equal(8, statement.ColumnType(1));
+            Assert.Equal(0, statement.ColumnType(2));
+            delegate* unmanaged<nint, ushort, nint, short, short*, short*, nuint*, short*, short*, short> describe = &Exports.SQLDescribeColW;
+            short type = 0;
+            char* name = stackalloc char[32];
+            Assert.Equal(0, describe(handles.Statement, 1, (nint)name, 32, null, &type, null, null, null));
+            Assert.Equal("same", new string(name));
+            Assert.Equal(-9, type);
+            delegate* unmanaged<nint, ushort, ushort, nint, short, short*, nint*, short> attribute = &Exports.SQLColAttributeW;
+            nint numericType = -1;
+            Assert.Equal(0, attribute(handles.Statement, 3, 2, 0, 0, null, &numericType));
+            Assert.Equal((nint)0, numericType);
+            delegate* unmanaged<nint, short, short, nint, int, int*, short> descriptor = &Exports.SQLGetDescFieldW;
+            Assert.Equal(0, descriptor(statement.Descriptors[10012], 0, 1001, (nint)(&count), 2, null));
+            Assert.Equal(3, count);
+            delegate* unmanaged<nint, short> fetch = &Exports.SQLFetch;
+            Assert.Equal(-1, fetch(handles.Statement));
+            Assert.Equal("24000", Assert.Single(statement.Diagnostics).State);
+            sql = "SELECT Name FROM Customers LIMIT ?";
+            fixed (char* pointer = sql) Assert.Equal(0, prepare(handles.Statement, (nint)pointer, -3));
+            Assert.Equal(0, columns(handles.Statement, &count));
+            Assert.Equal(1, count);
+            int limit = 1;
+            Assert.Equal(0, bind(handles.Statement, 1, 1, 4, 4, 10, 0, (nint)(&limit), 4, 0));
+            delegate* unmanaged<nint, short> execute = &Exports.SQLExecute;
+            Assert.Equal(0, execute(handles.Statement));
+            Assert.Equal(0, fetch(handles.Statement));
+            Assert.Equal("Alicja Żółć", statement.Reader!.GetString(0));
+            Assert.Equal(100, fetch(handles.Statement));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public unsafe void CatalogDiscoveryMatchesAndReturnsTheWorkbookFilename(bool wide) {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            string catalog = Path.GetFileName(fixture.FilePath);
+            byte[] encoded = NativeText.Bytes(catalog + "\0", wide);
+            delegate* unmanaged<nint, nint, short, nint, short, nint, short, nint, short, short> tables = wide ? &Exports.SQLTablesW : &Exports.SQLTables;
+            delegate* unmanaged<nint, nint, short, nint, short, nint, short, nint, short, short> columns = wide ? &Exports.SQLColumnsW : &Exports.SQLColumns;
+            fixed (byte* pointer = encoded) {
+                Assert.Equal(0, tables(handles.Statement, (nint)pointer, -3, 0, 0, 0, 0, 0, 0));
+                Assert.True(statement.Reader!.Read());
+                Assert.Equal(catalog, statement.Reader.GetString(0));
+                Assert.Equal("Customers", statement.Reader.GetString(2));
+                Assert.Equal(0, columns(handles.Statement, (nint)pointer, -3, 0, 0, 0, 0, 0, 0));
+                Assert.True(statement.Reader!.Read());
+                Assert.Equal(catalog, statement.Reader.GetString(0));
+                Assert.Equal("Name", statement.Reader.GetString(3));
+            }
+            byte[] all = NativeText.Bytes("%\0", wide), empty = NativeText.Bytes("\0", wide);
+            fixed (byte* pattern = all) fixed (byte* blank = empty) {
+                Assert.Equal(0, tables(handles.Statement, (nint)pattern, -3, (nint)blank, 0, (nint)blank, 0, 0, 0));
+                Assert.True(statement.Reader!.Read());
+                Assert.Equal(catalog, statement.Reader.GetString(0));
+                Assert.False(statement.Reader.Read());
+            }
+        }
+
+        [Theory]
+        [InlineData(91, 2026, 13, 1, 0, 0, 0)]
+        [InlineData(91, 2026, 2, 30, 0, 0, 0)]
+        [InlineData(91, -1, 1, 1, 0, 0, 0)]
+        [InlineData(93, 2026, 1, 1, 24, 0, 0)]
+        [InlineData(93, 2026, 1, 1, 0, 60, 0)]
+        [InlineData(93, 2026, 1, 1, 0, 0, 60)]
+        public unsafe void InvalidInputDatetimeFieldsReturnTheDatetimeDiagnostic(short type, short year, short month, short day, short hour, short minute, short second) {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            short* parts = stackalloc short[] { year, month, day, hour, minute, second, 0, 0 };
+            delegate* unmanaged<nint, ushort, short, short, short, nuint, short, nint, nint, nint, short> bind = &Exports.SQLBindParameter;
+            Assert.Equal(0, bind(handles.Statement, 1, 1, type, type, 27, 7, (nint)parts, 16, 0));
+            string sql = "SELECT ?";
+            delegate* unmanaged<nint, nint, int, short> direct = &Exports.SQLExecDirectW;
+            fixed (char* pointer = sql) Assert.Equal(-1, direct(handles.Statement, (nint)pointer, -3));
+            Assert.Equal("22008", Assert.Single(DriverHandles.All[handles.Statement].Diagnostics).State);
         }
 
         private sealed class NativeHandles : IDisposable {

@@ -51,5 +51,20 @@ namespace OfficeIMO.Odbc {
                 throw new NotSupportedException("The ODBC driver accepts .xlsx workbooks.");
             return path;
         }
+
+        internal static void ValidateStoragePath(string path) {
+            if (!OperatingSystem.IsWindows()) return;
+            string root = System.IO.Path.GetPathRoot(path)!;
+            if (new DriveInfo(root).DriveType == DriveType.Network)
+                throw new ArgumentException("Mapped network drives are not supported.");
+            // Walk from the root so a remote reparse target is rejected before accessing its children.
+            string current = root;
+            foreach (string component in path[root.Length..].Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)) {
+                if (component.Length == 0) continue;
+                current = System.IO.Path.Combine(current, component);
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    throw new ArgumentException("Workbook paths through reparse points are not supported.");
+            }
+        }
     }
 }

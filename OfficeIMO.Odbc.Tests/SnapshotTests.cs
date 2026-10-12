@@ -5,6 +5,12 @@ namespace OfficeIMO.Odbc.Tests {
 
     public sealed class SnapshotTests {
         [Fact]
+        public void CancellationIsObservedBeforeOpeningTheWorkbook() {
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+            Assert.ThrowsAny<OperationCanceledException>(() => new WorkbookSnapshot(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx"), cancellation.Token));
+        }
+        [Fact]
         public void OversizedWorkbookIsRejectedBeforeParsing() {
             using WorkbookFixture fixture = new WorkbookFixture();
             using (FileStream file = File.OpenWrite(fixture.FilePath)) file.SetLength(64L * 1024 * 1024 + 1);

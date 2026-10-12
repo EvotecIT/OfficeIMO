@@ -15,11 +15,18 @@ namespace OfficeIMO.Odbc {
                 if (output == 0 && field != 1011) return descriptor.Fail("HY009", "Output buffer is required.");
                 StatementHandle statement = descriptor.Statement;
                 if (field == 1099) { *(short*)output = 1; if (length != null) *length = 2; return 0; }
+                if (descriptor.Attribute == 10012 && statement.Sql is not null && (field == 1001 || record >= 1)) {
+                    short metadata = EnsureMetadata(statement);
+                    if (metadata != 0) {
+                        descriptor.Diagnostics.AddRange(statement.Diagnostics);
+                        return metadata;
+                    }
+                }
                 if (field == 1001) {
                     int count = descriptor.Attribute switch {
                         10010 => statement.Bindings.Count == 0 ? 0 : statement.Bindings.Keys.Max(),
                         10011 => statement.Parameters.Count == 0 ? 0 : statement.Parameters.Keys.Max(),
-                        10012 => statement.Reader?.FieldCount ?? 0,
+                        10012 => statement.ColumnCount,
                         _ => statement.ParameterCount
                     };
                     *(short*)output = (short)count;
@@ -34,12 +41,12 @@ namespace OfficeIMO.Odbc {
                     return 0;
                 }
                 if (descriptor.Attribute != 10012) return descriptor.Fail("HYC00", "Application descriptors are exposed for identity and scalar binding metadata only.");
-                if (statement.Reader is not { } reader || record < 1 || record > reader.FieldCount)
+                if (record < 1 || record > statement.ColumnCount)
                     return descriptor.Fail("07009", "Invalid descriptor record.");
-                short type = NativeValue.SqlType(reader, record - 1);
+                short type = statement.ColumnType(record - 1);
                 if (field == 1011) {
                     short actual = 0;
-                    short result = NativeText.Write(reader.GetName(record - 1), output, wide ? capacity / 2 : capacity, &actual, wide);
+                    short result = NativeText.Write(statement.ColumnName(record - 1), output, wide ? capacity / 2 : capacity, &actual, wide);
                     if (length != null) *length = actual * (wide ? 2 : 1);
                     if (result == 1) descriptor.Diagnostics.Add(new("01004", "Descriptor name was truncated."));
                     return result;

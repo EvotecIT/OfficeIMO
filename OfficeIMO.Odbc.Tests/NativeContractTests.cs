@@ -24,7 +24,8 @@ namespace OfficeIMO.Odbc.Tests {
 
         [Theory]
         [InlineData(0, 30)]
-        [InlineData(4, 1)]
+        [InlineData(2, 1)]
+        [InlineData(4, 0)]
         [InlineData(6, 0)]
         [InlineData(7, 1)]
         [InlineData(11, 1)]

@@ -27,13 +27,13 @@ namespace OfficeIMO.Odbc {
             statement.ParameterCount = 0;
             statement.Sql = QueryEnvelope.Prepare(NativeText.Read(sql, length, wide), out int parameterCount);
             statement.ParameterCount = parameterCount;
-            return Execute(statement, false);
+            return Execute(statement);
         });
 
         [UnmanagedCallersOnly(EntryPoint = "SQLExecute")]
-        internal static short SQLExecute(nint id) => DriverHandles.With<StatementHandle>(id, statement => Execute(statement, false));
+        internal static short SQLExecute(nint id) => DriverHandles.With<StatementHandle>(id, Execute);
 
-        private static short Execute(StatementHandle statement, bool metadata) {
+        private static short Execute(StatementHandle statement) {
             statement.CloseCursor();
             if (statement.Sql is null) return statement.Fail("HY010", "Prepare a SELECT statement first.");
             if (!DriverHandles.All.TryGetValue(statement.Parent, out DriverHandle? parent) || parent is not ConnectionHandle { Snapshot: { } snapshot })
@@ -41,8 +41,7 @@ namespace OfficeIMO.Odbc {
             Dictionary<string, object?> parameters = new Dictionary<string, object?>();
             for (ushort i = 1; i <= statement.ParameterCount; i++) {
                 if (!statement.Parameters.TryGetValue(i, out ParameterBinding? binding)) {
-                    if (!metadata) return statement.Fail("07002", "Bind every parameter before execution.");
-                    parameters["@p" + i] = DBNull.Value;
+                    return statement.Fail("07002", "Bind every parameter before execution.");
                 } else parameters["@p" + i] = NativeValue.Read(binding);
             }
             statement.Cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(statement.TimeoutSeconds));
@@ -57,7 +56,20 @@ namespace OfficeIMO.Odbc {
             } catch { statement.CloseCursor(); throw; }
         }
 
-        private static short EnsureMetadata(StatementHandle statement) => statement.Reader is null ? Execute(statement, true) : (short)0;
+        private static short EnsureMetadata(StatementHandle statement) {
+            if (statement.Reader is not null || statement.PreparedColumns is not null) return 0;
+            if (statement.Sql is null) return statement.Fail("HY010", "Prepare a SELECT statement first.");
+            statement.Cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(statement.TimeoutSeconds));
+            try {
+                IReadOnlyList<DBAClientX.SQLiteQueryColumn> columns = Snapshot(statement).QueryColumns(statement.Sql, statement.Cancellation.Token);
+                if (columns.Count > 256) return statement.Fail("HY001", "Result exceeds the 256 column limit.");
+                statement.PreparedColumns = columns;
+                return 0;
+            } finally {
+                statement.Cancellation.Dispose();
+                statement.Cancellation = null;
+            }
+        }
 
         [UnmanagedCallersOnly(EntryPoint = "SQLFetch")]
         internal static short SQLFetch(nint id) => DriverHandles.With<StatementHandle>(id, Fetch);
@@ -131,7 +143,7 @@ namespace OfficeIMO.Odbc {
         internal static short SQLNumResultCols(nint id, short* count) => DriverHandles.With<StatementHandle>(id, statement => {
             if (count == null) return statement.Fail("HY009", "Output buffer is required.");
             short result = EnsureMetadata(statement);
-            if (result == 0) *count = checked((short)statement.Reader!.FieldCount);
+            if (result == 0) *count = checked((short)statement.ColumnCount);
             return result;
         });
 

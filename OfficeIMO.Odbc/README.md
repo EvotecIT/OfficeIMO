@@ -79,7 +79,7 @@ Each connection serializes access to its snapshot and cursors; separate connecti
 
 Column types are inferred across the complete worksheet. Numeric columns become doubles, Boolean columns become bits, dates become timestamps, and mixed columns become invariant text. Missing cells are SQL NULL; an explicit empty text cell is an empty string. Formula values use the workbook's saved results; the driver does not calculate formulas or run macros.
 
-OfficeIMO.Excel supplies generated names for empty headers and disambiguates duplicate headers. The resulting column names must be unique ignoring case and at most 255 characters. Worksheet names must be unique ignoring case and must not start with `sqlite_`. The driver accepts `.xlsx` files on local absolute paths.
+OfficeIMO.Excel supplies generated names for empty headers and disambiguates duplicate headers. The resulting column names must be unique ignoring case and at most 255 characters. Worksheet names must be unique ignoring case and must not start with `sqlite_`. The driver accepts `.xlsx` files on local absolute paths. UNC paths, mapped network drives and paths through reparse points are rejected. The workbook filename is the ODBC catalog name.
 
 | Limit | Value |
 | --- | --- |
@@ -92,12 +92,14 @@ OfficeIMO.Excel supplies generated names for empty headers and disambiguates dup
 | SQL statement | 64 Ki characters; one SELECT |
 | Parameters | 256 scalar input values |
 | Result rows | 100,000, or a lower `SQL_ATTR_MAX_ROWS` |
-| Snapshot import deadline | 60 seconds |
+| Snapshot import cancellation deadline | 60 seconds, observed during file reads, parsing and row import |
 | Query deadline | 30 seconds by default; configurable up to 300 seconds |
 | Open driver connections | 32 per process |
 | Driver handles | 4,096 per process |
 
-Driver calls are serialized within a process; `SQLCancel` can interrupt a running query from another thread. Each statement has its own query reader. The driver buffers workbook data for import, so it is intended for bounded spreadsheet imports rather than large database workloads.
+Driver calls are serialized within each connection; independent connections can make progress concurrently. `SQLCancel` can interrupt a running query from another thread. Each statement has its own query reader. The driver buffers workbook data for import, so it is intended for bounded spreadsheet imports rather than large database workloads. Opening a filesystem handle and reading its attributes use synchronous platform calls; the cancellation deadline is not a hard wall-clock bound on those calls.
+
+Prepared-result metadata is inspected without evaluating the query or reading bound parameter buffers. A result expression whose type depends on its value reports `SQL_UNKNOWN_TYPE` until execution supplies a value; worksheet columns retain their declared types. Metadata inspection does not open a fetch cursor.
 
 The driver rejects writes, transactions, SQL batches, CTEs, PRAGMA/ATTACH commands, stored procedures, asynchronous ODBC execution, parameter arrays, explicit descriptors, scrollable cursors, and row arrays larger than one. It does not translate another database's SQL dialect or schema conventions. Compatibility with a specific business application depends on the ODBC operations and SQL that application uses. Entity Framework needs an appropriate provider; an ODBC driver alone does not supply one.
 

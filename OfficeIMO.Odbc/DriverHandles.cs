@@ -27,6 +27,10 @@ namespace OfficeIMO.Odbc {
         internal Dictionary<int, nint> Descriptors { get; } = [];
         internal string? Sql;
         internal DbDataReader? Reader;
+        internal IReadOnlyList<DBAClientX.SQLiteQueryColumn>? PreparedColumns;
+        internal int ColumnCount => Reader?.FieldCount ?? PreparedColumns?.Count ?? 0;
+        internal string ColumnName(int ordinal) => Reader is { } reader ? reader.GetName(ordinal) : PreparedColumns![ordinal].Name;
+        internal short ColumnType(int ordinal) => Reader is { } reader ? NativeValue.SqlType(reader, ordinal) : NativeValue.DeclaredSqlType(PreparedColumns![ordinal].DeclaredTypeName);
         internal CancellationTokenSource? Cancellation;
         internal Dictionary<ushort, ColumnBinding> Bindings { get; } = [];
         internal Dictionary<ushort, ParameterBinding> Parameters { get; } = [];
@@ -43,6 +47,7 @@ namespace OfficeIMO.Odbc {
             try { Reader?.Dispose(); }
             finally {
                 Reader = null;
+                PreparedColumns = null;
                 Cancellation?.Dispose();
                 Cancellation = null;
                 DataColumn = 0;
