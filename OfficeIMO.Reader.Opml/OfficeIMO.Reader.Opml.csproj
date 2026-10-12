@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Opml\OfficeIMO.Opml.csproj"/>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj"/>
+    <Compile Include="..\OfficeIMO.SharedSource\Reader\OfficeDocumentModelReaderMapping.cs" Link="Internal\OfficeDocumentModelReaderMapping.cs"/>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png"/>

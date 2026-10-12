@@ -33,6 +33,7 @@ namespace OfficeIMO.Word {
                 rows,
                 columnWidths,
                 listMarkers,
+                context.Drawing,
                 context.CancellationToken,
                 context.CancellationCheckpoint);
             double tableHeight = rowHeights.Sum();
@@ -318,10 +319,11 @@ namespace OfficeIMO.Word {
             double marginRight = ToPoints(cell.MarginRightWidth, DefaultCellMarginPoints);
             double marginTop = ToPoints(cell.MarginTopWidth, DefaultCellMarginPoints);
             double marginBottom = ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints);
-            double contentWidth = Math.Max(1D, width - marginLeft - marginRight);
-            double contentBottom = top + Math.Max(1D, height - marginBottom);
+            var padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
+            double contentWidth = Math.Max(1D, width - padding.Horizontal);
             double contentLeft = left + marginLeft;
             double contentTop = top + marginTop;
+            double contentBottom = contentTop + Math.Max(1D, height - padding.Vertical);
             double textTop = AddTableCellImages(
                 cell,
                 drawing,
@@ -369,10 +371,11 @@ namespace OfficeIMO.Word {
                 : cell.VerticalAlignment == WordTableVerticalAlignment.Bottom
                     ? OfficeTextVerticalAlignment.Bottom
                     : OfficeTextVerticalAlignment.Top;
-            var padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
             bool textFlowAdvanced = textTop > contentTop + 0.000001D;
             double textBoxTop = textFlowAdvanced ? textTop - marginTop : top;
-            double textBoxHeight = textFlowAdvanced ? Math.Max(1D, contentBottom - textBoxTop) : height;
+            // Keep the remaining outer frame height. The painter subtracts both insets;
+            // ending this frame at contentBottom would subtract the bottom inset twice.
+            double textBoxHeight = textFlowAdvanced ? Math.Max(1D, height - (textTop - contentTop)) : height;
             List<OfficeRichTextRun> richRuns = CreateTableCellRichTextRuns(
                 cell,
                 colorScheme,
@@ -380,8 +383,7 @@ namespace OfficeIMO.Word {
                 context.CancellationToken,
                 diagnostics);
             if (ShouldRenderTableCellAsRichText(richRuns)) {
-                double maxFontSize = richRuns.Max(run => run.FontSize);
-                double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
+                double lineHeight = ResolveRichTextFrameLineHeight(richRuns);
                 drawing.AddRichText(
                     richRuns,
                     left,
@@ -558,6 +560,7 @@ namespace OfficeIMO.Word {
             IReadOnlyList<WordTableRow> rows,
             IReadOnlyList<double> columnWidths,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken = default,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null,
             bool signalNestedMeasurementProgress = false) {
@@ -568,6 +571,7 @@ namespace OfficeIMO.Word {
                     rows[i],
                     columnWidths,
                     listMarkers,
+                    sourceDrawing,
                     cancellationToken,
                     cancellationCheckpoint);
                 if (i == 0 && signalNestedMeasurementProgress) {
@@ -584,6 +588,7 @@ namespace OfficeIMO.Word {
             WordTableRow row,
             IReadOnlyList<double> columnWidths,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -595,6 +600,7 @@ namespace OfficeIMO.Word {
                     row,
                     columnWidths,
                     listMarkers,
+                    sourceDrawing,
                     cancellationToken,
                     cancellationCheckpoint));
             if (explicitHeight <= 0D) {
@@ -620,6 +626,7 @@ namespace OfficeIMO.Word {
             WordTableRow row,
             IReadOnlyList<double> columnWidths,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -633,14 +640,21 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                double width = Math.Max(1D, SumWidths(columnWidths, columnIndex, columnSpan) - ToPoints(cell.MarginLeftWidth, DefaultCellMarginPoints) - ToPoints(cell.MarginRightWidth, DefaultCellMarginPoints));
+                var padding = new OfficeTextPadding(
+                    ToPoints(cell.MarginLeftWidth, DefaultCellMarginPoints),
+                    ToPoints(cell.MarginTopWidth, DefaultCellMarginPoints),
+                    ToPoints(cell.MarginRightWidth, DefaultCellMarginPoints),
+                    ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints));
+                double width = Math.Max(1D, SumWidths(columnWidths, columnIndex, columnSpan) - padding.Horizontal);
                 WordParagraph? firstParagraph = cell.Paragraphs.FirstOrDefault(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text));
                 OfficeFontInfo font = firstParagraph == null ? OfficeFontInfo.Default : CreateFont(firstParagraph);
-                double lineHeight = Math.Max(font.Size * 1.25D, 12D);
+                double lineHeight = ResolvePlainTextLineHeight(font);
                 double imageHeight = EstimateCellImageHeight(cell, cancellationToken);
                 double nestedTableHeight = EstimateCellNestedTableHeight(
                     cell,
                     width,
+                    listMarkers,
+                    sourceDrawing,
                     cancellationToken,
                     cancellationCheckpoint);
                 List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(
@@ -649,13 +663,16 @@ namespace OfficeIMO.Word {
                 double textHeight = EstimateTableCellTextHeight(
                     cell,
                     paragraphRuns,
-                    font.Size,
+                    font,
                     width,
                     lineHeight,
                     listMarkers,
+                    sourceDrawing,
                     cancellationToken);
                 double stackedHeight = imageHeight + nestedTableHeight + textHeight;
-                height = Math.Max(height, stackedHeight + ToPoints(cell.MarginTopWidth, DefaultCellMarginPoints) + ToPoints(cell.MarginBottomWidth, DefaultCellMarginPoints));
+                // Add padding as one value, as the painter subtracts it. Separate additions can
+                // leave the content a fraction below an exact line height and ellipsize the tail.
+                height = Math.Max(height, stackedHeight + padding.Vertical);
                 columnIndex += columnSpan;
             }
 
@@ -665,6 +682,8 @@ namespace OfficeIMO.Word {
         private static double EstimateCellNestedTableHeight(
             WordTableCell cell,
             double availableWidth,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
             double height = 0D;
@@ -674,17 +693,22 @@ namespace OfficeIMO.Word {
                 height += EstimateTableHeight(
                     nestedTables[i],
                     availableWidth,
+                    listMarkers,
+                    sourceDrawing,
                     cancellationToken,
                     cancellationCheckpoint,
                     signalNestedMeasurementProgress: true) + ParagraphGapPoints;
             }
 
-            return Math.Max(0D, height - ParagraphGapPoints);
+            // AddTable advances past its final gap before the cell's following text.
+            return height;
         }
 
         private static double EstimateTableHeight(
             WordTable table,
             double availableWidth,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken = default,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null,
             bool signalNestedMeasurementProgress = false) {
@@ -699,7 +723,8 @@ namespace OfficeIMO.Word {
             return ResolveRowHeights(
                 rows,
                 columnWidths,
-                listMarkers: null,
+                listMarkers,
+                sourceDrawing,
                 cancellationToken,
                 cancellationCheckpoint,
                 signalNestedMeasurementProgress).Sum();
@@ -719,7 +744,8 @@ namespace OfficeIMO.Word {
                 height += Helpers.ConvertPixelsToPoints(image.Height ?? 64D) + ParagraphGapPoints;
             }
 
-            return Math.Max(0D, height - ParagraphGapPoints);
+            // Inline images leave their final gap before subsequent cell content.
+            return height;
         }
 
         private static double ResolveTableLeft(WordTable table, double contentLeft, double contentWidth, double tableWidth) {

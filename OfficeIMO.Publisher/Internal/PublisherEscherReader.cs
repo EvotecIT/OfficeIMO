@@ -52,7 +52,7 @@ internal sealed class PublisherEscherReader {
             if (!values.TryGetValue(0x6801, out id)) return null;
         }
         PublisherEscherRecord? anchor = Single(children, 0xF010), childAnchor = Single(children, 0xF00F), coordinates = Single(children, 0xF009);
-        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties, relativeToParent: anchor == null && childAnchor != null) {
+        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties, relativeToParent: space.HasValue) {
             GroupTransform = (anchor != null ? space?.ClientTransform : space?.Transform) ?? OfficeTransform.Identity,
             LayoutTransform = (anchor != null ? space?.ClientLayoutTransform : space?.LayoutTransform) ?? OfficeTransform.Identity,
             HiddenByGroup = space?.Hidden ?? false
