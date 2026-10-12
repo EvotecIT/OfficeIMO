@@ -335,111 +335,50 @@ internal static partial class PdfWriter {
             .CubicTo(cx + ox, cy - ry, cx + rx, cy - oy, cx + rx, cy);
     }
 
-    private static void AppendPathCommands(ContentStreamBuilder content, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h) {
-        OfficeIMO.Drawing.OfficePoint current = default;
+    private static void AppendPathCommands(ContentStreamBuilder content,
+        System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h) =>
+        AppendPathCommandsCore(content, commands, x, y + h, -1);
+
+    private static void AppendLocalPathCommands(ContentStreamBuilder content,
+        System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands) =>
+        AppendPathCommandsCore(content, commands, 0, 0, 1);
+
+    private static void AppendPathCommandsCore(ContentStreamBuilder content,
+        System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double yScale) {
+        OfficeIMO.Drawing.OfficePoint current = default, start = default;
         bool hasCurrent = false;
         for (int i = 0; i < commands.Count; i++) {
             var command = commands[i];
             switch (command.Kind) {
                 case OfficeIMO.Drawing.OfficePathCommandKind.MoveTo:
-                    if (i > 0) {
-                        content.PathSeparator();
-                    }
-
-                    content.MoveTo(x + command.Point.X, y + h - command.Point.Y);
-                    current = command.Point;
-                    hasCurrent = true;
+                    if (i > 0) content.PathSeparator();
+                    content.MoveTo(x + command.Point.X, y + yScale * command.Point.Y);
+                    current = start = command.Point; hasCurrent = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
-                    content.LineTo(x + command.Point.X, y + h - command.Point.Y);
+                    content.LineTo(x + command.Point.X, y + yScale * command.Point.Y);
                     current = command.Point;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.QuadraticBezierTo:
                     if (!hasCurrent) {
-                        content.MoveTo(x + command.Point.X, y + h - command.Point.Y);
-                        current = command.Point;
-                        hasCurrent = true;
+                        content.MoveTo(x + command.Point.X, y + yScale * command.Point.Y);
+                        current = start = command.Point; hasCurrent = true;
                         break;
                     }
-
-                    OfficeIMO.Drawing.OfficePoint cubic1 = ConvertQuadraticControlPoint(current, command.ControlPoint1);
-                    OfficeIMO.Drawing.OfficePoint cubic2 = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
-                    content.CubicTo(
-                        x + cubic1.X,
-                        y + h - cubic1.Y,
-                        x + cubic2.X,
-                        y + h - cubic2.Y,
-                        x + command.Point.X,
-                        y + h - command.Point.Y);
+                    OfficeIMO.Drawing.OfficePoint first = ConvertQuadraticControlPoint(current, command.ControlPoint1);
+                    OfficeIMO.Drawing.OfficePoint second = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
+                    content.CubicTo(x + first.X, y + yScale * first.Y, x + second.X, y + yScale * second.Y,
+                        x + command.Point.X, y + yScale * command.Point.Y);
                     current = command.Point;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.CubicBezierTo:
-                    content.CubicTo(
-                        x + command.ControlPoint1.X,
-                        y + h - command.ControlPoint1.Y,
-                        x + command.ControlPoint2.X,
-                        y + h - command.ControlPoint2.Y,
-                        x + command.Point.X,
-                        y + h - command.Point.Y);
+                    content.CubicTo(x + command.ControlPoint1.X, y + yScale * command.ControlPoint1.Y,
+                        x + command.ControlPoint2.X, y + yScale * command.ControlPoint2.Y,
+                        x + command.Point.X, y + yScale * command.Point.Y);
                     current = command.Point;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.Close:
-                    content.ClosePath();
-                    break;
-            }
-        }
-    }
-
-    private static void AppendLocalPathCommands(ContentStreamBuilder content, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands) {
-        OfficeIMO.Drawing.OfficePoint current = default;
-        bool hasCurrent = false;
-        for (int i = 0; i < commands.Count; i++) {
-            var command = commands[i];
-            switch (command.Kind) {
-                case OfficeIMO.Drawing.OfficePathCommandKind.MoveTo:
-                    if (i > 0) {
-                        content.PathSeparator();
-                    }
-
-                    content.MoveTo(command.Point.X, command.Point.Y);
-                    current = command.Point;
-                    hasCurrent = true;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
-                    content.LineTo(command.Point.X, command.Point.Y);
-                    current = command.Point;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.QuadraticBezierTo:
-                    if (!hasCurrent) {
-                        content.MoveTo(command.Point.X, command.Point.Y);
-                        current = command.Point;
-                        hasCurrent = true;
-                        break;
-                    }
-
-                    OfficeIMO.Drawing.OfficePoint localCubic1 = ConvertQuadraticControlPoint(current, command.ControlPoint1);
-                    OfficeIMO.Drawing.OfficePoint localCubic2 = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
-                    content.CubicTo(
-                        localCubic1.X,
-                        localCubic1.Y,
-                        localCubic2.X,
-                        localCubic2.Y,
-                        command.Point.X,
-                        command.Point.Y);
-                    current = command.Point;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.CubicBezierTo:
-                    content.CubicTo(
-                        command.ControlPoint1.X,
-                        command.ControlPoint1.Y,
-                        command.ControlPoint2.X,
-                        command.ControlPoint2.Y,
-                        command.Point.X,
-                        command.Point.Y);
-                    current = command.Point;
-                    break;
-                case OfficeIMO.Drawing.OfficePathCommandKind.Close:
-                    content.ClosePath();
+                    content.ClosePath(); current = start;
                     break;
             }
         }
