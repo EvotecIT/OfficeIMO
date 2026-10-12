@@ -22,6 +22,7 @@ function Assert-NoSourceLinks {
 }
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'PSWriteOfficeApiDocs.Catalog.ps1')
 
 function Resolve-RepoRoot {
     param(
@@ -334,22 +335,6 @@ function Update-ApiBundleMetadataEvidence {
     $bundle | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $path -Encoding utf8
 }
 
-function Test-DocumentationCatalog {
-    param(
-        [Parameter(Mandatory)][string] $Path,
-        [Parameter(Mandatory)][version] $ExpectedVersion,
-        [Parameter(Mandatory)][int] $ExpectedCommandCount
-    )
-
-    try {
-        $catalog = Get-Content -LiteralPath $Path -Raw -ErrorAction Stop | ConvertFrom-Json
-        $familyTotal = @($catalog.families | Measure-Object commandCount -Sum).Sum
-        return [version]$catalog.module.version -eq $ExpectedVersion -and
-            $catalog.module.commandCount -eq $ExpectedCommandCount -and
-            $familyTotal -eq $ExpectedCommandCount
-    } catch { return $false }
-}
-
 function Set-PSWriteOfficeSourceLinks {
     param(
         [Parameter(Mandatory)][string] $MetadataPath,
@@ -379,62 +364,6 @@ function Set-PSWriteOfficeSourceLinks {
         [IO.File]::WriteAllText($MetadataPath, ($metadata | ConvertTo-Json -Depth 40) + [Environment]::NewLine)
     }
     return $changed
-}
-
-function Set-PSWriteOfficeDocumentationSnapshot {
-    param(
-        [Parameter(Mandatory)][string] $SiteRootPath,
-        [Parameter(Mandatory)] $Source
-    )
-
-    $repository = [regex]::Escape($Source.Repo)
-    $module = Import-PowerShellDataFile -LiteralPath (Join-Path $SiteRootPath 'data/apidocs/powershell/PSWriteOffice.psd1')
-    $sourceRef = [Uri]::EscapeDataString('v' + [string] $module.ModuleVersion)
-    # Only floating repository refs change. Explicit historical tags, other
-    # repositories, URL suffixes and branches such as main-next retain their meaning.
-    $pattern = '(?<prefix>https://(?:github\.com/' + $repository +
-        '/(?:blob|tree)/|raw\.githubusercontent\.com/' + $repository +
-        '/))(?:main|master)(?=[/?#\s"''<>)]|$)'
-    $replacement = [System.Text.RegularExpressions.MatchEvaluator] {
-        param($match)
-        $match.Groups['prefix'].Value + $sourceRef
-    }
-
-    $catalogPath = Join-Path $SiteRootPath 'data/pswriteoffice_command_catalog.json'
-    $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json -Depth 20
-    # A family's examples belong to this module version even if its catalog was
-    # previously pinned. Historical links in guide prose are handled separately.
-    $examplesPattern = '^(?<prefix>https://github\.com/' + $repository +
-        '/tree/)[^/]+(?=/Examples(?:[/#?]|$))'
-    $catalogChanged = $false
-    foreach ($family in @($catalog.families)) {
-        $examplesUrl = [regex]::Replace([string] $family.examplesUrl, $examplesPattern, $replacement)
-        if ($examplesUrl -cne $family.examplesUrl) {
-            $family.examplesUrl = $examplesUrl
-            $catalogChanged = $true
-        }
-    }
-    if ($catalogChanged) {
-        [IO.File]::WriteAllText($catalogPath, ($catalog | ConvertTo-Json -Depth 20 -Compress) + [Environment]::NewLine)
-    }
-
-    $pagesChanged = $false
-    $documentationRoot = Join-Path $SiteRootPath 'content/docs/pswriteoffice'
-    foreach ($page in Get-ChildItem -LiteralPath $documentationRoot -Filter '*.md' -File -Recurse) {
-        $content = [IO.File]::ReadAllText($page.FullName)
-        $pinnedContent = [regex]::Replace($content, $pattern, $replacement)
-        $family = @($catalog.families | Where-Object id -CEQ $page.Directory.Name)
-        if ($page.Name -ceq 'index.md' -and $family.Count -eq 1) {
-            # Imported and fallback summaries follow the same catalog totals.
-            $summaryCount = [regex]::new('\b\d+(?= exported commands\b)|(?<=\bexports )\d+(?= commands\b)')
-            $pinnedContent = $summaryCount.Replace($pinnedContent, [string] $family[0].commandCount, 1)
-        }
-        if ($content -cne $pinnedContent) {
-            [IO.File]::WriteAllText($page.FullName, $pinnedContent, [Text.UTF8Encoding]::new($false))
-            $pagesChanged = $true
-        }
-    }
-    [PSCustomObject]@{ CatalogUpdated = $catalogChanged; DocumentationUpdated = $pagesChanged }
 }
 
 $resolvedSiteRoot = (Resolve-Path -LiteralPath $SiteRoot).Path
@@ -477,6 +406,8 @@ $targetManifestPath = Join-Path $targetRoot 'PSWriteOffice.psd1'
 $targetCommandMetadataPath = Join-Path $targetRoot 'command-metadata.json'
 $targetBundleManifestPath = Join-Path $targetRoot 'bundle-manifest.json'
 $targetExamplesPath = Join-Path $targetRoot 'examples'
+$targetCatalogPath = Join-Path $resolvedSiteRoot 'data/pswriteoffice_command_catalog.json'
+$catalogEvidencePath = Join-Path $targetRoot 'documentation-manifest.json'
 
 New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $targetExamplesPath -Force | Out-Null
@@ -514,12 +445,17 @@ if (-not $resolvedRepoRoot) {
         throw "The checked-in PowerShell API snapshot is invalid: $($checkedInBundle.Reason)."
     }
     $summary.expectedCommandCount = $snapshotCommands.Count
+    if (-not $SkipDocumentation) {
+        $catalogEvidence = Assert-DocumentationCatalogSnapshot -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath `
+            -ExpectedSourceRef $powerShellSource[0].Ref -ExpectedVersion ([version]$snapshotCatalog.module.version) -ExpectedCommandCount $snapshotCommands.Count
+    }
     $summary.commandMetadataUpdated = Set-PSWriteOfficeSourceLinks -MetadataPath $targetCommandMetadataPath -Source $powerShellSource[0]
     if ($summary.commandMetadataUpdated) { Update-ApiBundleMetadataEvidence -ApiRoot $targetRoot }
     if (-not $SkipDocumentation) {
         $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
         $summary.documentationCatalogUpdated = $linkUpdates.CatalogUpdated
         $summary.documentationUpdated = $linkUpdates.DocumentationUpdated
+        Save-DocumentationCatalogEvidence -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -Evidence $catalogEvidence
     }
     Write-Host 'No matching PSWriteOffice release checkout found. Keeping checked-in PowerShell API snapshot.' -ForegroundColor Yellow
     [PSCustomObject] $summary
@@ -545,6 +481,24 @@ $authoritativeManifestPath = Join-Path $resolvedRepoRoot 'PSWriteOffice.psd1'
 $expectedCommands = @(Get-ManifestCommandNames -Path $authoritativeManifestPath)
 $expectedVersion = [version](Import-PowerShellDataFile -LiteralPath $authoritativeManifestPath).ModuleVersion
 $summary.expectedCommandCount = $expectedCommands.Count
+
+# Qualify the documentation pair before any API, examples or page writes.
+if (-not $SkipDocumentation) {
+    $sourceDocumentationPath = Join-Path $resolvedRepoRoot 'Website/content/project-docs/docs'
+    $targetDocumentationPath = Join-Path $resolvedSiteRoot 'content/docs/pswriteoffice'
+    $sourceDocumentationAvailable = Test-Path -LiteralPath $sourceDocumentationPath -PathType Container
+    if ($sourceDocumentationAvailable) {
+        $generatedCatalog = New-DocumentationCatalogSnapshot -RepositoryRoot $resolvedRepoRoot -SourceCommit $sourceHead `
+            -SourceRef $powerShellSource[0].Ref -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count
+        $catalogEvidence = $generatedCatalog.Evidence
+    } else {
+        if (-not (Test-Path -LiteralPath (Join-Path $targetDocumentationPath 'index.md') -PathType Leaf)) {
+            throw 'No complete PSWriteOffice source or checked-in documentation snapshot is available.'
+        }
+        $catalogEvidence = Assert-DocumentationCatalogSnapshot -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath `
+            -ExpectedSourceRef $powerShellSource[0].Ref -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count
+    }
+}
 
 $sourceBundle = Test-ApiBundle `
     -ManifestPath $resolvedManifestPath `
@@ -604,37 +558,24 @@ if (-not $SkipExamples) {
 }
 
 if (-not $SkipDocumentation) {
-    $sourceDocumentationPath = Join-Path $resolvedRepoRoot 'Website\content\project-docs\docs'
-    $targetDocumentationPath = Join-Path $resolvedSiteRoot 'content\docs\pswriteoffice'
-    $sourceCatalogPath = Join-Path $sourceArtifactsRoot 'documentation\command-catalog.json'
-    $targetCatalogPath = Join-Path $resolvedSiteRoot 'data\pswriteoffice_command_catalog.json'
-    $sourceDocumentationAvailable = Test-Path -LiteralPath $sourceDocumentationPath -PathType Container
-    $sourceCatalogAvailable = Test-Path -LiteralPath $sourceCatalogPath -PathType Leaf
-    $sourceCatalogValid = $sourceCatalogAvailable -and (Test-DocumentationCatalog `
-        -Path $sourceCatalogPath -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count)
-
-    if ($sourceDocumentationAvailable -and $sourceCatalogValid) {
+    if ($sourceDocumentationAvailable) {
         Sync-DocumentationPages -Source $sourceDocumentationPath -Destination $targetDocumentationPath
-        Sync-DocumentationToc `
-            -Source $sourceDocumentationPath `
-            -TocPath (Join-Path $resolvedSiteRoot 'content\docs\toc.json')
+        Sync-DocumentationToc -Source $sourceDocumentationPath -TocPath (Join-Path $resolvedSiteRoot 'content/docs/toc.json')
         $summary.documentationNavigationUpdated = $true
-        Copy-Item -LiteralPath $sourceCatalogPath -Destination $targetCatalogPath -Force
+        [IO.File]::WriteAllText($targetCatalogPath, $generatedCatalog.Content, [Text.UTF8Encoding]::new($false))
         $summary.documentationSource = $sourceDocumentationPath
         $summary.documentationUpdated = $true
-        $summary.documentationCatalogSource = $sourceCatalogPath
+        $summary.documentationCatalogSource = Join-Path $resolvedRepoRoot 'Build/Export-WebsiteDocumentationCatalog.ps1'
         $summary.documentationCatalogUpdated = $true
-    } elseif ((Test-Path -LiteralPath (Join-Path $targetDocumentationPath 'index.md') -PathType Leaf) -and
-        (Test-DocumentationCatalog -Path $targetCatalogPath -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count)) {
-        Write-Host 'PSWriteOffice source documentation/catalog pair is missing or incomplete. Keeping the complete checked-in documentation snapshot.' -ForegroundColor Yellow
+    } else {
+        Write-Host 'PSWriteOffice source documentation is unavailable. Keeping the verified checked-in documentation snapshot.' -ForegroundColor Yellow
         $summary.documentationSource = $targetDocumentationPath
         $summary.documentationCatalogSource = $targetCatalogPath
-    } else {
-        throw "No complete PSWriteOffice documentation/catalog pair is available in source or the checked-in site snapshot."
     }
     $linkUpdates = Set-PSWriteOfficeDocumentationSnapshot -SiteRootPath $resolvedSiteRoot -Source $powerShellSource[0]
     $summary.documentationCatalogUpdated = $summary.documentationCatalogUpdated -or $linkUpdates.CatalogUpdated
     $summary.documentationUpdated = $summary.documentationUpdated -or $linkUpdates.DocumentationUpdated
+    Save-DocumentationCatalogEvidence -CatalogPath $targetCatalogPath -EvidencePath $catalogEvidencePath -Evidence $catalogEvidence
 }
 
 [PSCustomObject] $summary

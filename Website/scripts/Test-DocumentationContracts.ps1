@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$null = & (Join-Path $PSScriptRoot 'Test-PSWriteOfficeCatalog.ps1') -SiteRoot $SiteRoot
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-Failure([string] $Message) { $failures.Add($Message) }
