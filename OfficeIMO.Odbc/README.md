@@ -66,7 +66,9 @@ while (rows.Read())
     Console.WriteLine($"{rows.GetString(0)}: {rows.GetDouble(1)}");
 ```
 
-`SQLTables`, `SQLColumns`, `SQLDescribeCol`, and `SQLGetTypeInfo` expose metadata for import tools. Unicode and ANSI entry points, input parameters, bound columns, chunked column reads, forward-only cursors, and cancellation are supported. ANSI strings use the Windows ANSI code page; use the Unicode APIs to preserve all characters.
+`SQLTables`, `SQLColumns`, `SQLDescribeCol`, and `SQLGetTypeInfo` expose metadata for import tools. Unicode and ANSI entry points, input parameters, bound columns, chunked column reads, forward-only cursors, and cancellation are supported. ANSI strings use the Windows ANSI code page; use the Unicode APIs to preserve all characters. Applications can reuse the completed connection string returned by `SQLDriverConnect`.
+
+Each connection serializes access to its snapshot and cursors; separate connections operate independently. The query timeout applies to execution and active fetches, excluding time the application spends processing returned rows. The driver implements this documented ODBC subset and does not claim full Core interface conformance; applications can check individual functions with `SQLGetFunctions`.
 
 ## Data and limits
 

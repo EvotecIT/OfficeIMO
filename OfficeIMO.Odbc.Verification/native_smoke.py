@@ -26,14 +26,20 @@ def workbook(path):
     sheet = sheet.replace('</row>', '<c r="E1" t="inlineStr"><is><t>Active</t></is></c><c r="F1" t="inlineStr"><is><t>Recorded</t></is></c></row>', 1)
     sheet = sheet.replace('</row><row r="3">', '<c r="E2" t="b"><v>1</v></c><c r="F2" t="d"><v>2026-10-12T01:02:03.1234567</v></c></row><row r="3">')
     parts["xl/worksheets/sheet1.xml"] = sheet
+    # Workbook order deliberately differs from the required catalog order.
+    parts["xl/workbook.xml"] = parts["xl/workbook.xml"].replace('<sheets>', '<sheets><sheet name="Z" sheetId="2" r:id="rId2"/>').replace('</sheets>', '<sheet name="A" sheetId="3" r:id="rId3"/></sheets>')
+    for number in (2, 3):
+        parts[f"xl/worksheets/sheet{number}.xml"] = sheet
+        parts["xl/_rels/workbook.xml.rels"] = parts["xl/_rels/workbook.xml.rels"].replace('</Relationships>', f'<Relationship Id="rId{number}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet{number}.xml"/></Relationships>')
+        parts["[Content_Types].xml"] = parts["[Content_Types].xml"].replace('</Types>', f'<Override PartName="/xl/worksheets/sheet{number}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>')
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:
         for name, xml in parts.items():
             archive.writestr(name, xml.encode("utf-8"))
 
 
 class Manager:
-    def __init__(self):
-        self.dll = c.WinDLL("odbc32.dll")
+    def __init__(self, library="odbc32.dll"):
+        self.dll = c.WinDLL(str(library))
         h, s, u, i, p, n, w = c.c_void_p, c.c_short, c.c_ushort, c.c_int, c.c_void_p, c.c_ssize_t, c.c_wchar_p
         signatures = {
             "SQLAllocHandle": [s, h, p], "SQLFreeHandle": [s, h],
@@ -46,6 +52,8 @@ class Manager:
             "SQLBindCol": [h, u, s, p, n, p], "SQLFreeStmt": [h, u], "SQLCancel": [h],
             "SQLGetInfoW": [h, u, p, s, p], "SQLGetFunctions": [h, u, p],
             "SQLSetStmtAttrW": [h, i, h, i],
+            "SQLGetStmtAttrW": [h, i, p, i, p], "SQLGetEnvAttr": [h, i, p, i, p],
+            "SQLGetDescFieldW": [h, s, s, p, i, p], "SQLGetDiagFieldW": [s, h, s, s, p, s, p],
         }
         for name, args in signatures.items():
             function = getattr(self.dll, name)
@@ -101,6 +109,8 @@ def verify(driver_name, path, ado_consumer, hive):
             connection = m.allocate(2, environment)
             output, length = c.create_unicode_buffer(2048), c.c_short()
             m.check(m.SQLDriverConnectW(connection, None, connection_string, -3, output, 2048, c.byref(length), 0), 2, connection)
+            assert output.value == connection_string, "Completed string must select the same driver on reconnect"
+            connection_string = output.value
             connected = True
             statement = m.allocate(3, connection)
 
@@ -164,12 +174,16 @@ def verify(driver_name, path, ado_consumer, hive):
             assert m.text(statement, 4) == '42'
             close()
             bound_integer, indicator = c.c_int(), c.c_ssize_t()
+            row_status = c.c_ushort()
+            m.check(m.SQLSetStmtAttrW(statement, 25, c.cast(c.byref(row_status), c.c_void_p), 0), 3, statement)
             m.check(m.SQLBindCol(statement, 1, 4, c.byref(bound_integer), 4, c.byref(indicator)), 3, statement)
             execute('SELECT 1.9')
             assert m.SQLFetch(statement) == 1 and bound_integer.value == 1
+            assert row_status.value == 6, "A warned row must have SQL_ROW_SUCCESS_WITH_INFO"
             assert m.diagnostics(3, statement)[0][0] == '01S07'
             close()
             m.check(m.SQLFreeStmt(statement, 2), 3, statement)
+            m.check(m.SQLSetStmtAttrW(statement, 25, None, 0), 3, statement)
 
             execute('SELECT "Name", "Amount", "Optional" FROM "Customers" ORDER BY "Name"')
             count = c.c_short()
@@ -205,10 +219,21 @@ def verify(driver_name, path, ado_consumer, hive):
             close()
             m.check(m.SQLFreeStmt(statement, 3), 3, statement)
 
+            for char_type, buffer in [(-8, c.create_unicode_buffer("Poland\0padding")), (1, c.create_string_buffer(b"Poland\0padding"))]:
+                for capacity in (0, c.sizeof(buffer)):
+                    m.check(m.SQLBindParameter(statement, 1, 1, char_type, -9 if char_type == -8 else 12, 6, 0, buffer, capacity, None), 3, statement)
+                    m.check(m.SQLExecute(statement), 3, statement)
+                    m.check(m.SQLFetch(statement), 3, statement)
+                    assert m.text(statement, 1) == "Alicja Żółć" and m.SQLFetch(statement) == 100
+                    close()
+            m.check(m.SQLFreeStmt(statement, 3), 3, statement)
+
             m.check(m.SQLTablesW(statement, None, 0, None, 0, "%", -3, None, 0), 3, statement)
-            m.check(m.SQLFetch(statement), 3, statement)
-            assert m.text(statement, 3) == "Customers" and m.text(statement, 4) == "TABLE"
-            assert m.SQLFetch(statement) == 100
+            tables = []
+            while m.SQLFetch(statement) == 0:
+                tables.append(m.text(statement, 3))
+                assert m.text(statement, 4) == "TABLE"
+            assert tables == ["A", "Customers", "Z"]
             close()
             m.check(m.SQLColumnsW(statement, None, 0, None, 0, "Customers", -3, "%", -3), 3, statement)
             columns = []
@@ -216,6 +241,22 @@ def verify(driver_name, path, ado_consumer, hive):
                 columns.append(m.text(statement, 4))
             assert columns == ["Name", "Country", "Amount", "Optional", "Active", "Recorded"]
             close()
+            m.check(m.SQLColumnsW(statement, None, 0, None, 0, "%", -3, "%", -3), 3, statement)
+            keys = []
+            while m.SQLFetch(statement) == 0:
+                keys.append((m.text(statement, 3), int(m.text(statement, 17))))
+            assert keys == sorted(keys) and len(keys) == 18
+            close()
+
+            if iteration == 0:
+                m.check(m.SQLSetStmtAttrW(statement, 0, 1, 0), 3, statement)
+                execute('SELECT "Name" FROM "Customers"')
+                m.check(m.SQLFetch(statement), 3, statement)
+                time.sleep(1.2)  # Deliberate caller time, exceeding the requested execution deadline.
+                m.check(m.SQLFetch(statement), 3, statement)
+                assert m.text(statement, 1) == "Bob"
+                close()
+                m.check(m.SQLSetStmtAttrW(statement, 0, 30, 0), 3, statement)
 
             m.check(m.SQLTablesW(statement, None, 0, None, 0, "", 0, None, 0), 3, statement)
             assert m.SQLFetch(statement) == 100, "An empty pattern must not match every table"
@@ -259,11 +300,26 @@ def verify(driver_name, path, ado_consumer, hive):
             # A running native SQLite statement must be interrupted, not merely canceled between rows.
             query = 'SELECT COUNT(*) FROM ' + ','.join('"Customers" t' + str(i) for i in range(30))
             result = []
+            independent = m.allocate(2, environment)
+            m.check(m.SQLDriverConnectW(independent, None, connection_string, -3, None, 0, None, 0), 2, independent)
             worker = threading.Thread(target=lambda: result.append(m.SQLExecDirectW(statement, query, -3)), daemon=True)
             worker.start()
             time.sleep(0.2)
-            m.check(m.SQLCancel(statement), 3, statement)
-            worker.join(5)
+            probe_result = []
+            def probe():
+                info = c.c_ushort()
+                probe_result.append(m.SQLGetInfoW(independent, 0, c.byref(info), 2, None))
+            probe_worker = threading.Thread(target=probe, daemon=True)
+            probe_worker.start()
+            try:
+                probe_worker.join(2)
+                assert not probe_worker.is_alive() and probe_result == [0], "Independent connection stalled"
+            finally:
+                m.check(m.SQLCancel(statement), 3, statement)
+                worker.join(5)
+                probe_worker.join(5)
+                m.check(m.SQLDisconnect(independent), 2, independent)
+                m.check(m.SQLFreeHandle(2, independent), 2, independent)
             assert not worker.is_alive() and result == [-1], result
             assert m.diagnostics(3, statement)[0][0] == "HY008"
             close()
@@ -287,6 +343,38 @@ def verify(driver_name, path, ado_consumer, hive):
                       "native_cancellation": "passed", "reconnects": 3, "source_unchanged": True}))
 
 
+def verify_native_widths(driver):
+    # Call driver exports directly: the manager must not mask a caller-buffer overwrite.
+    m = Manager(driver)
+    environment = m.allocate(1)
+    m.check(m.SQLSetEnvAttr(environment, 200, 380, 0), 1, environment)
+    version = c.c_int()
+    m.check(m.SQLGetEnvAttr(environment, 200, c.byref(version), 0, None), 1, environment)
+    assert version.value == 380
+    connection = m.allocate(2, environment)
+    statement = m.allocate(3, connection)
+    try:
+        assert m.SQLSetStmtAttrW(statement, 999, None, 0) == -1
+        canary = (c.c_int * 2)(0, 0x12345678)
+        m.check(m.SQLGetDiagFieldW(3, statement, 1, -1247, canary, 0, None), 3, statement)
+        assert canary[0] == -1 and canary[1] == 0x12345678
+        descriptor = c.c_void_p()
+        m.check(m.SQLGetStmtAttrW(statement, 10010, c.byref(descriptor), 0, None), 3, statement)
+        length = c.c_int()
+        m.check(m.SQLGetDescFieldW(descriptor, 0, 25, canary, 0, c.byref(length)), 4, descriptor)
+        assert canary[0] == 0 and canary[1] == 0x12345678 and length.value == 4
+        for attribute, expected in [(0, 30), (4, 0), (6, 0), (7, 1), (11, 1)]:
+            value = c.c_size_t(-1)
+            m.check(m.SQLGetStmtAttrW(statement, attribute, c.byref(value), 0, None), 3, statement)
+            assert value.value == expected
+    finally:
+        m.check(m.SQLFreeHandle(3, statement), 3, statement)
+        assert m.SQLGetDescFieldW(descriptor, 0, 25, canary, 0, None) == -2
+        m.check(m.SQLFreeHandle(2, connection), 2, connection)
+        m.check(m.SQLFreeHandle(1, environment), 1, environment)
+    print("Native ABI: diagnostic/descriptor canaries, native-width attributes, ODBC version and stale handles passed.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--driver", type=Path, required=True)
@@ -295,6 +383,7 @@ if __name__ == "__main__":
     parser.add_argument("--hive", help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.registered_name:
+        verify_native_widths(args.driver)
         override = c.WinDLL("advapi32.dll").RegOverridePredefKey
         override.argtypes, override.restype = [c.c_void_p, c.c_void_p], c.c_long
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, args.hive, 0, winreg.KEY_ALL_ACCESS) as key:

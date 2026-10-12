@@ -7,12 +7,12 @@ using RegistryKey hive = Registry.CurrentUser.OpenSubKey(args[1]) ?? throw new I
 if (Native.RegOverridePredefKey(unchecked((nint)(long)0xffffffff80000002), hive.Handle.DangerousGetHandle()) != 0)
     throw new InvalidOperationException("Cannot redirect the verification process's registry.");
 try {
-    using var connection = new OdbcConnection(args[0]);
+    using OdbcConnection connection = new OdbcConnection(args[0]);
     connection.Open();
-    using var command = connection.CreateCommand();
+    using OdbcCommand command = connection.CreateCommand();
     command.CommandText = "SELECT \"Name\", \"Amount\", \"Optional\" FROM \"Customers\" WHERE \"Country\" = ?";
     command.Parameters.Add("country", OdbcType.NVarChar, 32).Value = "Poland";
-    using (var reader = command.ExecuteReader()) {
+    using (OdbcDataReader reader = command.ExecuteReader()) {
         Require(reader.FieldCount == 3 && reader.GetName(0) == "Name", "Result metadata");
         Require(reader.Read(), "First row");
         Require(reader.GetString(0) == "Alicja Żółć", "Unicode value");
@@ -20,13 +20,14 @@ try {
         Require(!reader.IsDBNull(2) && reader.GetString(2) == "", "Empty string");
         Require(!reader.Read(), "Parameter filters result");
     }
-    var tables = connection.GetSchema("Tables");
-    Require(tables.Rows.Count == 1 && (string)tables.Rows[0]["TABLE_NAME"] == "Customers", "Table discovery");
-    var columns = connection.GetSchema("Columns", [null, null, "Customers", null]);
+    System.Data.DataTable tables = connection.GetSchema("Tables");
+    Require(tables.Rows.Count == 3 && (string)tables.Rows[0]["TABLE_NAME"] == "A" &&
+        (string)tables.Rows[1]["TABLE_NAME"] == "Customers" && (string)tables.Rows[2]["TABLE_NAME"] == "Z", "Ordered table discovery");
+    System.Data.DataTable columns = connection.GetSchema("Columns", [null, null, "Customers", null]);
     Require(columns.Rows.Count == 6, "Column discovery");
     command.Parameters.Clear();
     command.CommandText = "SELECT \"Optional\" FROM \"Customers\" WHERE \"Name\" = 'Bob'";
-    using (var reader = command.ExecuteReader()) Require(reader.Read() && reader.IsDBNull(0), "Null value");
+    using (OdbcDataReader reader = command.ExecuteReader()) Require(reader.Read() && reader.IsDBNull(0), "Null value");
     Console.WriteLine("System.Data.Odbc: parameterized queries, typed rows, nulls and schema discovery passed.");
 } finally {
     if (Native.RegOverridePredefKey(unchecked((nint)(long)0xffffffff80000002), 0) != 0)
