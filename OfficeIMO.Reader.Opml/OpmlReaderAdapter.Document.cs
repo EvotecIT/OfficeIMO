@@ -44,31 +44,11 @@ internal static partial class OpmlReaderAdapter {
         return result;
     }
 
-    private static OfficeDocumentMetadataEntry MapMetadata(OfficeDocumentModelMetadataEntry metadata) => new OfficeDocumentMetadataEntry {
-        Id = metadata.Id,
-        Category = metadata.Category,
-        Name = metadata.Name,
-        Value = metadata.Value,
-        ValueType = metadata.ValueType,
-        SourceObjectId = metadata.SourceObjectId,
-        Location = metadata.Location == null ? null : MapLocation(metadata.Location, metadata.Location.Path),
-        Attributes = metadata.Attributes
-    };
+    private static OfficeDocumentMetadataEntry MapMetadata(OfficeDocumentModelMetadataEntry metadata) =>
+        OfficeDocumentModelReaderMapping.Metadata(metadata);
 
-    private static OfficeDocumentLink MapLink(OfficeDocumentModelLink link, string sourceName) => new OfficeDocumentLink {
-        Id = link.Id,
-        Kind = link.Kind,
-        Uri = link.Uri,
-        DestinationName = link.DestinationName,
-        DestinationPageNumber = link.DestinationPageNumber,
-        DestinationMode = link.DestinationMode,
-        NamedAction = link.NamedAction,
-        RemoteFile = link.RemoteFile,
-        RemoteDestinationName = link.RemoteDestinationName,
-        RemoteDestinationPageNumber = link.RemoteDestinationPageNumber,
-        Text = link.Text,
-        Location = MapLocation(link.Location, sourceName)
-    };
+    private static OfficeDocumentLink MapLink(OfficeDocumentModelLink link, string sourceName) =>
+        OfficeDocumentModelReaderMapping.Link(link, sourceName);
 
     private static OfficeDocumentDiagnostic MapDiagnostic(OpmlDiagnostic diagnostic, string sourceName) => new OfficeDocumentDiagnostic {
         Severity = diagnostic.Severity == OpmlDiagnosticSeverity.Error ? OfficeDocumentDiagnosticSeverity.Error
@@ -91,22 +71,6 @@ internal static partial class OpmlReaderAdapter {
         return OfficeDocumentDiagnosticCategory.Content;
     }
 
-    private static ReaderLocation MapLocation(OfficeDocumentModelLocation location, string? sourceName) => new ReaderLocation {
-        Path = location.Path ?? sourceName,
-        BlockIndex = location.BlockIndex,
-        SourceBlockIndex = location.SourceBlockIndex,
-        StartLine = location.StartLine,
-        EndLine = location.EndLine,
-        NormalizedStartLine = location.NormalizedStartLine,
-        NormalizedEndLine = location.NormalizedEndLine,
-        HeadingPath = location.HeadingPath,
-        HeadingSlug = location.HeadingSlug,
-        SourceBlockKind = location.SourceBlockKind,
-        BlockAnchor = location.BlockAnchor,
-        Sheet = location.Sheet,
-        A1Range = location.A1Range,
-        Slide = location.Slide,
-        Page = location.Page,
-        TableIndex = location.TableIndex
-    };
+    private static ReaderLocation MapLocation(OfficeDocumentModelLocation location, string? sourceName) =>
+        OfficeDocumentModelReaderMapping.Location(location, sourceName);
 }
