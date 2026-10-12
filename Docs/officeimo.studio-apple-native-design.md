@@ -48,25 +48,57 @@ Recovery copies of unsaved edits live under the folder given to `officeimo_initi
 
 ## Interface design
 
-The apps follow each platform's conventions rather than the desktop Studio's layout, while keeping its task names, commands and document behaviour. A first set of mockups covers the Mac, iPad, iPhone and iPhone Duo; the decisions it leaves open are on the [roadmap](ROADMAP.md#phase-7-native-apple-apps).
+The apps follow Apple's Human Interface Guidelines and are built from the system's own components, so they look and behave like the platform and gain its features as it evolves: the system accent color, Dynamic Type, Liquid Glass toolbars, keyboard navigation and VoiceOver. Studio keeps its task names where the platform has no convention, its commands and its document behaviour. Each feature is implemented with the platform framework that provides it rather than carried over from the Avalonia app; a feature a device cannot support properly is left out there rather than imitated.
 
-**One document per window.** On the Mac each document has its own window, and the system's window tabs replace Studio's tab bar. On iPad each document is a scene, so documents sit side by side in split view or separate windows. An iPhone shows one document at a time.
+**One document per window.** On the Mac each document has its own window, and the system's window tabs replace Studio's tab bar. On iPad each document is a scene, so documents sit side by side in split view, Stage Manager or separate windows. An iPhone shows one document at a time.
 
-**Layout follows the width, not the device.** Three layout families cover every screen:
+**Layout follows the width, not the device.** `NavigationSplitView` and the inspector adapt by size class, so three layout families cover every screen without device checks:
 
 | Width | Where | Document layout |
 | --- | --- | --- |
-| Compact | iPhone, a folded iPhone Duo, Slide Over and narrow split view | The page fills the screen. A bottom toolbar holds Pages, Search, Markup, Comments and Tasks; the sidebar's lists and the inspector open as sheets |
-| Regular | iPad in portrait, an unfolded iPhone Duo (about 626 points wide), wider split view | The page with one panel beside it: the sidebar, or the inspector over the page |
+| Compact | iPhone, a folded iPhone Duo, Slide Over and narrow split view | The page fills the screen with icon buttons in the bottom toolbar; the sidebar's lists and the inspector are sheets |
+| Regular | iPad in portrait, an unfolded iPhone Duo (about 626 points wide), wider split view | The page with the sidebar or the inspector, as the split view's automatic column behaviour arranges them |
 | Wide | iPad in landscape, the Mac | Sidebar, page and inspector side by side |
 
-**The document.** The sidebar switches between Pages, Outline, search Results and Notes (comments). The inspector shows the document's facts, checks and exports, or the selected annotation, form field or page. The task picker offers Studio's tasks: Read, Markup, Edit, Pages, Forms and Protect. It is a segmented control in the Mac toolbar and a menu button on iPad and iPhone, and each task brings its own tools. Markup's tools form a row under the Mac toolbar, a floating palette for Apple Pencil on iPad, and a palette in the bottom sheet on iPhone. Pages shows the whole document as a grid with a floating action bar for the selection. Notices, such as a scanned page that search skips, appear above the page with their action.
+**Fold and unfold.** Changing between compact and regular width keeps the document, the page, the zoom relative to the page width, the selection, the task and any edit in progress, held in the scene's state rather than the view. A sheet that is open in compact width becomes its column when the width grows, and an open column becomes a sheet when the width shrinks, which is the split view's and inspector's own behaviour. Visible tiles render again at the new width.
 
-**Fold and unfold.** Changing between compact and regular width keeps the document, the page, the zoom relative to the page width, the selection, the task and any edit in progress. A sheet that is open in compact width becomes its column when the width grows, and a column that is open becomes a sheet when the width shrinks. Visible tiles render again at the new width.
+### System components
 
-**Starting points.** The Mac opens a start window with recent documents and quick tasks (Convert, Combine PDFs, Make searchable, Protect and every command). Convert, OCR, Jobs and Settings open in their own windows from the Window menu, and Settings is the standard Settings window. On iPad and iPhone the documents screen is the system's document browser, with the quick tasks above it and Jobs and Settings in its sidebar.
+| Surface | macOS | iPadOS and iOS |
+| --- | --- | --- |
+| Documents and their lifecycle | `DocumentGroup` over `NSDocument`: open and save panels, Open Recent, autosave, versions, Duplicate, Rename, Move To, Revert To | `DocumentGroup` over `UIDocument` with the system document browser; `DocumentGroupLaunchScene` adds the quick tasks |
+| Starting point | A Welcome window (`Window` scene) with recent documents and quick tasks | The document browser's launch screen with quick-task actions |
+| Document layout | `NavigationSplitView` with a sidebar and `.inspector` | The same; compact width collapses to the page with sheets |
+| Task picker | Segmented control in the window toolbar | Menu button in the navigation bar |
+| Commands | Menu bar (`.commands`) with keyboard shortcuts | The iPad menu bar and keyboard shortcuts from the same `.commands` |
+| Search | `.searchable` in the toolbar; Find (⌘F) | `.searchable`; a toolbar button on iPhone |
+| Markup tools | Markup toolbar below the window toolbar, as in Preview | `PKToolPicker` over a `PKCanvasView`, the tool picker Notes, Files and Photos use, on iPad and iPhone |
+| Colors and fonts | System colors and `ColorPicker`; the system font | The same |
+| Sharing | `ShareLink` and the share menu | `ShareLink` and the share sheet |
+| Printing | `NSPrintOperation` with the print panel | `UIPrintInteractionController` |
+| Notices | A bar below the toolbar with its action | A banner above the page with its action |
+| Progress of long work | Progress in the Jobs window and the Dock icon; a notification when work finishes in the background | Progress in Jobs; background work continues as a background task and notifies when done |
+| Settings | The Settings window (⌘,) | A Settings screen in the app |
 
-**Commands and accessibility.** Every command comes from Studio's command catalog. Unavailable commands say why, in menus and in the command palette (⌘K on the Mac and on iPad with a keyboard). The Mac menu bar and the iPad keyboard menus list the same commands. Controls are at least 44 points on touch screens, pages announce their number to VoiceOver, text follows Dynamic Type in the chrome, and the layout leaves room for the longest of the English, Polish, German and French strings.
+Pages render through the engine's pixel rectangles, described under Rendering, so documents look the same as in the desktop Studio. Text selection, search highlights and form fields are system views over the page, which keeps them accessible to VoiceOver and Scribble.
+
+### Features on each platform
+
+| Feature | Mac | iPad | iPhone |
+| --- | --- | --- | --- |
+| Open from Files and cloud providers | Finder, Open With, drag and drop, iCloud Drive | Files, Open in place, drag and drop, Open in from other apps | Files, Open in place, Open in from other apps |
+| Scan paper into a PDF | Continuity Camera from an iPhone or iPad (`ImportFromDevicesCommands`) | Document camera (VisionKit) | Document camera (VisionKit) |
+| Recognize text (OCR) | Vision framework on the device | Vision framework on the device | Vision framework on the device |
+| Markup | Pointer and trackpad tools; Markup toolbar | Apple Pencil with the system tool picker, finger drawing, pointer | Finger drawing with the system tool picker |
+| Fill forms | Keyboard, Tab order, AutoFill for contact fields | Keyboard, Scribble with Apple Pencil, AutoFill | Keyboard, AutoFill |
+| Sign | Visual signature drawn with the trackpad, certificate signing from the keychain | Visual signature with Apple Pencil, certificate signing from the keychain | Visual signature with a finger, certificate signing from the keychain |
+| Comments | Writing Tools where available | Writing Tools where available, Scribble | Writing Tools where available |
+| Organize pages | Drag pages within and between windows | Drag pages within and between windows, multiple selection | Selection mode with a bottom toolbar |
+| Convert and combine | Convert window; Shortcuts actions | Quick tasks; Shortcuts actions; share extension | Quick tasks; Shortcuts actions; share extension |
+| Automation | App Intents for Shortcuts, Siri and Spotlight | The same | The same |
+| Continue elsewhere | Handoff of the open document and page | Handoff | Handoff |
+
+**Settled by convention.** The annotation task is **Markup**, the name Preview, Files and Photos use. Every task is available in compact width, presented one at a time with sheets, because the platform expects the same capabilities on iPhone; a task that needs a large canvas, such as editing page text, opens full screen. The split view decides whether the sidebar sits beside or over the page on an unfolded iPhone Duo, and the app does not override it. Convert, Make searchable and Combine start from the launch screen's quick tasks, Shortcuts actions and the share extension; Jobs is a screen the launch screen and each document's Tasks menu open.
 
 ## Rendering
 
