@@ -7,6 +7,21 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(-2000000000, 2000000000, 40D)]
+    [InlineData(int.MinValue, int.MaxValue, 40.000000009313226D)]
+    public void OfficeArtCustomPath_FullSignedGeometrySpacesProjectWithoutIntegerDeltaOverflow(int first, int last, double expectedX) {
+        var properties = CustomPath(new[] { (0, 0), (last, last) });
+        properties.Add(new OfficeArtProperty(2, 0x0140, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(3, 0x0141, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(4, 0x0142, unchecked((uint)last)));
+        properties.Add(new OfficeArtProperty(5, 0x0143, unchecked((uint)last)));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(expectedX, path!.Shape.PathCommands[0].Point.X, 10);
+        Assert.Equal(expectedX / 2, path.Shape.PathCommands[0].Point.Y, 10);
+        Assert.Equal(new OfficePoint(80, 40), path.Shape.PathCommands[1].Point);
+    }
+
+    [Theory]
     [InlineData(12, false)]
     [InlineData(14, false)]
     [InlineData(13, true)]
