@@ -32,7 +32,9 @@ internal static partial class FixtureCorpus {
                 sheet.CellValue(1, 1, "SERVICE REVIEW " + page);
                 sheet.CellValue(2, 1, "Availability"); sheet.CellValue(2, 2, 99.95D);
                 sheet.CellValue(3, 1, "Completed"); sheet.CellValue(3, 2, 9);
-                sheet.SetColumnWidth(1, 28); sheet.SetColumnWidth(2, 14);
+                // Author the existing 304px canvas using stored widths, which already
+                // include padding: 196px in column A and 108px in column B at 7px/digit.
+                sheet.SetColumnWidth(1, 28); sheet.SetColumnWidth(2, 108D / 7D);
                 for (int row = 1; row <= 3; row++) {
                     sheet.SetRowHeight(row, 24);
                     for (int column = 1; column <= 2; column++) sheet.CellFontName(row, column, family);
@@ -64,8 +66,7 @@ internal static partial class FixtureCorpus {
         }
         section.Save(Path.Combine(output, "service-review.one"));
         var cases = new List<ConsistencyCase>();
-        // Stored widths already include column padding: (28 + 14) * 7 = 294px.
-        foreach (var item in new[] { ("docx",816,1056), ("odt",816,1056), ("xlsx",294,96), ("ods",294,96), ("pptx",480,320), ("odp",480,320), ("one",816,1056) }) {
+        foreach (var item in new[] { ("docx",816,1056), ("odt",816,1056), ("xlsx",304,96), ("ods",304,96), ("pptx",480,320), ("odp",480,320), ("one",816,1056) }) {
             cases.Add(new ConsistencyCase {
                 Id = "native-" + item.Item1, Format = item.Item1,
                 Source = Path.GetRelativePath(repository, Path.Combine(output, "service-review." + item.Item1)).Replace('\\','/'),
@@ -90,9 +91,9 @@ internal static partial class FixtureCorpus {
                     PdfWidth = item.Item1 is "xlsx" or "ods" ? 816 : null,
                     PdfHeight = item.Item1 is "xlsx" or "ods" ? 1056 : null,
                     SvgTextPositions = item.Item1 is "xlsx" or "ods" ? new() {
-                        new("SERVICE REVIEW " + number, 8, 27.74, 0.1),
-                        new("Availability", 8, 59.74, 0.1),
-                        new("Completed", 8, 91.74, 0.1)
+                        new("SERVICE REVIEW " + number, 3, 27.74, 0.1),
+                        new("Availability", 3, 59.74, 0.1),
+                        new("Completed", 3, 91.74, 0.1)
                     } : new(),
                     Text = new() { "SERVICE REVIEW " + number }
                 }).ToList()
