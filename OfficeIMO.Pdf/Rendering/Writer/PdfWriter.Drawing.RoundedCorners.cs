@@ -86,6 +86,9 @@ internal static partial class PdfWriter {
             return;
         }
 
+        // Rounded strokes resolve their own thickness inset, but must retain
+        // the separate cell's prepared top margin just like straight borders.
+        if (border.PaintInsideFrame) h = Math.Max(0D, h - border.PaintTopInset);
         double x2 = x + w;
         double y2 = y + h;
         PdfCellBorderSide? top = border.Top ? ResolveCellBorderSide(border.TopBorderSnapshot, border) : null;
