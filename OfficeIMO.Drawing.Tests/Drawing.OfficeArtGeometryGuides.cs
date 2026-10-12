@@ -35,6 +35,17 @@ public partial class DrawingTests {
     }
 
     [Theory]
+    [InlineData(0x04FE, true)]
+    [InlineData(0x04FF, true)]
+    [InlineData(0x04FC, false)]
+    [InlineData(0x04FD, false)]
+    public void OfficeArtGeometryGuides_HalfFrameDimensionsUseTheirOwnIntegerRange(int id, bool valid) {
+        var context = new OfficeArtGeometryGuideContext(Array.Empty<OfficeArtProperty>(), 200000, 200000);
+        Assert.Equal(valid, context.TryParameter(id, out int value, out _));
+        if (valid) Assert.Equal(1270000000, value);
+    }
+
+    [Theory]
     [InlineData(0x0140)]
     [InlineData(0x0141)]
     public void OfficeArtGeometryGuides_NegativeHalfUnitCentersFloor(int id) {

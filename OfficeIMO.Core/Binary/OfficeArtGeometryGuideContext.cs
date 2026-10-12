@@ -31,9 +31,11 @@ internal sealed class OfficeArtGeometryGuideContext {
             case 0x04FE:
             case 0x04FF:
                 double emus = (id is 0x04FC or 0x04FE ? _width : _height) * 12700D;
-                if (double.IsNaN(emus) || double.IsInfinity(emus) || emus < 0 || emus > int.MaxValue) return false;
-                result = (long)Math.Round(emus, MidpointRounding.AwayFromZero);
-                if (id is 0x04FE or 0x04FF) result /= 2;
+                if (double.IsNaN(emus) || double.IsInfinity(emus) || emus < 0) return false;
+                double rounded = Math.Round(emus, MidpointRounding.AwayFromZero);
+                if (id is 0x04FE or 0x04FF) rounded = Math.Floor(rounded / 2D);
+                if (rounded > int.MaxValue) return false;
+                result = (long)rounded;
                 break;
             default: failure = OfficeArtCustomPathFailure.GuideParameter; return false;
         }
