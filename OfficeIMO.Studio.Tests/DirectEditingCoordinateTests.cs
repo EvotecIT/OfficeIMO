@@ -32,6 +32,9 @@ public sealed class DirectEditingCoordinateTests {
                 var model = window.ViewModel;
                 model.ShowEditModeCommand.Execute(null);
                 model.ActualSizeCommand.Execute(null);
+                Assert.Equal(rotation is 90 or 270 ? 1080D : 920D, model.Pages[0].DisplayWidth);
+                Assert.Equal(rotation is 90 or 270 ? 920D : 1080D, model.Pages[0].DisplayHeight);
+                model.FitPageCommand.Execute(null);
                 window.UpdateLayout();
                 await TextEditingReviewTests.WaitUntilAsync(() => model.Pages[0].Scene != null);
                 window.UpdateLayout();

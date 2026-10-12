@@ -28,7 +28,8 @@ internal enum PdfWorkspaceOperationKind {
     Attachments,
     RecoveryRestore,
     Undo,
-    Redo
+    Redo,
+    CropBox
 }
 
 internal sealed record PdfWorkspaceOperation(

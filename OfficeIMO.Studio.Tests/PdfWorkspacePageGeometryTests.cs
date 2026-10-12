@@ -1,0 +1,55 @@
+using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Workspace;
+
+namespace OfficeIMO.Studio.Tests;
+
+public sealed partial class PdfWorkspaceTests {
+    [Fact]
+    public async Task TaggedCropRetainsTheSourceAndResetRevealsTheFullPage() {
+        string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-crop-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            byte[] original = File.ReadAllBytes(source);
+            var recovery = new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery"));
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None, recovery);
+            Assert.True(workspace.CanCropPages);
+            double width = workspace.Pages[0].Geometry.EffectiveBox!.Width;
+            await workspace.CropByMarginAsync([1], 20, CancellationToken.None);
+            Assert.Equal(width - 40, workspace.Pages[0].Geometry.EffectiveBox!.Width, 6);
+            Assert.Equal(PdfWorkspaceOperationKind.CropBox, Assert.Single(workspace.Journal).Kind);
+            string croppedPath = Path.Combine(root, "cropped.pdf");
+            await workspace.SaveAsync(croppedPath, CancellationToken.None);
+            byte[] cropped = File.ReadAllBytes(croppedPath);
+            Assert.True(cropped.AsSpan(0, original.Length).SequenceEqual(original));
+            Assert.Equal(PdfDocument.Load(original).Inspect().Security.RevisionCount + 1,
+                PdfDocument.Load(cropped).Inspect().Security.RevisionCount);
+            await workspace.ResetCropAsync([1], CancellationToken.None);
+            Assert.Equal(width, workspace.Pages[0].Geometry.EffectiveBox!.Width, 6);
+            await workspace.UndoAsync(CancellationToken.None);
+            Assert.Equal(width - 40, workspace.Pages[0].Geometry.EffectiveBox!.Width, 6);
+            await workspace.RedoAsync(CancellationToken.None);
+            Assert.Equal(width, workspace.Pages[0].Geometry.EffectiveBox!.Width, 6);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task MultiplePageMarginCropIsOneUndoableOperation() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-crop-batch-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string source = Path.Combine(root, "source.pdf");
+            PdfDocument.Create(compose => {
+                for (int i = 0; i < 3; i++) compose.Page(page => page.Size(300, 400));
+            }).Save(source);
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None,
+                new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")));
+            await workspace.CropByMarginAsync([1, 3], 20, CancellationToken.None);
+            Assert.Single(workspace.Journal);
+            Assert.Equal(new[] { 260D, 300D, 260D }, workspace.Pages.Select(page => page.Geometry.EffectiveBox!.Width));
+            await workspace.UndoAsync(CancellationToken.None);
+            Assert.All(workspace.Pages, page => Assert.Equal(300D, page.Geometry.EffectiveBox!.Width));
+            Assert.False(workspace.IsDirty);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+}

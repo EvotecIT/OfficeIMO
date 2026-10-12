@@ -292,6 +292,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanRotatePages => _workspace?.CanRotatePages == true;
 
+    public bool CanCropPages => _workspace?.CanCropPages == true;
+
     public bool CanExtractPages => _workspace?.CanExtractPages == true;
 
     public bool CanImportPages => _workspace?.CanImportPages == true;
@@ -419,7 +421,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                      page.RotationDegrees,
                      candidateSceneCoordinator,
                      candidateRenderCoordinator,
-                     _localizer))
+                     _localizer, page.Geometry))
                 .ToArray();
 
             if (!ReferenceEquals(currentCancellation, _openCancellation)) return;

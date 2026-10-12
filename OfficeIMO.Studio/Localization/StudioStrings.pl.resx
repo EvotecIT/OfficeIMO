@@ -5682,4 +5682,6 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Zaznacz wszystkie adnotacje</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Ukończono</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Niepowodzenie</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Cofnij przycięcie</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Przycięcie ukrywa marginesy i zachowuje zawartość strony. Cofnięcie przycięcia ponownie odsłania całą stronę.</value></data>
 </root>

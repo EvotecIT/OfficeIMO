@@ -2210,4 +2210,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Sélectionner toutes les annotations</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Terminé</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Échec</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Réinitialiser le recadrage</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Le recadrage masque les marges et conserve le contenu. Réinitialiser le recadrage affiche de nouveau la page entière.</value></data>
 </root>

@@ -5682,4 +5682,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Alle Anmerkungen auswählen</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Abgeschlossen</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Fehlgeschlagen</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Zuschnitt zurücksetzen</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Zuschneiden blendet die Ränder aus und behält den Seiteninhalt. Zurücksetzen zeigt wieder die ganze Seite.</value></data>
 </root>

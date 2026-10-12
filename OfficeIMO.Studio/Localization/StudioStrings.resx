@@ -3030,4 +3030,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Select all annotations</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Completed</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Reset crop</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Cropping hides the margins and keeps the page content. Reset crop reveals the full page again.</value></data>
 </root>

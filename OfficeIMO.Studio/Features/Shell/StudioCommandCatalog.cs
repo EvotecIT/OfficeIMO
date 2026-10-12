@@ -63,7 +63,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("ImportPages", "Add pages from PDFs", "Insert pages from other PDFs after the current page.", "Organize", document.ImportPagesCommand,
             () => Allowed(document.CanImportPages));
         Add("InsertBlankPage", "Insert a blank page", "Add an empty page after the current page.", "Organize", document.InsertBlankCommand,
-            () => Allowed(document.CanMutatePages));
+            () => Allowed(document.CanImportPages));
         Add("Forms", "Fill and edit forms", "Fill fields or author supported AcroForm controls.", "Edit", document.ShowFormsModeCommand, Loaded, true, workspace: true);
         Add("PreviousFormField", "Previous form field", "Select the previous field and show its page, keeping unapplied values.", "Edit", document.SelectPreviousFormFieldCommand,
             () => Loaded() ?? (!document.HasFormFields ? Text("NoFormFields", "This document has no named form fields.") :

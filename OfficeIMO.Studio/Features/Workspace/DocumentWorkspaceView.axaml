@@ -1030,11 +1030,13 @@
                 <TextBlock Text="{Binding OrganizerSelectionLabel}" Classes="muted" TextWrapping="Wrap" />
                 <TextBlock Text="{loc:Loc DocumentWorkspace.CropMargin}" Classes="groupLabel" Margin="0,4,0,0" /><TextBox Text="{Binding CropMargin}" PlaceholderText="{loc:Loc DocumentWorkspace.Points}" />
                 <TextBlock Text="{loc:Loc Crop.PreviewHint}" IsVisible="{Binding HasPendingCrop}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+                <TextBlock Text="{loc:Loc Crop.VisibilityHint}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
                 <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}">
                   <Button Classes="tool" Content="{loc:Loc Inspector.Cancel}" IsVisible="{Binding HasPendingCrop}" Command="{Binding CancelCropCommand}" AutomationProperties.Name="{loc:Loc Crop.Cancel}" />
-                  <Button Classes="tool" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CropSelectedPages}">
+                  <Button Classes="tool" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanCropSelection}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CropSelectedPages}">
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><PathIcon Data="{StaticResource IconCrop}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.CropSelectedPages}" /></StackPanel>
                   </Button>
+                  <Button Classes="tool" Command="{Binding ResetCropSelectedCommand}" IsEnabled="{Binding CanCropSelection}" Content="{loc:Loc Crop.Reset}" AutomationProperties.Name="{loc:Loc Crop.Reset}" />
                 </WrapPanel>
                 <TextBlock Text="{loc:Loc Resize.Title}" Classes="groupLabel" Margin="0,6,0,0" />
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource StudioSpaceSM}">

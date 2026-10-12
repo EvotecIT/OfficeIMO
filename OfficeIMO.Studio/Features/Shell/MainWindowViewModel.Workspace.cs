@@ -70,6 +70,8 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanRotateSelection => HasOrganizerSelection && CanRotatePages;
 
+    public bool CanCropSelection => HasOrganizerSelection && CanCropPages;
+
     public bool CanExtractSelection => HasOrganizerSelection && CanExtractPages;
 
     public bool CanDeleteSelection => CanMutateSelection && _workspace is not null && _organizerSelection.Count < _workspace.Pages.Count;
@@ -112,6 +114,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanMutateSelection));
         OnPropertyChanged(nameof(CanRotateSelection));
+        OnPropertyChanged(nameof(CanCropSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(OrganizerSelectionLabel));
@@ -235,8 +238,16 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task CropSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
-        if (_workspace is null || pages.Length == 0) return;
+        if (_workspace is null || pages.Length == 0 || !CanCropSelection) return;
         await RunMutationAsync(token => _workspace.CropByMarginAsync(pages, CropMargin, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
+        EndCropPreview();
+    }
+
+    [RelayCommand]
+    private async Task ResetCropSelectedAsync(CancellationToken cancellationToken) {
+        int[] pages = GetSelectedPages();
+        if (_workspace is null || pages.Length == 0 || !CanCropSelection) return;
+        await RunMutationAsync(token => _workspace.ResetCropAsync(pages, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
         EndCropPreview();
     }
 
@@ -422,7 +433,7 @@ public sealed partial class MainWindowViewModel {
             page.RotationDegrees,
             sceneCoordinator,
             renderCoordinator,
-            _localizer)).ToArray();
+            _localizer, page.Geometry)).ToArray();
 
         ReplaceDocument(_workspace, session, sceneCoordinator, renderCoordinator, pages, organizerPages, organizerSelection);
         SelectedPage = Pages[selectedPage - 1];
@@ -441,10 +452,12 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasRecovery));
         OnPropertyChanged(nameof(CanMutatePages));
         OnPropertyChanged(nameof(CanRotatePages));
+        OnPropertyChanged(nameof(CanCropPages));
         OnPropertyChanged(nameof(CanExtractPages));
         OnPropertyChanged(nameof(CanImportPages));
         OnPropertyChanged(nameof(CanMutateSelection));
         OnPropertyChanged(nameof(CanRotateSelection));
+        OnPropertyChanged(nameof(CanCropSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(CanEditAnnotations));

@@ -261,7 +261,9 @@ internal static class PdfMutationPlanner {
         bool securityRewrite = operation == PdfMutationOperation.ChangeEncryption && fullRewriteCapability;
         bool requiresAppendOnly = RequiresAppendOnlyForOperation(security, operation);
         bool unsignedSignatureFieldRewrite = operation == PdfMutationOperation.ModifyAcroForm && CanFullRewriteUnsignedSignatureFields(security);
-        bool normalizedObjectGraphRewrite = (operation == PdfMutationOperation.MergeDocuments || operation == PdfMutationOperation.Optimize) && CanNormalizeObjectGraphSource(preflight, operation);
+        bool normalizedObjectGraphRewrite = (operation == PdfMutationOperation.MergeDocuments ||
+            operation == PdfMutationOperation.Optimize || operation == PdfMutationOperation.ModifyPageTree) &&
+            CanNormalizeObjectGraphSource(preflight, operation);
         bool authorizedEncryptedRewrite = security.HasEncryption && CanUseAuthenticatedEncryptedRewrite(preflight, operation);
         bool certificationRequiresFirstSignature =
             operation == PdfMutationOperation.PrepareExternalSignature &&
@@ -773,6 +775,9 @@ internal static class PdfMutationPlanner {
 
         if (mode == PdfMutationExecutionMode.FullRewrite && security.HasIncrementalUpdates) {
             Add(warnings, "Input.RevisionHistoryWillBeNormalized");
+        }
+        if (mode == PdfMutationExecutionMode.FullRewrite && (security.HasXrefStreams || security.HasObjectStreams)) {
+            Add(warnings, "Input.CrossReferenceAndObjectStreamsWillBeNormalized");
         }
 
         if (mode != PdfMutationExecutionMode.Blocked && preflight.PermissionRestrictionsIgnored) {

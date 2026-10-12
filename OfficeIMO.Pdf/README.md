@@ -1317,6 +1317,22 @@ Each selected page resolves its own inherited angle, and an append-only turn
 writes all selected page overrides in one revision. Studio's rotate buttons and
 native engine use this relative-turn behavior.
 
+Selectors such as `"odd"`, `"last"`, and `PdfPageSelection` work with
+`RotateBy` and `RotateByResult`. Use an ordered batch for several corrections:
+
+```csharp
+PdfOperationResult<PdfDocument> edits = source.Pages.ApplyAttributesResult(new[] {
+    PdfPageAttributeEdit.RotateBy(90, PdfPageSelection.From(1, 3)),
+    PdfPageAttributeEdit.CropMargins(20, 20, 20, 20),
+});
+edits.RequireValue().Save("packet-edited.pdf");
+```
+
+Each edit sees the geometry produced by the preceding edits. The batch validates
+and writes once; a failed or cancelled batch leaves the source document unchanged.
+`ApplyAttributesResult` accepts a cancellation token for planning, writing, and
+output readback; requested cancellation throws `OperationCanceledException`.
+
 Rotation and page-box setters use a full rewrite when supported. When source
 preservation prevents rewriting, they can append a revision containing only the
 changed page dictionaries and cross-reference data. This supports cross-reference
@@ -1328,6 +1344,11 @@ the selected route, reasons, and blockers.
 `SetPageBoxResult` supports `MediaBox`, `CropBox`, `TrimBox`, `BleedBox`, and
 `ArtBox`; convenience methods include `SetCropBox` and `SetMediaBox`. Coordinates
 are in PDF page space. Setting a box leaves source content in the file.
+`PdfPageAttributeEdit.CropMargins` measures physical points (1/72 inch) from the
+displayed left, bottom, right, and top edges. It accounts for inherited rotation,
+page-box origins, and `/UserUnit`. `ResetCrop` restores the current media box.
+Studio's margin crop and reset use these page-box edits and create one undoable
+operation for all selected pages. Hidden content remains recoverable.
 `CropAndTranslate` also changes content and annotation geometry, so it requires
 a supported full rewrite.
 
@@ -1339,6 +1360,11 @@ Deleting, reordering, inserting, and duplicating pages use their own preservatio
 checks. Tagged page-tree changes remain unsupported. Page attributes preserve
 existing tags, but changing page geometry does not by itself establish PDF/A or
 PDF/UA conformance; validate the saved artifact against the required profile.
+
+Deletion, reordering, and duplication can normalize cross-reference and object
+streams through a full rewrite when the remaining document structures can be
+preserved. The plan reports `Input.CrossReferenceAndObjectStreamsWillBeNormalized`.
+These operations do not use the page-attribute append-only route.
 
 ### Split and extract pages
 

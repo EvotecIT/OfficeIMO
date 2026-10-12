@@ -77,6 +77,7 @@ public sealed partial class PdfDocument {
             case "Rotate":
             case "RotateBy":
             case "SetPageBox":
+            case "ApplyAttributes":
                 return PdfMutationOperation.ModifyPageAttributes;
             case "Text":
             case "TextWatermark":

@@ -94,9 +94,11 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal string? RecoveryPath { get; private set; }
 
-    internal bool CanMutatePages => _preflight.CanManipulatePages;
+    internal bool CanMutatePages => CanPlan(PdfMutationOperation.ModifyPageTree);
 
     internal bool CanRotatePages => CanPlan(PdfMutationOperation.ModifyPageAttributes);
+
+    internal bool CanCropPages => CanPlan(PdfMutationOperation.ModifyPageAttributes);
 
     internal bool CanExtractPages => CanPlan(PdfMutationOperation.ExtractPages);
 
@@ -200,30 +202,21 @@ internal sealed partial class PdfWorkspace : IDisposable {
         MutateAsync(PdfWorkspaceOperationKind.Crop, $"Cropped {pageNumbers.Count} page(s)", pageNumbers, document => document.Pages.CropAndTranslate(left, bottom, right, top, pageNumbers.ToArray()), cancellationToken, progress);
 
     internal Task CropByMarginAsync(IReadOnlyList<int> pageNumbers, double margin, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (margin < 0D) throw new ArgumentOutOfRangeException(nameof(margin));
-        PdfPageInfo[] pageInfo = pageNumbers.Select(pageNumber => Pages[pageNumber - 1]).ToArray();
+        if (!double.IsFinite(margin) || margin < 0D) throw new ArgumentOutOfRangeException(nameof(margin));
+        PdfPageSelection selection = PdfPageSelection.From(pageNumbers.ToArray());
         return MutateAsync(
-            PdfWorkspaceOperationKind.Crop,
+            PdfWorkspaceOperationKind.CropBox,
             $"Cropped {pageNumbers.Count} page(s) by {margin:0.#} pt",
             pageNumbers,
-            document => {
-                for (int index = 0; index < pageNumbers.Count; index++) {
-                    PdfPageInfo info = pageInfo[index];
-                    if ((margin * 2D) >= info.Width || (margin * 2D) >= info.Height) {
-                        throw new InvalidOperationException($"The crop margin is too large for page {pageNumbers[index]}.");
-                    }
-                    document = document.Pages.CropAndTranslate(
-                        margin,
-                        margin,
-                        info.Width - margin,
-                        info.Height - margin,
-                        pageNumbers[index]);
-                }
-                return document;
-            },
+            document => document.Pages.ApplyAttributes(PdfPageAttributeEdit.CropMargins(margin, margin, margin, margin, selection)),
             cancellationToken,
             progress);
     }
+
+    internal Task ResetCropAsync(IReadOnlyList<int> pageNumbers, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateAsync(PdfWorkspaceOperationKind.CropBox, $"Reset crop on {pageNumbers.Count} page(s)", pageNumbers,
+            document => document.Pages.ApplyAttributes(PdfPageAttributeEdit.ResetCrop(PdfPageSelection.From(pageNumbers.ToArray()))),
+            cancellationToken, progress);
 
     internal Task InsertBlankAsync(int insertBeforePageNumber, double width, double height, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
         PdfDocument blank = PdfDocument.Create(compose => compose.Page(page => page.Size(width, height)));
@@ -475,9 +468,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress) {
         ThrowIfDisposed();
-        // Rotation delegates its narrower page-attribute policy to the PDF mutation planner.
-        if (kind != PdfWorkspaceOperationKind.Rotate && !CanMutatePages)
-            throw new InvalidOperationException(SecurityWarning ?? "This document cannot be safely rewritten.");
+        // Every mutation delegates authorization and source preservation to its owning PDF operation.
         await MutateBytesAsync(
             kind,
             description,

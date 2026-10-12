@@ -51,6 +51,35 @@ public sealed class StudioPageRotationTests {
                 Assert.False(model.Commands["DuplicatePages"].IsAvailable);
                 await model.Commands["Undo"].ExecuteAsync();
                 Assert.False(model.IsDirty);
+                model.SetOrganizerSelection([model.OrganizerPages[0]]);
+                model.ActualSizeCommand.Execute(null);
+                Assert.True(model.CanCropSelection);
+                Layout(window, width);
+                var workspaceView = Assert.Single(window.GetVisualDescendants().OfType<OfficeIMO.Studio.Features.Workspace.DocumentWorkspaceView>());
+                var inspectorToggle = workspaceView.FindControl<Avalonia.Controls.Primitives.ToggleButton>("InspectorToggle")!;
+                inspectorToggle.IsChecked = true;
+                inspectorToggle.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                Layout(window, width);
+                Button crop = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+                    button => ReferenceEquals(button.Command, model.CropSelectedCommand));
+                Button resetCrop = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
+                    button => ReferenceEquals(button.Command, model.ResetCropSelectedCommand));
+                Assert.True(crop.IsEffectivelyEnabled);
+                Assert.True(resetCrop.IsEffectivelyEnabled);
+                double originalWidth = model.Pages[0].DisplayWidth;
+                model.CropMargin = 24;
+                await model.CropSelectedCommand.ExecuteAsync(null);
+                Assert.False(model.HasError, model.ErrorMessage);
+                Assert.Equal(originalWidth - 48, model.Pages[0].DisplayWidth, 2);
+                Layout(window, width);
+                await TextEditingReviewTests.WaitUntilAsync(() => model.OrganizerPages[0].Scene is not null);
+                Capture(window, width, "cropped");
+                await model.ResetCropSelectedCommand.ExecuteAsync(null);
+                Assert.False(model.HasError, model.ErrorMessage);
+                Assert.Equal(originalWidth, model.Pages[0].DisplayWidth);
+                Layout(window, width);
+                await TextEditingReviewTests.WaitUntilAsync(() => model.OrganizerPages[0].Scene is not null);
+                Capture(window, width, "crop-reset");
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);

@@ -13,7 +13,7 @@ public class PdfPageAttributeIncrementalTests {
         PdfDocument original = PdfDocument.Load(source);
         PdfDocumentInfo before = original.Inspect();
         int pageObjectNumber = PdfReadDocument.Open(source).Pages[0].ObjectNumber;
-        Assert.False(original.PlanMutation(PdfMutationOperation.ModifyPageTree).CanExecute);
+        Assert.Equal(!before.HasTaggedContent, original.PlanMutation(PdfMutationOperation.ModifyPageTree).CanExecute);
 
         PdfOperationResult<PdfDocument> result = original.Pages.RotateResult(90, "1");
         PdfDocument rotated = result.RequireValue();
@@ -36,10 +36,12 @@ public class PdfPageAttributeIncrementalTests {
         Assert.Equal(90, selectorResult.RequireValue().Inspect().Pages[0].RotationDegrees);
         Assert.Equal(PdfMutationOperation.ModifyPageAttributes, rotated.Pipeline.Steps.Last().MutationOperation);
 
-        // Page membership changes must still fail even after a successful attribute update.
-        Assert.Throws<PdfMutationBlockedException>(() => original.Pages.Delete(1));
-        Assert.Throws<PdfMutationBlockedException>(() => original.Pages.Reorder(Enumerable.Range(1, before.PageCount).Reverse().ToArray()));
-        Assert.Throws<PdfMutationBlockedException>(() => original.Pages.Duplicate(1));
+        // Attribute support does not imply that tagged membership changes are implemented.
+        if (before.HasTaggedContent) {
+            Assert.Throws<PdfMutationBlockedException>(() => original.Pages.Delete(1));
+            Assert.Throws<PdfMutationBlockedException>(() => original.Pages.Reorder(Enumerable.Range(1, before.PageCount).Reverse().ToArray()));
+            Assert.Throws<PdfMutationBlockedException>(() => original.Pages.Duplicate(1));
+        }
         PdfDocument insertedPage = PdfDocument.Create().Paragraph(p => p.Text("Inserted"));
         if (before.HasTaggedContent) {
             Assert.Throws<PdfMutationBlockedException>(() => original.Pages.Insert(1, insertedPage));
@@ -47,7 +49,8 @@ public class PdfPageAttributeIncrementalTests {
             // Import already has a separately qualified normalizing rewrite route for untagged streams.
             Assert.Equal(before.PageCount + 1, original.Pages.Insert(1, insertedPage).Inspect().PageCount);
         }
-        Assert.Throws<PdfMutationBlockedException>(() => original.Pages.CropAndTranslate(0, 0, 100, 100, 1));
+        if (before.HasTaggedContent)
+            Assert.Throws<PdfMutationBlockedException>(() => original.Pages.CropAndTranslate(0, 0, 100, 100, 1));
     }
 
     [Theory]

@@ -348,15 +348,14 @@ public class PdfMutationPlannerTests {
     }
 
     [Fact]
-    public void Plan_BlocksPageTreeMutationWhenSourceStructureCannotBePreserved() {
+    public void Plan_NormalizesStreamStructureForSupportedPageTreeRewrites() {
         byte[] source = PdfRewritePreservationTestSupport.BuildSourceStructurePreservationProofPdf();
 
         PdfMutationPlan plan = PdfMutationPlanner.Plan(source, PdfMutationOperation.ModifyPageTree);
 
-        Assert.False(plan.CanExecute);
-        Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
-        Assert.Contains("FullRewrite.XrefStreamPreservation", plan.BlockerCodes);
-        Assert.Contains("FullRewrite.ObjectStreamPreservation", plan.BlockerCodes);
+        Assert.True(plan.CanExecute);
+        Assert.Equal(PdfMutationExecutionMode.FullRewrite, plan.ExecutionMode);
+        Assert.Contains("Input.CrossReferenceAndObjectStreamsWillBeNormalized", plan.Warnings);
     }
 
     [Fact]

@@ -109,12 +109,12 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
         OfficeIMO.Pdf.PdfPageGeometry? geometry = null) {
         PageNumber = pageNumber;
         bool swapsAxes = Math.Abs(rotationDegrees) % 180 == 90;
-        _pageWidth = Math.Max(1D, swapsAxes ? height : width);
-        _pageHeight = Math.Max(1D, swapsAxes ? width : height);
         double visualWidth = (geometry?.EffectiveBox?.Width ?? width) * (geometry?.UserUnit ?? 1);
         double visualHeight = (geometry?.EffectiveBox?.Height ?? height) * (geometry?.UserUnit ?? 1);
         _visualWidth = Math.Max(1, swapsAxes ? visualHeight : visualWidth);
         _visualHeight = Math.Max(1, swapsAxes ? visualWidth : visualHeight);
+        _pageWidth = _visualWidth;
+        _pageHeight = _visualHeight;
         _sceneCoordinator = sceneCoordinator;
         _renderCoordinator = renderCoordinator;
         _localizer = localizer ?? new StudioLocalizer(System.Globalization.CultureInfo.GetCultureInfo("en"));
