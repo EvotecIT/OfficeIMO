@@ -6,7 +6,8 @@ iOS and the iOS simulator, with the C header and a Swift module.
 .DESCRIPTION
 For each runtime the engine is published with StudioEngineLibrary=Static. NativeAOT's static archive holds only the compiled
 code, so the project also publishes the toolchain's link inputs (see PublishStaticLinkInputs in the project file). This
-script merges the archive, the runtime libraries and the native shims into one static library per runtime, combines
+script prelinks the compiled code with the runtime bootstrapper, merges it with the runtime libraries and the native
+shims into one static library per runtime, combines
 the two macOS architectures with lipo, and packages the result with xcodebuild -create-xcframework.
 
 The system libraries and frameworks the runtime needs are written into the module map as link directives, so a Swift
@@ -23,7 +24,10 @@ param(
     [Parameter(Mandatory)][string]$OutputDirectory,
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Release',
     [ValidateSet('osx-arm64', 'osx-x64', 'ios-arm64', 'iossimulator-arm64')]
-    [string[]]$RuntimeIdentifier = @('osx-arm64', 'osx-x64', 'ios-arm64', 'iossimulator-arm64')
+    [string[]]$RuntimeIdentifier = @('osx-arm64', 'osx-x64', 'ios-arm64', 'iossimulator-arm64'),
+    # The oldest systems the native apps support; the prelinked engine object is marked for them.
+    [string]$MacOSDeploymentTarget = '14.0',
+    [string]$IOSDeploymentTarget = '17.0'
 )
 $ErrorActionPreference = 'Stop'
 if (-not $IsMacOS) { throw 'The XCFramework is built on macOS with Xcode.' }
@@ -36,7 +40,8 @@ $publishRoot = Join-Path $OutputDirectory 'publish'
 $libraryRoot = Join-Path $OutputDirectory 'lib'
 $inputsRoot = Join-Path $OutputDirectory 'link-inputs'
 $framework = Join-Path $OutputDirectory "$name.xcframework"
-foreach ($directory in $publishRoot, $libraryRoot, $inputsRoot, $framework) {
+$objectRoot = Join-Path $OutputDirectory 'objects'
+foreach ($directory in $publishRoot, $libraryRoot, $inputsRoot, $objectRoot, $framework) {
     if (Test-Path $directory) { Remove-Item -Recurse -Force $directory }
 }
 New-Item -ItemType Directory -Force $publishRoot, $libraryRoot, $inputsRoot | Out-Null
@@ -58,10 +63,34 @@ foreach ($rid in $RuntimeIdentifier) {
     $inputs = $inputs | ForEach-Object { if ($_ -eq '-lstdc++') { '-lc++' } else { $_ } }
     Set-Content (Join-Path $inputsRoot "$rid.txt") (@("$name.a") + $inputs)
 
-    $files = @(Join-Path $publish "$name.a") + @($inputs | Where-Object { -not $_.StartsWith('-') } | ForEach-Object { Join-Path $linkDirectory $_ })
+    # Object files such as the bootstrapper export nothing: they start the runtime from a static initializer. As
+    # archive members the linker would never load them, so they are prelinked into the object that holds the exports,
+    # and linking any engine function brings the runtime start with it. Private external symbols stay visible to the
+    # runtime archives, which call into the compiled code.
+    $objects = Join-Path $OutputDirectory 'objects' $rid
+    if (Test-Path $objects) { Remove-Item -Recurse -Force $objects }
+    New-Item -ItemType Directory -Force $objects | Out-Null
+    Push-Location $objects
+    try { Invoke-Tool xcrun @('ar', '-x', (Join-Path $publish "$name.a")) } finally { Pop-Location }
+    $architecture = if ($rid.EndsWith('-x64')) { 'x86_64' } else { 'arm64' }
+    # The compiler marks its object for the oldest supported system and the runtime objects for newer ones, so the
+    # prelinked object carries the apps' deployment target.
+    $platform, $sdk, $minimum = switch -Wildcard ($rid) {
+        'osx-*' { 'macos', 'macosx', $MacOSDeploymentTarget }
+        'iossimulator-*' { 'ios-simulator', 'iphonesimulator', $IOSDeploymentTarget }
+        default { 'ios', 'iphoneos', $IOSDeploymentTarget }
+    }
+    $sdkVersion = (xcrun --sdk $sdk --show-sdk-version).Trim()
+    $files = $inputs | Where-Object { -not $_.StartsWith('-') } | ForEach-Object { Join-Path $linkDirectory $_ }
+    $engineObject = Join-Path $OutputDirectory 'objects' "$rid.o"
+    $prelinked = @(Get-ChildItem $objects -Filter '*.o' | ForEach-Object FullName) + @($files | Where-Object { $_.EndsWith('.o') })
+    Invoke-Tool xcrun (@('ld', '-r', '-keep_private_externs', '-arch', $architecture, '-platform_version', $platform, $minimum, $sdkVersion,
+        '-o', $engineObject) + $prelinked)
+
     $library = Join-Path $libraryRoot $rid "lib$name.a"
     New-Item -ItemType Directory -Force (Split-Path $library) | Out-Null
-    Invoke-Tool xcrun (@('libtool', '-static', '-no_warning_for_no_symbols', '-o', $library) + $files)
+    $archives = @($files | Where-Object { $_.EndsWith('.a') })
+    Invoke-Tool xcrun (@('libtool', '-static', '-no_warning_for_no_symbols', '-o', $library, $engineObject) + $archives)
     $systemInputs[$rid] = @($inputs | Where-Object { $_.StartsWith('-') })
 }
 
