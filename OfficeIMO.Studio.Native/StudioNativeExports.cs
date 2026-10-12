@@ -95,6 +95,22 @@ internal static unsafe class StudioNativeExports {
         });
     }
 
+    /// <summary>
+    /// Renders a rectangle of a page as opaque RGBA pixels for display: <paramref name="x"/>, <paramref name="y"/>,
+    /// <paramref name="width"/> by <paramref name="height"/> of the page image at <paramref name="scale"/>.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_render_region")]
+    internal static int DocumentRenderRegion(nint document, int page, double scale, int x, int y, int width, int height,
+        nint cancellation, byte** pixels, nuint* length, byte** error) {
+        if (pixels is null || length is null) return Fail(error, new ArgumentNullException(pixels is null ? nameof(pixels) : nameof(length)));
+        *pixels = null; *length = 0;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            PdfRenderedPixels rendered = target.RenderRegionAsync(page, scale, x, y, width, height, token).GetAwaiter().GetResult();
+            *pixels = StudioNativeAbi.ToNative(rendered.Pixels);
+            *length = (nuint)rendered.Pixels.Length;
+        });
+    }
+
     /// <summary>Rotates pages by a multiple of 90 degrees as one undoable change.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_rotate_pages")]
     internal static int DocumentRotatePages(nint document, int* pages, int count, int degrees, nint cancellation, byte** error) {

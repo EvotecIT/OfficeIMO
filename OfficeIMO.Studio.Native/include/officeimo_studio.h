@@ -76,12 +76,25 @@ void officeimo_document_close(officeimo_document document);
 int32_t officeimo_document_info_json(officeimo_document document, char **json, char **error);
 
 /*
- * Renders a page as PNG bytes at scale pixels per point. pixel_width and pixel_height may be NULL. A scale whose page
+ * Renders a page as PNG bytes at scale pixels per point, for thumbnails, sharing and export; display uses
+ * officeimo_document_render_region. pixel_width and pixel_height may be NULL. A scale whose page
  * image would exceed maxRenderPixels fails with OFFICEIMO_INVALID_ARGUMENT; the host renders a smaller scale.
  */
 int32_t officeimo_document_render_page(officeimo_document document, int32_t page, double scale,
                                        officeimo_cancellation cancellation, uint8_t **png, size_t *length,
                                        int32_t *pixel_width, int32_t *pixel_height, char **error);
+
+/*
+ * Renders a rectangle of a page as pixels for display. The page image at scale pixels per point is the page's width and
+ * height times scale, each rounded up; x, y, width and height select a rectangle of it, all of it or a tile. Tiles of
+ * one page at one scale join without seams, so zooming past maxRenderPixels renders the visible tiles. width * height
+ * must not exceed maxRenderPixels. The pixels are opaque RGBA, 8 bits per channel, rows top to bottom, 4 * width bytes
+ * per row: *length is 4 * width * height. The engine keeps recently rendered pages and their decoded images, so further
+ * tiles, zoom levels and repeated views of a page are faster until the document changes.
+ */
+int32_t officeimo_document_render_region(officeimo_document document, int32_t page, double scale, int32_t x, int32_t y,
+                                         int32_t width, int32_t height, officeimo_cancellation cancellation,
+                                         uint8_t **pixels, size_t *length, char **error);
 
 /* Rotates pages by a multiple of 90 degrees as one undoable change. */
 int32_t officeimo_document_rotate_pages(officeimo_document document, const int32_t *pages, int32_t count,

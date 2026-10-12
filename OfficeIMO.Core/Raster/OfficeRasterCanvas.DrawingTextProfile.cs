@@ -16,6 +16,7 @@ public sealed partial class OfficeRasterCanvas {
         child.FontMetricScale = FontMetricScale;
         child.SetCoordinateScale(CoordinateScaleX, CoordinateScaleY);
         child.ShareTransformedTextBudget(_transformedTextBudget);
+        child.ImageCache = ImageCache;
         child._clipRegion = _clipRegion;
         child.PreservePaintedGlyphOrder = PreservePaintedGlyphOrder;
         return child;

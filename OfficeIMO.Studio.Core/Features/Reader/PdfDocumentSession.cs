@@ -9,6 +9,8 @@ namespace OfficeIMO.Studio.Features.Reader;
 /// </summary>
 internal sealed class PdfDocumentSession {
     private readonly PdfDocument _document;
+    private readonly object _displayLock = new();
+    private PdfPageDisplayRenderer? _display;
     private readonly bool _canEditAnnotations;
 
     private PdfDocumentSession(
@@ -233,4 +235,37 @@ internal sealed class PdfDocumentSession {
             result.Elapsed,
             result.Diagnostics);
     }
+
+    /// <summary>
+    /// Renders a rectangle of a page as opaque RGBA pixels for display. The page image at <paramref name="scale"/> is
+    /// the page's display size times the scale, each side rounded up; the rectangle may be all of it or a tile, and
+    /// tiles join without seams. A rectangle holds at most <see cref="StudioPdfSecurityPolicy.MaximumRasterPixels"/>.
+    /// Recently rendered pages and their decoded images are kept for further tiles and zoom levels of this revision.
+    /// </summary>
+    internal async Task<PdfRenderedPixels> RenderRegionAsync(
+        int pageNumber, double scale, int x, int y, int width, int height, CancellationToken cancellationToken) {
+        if (pageNumber <= 0 || pageNumber > Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        if (!(scale > 0D) || double.IsInfinity(scale))
+            throw new ArgumentOutOfRangeException(nameof(scale), scale, "The scale must be a finite positive number.");
+        if (width <= 0 || height <= 0 || (long)width * height > StudioPdfSecurityPolicy.MaximumRasterPixels) {
+            throw new ArgumentOutOfRangeException(nameof(width),
+                $"A rectangle holds 1 to {StudioPdfSecurityPolicy.MaximumRasterPixels:N0} pixels; render a larger area as tiles.");
+        }
+        var limits = new PdfPageRegionLimits {
+            MaximumRegionPixels = StudioPdfSecurityPolicy.MaximumRasterPixels,
+            MaximumWorkingPixels = StudioPdfSecurityPolicy.MaximumRenderWorkingPixels,
+            Timeout = StudioPdfSecurityPolicy.RenderTimeout
+        };
+        OfficeIMO.Drawing.OfficeRasterImage image = await Task.Run(() => {
+            lock (_displayLock) {
+                _display ??= new PdfPageDisplayRenderer(_document, StudioPdfSecurityPolicy.DisplayCachedPages,
+                    StudioPdfSecurityPolicy.DisplayImageCacheBytes);
+                return _display.RenderRegion(pageNumber, scale, x, y, width, height, limits, cancellationToken);
+            }
+        }, cancellationToken).ConfigureAwait(false);
+        return new PdfRenderedPixels(pageNumber, scale, x, y, image.Width, image.Height, image.PixelBuffer);
+    }
 }
+
+/// <summary>Opaque RGBA pixels of a page rectangle, rows top to bottom, four bytes per pixel.</summary>
+internal sealed record PdfRenderedPixels(int PageNumber, double Scale, int X, int Y, int Width, int Height, byte[] Pixels);

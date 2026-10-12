@@ -41,7 +41,7 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_abi_version) X(officeimo_library_version) X(officeimo_free) X(officeimo_initialize) \
     X(officeimo_cancellation_create) X(officeimo_cancellation_cancel) X(officeimo_cancellation_free) \
     X(officeimo_document_open) X(officeimo_document_close) X(officeimo_document_info_json) \
-    X(officeimo_document_render_page) X(officeimo_document_rotate_pages) X(officeimo_document_undo) \
+    X(officeimo_document_render_page) X(officeimo_document_render_region) X(officeimo_document_rotate_pages) X(officeimo_document_undo) \
     X(officeimo_document_redo) X(officeimo_document_save)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
@@ -154,6 +154,22 @@ int main(int argc, char **argv) {
         }
         engine_officeimo_free(png);
     }
+    /* The same page as display pixels: the whole page image, then its lower-right quarter as a tile. */
+    uint8_t *pixels = NULL;
+    size_t pixel_length = 0;
+    started = milliseconds();
+    CHECK("render region", engine_officeimo_document_render_region(document, 1, 1.5, 0, 0, width, height, 0, &pixels,
+          &pixel_length, &error), OFFICEIMO_OK);
+    printf("  %d x %d px in %.0f ms\n", width, height, milliseconds() - started);
+    expect(pixels && pixel_length == (size_t)width * height * 4 && pixels[3] == 255, "the region is not opaque RGBA", NULL);
+    engine_officeimo_free(pixels);
+    CHECK("render tile", engine_officeimo_document_render_region(document, 1, 1.5, width / 2, height / 2, width - width / 2,
+          height - height / 2, 0, &pixels, &pixel_length, &error), OFFICEIMO_OK);
+    expect(pixel_length == (size_t)(width - width / 2) * (height - height / 2) * 4, "the tile has the wrong size", NULL);
+    engine_officeimo_free(pixels);
+    CHECK("render region off page", engine_officeimo_document_render_region(document, 1, 1.5, width, 0, 1, 1, 0, &pixels,
+          &pixel_length, &error), OFFICEIMO_INVALID_ARGUMENT);
+
     CHECK("render missing page", engine_officeimo_document_render_page(document, 9999, 1.0, 0, &png, &length, NULL,
           NULL, &error), OFFICEIMO_INVALID_ARGUMENT);
 

@@ -94,6 +94,46 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task Tiles_beyond_the_page_budget_join_into_the_zoomed_page() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePdf(1), null, default);
+        // 300 x 400 points at 10x is 12 million pixels, beyond the 8.4 million pixel budget, so it renders as tiles.
+        const double scale = 10D;
+        var tiles = new List<PdfRenderedPixels>();
+        foreach ((int x, int y) in new[] { (0, 0), (1500, 0), (0, 2000), (1500, 2000) })
+            tiles.Add(await document.RenderRegionAsync(1, scale, x, y, 1500, 2000, default));
+
+        Assert.All(tiles, tile => Assert.Equal(1500 * 2000 * 4, tile.Pixels.Length));
+        Assert.All(tiles, tile => Assert.True(tile.Pixels.Where((_, index) => index % 4 == 3).All(alpha => alpha == 255)));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => document.RenderRegionAsync(1, scale, 0, 0, 3000, 4000, default));
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_renders_page_rectangles_as_pixels() {
+        string source = CreatePdf(1);
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, int, double, int, int, int, int, nint, byte**, nuint*, byte**, int> region = &StudioNativeExports.DocumentRenderRegion;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+
+        nint document = 0; byte* error = null;
+        fixed (byte* path = Encoding.UTF8.GetBytes(source + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(path, null, 0, &document, &error));
+        try {
+            byte* pixels = null; nuint length = 0;
+            Assert.Equal(StudioNativeAbi.Ok, region(document, 1, 1.5D, 0, 0, 450, 600, 0, &pixels, &length, &error));
+            Assert.Equal((nuint)(450 * 600 * 4), length);
+            Assert.Equal(255, pixels[3]);
+            free(pixels);
+
+            // Outside the page image, or more than the budget in one rectangle, is the host's argument to correct.
+            Assert.Equal(StudioNativeAbi.InvalidArgument, region(document, 1, 1.5D, 400, 0, 100, 100, 0, &pixels, &length, &error));
+            free(error);
+            Assert.Equal(StudioNativeAbi.InvalidArgument, region(document, 1, 20D, 0, 0, 6000, 8000, 0, &pixels, &length, &error));
+            free(error);
+            Assert.True(pixels is null);
+        } finally { close(document); }
+    }
+
+    [Fact]
     public unsafe void The_C_interface_reports_failures_as_status_and_message_without_throwing() {
         string source = CreatePdf(1);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;

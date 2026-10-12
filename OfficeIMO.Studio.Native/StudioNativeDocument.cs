@@ -52,12 +52,17 @@ internal sealed class StudioNativeDocument : IDisposable {
         await EnterAsync(cancellationToken).ConfigureAwait(false);
         try {
             if (pageNumber < 1 || pageNumber > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber), "The page does not exist.");
-            // A reader session is a snapshot of one revision; edits create a new one on the next render.
-            if (_session is null || _sessionRevision != _workspace.Revision) {
-                _session = PdfDocumentSession.FromWorkspace(_workspace);
-                _sessionRevision = _workspace.Revision;
-            }
-            return await _session.RenderPageAsync(pageNumber, scale, cancellationToken).ConfigureAwait(false);
+            return await CurrentSession().RenderPageAsync(pageNumber, scale, cancellationToken).ConfigureAwait(false);
+        } finally { _gate.Release(); }
+    }
+
+    /// <summary>Renders a rectangle of a page as opaque RGBA pixels; see <see cref="PdfDocumentSession.RenderRegionAsync"/>.</summary>
+    internal async Task<PdfRenderedPixels> RenderRegionAsync(int pageNumber, double scale, int x, int y, int width, int height,
+        CancellationToken cancellationToken) {
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            if (pageNumber < 1 || pageNumber > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber), "The page does not exist.");
+            return await CurrentSession().RenderRegionAsync(pageNumber, scale, x, y, width, height, cancellationToken).ConfigureAwait(false);
         } finally { _gate.Release(); }
     }
 
@@ -74,6 +79,15 @@ internal sealed class StudioNativeDocument : IDisposable {
     /// <summary>Saves in place when <paramref name="path"/> is null, otherwise to that location, which becomes the document's location.</summary>
     internal Task SaveAsync(string? path, CancellationToken cancellationToken) =>
         RunAsync(() => _workspace.SaveAsync(path, cancellationToken), cancellationToken);
+
+    // A reader session is a snapshot of one revision, with its rendering caches; edits create a new one on the next render.
+    private PdfDocumentSession CurrentSession() {
+        if (_session is null || _sessionRevision != _workspace.Revision) {
+            _session = PdfDocumentSession.FromWorkspace(_workspace);
+            _sessionRevision = _workspace.Revision;
+        }
+        return _session;
+    }
 
     private async Task RunAsync(Func<Task> operation, CancellationToken cancellationToken) {
         await EnterAsync(cancellationToken).ConfigureAwait(false);

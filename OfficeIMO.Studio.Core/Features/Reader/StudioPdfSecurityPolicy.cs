@@ -14,6 +14,10 @@ internal static class StudioPdfSecurityPolicy {
     // Uncompressed RGBA plus PNG framing, so the pixel budget rather than encoding governs a photographic page.
     internal const long MaximumRasterOutputBytes = MaximumRasterPixels * 4L + 1024L * 1024L;
     internal static readonly TimeSpan RenderTimeout = TimeSpan.FromSeconds(10);
+    // Display rendering keeps the drawings of the pages last shown and their decoded images, enough for a scanned page
+    // and its display-size copy, so tiles and zoom levels of nearby pages do not read and decode them again.
+    internal const int DisplayCachedPages = 4;
+    internal const long DisplayImageCacheBytes = 128L * 1024L * 1024L;
 
     internal static PdfLoadOptions CreateLoadOptions(string? password = null) => new() {
         Password = password,
