@@ -52,7 +52,12 @@ namespace OfficeIMO.Drawing {
 
         private static IReadOnlyList<OfficeRasterFormatCapabilities> CreateFormats() {
             var result = new List<OfficeRasterFormatCapabilities>();
-            foreach (OfficeImageFormat format in Enum.GetValues(typeof(OfficeImageFormat))) {
+#if NET8_0_OR_GREATER
+            var formats = Enum.GetValues<OfficeImageFormat>();
+#else
+            var formats = (OfficeImageFormat[])Enum.GetValues(typeof(OfficeImageFormat));
+#endif
+            foreach (OfficeImageFormat format in formats) {
                 bool decode = format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg || format == OfficeImageFormat.Gif ||
                     format == OfficeImageFormat.Bmp || format == OfficeImageFormat.Tiff || format == OfficeImageFormat.Webp ||
                     format == OfficeImageFormat.JpegXr || format == OfficeImageFormat.Avif || format == OfficeImageFormat.Icon ||

@@ -216,8 +216,19 @@ internal static class OfficeExifProfileCodec {
         cancellationToken.ThrowIfCancellationRequested();
         if (type == OfficeExifDataType.Ascii) return Encoding.ASCII.GetString(bytes, offset, count).TrimEnd('\0');
         if (type == OfficeExifDataType.Byte || type == OfficeExifDataType.Undefined) { var copied = new byte[count]; Buffer.BlockCopy(bytes, offset, copied, 0, count); return count == 1 && type == OfficeExifDataType.Byte ? (object)copied[0] : copied; }
-        Type element = type switch { OfficeExifDataType.Byte or OfficeExifDataType.Undefined => typeof(byte), OfficeExifDataType.SignedByte => typeof(sbyte), OfficeExifDataType.Short => typeof(ushort), OfficeExifDataType.SignedShort => typeof(short), OfficeExifDataType.Long => typeof(uint), OfficeExifDataType.SignedLong => typeof(int), OfficeExifDataType.Rational => typeof(OfficeRational), OfficeExifDataType.SignedRational => typeof(OfficeSignedRational), OfficeExifDataType.Float => typeof(float), OfficeExifDataType.Double => typeof(double), _ => throw new FormatException("Unsupported Exif field type.") };
-        Array values = Array.CreateInstance(element, count);
+        // Statically known arrays keep every supported field type available in NativeAOT.
+        Array values = type switch {
+            OfficeExifDataType.SignedByte => new sbyte[count],
+            OfficeExifDataType.Short => new ushort[count],
+            OfficeExifDataType.SignedShort => new short[count],
+            OfficeExifDataType.Long => new uint[count],
+            OfficeExifDataType.SignedLong => new int[count],
+            OfficeExifDataType.Rational => new OfficeRational[count],
+            OfficeExifDataType.SignedRational => new OfficeSignedRational[count],
+            OfficeExifDataType.Float => new float[count],
+            OfficeExifDataType.Double => new double[count],
+            _ => throw new FormatException("Unsupported Exif field type.")
+        };
         for (int i = 0; i < count; i++) {
             if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             int position = offset + i * Size((int)type);

@@ -208,7 +208,11 @@ public sealed class OfficeProtectionCapabilityCatalog {
         if (!Enum.IsDefined(typeof(OfficeProtectionKind), row.Kind)) {
             throw new ArgumentException($"Capability '{row.Id}' has an undefined protection kind: {row.Kind}.");
         }
+#if NET8_0_OR_GREATER
+        OfficeProtectionOperation[] operations = Enum.GetValues<OfficeProtectionOperation>();
+#else
         OfficeProtectionOperation[] operations = (OfficeProtectionOperation[])Enum.GetValues(typeof(OfficeProtectionOperation));
+#endif
         foreach (OfficeProtectionOperation operation in operations) {
             OfficeProtectionCoverageState coverage = row.GetCoverage(operation);
             if (!Enum.IsDefined(typeof(OfficeProtectionCoverageState), coverage)) {
@@ -218,7 +222,11 @@ public sealed class OfficeProtectionCapabilityCatalog {
         }
     }
     private static void ValidateUnsupportedOperations(OfficeProtectionCapability row) {
+#if NET8_0_OR_GREATER
+        OfficeProtectionOperation[] operations = Enum.GetValues<OfficeProtectionOperation>();
+#else
         OfficeProtectionOperation[] operations = (OfficeProtectionOperation[])Enum.GetValues(typeof(OfficeProtectionOperation));
+#endif
         OfficeProtectionOperation[] unsupported = operations
             .Where(operation => row.GetCoverage(operation) == OfficeProtectionCoverageState.NotSupported)
             .ToArray();
