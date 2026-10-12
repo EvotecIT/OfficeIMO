@@ -97,6 +97,22 @@ static void path_in(char *buffer, size_t size, const char *directory, const char
     snprintf(buffer, size, "%s%s%s", directory, PATH_SEPARATOR, name);
 }
 
+/* Quotes a filesystem path for the scan request, including Windows separators and JSON control characters. */
+static char *json_string(const char *value) {
+    char *quoted = malloc(strlen(value) * 6 + 3);
+    if (!quoted) return NULL;
+    char *at = quoted;
+    *at++ = '"';
+    for (const unsigned char *ch = (const unsigned char *)value; *ch; ch++) {
+        if (*ch == '"' || *ch == '\\') { *at++ = '\\'; *at++ = (char)*ch; }
+        else if (*ch < 32) { snprintf(at, 7, "\\u%04x", (unsigned int)*ch); at += 6; }
+        else *at++ = (char)*ch;
+    }
+    *at++ = '"';
+    *at = '\0';
+    return quoted;
+}
+
 int main(int argc, char **argv) {
     if (argc != 4) {
         fprintf(stderr, "Usage: %s <library> <pdf> <work-directory>\n", argv[0]);
@@ -297,11 +313,14 @@ int main(int argc, char **argv) {
     }
 
     /* A scan: the rendered page image becomes a PDF page with a recognized word as searchable text. */
-    char scan[1024], scan_request[2048];
+    char scan[1024], scan_request[32768];
     path_in(scan, sizeof scan, work, "scan.pdf");
+    char *image_path = json_string(page_png);
+    if (!image_path) { fprintf(stderr, "Could not allocate the scan request path.\n"); return 1; }
     snprintf(scan_request, sizeof scan_request,
-             "{\"pages\":[{\"image\":\"%s\",\"words\":[{\"text\":\"Journey\",\"x\":0.1,\"y\":0.1,\"width\":0.3,\"height\":0.1}]}]}",
-             page_png);
+             "{\"pages\":[{\"image\":%s,\"words\":[{\"text\":\"Journey\",\"x\":0.1,\"y\":0.1,\"width\":0.3,\"height\":0.1}]}]}",
+             image_path);
+    free(image_path);
     CHECK("scan to pdf", engine_officeimo_create_pdf_from_scan_json(scan_request, scan, 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "searchablePages", "1"), "the scan is not searchable", json);
     engine_officeimo_free(json);
