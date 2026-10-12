@@ -66,7 +66,7 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointTitleAccentStyle.Underline:
                     double underlineWidth = Math.Min(4.2, titleWidthCm * 0.36);
                     double underlineLeft = centered ? titleLeftCm + (titleWidthCm - underlineWidth) / 2d : titleLeftCm;
-                    double underlineTop = titleTopCm + Math.Min(0.86, Math.Max(0.52, titleHeightCm * 0.62));
+                    double underlineTop = titleTopCm + titleHeightCm + 0.12;
                     PowerPointAutoShape underline = slide.AddRectangleCm(underlineLeft, underlineTop, underlineWidth,
                         0.08, "Section Title Accent Underline");
                     underline.FillColor = accent;
@@ -86,13 +86,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (!string.IsNullOrWhiteSpace(options.FooterLeft)) {
-                AddText(slide, options.FooterLeft!, 1.75, slideHeightCm - 1.35, 6.0, 0.45, 16, footer,
+                AddText(slide, options.FooterLeft!, 1.75, slideHeightCm - 1.35, 6.0, 0.7, 16, footer,
                     theme.HeadingFontName, bold: true);
             }
 
             if (!string.IsNullOrWhiteSpace(options.FooterRight)) {
                 PowerPointTextBox right = AddText(slide, options.FooterRight!, slideWidthCm - 5.4,
-                    slideHeightCm - 1.35, 4.1, 0.45, 12, footer, theme.HeadingFontName, bold: true);
+                    slideHeightCm - 1.35, 4.1, 0.55, 12, footer, theme.HeadingFontName, bold: true);
                 RightAlignText(right);
             }
 
