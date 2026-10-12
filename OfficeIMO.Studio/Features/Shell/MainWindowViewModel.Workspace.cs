@@ -68,6 +68,8 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanMutateSelection => HasOrganizerSelection && CanMutatePages;
 
+    public bool CanRotateSelection => HasOrganizerSelection && CanRotatePages;
+
     public bool CanExtractSelection => HasOrganizerSelection && CanExtractPages;
 
     public bool CanDeleteSelection => CanMutateSelection && _workspace is not null && _organizerSelection.Count < _workspace.Pages.Count;
@@ -109,6 +111,7 @@ public sealed partial class MainWindowViewModel {
         UpdateCropPreview();
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanMutateSelection));
+        OnPropertyChanged(nameof(CanRotateSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(OrganizerSelectionLabel));
@@ -437,9 +440,11 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanRedo));
         OnPropertyChanged(nameof(HasRecovery));
         OnPropertyChanged(nameof(CanMutatePages));
+        OnPropertyChanged(nameof(CanRotatePages));
         OnPropertyChanged(nameof(CanExtractPages));
         OnPropertyChanged(nameof(CanImportPages));
         OnPropertyChanged(nameof(CanMutateSelection));
+        OnPropertyChanged(nameof(CanRotateSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(CanEditAnnotations));

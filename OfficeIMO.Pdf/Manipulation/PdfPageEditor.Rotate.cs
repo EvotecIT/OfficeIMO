@@ -8,13 +8,18 @@ internal static partial class PdfPageEditor {
         return RotatePagesWithReadOptions(pdf, rotationDegrees, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] RotatePagesWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] RotatePagesWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: false);
+
+    internal static byte[] RotatePagesByWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
+        RotatePageAttributes(pdf, rotationDegrees, readOptions, pageNumbers, relative: true);
+
+    private static byte[] RotatePageAttributes(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, int[] pageNumbers, bool relative) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyPageAttributes, readOptions);
 
         int normalizedRotation = NormalizeRotation(rotationDegrees);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         var document = PdfReadDocument.Open(pdf, readOptions);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
@@ -22,20 +27,20 @@ internal static partial class PdfPageEditor {
         ValidatePageNumbers(selectedPages, document.Pages.Count, nameof(pageNumbers));
 
         var selected = new HashSet<int>(selectedPages);
-        var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
 
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
             if (selected.Contains(pageNumber)) {
                 overrides[document.Pages[i].ObjectNumber] = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
-                    ["Rotate"] = new PdfNumber(normalizedRotation)
+                    ["Rotate"] = new PdfNumber(relative
+                        ? NormalizeRotation(document.Pages[i].GetRotationDegrees() + normalizedRotation)
+                        : normalizedRotation)
                 };
             }
         }
 
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
+        return WritePageAttributes(pdf, document, overrides, plan, readOptions);
     }
 
     /// <summary>

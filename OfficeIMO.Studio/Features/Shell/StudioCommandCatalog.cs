@@ -51,9 +51,9 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("MovePagesDown", "Move selected pages down", "Move selected runs one position toward the end.", "Organize", document.MoveSelectedDownCommand,
             () => Allowed(document.CanMutateSelection), shortcut: StudioShortcutLabels.Format("Alt+↓"));
         Add("RotatePagesLeft", "Rotate selected pages left", "Turn the selected pages 90 degrees counterclockwise.", "Organize", document.RotateLeftCommand,
-            () => Allowed(document.CanMutateSelection));
+            () => Allowed(document.CanRotateSelection));
         Add("RotatePagesRight", "Rotate selected pages right", "Turn the selected pages 90 degrees clockwise.", "Organize", document.RotateRightCommand,
-            () => Allowed(document.CanMutateSelection));
+            () => Allowed(document.CanRotateSelection));
         Add("DuplicatePages", "Duplicate selected pages", "Insert copies of the selected pages after them.", "Organize", document.DuplicateSelectedCommand,
             () => Allowed(document.CanMutateSelection));
         Add("ExtractPages", "Extract selected pages", "Save the selected pages as a new PDF.", "Organize", document.ExtractSelectedCommand,

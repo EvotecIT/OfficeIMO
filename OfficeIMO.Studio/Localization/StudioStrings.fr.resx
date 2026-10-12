@@ -413,7 +413,7 @@
   <data name="Recent.FileSize" xml:space="preserve"><value>{0} {1}</value></data>
   <data name="Common.Unavailable" xml:space="preserve"><value>Indisponible</value></data>
   <data name="Common.Close" xml:space="preserve"><value>Fermer</value></data>
-  <data name="Capability.SignedDocument" xml:space="preserve"><value>Ce PDF contient des signatures. Restez en mode Afficher pour préserver les octets signés, ou travaillez sur une copie non signée avant toute modification.</value></data>
+  <data name="Capability.SignedDocument" xml:space="preserve"><value>Ce PDF contient des signatures. Seules les actions autorisées par les règles des signatures sont disponibles.</value></data>
   <data name="Capability.EncryptedDocument" xml:space="preserve"><value>Ce PDF est chiffré. Saisissez le mot de passe du propriétaire dans Protéger, ou enregistrez une copie autorisée avant de modifier le contenu du document.</value></data>
   <data name="Capability.RestrictedDocument" xml:space="preserve"><value>Ce PDF impose des restrictions de certification ou de droits d'utilisation. Examinez ses autorisations dans Protéger avant toute modification.</value></data>
   <data name="Capability.AnnotationsUnavailable" xml:space="preserve"><value>Les annotations de ce document ne peuvent pas être modifiées sans risque. Utilisez le mode Afficher ou créez une copie de travail sans restrictions.</value></data>

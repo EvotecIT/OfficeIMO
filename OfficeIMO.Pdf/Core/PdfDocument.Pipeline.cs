@@ -69,13 +69,15 @@ public sealed partial class PdfDocument {
             case "Reorder":
             case "Duplicate":
             case "Move":
-            case "Rotate":
             case "Crop":
             case "Resize":
-            case "SetPageBox":
             case "CropAndTranslate":
             case "DestructiveCrop":
                 return PdfMutationOperation.ModifyPageTree;
+            case "Rotate":
+            case "RotateBy":
+            case "SetPageBox":
+                return PdfMutationOperation.ModifyPageAttributes;
             case "Text":
             case "TextWatermark":
             case "Image":

@@ -1186,7 +1186,7 @@
     <value>Close</value>
   </data>
   <data name="Capability.SignedDocument" xml:space="preserve">
-    <value>This PDF contains signatures. Stay in View mode to preserve signed bytes, or work on an unsigned copy before making changes.</value>
+    <value>This PDF contains signatures. Only actions permitted by its signature policy are available.</value>
   </data>
   <data name="Capability.EncryptedDocument" xml:space="preserve">
     <value>This PDF is encrypted. Enter the owner password in Protect, or save a permitted copy before changing document content.</value>

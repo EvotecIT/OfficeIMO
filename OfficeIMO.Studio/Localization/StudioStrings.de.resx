@@ -1216,7 +1216,7 @@
     <value>Schließen</value>
   </data>
   <data name="Capability.SignedDocument" xml:space="preserve">
-    <value>Diese PDF enthält Signaturen. Bleiben Sie im Modus „Ansicht“, um die signierten Bytes zu erhalten, oder bearbeiten Sie vor Änderungen eine unsignierte Kopie.</value>
+    <value>Dieses PDF enthält Signaturen. Verfügbar sind nur Aktionen, die die Signaturrichtlinien erlauben.</value>
   </data>
   <data name="Capability.EncryptedDocument" xml:space="preserve">
     <value>Diese PDF ist verschlüsselt. Geben Sie das Eigentümerkennwort unter „Schützen“ ein oder speichern Sie eine zulässige Kopie, bevor Sie den Dokumentinhalt ändern.</value>

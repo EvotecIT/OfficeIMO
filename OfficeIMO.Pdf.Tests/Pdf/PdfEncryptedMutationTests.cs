@@ -5,6 +5,45 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfEncryptedMutationTests {
     [Theory]
+    [InlineData(PdfStandardEncryptionAlgorithm.LegacyRc4)]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes128)]
+    [InlineData(PdfStandardEncryptionAlgorithm.Aes256)]
+    public void PageAttributesAppendWithOwnerAuthorizationAndEnforceUserRestrictions(PdfStandardEncryptionAlgorithm algorithm) {
+        byte[] source = CreateEncryptedSource(algorithm);
+        var ownerOptions = new PdfLoadOptions { Password = "owner" };
+        var (objects, trailer) = PdfSyntax.ParseObjects(source, ownerOptions);
+        PdfReadDocument read = PdfReadDocument.Open(source, ownerOptions);
+        int pageNumber = read.Pages[0].ObjectNumber;
+        var page = Assert.IsType<PdfDictionary>(objects[pageNumber].Value);
+        byte[] payload = { 0, 40, 41, 92, 127, 128, 255 };
+        page.Items["PrivateLabel"] = new PdfStringObj("Retained page label");
+        var nested = new PdfDictionary();
+        nested.Items["Payload"] = new PdfStringObj(payload);
+        page.Items["PrivateData"] = nested;
+        Assert.True(PdfSyntax.TryCreateDecryptor(objects, trailer, ownerOptions, out PdfStandardSecurityHandler? handler));
+        source = PdfIncrementalObjectWriter.Append(source, objects, read.Security, trailer, new[] { pageNumber }, encryptionHandler: handler);
+        PdfDocument owner = PdfDocument.Load(source, ownerOptions);
+        PdfOperationResult<PdfDocument> rotation = owner.Pages.RotateResult(90, "1");
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, rotation.MutationPlan!.ExecutionMode);
+        byte[] rotated = rotation.RequireValue().ToBytes();
+        Assert.True(rotated.AsSpan(0, source.Length).SequenceEqual(source));
+        AssertProtected(source, rotated);
+        byte[] cropped = rotation.RequireValue().Pages.SetCropBox(10, 20, 200, 300, 1).ToBytes();
+        Assert.True(cropped.AsSpan(0, rotated.Length).SequenceEqual(rotated));
+        AssertProtected(source, cropped);
+        Assert.Equal(90, PdfReadDocument.Open(cropped, new PdfLoadOptions { Password = "open" }).Pages[0].GetRotationDegrees());
+        var (afterObjects, _) = PdfSyntax.ParseObjects(cropped, ownerOptions);
+        var afterPage = Assert.IsType<PdfDictionary>(afterObjects[pageNumber].Value);
+        Assert.Equal("Retained page label", Assert.IsType<PdfStringObj>(afterPage.Items["PrivateLabel"]).Value);
+        Assert.Equal(payload, Assert.IsType<PdfStringObj>(Assert.IsType<PdfDictionary>(afterPage.Items["PrivateData"]).Items["Payload"]).RawBytes);
+
+        PdfDocument user = PdfDocument.Load(source, new PdfLoadOptions { Password = "open" });
+        Assert.False(user.PlanMutation(PdfMutationOperation.ModifyPageAttributes).CanExecute);
+        Assert.Throws<PdfMutationBlockedException>(() => user.Pages.Rotate(90, 1));
+        Assert.Throws<PdfMutationBlockedException>(() => user.Pages.SetCropBox(10, 20, 200, 300, 1));
+    }
+
+    [Theory]
     [InlineData(PdfStandardEncryptionAlgorithm.LegacyRc4, false)]
     [InlineData(PdfStandardEncryptionAlgorithm.Aes128, false)]
     [InlineData(PdfStandardEncryptionAlgorithm.Aes256, false)]

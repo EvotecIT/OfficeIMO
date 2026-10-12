@@ -386,6 +386,7 @@ internal static class PdfMutationPlanner {
                 return CanMergeDocuments(preflight);
             case PdfMutationOperation.ModifyPageContent:
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.ModifyPageAttributes:
                 return CanRewriteAllowingAuthorizedEncryption(preflight, operation);
             case PdfMutationOperation.Optimize:
                 return CanOptimize(preflight);
@@ -411,6 +412,8 @@ internal static class PdfMutationPlanner {
                 return report.CanAppendLongTermValidation;
             case PdfMutationOperation.ModifyAnnotations:
                 return report.CanAppendAnnotations;
+            case PdfMutationOperation.ModifyPageAttributes:
+                return report.CanAppendPageAttributes;
             default:
                 return false;
         }
@@ -438,7 +441,8 @@ internal static class PdfMutationPlanner {
             operation == PdfMutationOperation.PrepareExternalSignature ||
             operation == PdfMutationOperation.FinalizeExternalSignature ||
             operation == PdfMutationOperation.EnrichLongTermValidation ||
-            operation == PdfMutationOperation.ModifyAnnotations;
+            operation == PdfMutationOperation.ModifyAnnotations ||
+            operation == PdfMutationOperation.ModifyPageAttributes;
     }
 
     private static bool RequiresAppendOnlyByDefinition(PdfMutationOperation operation) =>
@@ -483,6 +487,8 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.Navigation, PdfMutationStructure.Catalog);
+            case PdfMutationOperation.ModifyPageAttributes:
+                return ReadOnly(PdfMutationStructure.PageAttributes);
             case PdfMutationOperation.MergeDocuments:
                 return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.Navigation, PdfMutationStructure.Catalog, PdfMutationStructure.AcroForm, PdfMutationStructure.Annotations, PdfMutationStructure.Attachments);
             case PdfMutationOperation.ModifyPageContent:
@@ -521,6 +527,7 @@ internal static class PdfMutationPlanner {
                 Add(permissions, PdfMutationPermissionCheck.FieldMdp);
                 break;
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.ModifyPageAttributes:
                 Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
                 break;
@@ -614,6 +621,10 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
+                break;
+            case PdfMutationOperation.ModifyPageAttributes:
+                Add(proofs, PdfMutationProof.PageStructureReadback);
+                Add(proofs, PdfMutationProof.VisualRendering);
                 break;
             case PdfMutationOperation.MergeDocuments:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
@@ -789,10 +800,15 @@ internal static class PdfMutationPlanner {
             } else {
                 string reason = RequiresAppendOnlyForOperation(security, operation)
                     ? "the input requires prior bytes and revisions to be preserved"
+                    : security.HasXrefStreams || security.HasObjectStreams
+                        ? "full rewrite cannot preserve the input cross-reference or object streams"
                     : fullRewriteCapability
                         ? "append-only mutation is the safer available path"
                         : "full rewrite is blocked for this document structure";
                 Add(diagnostics, operation + " will use an append-only revision because " + reason + ".");
+                if (operation == PdfMutationOperation.ModifyPageAttributes) {
+                    Add(diagnostics, "Only selected page dictionaries are appended; page membership, content, resources, and tagged structure are preserved.");
+                }
             }
         } else {
             Add(diagnostics, operation + " is blocked because neither a proven full rewrite nor append-only path is available.");
@@ -833,6 +849,8 @@ internal static class PdfMutationPlanner {
                 return "Annotations";
             case PdfMutationOperation.ModifyPageTree:
                 return "PageTree";
+            case PdfMutationOperation.ModifyPageAttributes:
+                return "PageAttributes";
             case PdfMutationOperation.ModifyAttachments:
                 return "Attachments";
             default:
@@ -987,6 +1005,7 @@ internal static class PdfMutationPlanner {
             operation != PdfMutationOperation.ExtractPages &&
             operation != PdfMutationOperation.ModifyPageContent &&
             operation != PdfMutationOperation.ModifyPageTree &&
+            operation != PdfMutationOperation.ModifyPageAttributes &&
             operation != PdfMutationOperation.UpdateMetadata &&
             operation != PdfMutationOperation.SynchronizeMetadata &&
             operation != PdfMutationOperation.Sanitize &&
@@ -1175,6 +1194,8 @@ internal static class PdfMutationPlanner {
         switch (structure) {
             case PdfMutationStructure.PageTree:
                 return PdfMutationCapabilityKind.PageTreeChanges;
+            case PdfMutationStructure.PageAttributes:
+                return PdfMutationCapabilityKind.PageAttributeChanges;
             case PdfMutationStructure.PageContent:
             case PdfMutationStructure.PageResources:
             case PdfMutationStructure.TaggedContent:
@@ -1224,7 +1245,7 @@ internal static class PdfMutationPlanner {
 
     private static void ValidateOperation(PdfMutationOperation operation) {
         int value = (int)operation;
-        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.ModifyJavaScript) {
+        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.ModifyPageAttributes) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
         }
     }

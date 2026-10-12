@@ -29,6 +29,7 @@ internal static class PdfPermissionAuthorization {
             case PdfMutationOperation.MergeDocuments:
                 return security.AllowsCopying == true && security.AllowsDocumentAssembly == true;
             case PdfMutationOperation.ModifyPageTree:
+            case PdfMutationOperation.ModifyPageAttributes:
                 return security.AllowsDocumentAssembly == true;
             case PdfMutationOperation.ModifyAnnotations:
                 return security.AllowsAnnotationChanges == true || security.AllowsModification == true;

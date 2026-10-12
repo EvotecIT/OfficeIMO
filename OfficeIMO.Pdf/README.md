@@ -1287,6 +1287,59 @@ actual progression axis. For OCR providers that merge columns into one line, opt
 The [Pango/Cairo layout corpus](../OfficeIMO.TestAssets/MultilingualLayout/README.md)
 records exact fixture coverage and recognition limits.
 
+### Rotate pages and change page boxes
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument source = PdfDocument.Load("packet.pdf");
+PdfOperationResult<PdfDocument> rotation = source.Pages.RotateResult(90, "1,3-5");
+PdfDocument rotated = rotation.RequireValue();
+Console.WriteLine(rotation.MutationPlan!.ExecutionMode);
+foreach (string reason in rotation.MutationPlan.Diagnostics) {
+    Console.WriteLine(reason);
+}
+rotated.Save("packet-rotated.pdf");
+
+PdfOperationResult<PdfDocument> crop = rotated.Pages.SetPageBoxResult(
+    PdfPageBoundaryBox.CropBox, 20, 20, 575, 822, PdfPageSelection.From(1));
+crop.RequireValue().Save("packet-cropped.pdf");
+```
+
+Rotation sets an absolute angle in multiples of 90 degrees, normalized to
+0, 90, 180, or 270. A page that inherits rotation receives its own override;
+other pages keep their rotation. `Pages.Rotate(...)` provides the same behavior
+when you only need the resulting document.
+
+Use `Pages.RotateBy(90, 1, 3)` to turn pages relative to their current effective
+rotation. Repeated clockwise turns advance through 90, 180, 270, and 0 degrees.
+Each selected page resolves its own inherited angle, and an append-only turn
+writes all selected page overrides in one revision. Studio's rotate buttons and
+native engine use this relative-turn behavior.
+
+Rotation and page-box setters use a full rewrite when supported. When source
+preservation prevents rewriting, they can append a revision containing only the
+changed page dictionaries and cross-reference data. This supports cross-reference
+streams, object streams, and tagged PDFs while retaining every original byte and
+the structure tree. The appended cross-reference section follows the final source
+section's format and links to it through `/Prev`. The operation result exposes
+the selected route, reasons, and blockers.
+
+`SetPageBoxResult` supports `MediaBox`, `CropBox`, `TrimBox`, `BleedBox`, and
+`ArtBox`; convenience methods include `SetCropBox` and `SetMediaBox`. Coordinates
+are in PDF page space. Setting a box leaves source content in the file.
+`CropAndTranslate` also changes content and annotation geometry, so it requires
+a supported full rewrite.
+
+Append-only page attributes retain the bytes covered by earlier approval
+signatures. Signature trust and later-change policy remain separate validation
+results. Certification/DocMDP restrictions forbid rotation and page-box changes
+at every permission level; password permissions and usage rights also apply.
+Deleting, reordering, inserting, and duplicating pages use their own preservation
+checks. Tagged page-tree changes remain unsupported. Page attributes preserve
+existing tags, but changing page geometry does not by itself establish PDF/A or
+PDF/UA conformance; validate the saved artifact against the required profile.
+
 ### Split and extract pages
 
 ```csharp

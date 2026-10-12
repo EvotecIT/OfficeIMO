@@ -1216,7 +1216,7 @@
     <value>Zamknij</value>
   </data>
   <data name="Capability.SignedDocument" xml:space="preserve">
-    <value>Ten PDF zawiera podpisy. Pozostań w trybie Widok, aby zachować podpisane bajty, albo pracuj na niepodpisanej kopii przed wprowadzeniem zmian.</value>
+    <value>Ten plik PDF zawiera podpisy. Dostępne są tylko działania dozwolone przez zasady podpisów.</value>
   </data>
   <data name="Capability.EncryptedDocument" xml:space="preserve">
     <value>Ten PDF jest zaszyfrowany. Wprowadź hasło właściciela w trybie Ochrona lub zapisz dozwoloną kopię przed zmianą treści dokumentu.</value>

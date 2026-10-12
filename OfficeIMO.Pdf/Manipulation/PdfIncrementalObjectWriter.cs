@@ -66,7 +66,7 @@ internal static class PdfIncrementalObjectWriter {
         }
 
         PdfIncrementalXrefFormat effectiveFormat = format == PdfIncrementalXrefFormat.Automatic
-            ? security.HasXrefStreams ? PdfIncrementalXrefFormat.XrefStream : PdfIncrementalXrefFormat.ClassicTable
+            ? GetLastXrefFormat(pdf, security)
             : format;
         if (effectiveFormat != PdfIncrementalXrefFormat.ClassicTable && effectiveFormat != PdfIncrementalXrefFormat.XrefStream) {
             throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported incremental cross-reference format.");
@@ -112,6 +112,18 @@ internal static class PdfIncrementalObjectWriter {
         }
         cancellationToken.ThrowIfCancellationRequested();
         return output.ToArray();
+    }
+
+    /// <summary>Matches the final section rather than stream markers in an older revision or content.</summary>
+    private static PdfIncrementalXrefFormat GetLastXrefFormat(byte[] pdf, PdfDocumentSecurityInfo security) {
+        int offset = security.LastStartXrefOffset!.Value;
+        while (offset >= 0 && offset < pdf.Length && (pdf[offset] == 0 || pdf[offset] == 9 || pdf[offset] == 10 ||
+            pdf[offset] == 12 || pdf[offset] == 13 || pdf[offset] == 32)) offset++;
+        if (offset >= 0 && offset <= pdf.Length - 4 && pdf[offset] == 'x' && pdf[offset + 1] == 'r' &&
+            pdf[offset + 2] == 'e' && pdf[offset + 3] == 'f') return PdfIncrementalXrefFormat.ClassicTable;
+        // Repaired inputs can have an invalid startxref pointer. Retain the existing fallback
+        // for those inputs while honoring a final classic table after an older stream revision.
+        return security.HasXrefStreams ? PdfIncrementalXrefFormat.XrefStream : PdfIncrementalXrefFormat.ClassicTable;
     }
 
     private static List<SerializedObject> SerializeObjects(

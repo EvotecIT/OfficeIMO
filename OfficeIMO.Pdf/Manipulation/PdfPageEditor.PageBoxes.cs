@@ -41,9 +41,8 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         string normalizedBoxName = NormalizePageBoxName(boxName);
         ValidatePageBoxCoordinates(left, bottom, right, top);
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
+        PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyPageAttributes, readOptions);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
         var document = PdfReadDocument.Open(pdf, readOptions);
         var selectedPages = pageNumbers.Length == 0
             ? Enumerable.Range(1, document.Pages.Count).ToArray()
@@ -51,7 +50,6 @@ internal static partial class PdfPageEditor {
         ValidatePageNumbers(selectedPages, document.Pages.Count, nameof(pageNumbers));
 
         var selected = new HashSet<int>(selectedPages);
-        var pageObjectNumbers = document.Pages.Select(static page => page.ObjectNumber).ToArray();
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
@@ -64,8 +62,7 @@ internal static partial class PdfPageEditor {
             };
         }
 
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
+        return WritePageAttributes(pdf, document, overrides, plan, readOptions);
     }
 
     internal static byte[] SetPageBoxesWithReadOptions(byte[] pdf, IReadOnlyList<PdfProductionFixupProposal> proposals,
@@ -73,10 +70,9 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(proposals, nameof(proposals));
         cancellationToken.ThrowIfCancellationRequested();
-        (_, PdfReadDocument document) = PdfMutationPlanner.RequireFullRewriteDocument(
-            pdf, PdfMutationOperation.ModifyPageTree, readOptions, cancellationToken: cancellationToken);
-        Dictionary<int, PdfIndirectObject> objects = document.Objects;
-        string trailerRaw = document.TrailerRaw;
+        PdfMutationPlan plan = PdfMutationPlanner.Require(
+            pdf, PdfMutationOperation.ModifyPageAttributes, readOptions, cancellationToken: cancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         foreach (PdfProductionFixupProposal proposal in proposals) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -90,11 +86,7 @@ internal static partial class PdfPageEditor {
             }
             pageOverrides[GetPageBoxName(proposal.Box)] = CreatePageBoxArray(bounds.Left, bounds.Bottom, bounds.Right, bounds.Top);
         }
-        int[] pageObjectNumbers = document.Pages.Select(static page => page.ObjectNumber).ToArray();
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, pageObjectNumbers, overrides,
-            catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document, cancellationToken),
-            fileVersion: fileVersion, cancellationToken: cancellationToken);
+        return WritePageAttributes(pdf, document, overrides, plan, readOptions, cancellationToken);
     }
 
     /// <summary>Creates a new PDF with the selected pages updated to the supplied production boundary box from a readable stream.</summary>

@@ -290,6 +290,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanMutatePages => _workspace?.CanMutatePages == true;
 
+    public bool CanRotatePages => _workspace?.CanRotatePages == true;
+
     public bool CanExtractPages => _workspace?.CanExtractPages == true;
 
     public bool CanImportPages => _workspace?.CanImportPages == true;
@@ -312,7 +314,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             return DocumentMode switch {
                 StudioDocumentMode.Annotate when !CanEditAnnotations => _localizer.Get("Capability.AnnotationsUnavailable"),
                 StudioDocumentMode.Edit when !CanEditPageContent => _localizer.Get("Capability.ContentEditingUnavailable"),
-                StudioDocumentMode.Pages when !CanMutatePages => _localizer.Get("Capability.PageEditingUnavailable"),
+                StudioDocumentMode.Pages when !CanMutatePages && !CanRotatePages => _localizer.Get("Capability.PageEditingUnavailable"),
                 StudioDocumentMode.Forms when !CanFillForms && !CanFlattenForms && !CanAuthorForms => _localizer.Get("Capability.FormsUnavailable"),
                 StudioDocumentMode.Protect when !CanRedact && !CanChangeProtection => _localizer.Get("Capability.ProtectionUnavailable"),
                 _ => null

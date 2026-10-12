@@ -35,6 +35,9 @@ public sealed class PdfAppendOnlyMutationReport {
     /// <summary>True when the document structure and DocMDP policy permit append-only annotation changes.</summary>
     public bool CanAppendAnnotations => SupportedActions.Contains("Annotations", StringComparer.Ordinal);
 
+    /// <summary>True when page rotation and boundary boxes can be appended without violating certification or security restrictions.</summary>
+    public bool CanAppendPageAttributes => SupportedActions.Contains("PageAttributes", StringComparer.Ordinal);
+
     /// <summary>True when any append-only action can currently be applied by OfficeIMO.Pdf.</summary>
     public bool CanAppendAny => SupportedActions.Count > 0;
 

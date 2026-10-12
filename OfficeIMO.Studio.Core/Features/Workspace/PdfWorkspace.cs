@@ -96,6 +96,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal bool CanMutatePages => _preflight.CanManipulatePages;
 
+    internal bool CanRotatePages => CanPlan(PdfMutationOperation.ModifyPageAttributes);
+
     internal bool CanExtractPages => CanPlan(PdfMutationOperation.ExtractPages);
 
     internal bool CanImportPages => CanPlan(PdfMutationOperation.MergeDocuments);
@@ -122,7 +124,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         get {
             PdfDocumentSecurityInfo security = _documentInfo.Security;
             if (security.HasSignatures) {
-                return "This PDF contains signatures. Page edits require a full rewrite and are disabled to avoid invalidating signed bytes.";
+                return "This PDF contains signatures. Only actions permitted by its signature policy are available.";
             }
             if (security.HasEncryption) {
                 return "This PDF is encrypted. Page edits are disabled unless OfficeIMO can safely preserve its security contract.";
@@ -186,7 +188,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         ReorderWithIdentitiesAsync(pageNumbers, cancellationToken, progress);
 
     internal Task RotateAsync(IReadOnlyList<int> pageNumbers, int degrees, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
-        MutateAsync(PdfWorkspaceOperationKind.Rotate, $"Rotated {pageNumbers.Count} page(s) {degrees} degrees", pageNumbers, document => document.Pages.Rotate(degrees, pageNumbers.ToArray()), cancellationToken, progress);
+        MutateAsync(PdfWorkspaceOperationKind.Rotate, $"Rotated {pageNumbers.Count} page(s) {degrees} degrees", pageNumbers, document => document.Pages.RotateBy(degrees, pageNumbers.ToArray()), cancellationToken, progress);
 
     internal Task DeleteAsync(IReadOnlyList<int> pageNumbers, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateAsync(PdfWorkspaceOperationKind.Delete, $"Deleted {pageNumbers.Count} page(s)", pageNumbers, document => document.Pages.Delete(pageNumbers.ToArray()), cancellationToken, progress);
@@ -473,7 +475,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress) {
         ThrowIfDisposed();
-        if (!CanMutatePages) throw new InvalidOperationException(SecurityWarning ?? "This document cannot be safely rewritten.");
+        // Rotation delegates its narrower page-attribute policy to the PDF mutation planner.
+        if (kind != PdfWorkspaceOperationKind.Rotate && !CanMutatePages)
+            throw new InvalidOperationException(SecurityWarning ?? "This document cannot be safely rewritten.");
         await MutateBytesAsync(
             kind,
             description,

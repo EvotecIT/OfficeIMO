@@ -826,11 +826,12 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
-    public async Task TaggedPdfReportsPageMutationAsUnavailableBeforeAnEditStarts() {
+    public async Task TaggedPdfAllowsRotationAndReportsPageTreeChangesAsUnavailable() {
         string fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
         using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(fixture, CancellationToken.None);
 
         Assert.False(workspace.CanMutatePages);
+        Assert.True(workspace.CanRotatePages);
         Assert.False(workspace.CanExtractPages);
         Assert.False(workspace.CanImportPages);
         Assert.NotNull(workspace.SecurityWarning);
