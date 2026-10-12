@@ -28,6 +28,9 @@ public sealed class InstalledCffFontTests {
             Assert.Equal(700, face.Descriptor.Weight);
             Assert.True(bytes > 0);
             Assert.True(face.Program.Measure("Office fonts 0123456789", 11D) > 0D);
+            Assert.True(fonts.TryAddInstalledCffFamily(family, requested, paths, 1, 1,
+                CancellationToken.None, out int multiCandidateReuse, out error), error);
+            Assert.Equal(0, multiCandidateReuse);
             File.Delete(boldPath);
             Assert.True(fonts.TryAddInstalledCffFamily(family, requested, new[] { boldPath }, 1, 1,
                 CancellationToken.None, out int reused, out error), error);

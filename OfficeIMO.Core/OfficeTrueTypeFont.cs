@@ -1289,13 +1289,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         yield return family;
     }
 
-    internal static IEnumerable<string> CandidateFamilyPaths(string family) {
+    internal static IEnumerable<string> CandidateFamilyPaths(string family, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string key = NormalizeFontFamilyKey(family);
         foreach (string path in CandidateKnownFamilyPaths(key)) {
             yield return path;
         }
 
-        foreach (string path in CandidateFontDirectoryPaths(key)) {
+        foreach (string path in CandidateFontDirectoryPaths(key, cancellationToken)) {
             yield return path;
         }
     }
@@ -1374,20 +1375,22 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
     }
 
-    private static IEnumerable<string> CandidateFontDirectoryPaths(string key) {
+    private static IEnumerable<string> CandidateFontDirectoryPaths(string key, CancellationToken cancellationToken = default) {
         foreach (string directory in CandidateFontDirectories()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!Directory.Exists(directory)) {
                 continue;
             }
 
             foreach (string path in SafeEnumerateFontFiles(directory)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string fileKey = NormalizeFontFamilyKey(Path.GetFileNameWithoutExtension(path));
                 if (fileKey == key || fileKey.StartsWith(key, StringComparison.OrdinalIgnoreCase) || fileKey.Contains(key)) {
                     yield return path;
                 }
             }
         }
-        foreach (string path in OfficeCloudFontFiles.GetFamilyFiles(key)) yield return path;
+        foreach (string path in OfficeCloudFontFiles.GetFamilyFiles(key, cancellationToken)) yield return path;
     }
 
     private static IEnumerable<string> CandidateFontDirectories() {

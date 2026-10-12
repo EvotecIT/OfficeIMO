@@ -50,7 +50,7 @@ public sealed partial class OfficeFontFaceCollection {
         var visited = new HashSet<string>(StringComparer.Ordinal);
         int attempts = 0;
         bool nativeSelection = FontProgramProvider == null && FontVariationResolver == null;
-        foreach (string path in OfficeTrueTypeFont.CandidateFamilyPaths(family)) {
+        foreach (string path in OfficeTrueTypeFont.CandidateFamilyPaths(family, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!visited.Add(path)) continue;
             if (++attempts > 32) return false;

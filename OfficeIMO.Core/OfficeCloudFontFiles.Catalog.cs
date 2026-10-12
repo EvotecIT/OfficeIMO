@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -9,7 +10,9 @@ internal static partial class OfficeCloudFontFiles {
 
     // Folder names are a fast hint. Localized family aliases need the name tables,
     // indexed once per cache root rather than full font reads for every face request.
-    private static IEnumerable<string> GetAliasFiles(string cloudRoot, string familyKey) {
+    private static IEnumerable<string> GetAliasFiles(string cloudRoot, string familyKey, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsOrdinaryDirectory(cloudRoot)) yield break;
         FamilyCatalog? catalog;
         DateTime now = DateTime.UtcNow;
         lock (CatalogLock) Catalogs.TryGetValue(cloudRoot, out catalog);
@@ -17,9 +20,11 @@ internal static partial class OfficeCloudFontFiles {
             var files = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             int inspected = 0, aliases = 0;
             foreach (string family in EnumerateChildren(cloudRoot, directories: true, maximum: 512)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (string file in EnumerateFontFiles(family)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (++inspected > 2048) break;
-                    foreach (string key in OfficeFontNameMetadata.ReadFamilyKeys(file)) {
+                    foreach (string key in OfficeFontNameMetadata.ReadFamilyKeys(file, cancellationToken)) {
                         if (++aliases > 8192) break;
                         if (!files.TryGetValue(key, out List<string>? paths)) files[key] = paths = new List<string>();
                         paths.Add(file);
@@ -30,12 +35,14 @@ internal static partial class OfficeCloudFontFiles {
             }
             catalog = new FamilyCatalog(now, files);
             lock (CatalogLock) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (Catalogs.Count >= 8) Catalogs.Clear();
                 Catalogs[cloudRoot] = catalog;
             }
         }
         if (catalog.Files.TryGetValue(familyKey, out List<string>? found)) {
             foreach (string path in found) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (IsOrdinaryDirectory(System.IO.Path.GetDirectoryName(path)!) && IsOrdinaryFile(path)) yield return path;
             }
         }

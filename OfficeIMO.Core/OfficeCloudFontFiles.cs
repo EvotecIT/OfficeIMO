@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -22,22 +23,30 @@ internal static partial class OfficeCloudFontFiles {
     }
 
     /// <summary>Finds candidate files for a normalized family; loaders retain authority over their metadata.</summary>
-    internal static IEnumerable<string> GetFamilyFiles(string normalizedFamilyKey) {
+    internal static IEnumerable<string> GetFamilyFiles(string normalizedFamilyKey, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (string root in GetRoots()) {
-            foreach (string file in EnumerateFamilyFiles(root, normalizedFamilyKey)) yield return file;
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (string file in EnumerateFamilyFiles(root, normalizedFamilyKey, cancellationToken)) yield return file;
         }
     }
 
-    internal static IEnumerable<string> EnumerateFamilyFiles(string cloudRoot, string normalizedFamilyKey) {
+    internal static IEnumerable<string> EnumerateFamilyFiles(string cloudRoot, string normalizedFamilyKey,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool matchedFolder = false;
         foreach (string family in EnumerateChildren(cloudRoot, directories: true, maximum: 512)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(FamilyKey(Path.GetFileName(family)), normalizedFamilyKey, StringComparison.Ordinal)) continue;
             matchedFolder = true;
             // Office cache filenames can be numeric. The folder supplies a
             // candidate hint; the font loader must still validate its family.
-            foreach (string file in EnumerateFontFiles(family)) yield return file;
+            foreach (string file in EnumerateFontFiles(family)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return file;
+            }
         }
-        if (!matchedFolder) foreach (string file in GetAliasFiles(cloudRoot, normalizedFamilyKey)) yield return file;
+        if (!matchedFolder) foreach (string file in GetAliasFiles(cloudRoot, normalizedFamilyKey, cancellationToken)) yield return file;
     }
 
     private static IEnumerable<string> EnumerateFontFiles(string family) {

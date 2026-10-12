@@ -16,11 +16,11 @@ public sealed partial class OfficeFontFaceCollection {
         cancellationToken.ThrowIfCancellationRequested();
         if (OfficeSystemFontFamilyAliases.IsMath(familyName)) return TryAddInstalledMathematicalFamily(
             requested, maximumDecodedBytes, maximumSourceBytes, cancellationToken, out decodedBytes, out error);
-        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamilyForText(familyName, requested, null, out _);
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadFontFamilyForText(familyName, requested, null, out _, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (font == null) {
             foreach (string family in OfficeSystemFontFamilyAliases.Expand(familyName)) {
-                if (TryAddInstalledCffFamily(family, requested, OfficeTrueTypeFont.CandidateFamilyPaths(family),
+                if (TryAddInstalledCffFamily(family, requested, OfficeTrueTypeFont.CandidateFamilyPaths(family, cancellationToken),
                         maximumDecodedBytes, maximumSourceBytes, cancellationToken, out decodedBytes, out error)) {
                     if (!string.Equals(family, familyName, StringComparison.OrdinalIgnoreCase)) AddAlias(familyName, family);
                     return true;
