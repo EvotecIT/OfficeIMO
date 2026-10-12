@@ -39,7 +39,7 @@ The supplier and event defaults use synthetic inputs. The mail command saves `Re
 
 ## Adapt the inputs
 
-For supplier offers, copy [SupplierOffers.html](Input/SupplierOffers.html) and keep table `id="offers"` with the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDays` headers. Prices are USD per unit, use a decimal point, and exclude tax and freight. Comma decimals and group separators reject before any documents are written. Sub-cent quotes such as `0.003` and `0.004` remain distinct in Word and Excel. Pass your file with `-HtmlPath`; the XLSX retains numeric cells, subject to Excel's normal numeric precision.
+For supplier offers, copy [SupplierOffers.html](Input/SupplierOffers.html) and keep table `id="offers"` with the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDays` headers. Prices are USD per unit, use a decimal point, and exclude tax and freight. The recipe accepts at most 15 significant digits and 28 fractional places: leading zeros and fractional padding zeros do not count; all integer digits count. Comma decimals, group separators and quotes beyond those limits reject before any documents are written. Sub-cent quotes such as `0.003` and `0.004` remain distinct in Word and Excel, and the workbook fits the price column to the formatted values. Pass your file with `-HtmlPath`; the XLSX retains numeric cells for calculations within [Excel's 15-digit precision](https://support.microsoft.com/en-us/excel/change-formula-recalculation-iteration-or-precision-in-excel).
 
 For events, use `-CollectLive` on Windows to query the selected local log for critical events, warnings and errors from the last 24 hours:
 
