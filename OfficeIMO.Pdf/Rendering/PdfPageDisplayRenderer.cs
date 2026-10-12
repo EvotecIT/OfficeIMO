@@ -26,6 +26,9 @@ internal sealed class PdfPageDisplayRenderer {
     /// <summary>Decoded image bytes currently kept.</summary>
     internal long CachedImageBytes => _images.UsedBytes;
 
+    /// <summary>Page drawings read so far; the rest of the renders reused one.</summary>
+    internal int DrawingsRead { get; private set; }
+
     /// <summary>
     /// Renders the pixel rectangle <paramref name="x"/>, <paramref name="y"/>, <paramref name="width"/> by
     /// <paramref name="height"/> of the page at <paramref name="scale"/> pixels per point, on white. The page image at
@@ -64,8 +67,8 @@ internal sealed class PdfPageDisplayRenderer {
         }
     }
 
-    // Function shadings are sampled for the scale they are drawn at. Drawings are kept per power of two of the scale,
-    // and a drawing sampled for a larger scale also serves smaller ones.
+    // Function shadings are sampled for the scale they are drawn at. A page with them is kept per power of two of the
+    // scale, and a drawing sampled for a larger scale also serves smaller ones; any other page serves every scale.
     private static double ShadingScale(double scale) {
         double shading = 1D;
         while (shading < scale && shading < 16D) shading *= 2D;
@@ -75,33 +78,38 @@ internal sealed class PdfPageDisplayRenderer {
     private OfficeDrawing GetDrawing(PdfReadDocument document, int pageNumber, double shadingScale, long maximumPixels,
         CancellationToken cancellationToken) {
         for (LinkedListNode<CachedDrawing>? node = _drawings.First; node != null; node = node.Next) {
-            if (node.Value.PageNumber == pageNumber && node.Value.ShadingScale >= shadingScale) {
+            if (node.Value.PageNumber == pageNumber && (!node.Value.DependsOnScale || node.Value.ShadingScale >= shadingScale)) {
                 _drawings.Remove(node);
                 _drawings.AddFirst(node);
                 return node.Value.Drawing;
             }
         }
+        DrawingsRead++;
+        bool dependsOnScale = true;
         OfficeDrawing drawing = document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken,
-            functionShadingScale: shadingScale, maximumFunctionPixels: maximumPixels);
+            functionShadingScale: shadingScale, maximumFunctionPixels: maximumPixels,
+            reportScaleDependence: depends => dependsOnScale = depends);
         for (LinkedListNode<CachedDrawing>? node = _drawings.First; node != null;) {
             LinkedListNode<CachedDrawing>? next = node.Next;
             if (node.Value.PageNumber == pageNumber) _drawings.Remove(node);
             node = next;
         }
-        _drawings.AddFirst(new CachedDrawing(pageNumber, shadingScale, drawing));
+        _drawings.AddFirst(new CachedDrawing(pageNumber, shadingScale, dependsOnScale, drawing));
         while (_drawings.Count > _pageCapacity) _drawings.RemoveLast();
         return drawing;
     }
 
     private sealed class CachedDrawing {
-        internal CachedDrawing(int pageNumber, double shadingScale, OfficeDrawing drawing) {
+        internal CachedDrawing(int pageNumber, double shadingScale, bool dependsOnScale, OfficeDrawing drawing) {
             PageNumber = pageNumber;
             ShadingScale = shadingScale;
+            DependsOnScale = dependsOnScale;
             Drawing = drawing;
         }
 
         internal int PageNumber { get; }
         internal double ShadingScale { get; }
+        internal bool DependsOnScale { get; }
         internal OfficeDrawing Drawing { get; }
     }
 }

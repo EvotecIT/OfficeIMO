@@ -76,6 +76,16 @@ public sealed class PdfPageDisplayRendererTests {
     }
 
     [Fact]
+    public void ZoomLevelsOfAPageWithoutShadingsReuseItsDrawing() {
+        PdfDocument document = CreateDocument();
+        var renderer = new PdfPageDisplayRenderer(document, pageCapacity: 2, imageCapacityBytes: 16L * 1024 * 1024);
+
+        foreach (double scale in new[] { 1D, 1.5D, 3D, 6D }) renderer.RenderRegion(1, scale, 0, 0, 200, 100, Limits, default);
+
+        Assert.Equal(1, renderer.DrawingsRead);
+    }
+
+    [Fact]
     public void DocumentsThatRestrictCopyingRenderAsPixels() {
         var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None };
         byte[] restricted = CreateDocument(new PdfOptions { PageWidth = 300, PageHeight = 200 }.SetEncryption(encryption)).ToBytes();
