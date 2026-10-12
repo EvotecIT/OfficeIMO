@@ -102,26 +102,8 @@ namespace OfficeIMO.Excel {
                         worksheetSnapshot.FrozenColumnCount = ConvertToInt(pane.HorizontalSplit);
                     }
 
-                    var columns = worksheet.GetFirstChild<Columns>();
-                    if (columns != null) {
-                        foreach (var column in columns.Elements<Column>()) {
-                            var min = checked((int)(column.Min?.Value ?? 0U));
-                            var max = checked((int)(column.Max?.Value ?? 0U));
-                            if (min <= 0 || max <= 0 || max < min) {
-                                continue;
-                            }
-
-                            worksheetSnapshot.AddColumn(new ExcelColumnSnapshot {
-                                StartIndex = min,
-                                EndIndex = max,
-                                Width = column.Width?.Value,
-                                Hidden = column.Hidden?.Value == true,
-                                CustomWidth = column.CustomWidth?.Value == true,
-                                StyleIndex = column.Style?.Value,
-                                OutlineLevel = column.OutlineLevel?.Value,
-                                Collapsed = column.Collapsed?.Value == true,
-                            });
-                        }
+                    foreach (ExcelColumnSnapshot column in sourceSheet.GetColumnDefinitions()) {
+                        worksheetSnapshot.AddColumn(column);
                     }
 
                     var sheetData = worksheet.GetFirstChild<SheetData>();

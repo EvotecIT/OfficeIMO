@@ -52,6 +52,10 @@ namespace OfficeIMO.Excel {
                 columns = worksheet.InsertAt(new Columns(), 0);
             }
 
+            SetColumnWidthsCore(columns, columnIndexes, widths, bestFit);
+        }
+
+        private static void SetColumnWidthsCore(Columns columns, IReadOnlyList<int> columnIndexes, double[] widths, bool bestFit = true) {
             if (!columns.Elements<Column>().Any()) {
                 bool appendedColumn = false;
                 for (int i = 0; i < columnIndexes.Count; i++) {
