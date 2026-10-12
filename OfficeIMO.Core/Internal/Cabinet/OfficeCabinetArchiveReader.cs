@@ -117,9 +117,10 @@ internal static class OfficeCabinetArchiveReader {
             int fileCount = UInt16(28);
             // MS-CAB requires readers to ignore reserved CFHEADER flag bits.
             ushort flags = (ushort)(UInt16(30) & 7);
-            if (declaredSize < 36 || declaredSize > _length || folderCount < 1 || fileCount > _maxEntries ||
+            if (UInt32(4) != 0 || UInt32(12) != 0 || UInt32(20) != 0 ||
+                declaredSize < 36 || declaredSize > _length || folderCount < 1 || fileCount > _maxEntries ||
                 _data[24] != 3 || _data[25] != 1) {
-                throw Error("CAB_HEADER", "The CAB header contains invalid sizes, version or entry counts.");
+                throw Error("CAB_HEADER", "The CAB header contains invalid reserved fields, sizes, version or entry counts.");
             }
             // Signed cabinets may have an appended signature, but offsets must
             // remain within the size declared by CFHEADER.

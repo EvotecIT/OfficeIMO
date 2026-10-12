@@ -14,6 +14,7 @@ internal sealed class ArchiveLimits {
         DecompressionWork = new OfficeCabinetWorkBudget(Positive(options.MaxDecompressionWorkBytes, nameof(options.MaxDecompressionWorkBytes)));
         Metadata = Positive(options.MaxMetadataBytes, nameof(options.MaxMetadataBytes));
         Rows = checked((int)Positive(options.MaxTableRows, nameof(options.MaxTableRows)));
+        Strings = checked((int)Positive(options.MaxStringPoolEntries, nameof(options.MaxStringPoolEntries)));
         Depth = checked((int)Positive(options.MaxPathDepth, nameof(options.MaxPathDepth)));
         PathLength = checked((int)Positive(options.MaxPathLength, nameof(options.MaxPathLength)));
         Include = options.IncludeFile;
@@ -26,6 +27,7 @@ internal sealed class ArchiveLimits {
     internal OfficeCabinetWorkBudget DecompressionWork { get; }
     internal long Metadata { get; }
     internal int Rows { get; }
+    internal int Strings { get; }
     internal int Depth { get; }
     internal int PathLength { get; }
     internal Func<string, bool>? Include { get; }

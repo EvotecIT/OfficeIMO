@@ -23,6 +23,8 @@ public sealed class ArchiveExtractionOptions {
     public long MaxMetadataBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum rows per MSI metadata table.</summary>
     public int MaxTableRows { get; set; } = 200000;
+    /// <summary>Maximum MSI string-pool entries, excluding the null reference. Defaults to 200,000, independently of table rows.</summary>
+    public int MaxStringPoolEntries { get; set; } = 200000;
     /// <summary>Maximum output-path segments and structural MSI directory depth, including the root and '.' directories.</summary>
     public int MaxPathDepth { get; set; } = 64;
     /// <summary>Maximum characters in an authored relative output path.</summary>

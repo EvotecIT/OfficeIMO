@@ -17,7 +17,7 @@ internal sealed partial class MsiPackageReader {
         int dataOffset = 0;
         for (int offset = 4; offset < pool.Length;) {
             _token.ThrowIfCancellationRequested();
-            if (strings.Count > _limits.Rows) throw new InvalidDataException("MSI string count exceeds the configured metadata row limit.");
+            if (strings.Count > _limits.Strings) throw new InvalidDataException("MSI string count exceeds the configured string-pool entry limit.");
             int length = UInt16(pool, offset);
             int references = UInt16(pool, offset + 2);
             offset += 4;
