@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         public override object GetValue(int ordinal) {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] switch {
-                XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => _strings[ordinal]!,
+                XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => GetCanonicalText(ordinal),
                 XlsbTabularValueKind.Number => GetNumericValue(_numbers[ordinal]),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal],
                 XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         public override string GetString(int ordinal) {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] switch {
-                XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => _strings[ordinal]!,
+                XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => GetCanonicalText(ordinal),
                 XlsbTabularValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
                 XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date).ToString(_options.Culture),

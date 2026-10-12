@@ -3,6 +3,7 @@
 #if NET8_0_OR_GREATER
 
 using System.Buffers;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
@@ -24,6 +25,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _utf8TextCacheKeys = _borrowableText.Length == 0
                 ? Array.Empty<int>()
                 : new int[FieldCount];
+            _inlineTextSlices = _borrowableText.Length == 0
+                ? Array.Empty<InlineTextSlice>()
+                : new InlineTextSlice[FieldCount];
             _useSharedStringUtf8Cache = _sharedStrings.Count <= ExcelUtf8TextCache.SlotCount;
             // Reserve the immutable cache's maximum payload before retaining row buffers.
             // Small SST indexes occupy distinct slots; inline text never enters that cache.
@@ -36,6 +40,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         partial void ResetUtf8TextState() {
             Array.Clear(_borrowableText);
             Array.Clear(_utf8TextCacheKeys);
+            Array.Clear(_inlineTextSlices);
             if (_utf8FieldBuffers != null) {
                 for (int ordinal = 0; ordinal < _utf8FieldBuffers.Length; ordinal++) {
                     ref Utf8FieldBuffer buffer = ref _utf8FieldBuffers[ordinal];
@@ -94,7 +99,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Utf8FieldBuffer[] buffers = _utf8FieldBuffers ??= new Utf8FieldBuffer[FieldCount];
             ref Utf8FieldBuffer buffer = ref buffers[ordinal];
             if (!buffer.Ready) {
-                EncodeUtf8Field(ref buffer, _strings[ordinal]!);
+                InlineTextSlice slice = _inlineTextSlices[ordinal];
+                if (key < 0 && slice.IsPresent && BitConverter.IsLittleEndian) {
+                    // The immutable payload is UTF-16LE. UTF8's replacement fallback matches
+                    // Unicode decoding followed by UTF8 encoding for unmatched surrogates.
+                    EncodeUtf8Field(ref buffer, MemoryMarshal.Cast<byte, char>(
+                        _worksheetPart.Buffer.AsSpan(slice.Offset, slice.ByteCount)));
+                } else {
+                    // Keep the canonical decoder on hosts whose char byte order differs.
+                    EncodeUtf8Field(ref buffer, GetCanonicalText(ordinal).AsSpan());
+                }
             }
             text = buffer.Length == 0 ? ReadOnlySpan<byte>.Empty : buffer.Bytes!.AsSpan(0, buffer.Length);
             return true;
@@ -104,7 +118,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         /// Encodes a field once per row. Each ordinal owns its storage, so another field or
         /// repeated accessor cannot overwrite a span borrowed earlier in the same row.
         /// </summary>
-        private void EncodeUtf8Field(ref Utf8FieldBuffer buffer, string value) {
+        private void EncodeUtf8Field(ref Utf8FieldBuffer buffer, ReadOnlySpan<char> value) {
             int length = Encoding.UTF8.GetByteCount(value);
             if (length == 0) {
                 buffer.Length = 0;
@@ -126,7 +140,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
             }
 
-            buffer.Length = Encoding.UTF8.GetBytes(value.AsSpan(), bytes.AsSpan());
+            buffer.Length = Encoding.UTF8.GetBytes(value, bytes.AsSpan());
             buffer.Ready = true;
         }
 

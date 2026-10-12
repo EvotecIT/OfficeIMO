@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     break;
                 case BrtCellSt:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = ReadValidatedWideString(bytes, position);
+                    StoreInlineText(ordinal, bytes, position);
                     break;
                 case BrtCellIsst: {
                     uint sharedStringIndex = BinaryPrimitives.ReadUInt32LittleEndian(
@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
                 case BrtCellRString:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
-                    _strings[ordinal] = ReadValidatedWideString(bytes, position + 1);
+                    StoreInlineText(ordinal, bytes, position + 1);
                     break;
                 case BrtFmlaString:
                     _kinds[ordinal] = XlsbTabularValueKind.Text;

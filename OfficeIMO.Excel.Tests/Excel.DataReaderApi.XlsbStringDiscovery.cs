@@ -27,9 +27,17 @@ namespace OfficeIMO.Excel.Tests {
                 Assert.Equal("Ready", reader.GetString(0));
                 Assert.True(reader.Read());
                 Assert.False(reader.IsDBNull(0));
+#if NET8_0_OR_GREATER
+                bool borrowed = reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> text);
+                Assert.Equal(recordType != 8, borrowed);
+                if (borrowed) Assert.Equal(Encoding.UTF8.GetBytes(expected), text.ToArray());
+#endif
                 materialized = reader.GetString(0);
                 Assert.Equal(expected, materialized);
                 Assert.Equal(expected, Assert.IsType<string>(reader.GetValue(0)));
+#if NET8_0_OR_GREATER
+                if (borrowed) Assert.Equal(Encoding.UTF8.GetBytes(expected), text.ToArray());
+#endif
                 Assert.Equal(43, reader.GetInt32(1));
                 Assert.True(reader.Read());
                 Assert.Equal("After", reader.GetString(0));

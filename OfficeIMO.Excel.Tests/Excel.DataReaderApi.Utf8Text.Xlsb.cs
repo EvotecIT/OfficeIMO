@@ -50,6 +50,42 @@ public sealed class XlsbUtf8TextTests {
     }
 
     [Theory]
+    [InlineData("Schema")]
+    [InlineData("Converter")]
+    public void BorrowedXlsbText_LiveProjectionBeforeCanonicalAccessKeepsCopyFallbackAndHeldSpan(string projection) {
+        const string expected = "first Żółw 🐢";
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Text");
+        sheet.CellValue(2, 1, expected);
+        sheet.CellValue(3, 1, "following");
+        sheet.CellValue(4, 1, "after");
+        var options = new ExcelReadOptions();
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, false), options);
+        Assert.True(reader.Read());
+        Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> held));
+        if (projection == "Schema") options.InferSchema = true;
+        else options.CellValueConverter = static _ => default;
+        Assert.False(reader.TryGetUtf8Text(0, out _));
+        AssertCopy(reader, 0, expected);
+        Assert.Equal(expected, Assert.IsType<string>(reader.GetValue(0)));
+        Assert.Equal(Encoding.UTF8.GetBytes(expected), held.ToArray());
+        options.InferSchema = false;
+        options.CellValueConverter = null;
+        AssertBorrowed(reader, 0, expected);
+        if (projection == "Schema") options.InferSchema = true;
+        else options.CellValueConverter = static context => new ExcelCellValue("converted:" + context.InlineText);
+        Assert.True(reader.Read());
+        Assert.False(reader.TryGetUtf8Text(0, out _));
+        AssertCopy(reader, 0, projection == "Converter" ? "converted:following" : "following");
+        options.InferSchema = false;
+        options.CellValueConverter = null;
+        Assert.True(reader.Read());
+        AssertBorrowed(reader, 0, "after");
+        Assert.False(reader.Read());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void BorrowedXlsbText_PreservesCanonicalStringsAndOrdinaryTypedValues(bool sharedStrings) {
@@ -139,6 +175,7 @@ public sealed class XlsbUtf8TextTests {
             Assert.Equal(columns, reader.FieldCount);
             for (int row = 0; row < values.Length; row++) {
                 Assert.True(reader.Read());
+                if (row == 1) Assert.Equal(values[row][0], Assert.IsType<string>(reader.GetValue(0)));
                 Assert.True(reader.TryGetUtf8Text(columns - 1, out ReadOnlySpan<byte> last));
                 Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> first));
                 Assert.True(reader.TryGetUtf8Text(1, out ReadOnlySpan<byte> second));
