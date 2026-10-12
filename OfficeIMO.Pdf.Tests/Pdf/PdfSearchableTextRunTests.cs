@@ -8,6 +8,38 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfSearchableTextRunTests {
+    [Fact]
+    public void OcrTextIsSelectableOnRequest() {
+        // An OCR layer: rendering mode 3 text over where a scan's words appear.
+        byte[] pdf = Encoding.ASCII.GetBytes(BuildPdf("BT /F1 12 Tf 3 Tr 50 700 Td (scanned words) Tj ET\n"));
+
+        Assert.Empty(PdfPageInteractionMap.Create(pdf, 1).TextRegions);
+        PdfPageInteractionRegion[] regions = PdfPageInteractionMap.Create(pdf, 1,
+            new PdfPageInteractionOptions { IncludeTextRenderingMode3 = true }).TextRegions.ToArray();
+        Assert.Equal("scanned words", string.Concat(regions.Select(region => region.Text)));
+        Assert.InRange(regions[0].Quad.Left, 49D, 51D);
+    }
+
+    private static string BuildPdf(string content) {
+        var builder = new StringBuilder("%PDF-1.7\n");
+        var objects = new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 800] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "<< /Length " + content.Length + " >>\nstream\n" + content + "endstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+        };
+        var offsets = new int[objects.Length];
+        for (int index = 0; index < objects.Length; index++) {
+            offsets[index] = builder.Length;
+            builder.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        int xref = builder.Length;
+        builder.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (int offset in offsets) builder.Append(offset.ToString("D10")).Append(" 00000 n \n");
+        return builder.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n").ToString();
+    }
+
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, false)]

@@ -5,6 +5,7 @@ struct DocumentToolbar: ToolbarContent {
     @Bindable var session: DocumentSession
     let fileURL: URL?
     let isCompact: Bool
+    @Binding var isAddingNote: Bool
 
     var body: some ToolbarContent {
         #if os(macOS)
@@ -17,6 +18,14 @@ struct DocumentToolbar: ToolbarContent {
         }
         ToolbarItemGroup(placement: .primaryAction) {
             pageActions
+            if session.task == .markup {
+                Picker("Tool", selection: $session.markupStyle) {
+                    ForEach(MarkupStyle.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                ColorPicker("Colour", selection: markupColor, supportsOpacity: false)
+                Button("Add Note", systemImage: "note.text.badge.plus") { isAddingNote = true }
+            }
             if session.task == .read {
                 ControlGroup {
                     Button("Zoom Out", systemImage: "minus.magnifyingglass") { session.zoom(.zoomOut) }
@@ -32,10 +41,21 @@ struct DocumentToolbar: ToolbarContent {
             inspectorToggle
         }
         #else
-        if session.task == .pages {
+        if session.task == .markup {
+            // The system tool picker takes the bottom of the screen, so Markup's commands sit at the top.
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                undoRedo
+                Button("Add Note", systemImage: "note.text.badge.plus") { isAddingNote = true }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done", systemImage: "checkmark") { session.task = .read }
+                    .buttonStyle(.glassProminent)
+            }
+        } else if session.task == .pages {
             ToolbarItemGroup(placement: .topBarTrailing) { undoRedo }
         }
-        if isCompact {
+        // In Markup the bottom bar stays empty: the tool picker is there.
+        if session.task != .markup && isCompact {
             ToolbarItem(placement: .topBarTrailing) { inspectorToggle }
             // Separate items with flexible spacers, so each is its own glass control in the bottom bar.
             if session.task == .pages {
@@ -52,7 +72,7 @@ struct DocumentToolbar: ToolbarContent {
                 ToolbarSpacer(.flexible, placement: .bottomBar)
                 ToolbarItem(placement: .bottomBar) { share }
             }
-        } else {
+        } else if session.task != .markup {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 taskMenu
                 share
@@ -72,10 +92,10 @@ struct DocumentToolbar: ToolbarContent {
     /// Undo and Redo while editing, as Apple's editing apps show them; they act through the window's undo manager,
     /// which also serves the keyboard shortcuts and the three-finger gestures.
     @ViewBuilder private var undoRedo: some View {
-        Button("Undo", systemImage: "arrow.uturn.backward") { session.undoManager?.undo() }
-            .disabled(session.facts?.canUndo != true || session.isWorking)
-        Button("Redo", systemImage: "arrow.uturn.forward") { session.undoManager?.redo() }
-            .disabled(session.facts?.canRedo != true || session.isWorking)
+        Button("Undo", systemImage: "arrow.uturn.backward") { session.undoEdit() }
+            .disabled(!session.canUndoEdit || session.isWorking)
+        Button("Redo", systemImage: "arrow.uturn.forward") { session.redoEdit() }
+            .disabled(!session.canRedoEdit || session.isWorking)
     }
     #endif
 
@@ -85,6 +105,18 @@ struct DocumentToolbar: ToolbarContent {
             PageActionButtons(session: session, pages: session.selection.sorted())
         }
     }
+
+    #if os(macOS)
+    private var markupColor: Binding<Color> {
+        Binding {
+            Color(red: session.markupColor.red, green: session.markupColor.green, blue: session.markupColor.blue)
+        } set: { color in
+            let resolved = NSColor(color).usingColorSpace(.sRGB) ?? .systemRed
+            session.markupColor = EngineColor(red: Double(resolved.redComponent), green: Double(resolved.greenComponent),
+                                              blue: Double(resolved.blueComponent))
+        }
+    }
+    #endif
 
     /// The task menu: the current task's name, opening the list of tasks.
     private var taskMenu: some View {

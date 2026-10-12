@@ -49,6 +49,18 @@ void officeimo_free(void *memory);
 /* Names the absolute, app-owned folder (inside the app container) for recovery copies. Call once before opening documents. */
 int32_t officeimo_initialize(const char *data_directory, char **error);
 
+/*
+ * Makes a PDF at output_path from scanned page images, one page per image at its size, as JSON:
+ * { "pages": [ { "image": "<absolute path of a JPEG or PNG>", "words": [ { "text", "x", "y", "width", "height",
+ *   "confidence" } ] } ] }
+ * Words are what the host's recognizer found, each box from the image's top-left corner in fractions of the image's
+ * width and height; they become invisible text over the image, so the scan can be searched, selected and copied. A page
+ * without words is the image alone. The file is written beside output_path and replaces it only when complete. The
+ * summary is JSON: { "abiVersion", "pages", "searchablePages", "words" }. No document needs to be open.
+ */
+int32_t officeimo_create_pdf_from_scan_json(const char *request, const char *output_path, officeimo_cancellation cancellation,
+                                            char **json, char **error);
+
 /* Cancellation: pass a token to any call; officeimo_cancellation_cancel may be called from any thread while it runs. */
 officeimo_cancellation officeimo_cancellation_create(void);
 void officeimo_cancellation_cancel(officeimo_cancellation cancellation);
@@ -170,6 +182,15 @@ int32_t officeimo_document_update_annotation_json(officeimo_document document, c
 /* Removes an annotation, by its objectNumber from officeimo_document_annotations_json, as one undoable change. */
 int32_t officeimo_document_remove_annotation(officeimo_document document, int32_t object_number,
                                              officeimo_cancellation cancellation, char **error);
+
+/*
+ * A page's text for selection and copying, as JSON: { "abiVersion", "revision", "page", "texts": [ ], "boxes": [ ] }.
+ * texts holds the page's text elements, usually one character each, in extraction order; boxes holds four numbers per
+ * element, x, y, width and height, in points of the page as displayed from its top-left corner. A document that
+ * restricts text extraction fails with OFFICEIMO_UNSUPPORTED.
+ */
+int32_t officeimo_document_page_text_json(officeimo_document document, int32_t page, officeimo_cancellation cancellation,
+                                          char **json, char **error);
 
 int32_t officeimo_document_undo(officeimo_document document, officeimo_cancellation cancellation, char **error);
 int32_t officeimo_document_redo(officeimo_document document, officeimo_cancellation cancellation, char **error);

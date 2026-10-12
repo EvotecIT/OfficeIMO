@@ -223,6 +223,31 @@ internal sealed class StudioNativeDocument : IDisposable {
         return left > right ? (0D, 0D, 0D, 0D) : (left - margin, top - margin, right + margin, bottom + margin);
     }
 
+    /// <summary>
+    /// A page's text elements for selection and copying: each element's text and its box, as x, y, width and height in
+    /// points of the page as displayed, four numbers per element in the same order.
+    /// </summary>
+    internal async Task<StudioNativePageText> GetPageTextAsync(int pageNumber, CancellationToken cancellationToken) {
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            if (pageNumber < 1 || pageNumber > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber), "The page does not exist.");
+            PdfDocumentSession session = CurrentSession();
+            IReadOnlyList<PdfPageInteractionRegion> regions = await Task.Run(() => session.GetTextRegions(pageNumber, cancellationToken), cancellationToken)
+                .ConfigureAwait(false);
+            var texts = new string[regions.Count];
+            var boxes = new double[regions.Count * 4];
+            for (int index = 0; index < regions.Count; index++) {
+                PdfSelectionQuad quad = regions[index].Quad;
+                texts[index] = regions[index].Text ?? string.Empty;
+                boxes[index * 4] = Math.Round(quad.Left, 2);
+                boxes[index * 4 + 1] = Math.Round(quad.Top, 2);
+                boxes[index * 4 + 2] = Math.Round(quad.Width, 2);
+                boxes[index * 4 + 3] = Math.Round(quad.Height, 2);
+            }
+            return new StudioNativePageText(StudioNativeAbi.Version, _workspace.Revision, pageNumber, texts, boxes);
+        } finally { _gate.Release(); }
+    }
+
     internal Task UndoAsync(CancellationToken cancellationToken) => RunAsync(() => _workspace.UndoAsync(cancellationToken), cancellationToken);
 
     internal Task RedoAsync(CancellationToken cancellationToken) => RunAsync(() => _workspace.RedoAsync(cancellationToken), cancellationToken);
@@ -309,3 +334,5 @@ internal sealed record StudioNativeAnnotation(int ObjectNumber, int Page, string
 internal sealed record StudioNativeAnnotationList(int AbiVersion, long Revision, int Page, bool CanEdit, IReadOnlyList<StudioNativeAnnotation> Annotations);
 
 internal sealed record StudioNativeAnnotationUpdate(int ObjectNumber, string? Contents = null, string? Author = null, StudioNativeColor? Color = null);
+
+internal sealed record StudioNativePageText(int AbiVersion, long Revision, int Page, IReadOnlyList<string> Texts, IReadOnlyList<double> Boxes);

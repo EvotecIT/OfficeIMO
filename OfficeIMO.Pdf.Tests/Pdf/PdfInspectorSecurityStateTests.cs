@@ -269,6 +269,59 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Probe_DoesNotReadOutlineItemLinksAsRevisionLinks() {
+        byte[] pdf = BuildPdfWithOutline();
+
+        PdfDocumentSecurityInfo security = PdfInspector.Probe(pdf).Security;
+
+        // Outline items carry /Prev and /Next references; only a trailer's /Prev links revisions.
+        Assert.Empty(security.PreviousXrefOffsets);
+        Assert.Equal(1, security.RevisionCount);
+        Assert.Null(Assert.Single(security.Revisions).PreviousXrefOffset);
+        Assert.False(security.HasIncrementalUpdates);
+    }
+
+    [Fact]
+    public void AppendOnlyAnnotation_OnADocumentWithAnOutline_ExtendsItsRevisionChain() {
+        byte[] pdf = BuildPdfWithOutline();
+
+        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+            PageNumber = 1,
+            Subtype = "Square",
+            Rectangle = new[] { 50D, 50D, 90D, 90D },
+            ExecutionPreference = PdfMutationExecutionPreference.RequireAppendOnly
+        });
+
+        PdfDocumentSecurityInfo security = PdfInspector.Probe(result.Bytes).Security;
+        Assert.Equal(2, security.RevisionCount);
+        Assert.Equal(security.Revisions[0].StartXrefOffset, security.Revisions[1].PreviousXrefOffset);
+        Assert.Single(PdfDocument.Load(result.Bytes).Annotations.GetForEditing());
+    }
+
+    private static byte[] BuildPdfWithOutline() {
+        var objects = new[] {
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /Resources << >> >>",
+            "<< /Type /Outlines /First 5 0 R /Last 7 0 R /Count 3 >>",
+            "<< /Title (One) /Parent 4 0 R /Next 6 0 R /Dest [3 0 R /Fit] >>",
+            "<< /Title (Two) /Parent 4 0 R /Prev 5 0 R /Next 7 0 R /Dest [3 0 R /Fit] >>",
+            "<< /Title (Three) /Parent 4 0 R /Prev 6 0 R /Dest [3 0 R /Fit] >>"
+        };
+        var builder = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++) {
+            offsets.Add(builder.Length);
+            builder.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        int xref = builder.Length;
+        builder.Append("xref\n0 ").Append(objects.Length + 1).Append("\n0000000000 65535 f \n");
+        foreach (int offset in offsets) builder.Append(offset.ToString("D10")).Append(" 00000 n \n");
+        builder.Append("trailer\n<< /Size ").Append(objects.Length + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(builder.ToString());
+    }
+
+    [Fact]
     public void Preflight_ReportsSignatureAndRevisionSecurityDiagnostics() {
         byte[] pdf = BuildSignedIncrementalPdf();
         PdfDocumentPreflight report = PdfInspector.Preflight(pdf);

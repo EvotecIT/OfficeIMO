@@ -561,12 +561,14 @@ internal static partial class PdfSyntax {
         string token = "/" + key;
         int searchIndex = 0;
         while (TryFindIntegerNameValue(text, token, searchIndex, out int value, out int nextIndex, cancellationToken)) {
+            searchIndex = nextIndex;
+            // A trailer's value is a direct integer. The same key as an indirect reference, such as an outline item's
+            // /Prev 8 0 R, belongs to another dictionary and is not a revision link.
+            if (IsReferenceTail(text, nextIndex, cancellationToken)) continue;
             values.Add(value);
             if (values.Count > maxValues) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.Revisions, maxValues, values.Count);
             }
-
-            searchIndex = nextIndex;
         }
 
         return values.Count == 0 ? Array.Empty<int>() : values.AsReadOnly();
@@ -617,6 +619,14 @@ internal static partial class PdfSyntax {
 
         return reference;
     }
+
+    /// <summary>Whether a generation number and R follow an integer, making it an indirect reference.</summary>
+    private static bool IsReferenceTail(string text, int cursor, CancellationToken cancellationToken) =>
+        TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) &&
+        TryReadNonNegativeInteger(text, ref cursor, out _, cancellationToken) &&
+        TrySkipRequiredWhitespace(text, ref cursor, cancellationToken) &&
+        cursor < text.Length && text[cursor] == 'R' &&
+        (cursor + 1 == text.Length || !char.IsLetterOrDigit(text[cursor + 1]));
 
     private static bool TryFindIntegerNameValue(
         string text,

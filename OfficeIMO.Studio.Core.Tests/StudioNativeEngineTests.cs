@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Scan;
 using OfficeIMO.Studio.Native;
 
 namespace OfficeIMO.Studio.Core.Tests;
@@ -283,6 +284,81 @@ public sealed class StudioNativeEngineTests : IDisposable {
             Assert.True(ink.GetProperty("objectNumber").GetInt32() > 0);
             Assert.Equal(0.4D, ink.GetProperty("color").GetProperty("green").GetDouble(), 3);
         } finally { close(document); }
+    }
+
+    [Fact]
+    public async Task Page_text_gives_each_element_a_box_on_the_page_as_displayed() {
+        string path = Path.Combine(_root, "text.pdf");
+        PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
+            .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Hello world")))))).Save(path);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+
+        StudioNativePageText text = await document.GetPageTextAsync(1, default);
+
+        Assert.Equal("Hello world", string.Concat(text.Texts).Trim());
+        Assert.Equal(text.Texts.Count * 4, text.Boxes.Count);
+        for (int index = 0; index < text.Texts.Count; index++) {
+            Assert.InRange(text.Boxes[index * 4], 0D, 400D);
+            Assert.InRange(text.Boxes[index * 4 + 1], 0D, 300D);
+        }
+        // Elements read left to right along the line.
+        Assert.True(text.Boxes[4] > text.Boxes[0]);
+
+        await document.RotatePagesAsync([1], 90, default);
+        StudioNativePageText rotated = await document.GetPageTextAsync(1, default);
+        // On the page turned a quarter, the 300 x 400 page is shown 400 high and the line runs down it.
+        int last = (rotated.Texts.Count - 1) * 4;
+        Assert.True(Math.Abs(rotated.Boxes[last + 1] - rotated.Boxes[1]) > Math.Abs(rotated.Boxes[last] - rotated.Boxes[0]),
+            "The rotated line runs down the displayed page.");
+        for (int index = 0; index < rotated.Texts.Count; index++) {
+            Assert.InRange(rotated.Boxes[index * 4], 0D, 300D);
+            Assert.InRange(rotated.Boxes[index * 4 + 1], 0D, 400D);
+        }
+        Assert.True(rotated.Revision > text.Revision);
+    }
+
+    // A blank page image, as a camera would give, rendered by the engine itself.
+    private async Task<string> CreateScanImageAsync(string name, double width, double height) {
+        string pdf = Path.Combine(_root, name + ".pdf");
+        PdfDocument.Create(document => document.Page(page => page.Size(width, height))).Save(pdf);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(pdf, null, default);
+        string image = Path.Combine(_root, name + ".png");
+        File.WriteAllBytes(image, (await document.RenderPageAsync(1, 2D, default)).Bytes);
+        return image;
+    }
+
+    [Fact]
+    public async Task A_scan_becomes_one_page_per_image_with_its_recognized_words_searchable() {
+        string first = await CreateScanImageAsync("receipt", 300, 400);
+        string second = await CreateScanImageAsync("wide", 400, 300);
+        string output = Path.Combine(_root, "scan.pdf");
+
+        PdfScanResult result = await PdfScanComposer.ComposeAsync([
+            new PdfScanPage(first, [new PdfScanWord("Invoice", 0.1, 0.1, 0.3, 0.05, 0.98), new PdfScanWord("4711", 0.5, 0.1, 0.2, 0.05)]),
+            new PdfScanPage(second, [])
+        ], output, default);
+
+        Assert.Equal((2, 1, 2), (result.Pages, result.SearchablePages, result.Words));
+        using StudioNativeDocument scan = await StudioNativeDocument.OpenAsync(output, null, default);
+        StudioNativeDocumentInfo info = await scan.GetInfoAsync(default);
+        Assert.Equal(2, info.Pages.Count);
+        Assert.True(info.Pages[0].Height > info.Pages[0].Width && info.Pages[1].Width > info.Pages[1].Height);
+        StudioNativeSearchHit hit = Assert.Single((await scan.SearchAsync("invoice", default)).Hits);
+        Assert.Equal(1, hit.Page);
+        // The word sits where the recognizer found it, a tenth of the way in from the top left.
+        Assert.InRange(hit.Bounds.X / info.Pages[0].Width, 0.08, 0.14);
+        Assert.InRange(hit.Bounds.Y / info.Pages[0].Height, 0.07, 0.14);
+        Assert.Contains("4711", string.Concat((await scan.GetPageTextAsync(1, default)).Texts));
+    }
+
+    [Fact]
+    public async Task A_scan_refuses_what_it_cannot_make() {
+        string image = await CreateScanImageAsync("page", 300, 400);
+        await Assert.ThrowsAsync<ArgumentException>(() => PdfScanComposer.ComposeAsync([], Path.Combine(_root, "none.pdf"), default));
+        await Assert.ThrowsAsync<ArgumentException>(() => PdfScanComposer.ComposeAsync([new PdfScanPage(image, [])], "relative.pdf", default));
+        await Assert.ThrowsAnyAsync<IOException>(() => PdfScanComposer.ComposeAsync([new PdfScanPage(Path.Combine(_root, "missing.png"), [])],
+            Path.Combine(_root, "missing.pdf"), default));
+        Assert.False(File.Exists(Path.Combine(_root, "missing.pdf")));
     }
 
     private static async Task<byte[]> SavedBytesAsync(StudioNativeDocument document) {

@@ -40,10 +40,24 @@ internal sealed class PdfDocumentSession {
 
     internal bool CanSearch => ViewInfo.CanExtractText;
 
+    // Search finds a scan's OCR layer, so selection and copying reach it too.
+    private static readonly PdfPageInteractionOptions SelectionOptions = new() { IncludeTextRenderingMode3 = true };
+
     internal IReadOnlyList<PdfPageInfo> Pages => ViewInfo.Pages;
 
     internal PdfVisualComparisonReport CompareTo(PdfDocumentSession actual, PdfVisualComparisonOptions options, CancellationToken token) =>
         _document.Proof.CompareVisual(actual._document, token, options: options);
+
+    /// <summary>
+    /// A page's text elements in extraction order, each with its geometry on the page as displayed: from its top-left
+    /// corner, after the page box, rotation and user unit. Hosts select and copy text from them.
+    /// </summary>
+    internal IReadOnlyList<PdfPageInteractionRegion> GetTextRegions(int pageNumber, CancellationToken cancellationToken) {
+        if (pageNumber <= 0 || pageNumber > Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        if (!CanSearch) throw new NotSupportedException("Copying text is restricted by this document's permissions.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return _document.Render.Interactions(pageNumber, SelectionOptions).TextRegions;
+    }
 
     internal async Task<IReadOnlyList<PdfSearchHit>> SearchAsync(
         string query,
@@ -113,7 +127,7 @@ internal sealed class PdfDocumentSession {
             }
             OfficeIMO.Drawing.OfficeDrawing drawing = _document.Render.Drawing(pageNumber);
             cancellationToken.ThrowIfCancellationRequested();
-            PdfPageInteractionMap interactions = _document.Render.Interactions(pageNumber);
+            PdfPageInteractionMap interactions = _document.Render.Interactions(pageNumber, SelectionOptions);
             IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics =
                 _document.Render.CapabilityDiagnostics(pageNumber);
             IReadOnlyList<string> adapterDiagnostics =

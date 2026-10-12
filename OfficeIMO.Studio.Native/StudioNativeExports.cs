@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Scan;
 
 namespace OfficeIMO.Studio.Native;
 
@@ -44,6 +45,29 @@ internal static unsafe class StudioNativeExports {
         GCHandle handle = GCHandle.FromIntPtr(cancellation);
         (handle.Target as CancellationTokenSource)?.Dispose();
         handle.Free();
+    }
+
+    /// <summary>
+    /// Makes a PDF at <paramref name="outputPath"/> from scanned page images and the words the host recognized on them,
+    /// described as UTF-8 JSON, and returns a summary as JSON.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_create_pdf_from_scan_json")]
+    internal static int CreatePdfFromScanJson(byte* request, byte* outputPath, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        StudioNativeScanRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeScanRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The scan request is not valid JSON.", exception)); }
+        if (parsed?.Pages is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        string? destination = StudioNativeAbi.FromUtf8(outputPath);
+        return Run(error, cancellation, token => {
+            var pages = parsed.Pages.Select(page => new PdfScanPage(page.Image ?? string.Empty,
+                (page.Words ?? []).Select(word => new PdfScanWord(word.Text ?? string.Empty, word.X, word.Y, word.Width, word.Height, word.Confidence)).ToArray()))
+                .ToArray();
+            PdfScanResult result = PdfScanComposer.ComposeAsync(pages, destination!, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(
+                new StudioNativeScanResult(StudioNativeAbi.Version, result.Pages, result.SearchablePages, result.Words), StudioNativeJson.Default.StudioNativeScanResult));
+        });
     }
 
     // Documents --------------------------------------------------------------------------------------------------
@@ -204,6 +228,17 @@ internal static unsafe class StudioNativeExports {
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_remove_annotation")]
     internal static int DocumentRemoveAnnotation(nint document, int objectNumber, nint cancellation, byte** error) =>
         WithDocument(document, error, cancellation, (target, token) => target.RemoveAnnotationAsync(objectNumber, token).GetAwaiter().GetResult());
+
+    /// <summary>A page's text elements and their boxes as UTF-8 JSON, for selection and copying.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_page_text_json")]
+    internal static int DocumentPageTextJson(nint document, int page, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativePageText text = target.GetPageTextAsync(page, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(text, StudioNativeJson.Default.StudioNativePageText));
+        });
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_undo")]
     internal static int DocumentUndo(nint document, nint cancellation, byte** error) =>

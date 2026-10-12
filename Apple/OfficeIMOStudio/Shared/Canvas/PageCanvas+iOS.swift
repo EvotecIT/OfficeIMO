@@ -15,9 +15,22 @@ struct PageCanvas: UIViewRepresentable {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
+        let drawing = session.task == .markup && session.canEditAnnotations
+        view.markup.setActive(drawing)
+        view.textSelection.setEnabled(session.task == .read && session.canCopyText)
+        view.tiles.selectionColor = view.tintColor.withAlphaComponent(0.3).cgColor
+        if let selection = session.textSelection {
+            view.tiles.select(page: selection.page, rects: session.selectionRects)
+        } else {
+            view.tiles.select(page: 0, rects: [])
+        }
+        // A double tap on the page draws a dot while marking up, rather than zooming.
+        view.doubleTap.isEnabled = !drawing
+        view.markup.update()
     }
 
     static func dismantleUIView(_ view: PageScrollView, coordinator: ()) {
+        view.markup.setActive(false)
         view.tiles.cancelAll()
     }
 }
@@ -26,6 +39,11 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     let tiles = PageTiles()
     private let session: DocumentSession
     private let content = UIView()
+    /// The view the pages are laid out in, in PDF points.
+    var contentView: UIView { content }
+    private(set) lazy var markup = MarkupController(session: session, scrollView: self)
+    let doubleTap = UITapGestureRecognizer()
+    private(set) lazy var textSelection = TextSelectionController(session: session, scrollView: self)
     private var handledRequest: UUID?
     private var laidOutWidth: CGFloat = 0
     private var fitZoom: CGFloat = 1
@@ -40,9 +58,11 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         bouncesZoom = true
         content.layer.addSublayer(tiles.layer)
         addSubview(content)
-        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(doubleTapped(_:)))
+        tiles.revisionShown = { [weak self] revision in self?.markup.revisionShown(revision) }
+        doubleTap.addTarget(self, action: #selector(doubleTapped(_:)))
         doubleTap.numberOfTapsRequired = 2
         addGestureRecognizer(doubleTap)
+        _ = textSelection
     }
 
     @available(*, unavailable)
@@ -51,7 +71,11 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     func show(_ engine: EngineDocument, facts: DocumentFacts) {
         let previous = tiles.layout
         tiles.show(engine, facts: facts)
-        guard tiles.layout != previous else { return }
+        // A new revision of the same pages renders in place; the earlier images stay until the new ones cover them.
+        guard tiles.layout != previous else {
+            updateTiles(settled: true)
+            return
+        }
         let zoom = zoomScale
         zoomScale = 1
         content.frame = CGRect(origin: .zero, size: tiles.layout.size)
@@ -108,6 +132,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         }
         centerContent()
         updateTiles(settled: !isZooming && !isZoomBouncing)
+        markup.layout(isZooming: isZooming || isZoomBouncing)
     }
 
     /// The sidebar and inspector float over the pages, so the width the pages fit changes with the safe area.
@@ -123,17 +148,20 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     func scrollViewDidZoom(_ scrollView: UIScrollView) {
         centerContent()
         updateTiles(settled: false)
+        markup.layout(isZooming: true)
     }
 
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
         session.zoomToFit = scale / fitZoom
         session.zoom = scale
         updateTiles(settled: true)
+        markup.layout(isZooming: false)
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         updateTiles(settled: !isZooming && !isZoomBouncing)
         reportPage()
+        markup.layout(isZooming: isZooming || isZoomBouncing)
     }
 
     // MARK: Zoom and position
@@ -181,6 +209,10 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         let visible = convert(bounds.inset(by: adjustedContentInset), to: content)
         let page = tiles.layout.mostVisiblePage(in: visible)
         if page != session.currentPage { session.currentPage = page }
+        guard tiles.layout.frames.indices.contains(page - 1) else { return }
+        let frame = tiles.layout.frames[page - 1]
+        let middle = CGPoint(x: min(max(visible.midX, frame.minX + 24), frame.maxX - 24), y: min(max(visible.midY, frame.minY + 24), frame.maxY - 24))
+        session.viewCenterOnPage = CGPoint(x: middle.x - frame.minX, y: middle.y - frame.minY)
     }
 }
 #endif

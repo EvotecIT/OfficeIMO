@@ -10,4 +10,11 @@ public sealed class PdfPageInteractionOptions {
 
     /// <summary>Include invisible extracted text spans. Disabled by default.</summary>
     public bool IncludeInvisibleText { get; set; }
+
+    /// <summary>
+    /// Include text drawn with rendering mode 3, the invisible text an OCR layer places over a scanned image, so it can
+    /// be selected and copied like the text it covers. Other invisible text stays out unless
+    /// <see cref="IncludeInvisibleText"/> is set. Disabled by default.
+    /// </summary>
+    public bool IncludeTextRenderingMode3 { get; set; }
 }

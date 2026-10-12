@@ -279,7 +279,8 @@ public sealed partial class PdfPageInteractionMap {
         int textIndex = 0;
         for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
             PdfTextSpan span = spans[spanIndex];
-            if (string.IsNullOrEmpty(span.Text) || (!span.IsVisible && !options.IncludeInvisibleText)) {
+            bool ocrText = span.TextRenderingMode == 3 && !span.IsType3Font && options.IncludeTextRenderingMode3;
+            if (string.IsNullOrEmpty(span.Text) || (!span.IsVisible && !options.IncludeInvisibleText && !ocrText)) {
                 continue;
             }
 
