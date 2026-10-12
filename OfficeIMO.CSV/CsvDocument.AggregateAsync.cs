@@ -88,7 +88,7 @@ public sealed partial class CsvDocument
         if (readerOptions?.ParallelProcessing is not null)
             throw new ArgumentException("AggregateRowsAsParallelAsync uses parallelOptions; CsvDataReaderOptions.ParallelProcessing must be omitted.", nameof(readerOptions));
         var parallel = parallelOptions ?? new ParallelRowMappingOptions();
-        int degree = parallel.GetDegreeOfParallelism(), batchSize = parallel.GetBatchSize(256);
+        int degree = parallel.GetDegreeOfParallelism(), batchSize = parallel.GetBatchSize(1024);
         var parsing = loadOptions?.Clone() ?? new CsvLoadOptions();
         CancellationToken loadToken = parsing.CancellationToken;
         token.ThrowIfCancellationRequested();

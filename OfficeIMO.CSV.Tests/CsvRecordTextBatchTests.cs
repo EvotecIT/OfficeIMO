@@ -14,18 +14,19 @@ namespace OfficeIMO.CSV.Tests;
 public class CsvRecordTextBatchTests
 {
     [Theory]
-    [InlineData(1)]
-    [InlineData(4096)]
-    [InlineData(32768)]
-    public async Task CapturedFieldsAndPrimitiveValuesSurviveSourceAdvanceAndClose(int chunk)
+    [InlineData(1, 193)]
+    [InlineData(4096, 193)]
+    [InlineData(32768, 193)]
+    [InlineData(32768, 1024)]
+    public async Task CapturedFieldsAndPrimitiveValuesSurviveSourceAdvanceAndClose(int chunk, int batchSize)
     {
-        const int rows = 259;
+        int rows = batchSize == 1024 ? 2053 : 259;
         var text = new StringBuilder("Id,Name,Money,Flag,When,Double,Empty,Nullable\n");
         var names = new string[rows];
         var dates = new DateTime[rows];
         for (int row = 0; row < rows; row++)
         {
-            names[row] = row == 5 ? new string('x', 20000) : row % 47 == 0
+            names[row] = row == 5 ? new string('x', batchSize == 1024 ? 300_000 : 20_000) : row % 47 == 0
                 ? "first\r\nsecond \"quoted\" " + row : "Żółć-" + row + new string('y', 700);
             dates[row] = new DateTime(638456789012345678L + row, DateTimeKind.Utc);
             text.Append(9007199254740993L + row).Append(',').Append(Encode(names[row])).Append(',')
@@ -45,7 +46,7 @@ public class CsvRecordTextBatchTests
                 bool reachedEnd = false;
                 while (!reachedEnd)
                 {
-                    var batch = reader.CreateRecordTextBatch(193);
+                    var batch = reader.CreateRecordTextBatch(batchSize);
                     try { reachedEnd = await reader.ReadRecordTextBatchAsync(batch, CancellationToken.None); }
                     catch { batch.Dispose(); throw; }
                     if (batch.Count == 0) batch.Dispose();

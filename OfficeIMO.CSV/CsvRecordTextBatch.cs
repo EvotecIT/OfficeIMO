@@ -7,7 +7,7 @@ namespace OfficeIMO.CSV;
 /// <summary>Owns decoded field text and metadata while the source reader advances.</summary>
 internal sealed partial class CsvRecordTextBatch : IDisposable
 {
-    private const int MaximumPooledTextLength = 64 * 1024;
+    private readonly int _maximumPooledTextLength;
     private readonly string?[] _values;
     private readonly CapturedField[] _fields;
     private char[]? _text;
@@ -32,6 +32,8 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
     {
         const int maximumElements = 4 * 1024 * 1024;
         RowCapacity = fieldCount == 0 ? 1 : Math.Max(1, Math.Min(preferredRows, maximumElements / fieldCount));
+        // Scale owned text with the effective batch size while retaining a fixed upper bound.
+        _maximumPooledTextLength = Math.Max(256, Math.Min(RowCapacity, 1024)) * 256;
         FieldCount = fieldCount;
         Culture = culture;
         DateTimeFormats = dateFormats;
@@ -109,10 +111,10 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
     // This is a storage choice, not a field-size limit.
     private bool EnsureTextCapacity(int fieldLength)
     {
-        if (fieldLength > MaximumPooledTextLength - _textLength) return false;
+        if (fieldLength > _maximumPooledTextLength - _textLength) return false;
         int required = _textLength + fieldLength;
         if (_text is not null && required <= _text.Length) return true;
-        int capacity = Math.Min(MaximumPooledTextLength, Math.Max(required, (_text?.Length ?? 2048) * 2));
+        int capacity = Math.Min(_maximumPooledTextLength, Math.Max(required, (_text?.Length ?? 2048) * 2));
         char[] next = ArrayPool<char>.Shared.Rent(capacity);
         if (_text is not null)
         {

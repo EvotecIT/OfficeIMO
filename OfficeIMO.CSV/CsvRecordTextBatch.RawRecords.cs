@@ -9,7 +9,7 @@ internal sealed partial class CsvRecordTextBatch
     private bool _rawTrim;
     private string? _rawNullValue;
 
-    internal int RemainingRawTextLength => MaximumPooledTextLength - _textLength;
+    internal int RemainingRawTextLength => _maximumPooledTextLength - _textLength;
     internal int RawTextOffset => _textLength;
 
     internal void ConfigureRawRecords(char delimiter, bool trim, string? nullValue)
