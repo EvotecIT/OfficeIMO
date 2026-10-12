@@ -123,6 +123,7 @@ internal static partial class PdfWriter {
         public double FontSize { get; }
 
         public PdfTextBaseline Baseline { get; }
+        public double LineAlignmentRise { get; set; }
 
         public double MeasuredWidth { get; }
 
@@ -134,6 +135,7 @@ internal static partial class PdfWriter {
             KerningAdvance = source.KerningAdvance;
             ContributesLineBoxDescent = source.ContributesLineBoxDescent;
             IsLineBoxStrut = source.IsLineBoxStrut;
+            LineAlignmentRise = source.LineAlignmentRise;
             return this;
         }
 
