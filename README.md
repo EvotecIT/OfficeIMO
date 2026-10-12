@@ -14,6 +14,8 @@ This is not one facade over a collection of unrelated document libraries. Office
 
 Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
 
+For existing Windows x64 applications that import through ODBC, [OfficeIMO.Odbc](OfficeIMO.Odbc/README.md) exposes bounded `.xlsx` workbook snapshots as read-only SQL tables. It is built and deployed separately from the .NET document packages.
+
 Upgrading an existing application? The [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
