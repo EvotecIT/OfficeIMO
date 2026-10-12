@@ -76,6 +76,24 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
 
     public bool HasOutput => State == ConversionJobState.Completed && !string.IsNullOrWhiteSpace(OutputPath);
 
+    /// <summary>The finished state shared with OCR and Jobs; warnings and fidelity loss make a completion one to review.</summary>
+    internal Infrastructure.StudioOutcome Outcome => State switch {
+        ConversionJobState.Completed => HasWarnings || HasLoss ? Infrastructure.StudioOutcome.CompletedWithNotes : Infrastructure.StudioOutcome.Succeeded,
+        ConversionJobState.Failed => Infrastructure.StudioOutcome.Failed,
+        ConversionJobState.Cancelled => Infrastructure.StudioOutcome.Cancelled,
+        ConversionJobState.Unconfirmed => Infrastructure.StudioOutcome.NeedsChecking,
+        _ => Infrastructure.StudioOutcome.None
+    };
+    public bool IsSucceeded => Outcome == Infrastructure.StudioOutcome.Succeeded;
+    public bool HasNotes => Outcome == Infrastructure.StudioOutcome.CompletedWithNotes;
+    public bool IsFailed => Outcome == Infrastructure.StudioOutcome.Failed;
+    public bool IsCancelled => Outcome == Infrastructure.StudioOutcome.Cancelled;
+    public bool NeedsChecking => Outcome == Infrastructure.StudioOutcome.NeedsChecking;
+
+    private void NotifyOutcome() {
+        foreach (string name in new[] { nameof(IsSucceeded), nameof(HasNotes), nameof(IsFailed), nameof(IsCancelled), nameof(NeedsChecking) }) OnPropertyChanged(name);
+    }
+
     /// <summary>Completed, but the conversion's fidelity evidence reports approximated or omitted content.</summary>
     public bool HasLoss => State == ConversionJobState.Completed && ConversionEvidence?.HasLoss == true;
 
@@ -127,7 +145,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         OnPropertyChanged(nameof(SourceFingerprint));
         ProgressFraction = result.Status == OfficeWorkflowStatus.Cancelled ? ProgressFraction : 1D;
         Status = result.Status switch {
-            OfficeWorkflowStatus.Completed when HasWarnings => T("CompletedWithWarnings", "Completed with warnings"),
+            OfficeWorkflowStatus.Completed when HasWarnings || HasLoss => T("CompletedWithWarnings", "Completed with warnings"),
             OfficeWorkflowStatus.Completed => T("Completed", "Completed"),
             OfficeWorkflowStatus.Cancelled => T("Cancelled", "Cancelled"),
             OfficeWorkflowStatus.Unconfirmed => T("Unconfirmed", "Check output"),
@@ -135,6 +153,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         };
         OnPropertyChanged(nameof(HasWarnings));
         OnPropertyChanged(nameof(HasLoss));
+        NotifyOutcome();
     }
 
     private string T(string suffix, string fallback) =>

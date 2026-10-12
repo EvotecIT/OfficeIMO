@@ -37,6 +37,17 @@ public sealed partial class OcrSessionItem : ObservableObject {
     [ObservableProperty] private string? _summary;
     [ObservableProperty] private OfficeWorkflowOutputRecovery? _recovery;
     public bool CanRetry => Status is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Cancelled;
+    /// <summary>The finished state shared with Convert and Jobs.</summary>
+    internal Infrastructure.StudioOutcome Outcome => IsRunning ? Infrastructure.StudioOutcome.None : Infrastructure.StudioOutcomes.From(Status);
+    public bool IsSucceeded => Outcome == Infrastructure.StudioOutcome.Succeeded;
+    public bool IsFailed => Outcome == Infrastructure.StudioOutcome.Failed;
+    public bool IsCancelled => Outcome == Infrastructure.StudioOutcome.Cancelled;
+    public bool NeedsChecking => Outcome == Infrastructure.StudioOutcome.NeedsChecking;
+    partial void OnStatusChanged(OfficeWorkflowStatus? value) => NotifyOutcome();
+    partial void OnIsRunningChanged(bool value) => NotifyOutcome();
+    private void NotifyOutcome() {
+        foreach (string name in new[] { nameof(IsSucceeded), nameof(IsFailed), nameof(IsCancelled), nameof(NeedsChecking) }) OnPropertyChanged(name);
+    }
     public bool HasOutput => Status == OfficeWorkflowStatus.Completed && OutputPath is not null;
     public string StatusLabel => IsRunning ? _localizer.GetOrDefault("Jobs.Running", "Running")
         : Status is null ? _localizer.GetOrDefault("Jobs.Queued", "Queued")

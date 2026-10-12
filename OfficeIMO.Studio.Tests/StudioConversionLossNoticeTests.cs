@@ -23,6 +23,9 @@ public sealed class StudioConversionLossNoticeTests {
             ConversionJobViewModel job = Assert.Single(model.Jobs);
             Assert.True(job.State == ConversionJobState.Completed, job.Summary);
             Assert.True(job.HasLoss);
+            // A lossy completion is one to review, shown the same way in the queue and in Jobs.
+            Assert.True(job.HasNotes);
+            Assert.False(job.IsSucceeded);
             Assert.True(model.HasLossNotice);
             Assert.Contains("newsletter.pub", model.LossNotice, StringComparison.Ordinal);
 

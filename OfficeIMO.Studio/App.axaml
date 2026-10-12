@@ -604,6 +604,12 @@
     <Style Selector="ProgressBar.success"><Setter Property="Foreground" Value="{DynamicResource StudioSuccessBrush}" /></Style>
     <Style Selector="ProgressBar.failed"><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /></Style>
     <Style Selector="ProgressBar.cancelled"><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <!-- Shared outcome colours for Convert, OCR and Jobs: completed with notes and output that needs checking are warnings. -->
+    <Style Selector="ProgressBar.notes, ProgressBar.attention"><Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" /></Style>
+    <Style Selector="TextBlock.outcome.success"><Setter Property="Foreground" Value="{DynamicResource StudioSuccessBrush}" /></Style>
+    <Style Selector="TextBlock.outcome.notes, TextBlock.outcome.attention"><Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" /></Style>
+    <Style Selector="TextBlock.outcome.failed"><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /></Style>
+    <Style Selector="TextBlock.outcome.cancelled"><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
     <!-- Color swatches are shared by the document toolbar, inspectors, and separate dialog windows. -->
     <Style Selector="Border.swatch"><Setter Property="Width" Value="22" /><Setter Property="Height" Value="22" /><Setter Property="CornerRadius" Value="11" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /></Style>
     <Style Selector="Button.swatchButton"><Setter Property="Padding" Value="2" /><Setter Property="CornerRadius" Value="14" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="2" /><Setter Property="BorderBrush" Value="Transparent" /></Style>

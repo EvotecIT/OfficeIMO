@@ -16,16 +16,20 @@ public sealed partial class ConversionJobViewModel {
     [ObservableProperty] private bool _allowIncompleteVisualPreview;
     [ObservableProperty] private bool _normalizeWorksheetNames;
 
-    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasConversionEvidence)), NotifyPropertyChangedFor(nameof(ConversionEvidenceSummary))]
+    [ObservableProperty, NotifyPropertyChangedFor(nameof(HasConversionEvidence)), NotifyPropertyChangedFor(nameof(ConversionEvidenceSummary)), NotifyPropertyChangedFor(nameof(HasConversionEvidenceSummary))]
     private OfficeWorkflowConversionEvidence? _conversionEvidence;
 
     public bool HasConversionEvidence => ConversionEvidence is not null;
+
+    /// <summary>True for routes that report how the result was reconstructed; other routes show only the source snapshot.</summary>
+    public bool HasConversionEvidenceSummary => ConversionEvidenceSummary.Length > 0;
     public string SourceFingerprint => Diagnostics.FirstOrDefault(diagnostic => diagnostic.Code == "SourceSnapshot")?.Details
         .GetValueOrDefault("sha256") ?? string.Empty;
 
     public string ConversionEvidenceSummary {
         get {
-            if (ConversionEvidence is null) return string.Empty;
+            // Only reconstruction routes describe a projection; without one there is nothing to summarize.
+            if (ConversionEvidence is null || !ConversionEvidence.Facts.ContainsKey("projectionKind")) return string.Empty;
             var facts = ConversionEvidence.Facts;
             string projection = facts.GetValueOrDefault("projectionKind") == "VisualFallback"
                 ? _localizer.GetOrDefault("Conversion.IWork.VisualResult", "Embedded visual preview")
@@ -37,9 +41,10 @@ public sealed partial class ConversionJobViewModel {
             };
             string partial = facts.GetValueOrDefault("partialEditableReconstruction") == "True"
                 ? _localizer.GetOrDefault("Conversion.IWork.PartialResult", "Partial editable reconstruction was accepted") : string.Empty;
-            string counts = _localizer.FormatOrDefault("Conversion.IWork.ReconstructionCounts",
-                "{0} reconstructed items · {1} records without a field-level fidelity assessment",
-                facts.GetValueOrDefault("reconstructedItemCount") ?? "?", facts.GetValueOrDefault("unassessedRecordCount") ?? "?");
+            string counts = facts.TryGetValue("reconstructedItemCount", out string? reconstructed) && facts.TryGetValue("unassessedRecordCount", out string? unassessed)
+                ? _localizer.FormatOrDefault("Conversion.IWork.ReconstructionCounts",
+                    "{0} reconstructed items · {1} records without a field-level fidelity assessment", reconstructed, unassessed)
+                : string.Empty;
             string sourceUnits = facts.ContainsKey("sourceUnitCount")
                 ? _localizer.FormatOrDefault("Conversion.IWork.SourceUnitCounts",
                     "{0} identified source units · {1} reconstructed · {2} omitted · {3} unassessed",

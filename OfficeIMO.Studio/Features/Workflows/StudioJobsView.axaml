@@ -78,9 +78,9 @@
                 </StackPanel>
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceL}">
                   <StackPanel Spacing="{StaticResource StudioSpaceSM}" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Classes="outcome" Classes.success="{Binding IsSucceeded}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
                     <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" Height="6" MinWidth="0"
-                                 Classes.success="{Binding IsSucceeded}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" />
+                                 Classes.success="{Binding IsSucceeded}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
                   </StackPanel>
                   <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}">
                     <Button Classes="tool" IsVisible="{Binding IsActive}" Content="{Binding CancelLabel}" Command="{Binding CancelCommand}" />

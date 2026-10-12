@@ -162,9 +162,11 @@
                       <TextBlock Classes="muted" Text="{Binding InputPath}" FontSize="{StaticResource StudioSecondaryFontSize}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="{Binding RouteLabel}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="8,0" />
-                    <TextBlock Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+                    <TextBlock Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" Classes="outcome"
+                             Classes.success="{Binding IsSucceeded}" Classes.notes="{Binding HasNotes}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
                     <ProgressBar Grid.Column="3" Minimum="0" Maximum="1" Value="{Binding ProgressFraction}" IsVisible="{Binding HasStarted}"
-                                 Height="7" MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                                 Height="7" MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                               Classes.success="{Binding IsSucceeded}" Classes.notes="{Binding HasNotes}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
                   </Grid>
                 </DataTemplate>
               </ListBox.ItemTemplate>
@@ -192,8 +194,8 @@
             <Button Classes="tool" Content="{loc:Loc Conversion.Output.Open}" Command="{Binding ConversionWorkbench.OpenOutputCommand}" Margin="0,0,0,6" />
           </WrapPanel>
           <StackPanel x:Name="ConversionEvidencePanel" IsVisible="{Binding ConversionWorkbench.SelectedJob.HasConversionEvidence}" Spacing="{StaticResource StudioSpaceXS}">
-            <TextBlock Text="{loc:Loc Conversion.IWork.SourceEvidence}" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.ConversionEvidenceSummary}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+            <TextBlock Text="{loc:Loc Conversion.IWork.SourceEvidence}" FontWeight="SemiBold" IsVisible="{Binding ConversionWorkbench.SelectedJob.HasConversionEvidenceSummary}" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.ConversionEvidenceSummary}" IsVisible="{Binding ConversionWorkbench.SelectedJob.HasConversionEvidenceSummary}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
             <Expander Header="{loc:Loc Conversion.IWork.SourceFingerprint}"><TextBox x:Name="SourceFingerprintText" Text="{Binding ConversionWorkbench.SelectedJob.SourceFingerprint}" IsReadOnly="True" TextWrapping="Wrap" FontSize="{StaticResource StudioLabelFontSize}" /></Expander>
           </StackPanel>
           <TextBlock Text="{Binding ConversionWorkbench.OutputPreviewStatus}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}"

@@ -51,7 +51,8 @@
               <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding OutputName}" Classes="muted" TextWrapping="Wrap" />
               </StackPanel>
-              <TextBlock Grid.Column="1" Text="{Binding StatusLabel}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding StatusLabel}" VerticalAlignment="Center" Classes="outcome"
+                         Classes.success="{Binding IsSucceeded}" Classes.failed="{Binding IsFailed}" Classes.cancelled="{Binding IsCancelled}" Classes.attention="{Binding NeedsChecking}" />
             </Grid>
           </DataTemplate></ListBox.ItemTemplate>
         </ListBox>

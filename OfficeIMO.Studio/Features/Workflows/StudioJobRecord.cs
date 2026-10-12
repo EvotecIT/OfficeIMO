@@ -43,13 +43,16 @@ public sealed partial class StudioJobRecord : ObservableObject {
     public string OutputName => string.IsNullOrWhiteSpace(OutputPath) ? string.Empty
         : System.IO.Path.GetFileName(OutputPath.TrimEnd('\\', '/')) is { Length: > 0 } name ? name : OutputPath;
 
-    /// <summary>Finished outcome for the progress colour: running, succeeded, failed or cancelled.</summary>
+    /// <summary>Finished outcome for the progress colour, using the states shared with Convert and OCR.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsSucceeded), nameof(IsFailed), nameof(IsCancelled))]
+    [NotifyPropertyChangedFor(nameof(IsSucceeded), nameof(IsFailed), nameof(IsCancelled), nameof(NeedsChecking))]
     private OfficeWorkflowStatus? _outcome;
 
     public bool IsSucceeded => Outcome == OfficeWorkflowStatus.Completed;
-    public bool IsFailed => Outcome is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Unconfirmed;
+    internal Infrastructure.StudioOutcome SharedOutcome => Infrastructure.StudioOutcomes.From(Outcome);
+    public bool IsFailed => SharedOutcome == Infrastructure.StudioOutcome.Failed;
+    /// <summary>The output may exist but was not confirmed; it is checked, not retried blindly.</summary>
+    public bool NeedsChecking => SharedOutcome == Infrastructure.StudioOutcome.NeedsChecking;
     public bool IsCancelled => Outcome == OfficeWorkflowStatus.Cancelled;
     [ObservableProperty]
     private string? _summary;

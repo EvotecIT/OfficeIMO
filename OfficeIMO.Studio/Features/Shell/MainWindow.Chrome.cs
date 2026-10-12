@@ -47,8 +47,13 @@ public sealed partial class MainWindow {
         JobToastDetail.Text = string.IsNullOrWhiteSpace(record.Summary) ? record.Status : record.Summary;
         JobToastOpenButton.IsVisible = record.CanOpenOutput;
         // The badge follows the outcome: a check only for verified success.
-        (string icon, string tone) = record.IsSucceeded ? ("IconCheck", "Success")
-            : record.IsFailed ? ("IconWarning", "Error") : ("IconInfo", "Accent");
+        Infrastructure.StudioOutcome outcome = record.SharedOutcome;
+        string tone = Infrastructure.StudioOutcomes.Tone(outcome);
+        string icon = outcome switch {
+            Infrastructure.StudioOutcome.Succeeded => "IconCheck",
+            Infrastructure.StudioOutcome.Failed or Infrastructure.StudioOutcome.NeedsChecking => "IconWarning",
+            _ => "IconInfo"
+        };
         if (this.TryFindResource(icon, out object? geometry) && geometry is Avalonia.Media.Geometry data) JobToastIcon.Data = data;
         if (this.TryFindResource("Studio" + tone + "Brush", ActualThemeVariant, out object? foreground) && foreground is Avalonia.Media.IBrush brush) JobToastIcon.Foreground = brush;
         if (this.TryFindResource("Studio" + tone + "SoftBrush", ActualThemeVariant, out object? background) && background is Avalonia.Media.IBrush soft) JobToastBadge.Background = soft;
