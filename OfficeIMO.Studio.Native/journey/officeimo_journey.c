@@ -1,6 +1,6 @@
 /*
- * The engine's document journey from a native host: open, read facts, render, rotate, undo, redo, save a copy and
- * reopen it. A .NET process cannot host the library on macOS or Linux, because its runtime and the library's handle
+ * The engine's document journey from a native host: open, read facts, render, rotate, undo, redo, organize pages,
+ * extract, search and mark up, save a copy and reopen it. A .NET process cannot host the library on macOS or Linux, because its runtime and the library's handle
  * the same thread-suspension signal, so the journey runs from C like the native apps do.
  *
  * Usage: officeimo_journey <library> <pdf> <work-directory>
@@ -41,8 +41,11 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_abi_version) X(officeimo_library_version) X(officeimo_free) X(officeimo_initialize) \
     X(officeimo_cancellation_create) X(officeimo_cancellation_cancel) X(officeimo_cancellation_free) \
     X(officeimo_document_open) X(officeimo_document_close) X(officeimo_document_info_json) \
-    X(officeimo_document_render_page) X(officeimo_document_rotate_pages) X(officeimo_document_undo) \
-    X(officeimo_document_redo) X(officeimo_document_save)
+    X(officeimo_document_render_page) X(officeimo_document_render_region) X(officeimo_document_rotate_pages) X(officeimo_document_undo) \
+    X(officeimo_document_redo) X(officeimo_document_save) X(officeimo_document_delete_pages) \
+    X(officeimo_document_duplicate_pages) X(officeimo_document_reorder_pages) X(officeimo_document_insert_blank_page) \
+    X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
+    X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -64,6 +67,10 @@ static void check(const char *step, int32_t status, char *error, int32_t expecte
     }
 }
 
+/* Runs a call, then checks its status and message. The call completes before error is read, and error is reset. */
+#define CHECK(step, call, expected) \
+    do { int32_t status_ = (call); check(step, status_, error, expected); error = NULL; } while (0)
+
 static void expect(int condition, const char *description, const char *json) {
     if (!condition) {
         printf("FAILED: %s: %s\n", description, json ? json : "(no facts)");
@@ -74,11 +81,11 @@ static void expect(int condition, const char *description, const char *json) {
 /* Reads the document facts. The caller releases the JSON with officeimo_free. */
 static char *facts(officeimo_document document) {
     char *json = NULL, *error = NULL;
-    check("info", engine_officeimo_document_info_json(document, &json, &error), error, OFFICEIMO_OK);
+    CHECK("info", engine_officeimo_document_info_json(document, &json, &error), OFFICEIMO_OK);
     return json;
 }
 
-/* Finds "name": followed by value in the facts. The journey uses one-page documents, so page fields are unique. */
+/* Finds "name": followed by value in the facts. */
 static int has(const char *json, const char *name, const char *value) {
     char pattern[128];
     snprintf(pattern, sizeof pattern, "\"%s\":%s", name, value);
@@ -118,12 +125,12 @@ int main(int argc, char **argv) {
 
     char *error = NULL;
     officeimo_document document = 0;
-    check("open before initialize", engine_officeimo_document_open(source, NULL, 0, &document, &error), error,
+    CHECK("open before initialize", engine_officeimo_document_open(source, NULL, 0, &document, &error),
           OFFICEIMO_NOT_INITIALIZED);
-    check("initialize", engine_officeimo_initialize(data, &error), error, OFFICEIMO_OK);
+    CHECK("initialize", engine_officeimo_initialize(data, &error), OFFICEIMO_OK);
 
     double started = milliseconds();
-    check("open", engine_officeimo_document_open(source, NULL, 0, &document, &error), error, OFFICEIMO_OK);
+    CHECK("open", engine_officeimo_document_open(source, NULL, 0, &document, &error), OFFICEIMO_OK);
     printf("  opened in %.0f ms\n", milliseconds() - started);
     if (!document) {
         printf("FAILED: no document handle\n");
@@ -138,8 +145,8 @@ int main(int argc, char **argv) {
     size_t length = 0;
     int32_t width = 0, height = 0;
     started = milliseconds();
-    check("render page 1", engine_officeimo_document_render_page(document, 1, 1.5, 0, &png, &length, &width, &height,
-          &error), error, OFFICEIMO_OK);
+    CHECK("render page 1", engine_officeimo_document_render_page(document, 1, 1.5, 0, &png, &length, &width, &height,
+          &error), OFFICEIMO_OK);
     printf("  %d x %d px, %zu bytes in %.0f ms\n", width, height, length, milliseconds() - started);
     expect(png && length > 8 && memcmp(png, "\x89PNG", 4) == 0, "the page is not a PNG", NULL);
     if (png) {
@@ -150,38 +157,119 @@ int main(int argc, char **argv) {
         }
         engine_officeimo_free(png);
     }
-    check("render missing page", engine_officeimo_document_render_page(document, 9999, 1.0, 0, &png, &length, NULL,
-          NULL, &error), error, OFFICEIMO_INVALID_ARGUMENT);
+    /* The same page as display pixels: the whole page image, then its lower-right quarter as a tile. */
+    uint8_t *pixels = NULL;
+    size_t pixel_length = 0;
+    started = milliseconds();
+    CHECK("render region", engine_officeimo_document_render_region(document, 1, 1.5, 0, 0, width, height, 0, &pixels,
+          &pixel_length, &error), OFFICEIMO_OK);
+    printf("  %d x %d px in %.0f ms\n", width, height, milliseconds() - started);
+    expect(pixels && pixel_length == (size_t)width * height * 4 && pixels[3] == 255, "the region is not opaque RGBA", NULL);
+    engine_officeimo_free(pixels);
+    CHECK("render tile", engine_officeimo_document_render_region(document, 1, 1.5, width / 2, height / 2, width - width / 2,
+          height - height / 2, 0, &pixels, &pixel_length, &error), OFFICEIMO_OK);
+    expect(pixel_length == (size_t)(width - width / 2) * (height - height / 2) * 4, "the tile has the wrong size", NULL);
+    engine_officeimo_free(pixels);
+    CHECK("render region off page", engine_officeimo_document_render_region(document, 1, 1.5, width, 0, 1, 1, 0, &pixels,
+          &pixel_length, &error), OFFICEIMO_INVALID_ARGUMENT);
+
+    CHECK("render missing page", engine_officeimo_document_render_page(document, 9999, 1.0, 0, &png, &length, NULL,
+          NULL, &error), OFFICEIMO_INVALID_ARGUMENT);
 
     officeimo_cancellation cancellation = engine_officeimo_cancellation_create();
     engine_officeimo_cancellation_cancel(cancellation);
-    check("cancelled render", engine_officeimo_document_render_page(document, 1, 1.0, cancellation, &png, &length,
-          NULL, NULL, &error), error, OFFICEIMO_CANCELLED);
+    CHECK("cancelled render", engine_officeimo_document_render_page(document, 1, 1.0, cancellation, &png, &length,
+          NULL, NULL, &error), OFFICEIMO_CANCELLED);
     engine_officeimo_cancellation_free(cancellation);
 
     const int32_t first_page[] = { 1 };
-    check("rotate page 1", engine_officeimo_document_rotate_pages(document, first_page, 1, 90, 0, &error), error,
+    CHECK("rotate page 1", engine_officeimo_document_rotate_pages(document, first_page, 1, 90, 0, &error),
           OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "90") && has(json, "isDirty", "true") && has(json, "canUndo", "true"),
            "rotation not recorded", json);
     engine_officeimo_free(json);
 
-    check("undo", engine_officeimo_document_undo(document, 0, &error), error, OFFICEIMO_OK);
+    CHECK("undo", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "0") && has(json, "canRedo", "true"), "undo not applied", json);
     engine_officeimo_free(json);
 
-    check("redo", engine_officeimo_document_redo(document, 0, &error), error, OFFICEIMO_OK);
+    CHECK("redo", engine_officeimo_document_redo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "90"), "redo not applied", json);
     engine_officeimo_free(json);
 
-    check("save copy", engine_officeimo_document_save(document, copy, 0, &error), error, OFFICEIMO_OK);
+    /* Page organization: each edit is one undoable change, and the journey undoes them back to the rotated page. */
+    CHECK("duplicate page 1", engine_officeimo_document_duplicate_pages(document, first_page, 1, 0, &error), OFFICEIMO_OK);
+    json = facts(document);
+    expect(has(json, "number", "2"), "the duplicate is missing", json);
+    engine_officeimo_free(json);
+    const int32_t reversed[] = { 2, 1 };
+    CHECK("reorder pages", engine_officeimo_document_reorder_pages(document, reversed, 2, 0, &error), OFFICEIMO_OK);
+    CHECK("reorder incomplete", engine_officeimo_document_reorder_pages(document, reversed, 1, 0, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
+    CHECK("delete page 1", engine_officeimo_document_delete_pages(document, first_page, 1, 0, &error), OFFICEIMO_OK);
+    CHECK("delete the last page", engine_officeimo_document_delete_pages(document, first_page, 1, 0, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
+    CHECK("insert blank page", engine_officeimo_document_insert_blank_page(document, 2, 612, 792, 0, &error), OFFICEIMO_OK);
+    json = facts(document);
+    expect(has(json, "width", "612") && has(json, "height", "792"), "the blank page is missing", json);
+    engine_officeimo_free(json);
+
+    char extracted[1024];
+    path_in(extracted, sizeof extracted, work, "extracted.pdf");
+    CHECK("extract page 2", engine_officeimo_document_extract_pages(document, reversed, 1, extracted, 0, &error), OFFICEIMO_OK);
+    officeimo_document extract = 0;
+    CHECK("open extracted", engine_officeimo_document_open(extracted, NULL, 0, &extract, &error), OFFICEIMO_OK);
+    if (extract) {
+        json = facts(extract);
+        expect(has(json, "width", "612") && !has(json, "number", "2"), "the extract is not the blank page", json);
+        engine_officeimo_free(json);
+        engine_officeimo_document_close(extract);
+    }
+
+    for (int edit = 0; edit < 4; edit++) CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    json = facts(document);
+    expect(has(json, "rotation", "90") && !has(json, "number", "2"), "page edits not undone", json);
+    engine_officeimo_free(json);
+
+    CHECK("search", engine_officeimo_document_search_json(document, "no such words", 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "hits", "[]"), "unexpected search hits", json);
+    engine_officeimo_free(json);
+
+    /* Markup: an ink stroke and a note, listed, changed and removed, then undone back to the rotated page. */
+    CHECK("add ink", engine_officeimo_document_add_annotation_json(document,
+          "{\"tool\":\"ink\",\"page\":1,\"strokes\":[[{\"x\":20,\"y\":20},{\"x\":120,\"y\":60}]],"
+          "\"color\":{\"red\":0.9,\"green\":0.1,\"blue\":0.1},\"strokeWidth\":4,\"opacity\":0.8}", 0, &error), OFFICEIMO_OK);
+    CHECK("add note", engine_officeimo_document_add_annotation_json(document,
+          "{\"tool\":\"note\",\"page\":1,\"bounds\":{\"x\":40,\"y\":40,\"width\":18,\"height\":18},\"text\":\"Journey\"}",
+          0, &error), OFFICEIMO_OK);
+    CHECK("add unknown tool", engine_officeimo_document_add_annotation_json(document, "{\"tool\":\"redact\",\"page\":1}", 0, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
+    CHECK("list annotations", engine_officeimo_document_annotations_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "subtype", "\"Ink\"") && has(json, "contents", "\"Journey\""), "the markup is not listed", json);
+    int note = 0;
+    const char *found = json ? strstr(json, "\"subtype\":\"Text\"") : NULL;
+    for (const char *at = found; at && at > json; at--) {
+        if (strncmp(at, "\"objectNumber\":", 15) == 0) { note = atoi(at + 15); break; }
+    }
+    engine_officeimo_free(json);
+    char update[128];
+    snprintf(update, sizeof update, "{\"objectNumber\":%d,\"contents\":\"Checked\"}", note);
+    CHECK("update note", engine_officeimo_document_update_annotation_json(document, update, 0, &error), OFFICEIMO_OK);
+    CHECK("remove note", engine_officeimo_document_remove_annotation(document, note, 0, &error), OFFICEIMO_OK);
+    CHECK("remove missing", engine_officeimo_document_remove_annotation(document, note, 0, &error), OFFICEIMO_INVALID_ARGUMENT);
+    for (int edit = 0; edit < 4; edit++) CHECK("undo markup", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    CHECK("list after undo", engine_officeimo_document_annotations_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "annotations", "[]"), "markup not undone", json);
+    engine_officeimo_free(json);
+
+    CHECK("save copy", engine_officeimo_document_save(document, copy, 0, &error), OFFICEIMO_OK);
     engine_officeimo_document_close(document);
 
     officeimo_document reopened = 0;
-    check("reopen copy", engine_officeimo_document_open(copy, NULL, 0, &reopened, &error), error, OFFICEIMO_OK);
+    CHECK("reopen copy", engine_officeimo_document_open(copy, NULL, 0, &reopened, &error), OFFICEIMO_OK);
     if (reopened) {
         json = facts(reopened);
         expect(has(json, "rotation", "90") && has(json, "isDirty", "false"), "the saved copy is not rotated", json);

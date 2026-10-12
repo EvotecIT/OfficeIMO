@@ -135,7 +135,9 @@ public sealed partial class PdfReadPage {
     }
 
     // Used only by the raster display path; never return this drawing through a public viewing API.
-    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels) {
+    // reportScaleDependence receives whether the drawing depends on functionShadingScale; one that does not serves any scale.
+    internal OfficeDrawing ToDisplayDrawing(CancellationToken cancellationToken, Action<OfficeDrawing>? configureDrawing = null, double functionShadingScale = 1D, long maximumFunctionPixels = OfficeImageExportOptions.DefaultMaximumRasterPixels,
+        Action<bool>? reportScaleDependence = null) {
         cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputIntentRendering(cancellationToken);
         (double Width, double Height) size = GetVisualPageSize();
@@ -177,6 +179,7 @@ public sealed partial class PdfReadPage {
             registeredFonts: registeredFonts, paintedGlyphMaps: paintedGlyphMaps);
         cancellationToken.ThrowIfCancellationRequested();
 
+        reportScaleDependence?.Invoke(pageContentBudget.UsesFunctionShadingScale);
         return drawing;
     }
 

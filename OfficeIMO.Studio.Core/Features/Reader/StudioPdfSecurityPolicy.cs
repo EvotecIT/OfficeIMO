@@ -14,6 +14,11 @@ internal static class StudioPdfSecurityPolicy {
     // Uncompressed RGBA plus PNG framing, so the pixel budget rather than encoding governs a photographic page.
     internal const long MaximumRasterOutputBytes = MaximumRasterPixels * 4L + 1024L * 1024L;
     internal static readonly TimeSpan RenderTimeout = TimeSpan.FromSeconds(10);
+    // Display rendering keeps the drawings of the pages last shown and their decoded images: a 300 dpi scanned page
+    // and its display-size copy take about 56 MB, so the tiles and zoom levels of the page in view reuse them. Larger
+    // caches raised the peak footprint on scanned documents from 0.9 to 1.8 GB.
+    internal const int DisplayCachedPages = 2;
+    internal const long DisplayImageCacheBytes = 64L * 1024L * 1024L;
 
     internal static PdfLoadOptions CreateLoadOptions(string? password = null) => new() {
         Password = password,

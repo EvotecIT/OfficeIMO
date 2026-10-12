@@ -36,6 +36,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 canvas.DiagnosticSink,
                 canvas.DiagnosticSource,
                 canvas.TransformedTextBudget,
+                canvas.ImageCache,
                 maximumRasterPixels,
                 cancellationToken,
                 out OfficeRasterImage? image) ||

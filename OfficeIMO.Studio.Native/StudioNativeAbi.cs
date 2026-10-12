@@ -56,4 +56,8 @@ internal static class StudioNativeAbi {
 /// <summary>Source-generated JSON for payloads crossing the C interface, so NativeAOT needs no reflection.</summary>
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(StudioNativeDocumentInfo))]
+[JsonSerializable(typeof(StudioNativeSearchResult))]
+[JsonSerializable(typeof(StudioNativeAnnotationRequest))]
+[JsonSerializable(typeof(StudioNativeAnnotationList))]
+[JsonSerializable(typeof(StudioNativeAnnotationUpdate))]
 internal sealed partial class StudioNativeJson : JsonSerializerContext;

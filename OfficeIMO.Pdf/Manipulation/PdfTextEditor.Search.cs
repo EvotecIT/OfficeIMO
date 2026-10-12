@@ -29,10 +29,11 @@ internal static partial class PdfTextEditor {
             int pageNumber = pages[pageIndex];
             PdfReadPage page = document.Pages[pageNumber - 1];
             (double originX, double originY) = page.GetPageBoundaryOrigin();
+            double pageHeight = page.GetPageSize().Height;
             PdfTextSpan[] spans = (includeUnsafeSpans ? page.GetGlyphTextSpans(cancellationToken: cancellationToken) : page.GetTextSpans(cancellationToken))
                 .Where(span => includeUnsafeSpans
                     ? (span.IsVisible || span.TextRenderingMode == 3) && !string.IsNullOrEmpty(span.Text)
-                    : IsSearchSpan(span, snapshot.IncludeTextRenderingMode3))
+                    : IsFindSpan(span, snapshot.IncludeTextRenderingMode3, pageHeight))
                 .ToArray();
             workBudget?.Charge(spans.Length);
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
