@@ -40,7 +40,7 @@ Document behaviour belongs in Studio.Core, and the C interface exposes it. If a 
 
 ## Storage boundary
 
-The app owns every grant to user files. To open a document it resolves the URL, which might come from the document browser, a bookmark, Files or a share. It then starts security-scoped access, passes the path, and keeps access open for the call. The engine never retains access, bookmarks or recent-document lists.
+The app owns every grant to user files. The system's document group reads the user's file, coordinates access, autosaves, keeps versions and handles moves and renames. The engine works on a private working copy in the app's temporary folder, so it never needs access to the user's file. When the system saves, the engine saves the working copy in place on the system's saving thread, and the system writes those bytes to the user's file. Each edit registers an undo with the window's undo manager, which drives the Edit menu, the undo gestures and the edited state. Where the app hands the engine a user file directly, it starts security-scoped access, passes the path and keeps access open for the call. The engine never retains access, bookmarks or recent-document lists.
 
 Saving writes beside the destination and replaces it only once the output is complete, so a failed save leaves the previous file. An in-place save refuses when the file was replaced or moved since it was opened, which can happen with iCloud or another app. The app then offers to save elsewhere or reload. The app wraps saves in its file-coordination and document lifecycle: a coordinated write for replacing, version conflicts and autosave policy are host decisions.
 
@@ -50,7 +50,7 @@ Recovery copies of unsaved edits live under the folder given to `officeimo_initi
 
 The apps follow Apple's Human Interface Guidelines and are built from the system's own components, so they look and behave like the platform and gain its features as it evolves: the system accent color, Dynamic Type, Liquid Glass toolbars, keyboard navigation and VoiceOver. Studio keeps its task names where the platform has no convention, its commands and its document behaviour. Each feature is implemented with the platform framework that provides it rather than carried over from the Avalonia app; a feature a device cannot support properly is left out there rather than imitated.
 
-**Liquid Glass, so macOS, iPadOS and iOS 26 and later.** The apps require the 26 releases, the first with Liquid Glass, and build with the current SDK. Glass belongs to the navigation layer: the sidebar, inspector, toolbars, sheets, menus and popovers are the system's own and float over the page, which runs underneath them. The apps never paint opaque backgrounds behind bars, sidebars or sheets. The few custom floating controls, such as the page indicator and the Pages selection bar, use `glassEffect` inside one `GlassEffectContainer` so they sample the page together. Glass is never applied to content: pages, thumbnails and list rows stay opaque. Tint marks the primary action only. Reduce Transparency, Increase Contrast and Reduce Motion are checked on every screen. The 26 releases also bring the Vision document recognition, background continuation of user-started work and the iPad menu bar that the features below use.
+**Liquid Glass, so macOS, iPadOS and iOS 26 and later.** The apps require the 26 releases, the first with Liquid Glass, and build with the current SDK. Glass belongs to the navigation layer: the sidebar, inspector, toolbars, sheets, menus and popovers are the system's own and float over the page, which runs underneath them. The apps never paint opaque backgrounds behind bars, sidebars or sheets. Actions for a selection, such as rotating the pages chosen in the Pages task, sit in the system toolbar: the bottom bar on iPad and iPhone, the window toolbar on the Mac. The page number that floats over the pages while they scroll is the custom glass control, drawn with `glassEffect`; any further floating controls join it in one `GlassEffectContainer` so they sample the page together. Glass is never applied to content: pages, thumbnails and list rows stay opaque. Tint marks the primary action only. Reduce Transparency, Increase Contrast and Reduce Motion are checked on every screen. The 26 releases also bring the Vision document recognition, background continuation of user-started work and the iPad menu bar that the features below use.
 
 **One document per window.** On the Mac each document has its own window, and the system's window tabs replace Studio's tab bar. On iPad each document is a scene, so documents sit side by side in split view, Stage Manager or separate windows. An iPhone shows one document at a time.
 
@@ -84,6 +84,17 @@ The apps follow Apple's Human Interface Guidelines and are built from the system
 
 Pages render through the engine's pixel rectangles, described under Rendering, so documents look the same as in the desktop Studio. Text selection, search highlights and form fields are system views over the page, which keeps them accessible to VoiceOver and Scribble.
 
+### Delivered screens
+
+The first slice opens PDFs as documents and offers the Read and Pages tasks, on the Mac, iPad and iPhone. Pages show at the width of the widest page and zoom with pinch, double tap, the trackpad and View ▸ Zoom; the page list, inspector, rotation with undo and sharing work in every layout. **New Blank PDF** creates a one-page document at the region's paper size. The iPad and iPhone screens were captured through the development launch harness described in the [app README](../Apple/OfficeIMOStudio/README.md#development-harness), because the simulator's document browser cannot open files on this build host.
+
+| Screen | Image |
+| --- | --- |
+| Mac, Read: the system sidebar, the window toolbar with the task control, zoom, Share and the inspector | ![Mac document window in the Read task](Images/StudioApple/mac-read.jpg) |
+| iPad, Read: sidebar, page and inspector side by side | ![iPad document with the page list and the inspector](Images/StudioApple/ipad-read.jpg) |
+| iPad, Pages: three pages selected, with Rotate Left and Rotate Right in the bottom bar; the page list steps aside | ![iPad Pages task with three pages selected](Images/StudioApple/ipad-pages.jpg) |
+| iPhone, Read: the page fills the width; Pages, the task menu and Share sit in the bottom bar | ![iPhone document in the Read task](Images/StudioApple/iphone-read.jpg) |
+
 ### Features on each platform
 
 | Feature | Mac | iPad | iPhone |
@@ -105,6 +116,8 @@ Pages render through the engine's pixel rectangles, described under Rendering, s
 ## Rendering
 
 The app shows pages with `officeimo_document_render_region`. It renders a rectangle of the page image at a scale as opaque RGBA pixels, which the app wraps in a `CGImage` without copying and releases with `officeimo_free`. A page that fits the 8.4 million pixel budget (`maxRenderPixels` in the document facts) renders as one rectangle. Zooming further renders the visible tiles, which join without seams. The app clamps a whole-page scale to the budget, rounding each side up to whole pixels as the engine does. `officeimo_document_render_page` returns PNG for thumbnails, sharing and export.
+
+The page view is the system's own scroll view: a zooming `UIScrollView` on iPad and iPhone and a magnifying `NSScrollView` on the Mac, so pinch, double tap, smart zoom, scroll indicators and rubber-banding behave as in other apps. The pages are layers laid out in PDF points, and the scroll view scales them. Each visible page has a preview of about 1.2 million pixels under 512-pixel tiles of the visible area at the current zoom. Tiles render nearest the middle of the view first, and those that scroll away are cancelled, which cancels the engine call. While a pinch is in progress the existing images scale; when it ends, tiles render at the new zoom, and those of the previous zoom stay until the new ones cover the view. Previews and tiles away from the visible area are released.
 
 The engine keeps the drawings of the last two pages it rendered for the document's current revision, with up to 64 MiB of their decoded and prefiltered images. Further tiles, zoom levels and repeated views of those pages skip reading and decoding them. A page's drawing serves every zoom level unless the page has function shadings, which are drawn again for each power of two of the scale. Larger caches raised the peak footprint on scanned documents to 1.8 GB. The engine also runs its garbage collector in conserve-memory mode, which compacts the large-object heap sooner after a render's short-lived buffers.
 

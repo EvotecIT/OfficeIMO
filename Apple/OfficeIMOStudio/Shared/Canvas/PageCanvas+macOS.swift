@@ -1,0 +1,160 @@
+#if os(macOS)
+import AppKit
+import SwiftUI
+
+/// The page view: the system's magnifying scroll view over the engine's tiles, with trackpad pinch, smart zoom,
+/// overlay scrollers and the under-page background, running under the toolbar's glass.
+struct PageCanvas: NSViewRepresentable {
+    let session: DocumentSession
+
+    func makeNSView(context: Context) -> PageScrollView {
+        PageScrollView(session: session)
+    }
+
+    func updateNSView(_ view: PageScrollView, context: Context) {
+        if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
+        if let request = session.canvasRequest { view.handle(request) }
+    }
+
+    static func dismantleNSView(_ view: PageScrollView, coordinator: ()) {
+        view.tiles.cancelAll()
+    }
+}
+
+final class PageScrollView: NSScrollView {
+    let tiles = PageTiles()
+    private let session: DocumentSession
+    private let pages = FlippedView()
+    private var handledRequest: UUID?
+    private var laidOutWidth: CGFloat = 0
+    private var fitZoom: CGFloat = 1
+    private var isMagnifying = false
+
+    init(session: DocumentSession) {
+        self.session = session
+        super.init(frame: .zero)
+        contentView = CenteringClipView()
+        contentView.postsBoundsChangedNotifications = true
+        documentView = pages
+        pages.wantsLayer = true
+        pages.layer?.addSublayer(tiles.layer)
+        hasVerticalScroller = true
+        hasHorizontalScroller = true
+        autohidesScrollers = true
+        allowsMagnification = true
+        backgroundColor = .underPageBackgroundColor
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(viewChanged), name: NSView.boundsDidChangeNotification, object: contentView)
+        center.addObserver(self, selector: #selector(magnifyStarted), name: NSScrollView.willStartLiveMagnifyNotification, object: self)
+        center.addObserver(self, selector: #selector(magnifyEnded), name: NSScrollView.didEndLiveMagnifyNotification, object: self)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    func show(_ engine: EngineDocument, facts: DocumentFacts) {
+        let previous = tiles.layout
+        tiles.show(engine, facts: facts)
+        guard tiles.layout != previous else { return }
+        pages.frame = CGRect(origin: .zero, size: tiles.layout.size)
+        laidOutWidth = 0
+        needsLayout = true
+    }
+
+    func handle(_ request: CanvasRequest) {
+        guard request.id != handledRequest else { return }
+        handledRequest = request.id
+        guard laidOutWidth > 0 else { return }
+        switch request.kind {
+        case .showPage(let page): scroll(toPage: page)
+        case .zoomIn: setZoom(magnification * 1.25)
+        case .zoomOut: setZoom(magnification / 1.25)
+        case .actualSize: setZoom(1)
+        case .fitWidth: setZoom(fitZoom)
+        }
+    }
+
+    override func layout() {
+        super.layout()
+        let available = contentSize.width
+        guard tiles.layout.size.width > 0, available > 0 else { return }
+        if available != laidOutWidth {
+            // A new width keeps the page and the zoom relative to the width.
+            let page = session.currentPage
+            laidOutWidth = available
+            fitZoom = available / tiles.layout.size.width
+            minMagnification = min(fitZoom / 2, 0.25)
+            maxMagnification = max(fitZoom * 4, 8)
+            magnification = min(max(fitZoom * session.zoomToFit, minMagnification), maxMagnification)
+            scroll(toPage: page)
+        }
+        updateTiles()
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        updateTiles()
+    }
+
+    // MARK: Zoom and position
+
+    @objc private func magnifyStarted() {
+        isMagnifying = true
+    }
+
+    @objc private func magnifyEnded() {
+        isMagnifying = false
+        settleZoom()
+    }
+
+    @objc private func viewChanged() {
+        updateTiles()
+        var visible = pages.visibleRect
+        let hidden = contentInsets.top / magnification
+        visible.origin.y += hidden
+        visible.size.height -= hidden
+        let page = tiles.layout.mostVisiblePage(in: visible)
+        if page != session.currentPage { session.currentPage = page }
+    }
+
+    private func setZoom(_ scale: CGFloat) {
+        let visible = pages.visibleRect
+        setMagnification(min(max(scale, minMagnification), maxMagnification), centeredAt: CGPoint(x: visible.midX, y: visible.midY))
+        settleZoom()
+    }
+
+    private func settleZoom() {
+        session.zoomToFit = magnification / fitZoom
+        session.zoom = magnification
+        updateTiles()
+    }
+
+    private func scroll(toPage page: Int) {
+        guard tiles.layout.frames.indices.contains(page - 1) else { return }
+        let top = tiles.layout.frames[page - 1].minY - PageLayout.spacing / 2 - contentInsets.top / magnification
+        contentView.scroll(to: CGPoint(x: contentView.bounds.minX, y: top))
+        reflectScrolledClipView(contentView)
+    }
+
+    private func updateTiles() {
+        guard let window else { return }
+        tiles.update(visible: pages.visibleRect, pixelsPerPoint: magnification * window.backingScaleFactor, settled: !isMagnifying)
+    }
+}
+
+/// The pages' coordinates start at the top left, as the page layout does.
+final class FlippedView: NSView {
+    override var isFlipped: Bool { true }
+}
+
+/// Centers pages narrower than the window instead of pinning them to the left edge.
+final class CenteringClipView: NSClipView {
+    override func constrainBoundsRect(_ proposedBounds: NSRect) -> NSRect {
+        var rect = super.constrainBoundsRect(proposedBounds)
+        if let documentView, rect.width > documentView.frame.width {
+            rect.origin.x = (documentView.frame.width - rect.width) / 2
+        }
+        return rect
+    }
+}
+#endif

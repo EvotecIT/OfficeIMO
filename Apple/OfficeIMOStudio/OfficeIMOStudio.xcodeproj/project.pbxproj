@@ -8,41 +8,26 @@
 
 /* Begin PBXBuildFile section */
 		08F465566326AAB23F406995 /* OfficeIMOStudioEngine.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 744C6D6DCDC1444106D67154 /* OfficeIMOStudioEngine.xcframework */; };
-		2A3F2CE1779AE609E6D39380 /* OfficeIMOStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44357522336B7CF5DF053C6C /* OfficeIMOStudioApp.swift */; };
-		38602898CBA35C628549F836 /* JourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F9A9DB9CA03FFED5C70EDDA /* JourneyView.swift */; };
 		538629D397907399E1A3DC21 /* OfficeIMOStudioEngine.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 744C6D6DCDC1444106D67154 /* OfficeIMOStudioEngine.xcframework */; };
-		568D65E83D8B06D3E36A5105 /* MeasurementRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E0A01A44A33D553166483C6 /* MeasurementRunner.swift */; };
-		6283BCC688879A165E1072AC /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26EF35EE5E60B43626DA4952 /* Engine.swift */; };
 		6E42C6365CF7857B3D1AEE09 /* openpreserve-high-resolution-image.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 4CEF581811D5DF1947C9AAA3 /* openpreserve-high-resolution-image.pdf */; };
 		8DC83AFE80180208022E0D02 /* openpreserve-high-resolution-image.pdf in Resources */ = {isa = PBXBuildFile; fileRef = 4CEF581811D5DF1947C9AAA3 /* openpreserve-high-resolution-image.pdf */; };
-		8EDCEAAF5FEFB2F9C0282529 /* PageImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F5436ADABDC44E06FAB110 /* PageImage.swift */; };
-		9DD2A4A4BD0A84400C1D64B2 /* EngineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C633D2F7774D583031D82D /* EngineDocument.swift */; };
-		A079E9E733CF66E667BBB9A6 /* PageImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F5436ADABDC44E06FAB110 /* PageImage.swift */; };
-		A32730701B16F2357C0CAEB0 /* ProcessMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2779439C8F5FC7A7A3A63E3F /* ProcessMetrics.swift */; };
-		A7EFD31536D10147F3B0D132 /* JourneyModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6585E070739B4077B71272F1 /* JourneyModel.swift */; };
-		A8DFB28CF8A4E670F082FA77 /* OfficeIMOStudioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44357522336B7CF5DF053C6C /* OfficeIMOStudioApp.swift */; };
-		B3F00869658040FE652C3F34 /* MeasurementRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E0A01A44A33D553166483C6 /* MeasurementRunner.swift */; };
-		BBD1F2E3330ED430C4B55F80 /* ProcessMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2779439C8F5FC7A7A3A63E3F /* ProcessMetrics.swift */; };
-		BDD117CBC55D66B5D2112840 /* JourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F9A9DB9CA03FFED5C70EDDA /* JourneyView.swift */; };
-		D5DEF6111DCE61D644E0513E /* JourneyModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6585E070739B4077B71272F1 /* JourneyModel.swift */; };
-		E61CFCA0642F11C550DB88DF /* EngineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C633D2F7774D583031D82D /* EngineDocument.swift */; };
-		FAC5F566448A3CB6AEA235C1 /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26EF35EE5E60B43626DA4952 /* Engine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0E0A01A44A33D553166483C6 /* MeasurementRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasurementRunner.swift; sourceTree = "<group>"; };
+		5A1C0DE00000000000000002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1D3D4698741A1FBD4A08E396 /* OfficeIMOStudio-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "OfficeIMOStudio-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		1D9367C71980B27D5F168EDC /* OfficeIMOStudio-macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "OfficeIMOStudio-macOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		26EF35EE5E60B43626DA4952 /* Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine.swift; sourceTree = "<group>"; };
-		2779439C8F5FC7A7A3A63E3F /* ProcessMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMetrics.swift; sourceTree = "<group>"; };
-		2F9A9DB9CA03FFED5C70EDDA /* JourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyView.swift; sourceTree = "<group>"; };
-		44357522336B7CF5DF053C6C /* OfficeIMOStudioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfficeIMOStudioApp.swift; sourceTree = "<group>"; };
 		4CEF581811D5DF1947C9AAA3 /* openpreserve-high-resolution-image.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; name = "openpreserve-high-resolution-image.pdf"; path = "../../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf"; sourceTree = "<group>"; };
-		6585E070739B4077B71272F1 /* JourneyModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyModel.swift; sourceTree = "<group>"; };
 		744C6D6DCDC1444106D67154 /* OfficeIMOStudioEngine.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = OfficeIMOStudioEngine.xcframework; path = Engine/OfficeIMOStudioEngine.xcframework; sourceTree = "<group>"; };
-		77C633D2F7774D583031D82D /* EngineDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineDocument.swift; sourceTree = "<group>"; };
-		79F5436ADABDC44E06FAB110 /* PageImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageImage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		5A1C0DE00000000000000001 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		729321FA8126A02096428377 /* Frameworks */ = {
@@ -64,36 +49,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0659C566C3255D6AC6F5F5F6 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				44357522336B7CF5DF053C6C /* OfficeIMOStudioApp.swift */,
-				DE043AE8A62EEBBA799FF877 /* Engine */,
-				41707402BB05F283DA18F34D /* Journey */,
-				1F6B0D2460BBEF4DB52C68E1 /* Measurement */,
-			);
-			path = Shared;
-			sourceTree = "<group>";
-		};
-		1F6B0D2460BBEF4DB52C68E1 /* Measurement */ = {
-			isa = PBXGroup;
-			children = (
-				0E0A01A44A33D553166483C6 /* MeasurementRunner.swift */,
-				2779439C8F5FC7A7A3A63E3F /* ProcessMetrics.swift */,
-			);
-			path = Measurement;
-			sourceTree = "<group>";
-		};
-		41707402BB05F283DA18F34D /* Journey */ = {
-			isa = PBXGroup;
-			children = (
-				6585E070739B4077B71272F1 /* JourneyModel.swift */,
-				2F9A9DB9CA03FFED5C70EDDA /* JourneyView.swift */,
-				79F5436ADABDC44E06FAB110 /* PageImage.swift */,
-			);
-			path = Journey;
-			sourceTree = "<group>";
-		};
 		5867D7135AACEBD8E7FB64C7 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -123,19 +78,11 @@
 			isa = PBXGroup;
 			children = (
 				6EEB137C576E4D03CCB84B48 /* Resources */,
-				0659C566C3255D6AC6F5F5F6 /* Shared */,
+				5A1C0DE00000000000000001 /* Shared */,
+				5A1C0DE00000000000000002 /* Info.plist */,
 				5867D7135AACEBD8E7FB64C7 /* Frameworks */,
 				7D3969DC5087561F1C3365C7 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		DE043AE8A62EEBBA799FF877 /* Engine */ = {
-			isa = PBXGroup;
-			children = (
-				26EF35EE5E60B43626DA4952 /* Engine.swift */,
-				77C633D2F7774D583031D82D /* EngineDocument.swift */,
-			);
-			path = Engine;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -152,6 +99,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5A1C0DE00000000000000001 /* Shared */,
 			);
 			name = "OfficeIMOStudio-macOS";
 			packageProductDependencies = (
@@ -172,6 +122,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				5A1C0DE00000000000000001 /* Shared */,
+			);
 			name = "OfficeIMOStudio-iOS";
 			packageProductDependencies = (
 			);
@@ -186,7 +139,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					2152B47C0BE552FCE71329A6 = {
 						DevelopmentTeam = 8ZPGZ79T7J;
@@ -242,14 +195,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6283BCC688879A165E1072AC /* Engine.swift in Sources */,
-				9DD2A4A4BD0A84400C1D64B2 /* EngineDocument.swift in Sources */,
-				A7EFD31536D10147F3B0D132 /* JourneyModel.swift in Sources */,
-				BDD117CBC55D66B5D2112840 /* JourneyView.swift in Sources */,
-				568D65E83D8B06D3E36A5105 /* MeasurementRunner.swift in Sources */,
-				A8DFB28CF8A4E670F082FA77 /* OfficeIMOStudioApp.swift in Sources */,
-				8EDCEAAF5FEFB2F9C0282529 /* PageImage.swift in Sources */,
-				BBD1F2E3330ED430C4B55F80 /* ProcessMetrics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -257,14 +202,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FAC5F566448A3CB6AEA235C1 /* Engine.swift in Sources */,
-				E61CFCA0642F11C550DB88DF /* EngineDocument.swift in Sources */,
-				D5DEF6111DCE61D644E0513E /* JourneyModel.swift in Sources */,
-				38602898CBA35C628549F836 /* JourneyView.swift in Sources */,
-				B3F00869658040FE652C3F34 /* MeasurementRunner.swift in Sources */,
-				2A3F2CE1779AE609E6D39380 /* OfficeIMOStudioApp.swift in Sources */,
-				A079E9E733CF66E667BBB9A6 /* PageImage.swift in Sources */,
-				A32730701B16F2357C0CAEB0 /* ProcessMetrics.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -349,6 +286,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "OfficeIMO Studio";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -415,6 +353,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "OfficeIMO Studio";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
@@ -434,6 +373,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"Engine\"",
@@ -442,6 +382,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportsDocumentBrowser = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -479,6 +420,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"Engine\"",
@@ -487,6 +429,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportsDocumentBrowser = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -173,6 +173,16 @@ actor EngineDocument {
         }
     }
 
+    /// Saves in place from a thread outside the actor, after any call already running. The system's document saving
+    /// is synchronous and runs on its own thread, so it waits here rather than awaiting the actor.
+    nonisolated func saveInPlaceAndWait() throws {
+        dispatchPrecondition(condition: .notOnQueue(queue))
+        try queue.sync {
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_document_save(handle, nil, 0, &error), error)
+        }
+    }
+
     /// Saves in place when url is nil, otherwise to url, which becomes the document's location. A failed save leaves
     /// the previous file intact.
     func save(to url: URL? = nil) async throws {

@@ -2,8 +2,8 @@ import CoreGraphics
 import Foundation
 import Observation
 
-/// The engine journey: initialize, open a bundled PDF, show page 1, rotate, undo, redo and save a copy. The same
-/// steps run from the toolbar one at a time.
+/// The engine journey for unattended runs: initialize, open a bundled PDF, show page 1, rotate, undo, redo and save a
+/// copy.
 @MainActor @Observable
 final class JourneyModel {
     struct Step: Identifiable, Codable, Sendable {
@@ -17,8 +17,6 @@ final class JourneyModel {
     struct LaunchTiming: Codable, Sendable {
         /// From process start to the app's initializer.
         var processToApp: Double?
-        /// From process start to the first view appearing.
-        var processToFirstView: Double?
         /// The first call into the library, which starts its runtime.
         var engineFirstCall: Double?
         var engineInitialize: Double?
@@ -39,13 +37,6 @@ final class JourneyModel {
 
     init() {
         if let start = ProcessMetrics.processStart() { launch.processToApp = Date().timeIntervalSince(start) * 1000 }
-    }
-
-    var canEdit: Bool { document != nil && !isBusy }
-
-    func firstViewAppeared() {
-        guard launch.processToFirstView == nil, let start = ProcessMetrics.processStart() else { return }
-        launch.processToFirstView = Date().timeIntervalSince(start) * 1000
     }
 
     /// Starts the engine: the first call starts its runtime, then the app names its data folder.
@@ -104,39 +95,7 @@ final class JourneyModel {
         try? folders.write(JourneyReport(steps: steps, launch: launch, engineVersion: engineVersion), to: "journey.json")
     }
 
-    func rotate() async { await perform("rotate page 1") { try await $0.rotatePages([1], degrees: 90) } }
-    func undo() async { await perform("undo") { try await $0.undo() } }
-    func redo() async { await perform("redo") { try await $0.redo() } }
-
-    func saveCopy() async {
-        guard let document, !isBusy else { return }
-        isBusy = true
-        defer { isBusy = false }
-        let copy = folders.journey.appending(path: "copy-\(Int(Date().timeIntervalSince1970)).pdf")
-        do {
-            let (_, elapsed) = try await measure { try await document.save(to: copy) }
-            try await refreshFacts()
-            record("save copy", elapsed, true, copy.lastPathComponent)
-        } catch {
-            record("save copy", 0, false, error.localizedDescription)
-        }
-    }
-
     // MARK: Steps
-
-    private func perform(_ name: String, _ change: (EngineDocument) async throws -> Void) async {
-        guard let document, !isBusy else { return }
-        isBusy = true
-        defer { isBusy = false }
-        do {
-            let (_, elapsed) = try await measure { try await change(document) }
-            try await refreshFacts()
-            record(name, elapsed, true, "revision \(facts?.revision ?? 0)")
-            try await show(page: 1, step: "render page 1")
-        } catch {
-            record(name, 0, false, error.localizedDescription)
-        }
-    }
 
     private func edit(_ name: String, _ change: (EngineDocument) async throws -> Void, expect: (DocumentFacts) -> Bool) async throws {
         guard let document else { return }

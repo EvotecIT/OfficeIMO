@@ -35,7 +35,8 @@ struct DisplayTarget: Codable, Sendable {
         // A document window on a Mac rather than the whole display.
         DisplayTarget(scale: Double(NSScreen.main?.backingScaleFactor ?? 2), widthPoints: 900, heightPoints: 1000)
         #else
-        let screen = UIScreen.main
+        let screen = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen }.first
+        guard let screen else { return DisplayTarget(scale: 3, widthPoints: 402, heightPoints: 874) }
         return DisplayTarget(scale: Double(screen.scale), widthPoints: Double(min(screen.bounds.width, screen.bounds.height)),
                              heightPoints: Double(max(screen.bounds.width, screen.bounds.height)))
         #endif
