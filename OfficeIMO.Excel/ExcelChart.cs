@@ -504,7 +504,7 @@ namespace OfficeIMO.Excel {
 
             long fromOffset = ParseEmuOffset(horizontal ? anchor.FromMarker.ColumnOffset?.Text : anchor.FromMarker.RowOffset?.Text);
             long toOffset = ParseEmuOffset(horizontal ? anchor.ToMarker.ColumnOffset?.Text : anchor.ToMarker.RowOffset?.Text);
-            double maximumDigitWidth = GetDefaultMaximumDigitWidth(worksheetPart);
+            double maximumDigitWidth = ExcelColumnGeometry.GetMaximumDigitWidth(worksheetPart);
             long basePixels = 0L;
             for (int index = from; index < to; index++) {
                 basePixels += horizontal
@@ -516,39 +516,6 @@ namespace OfficeIMO.Excel {
             long totalPixels = Math.Max(1L, basePixels + offsetPixels);
             pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, totalPixels));
             return pixels > 0;
-        }
-
-        private static double GetDefaultMaximumDigitWidth(WorksheetPart? worksheetPart) {
-            const double fallbackMaximumDigitWidth = 7D;
-            try {
-                WorkbookPart? workbookPart = worksheetPart?.GetParentParts().OfType<WorkbookPart>().FirstOrDefault();
-                DocumentFormat.OpenXml.Spreadsheet.Font? font = workbookPart?.WorkbookStylesPart?.Stylesheet?.Fonts?
-                    .Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
-                    .FirstOrDefault();
-                string? fontName = font?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.FontName>()?.Val?.Value;
-                if (string.IsNullOrWhiteSpace(fontName)) {
-                    return fallbackMaximumDigitWidth;
-                }
-
-                double fontSize = font!.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.FontSize>()?.Val?.Value ?? 11D;
-                OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
-                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Bold>() != null) {
-                    fontStyle |= OfficeFontStyle.Bold;
-                }
-
-                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Italic>() != null) {
-                    fontStyle |= OfficeFontStyle.Italic;
-                }
-
-                if (font.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Underline>() != null) {
-                    fontStyle |= OfficeFontStyle.Underline;
-                }
-
-                float maximumDigitWidth = ExcelTextMeasurer.Create(new OfficeFontInfo(fontName, fontSize, fontStyle)).DefaultStyle.MaximumDigitWidth;
-                return maximumDigitWidth > 0.0001f ? maximumDigitWidth : fallbackMaximumDigitWidth;
-            } catch {
-                return fallbackMaximumDigitWidth;
-            }
         }
 
         private static int ParseOneBasedMarker(string? value, int maximum) {
