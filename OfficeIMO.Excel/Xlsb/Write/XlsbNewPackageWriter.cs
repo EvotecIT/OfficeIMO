@@ -22,11 +22,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet[] sheets = document.Sheets.ToArray();
             ValidateWorkbook(document, sheets);
             Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-            byte[]? stylesPart = null;
-            int cellFormatCount = 1;
-            if (stylesheet != null) {
-                stylesPart = XlsbStylesheetPartWriter.Create(stylesheet, out cellFormatCount);
-            }
+            byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out int cellFormatCount);
             var worksheetParts = new byte[sheets.Length][];
             var hyperlinkPlans = new XlsbWorksheetHyperlinkPlan[sheets.Length];
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
@@ -81,7 +77,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
                 // Validate temporal styles and shared strings before touching the destination.
                 Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-                byte[]? stylesPart = stylesheet == null ? null : XlsbStylesheetPartWriter.Create(stylesheet, out _);
+                byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _);
                 ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
@@ -115,7 +111,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 // Dates can add styles and text can populate the shared-string table
                 // while emitting rows. Finalize every dependent part before publication.
                 Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
-                byte[]? stylesPart = stylesheet == null ? null : XlsbStylesheetPartWriter.Create(stylesheet, out _);
+                byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _);
                 ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 WriteDirectTabularWorkbookEntries(archive, document, source.SheetName,
