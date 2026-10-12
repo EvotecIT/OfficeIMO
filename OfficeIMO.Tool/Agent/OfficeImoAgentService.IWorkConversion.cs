@@ -40,7 +40,7 @@ internal sealed partial class OfficeImoAgentService {
             source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, CancellationToken.None,
                 Math.Min(maximumInputBytes, settings.ReadOptions.MaximumPackageBytes));
         return new AgentConvertResult {
-            SourceId = source?.SourceId ?? string.Empty, SourcePath = input, OutputPath = workflow.OutputPath ?? destination,
+            SourceId = source?.SourceId ?? string.Empty, SourcePath = input, OutputPath = workflow.OutputPath ?? string.Empty,
             Format = format.ToLowerInvariant(), LengthBytes = workflow.OutputBytes, Sha256 = workflow.OutputSha256 ?? string.Empty,
             DiagnosticCount = workflow.Diagnostics.Count, Workflow = workflow,
             SourceSha256 = workflow.Diagnostics.FirstOrDefault(diagnostic => diagnostic.Code == "SourceSnapshot")?.Details.GetValueOrDefault("sha256")

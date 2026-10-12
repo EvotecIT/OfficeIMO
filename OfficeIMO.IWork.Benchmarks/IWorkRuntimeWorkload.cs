@@ -100,7 +100,7 @@ public sealed partial class IWorkRuntimeWorkload {
             using var nativeOutput = new MemoryStream(_output, writable: false);
             IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(nativeOutput, IWorkDocumentKind.Keynote).ReadKeynote();
             if (!keynote.HasEditableContent) throw new InvalidDataException("Saved native Keynote content is incomplete.");
-            ValidateText(keynote.Slides.Select(slide => slide.TextBoxes.Single().Content.PlainText), nativeParagraphTerminator: true);
+            ValidateText(keynote.Slides.Select(slide => slide.TextBoxes.Single().Content.PlainText), paragraphTerminator: "\n");
         } else if (_operation == "LoadProject") {
             if (_projection is IWorkPagesProjection pages) {
                 if (!pages.HasEditableContent) throw new InvalidDataException("Pages input is incomplete.");
@@ -122,7 +122,7 @@ public sealed partial class IWorkRuntimeWorkload {
                 if (!keynote.HasEditableContent) throw new InvalidDataException("Keynote input is incomplete: "
                     + string.Join("; ", keynote.Diagnostics.Select(d => d.Code + ": " + d.Message)));
                 ValidateText(keynote.Slides.Select(slide => _createdNativeDocument is null
-                    ? slide.Title : slide.TextBoxes.Single().Content.PlainText), nativeParagraphTerminator: _createdNativeDocument is not null);
+                    ? slide.Title : slide.TextBoxes.Single().Content.PlainText), paragraphTerminator: _createdNativeDocument is not null ? "\n" : string.Empty);
             } else throw new InvalidDataException("Missing projection result.");
         } else if (_operation == "ConvertSave" && _output is { Length: > 0 }) {
             using var saved = new MemoryStream(_output, writable: false);
@@ -146,17 +146,18 @@ public sealed partial class IWorkRuntimeWorkload {
                 VerifiedUnits = rows.Length;
             } else {
                 using PowerPointPresentation document = PowerPointPresentation.Load(saved);
-                ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text), nativeParagraphTerminator: _createdNativeDocument is not null);
+                ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text),
+                    paragraphTerminator: _createdNativeDocument is not null ? Environment.NewLine : string.Empty);
             }
         } else throw new InvalidDataException("Missing saved result.");
         if (VerifiedUnits != _units) throw new InvalidDataException("iWork workload unit count mismatch.");
     }
 
-    private void ValidateText(IEnumerable<string> values, bool nativeParagraphTerminator = false) {
+    private void ValidateText(IEnumerable<string> values, string paragraphTerminator = "") {
         int index = 0;
         foreach (string text in values) {
             index++;
-            string expected = IWorkScaleInput.Text(index) + (nativeParagraphTerminator ? "\n" : string.Empty);
+            string expected = IWorkScaleInput.Text(index) + paragraphTerminator;
             if (text != expected) throw new InvalidDataException(
                 $"iWork text or order mismatch at unit {index}: expected {System.Text.Json.JsonSerializer.Serialize(expected)}, read {System.Text.Json.JsonSerializer.Serialize(text)}.");
         }

@@ -16,7 +16,7 @@ public sealed partial class AgentIWorkConversionTests {
     [InlineData("key", "pptx")]
     [InlineData("key", "pdf")]
     public async Task Authorized_directory_packages_use_all_six_shared_routes_and_captured_source_identity(string kind, string format) {
-        using var files = new Files(true, kind);
+        using var files = new Files(true, kind, noteFreeKeynote: kind == "key" && format == "pdf");
         var registry = new AgentSourceRegistry();
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
         AgentConvertResult result = await service.ConvertAsync(files.Input, files.Output(format), format);
