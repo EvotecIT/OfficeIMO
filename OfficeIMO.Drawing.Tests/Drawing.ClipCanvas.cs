@@ -7,6 +7,40 @@ public partial class DrawingTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void ClipPath_DeclaredCanvasMoveOnlyPathsNeitherPaintNorRevealClippedContent(bool close) {
+        var commands = close ? new[] { OfficePathCommand.MoveTo(5, 5), OfficePathCommand.Close() }
+            : new[] { OfficePathCommand.MoveTo(5, 5) };
+        OfficeShape shape = OfficeShape.Path(20, 20, commands);
+        shape.FillColor = OfficeColor.Red; shape.StrokeColor = OfficeColor.Blue; shape.StrokeWidth = 4;
+        OfficeRasterImage shapeRaster = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(20, 20).AddShape(shape, 0, 0));
+        OfficeClipPath clip = OfficeClipPath.Path(20, 20, commands);
+        var content = OfficeShape.Rectangle(20, 20); content.FillColor = OfficeColor.Red;
+        var inner = new OfficeDrawing(20, 20).AddShape(content, 0, 0);
+        OfficeRasterImage clippedRaster = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(20, 20).AddClippedDrawing(inner, 0, 0, clip));
+        Assert.Equal(commands, shape.Clone().PathCommands);
+        Assert.Equal(commands, clip.Clone().Commands);
+        Assert.All(Enumerable.Range(0, 20), y => Assert.All(Enumerable.Range(0, 20), x => {
+            Assert.Equal(0, shapeRaster.GetPixel(x, y).A);
+            Assert.Equal(0, clippedRaster.GetPixel(x, y).A);
+        }));
+    }
+
+    [Fact]
+    public void ClipPath_ContentSizedMoveOnlyPathsStillCannotInventACanvas() {
+        var commands = new[] { OfficePathCommand.MoveTo(0, 0), OfficePathCommand.MoveTo(20, 20) };
+        Assert.Throws<ArgumentException>(() => OfficeShape.Path(commands));
+        Assert.Throws<ArgumentException>(() => OfficeClipPath.Path(commands));
+    }
+
+    [Fact]
+    public void ClipPath_DeclaredCanvasStillRejectsMissingCommands() {
+        Assert.Throws<ArgumentException>(() => OfficeShape.Path(20, 20, Array.Empty<OfficePathCommand>()));
+        Assert.Throws<ArgumentException>(() => OfficeClipPath.Path(20, 20, Array.Empty<OfficePathCommand>()));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void ClipPath_ZeroAreaDeclaredCanvasDoesNotRevealItsRectangle(bool transformed) {
         var inner = new OfficeDrawing(20, 20).AddShape(new OfficeShape { Kind = OfficeShapeKind.Rectangle, Width = 20, Height = 20, FillColor = OfficeColor.Red }, 0, 0);
         var drawing = new OfficeDrawing(40, 40);

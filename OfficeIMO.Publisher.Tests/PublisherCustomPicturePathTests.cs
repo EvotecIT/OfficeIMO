@@ -4,6 +4,36 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherCustomPicturePathTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void One_point_native_picture_masks_remain_empty_without_revealing_the_image(bool explicitSegments) {
+        byte[] original = PublisherPictureEffectTests.PictureInput(new());
+        var complex = new Dictionary<ushort, byte[]> {
+            [0x145] = PublisherCustomPathTests.Vertices(new[] { (50, 50) })
+        };
+        if (explicitSegments) complex[0x146] = PublisherCustomPathTests.Segments(new ushort[] { 0x4000, 0x8000 });
+        byte[] input = PublisherDrawingFixture.Mutate(original, new() {
+            [0x140] = 0, [0x141] = 0, [0x142] = 100, [0x143] = 100, [0x144] = 1
+        }, 0, complex, 362);
+        var options = new PublisherReadOptions { ImageCodec = new SolidCodec() };
+        PublisherDocument publication = PublisherDocument.Load(input, options);
+        PublisherDocument control = PublisherDocument.Load(original, options);
+        Assert.Equal(control.Images.SelectMany(image => image.GetBytes()), publication.Images.SelectMany(image => image.GetBytes()));
+        OfficeDrawingGroup group = publication.Pages.SelectMany(page => PublisherNativeTests.Elements(page.Drawing))
+            .OfType<OfficeDrawingGroup>().Single(item => item.SourceElementIds?.Contains("publisher-object-362") == true);
+        Assert.Single(group.InnerDrawing.Images);
+        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_CUSTOM_PATH_INVALID");
+        OfficeRasterImage unmasked = OfficeDrawingRasterRenderer.Render(group.InnerDrawing);
+        Assert.True(unmasked.GetPixel(unmasked.Width / 2, unmasked.Height / 2).A > 0);
+        var drawing = new OfficeDrawing(group.ClipPath.Width, group.ClipPath.Height)
+            .AddClippedDrawing(group.InnerDrawing, 0, 0, group.ClipPath);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        Assert.All(Enumerable.Range(0, raster.Height), y =>
+            Assert.All(Enumerable.Range(0, raster.Width), x => Assert.Equal(0, raster.GetPixel(x, y).A)));
+        Assert.Contains("<clipPath", OfficeDrawingSvgExporter.ToSvg(drawing));
+    }
+
+    [Theory]
     [InlineData(4)]
     [InlineData(0xFFF0)]
     public void Compact_picture_masks_keep_high_coordinate_vertices_in_the_visible_frame(int elementSize) {
