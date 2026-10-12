@@ -51,6 +51,7 @@
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\numbers-parser\test-10-formulas.numbers" Link="Documents\IWorkCorpus\numbers-parser\test-10-formulas.numbers" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.numbers" Link="Documents\IWorkCorpus\nim-iwork\simple.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\synthetic\numbers-unpadded-scalar.numbers" Link="Documents\IWorkCorpus\synthetic\numbers-unpadded-scalar.numbers" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\keynotekit\tabledeck-v15.2.1.key" Link="Documents\IWorkCorpus\keynotekit\tabledeck-v15.2.1.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.*"
           Link="Documents\IWorkCorpus\nim-iwork\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

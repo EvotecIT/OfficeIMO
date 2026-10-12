@@ -127,10 +127,12 @@ public sealed partial class AgentIWorkConversionTests {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "officeimo-agent-iwork-" + Guid.NewGuid().ToString("N"));
         public string Input { get; }
         public string Output(string format) => Path.Combine(Root, "output." + format);
-        public Files(bool directoryPackage = false, string kind = "pages", bool noteFreeKeynote = false) {
+        public Files(bool directoryPackage = false, string kind = "pages", bool noteFreeKeynote = false, bool completeNumbers = false) {
             Directory.CreateDirectory(Root);
             Input = Path.Combine(Root, "source." + kind);
-            string fixture = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "nim-iwork", "simple." + kind);
+            string fixture = completeNumbers
+                ? Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "synthetic", "numbers-unpadded-scalar.numbers")
+                : Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "nim-iwork", "simple." + kind);
             if (noteFreeKeynote) {
                 IWorkKeynoteDocument source = IWorkKeynoteDocument.Create();
                 source.AddSlide().AddText("hello keynote", 40, 40, 600, 180, fontSizePoints: 24);
