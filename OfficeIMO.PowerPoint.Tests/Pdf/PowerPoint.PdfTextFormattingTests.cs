@@ -28,6 +28,30 @@ public sealed class PowerPointPdfTextFormattingTests {
         Assert.DoesNotContain(conversion.Report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void EmptyRunsDoNotReportCharacterSpacingLoss(bool visibleText, bool table) {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        string text = visibleText ? "Visible" : string.Empty;
+        PowerPointParagraph paragraph;
+        if (table) {
+            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 10, 10, 200, 40).GetCell(0, 0);
+            cell.Text = text;
+            paragraph = cell.Paragraphs[0];
+        } else {
+            paragraph = slide.AddTextBoxPoints(text, 10, 10, 200, 40).Paragraphs[0];
+        }
+        paragraph.AddText(string.Empty, empty => empty.CharacterSpacingPoints = 1.25);
+        var conversion = presentation.ToPdfDocumentResult();
+        Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
+        Assert.DoesNotContain(conversion.Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+    }
+
     [Fact]
     public void FieldOnlyTextInheritsTrackingAndHonorsAZeroReset() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());

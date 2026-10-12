@@ -4,14 +4,10 @@
 
 Mapped source diagnostics retain the source fidelity category in `Attributes["lossKind"]` (`None`, `Approximation`, `Omission`, `Failure`, or `Unassessed`), alongside available `entryPath` and `recordIdentifier` attributes. Severity remains separate from fidelity; callers do not need to infer loss categories from diagnostic codes.
 
-## Reference from a source checkout
+## Install
 
-For source-based development, reference the handler from the same checkout as the other OfficeIMO projects:
-
-```xml
-<ItemGroup>
-  <ProjectReference Include="../OfficeIMO.Reader.IWork/OfficeIMO.Reader.IWork.csproj" />
-</ItemGroup>
+```sh
+dotnet add package OfficeIMO.Reader.IWork
 ```
 
 ## Read a document

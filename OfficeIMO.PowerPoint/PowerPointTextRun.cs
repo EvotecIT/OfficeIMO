@@ -343,8 +343,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string relationshipId;
-            if (ownerPart is NotesSlidePart
-                && !ReferenceEquals(_slidePart, targetSlidePart)) {
+            if (ownerPart is SlideLayoutPart or SlideMasterPart
+                || ownerPart is NotesSlidePart && !ReferenceEquals(_slidePart, targetSlidePart)) {
                 Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(
                     ownerPart, targetSlidePart);
                 HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships

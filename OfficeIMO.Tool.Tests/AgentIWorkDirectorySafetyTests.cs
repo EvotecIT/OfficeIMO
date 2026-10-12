@@ -7,6 +7,21 @@ using Xunit;
 namespace OfficeIMO.Tool.Tests;
 
 public sealed partial class AgentIWorkConversionTests {
+    [Fact]
+    public async Task Conversion_source_ids_retain_the_admitted_directory_package_limit() {
+        using var files = new Files(true);
+        string member = Path.Combine(files.Input, "extra.bin");
+        using (var padding = File.Create(member)) padding.SetLength(ReaderToolArguments.DefaultMaxInputBytes + 1);
+        var registry = new AgentSourceRegistry();
+        var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
+        AgentConvertResult result = await service.ConvertAsync(files.Input, files.Output("docx"), "docx");
+        Assert.True(result.Workflow!.Succeeded, result.Workflow.Summary);
+        Assert.Equal(result.SourceId, registry.Resolve(result.SourceId).SourceId);
+        Assert.Equal(result.SourceId, registry.Resolve(result.SourceId, files.Input).SourceId);
+        File.WriteAllText(member, "changed");
+        Assert.Throws<AgentUsageException>(() => registry.Resolve(result.SourceId));
+    }
+
     [Theory]
     [InlineData("pages", "markdown", true)]
     [InlineData("numbers", "md", false)]

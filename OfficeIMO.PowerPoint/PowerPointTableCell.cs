@@ -12,14 +12,17 @@ namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTableCell {
         private const int EmusPerPoint = 12700;
         private readonly SlidePart? _slidePart;
+        private readonly OpenXmlPartContainer? _ownerPart;
 
-        internal PowerPointTableCell(TableCell cell, SlidePart? slidePart = null) {
+        internal PowerPointTableCell(TableCell cell, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Cell = cell;
             _slidePart = slidePart;
+            _ownerPart = ownerPart ?? slidePart;
         }
 
         internal TableCell Cell { get; }
         internal SlidePart? SlidePart => _slidePart;
+        internal OpenXmlPartContainer? OwnerPart => _ownerPart;
 
         /// <summary>
         ///     Gets or sets the text contained in the cell.
@@ -64,7 +67,7 @@ namespace OfficeIMO.PowerPoint {
 
                 Cell.TextBody.RemoveAllChildren<A.Paragraph>();
                 Cell.TextBody.Append(paragraph);
-                PowerPointEmbeddedSound.RemoveIfUnused(_slidePart,
+                PowerPointEmbeddedSound.RemoveIfUnused(_ownerPart as OpenXmlPart ?? _slidePart,
                     discardedSoundIds);
             }
         }
@@ -186,7 +189,7 @@ namespace OfficeIMO.PowerPoint {
                 .Elements<A.Paragraph>()
                 .FirstOrDefault()?
                 .Elements<A.Run>()
-                .Select(run => new PowerPointTextRun(run, _slidePart))
+                .Select(run => new PowerPointTextRun(run, _slidePart, _ownerPart))
                 .ToList() ?? new List<PowerPointTextRun>();
 
         /// <summary>
@@ -194,7 +197,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart);
+            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
             configure?.Invoke(wrapper);
             return wrapper;
         }

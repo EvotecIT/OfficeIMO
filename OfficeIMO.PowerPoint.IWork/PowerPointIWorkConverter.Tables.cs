@@ -22,12 +22,15 @@ public static partial class PowerPointIWorkConverter {
         // Native region styles are expanded below. Destination heading and
         // banding flags would add a different theme over those declarations.
         table.ApplyStyle(PowerPointTableStylePreset.Plain);
+        table.StyleId = null;
         var mergedBorders = source.ResolveMergedBorders(cancellationToken).ToDictionary(
             merge => (merge.Range.FirstRow, merge.Range.FirstColumn), merge => merge.Borders);
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int column = 1; column <= source.ColumnCount; column++) {
                 PowerPointTableCell fillTarget = table.GetCell(row - 1, column - 1);
+                fillTarget.NoFill = true;
+                fillTarget.HideBorders(PowerPointTableCellBorders.All);
                 ApplyTableBorders(fillTarget, mergedBorders.TryGetValue((row, column), out var perimeter)
                     ? perimeter : source.GetBorders(row, column));
                 if (source.GetFill(row, column) is { } fill) {

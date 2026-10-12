@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
                     if (children.Count >= maximumChildren) {
                         throw new InvalidOperationException("The shape count exceeds the configured inspection limit.");
                     }
-                    children.Add(shape.AttachTo(this));
+                    children.Add(shape.AttachTo(this, groupShape.OwnerPart));
                 }
             }
 
