@@ -12,6 +12,7 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData("nested", true)]
     [InlineData("image", false)]
     [InlineData("image", true)]
+    [InlineData("image-row", false)]
     public void Panel_BordersRemainVisibleOverDescendantFills(string child, bool rowColumn) {
         var options = new PdfOptions {
             PageWidth = 200, PageHeight = 110, MarginLeft = 20, MarginRight = 20,
@@ -24,9 +25,11 @@ public partial class PdfDocumentVisualQualityTests {
             Background = new PdfColor(1, 1, 0), RepeatFragmentDecoration = false
         };
         void Content(PdfContentBuilder content) => content.Panel(panel => {
-            if (child == "image") {
-                panel.Image(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), 160, 40,
+            if (child.StartsWith("image", StringComparison.Ordinal)) {
+                void Image(PdfContentBuilder target) => target.Image(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), 160, 40,
                     style: new PdfImageStyle { SpacingBefore = 0, SpacingAfter = 0, ScaleDownToFit = false });
+                if (child == "image-row") panel.Row(row => row.PercentColumn(100, Image));
+                else Image(panel);
             } else if (child == "table") {
                 panel.Table(new[] { new[] { "A" }, new[] { "B" } }, style: new PdfTableStyle {
                     HeaderRowCount = 0, FontSize = 10, LineHeight = 2,
@@ -51,7 +54,7 @@ public partial class PdfDocumentVisualQualityTests {
             }))).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
-        if (child != "image") {
+        if (!child.StartsWith("image", StringComparison.Ordinal)) {
             Assert.Contains("A", pdf.GetPage(1).Text, StringComparison.Ordinal);
             Assert.Contains("B", pdf.GetPage(1).Text, StringComparison.Ordinal);
         }
@@ -64,5 +67,30 @@ public partial class PdfDocumentVisualQualityTests {
             Assert.True(border.B > 240 && border.R < 15 && border.G < 15,
                 $"Expected an intact blue panel border at ({x}, {y}); got {border}.");
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Panel_FlowImageKeepsItsDebugBoxAndPlacement(bool panel) {
+        var options = new PdfOptions {
+            PageWidth = 200, PageHeight = 110, MarginLeft = 20, MarginRight = 20,
+            MarginTop = 20, MarginBottom = 20, Debug = new PdfDebugOptions { ShowFlowObjectBoxes = true }
+        };
+        void Image(PdfContentBuilder content) => content.Image(PdfPngTestImages.CreateRgbaPng(255, 0, 0, 255), 40, 20,
+            style: new PdfImageStyle { SpacingBefore = 0, SpacingAfter = 0, Align = PdfAlign.Center, ScaleDownToFit = false });
+        byte[] bytes = PdfDocument.Create(options).Compose(document => document.Page(page => page.Content(content => {
+            if (panel) content.Panel(Image, new PdfPanelStyle { PaddingX = 0, PaddingY = 2, SpacingBefore = 0, SpacingAfter = 0 });
+            else Image(content);
+        }))).ToBytes();
+        PdfImagePlacement placement = Assert.Single(PdfImageExtractor.ExtractImagePlacements(bytes));
+        Assert.Equal(80, placement.X, 3);
+        Assert.Equal(panel ? 68 : 70, placement.Y, 3);
+        Assert.Equal(40, placement.Width, 3);
+        Assert.Equal(20, placement.Height, 3);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes), background: OfficeColor.White);
+        OfficeColor debug = raster.GetPixel(80, 30);
+        Assert.True(debug.R > 64 && debug.B > 64 && debug.G < 32,
+            $"Expected the magenta flow-image debug box; got {debug}.");
     }
 }

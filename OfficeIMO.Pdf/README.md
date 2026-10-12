@@ -349,6 +349,11 @@ fresh page or column moves there as needed.
 Intermediate fragments keep their normal capacity. Content that cannot leave
 closing space even in a fresh frame is rejected.
 
+Panel backgrounds paint behind their content. Borders paint after child fills
+and flow images, so shaded tables and images cannot cover the panel's perimeter
+when padding is zero. Explicit foreground canvas images retain their foreground
+layer.
+
 Use a side border's `PdfPanelBorder.Offset` to move its stroke independently of
 the content frame. Positive point values move it outward and negative values
 move it inward. Offsets preserve text wrapping and padding:

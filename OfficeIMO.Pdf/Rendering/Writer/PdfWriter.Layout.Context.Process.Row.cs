@@ -509,6 +509,10 @@ internal static partial class PdfWriter {
                             else if (imageStyle.Align == PdfAlign.Right) xImg = xCol + Math.Max(0, wCol - ciimg.Width);
                             PageImage pageImage = CreatePageImage(ib2, imageStyle, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             currentPage!.Images.Add(pageImage);
+                            if (activeContainerScopes.Count > 0 || activeGroups.Any(group => group.Decoration != null)) {
+                                pageImage.InlineDrawToken = AllocateInlineImageDrawToken(currentPage!);
+                                sb.Append(pageImage.InlineDrawToken);
+                            }
                             AddImageLinkAnnotation(ib2, imageStyle, pageImage, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             RecordFlowPlacement(yCol);
                             pageDirty = true;

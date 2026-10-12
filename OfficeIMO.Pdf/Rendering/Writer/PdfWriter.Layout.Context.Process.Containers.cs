@@ -242,18 +242,22 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            var decoration = new StringBuilder();
             bool top = scope.Style.RepeatFragmentDecoration || !scope.IsContinuation;
             bool end = scope.Style.RepeatFragmentDecoration || !continues;
             if (scope.Style.Background.HasValue) {
-                DrawRoundedRowFill(decoration, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, top, top, end, end, emitGeneratedStructure);
+                var background = new StringBuilder();
+                DrawRoundedRowFill(background, scope.Style.Background.Value, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, scope.Style.CornerRadius, top, top, end, end, emitGeneratedStructure);
+                sb.Insert(scope.InsertionIndex, background.ToString());
+                pageDirty = true;
             }
 
-            DrawPanelBorder(decoration, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure,
+            // Child fills can reach the perimeter when horizontal padding is zero.
+            // Keep the background behind them and paint the border after the content.
+            int borderStart = sb.Length;
+            DrawPanelBorder(sb, scope.Style, scope.OuterX, bottom, scope.OuterWidth, fragmentHeight, emitGeneratedStructure,
                 top, end && !scope.MoveTrailingSeparatorToNextFrame);
-            DrawContainerTableFrame(decoration, scope, bottom, fragmentHeight, top, end);
-            if (decoration.Length > 0) {
-                sb.Insert(scope.InsertionIndex, decoration.ToString());
+            DrawContainerTableFrame(sb, scope, bottom, fragmentHeight, top, end);
+            if (sb.Length > borderStart) {
                 pageDirty = true;
             }
         }
