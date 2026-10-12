@@ -35,11 +35,15 @@ internal sealed class StudioNativeDocument : IDisposable {
             return new StudioNativeDocumentInfo(
                 StudioNativeAbi.Version, _workspace.FileName, _workspace.Path, _workspace.FileSize, _workspace.Revision,
                 _workspace.IsDirty, _workspace.CanUndo, _workspace.CanRedo, _workspace.RecoveryPath is not null, view.CanExtractText, view.CanExtractContent,
-                _workspace.Pages.Select(page => new StudioNativePageInfo(page.PageNumber, page.Width, page.Height, page.RotationDegrees)).ToArray());
+                _workspace.Pages.Select(page => new StudioNativePageInfo(page.PageNumber, page.Width, page.Height, page.RotationDegrees)).ToArray(),
+                StudioPdfSecurityPolicy.MaximumRasterPixels);
         } finally { _gate.Release(); }
     }
 
-    /// <summary>Renders one page as PNG. Scale is pixels per PDF point; the host applies its display scale.</summary>
+    /// <summary>
+    /// Renders one page as PNG. Scale is pixels per PDF point; the host applies its display scale and keeps the page
+    /// within <see cref="StudioPdfSecurityPolicy.MaximumRasterPixels"/>, refused otherwise as an invalid argument.
+    /// </summary>
     internal async Task<PdfRenderedPage> RenderPageAsync(int pageNumber, double scale, CancellationToken cancellationToken) {
         if (!double.IsFinite(scale) || scale <= 0D) throw new ArgumentOutOfRangeException(nameof(scale), "The scale must be a positive number.");
         await EnterAsync(cancellationToken).ConfigureAwait(false);
@@ -96,6 +100,6 @@ internal sealed class StudioNativeDocument : IDisposable {
 
 internal sealed record StudioNativeDocumentInfo(
     int AbiVersion, string FileName, string Path, long FileSize, long Revision, bool IsDirty, bool CanUndo, bool CanRedo, bool HasRecovery,
-    bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages);
+    bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);

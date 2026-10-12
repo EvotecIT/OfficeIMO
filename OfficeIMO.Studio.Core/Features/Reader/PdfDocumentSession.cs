@@ -103,11 +103,8 @@ internal sealed class PdfDocumentSession {
         return await Task.Run(() => {
             cancellationToken.ThrowIfCancellationRequested();
             if (!ViewInfo.CanExtractContent) {
-                PdfPageInfo info = Pages[pageNumber - 1];
-                bool rotated = Math.Abs(info.RotationDegrees) % 180 == 90;
-                double width = (info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D);
-                double height = (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D);
-                var display = new OfficeIMO.Drawing.OfficeDrawing(rotated ? height : width, rotated ? width : height);
+                (double width, double height) = GetDisplaySize(pageNumber);
+                var display = new OfficeIMO.Drawing.OfficeDrawing(width, height);
                 PdfPageInteractionMap? annotationInteractions = _canEditAnnotations
                     ? _document.Annotations.GetEditingInteractions(pageNumber) : null;
                 return new PdfPageScene(pageNumber, display, annotationInteractions, [], RequiresRasterFallback: true);
@@ -159,6 +156,19 @@ internal sealed class PdfDocumentSession {
         return new PdfDocumentSession(fullPath, file.Name, file.Length, document, documentInfo);
     }
 
+    /// <summary>The page as displayed, in points: its effective box at the page's user unit, rotated.</summary>
+    internal (double Width, double Height) GetDisplaySize(int pageNumber) {
+        PdfPageInfo info = Pages[pageNumber - 1];
+        bool rotated = Math.Abs(info.RotationDegrees) % 180 == 90;
+        double width = (info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D);
+        double height = (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D);
+        return rotated ? (height, width) : (width, height);
+    }
+
+    /// <summary>
+    /// Renders a page as PNG. The page image stays within <see cref="StudioPdfSecurityPolicy.MaximumRasterPixels"/>;
+    /// a larger scale is refused before any page content is read.
+    /// </summary>
     internal async Task<PdfRenderedPage> RenderPageAsync(
         int pageNumber,
         double scale,
@@ -166,13 +176,20 @@ internal sealed class PdfDocumentSession {
         if (pageNumber <= 0 || pageNumber > Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
+        (double displayWidth, double displayHeight) = GetDisplaySize(pageNumber);
+        double pixels = Math.Ceiling(displayWidth * scale) * Math.Ceiling(displayHeight * scale);
+        if (!(pixels <= StudioPdfSecurityPolicy.MaximumRasterPixels)) {
+            throw new ArgumentOutOfRangeException(nameof(scale), scale,
+                $"At this scale the page needs {pixels:N0} pixels; pages render at up to {StudioPdfSecurityPolicy.MaximumRasterPixels:N0}.");
+        }
 
         var options = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
             Scale = scale,
             MaxPages = 1,
-            ContinueOnError = true,
-            MaxPixelsPerPage = StudioPdfSecurityPolicy.MaximumRasterPixels,
+            // One page: its failure, such as a read or pixel limit, reaches the host as the typed exception.
+            ContinueOnError = false,
+            MaxPixelsPerPage = StudioPdfSecurityPolicy.MaximumRenderWorkingPixels,
             RenderTimeout = StudioPdfSecurityPolicy.RenderTimeout,
             MaxTotalOutputBytes = StudioPdfSecurityPolicy.MaximumRasterOutputBytes,
             MaxOutputBytesPerPage = StudioPdfSecurityPolicy.MaximumRasterOutputBytes
@@ -183,7 +200,7 @@ internal sealed class PdfDocumentSession {
             result = await Task.Run(() => _document.Render.DisplayPage(pageNumber,
                 new PdfPageDisplayOptions {
                     Scale = scale,
-                    MaximumPixels = StudioPdfSecurityPolicy.MaximumRasterPixels,
+                    MaximumPixels = StudioPdfSecurityPolicy.MaximumRenderWorkingPixels,
                     MaximumOutputBytes = options.MaxOutputBytesPerPage,
                     Timeout = StudioPdfSecurityPolicy.RenderTimeout
                 }, cancellationToken),

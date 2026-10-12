@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Native;
 
@@ -88,6 +89,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
             using (JsonDocument facts = JsonDocument.Parse(Take(json))) {
                 Assert.Equal(StudioNativeAbi.Version, facts.RootElement.GetProperty("abiVersion").GetInt32());
                 Assert.Equal(1, facts.RootElement.GetProperty("pages").GetArrayLength());
+                Assert.Equal(StudioPdfSecurityPolicy.MaximumRasterPixels, facts.RootElement.GetProperty("maxRenderPixels").GetInt64());
             }
 
             byte* png = null; nuint length = 0; int width = 0, height = 0;
@@ -97,6 +99,11 @@ public sealed class StudioNativeEngineTests : IDisposable {
             free(png);
 
             Assert.Equal(StudioNativeAbi.InvalidArgument, render(document, 5, 1D, 0, &png, &length, null, null, &error));
+            Assert.True(png is null);
+            Take(error);
+
+            // A page image beyond the pixel budget is the host's argument to correct, not an engine failure.
+            Assert.Equal(StudioNativeAbi.InvalidArgument, render(document, 1, 20D, 0, &png, &length, null, null, &error));
             Assert.True(png is null);
             Take(error);
 

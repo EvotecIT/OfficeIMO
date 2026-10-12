@@ -63,13 +63,18 @@ void officeimo_document_close(officeimo_document document);
 /*
  * Document facts as JSON:
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
- *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ] }
- * hasRecovery reports unsaved edits kept from an earlier session for this file.
+ *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
+ *   "maxRenderPixels" }
+ * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
+ * image officeimo_document_render_page produces.
  * Width and height are in PDF points before rotation. The revision changes with every edit, undo and redo.
  */
 int32_t officeimo_document_info_json(officeimo_document document, char **json, char **error);
 
-/* Renders a page as PNG bytes at scale pixels per point. pixel_width and pixel_height may be NULL. */
+/*
+ * Renders a page as PNG bytes at scale pixels per point. pixel_width and pixel_height may be NULL. A scale whose page
+ * image would exceed maxRenderPixels fails with OFFICEIMO_INVALID_ARGUMENT; the host renders a smaller scale.
+ */
 int32_t officeimo_document_render_page(officeimo_document document, int32_t page, double scale,
                                        officeimo_cancellation cancellation, uint8_t **png, size_t *length,
                                        int32_t *pixel_width, int32_t *pixel_height, char **error);
