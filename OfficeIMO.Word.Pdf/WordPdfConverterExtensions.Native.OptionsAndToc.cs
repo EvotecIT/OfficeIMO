@@ -145,7 +145,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap) {
             string? optionFontFamily = options?.FontFamily;
             if (!string.IsNullOrWhiteSpace(optionFontFamily) &&
-                TryApplyNativeDefaultFontCandidate(optionFontFamily, pdfOptions, embedSystemFont: allowSystemFontEmbedding)) {
+                TryApplyNativeDefaultFontCandidate(optionFontFamily, pdfOptions, embedSystemFont: allowSystemFontEmbedding,
+                    replaceBodyResources: true)) {
                 RegisterAppliedNativeDefaultFont(optionFontFamily!, pdfOptions, nativeFontMap, allowSystemFontEmbedding);
                 return true;
             }
@@ -265,12 +266,13 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool TryApplyNativeDefaultFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
+        private static bool TryApplyNativeDefaultFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont,
+            bool requireEmbeddedFont = false, bool replaceBodyResources = false) {
             if (string.IsNullOrWhiteSpace(familyName)) {
                 return false;
             }
 
-            return pdfOptions.TryUseInheritedOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
+            return pdfOptions.TryUseInheritedOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont, replaceBodyResources);
         }
 
         private static HashSet<PdfCore.PdfStandardFont> RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {

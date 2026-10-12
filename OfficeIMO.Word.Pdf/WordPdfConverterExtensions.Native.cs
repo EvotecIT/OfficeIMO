@@ -241,9 +241,13 @@ namespace OfficeIMO.Word.Pdf {
                         if (preserveSectionPageCounts) pdf.BeginRunningContentSection(currentSectionIndex);
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
-                        RenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
+
+                        if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap)) {
+                            RenderNativeFootnotes(flow, footnotes);
+                            continue;
+                        }
 
                         if (TryRenderNativeSectionColumns(
                             page,
