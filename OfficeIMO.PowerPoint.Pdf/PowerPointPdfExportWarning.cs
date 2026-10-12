@@ -13,7 +13,7 @@ public sealed class PowerPointPdfExportWarning {
     /// <summary>Creates a PowerPoint-to-PDF export warning with a reusable layout diagnostic.</summary>
     public PowerPointPdfExportWarning(int slideNumber, string code, string message, PdfCore.PdfLayoutDiagnostic? layoutDiagnostic)
         : this(slideNumber, code, message, layoutDiagnostic,
-            layoutDiagnostic?.Kind == PdfCore.PdfLayoutDiagnosticKind.SkippedContent
+            layoutDiagnostic?.Kind is PdfCore.PdfLayoutDiagnosticKind.SkippedContent or PdfCore.PdfLayoutDiagnosticKind.ClippedContent
                 ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.Approximation) { }
 
     /// <summary>Creates a warning that preserves the renderer's typed fidelity impact.</summary>

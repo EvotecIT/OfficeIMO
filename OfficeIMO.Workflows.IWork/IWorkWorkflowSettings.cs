@@ -22,13 +22,21 @@ public sealed class IWorkWorkflowSettings : IOfficeWorkflowConversionSettings {
     public PowerPointToPdfOptions KeynotePdfOptions { get; set; } = new() { IncludeHiddenSlides = true };
 
     /// <summary>Validates and copies all mutable options for one request.</summary>
-    public IWorkWorkflowSettings Clone() => new() {
-        ReadOptions = (ReadOptions ?? throw new ArgumentException("iWork read options cannot be null.")).Clone(),
-        ConversionOptions = (ConversionOptions ?? throw new ArgumentException("iWork conversion options cannot be null.")).Clone(),
-        PagesPdfOptions = (PagesPdfOptions ?? throw new ArgumentException("Pages PDF options cannot be null.")).Clone(),
-        NumbersPdfOptions = (NumbersPdfOptions ?? throw new ArgumentException("Numbers PDF options cannot be null.")).Clone(),
-        KeynotePdfOptions = (KeynotePdfOptions ?? throw new ArgumentException("Keynote PDF options cannot be null.")).Clone()
-    };
+    /// <exception cref="NotSupportedException">Registered PDF options request encryption. Use the PDF protection workflow after conversion.</exception>
+    public IWorkWorkflowSettings Clone() {
+        var snapshot = new IWorkWorkflowSettings {
+            ReadOptions = (ReadOptions ?? throw new ArgumentException("iWork read options cannot be null.")).Clone(),
+            ConversionOptions = (ConversionOptions ?? throw new ArgumentException("iWork conversion options cannot be null.")).Clone(),
+            PagesPdfOptions = (PagesPdfOptions ?? throw new ArgumentException("Pages PDF options cannot be null.")).Clone(),
+            NumbersPdfOptions = (NumbersPdfOptions ?? throw new ArgumentException("Numbers PDF options cannot be null.")).Clone(),
+            KeynotePdfOptions = (KeynotePdfOptions ?? throw new ArgumentException("Keynote PDF options cannot be null.")).Clone()
+        };
+        if (snapshot.PagesPdfOptions.PdfOptions?.Encryption != null
+            || snapshot.NumbersPdfOptions.PdfOptions?.Encryption != null
+            || snapshot.KeynotePdfOptions.PdfOptions?.Encryption != null)
+            throw new NotSupportedException("Registered iWork PDF options do not support encryption. Use the PDF protection workflow after conversion.");
+        return snapshot;
+    }
 
     /// <inheritdoc />
     public IOfficeWorkflowConversionSettings Snapshot() => Clone();
