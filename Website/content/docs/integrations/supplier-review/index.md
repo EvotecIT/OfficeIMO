@@ -19,11 +19,11 @@ Install-Module PSParseHTML, PSWriteOffice -Scope CurrentUser
 ./Examples/Integrations/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 ```
 
-Read the [complete script](https://github.com/EvotecIT/PSWriteOffice/blob/87729715cabfeda884b46a3bb7a2994c97ec8093/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) and [sample HTML](https://github.com/EvotecIT/PSWriteOffice/blob/87729715cabfeda884b46a3bb7a2994c97ec8093/Examples/Integrations/Input/SupplierOffers.html). For a small standalone run, download the [script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and save the [HTML input](/downloads/integrations/source/Input/SupplierOffers.html) as `Input/SupplierOffers.html` beside it.
+Read the [complete script](https://github.com/EvotecIT/PSWriteOffice/blob/2ca77f6b772cd954f553124fb801bed087213986/Examples/Integrations/Recipe-HtmlSupplierReview.ps1) and [sample HTML](https://github.com/EvotecIT/PSWriteOffice/blob/2ca77f6b772cd954f553124fb801bed087213986/Examples/Integrations/Input/SupplierOffers.html). For a small standalone run, download the [script](/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1) and save the [HTML input](/downloads/integrations/source/Input/SupplierOffers.html) as `Input/SupplierOffers.html` beside it.
 
 ## Adapt the data
 
-Keep table `id="offers"` and the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDays` headers. Pass your own file with `-HtmlPath`. Prices are USD per unit with a decimal point; freight and tax are excluded. Comma decimals and group separators reject before output. Sub-cent prices remain distinct in Word and in numeric Excel cells; each quote displays its own decimal places. The recipe rejects missing tables, empty item/supplier names and negative price or lead-time values before writing documents.
+Keep table `id="offers"` and the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDays` headers. Pass your own file with `-HtmlPath`. Prices are USD per unit with a decimal point; freight and tax are excluded. Quotes support at most 15 significant digits and 28 fractional places: leading zeros and fractional padding zeros do not count; all integer digits count. Comma decimals, group separators and quotes beyond those limits reject before output. Sub-cent prices remain distinct in Word and in numeric Excel cells; each quote displays its own decimal places, and the workbook fits the price column to those values. The recipe rejects missing tables, empty item/supplier names and negative price or lead-time values before writing documents.
 
 ![Native Excel range preview with numeric price and lead-time columns](/downloads/integrations/supplier/workbook.png)
 

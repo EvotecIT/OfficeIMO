@@ -4,7 +4,9 @@ Turns an HTML supplier table into an editable Word review, PDF and Excel workboo
 .DESCRIPTION
 PSParseHTML selects table id="offers". PSWriteOffice creates the documents.
 The bundled input is synthetic. Prices use invariant decimal notation without group
-separators and USD per unit. Sub-cent prices remain visible in both reports.
+separators and USD per unit. Up to 15 significant digits and 28 fractional places
+are accepted, ignoring leading zeros and fractional padding zeros. Sub-cent prices
+remain visible in both reports.
 .EXAMPLE
 ./Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 .EXAMPLE
@@ -32,6 +34,14 @@ $offers = @($tables[0].Data | ForEach-Object {
     [decimal] $price = 0
     if (-not [decimal]::TryParse($_.UnitPriceUsd, [Globalization.NumberStyles]::AllowDecimalPoint, [Globalization.CultureInfo]::InvariantCulture, [ref] $price)) {
         throw 'UnitPriceUsd must be a nonnegative dot-decimal price without group separators.'
+    }
+    # Inspect the input, not the parsed value: Decimal.TryParse can round tiny quotes to zero.
+    $priceParts = ([string] $_.UnitPriceUsd).Split('.')
+    $fraction = if ($priceParts.Count -eq 2) { $priceParts[1].TrimEnd('0') } else { '' }
+    $significantDigits = ($priceParts[0].TrimStart('0') + $fraction).TrimStart('0')
+    $fractionalPlaces = $fraction.Length
+    if ($significantDigits.Length -gt 15 -or $fractionalPlaces -gt 28) {
+        throw 'UnitPriceUsd supports at most 15 significant digits and 28 fractional places, ignoring leading zeros and fractional padding zeros, so Word and numeric Excel quotes agree.'
     }
     $days = [int]::Parse($_.LeadDays, [Globalization.CultureInfo]::InvariantCulture)
     if ($price -lt 0 -or $days -lt 0) { throw 'Prices and lead times must be nonnegative.' }
@@ -100,7 +110,7 @@ New-OfficeExcel -Path $xlsx {
         }
         ExcelColumn -Column 1 -Width 25
         ExcelColumn -Column 2 -Width 22
-        ExcelColumn -Column 3 -Width 22
+        ExcelColumn -Column 3 -AutoFit
         ExcelColumn -Column 4 -Width 16
         ExcelFreeze -TopRows 4
     }

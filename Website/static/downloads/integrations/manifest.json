@@ -1,6 +1,6 @@
 {
   "sourceRepository": "EvotecIT/PSWriteOffice",
-  "sourceCommit": "87729715cabfeda884b46a3bb7a2994c97ec8093",
+  "sourceCommit": "2ca77f6b772cd954f553124fb801bed087213986",
   "modules": {
     "PSWriteOffice": "3.0.8",
     "PSParseHTML": "3.0.3",
@@ -14,8 +14,8 @@
   "artifacts": [
     {
       "path": "/downloads/integrations/supplier/SupplierReview.docx",
-      "bytes": 20973,
-      "sha256": "010c2795466cb211f1927da17ec58cbff9357334758c94c85a034840a79f3141"
+      "bytes": 20976,
+      "sha256": "e0af7d0ccf0ecaa1152ce44b1b7aee8b963049d03e003e3255998f9077e9deab"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierReview.pdf",
@@ -24,8 +24,8 @@
     },
     {
       "path": "/downloads/integrations/supplier/SupplierOffers.xlsx",
-      "bytes": 5117,
-      "sha256": "63914b9da685feeeab04fd18ab18abe8bf88671969d9816c32e175ded2fb8316"
+      "bytes": 5128,
+      "sha256": "8a474b5b7ddf30bfebd83a50aa929dbee6c9c26990b35b0833537cf3a9bc241e"
     },
     {
       "path": "/downloads/integrations/supplier/preview.png",
@@ -34,8 +34,8 @@
     },
     {
       "path": "/downloads/integrations/supplier/workbook.png",
-      "bytes": 9891,
-      "sha256": "84680b6bfe7a9a27f1423f28c1da4ac99807516ff987297a841ce1b6f155a3aa"
+      "bytes": 10037,
+      "sha256": "ae9744a18c02f50c0d62c23ab157aa89203a3b0ad60bd4b79c0de73a8c2fe635"
     },
     {
       "path": "/downloads/integrations/events/EventIncidentBrief.docx",
@@ -79,8 +79,8 @@
     },
     {
       "path": "/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1",
-      "bytes": 5682,
-      "sha256": "af9ec994936accb6f7d3f0f7adf1a478010be26ce18d60c3f8774af5a6a8682b"
+      "bytes": 6432,
+      "sha256": "5bfae8347be3144abc176b4c216c5c08a9d4ef046228e4d720ff08e91c611eb9"
     },
     {
       "path": "/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1",

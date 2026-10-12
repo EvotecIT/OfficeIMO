@@ -8,7 +8,7 @@ Prepare the message as a file so a reviewer can inspect recipients, text and att
 
 ![Generated service report with space between its heading, table and next action](/downloads/integrations/mail-default/preview.png)
 
-[Service PDF](/downloads/integrations/mail-default/Daily-Service-Report.pdf) · [Local EML package](/downloads/integrations/mail-default/ReportReview.eml) · [Complete script](https://github.com/EvotecIT/PSWriteOffice/blob/87729715cabfeda884b46a3bb7a2994c97ec8093/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1)
+[Service PDF](/downloads/integrations/mail-default/Daily-Service-Report.pdf) · [Local EML package](/downloads/integrations/mail-default/ReportReview.eml) · [Complete script](https://github.com/EvotecIT/PSWriteOffice/blob/2ca77f6b772cd954f553124fb801bed087213986/Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1)
 
 ## Prepare your own attachments
 
