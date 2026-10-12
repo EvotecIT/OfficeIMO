@@ -134,17 +134,14 @@ $sheetsBatch = Export-OfficeExcelGoogleSpreadsheet -Path .\Data.xlsx -AsBatch
 
 PSWriteOffice owns the document-workflow side of email: reading or writing standalone message and mailbox artifacts, and searching supported mail sources through the normalized `OfficeIMO.Reader` model. [Mailozaurr](https://github.com/EvotecIT/Mailozaurr) owns operational email and mailbox management, including transport, authentication, mailbox/store lifecycle, PST/OST import and conversion, querying, export, and delivery. Use PSWriteOffice when mail is an input to a report or mixed-document search; use Mailozaurr to acquire, manage, convert, or send the mail, then pass ordinary paths and attachments between the modules.
 
-The [OfficeIMO integration examples](https://officeimo.com/docs/integrations/) display the complete recipes and provide script and sample-input downloads. Save an example in your working folder, install the modules it uses, and run it there:
+The [OfficeIMO integration guides](https://officeimo.com/docs/integrations/) walk through reviewing supplier offers, investigating an event snapshot and preparing a report for email. They explain the input data, show the PowerShell code and describe the resulting documents. Use the modules by name in your own reporting scripts:
 
 ```powershell
-Install-Module PSWriteOffice, Mailozaurr -Scope CurrentUser
-./Recipe-Mailozaurr-PdfDelivery.ps1 -OutputDirectory ./Output/Mail
-
-# Offline event example
-./Recipe-PSEventViewer-OfficeReport.ps1 -OutputDirectory ./Output/EventBrief
+Import-Module PSWriteOffice
+Import-Module Mailozaurr
 ```
 
-The Mailozaurr recipe saves a local EML with a PDF attachment and sends only when `-Send` is supplied with a server and real recipients. The event recipe uses a synthetic snapshot by default; use `-CollectLive` with PSEventViewer on Windows for a bounded local query. Both create documents from ordinary objects and paths.
+The mail example saves a local EML with a PDF attachment. Its `-Send` switch enables a send attempt when `-SmtpServer` is set; set `-To` to real recipients before using `-Send`. The event example uses a synthetic snapshot by default; use `-CollectLive` with PSEventViewer on Windows for a bounded local query. Both create documents from ordinary objects and paths.
 
 Confluence writes can be reviewed before a session or tenant is involved:
 
