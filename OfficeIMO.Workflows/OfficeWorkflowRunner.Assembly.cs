@@ -19,6 +19,9 @@ public sealed partial class OfficeWorkflowRunner {
             [".xlsx"] = "xlsx-pdf",
             [".pptx"] = "pptx-pdf",
             [".xps"] = "xps-pdf",
+            [".chm"] = "chm-pdf",
+            [".djvu"] = "djvu-pdf",
+            [".djv"] = "djvu-pdf",
             [".oxps"] = "xps-pdf",
             [".html"] = "html-pdf",
             [".htm"] = "html-pdf"
@@ -178,6 +181,8 @@ public sealed partial class OfficeWorkflowRunner {
                 $"Assembled {sourceCount:N0} {(sourceCount == 1 ? "input" : "inputs")} into {pageCount:N0} PDF {(pageCount == 1 ? "page" : "pages")}.",
                 diagnostics);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
+            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false } cancelledConversion)
+                AddConversionDiagnostics(cancelledConversion.Evidence, diagnostics, cancelledConversion.ImportDiagnosticSources);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
@@ -203,8 +208,8 @@ public sealed partial class OfficeWorkflowRunner {
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);
-            if (ex is WorkflowConversionFailureException conversionFailure)
-                AddConversionDiagnostics(conversionFailure.Evidence, diagnostics);
+            if (ex is WorkflowConversionFailureException { DiagnosticsAdded: false } conversionFailure)
+                AddConversionDiagnostics(conversionFailure.Evidence, diagnostics, conversionFailure.ImportDiagnosticSources);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PdfAssemblyFailed",
                 ex.Message,
@@ -791,7 +796,7 @@ public sealed partial class OfficeWorkflowRunner {
                     input,
                     diagnostics,
                     cancellationToken,
-                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf",
+                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf" && source.Route?.Id != "chm-pdf",
                     htmlResourceSnapshots: source.HtmlDependencySnapshots);
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);

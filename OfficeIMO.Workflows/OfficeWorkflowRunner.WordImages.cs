@@ -33,12 +33,13 @@ public sealed partial class OfficeWorkflowRunner {
         string summary = report.OptimizedCount + " image candidate(s); " + report.BytesSaved + " encoded media bytes saved" + (analyze ? " by analysis." : ".");
         if (analyze) return new OperationArtifact(null, summary, null);
         byte[] bytes;
+        OfficeWorkflowConversionEvidence? evidence = null;
         string outputExtension = Path.GetExtension(request.OutputStream?.Name ?? request.OutputPath!);
         if (string.Equals(outputExtension, ".pdf", StringComparison.OrdinalIgnoreCase)) {
             // Media has already been optimized once. PDF generation keeps its default image policy.
             var conversion = word.ToPdfDocumentResult(new WordToPdfOptions(), token);
-            bytes = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token);
-            AddPdfWarnings(conversion.Warnings, diagnostics);
+            (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token);
+            AddConversionDiagnostics(evidence, diagnostics);
         } else {
             using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
             WordFileFormat format = string.Equals(outputExtension, ".doc", StringComparison.OrdinalIgnoreCase)
@@ -46,7 +47,7 @@ public sealed partial class OfficeWorkflowRunner {
             word.SaveAsync(output, format, new WordSaveOptions { SignedDocumentPolicy = options.SignedDocumentPolicy }, token).GetAwaiter().GetResult();
             bytes = output.ToArray();
         }
-        return new OperationArtifact(bytes, summary, null);
+        return new OperationArtifact(bytes, summary, null, ConversionEvidence: evidence);
     }
 
     private static void AddWordImageDiagnostic(WordImageOptimizationItem item, bool applied,

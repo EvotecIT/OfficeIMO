@@ -140,7 +140,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Convert | 0 | 1 | 0 | 0 | 0 | 0 |
+| Convert | 0 | 2 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Visio.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

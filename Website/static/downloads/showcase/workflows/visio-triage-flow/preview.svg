@@ -1,0 +1,70 @@
+<svg width="478" height="994" viewBox="0 0 477.6 993.6" role="img" aria-label="Support triage" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="477.6" height="993.6" fill="#FFFFFF" />
+  <g data-officeimo-visio-page="Support triage">
+    <g data-visio-shape-id="received" data-visio-nameu="Ellipse">
+      <path d="M 410.4 100.8 L 406.556 89.619 L 395.288 79.2 L 377.362 70.253 L 354 63.388 L 326.795 59.072 L 297.6 57.6 L 268.405 59.072 L 241.2 63.388 L 217.838 70.253 L 199.912 79.2 L 188.644 89.619 L 184.8 100.8 L 188.644 111.981 L 199.912 122.4 L 217.838 131.347 L 241.2 138.212 L 268.405 142.528 L 297.6 144 L 326.795 142.528 L 354 138.212 L 377.362 131.347 L 395.288 122.4 L 406.556 111.981 Z" data-officeimo-preserved-geometry="true" fill="#5D9A46" stroke="#3F6F2D" stroke-width="1.728" />
+      <text x="297.6" y="99.467" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="297.6" dy="0">Request received</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="classify" data-visio-nameu="Process">
+      <path d="M 184.8 297.6 L 410.4 297.6 L 410.4 196.8 L 184.8 196.8 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
+      <text x="297.6" y="245.867" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="297.6" dy="0">Confirm scope and impact</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="investigate" data-visio-nameu="Process">
+      <path d="M 184.8 451.2 L 410.4 451.2 L 410.4 350.4 L 184.8 350.4 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
+      <text x="297.6" y="399.467" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="297.6" dy="0">Assign owner and investigate</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="verify" data-visio-nameu="Process">
+      <path d="M 184.8 604.8 L 410.4 604.8 L 410.4 504 L 184.8 504 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
+      <text x="297.6" y="553.067" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="297.6" dy="0">Verify with requester</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="resolved" data-visio-nameu="Decision">
+      <path d="M 297.6 796.8 L 410.4 727.2 L 297.6 657.6 L 184.8 727.2 Z" data-officeimo-preserved-geometry="true" fill="#E89C30" stroke="#AB6614" stroke-width="1.728" />
+      <text x="297.6" y="725.867" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#37260C" font-weight="700">
+        <tspan x="297.6" dy="0">Outcome accepted?</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="closed" data-visio-nameu="Ellipse">
+      <path d="M 410.4 892.8 L 406.556 881.619 L 395.288 871.2 L 377.362 862.253 L 354 855.388 L 326.795 851.072 L 297.6 849.6 L 268.405 851.072 L 241.2 855.388 L 217.838 862.253 L 199.912 871.2 L 188.644 881.619 L 184.8 892.8 L 188.644 903.981 L 199.912 914.4 L 217.838 923.347 L 241.2 930.212 L 268.405 934.528 L 297.6 936 L 326.795 934.528 L 354 930.212 L 377.362 923.347 L 395.288 914.4 L 406.556 903.981 Z" data-officeimo-preserved-geometry="true" fill="#5D9A46" stroke="#3F6F2D" stroke-width="1.728" />
+      <text x="297.6" y="891.467" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="297.6" dy="0">Record result and close</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="1">
+      <path d="M 297.6 144 L 297.6 196.8 L 297.6 196.8" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 297.6 196.8 L 294.129 189.592 L 301.071 189.592 Z" fill="#267E74" stroke="none" />
+    </g>
+    <g data-visio-connector-id="2">
+      <path d="M 297.6 297.6 L 297.6 350.4 L 297.6 350.4" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 297.6 350.4 L 294.129 343.192 L 301.071 343.192 Z" fill="#267E74" stroke="none" />
+    </g>
+    <g data-visio-connector-id="3">
+      <path d="M 297.6 451.2 L 297.6 504 L 297.6 504" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 297.6 504 L 294.129 496.792 L 301.071 496.792 Z" fill="#267E74" stroke="none" />
+    </g>
+    <g data-visio-connector-id="4">
+      <path d="M 297.6 604.8 L 297.6 657.6 L 297.6 657.6" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 297.6 657.6 L 294.129 650.392 L 301.071 650.392 Z" fill="#267E74" stroke="none" />
+    </g>
+    <g data-visio-connector-id="5">
+      <path d="M 297.6 796.8 L 297.6 849.6 L 297.6 849.6" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 297.6 849.6 L 294.129 842.392 L 301.071 842.392 Z" fill="#267E74" stroke="none" />
+    </g>
+    <g data-visio-connector-id="6">
+      <path d="M 184.8 727.2 L 127.2 727.2 L 127.2 400.8 L 184.8 400.8" fill="none" stroke="#267E74" stroke-width="1.728" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 184.8 400.8 L 177.592 404.271 L 177.592 397.329 Z" fill="#267E74" stroke="none" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="80.4" y="530.32" width="93.6" height="32.8" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="127.2" y="538.32" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#185953">
+        <tspan x="127.2" dy="0">No / investigate</tspan>
+        <tspan x="127.2" dy="14.4">further</tspan>
+      </text>
+    </g>
+  </g>
+</svg>

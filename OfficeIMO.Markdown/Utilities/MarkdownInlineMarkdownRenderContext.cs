@@ -16,6 +16,9 @@ public sealed class MarkdownInlineMarkdownRenderContext {
     /// </summary>
     public MarkdownWriteOptions Options { get; }
 
+    /// <summary>Cancellation requested by the active Markdown serialization operation.</summary>
+    public System.Threading.CancellationToken CancellationToken => _writeContext?.CancellationToken ?? default;
+
     /// <summary>
     /// Top-level blocks being rendered for the current document, or an empty list when no document context is active.
     /// </summary>

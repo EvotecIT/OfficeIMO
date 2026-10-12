@@ -13,9 +13,9 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal sealed partial class ExcelSheetReader {
         private const string SpreadsheetNamespace =
-            "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            SpreadsheetXmlContent.SpreadsheetNamespace;
         private const string StrictSpreadsheetNamespace =
-            "http://purl.oclc.org/ooxml/spreadsheetml/main";
+            SpreadsheetXmlContent.StrictSpreadsheetNamespace;
         private readonly string _sheetName;
         private readonly WorksheetPart _wsPart;
         private readonly string _worksheetPartName;
@@ -28,7 +28,6 @@ namespace OfficeIMO.Excel {
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
         private readonly Lazy<RichValueErrorLookup> _richValueErrors;
         private StylesCache? _stylesCache;
-        private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
         private char[]? _xmlValueTextBuffer;
@@ -112,17 +111,10 @@ namespace OfficeIMO.Excel {
 
         private static object BoxBoolean(bool value) => value ? BoxedTrue : BoxedFalse;
 
-        private string? GetSharedString(int index) {
-            var items = _sharedStringItems ??= _sst.GetItems();
-            return GetSharedString(index, items);
-        }
+        private string? GetSharedString(int index) => _sst.Get(index);
 
         private bool TryGetSharedStringUtf8(int index, out ArraySegment<byte> value) =>
             _sst.TryGetUtf8(index, out value);
-
-        private static string? GetSharedString(int index, List<string> items) {
-            return (uint)index < (uint)items.Count ? items[index] : null;
-        }
 
         /// <summary>
         /// Worksheet name.
@@ -165,6 +157,7 @@ namespace OfficeIMO.Excel {
             using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
             RewindWorksheetStream(stream);
             using var reader = OpenWorksheetXmlReader(stream);
+            var worksheetRows = new WorksheetXmlRowSelector();
             bool canCancel = ct.CanBeCanceled;
             bool hasCustomConverter = _opt.CellValueConverter != null;
             int nextRowIndex = 1;
@@ -174,7 +167,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                if (!worksheetRows.IsRowElement(reader)) {
                     continue;
                 }
 
@@ -199,7 +192,7 @@ namespace OfficeIMO.Excel {
                         break;
                     }
 
-                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                    if (!SpreadsheetXmlContent.IsDirectChildElement(reader, depth, "c")) {
                         continue;
                     }
 
@@ -580,7 +573,7 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (TryParseRawDouble(rawText, out var dbl)) {
+                if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var dbl)) {
                     value = dbl;
                     return true;
                 }
@@ -589,7 +582,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryParseRawDouble(rawText, out var num)) {
+            if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var num)) {
                 value = num;
             } else {
                 value = rawText;
@@ -661,11 +654,11 @@ namespace OfficeIMO.Excel {
                 if (_opt.NumericAsDecimal) {
                     if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec))
                         return dec;
-                    if (TryParseRawDouble(rawText, out var dbl))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var dbl))
                         return dbl;
                     return rawText;
                 } else {
-                    if (TryParseRawDouble(rawText, out var num))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var num))
                         return num;
                 }
                 return rawText;
@@ -694,10 +687,10 @@ namespace OfficeIMO.Excel {
                 if (_opt.NumericAsDecimal) {
                     if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec2))
                         return dec2;
-                    if (TryParseRawDouble(rawText, out var dbl2))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var dbl2))
                         return dbl2;
                 } else {
-                    if (TryParseRawDouble(rawText, out var num))
+                    if (TryParseExcelNumberAsDouble(rawText, _opt.Culture, out var num))
                         return num;
                 }
                 return rawText;

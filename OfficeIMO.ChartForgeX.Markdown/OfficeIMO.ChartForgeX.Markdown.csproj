@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>Optional static Mermaid rendering for OfficeIMO Markdown document and HTML pipelines.</Description>
     <PackageId>OfficeIMO.ChartForgeX.Markdown</PackageId>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <Company>Evotec</Company>
@@ -25,6 +25,6 @@
     <ProjectReference Include="$(ChartForgeXMarkupMermaidProjectPath)" />
   </ItemGroup>
   <ItemGroup Condition="'$(ChartForgeXMarkupMermaidProjectPath)' == ''">
-    <PackageReference Include="ChartForgeX.Markup.Mermaid" Version="[1.8.2,2.0.0)" />
+    <PackageReference Include="ChartForgeX.Markup.Mermaid" Version="2.0.0" />
   </ItemGroup>
 </Project>

@@ -25,7 +25,12 @@ public static class MarkdownDocumentTransformPipeline {
     public static MarkdownDoc Apply(
         MarkdownDoc document,
         IEnumerable<IMarkdownDocumentTransform>? transforms,
-        MarkdownDocumentTransformContext context) {
+        MarkdownDocumentTransformContext context) => Apply(document, transforms, context, default);
+
+    /// <summary>Applies ordered transforms with cancellation checks before and after each transform.</summary>
+    public static MarkdownDoc Apply(MarkdownDoc document, IEnumerable<IMarkdownDocumentTransform>? transforms,
+        MarkdownDocumentTransformContext context, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -43,6 +48,7 @@ public static class MarkdownDocumentTransformPipeline {
             ? InitializeBlockSpans(current.Blocks, context.TopLevelBlockSourceSpans, context.SyntaxTree)
             : null;
         foreach (var transform in transforms) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (transform == null) {
                 continue;
             }
@@ -56,6 +62,7 @@ public static class MarkdownDocumentTransformPipeline {
                 ? BuildBlockSyntaxNodes(current.Blocks, blockSpans)
                 : null;
             current = transform.Transform(current, context) ?? current;
+            cancellationToken.ThrowIfCancellationRequested();
             if (context.Diagnostics == null) {
                 continue;
             }
@@ -90,7 +97,7 @@ public static class MarkdownDocumentTransformPipeline {
             }
             context.Diagnostics.Add(diagnostic);
         }
-
+        cancellationToken.ThrowIfCancellationRequested();
         return current;
     }
 

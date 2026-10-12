@@ -13,13 +13,13 @@ namespace OfficeIMO.Excel.Pdf {
             return null;
         }
 
-        private static bool HasHiddenRowsOrColumns(ExcelSheet? workbookSheet) {
+        private static bool HasHiddenRowsOrColumns(ExcelSheet? workbookSheet, System.Threading.CancellationToken cancellationToken) {
             if (workbookSheet == null) {
                 return false;
             }
 
             return workbookSheet.GetRowDefinitions().Any(row => row.Hidden) ||
-                   workbookSheet.GetColumnDefinitions().Any(column => column.Hidden);
+                   workbookSheet.GetColumnDefinitions(cancellationToken).Any(column => column.Hidden);
         }
 
         private static IReadOnlyList<string> GetExportRanges(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelToPdfOptions options) {
@@ -137,7 +137,8 @@ namespace OfficeIMO.Excel.Pdf {
                 normalizedRange,
                 rawValues.GetLength(0),
                 rawValues.GetLength(1),
-                options.RespectWorksheetHiddenRowsAndColumns);
+                options.RespectWorksheetHiddenRowsAndColumns,
+                options.CancellationToken);
             object?[,] values = FilterValues(rawValues, visibility);
             int rowCount = values.GetLength(0);
             int columnCount = values.GetLength(1);
@@ -175,6 +176,7 @@ namespace OfficeIMO.Excel.Pdf {
                 normalizedRange,
                 columnCount,
                 options.UseWorksheetColumnWidths,
+                options.CancellationToken,
                 visibility);
             RowLayoutData? rowHeights = ReadRowLayoutData(
                 metadataSheet,

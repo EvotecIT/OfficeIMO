@@ -1,0 +1,17 @@
+{
+  "producer": "dbf 0.99.11",
+  "oracle": "dbfread 2.0.7",
+  "records": [
+    {
+      "NAME": "Caf\u00e9 | <script> & **bold**",
+      "AMOUNT": 1234.5,
+      "ACTIVE": true
+    },
+    {
+      "NAME": "",
+      "AMOUNT": null,
+      "ACTIVE": null
+    }
+  ],
+  "sha256": "5811f3906afed366d8c8232afd49073bc287a8e315d9b02d5adb8ba8e229077d"
+}

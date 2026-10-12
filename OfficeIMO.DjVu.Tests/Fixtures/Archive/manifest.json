@@ -1,0 +1,26 @@
+{
+  "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/0/05/The_Time_Machine_%281st_edition%29.djvu",
+  "sourceSha256": "bfea3804b50f7a75714f8549bd0ab82ef413f26fa7c31c99d028b91405f3c76e",
+  "licenseUrl": "https://commons.wikimedia.org/wiki/File:The_Time_Machine_(1st_edition).djvu",
+  "publicDomainBasis": "United States publication in 1895; author died in 1946. Public domain in the source United States and life-plus-70 jurisdictions.",
+  "extraction": "Unmodified FORM bytes with AT&T signature; directory-only bundle produced with DjVuLibre 3.5.30 djvm -c.",
+  "oracleVersion": "3.5.30",
+  "pages": [
+    {
+      "file": "time-machine-1.djvu",
+      "sourcePage": 1,
+      "sha256": "f296d4f0dc7d3acd6d09c5aebd0d391490d498dbf0e27e30de115a96dfabfc8f",
+      "sourceFormOffset": 1832,
+      "sourceFormLength": 149664,
+      "textBytes": 0
+    },
+    {
+      "file": "time-machine-16.djvu",
+      "sourcePage": 16,
+      "sha256": "626c9a1613d4d7bea16d79b8fc682297752c030d02217ad2ae6a2bf6f6e03f74",
+      "sourceFormOffset": 293610,
+      "sourceFormLength": 14772,
+      "textBytes": 891
+    }
+  ]
+}

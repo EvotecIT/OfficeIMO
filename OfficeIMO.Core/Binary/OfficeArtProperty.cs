@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing.Binary;
 
@@ -26,6 +27,29 @@ public sealed class OfficeArtProperty {
         AvailableComplexDataLength = availableComplexDataLength;
         ComplexText = string.IsNullOrWhiteSpace(complexText) ? null : complexText;
         _complexData = complexData == null ? null : (byte[])complexData.Clone();
+    }
+
+    // Select the effective entry before checking its representation. A later
+    // complex entry cannot make an older scalar value effective again.
+    internal static OfficeArtProperty? GetScalarProperty(IReadOnlyList<OfficeArtProperty> properties, int propertyId) {
+        for (int index = properties.Count - 1; index >= 0; index--) {
+            OfficeArtProperty property = properties[index];
+            if (property.PropertyId == propertyId) return property.IsComplex ? null : property;
+        }
+        return null;
+    }
+
+    // Boolean groups in later property tables override only the bits whose
+    // use masks are set. Other bits retain their preceding table's value.
+    internal static bool? GetBoolean(IReadOnlyList<OfficeArtProperty> properties,
+        ushort propertyId, uint useMask, uint valueMask) {
+        for (int index = properties.Count - 1; index >= 0; index--) {
+            OfficeArtProperty property = properties[index];
+            if (property.PropertyId != propertyId) continue;
+            if (property.IsComplex) return null;
+            if ((property.Value & useMask) != 0) return (property.Value & valueMask) != 0;
+        }
+        return null;
     }
 
     private readonly byte[]? _complexData;

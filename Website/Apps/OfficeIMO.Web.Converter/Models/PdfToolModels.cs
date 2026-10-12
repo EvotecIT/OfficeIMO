@@ -64,4 +64,5 @@ public sealed record PdfToolResult(
     string Summary,
     int? PageCount,
     long SourceBytes,
-    bool PreviewInBrowser);
+    bool PreviewInBrowser,
+    IReadOnlyDictionary<string, string>? Details = null);

@@ -10,6 +10,14 @@ OfficeIMO.Access.Tests/Fixtures/**/*.accdb -diff
 OfficeIMO.Access.Tests/Fixtures/**/*.pdf -diff
 OfficeIMO.Access.Tests/Fixtures/**/manifest.json text eol=lf diff
 
+# DjVu inputs and decoded/text references have manifest-bound producer bytes.
+OfficeIMO.DjVu.Tests/Fixtures/** -text -whitespace
+OfficeIMO.DjVu.Tests/Fixtures/**/*.djvu -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.iff -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.bzz -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.ppm -diff
+OfficeIMO.DjVu.Tests/Fixtures/**/*.pbm -diff
+
 # Browser assets are generated and hashed from canonical UTF-8/LF bytes.
 OfficeIMO.Browser/** text eol=lf
 OfficeIMO.JavaScript/** text eol=lf
@@ -193,6 +201,13 @@ OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vsx -text -diff
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.vtx -text -diff
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*LICENSE.txt -text -whitespace
 OfficeIMO.Visio.Tests/Fixtures/LegacyXml/*.xml -text -whitespace
+# Binary Visio qualification pairs preserve the producer's exact original bytes.
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vsd -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vss -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vst -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vdx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vsx -text -diff
+OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vtx -text -diff
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodg -text
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodp -text
 

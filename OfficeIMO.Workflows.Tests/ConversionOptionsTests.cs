@@ -47,7 +47,8 @@ public sealed class ConversionOptionsTests {
             if (mode == PdfWordImportMode.VisualPages) {
                 Assert.Single(package.MainDocumentPart!.ImageParts);
                 Assert.DoesNotContain("Second", text);
-                Assert.Contains(result.Diagnostics, d => d.Message.Contains("VisualPagesNotEditable"));
+                Assert.Contains(result.Diagnostics, d => d.Code == "VisualPagesNotEditable"
+                    && d.Details["source"] == "OfficeIMO.Word.Pdf" && d.Details["lossKind"] == "Approximation");
             } else {
                 Assert.Contains("Second", text);
                 Assert.DoesNotContain("First", text);

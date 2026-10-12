@@ -38,12 +38,14 @@ public partial class VisioDocument {
             resolved.MaxLegacyXmlElements, resolved.MaxLegacyXmlElements, cancellationToken);
         XDocument xml = XDocument.Load(bounded, LoadOptions.PreserveWhitespace);
         var report = new VisioXmlConversionReport();
-        using MemoryStream normalized = VisioLegacyXmlCodec.ToPackage(xml, packageType, report);
+        using MemoryStream normalized = VisioLegacyXmlCodec.ToPackage(xml, packageType, report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] packageBytes = normalized.ToArray();
         ValidatePackageSecurity(packageBytes, resolved);
         using Package package = Package.Open(normalized, FileMode.Open, FileAccess.Read);
-        VisioDocument document = LoadCore(package, null);
+        VisioDocument document = LoadCore(package, null, cancellationToken);
         report.Add("VDX_MODEL_PROFILE", "The existing Visio model interprets supported shapes, text, masters and connectors; formula evaluation and advanced rendering follow its documented profile.", OfficeConversionLossKind.Approximation);
+        cancellationToken.ThrowIfCancellationRequested();
         return new OfficeConversionResult<VisioDocument, VisioXmlConversionReport>(document, report);
     }
 

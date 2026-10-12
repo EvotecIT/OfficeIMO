@@ -376,7 +376,7 @@ namespace OfficeIMO.Excel.Pdf {
                     ISet<string>? exportedCellReferences = CreateExportedCellReferenceSet(exportData.CellReferences, exportedRows);
                     bool filterMediaToExportedCells = !boundedRead && HasWorksheetPrintArea(workbookSheet, options) ||
                                                       options.MaxRowsPerSheet.HasValue ||
-                                                      (options.RespectWorksheetHiddenRowsAndColumns && HasHiddenRowsOrColumns(workbookSheet));
+                                                      (options.RespectWorksheetHiddenRowsAndColumns && HasHiddenRowsOrColumns(workbookSheet, options.CancellationToken));
                     IReadOnlyList<WorksheetImageExportData> images = boundedRead
                         ? Array.Empty<WorksheetImageExportData>()
                         : FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
@@ -483,7 +483,7 @@ namespace OfficeIMO.Excel.Pdf {
                 Math.Max(Math.Max(1, firstColumn), lastColumn),
                 workbookSheet?.DefaultColumnWidth is double defaultColumnWidth && defaultColumnWidth > 0D ? defaultColumnWidth : 8.43D,
                 workbookSheet?.DefaultRowHeight is double defaultRowHeight && defaultRowHeight > 0D ? defaultRowHeight : 15D,
-                workbookSheet?.GetColumnDefinitions() ?? Array.Empty<ExcelColumnSnapshot>(),
+                workbookSheet?.GetColumnDefinitions(options.CancellationToken) ?? Array.Empty<ExcelColumnSnapshot>(),
                 workbookSheet?.GetRowDefinitions() ?? Array.Empty<ExcelRowSnapshot>(),
                 options.UseWorksheetColumnWidths,
                 options.UseWorksheetRowHeights,

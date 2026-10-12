@@ -28,7 +28,8 @@ public sealed class PdfHeaderFooterShape {
     /// <summary>Returns a copy of the shape payload.</summary>
     public OfficeShape Shape => _block.Shape.Clone();
 
-    internal PdfHeaderFooterShape Clone() => new PdfHeaderFooterShape(_block.Shape, Align);
+    // The payload is private and all public/internal exports return copies.
+    internal PdfHeaderFooterShape Clone() => this;
 
     internal ShapeBlock ToShapeBlock() => new ShapeBlock(_block.Shape, _block.Style);
 }

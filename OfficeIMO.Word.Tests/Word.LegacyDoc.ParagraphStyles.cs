@@ -1243,7 +1243,7 @@ namespace OfficeIMO.Tests {
                             CreateParagraphSprm(SprmPFAutoSpaceDE, 1),
                             CreateParagraphSprm(SprmPFAutoSpaceDN, 1),
                             CreateParagraphSprm(SprmPFBiDi, 1),
-                            CreateParagraphSprm(SprmPWAlignFont, 3, 0)),
+                            CreateParagraphSprm(SprmPWAlignFont, 1, 0)),
                         characterUpx: null)
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(
@@ -1281,7 +1281,7 @@ namespace OfficeIMO.Tests {
                             CreateParagraphSprm(SprmPFAutoSpaceDE, 1),
                             CreateParagraphSprm(SprmPFAutoSpaceDN, 1),
                             CreateParagraphSprm(SprmPFBiDi, 1),
-                            CreateParagraphSprm(SprmPWAlignFont, 3, 0)),
+                            CreateParagraphSprm(SprmPWAlignFont, 1, 0)),
                         characterUpx: null)
                 });
                 byte[] wordDocumentStream = CreateWordDocumentStream(

@@ -2,9 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Provides custom format operations for fields.
-    /// </summary>
+    // Provides custom format operations for fields.
     public partial class WordField {
         internal string GetCustomFormat() {
             var match = Regex.Match(Field, "\\\\@ \\\"([^\\\"]+)\\\"");

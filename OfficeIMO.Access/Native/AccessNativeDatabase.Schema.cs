@@ -9,17 +9,19 @@ namespace OfficeIMO.Access {
                 return existing;
             }
             cancellation.ThrowIfCancellationRequested();
-            OfficeByteView data = DefinitionBytes(pageNumber, cancellation); int columns = U16(data, 45), logicalCount = I32(data, 47), physicalCount = I32(data, 51);
+            OfficeByteView data = DefinitionBytes(pageNumber, cancellation); int columns = U16(data, Layout.TableColumnCount), logicalCount = I32(data, Layout.TableLogicalIndexes), physicalCount = I32(data, Layout.TablePhysicalIndexes);
             if (columns > 255 || logicalCount < 0 || logicalCount > 256 || physicalCount < 0 || physicalCount > logicalCount) throw new InvalidDataException("Native Access table definition counts are invalid.");
-            AccessNativeTable table = new AccessNativeTable(this, pageNumber, name) { RowCount = U32(data, 16), MaxColumns = U16(data, 41), MaxVariableColumns = U16(data, 43), OwnedPages = U32(data, 55), FreePages = U32(data, 59) };
+            AccessNativeTable table = new AccessNativeTable(this, pageNumber, name) { RowCount = U32(data, Layout.TableRowCount), MaxColumns = U16(data, Layout.TableMaxColumns), MaxVariableColumns = U16(data, Layout.TableMaxVariableColumns), OwnedPages = U32(data, Layout.TableOwnedPages), FreePages = U32(data, Layout.TableFreePages) };
             if (table.MaxColumns < columns || table.MaxColumns > 8192 || table.MaxVariableColumns > table.MaxColumns) throw new InvalidDataException("Native Access table column allocation is invalid.");
-            int columnStart = checked(63 + physicalCount * 12); int position = checked(columnStart + columns * 25);
+            int columnStart = checked(Layout.TableHeaderSize + physicalCount * Layout.IndexStatisticsSize); int position = checked(columnStart + columns * Layout.ColumnSize);
             for (int i = 0; i < columns; i++) {
-                cancellation.ThrowIfCancellationRequested(); int start = checked(columnStart + i * 25); OfficeByteView block = Slice(data, start, 25);
-                AccessNativeColumn column = new AccessNativeColumn { Name = Name(data, ref position), Type = block[0], Number = U16(block, 5), VariableIndex = U16(block, 7),
-                    Flags = block[15], ExtraFlags = block[16], FixedOffset = U16(block, 21), Size = U16(block, 23), Precision = block[11], Scale = block[12],
+                cancellation.ThrowIfCancellationRequested(); int start = checked(columnStart + i * Layout.ColumnSize); OfficeByteView block = Slice(data, start, Layout.ColumnSize);
+                AccessNativeColumn column = new AccessNativeColumn { Name = NativeName(data, ref position), Type = block[0], Number = U16(block, Layout.ColumnNumber), VariableIndex = U16(block, Layout.ColumnVariableIndex),
+                    Flags = block[Layout.ColumnFlags], ExtraFlags = Layout.IsJet3 ? (byte)0 : block[16], FixedOffset = U16(block, Layout.ColumnFixedOffset), Size = U16(block, Layout.ColumnLength), Precision = block[11], Scale = block[12],
+                    CodePage = Layout.IsJet3 && (block[0] == 10 || block[0] == 12) ? U16(block, 11) : 0,
                     ComplexId = _document.Format == AccessFileFormat.Accdb && block[0] == 18 ? I32(block, 11) : 0,
-                    SortOrder = U16(block, 11), SortVersion = block[14] };
+                    SortOrder = U16(block, Layout.ColumnSortOrder), SortVersion = Layout.IsJet3 ? (byte)0 : block[14] };
+                column.RedactConnection = StringComparer.OrdinalIgnoreCase.Equals(name, "MSysObjects") && StringComparer.OrdinalIgnoreCase.Equals(column.Name, "Connect");
                 if (column.Number >= table.MaxColumns || column.Variable && column.VariableIndex >= table.MaxVariableColumns) throw new InvalidDataException("Native Access field coordinates exceed the declared row schema.");
                 if (table.Columns.Any(x => x.Number == column.Number || StringComparer.OrdinalIgnoreCase.Equals(x.Name, column.Name))) throw new InvalidDataException("Native Access fields have duplicate numbers or ambiguous names.");
                 table.Columns.Add(column);
@@ -27,28 +29,28 @@ namespace OfficeIMO.Access {
             table.Columns.Sort((a, b) => a.Number.CompareTo(b.Number));
             List<AccessNativeIndex> physical = new List<AccessNativeIndex>();
             for (int i = 0; i < physicalCount; i++) {
-                cancellation.ThrowIfCancellationRequested(); OfficeByteView block = Slice(data, position, 52); position = checked(position + 52);
+                cancellation.ThrowIfCancellationRequested(); OfficeByteView block = Slice(data, position, Layout.PhysicalIndexSize); position = checked(position + Layout.PhysicalIndexSize);
                 List<AccessNativeColumn> fields = new List<AccessNativeColumn>(); List<bool> descending = new List<bool>();
                 for (int j = 0; j < 10; j++) {
-                    int number = I16(block, 4 + j * 3); if (number == -1) continue;
+                    int number = I16(block, Layout.PhysicalIndexColumns + j * 3); if (number == -1) continue;
                     AccessNativeColumn column = table.Columns.SingleOrDefault(x => x.Number == number) ?? throw new InvalidDataException("Native Access index refers to an unavailable field.");
                     if (fields.Contains(column)) throw new InvalidDataException("Native Access index repeats a field.");
-                    fields.Add(column); descending.Add((block[6 + j * 3] & 1) == 0);
+                    fields.Add(column); descending.Add((block[Layout.PhysicalIndexColumns + 2 + j * 3] & 1) == 0);
                 }
-                int rootPage = I32(block, 38); byte pageType = Page(rootPage)[0];
+                int rootPage = I32(block, Layout.PhysicalIndexRoot); byte pageType = Page(rootPage)[0];
                 if (pageType != 3 && pageType != 4) throw new InvalidDataException("Native Access index root has an invalid page type.");
-                physical.Add(new AccessNativeIndex { Columns = fields.ToArray(), Descending = descending.ToArray(), RootPage = rootPage, Flags = block[46],
-                    PhysicalDefinitionOffset = position - 52, UniqueCountOffset = 63 + i * 12 + 4, OwnedPages = U32(block, 34) });
+                physical.Add(new AccessNativeIndex { Columns = fields.ToArray(), Descending = descending.ToArray(), RootPage = rootPage, Flags = block[Layout.PhysicalIndexFlags],
+                    PhysicalDefinitionOffset = position - Layout.PhysicalIndexSize, UniqueCountOffset = Layout.TableHeaderSize + i * Layout.IndexStatisticsSize + 4, OwnedPages = U32(block, Layout.PhysicalIndexOwnedPages) });
             }
             for (int i = 0; i < logicalCount; i++) {
-                OfficeByteView block = Slice(data, position, 28); position = checked(position + 28); int physicalNumber = I32(block, 8);
+                OfficeByteView block = Slice(data, position, Layout.LogicalIndexSize); position = checked(position + Layout.LogicalIndexSize); int physicalNumber = I32(block, Layout.LogicalIndexPhysical);
                 if (physicalNumber < 0 || physicalNumber >= physical.Count) throw new InvalidDataException("Native Access logical index refers to an unavailable physical index.");
                 AccessNativeIndex definition = physical[physicalNumber];
                 table.Indexes.Add(new AccessNativeIndex { Columns = definition.Columns, Descending = definition.Descending, Flags = definition.Flags, RootPage = definition.RootPage,
                     PhysicalDefinitionOffset = definition.PhysicalDefinitionOffset, UniqueCountOffset = definition.UniqueCountOffset, OwnedPages = definition.OwnedPages,
-                    Number = I32(block, 4), Type = block[23], RelatedIndex = I32(block, 13), RelatedTable = I32(block, 17), CascadeUpdates = (block[21] & 1) != 0, CascadeDeletes = (block[22] & 1) != 0 });
+                    Number = I32(block, Layout.LogicalIndexNumber), Type = block[Layout.LogicalIndexType], RelatedIndex = I32(block, Layout.LogicalIndexRelated), RelatedTable = I32(block, Layout.LogicalIndexTable), CascadeUpdates = (block[Layout.LogicalIndexCascade] & 1) != 0, CascadeDeletes = (block[Layout.LogicalIndexCascade + 1] & 1) != 0 });
             }
-            foreach (AccessNativeIndex index in table.Indexes) index.Name = Name(data, ref position);
+            foreach (AccessNativeIndex index in table.Indexes) index.Name = NativeName(data, ref position);
             if (table.Indexes.Select(x => x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != table.Indexes.Count) throw new InvalidDataException("Native Access index names are ambiguous.");
             while (position <= data.Length - 10 && I16(data, position) >= 0) {
                 AccessNativeColumn? column = table.Columns.SingleOrDefault(x => x.Number == I16(data, position));
@@ -65,15 +67,15 @@ namespace OfficeIMO.Access {
         }
         private OfficeByteView DefinitionBytes(int pageNumber, CancellationToken cancellation) {
             OfficeByteView first = Page(pageNumber, 2); int length = I32(first, 8);
-            if (length < 63 || length > MaxMetadataBytes) throw new InvalidDataException("Native Access table definition exceeds its metadata limit or is truncated.");
+            if (length < Layout.TableHeaderSize || length > MaxMetadataBytes) throw new InvalidDataException("Native Access table definition exceeds its metadata limit or is truncated.");
             AccountMetadata(length);
-            byte[] bytes = new byte[length]; int copied = Math.Min(4096, length);
+            byte[] bytes = new byte[length]; int copied = Math.Min(Layout.PageSize, length);
             for (int i = 0; i < copied; i++) bytes[i] = first[i];
             int next = I32(first, 4); HashSet<int> visited = new HashSet<int> { pageNumber };
             for (int depth = 1; copied < length; depth++) {
                 cancellation.ThrowIfCancellationRequested();
                 if (next == 0 || depth >= MaxChainLength || !visited.Add(next)) throw new InvalidDataException("Native Access table-definition chain is truncated, cyclic or exceeds its limit.");
-                OfficeByteView page = Page(next, 2); int count = Math.Min(4088, length - copied);
+                OfficeByteView page = Page(next, 2); int count = Math.Min(Layout.PageSize - 8, length - copied);
                 for (int i = 0; i < count; i++) bytes[copied + i] = page[i + 8];
                 copied += count; next = I32(page, 4);
             }

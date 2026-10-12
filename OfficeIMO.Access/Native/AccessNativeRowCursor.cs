@@ -40,13 +40,13 @@ namespace OfficeIMO.Access {
                         cancellation.ThrowIfCancellationRequested(); _page = _pages.Current; OfficeByteView page = _table.Database.Page(_page);
                         if (page[0] != 1) continue;
                         if (I32(page, 4) != _table.DefinitionPage) throw new InvalidDataException("Native Access table usage map refers to another table's data page.");
-                        _count = U16(page, 12); if (_count > 255) throw new InvalidDataException("Native Access data-page row count is invalid.");
+                        _count = U16(page, _table.Database.Layout.DataRowCount); if (_count > 255) throw new InvalidDataException("Native Access data-page row count is invalid.");
                         _slot = 0; found = true; break;
                     }
                     if (!found) { _finished = true; _current = null; if (_rows != _table.RowCount) throw new InvalidDataException("Native Access table row count disagrees with its owned live records."); return false; }
                     if (_count == 0) continue;
                 }
-                OfficeByteView data = _table.Database.Page(_page, 1); int flags = U16(data, 14 + _slot * 2);
+                OfficeByteView data = _table.Database.Page(_page, 1); int flags = U16(data, _table.Database.Layout.DataRowDirectory + _slot * 2);
                 if ((flags & 0x8000) != 0) continue;
                 if (_rows == _limit) throw new InvalidDataException("Native Access reader exceeds its row limit.");
                 _rows++; _current = new AccessNativeRow(_table, _table.Database.Row(_page, _slot, true, cancellation), _valueLimit, _metadata);
@@ -67,20 +67,52 @@ namespace OfficeIMO.Access {
         private readonly AccessNativeTable _table;
         private readonly OfficeByteView _data;
         private readonly int _columnCount, _nullBytes, _variableCount, _valuesEnd;
+        private readonly int _fieldStart;
+        private readonly int[]? _jet3Offsets;
         private readonly object?[] _values;
         private readonly bool[] _decoded;
         private readonly int _valueLimit;
         private readonly bool _metadata;
         internal AccessNativeRow(AccessNativeTable table, OfficeByteView data, int valueLimit, bool metadata) {
-            _table = table; _data = data; _valueLimit = valueLimit; _metadata = metadata; _columnCount = U16(data, 0);
+            _table = table; _data = data; _valueLimit = valueLimit; _metadata = metadata;
+            _fieldStart = table.Database.Layout.RowColumnCountSize;
+            _columnCount = _fieldStart == 1 ? Slice(data, 0, 1)[0] : U16(data, 0);
             if (_columnCount > table.MaxColumns) throw new InvalidDataException("Native Access row declares fields outside its table schema.");
             _nullBytes = (_columnCount + 7) / 8;
-            if (data.Length < 2 + _nullBytes) throw new InvalidDataException("Native Access row is truncated before its null mask.");
-            _variableCount = table.MaxVariableColumns == 0 ? 0 : U16(data, data.Length - _nullBytes - 2);
+            if (data.Length < _fieldStart + _nullBytes) throw new InvalidDataException("Native Access row is truncated before its null mask.");
+            int countPosition = data.Length - _nullBytes - _fieldStart;
+            _variableCount = table.MaxVariableColumns == 0 ? 0 : _fieldStart == 1 ? Slice(data, countPosition, 1)[0] : U16(data, countPosition);
             if (_variableCount > table.MaxVariableColumns) throw new InvalidDataException("Native Access row variable-field count exceeds its table schema.");
-            _valuesEnd = data.Length - _nullBytes - (_variableCount == 0 && table.MaxVariableColumns == 0 ? 0 : 4 + _variableCount * 2);
-            if (_valuesEnd < 2) throw new InvalidDataException("Native Access row offset directory overlaps its field data.");
+            if (_fieldStart == 1 && table.MaxVariableColumns != 0) {
+                _jet3Offsets = Jet3Offsets(data, countPosition, _variableCount);
+                _valuesEnd = _jet3Offsets[_variableCount];
+            } else _valuesEnd = data.Length - _nullBytes - (table.MaxVariableColumns == 0 ? 0 : 4 + _variableCount * 2);
+            if (_valuesEnd < _fieldStart) throw new InvalidDataException("Native Access row offset directory overlaps its field data.");
             _values = new object?[table.Columns.Count]; _decoded = new bool[table.Columns.Count];
+        }
+        private static int[] Jet3Offsets(OfficeByteView data, int countPosition, int variableCount) {
+            // Byte offsets are extended by ordered column indices at each 256-byte boundary.
+            // Physical jump slots depend on row length; trailing 0xff slots are padding.
+            int jumpSlots = (data.Length - 1) / 256;
+            int lastOffset = countPosition - jumpSlots - 1, directoryStart = lastOffset - variableCount;
+            if (directoryStart < 1) throw new InvalidDataException("Jet3 variable directory overlaps its row header.");
+            var jumps = new List<int>(); bool padding = false;
+            for (int slot = 0; slot < jumpSlots; slot++) {
+                int index = data[countPosition - slot - 1];
+                if (index == 255 && (variableCount < 255 || (slot + 1) * 256 > directoryStart)) { padding = true; continue; }
+                if (padding || index > variableCount || jumps.Count != 0 && index < jumps[jumps.Count - 1])
+                    throw new InvalidDataException("Jet3 jump indices are invalid or out of order.");
+                jumps.Add(index);
+            }
+            var offsets = new int[variableCount + 1]; int segment = 0;
+            for (int index = 0; index < offsets.Length; index++) {
+                while (segment < jumps.Count && jumps[segment] <= index) segment++;
+                int value = data[lastOffset - index] + segment * 256;
+                if (value < 1 || value > directoryStart || index != 0 && value < offsets[index - 1])
+                    throw new InvalidDataException("Jet3 variable offsets exceed their row data or are out of order.");
+                offsets[index] = value;
+            }
+            return offsets;
         }
         internal void ValidateOrdinal(int ordinal) { if ((uint)ordinal >= (uint)_table.Columns.Count) throw new IndexOutOfRangeException(); }
         internal byte[] NativeBytes() { _table.Database.AccountMetadata(_data.Length); return _data.ToArray(); }
@@ -118,10 +150,10 @@ namespace OfficeIMO.Access {
             int start, length;
             if (column.Variable) {
                 if (column.VariableIndex >= _variableCount) throw new InvalidDataException("Native Access non-null field lacks a variable offset.");
-                int position = _data.Length - _nullBytes - 4 - column.VariableIndex * 2;
-                start = U16(_data, position); length = U16(_data, position - 2) - start;
-            } else { start = checked(2 + column.FixedOffset); length = column.Size; }
-            if (start < 2 || length < 0 || start > _valuesEnd - length) throw new InvalidDataException("Native Access field overlaps the row directory or lies outside its record.");
+                if (_jet3Offsets != null) { start = _jet3Offsets[column.VariableIndex]; length = _jet3Offsets[column.VariableIndex + 1] - start; }
+                else { int position = _data.Length - _nullBytes - 4 - column.VariableIndex * 2; start = U16(_data, position); length = U16(_data, position - 2) - start; }
+            } else { start = checked(_fieldStart + column.FixedOffset); length = column.Size; }
+            if (start < _fieldStart || length < 0 || start > _valuesEnd - length) throw new InvalidDataException("Native Access field overlaps the row directory or lies outside its record.");
             return Slice(_data, start, length);
         }
         internal Stream OpenBinary(int ordinal, CancellationToken cancellation) {

@@ -33,13 +33,19 @@ internal sealed class BrowserPdfPreview {
 
     internal int PageCount { get; }
 
-    internal PdfPageRenderResult Render(int pageNumber, CancellationToken cancellationToken = default) {
+    internal PdfPageRenderResult Render(int pageNumber, CancellationToken cancellationToken = default) =>
+        Render(pageNumber, 1280, cancellationToken);
+
+    /// <summary>Renders one page with its longest side capped at <paramref name="maximumDimension"/> pixels (thumbnails use a small cap).</summary>
+    internal PdfPageRenderResult Render(int pageNumber, int maximumDimension, CancellationToken cancellationToken = default) {
         if (pageNumber < 1 || pageNumber > PageCount) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        maximumDimension = Math.Clamp(maximumDimension, 64, 1280);
+        double scale = maximumDimension >= 1280 ? 1.5 : 1.0;
         cancellationToken.ThrowIfCancellationRequested();
         if (_canExtractContent) return _document.Render.Pages(pageNumber.ToString(CultureInfo.InvariantCulture), new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
-            Scale = 1.5,
-            ThumbnailMaxDimension = 1280,
+            Scale = scale,
+            ThumbnailMaxDimension = maximumDimension,
             MaxPages = 1,
             MaxPixelsPerPage = 2_000_000,
             MaxOutputBytesPerPage = 8 * 1024 * 1024,
@@ -50,8 +56,8 @@ internal sealed class BrowserPdfPreview {
             ContinueOnError = true
         }, cancellationToken).Single();
         return _document.Render.DisplayPage(pageNumber, new PdfPageDisplayOptions {
-            Scale = 1.5,
-            MaximumDimension = 1280,
+            Scale = scale,
+            MaximumDimension = maximumDimension,
             MaximumPixels = 2_000_000,
             MaximumOutputBytes = 8 * 1024 * 1024,
             Timeout = TimeSpan.FromSeconds(15)
