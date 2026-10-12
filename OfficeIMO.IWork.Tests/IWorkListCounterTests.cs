@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => AttributeTable(14, ListLevelEntry(0, 7), ListLevelEntry(6, 0))
         };
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers, starts,
-            tiered: fault == "tiered", level: fault == "deeper" ? 2ul : 0ul);
+            tiered: fault == "tiered", level: fault == "deeper" ? 3ul : 0ul);
         var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(content.IsFormattingComplete);
@@ -162,7 +162,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream DecimalCounterPackage(IWorkDocumentKind kind, byte[]? starts = null,
         bool tiered = false, ulong level = 0, byte[]? listStyles = null, byte[]? levels = null,
-        byte[]? plainStyle = null) => SelectedRichTextPackage(kind,
+        byte[]? plainStyle = null, ulong numberType = 0) => SelectedRichTextPackage(kind,
         Message(StringField(3, "\nNext\nRestart\nContinue"),
             levels ?? AttributeTable(6, ListLevelEntry(0, level)),
             starts ?? AttributeTable(14, ListLevelEntry(0, 7), ListLevelEntry(6, 0),
@@ -170,6 +170,6 @@ public sealed partial class IWorkBoundaryTests {
             listStyles ?? AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)))),
         additionalRecords: Message(
             ArchiveRecord(19, 2023, Message(VarintField(11, 3), VarintField(11, 3),
-                VarintField(15, 0), VarintField(15, 0), VarintField(25, tiered ? 1ul : 0ul), VarintField(25, 0))),
+                VarintField(15, numberType), VarintField(15, numberType), VarintField(25, tiered ? 1ul : 0ul), VarintField(25, 0))),
             ArchiveRecord(22, 2023, plainStyle ?? Message(VarintField(11, 0)))));
 }

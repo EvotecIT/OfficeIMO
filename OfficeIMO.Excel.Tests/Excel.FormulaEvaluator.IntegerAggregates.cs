@@ -86,5 +86,44 @@ namespace OfficeIMO.Tests {
             Assert.True(sheet.TryGetCachedFormulaValue(row, 1, out string? actual));
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void Integer_aggregates_distinguish_direct_blanks_from_ranges_after_saved_input_edits() {
+            using var document = ExcelDocument.Create();
+            var inputs = document.AddWorksheet("Source data");
+            var checks = document.AddWorksheet("Checks");
+            inputs.CellValue(1, 1, 30d); inputs.CellValue(3, 1, 0d);
+            string[] formulas = {
+                "GCD('Source data'!$A$2,6)", "LCM('Source data'!$A$2,6)",
+                "GCD('Source data'!$A$1:$A$2)", "LCM('Source data'!$A$1:$A$2)",
+                "GCD('Source data'!$A$2,'Source data'!$A$3)",
+                "LCM('Source data'!$A$2,'Source data'!$A$3)",
+                "GCD('Source data'!$A$2)", "LCM('Source data'!$A$2)",
+                "GCD('Source data'!$A$2,'Source data'!$A$2)",
+                "LCM('Source data'!$A$2,'Source data'!$A$2)",
+                "IFERROR(LCM('Source data'!$A$2),99)"
+            };
+            for (int row = 0; row < formulas.Length; row++) {
+                checks.CellValue(row + 1, 1, 42d); checks.CellFormula(row + 1, 1, formulas[row]);
+            }
+            Assert.Equal(formulas.Length, document.Calculate());
+            string[] blank = { "6", "6", "30", "0", "0", "0", "#VALUE!", "#VALUE!", "#VALUE!", "#VALUE!", "99" };
+            for (int row = 0; row < blank.Length; row++) AssertCache(checks, row + 1, blank[row]);
+            using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
+            using var reopened = ExcelDocument.Load(saved);
+            reopened.Sheets[0].CellValue(2, 1, 18d);
+            Assert.Equal(formulas.Length, reopened.Calculate());
+            string[] filled = { "6", "18", "6", "90", "18", "0", "18", "18", "18", "18", "18" };
+            for (int row = 0; row < filled.Length; row++) {
+                AssertCache(reopened.Sheets[1], row + 1, filled[row]);
+                Assert.Equal(formulas[row], reopened.Sheets[1].GetFormulaText(row + 1, 1));
+            }
+            reopened.Sheets[0].ClearRange("A2:A2", ExcelClearOptions.Values);
+            Assert.Equal(formulas.Length, reopened.Calculate());
+            using var cleared = new MemoryStream(); reopened.Save(cleared); cleared.Position = 0;
+            using var clearedReopened = ExcelDocument.Load(cleared);
+            for (int row = 0; row < blank.Length; row++) AssertCache(clearedReopened.Sheets[1], row + 1, blank[row]);
+            Assert.Empty(reopened.ValidateOpenXml());
+        }
     }
 }

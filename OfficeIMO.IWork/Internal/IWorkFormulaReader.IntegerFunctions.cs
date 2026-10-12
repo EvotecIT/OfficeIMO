@@ -5,18 +5,19 @@ namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkFormulaReader {
     /// <summary>
-    /// Gates integer reconstruction to bounded literals, scalar numbers and
-    /// canonical integer text in native single-cell references. Broader coercion
-    /// and formula dependencies remain unqualified.
+    /// Gates integer reconstruction to bounded literals, numbers, proven blanks
+    /// and canonical integer text in native single-cell references. All-blank
+    /// arguments, broader coercion and formula dependencies remain unqualified.
     /// </summary>
     private static bool HasQualifiedIntegerOperands(string name, IReadOnlyList<Operand> arguments,
         IWorkProjectionBudget? budget, CancellationToken cancellationToken, ref int remainingReferenceCells) {
         ulong productBound = 1;
-        bool productExceedsBound = false, hasZero = false;
+        bool productExceedsBound = false, hasZero = false, hasNumericOperand = false;
         foreach (Operand argument in arguments) {
             if (argument.IntegerReference is not IntegerReference reference) {
                 if (!double.TryParse(argument.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                     || !AccumulateInteger(number, name, ref productBound, ref productExceedsBound, ref hasZero)) return false;
+                hasNumericOperand = true;
                 continue;
             }
             IWorkTable? table = reference.Table;
@@ -31,8 +32,17 @@ internal static partial class IWorkFormulaReader {
                 for (int column = reference.FirstColumn; column <= reference.LastColumn; column++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     IWorkTableCell? cell = table.GetCell(row + 1, column + 1);
-                    if (cell == null || cell.SourceFormulaIsDeclared || !cell.CachedValueIsComplete
-                        || cell.HasDecodeError || cell.NumericValueIsApproximate) return false;
+                    if (cell != null && (cell.SourceFormulaIsDeclared || !cell.CachedValueIsComplete
+                        || cell.HasDecodeError || cell.NumericValueIsApproximate)) return false;
+                    if (cell == null || cell.Kind == IWorkCellKind.Empty) {
+                        if (!table.BodyMetadataIsComplete || !table.CellStorageIsComplete
+                            || cell != null && (cell.ValueKind != IWorkCellKind.Empty || cell.Value != null
+                                || cell.RichText != null)) return false;
+                        // Native LCM ignores a direct blank but treats a blank
+                        // within a range as zero. GCD's zero identity is unchanged.
+                        if (!reference.IsSingleCellSyntax && name == "LCM") hasZero = true;
+                        continue;
+                    }
                     double number;
                     if (cell.Kind == IWorkCellKind.Number && cell.ValueKind == IWorkCellKind.Number
                         && cell.Value is double scalar) number = scalar;
@@ -41,10 +51,11 @@ internal static partial class IWorkFormulaReader {
                         && TryCanonicalIntegerText(text, out ulong integer)) number = integer;
                     else return false;
                     if (!AccumulateInteger(number, name, ref productBound, ref productExceedsBound, ref hasZero)) return false;
+                    hasNumericOperand = true;
                 }
             }
         }
-        return hasZero || !productExceedsBound;
+        return hasNumericOperand && (hasZero || !productExceedsBound);
     }
 
     private const ulong MaximumNativeInteger = 999999999999999UL;

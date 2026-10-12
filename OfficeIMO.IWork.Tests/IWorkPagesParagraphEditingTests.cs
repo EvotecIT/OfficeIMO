@@ -139,11 +139,13 @@ public sealed class IWorkPagesParagraphEditingTests {
     }
 
     [Fact]
-    public void Mixed_runs_lists_and_body_attachments_require_another_edit_profile() {
+    public void Mixed_runs_and_body_attachments_require_another_edit_profile() {
         var model = IWorkPagesDocument.Create();
         model.AddRichParagraph(new[] { new IWorkTextRunData("Alpha", bold: true), new IWorkTextRunData(" beta") });
         Reject(model, "Other text");
-        model = IWorkPagesDocument.Create(); model.CreateNumberedList().AddItem("Alpha beta"); Reject(model, "Other text");
+        model = IWorkPagesDocument.Create();
+        model.CreateNumberedList().AddRichItem(new[] { new IWorkTextRunData("Alpha", "Arial", 12, bold: true), new IWorkTextRunData(" beta", "Arial", 12) });
+        Reject(model, "Other text");
         model = IWorkPagesDocument.Create(); model.AddParagraph("Alpha beta"); model.AddTable(IWorkTableData.Create(1, 1).SetText(1, 1, "Cell"));
         Reject(model, "Other text");
     }

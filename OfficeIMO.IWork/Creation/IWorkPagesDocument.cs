@@ -88,9 +88,15 @@ public sealed partial class IWorkPagesDocument {
     }
 
     /// <summary>Creates a decimal list; call AddItem or AddRichItem to insert body paragraphs.</summary>
-    /// <remarks>Markers and text share a whole-point font size. Each list owns its counters and supports two non-tiered levels.</remarks>
-    public IWorkPagesNumberedList CreateNumberedList(string fontName = "Arial", float fontSizePoints = 12) {
-        var list = new IWorkPagesNumberedList(this, fontName, fontSizePoints);
+    /// <remarks>Rich runs can use different whole-point sizes; marker size follows the first retained run. Each list owns its counters and supports nine non-tiered levels.</remarks>
+    public IWorkPagesNumberedList CreateNumberedList(string fontName = "Arial", float fontSizePoints = 12) =>
+        CreateNumberedList(IWorkDecimalListMarkerStyle.Period, fontName, fontSizePoints);
+
+    /// <summary>Creates a decimal list with the selected marker punctuation at every level.</summary>
+    /// <remarks>Rich runs can use different whole-point sizes; marker size follows the first retained run. Each list owns its counters and supports nine non-tiered levels.</remarks>
+    public IWorkPagesNumberedList CreateNumberedList(IWorkDecimalListMarkerStyle markerStyle,
+        string fontName = "Arial", float fontSizePoints = 12) {
+        var list = new IWorkPagesNumberedList(this, fontName, fontSizePoints, markerStyle);
         _numberedLists.Add(list); return list;
     }
 

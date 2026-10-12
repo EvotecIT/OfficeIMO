@@ -24,10 +24,10 @@ public sealed partial class IWorkBoundaryTests {
         IWorkTable operands = result.Projection.Sheets[0].Tables.Single(), checks = result.Projection.Sheets[1].Tables.Single();
         Assert.Equal(IWorkCellKind.Text, operands.GetCell(4, 2)!.Kind);
         Assert.Equal(changed ? "18" : "12", operands.GetCell(4, 2)!.Value);
-        Assert.Equal(4, checks.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete));
-        // Blank references, mixed ranges, Booleans and arbitrary text remain
-        // outside this feature even when native Numbers has a numeric cache.
-        foreach (int row in new[] { 2, 3, 5, 6, 8 }) {
+        Assert.Equal(10, checks.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete));
+        // Booleans and arbitrary text remain outside the qualified coercion
+        // family even when native Numbers has a numeric cache.
+        foreach (int row in new[] { 5, 6 }) {
             Assert.False(checks.GetCell(row, 2)!.FormulaIsComplete);
             Assert.False(checks.GetCell(row, 3)!.FormulaIsComplete);
         }
@@ -36,9 +36,9 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { "Inputs", "Checks" }, reopened.Sheets.Select(s => s.Name));
         Assert.Equal(changed ? "18" : "12", reopened.Sheets[0].CellAt(4, 2).GetValue<string>());
         Verify(changed ? "changedCells" : "cells", true);
-        Assert.Equal(4, reopened.Calculate()); Verify(changed ? "changedCells" : "cells", false);
+        Assert.Equal(10, reopened.Calculate()); Verify(changed ? "changedCells" : "cells", false);
         reopened.Sheets[0].CellValue(4, 2, "18");
-        Assert.Equal(4, reopened.Calculate()); Verify("changedCells", false);
+        Assert.Equal(10, reopened.Calculate()); Verify("changedCells", false);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
         Assert.Equal("18", final.Sheets[0].CellAt(4, 2).GetValue<string>());

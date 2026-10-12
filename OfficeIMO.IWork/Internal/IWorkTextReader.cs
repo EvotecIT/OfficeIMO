@@ -67,7 +67,7 @@ internal static partial class IWorkTextReader {
                 explicitListLevel,
                 projectionBudget, listStyleCache, decodedListStyleCache, tolerateStyleDepth, references, ref complete);
             bool qualifiedCounterProfile = levelsComplete && countersComplete && listStylesComplete
-                && explicitListLevel is >= 0 and <= 1
+                && explicitListLevel is >= 0 and <= IWorkDecimalListProfile.MaximumLevel
                 && listStyleId.HasValue && decodedListStyleCache.TryGetValue(listStyleId.Value, out Cached<ListStyleData> counterStyle)
                 && counterStyle.IsComplete && HasQualifiedDecimalProfile(counterStyle.Value, listLevel);
             int plainLevel = explicitListLevel ?? 0;

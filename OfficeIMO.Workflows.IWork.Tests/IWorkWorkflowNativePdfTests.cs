@@ -22,6 +22,30 @@ public sealed partial class IWorkWorkflowTests {
     [InlineData("pages-created-rich-numbering-v15.4.pages", "pages-pdf", 1, "8")]
     [InlineData("pages-created-rich-numbering-edited-v15.4.pages", "pages-pdf", 1, "8")]
     [InlineData("pages-list-continuation-v15.4.pages", "pages-pdf", 1, "2")]
+    [InlineData("pages-third-level-created.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-third-level-saved-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-third-level-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-preserved-decimal-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-preserved-decimal-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-nine-level-created.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-nine-level-saved-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-nine-level-preserved.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-nine-level-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-parentheses-created.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-parentheses-saved-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-parentheses-preserved.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-parentheses-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-closing-created.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-closing-saved-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-closing-preserved.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-decimal-closing-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-mixed-font-created.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-mixed-font-saved-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-mixed-font-edited-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-mixed-size-orders-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-mixed-size-created.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-mixed-size-saved-v15.4.pages", "pages-pdf", 1, "8")]
+    [InlineData("pages-mixed-size-edited-v15.4.pages", "pages-pdf", 1, "8")]
     [InlineData("keynote-created-tables-edited-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-created-tables-pdf-export-v15.4.key", "keynote-pdf", 3, "13")]
     [InlineData("keynote-preserved-resized-v15.4.key", "keynote-pdf", 3, "14")]
@@ -86,6 +110,51 @@ public sealed partial class IWorkWorkflowTests {
                     AssertCreatedPagesListText(pages, fixture.Contains("edited", StringComparison.Ordinal));
                 else if (fixture.StartsWith("pages-created-rich-numbering", StringComparison.Ordinal))
                     AssertCreatedPagesRichList(pdf, fixture.Contains("edited", StringComparison.Ordinal));
+                else if (fixture.StartsWith("pages-mixed-font-", StringComparison.Ordinal))
+                    AssertMixedFontList(pdf, fixture.Contains("edited", StringComparison.Ordinal));
+                else if (fixture.StartsWith("pages-mixed-size-", StringComparison.Ordinal))
+                    AssertMixedSizeList(pdf, fixture.Contains("edited", StringComparison.Ordinal),
+                        fixture.Contains("orders", StringComparison.Ordinal));
+                else if (fixture.StartsWith("pages-third-level", StringComparison.Ordinal)) {
+                    string text = string.Concat(Assert.Single(pages).Where(c => !char.IsWhiteSpace(c)));
+                    Assert.Contains("6.Resumedgrandchildsix", text);
+                    Assert.Contains("8.Parenteightresetsdescendants1.Childresetone1.Grandchildresetafterrootone", text);
+                    Assert.Contains("4.Parentrestartfour1.Childafterrestartone1.Grandchildafterrestartone", text);
+                    if (fixture.Contains("edited", StringComparison.Ordinal)) Assert.Contains("2.Nativegrandchildtwo", text);
+                    Assert.Contains("Endthird-levelprofile", text);
+                }
+                else if (fixture.StartsWith("pages-preserved-decimal", StringComparison.Ordinal)) {
+                    string text = string.Concat(Assert.Single(pages).Where(c => !char.IsWhiteSpace(c)));
+                    Assert.Contains(fixture.Contains("-edited", StringComparison.Ordinal) ? "7.Nativeseven" : "7.Editedseven", text);
+                    Assert.Contains("1.Childtwo1.Grandchildsix2.Grandchildtwo", text);
+                    Assert.Contains("6.Updatedgrandchildsix8.Parenteightresetsdescendants", text);
+                    Assert.Contains("4.Parentrestartfour1.Childafterrestartone1.Grandchildafterrestartone", text);
+                    Assert.Contains("Endthird-levelprofile", text);
+                }
+                else if (fixture.StartsWith("pages-decimal-", StringComparison.Ordinal)) {
+                    string text = string.Concat(Assert.Single(pages).Where(c => !char.IsWhiteSpace(c)));
+                    bool preserved = fixture.Contains("preserved", StringComparison.Ordinal);
+                    bool edited = fixture.Contains("edited", StringComparison.Ordinal);
+                    bool parentheses = fixture.Contains("parentheses", StringComparison.Ordinal);
+                    string Mark(int number) => parentheses ? "(" + number + ")" : number + ")";
+                    Assert.Contains(Mark(7) + (edited ? "Rootnovel" : preserved ? "ROOTSEVEN" : "Rootseven"), text);
+                    Assert.Contains(Mark(1) + (edited ? "LevelEIGHT" : preserved ? "LEVELEIGHT" : "Leveleight")
+                        + Mark(2) + "Deepcontinuedtwo", text);
+                    Assert.Contains(Mark(9) + "Deeprestartnine3.Otherrootthree" + Mark(10) + "Resumeddeepten" + Mark(8) + "Rooteight", text);
+                    Assert.Contains(Mark(4) + "Rootrestartfour" + Mark(1) + "Restartlevel1", text);
+                    Assert.Contains(Mark(1) + "Restartlevel8" + (edited ? Mark(2) + "Nativedeeptwo" : string.Empty) + "Endnine-levelprofile", text);
+                }
+                else if (fixture.StartsWith("pages-nine-level", StringComparison.Ordinal)) {
+                    string text = string.Concat(Assert.Single(pages).Where(c => !char.IsWhiteSpace(c)));
+                    bool preserved = fixture.Contains("preserved", StringComparison.Ordinal);
+                    bool edited = fixture.Contains("edited", StringComparison.Ordinal);
+                    Assert.Contains(edited ? "7.Rootnovel" : preserved ? "7.ROOTSEVEN" : "7.Rootseven", text);
+                    Assert.Contains(edited ? "1.LevelEIGHT2.Deepcontinuedtwo" : preserved
+                        ? "1.LEVELEIGHT2.Deepcontinuedtwo" : "1.Leveleight2.Deepcontinuedtwo", text);
+                    Assert.Contains("9.Deeprestartnine3.Otherrootthree10.Resumeddeepten8.Rooteight", text);
+                    Assert.Contains("4.Rootrestartfour1.Restartlevel1", text);
+                    Assert.Contains("1.Restartlevel8" + (edited ? "2.Nativedeeptwo" : string.Empty) + "Endnine-levelprofile", text);
+                }
                 else AssertNativePagesText(pages);
                 if (fixture == "pages-created-layout-edited-v15.4.pages"
                     || fixture.StartsWith("pages-preserved-paragraphs", StringComparison.Ordinal)) {

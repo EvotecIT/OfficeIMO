@@ -1,4 +1,4 @@
-"""Independent checks for the owned two-level decimal Pages creation profile."""
+"""Independent checks for the owned decimal Pages creation profile through level two."""
 
 
 def verify_decimal_lists(graph, decoded, body, text):
@@ -8,10 +8,12 @@ def verify_decimal_lists(graph, decoded, body, text):
     if not numbered:
         return []
     for style in numbered.values():
-        assert list(style.label_types) == [3, 3] + [0] * 7
+        depth = sum(value == 3 for value in style.label_types)
+        assert depth in (2, 3)
+        assert list(style.label_types) == [3] * depth + [0] * (9 - depth)
         assert list(style.number_types) == [0] * 9 and list(style.tiered_numbers) == [False] * 9
-        assert list(style.text_indents) == [1.5, 1.5] + [0] * 7
-        assert list(style.indents) == [0, 18] + [0] * 7
+        assert list(style.text_indents) == [1.5] * depth + [0] * (9 - depth)
+        assert list(style.indents) == [level * 18 for level in range(depth)] + [0] * (9 - depth)
         assert len(style.geometries) == 9 and all(
             geometry.scale == 1 and geometry.baseline_offset == 0 and geometry.scale_with_text
             for geometry in style.geometries)
@@ -27,17 +29,18 @@ def verify_decimal_lists(graph, decoded, body, text):
         assert paragraph_styles[offset].para_properties.list_style.identifier == identifier
         if identifier in numbered:
             level, start = data[offset].first, starts[offset].first
-            assert level in (0, 1) and starts[offset].second == 0
+            assert level in (0, 1, 2) and numbered[identifier].label_types[level] == 3
+            assert starts[offset].second == 0
             assert data[offset].second == (1 if start else 0)
             if identifier != scope:
                 counters, scope = {}, identifier
                 assert start > 0
             number = start if start else counters.get(level, 0) + 1
             assert 0 < number <= 2147483647
-            if level == 0:
-                counters.pop(1, None)
-            elif not start:
-                assert 0 in counters or 1 in counters
+            for child in range(level + 1, 3):
+                counters.pop(child, None)
+            if level > 0 and not start:
+                assert level - 1 in counters or level in counters
             counters[level] = number
             result.append({'offset': offset, 'styleId': identifier, 'level': level,
                            'number': number, 'start': start, 'text': raw.removesuffix('\n'),

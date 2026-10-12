@@ -8,7 +8,12 @@ namespace OfficeIMO.Excel {
             result = default;
             IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count < 1 || tokens.Count > 255 || tokens.Any(string.IsNullOrWhiteSpace)
-                || !TryResolveFormulaArguments(args, out List<FormulaArgumentValue> values)) return false;
+                || !TryResolveFormulaArguments(args, out List<FormulaArgumentValue> values,
+                    skipBlankScalarReferences: true)) return false;
+            if (values.Count == 0) {
+                result = FormulaArgumentValue.Error("#VALUE!");
+                return true;
+            }
 
             const ulong maximumExactInteger = 9007199254740991UL;
             var operands = new List<ulong>(values.Count);
@@ -31,7 +36,8 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
                 // Validate every operand before exposing an error to IFERROR. Blank
-                // references are zero, while finite negative operands are #NUM!.
+                // range positions are zero; direct blanks were filtered above.
+                // Finite negative operands are #NUM!.
                 if (double.IsNaN(number) || double.IsInfinity(number)
                     || number > maximumExactInteger || number < -(double)maximumExactInteger) return false;
                 if (number < 0) {

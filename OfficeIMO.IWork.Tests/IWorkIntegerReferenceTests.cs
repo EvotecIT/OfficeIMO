@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
             "native-exports/" + evidence.GetProperty("source").GetString()),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
-        Assert.Equal(33, table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete));
+        Assert.Equal(39, table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete));
         Assert.False(table.GetCell(10, 6)!.FormulaIsComplete);
         Assert.Equal(0d, table.GetCell(10, 6)!.Value);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -34,8 +34,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(expected.GetProperty("formula").GetString(), sheet.GetFormulaText(row, column));
             Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), sheet.CellAt(row, column).GetValue<double>());
         }
-        Assert.Equal(33, reopened.Calculate());
-        sheet.CellValue(2, 2, 24d); Assert.Equal(33, reopened.Calculate());
+        Assert.Equal(39, reopened.Calculate());
+        sheet.CellValue(2, 2, 24d); Assert.Equal(39, reopened.Calculate());
         foreach (int column in new[] { 5, 7 }) Assert.Equal(12d, sheet.CellAt(2, column).GetValue<double>());
         foreach (int column in new[] { 6, 8 }) Assert.Equal(360d, sheet.CellAt(2, column).GetValue<double>());
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
@@ -86,7 +86,6 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Integer_reference_qualification_rejects_unqualified_cells_even_beside_literal_zero() {
         IWorkTableCell[] unqualified = {
-            new(1, 1, IWorkCellKind.Empty, null),
             new(1, 1, IWorkCellKind.Text, "24"),
             new(1, 1, IWorkCellKind.Boolean, true),
             new(1, 1, IWorkCellKind.Formula, 24d, formula: "=12*2", valueKind: IWorkCellKind.Number, formulaIsComplete: true),
@@ -106,7 +105,7 @@ public sealed partial class IWorkBoundaryTests {
                 budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
         }
         var missing = new IWorkTable("Inputs", 1, 1, Array.Empty<IWorkTableCell>());
-        Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
+        Assert.True(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
             owningTable: new IWorkFormulaTableBinding(missing, string.Empty, false),
             budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
         var merged = new IWorkTable("Inputs", 1, 2, new[] { new IWorkTableCell(1, 1, IWorkCellKind.Number, 24d) },

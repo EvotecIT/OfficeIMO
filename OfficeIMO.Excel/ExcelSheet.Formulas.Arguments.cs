@@ -138,11 +138,19 @@ namespace OfficeIMO.Excel {
             return string.Equals(leftText, rightText, StringComparison.OrdinalIgnoreCase);
         }
 
-        private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values) {
+        private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values,
+            bool skipBlankScalarReferences = false) {
             values = new List<FormulaArgumentValue>();
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string trimmed in SplitFormulaArguments(args)) {
                 if (TryResolveFormulaRange(trimmed, out var rangeValues, ref remainingCellBudget, out bool isReference)) {
+                    // Integer aggregates ignore an empty direct cell argument.
+                    // The same empty position inside a range remains a zero operand.
+                    // Resolve and charge the reference before filtering its value.
+                    if (skipBlankScalarReferences && rangeValues.Count == 1
+                        && !rangeValues[0].HasValue && !rangeValues[0].IsUnresolvedFormula
+                        && !rangeValues[0].IsUnevaluatedFormulaCache
+                        && TryParseQualifiedFormulaCellReference(trimmed, out _, out _, out _)) continue;
                     values.AddRange(rangeValues);
                     continue;
                 }

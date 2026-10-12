@@ -60,6 +60,8 @@ internal static partial class IWorkTableReader {
         var store = IWorkObjectIndex.TryGetMessage(model, 4);
         var tiles = store == null ? null : IWorkObjectIndex.TryGetMessage(store, 3);
         if (tiles == null) throw new NotSupportedException("The table must resolve to modern tile storage.");
+        if (HasUnsupportedTileRowStride(tiles))
+            throw new NotSupportedException("Native scalar edits require unambiguous supported tile row coordinates.");
         var entries = IWorkObjectIndex.TryGetMessages(tiles, 1, out bool malformed);
         if (malformed) throw new NotSupportedException("The table tile declarations must be complete.");
         return entries;

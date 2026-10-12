@@ -17,8 +17,8 @@ internal static class NativePagesRichNumberedItemWriterSmoke {
         Verify(edited, "Resumed parent ten native edit");
         var list = document.NumberedLists[0];
         try {
-            list.AddRichItem(new[] { new IWorkTextRunData("Mixed size", "Arial", 14) }, restartAt: 100);
-            throw new InvalidOperationException("Mixed rich-list size was accepted.");
+            list.AddRichItem(new[] { new IWorkTextRunData("Fractional size", "Arial", 14.5f) }, restartAt: 100);
+            throw new InvalidOperationException("Fractional rich-list size was accepted.");
         } catch (ArgumentException) { }
         Require(bytes.SequenceEqual(document.SaveBytes()) && list.AddItem("Next").ListNumber == 11,
             "Rejected rich-list input changed counters or document state.");

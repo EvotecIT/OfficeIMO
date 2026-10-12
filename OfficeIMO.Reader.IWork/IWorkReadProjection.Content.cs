@@ -353,12 +353,15 @@ internal sealed partial class IWorkReadProjection {
     }
 
     private static string? ReaderListLabel(IWorkTextParagraph paragraph) =>
-        paragraph.ListNumber.HasValue
-            ? paragraph.ListNumber.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."
+        paragraph.ListNumber is int number
+            && IWorkDecimalListProfile.TryGetMarkerStyle(paragraph.ListLabel, out var style)
+            ? IWorkDecimalListProfile.FormatMarker(number, style)
             : paragraph.ListLabel;
 
     private static string MarkdownListMarker(string? sourceLabel) {
         string label = sourceLabel?.Trim() ?? string.Empty;
+        if (label.Length >= 3 && label[0] == '(' && label[label.Length - 1] == ')')
+            label = label.Substring(1, label.Length - 2) + ".";
         int digits = 0;
         while (digits < label.Length && label[digits] >= '0' && label[digits] <= '9') digits++;
         return digits > 0 && digits == label.Length - 1

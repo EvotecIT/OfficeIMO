@@ -51,8 +51,8 @@ internal static partial class IWorkTextReader {
             selectedLabel = level >= 0 && level < data.NumberTypes.Count
                 ? NumberMarker(data.NumberTypes[level]) : null;
             // Counter recovery separately requires qualified paragraph metadata.
-            // Independently observed non-tiered decimal levels zero and one have
-            // qualified starts, parent resets and continuation semantics.
+            // The bounded non-tiered decimal profile requires qualified starts,
+            // ancestor resets and continuation semantics.
             if (!HasQualifiedDecimalProfile(data, level)) resolvedCompletely = false;
         }
         if (labelType != 0 && selectedLabel == null) resolvedCompletely = false;
@@ -180,10 +180,12 @@ internal static partial class IWorkTextReader {
     };
 
     private static bool HasQualifiedDecimalProfile(ListStyleData data, int level) {
-        if (level is < 0 or > 1 || level >= data.LabelTypes.Count
+        if (level is < 0 or > IWorkDecimalListProfile.MaximumLevel || level >= data.LabelTypes.Count
             || level >= data.NumberTypes.Count || level >= data.TieredNumbers.Count) return false;
+        ulong numberType = data.NumberTypes[0];
+        if (!IWorkDecimalListProfile.IsQualifiedNumberType(numberType)) return false;
         for (int current = 0; current <= level; current++) {
-            if (data.LabelTypes[current] != 3 || data.NumberTypes[current] != 0
+            if (data.LabelTypes[current] != 3 || data.NumberTypes[current] != numberType
                 || data.TieredNumbers[current] != 0) return false;
         }
         return true;

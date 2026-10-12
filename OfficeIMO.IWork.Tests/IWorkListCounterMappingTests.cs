@@ -13,6 +13,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("explicit")]
     [InlineData("plain-gap")]
     [InlineData("marker-font")]
+    [InlineData("third-level")]
     public void Saved_DOCX_child_starts_apply_once_before_parent_reset(string boundary) {
         using var package = ChildResetMappingPackage(IWorkDocumentKind.Pages, boundary);
         using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
@@ -50,6 +51,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("explicit")]
     [InlineData("plain-gap")]
     [InlineData("marker-font")]
+    [InlineData("third-level")]
     public void Saved_Keynote_PPTX_table_counters_reach_drawing_and_PDF(string boundary) {
         using var package = ChildResetMappingPackage(IWorkDocumentKind.Keynote, boundary);
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
@@ -95,12 +97,16 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream ChildResetMappingPackage(IWorkDocumentKind kind, string boundary) {
-        string[] text = boundary == "explicit"
+        string[] text = boundary == "third-level"
+            ? new[] { "Value", "Child one", "Grandchild five", "Grandchild six", "Child two", "Grandchild reset",
+                "Parent eight", "Child reset", "Grandchild root reset" }
+            : boundary == "explicit"
             ? new[] { "Value", "Child five", "Parent eight", "Child reset", "Child second" }
             : boundary == "plain-gap"
                 ? new[] { "Value", "Child one", "Gap", "Child continued", "Parent eight", "Child reset" }
                 : new[] { "Value", "Child one", "Child continued", "Parent eight", "Child reset" };
-        int[] levels = boundary == "explicit" ? new[] { 0, 1, 0, 1, 1 }
+        int[] levels = boundary == "third-level" ? new[] { 0, 1, 2, 2, 1, 2, 0, 1, 2 }
+            : boundary == "explicit" ? new[] { 0, 1, 0, 1, 1 }
             : boundary == "plain-gap" ? new[] { 0, 1, 0, 1, 0, 1 } : new[] { 0, 1, 1, 0, 1 };
         ulong[] offsets = ParagraphOffsets(text);
         byte[] styles = boundary == "plain-gap"
@@ -115,16 +121,21 @@ public sealed partial class IWorkBoundaryTests {
         return SelectedRichTextPackage(kind,
             Message(StringField(3, "\n" + string.Join("\n", text.Skip(1))),
                 AttributeTable(6, offsets.Select((offset, index) => ListLevelEntry(offset,
-                    (ulong)levels[index], index == 0 || boundary == "explicit" && index == 1 ? 1ul : 0ul)).ToArray()),
+                    (ulong)levels[index], index == 0 || boundary == "explicit" && index == 1
+                        || boundary == "third-level" && index == 2 ? 1ul : 0ul)).ToArray()),
                 AttributeTable(14, offsets.Select((offset, index) => ListLevelEntry(offset,
-                    index == 0 ? 7ul : boundary == "explicit" && index == 1 ? 5ul : 0ul)).ToArray()),
+                    index == 0 ? 7ul : boundary == "explicit" && index == 1
+                        || boundary == "third-level" && index == 2 ? 5ul : 0ul)).ToArray()),
                 styles, paragraphStyles, AttributeTable(8, AttributeEntry(0, ReferenceField(2, 33)))),
             additionalRecords: Message(
                 ArchiveRecord(19, 2023, Message(VarintField(11, 3), VarintField(11, 3),
                     VarintField(15, 0), VarintField(15, 0), VarintField(25, 0), VarintField(25, 0),
                     FloatField(12, 1.5f), FloatField(12, 1.5f), FloatField(13, 0), FloatField(13, 18),
                     BytesField(14, Message(FloatField(1, 0.9166667f), FloatField(2, 0), VarintField(3, 1))),
-                    BytesField(14, Message(FloatField(1, 0.9166667f), FloatField(2, 0), VarintField(3, 1))))),
+                    BytesField(14, Message(FloatField(1, 0.9166667f), FloatField(2, 0), VarintField(3, 1))),
+                    boundary == "third-level" ? Message(VarintField(11, 3), VarintField(15, 0), VarintField(25, 0),
+                        FloatField(12, 1.5f), FloatField(13, 36),
+                        BytesField(14, Message(FloatField(1, 0.9166667f), FloatField(2, 0), VarintField(3, 1)))) : Array.Empty<byte>())),
                 ArchiveRecord(22, 2023, VarintField(11, 0)),
                 ArchiveRecord(31, 2022, BytesField(11, Message(FloatField(3, 11), StringField(5, "Calibri")))),
                 ArchiveRecord(32, 2022, BytesField(11, Message(FloatField(3, 11), StringField(5, "Times New Roman")))),

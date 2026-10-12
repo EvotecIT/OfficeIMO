@@ -9,7 +9,8 @@ internal static partial class IWorkFormulaReader {
         out IntegerReference? integerReference) {
         integerReference = null;
         string address = ReferenceAddress(firstColumn, lastColumn, firstRow, lastRow,
-            firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute);
+            firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute,
+            collapseSingleCell: node.GetUnsigned(1) == 36);
         if (address == "#REF!") { complete = false; return address; }
         bool wholeColumns = !firstRow.HasValue, wholeRows = !firstColumn.HasValue;
         IWorkFormulaTableBinding? target;
@@ -43,7 +44,8 @@ internal static partial class IWorkFormulaReader {
                     firstColumnAbsolute = lastColumnAbsolute = true;
                 }
                 address = ReferenceAddress(firstColumn, lastColumn, firstRow, lastRow,
-                    firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute);
+                    firstColumnAbsolute, lastColumnAbsolute, firstRowAbsolute, lastRowAbsolute,
+                    collapseSingleCell: node.GetUnsigned(1) == 36);
                 if (address == "#REF!") { complete = false; return address; }
                 boundedBodyRanges = true;
             }
@@ -57,14 +59,17 @@ internal static partial class IWorkFormulaReader {
     }
 
     private static string ReferenceAddress(int? firstColumn, int? lastColumn, int? firstRow, int? lastRow,
-        bool firstColumnAbsolute, bool lastColumnAbsolute, bool firstRowAbsolute, bool lastRowAbsolute) {
+        bool firstColumnAbsolute, bool lastColumnAbsolute, bool firstRowAbsolute, bool lastRowAbsolute,
+        bool collapseSingleCell) {
         if (firstColumn.HasValue != lastColumn.HasValue || firstRow.HasValue != lastRow.HasValue
             || !firstColumn.HasValue && !firstRow.HasValue || lastColumn < firstColumn || lastRow < firstRow)
             return "#REF!";
         string first = CellAddress(firstColumn, firstRow, firstColumnAbsolute, firstRowAbsolute);
         string last = CellAddress(lastColumn, lastRow, lastColumnAbsolute, lastRowAbsolute);
         if (first == "#REF!" || last == "#REF!") return "#REF!";
-        // Even a single whole row/column needs a colon in the coordinate source representation.
-        return first == last && firstColumn.HasValue && firstRow.HasValue ? first : first + ":" + last;
+        // A native range keeps its colon even when both endpoints coincide:
+        // integer aggregates distinguish a blank direct cell from a blank range.
+        return collapseSingleCell && first == last && firstColumn.HasValue && firstRow.HasValue
+            ? first : first + ":" + last;
     }
 }

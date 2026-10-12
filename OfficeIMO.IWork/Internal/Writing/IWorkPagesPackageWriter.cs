@@ -85,6 +85,16 @@ internal static class IWorkPagesPackageWriter {
                 var numbering = new IWorkProtoWriter(limits.MaximumPackageBytes, cancellationToken)
                     .UInt(1, listIndex).UInt(2, (uint)paragraph.ListLevel).UInt(3, (uint)paragraph.ListNumber!.Value);
                 if (paragraph.ListRestartNumber.HasValue) numbering.UInt(4, (uint)paragraph.ListRestartNumber.Value);
+                // Existing homogeneous lists already encode their marker font in the runs.
+                // Preserve those bytes while distinguishing independently styled markers.
+                if (paragraph.Runs.Any(run => !string.Equals(run.FontName, numberedList.FontName, StringComparison.Ordinal)))
+                    numbering.String(5, numberedList.FontName);
+                // Mixed sizes leave the paragraph default (and its em indent) independent of the runs.
+                if (paragraph.Runs.Any(run => run.FontSizePoints != numberedList.FontSizePoints))
+                    numbering.Float(6, numberedList.FontSizePoints);
+                // Period is the original default; retain its identity while distinguishing other punctuation.
+                if (numberedList.MarkerStyle != IWorkDecimalListMarkerStyle.Period)
+                    numbering.UInt(7, (uint)numberedList.MarkerStyle);
                 data.Message(3, numbering);
             }
             if (paragraph.Layout.HasCustomProperties) {

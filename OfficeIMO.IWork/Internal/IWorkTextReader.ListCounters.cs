@@ -42,11 +42,11 @@ internal static partial class IWorkTextReader {
 
     // One counter scope belongs to one selected list style in one text storage.
     // Ordinary non-list paragraphs preserve it; a different numbered/bullet style
-    // or rejected metadata ends it. The observed two non-tiered decimal levels
-    // reset their children whenever a parent item advances or explicitly restarts.
+    // or rejected metadata ends it. Qualified non-tiered decimal levels reset
+    // every descendant whenever an ancestor advances or explicitly restarts.
     private sealed class ParagraphListCounter {
         private ulong? _identifier;
-        private readonly int?[] _numbers = new int?[2];
+        private readonly int?[] _numbers = new int?[IWorkDecimalListProfile.MaximumLevel + 1];
 
         internal (int? Number, int? Start) Resolve(IReadOnlyList<AttributeBoundary> starts,
             IReadOnlyList<AttributeBoundary> levels, int offset, ulong? identifier, int level,
@@ -86,17 +86,18 @@ internal static partial class IWorkTextReader {
             if (explicitStart) {
                 _identifier = identifier;
                 _numbers[level] = (int)raw!.Value;
-                if (level == 0) _numbers[1] = null;
+                ClearDeeperLevels(level);
                 return (_numbers[level], _numbers[level]);
             }
             if (raw == 0 && identifier == _identifier) {
                 if (_numbers[level] is int number && number < int.MaxValue) {
                     _numbers[level] = number + 1;
-                    if (level == 0) _numbers[1] = null;
+                    ClearDeeperLevels(level);
                     return (_numbers[level], null);
                 }
-                if (level == 1 && !_numbers[1].HasValue && _numbers[0].HasValue) {
-                    _numbers[1] = 1;
+                if (level > 0 && !_numbers[level].HasValue && _numbers[level - 1].HasValue) {
+                    _numbers[level] = 1;
+                    ClearDeeperLevels(level);
                     return (1, null);
                 }
             }
@@ -105,6 +106,10 @@ internal static partial class IWorkTextReader {
             return (null, null);
         }
 
-        private void Reset() { _identifier = null; _numbers[0] = null; _numbers[1] = null; }
+        private void ClearDeeperLevels(int level) {
+            for (int child = level + 1; child < _numbers.Length; child++) _numbers[child] = null;
+        }
+
+        private void Reset() { _identifier = null; Array.Clear(_numbers, 0, _numbers.Length); }
     }
 }

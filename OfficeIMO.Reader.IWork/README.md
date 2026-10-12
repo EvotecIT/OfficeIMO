@@ -65,7 +65,7 @@ Reader row, column and dense-cell limits also bound comment projection. `IWORK_R
 
 Reader does not paginate Pages layouts or render Keynote slides. Its logical page labels represent a Pages document, Numbers sheet, or Keynote slide, not a rendered Pages page count.
 
-Qualified decimal list counters appear in both block `Marker` values and Markdown, including explicit starts and restarts. Literal source markers remain unordered Markdown lists. The [Pages paragraph/list reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-paragraph-list-v15.4.json) checks the sequence 7, 8, 3, 4. Unqualified native numbering retains source diagnostics. Decimal counters beyond Markdown's nine-digit marker range use an unordered Markdown marker and report `IWORK_READER_LIST_COUNTER_LIMIT`; structured block markers keep the decimal value.
+Qualified decimal list counters appear in both block `Marker` values and Markdown, including explicit starts and restarts. Structured markers retain period, parenthesized and closing-parenthesis forms, such as `7.`, `(7)` and `7)`; Markdown normalizes these forms to `7.`. Literal source markers remain unordered Markdown lists. The [Pages paragraph/list reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-paragraph-list-v15.4.json) checks the sequence 7, 8, 3, 4. Unqualified native numbering retains source diagnostics. Decimal counters beyond Markdown's nine-digit marker range use an unordered Markdown marker and report `IWORK_READER_LIST_COUNTER_LIMIT`; structured block markers keep the decimal value.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. License: MIT. Runtime dependencies are `OfficeIMO.Reader.Core` and `OfficeIMO.IWork`.
 

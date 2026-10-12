@@ -47,7 +47,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
     public void Invalid_items_preserve_document_list_and_counters() {
         var document = IWorkPagesDocument.Create(); var list = document.CreateNumberedList();
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Child", 1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => list.AddItem("Deep", 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => list.AddItem("Outside native levels", 9));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddItem("Negative", -1));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddItem("Zero", restartAt: 0));
         Assert.Throws<ArgumentException>(() => list.AddItem("Line\nbreak"));

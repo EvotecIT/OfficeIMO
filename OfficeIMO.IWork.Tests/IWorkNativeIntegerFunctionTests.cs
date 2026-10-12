@@ -43,7 +43,8 @@ public sealed partial class IWorkBoundaryTests {
         JsonElement evidence = manifest.RootElement;
         var qualified = new HashSet<string>(new[] { "G2", "H2", "G3", "H3", "G4", "H4", "G5", "H5", "G6", "H6",
             "G12", "H12", "G15", "G16", "H16", "G17", "H17", "G18", "H18", "B13", "B14",
-            "E2", "F2", "E4", "F4", "E5", "F5", "E6", "F6", "E17", "F17", "E18", "F18" });
+            "E2", "F2", "E3", "F3", "E4", "F4", "E5", "F5", "E6", "F6", "E15", "F15", "E16", "F16",
+            "E17", "F17", "E18", "F18" });
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" + evidence.GetProperty("source").GetString()),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);

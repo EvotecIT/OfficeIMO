@@ -11,7 +11,7 @@ internal static class NativeNumbersIntegerReferenceSmoke {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(path,
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = result.Projection.Sheets.Single().Tables.Single();
-        Require(table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 33
+        Require(table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 39
             && !table.GetCell(10, 6)!.FormulaIsComplete && (double)table.GetCell(10, 6)!.Value! == 0,
             "Numeric reference or incompatible numeric-text qualification changed.");
         using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
@@ -20,9 +20,9 @@ internal static class NativeNumbersIntegerReferenceSmoke {
         Require(sheet.GetFormulaText(2, 7) == "GCD(B2,C2,D2)"
             && sheet.GetFormulaText(2, 8) == "LCM($B$2,$C$2:$D$2,1)"
             && sheet.CellAt(2, 7).GetValue<double>() == 6 && sheet.CellAt(2, 8).GetValue<double>() == 180
-            && reopened.Calculate() == 33, "Native reference forms/caches did not survive saved conversion.");
+            && reopened.Calculate() == 39, "Native reference forms/caches did not survive saved conversion.");
         sheet.CellValue(2, 2, 24d);
-        Require(reopened.Calculate() == 33 && sheet.CellAt(2, 5).GetValue<double>() == 12
+        Require(reopened.Calculate() == 39 && sheet.CellAt(2, 5).GetValue<double>() == 12
             && sheet.CellAt(2, 7).GetValue<double>() == 12 && sheet.CellAt(2, 6).GetValue<double>() == 360
             && sheet.CellAt(2, 8).GetValue<double>() == 360, "Saved reference operands did not recalculate.");
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;

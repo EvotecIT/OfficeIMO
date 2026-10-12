@@ -1,0 +1,90 @@
+{
+  "provider": "numbers-parser4.19.0; pinned Apple schemas; Poppler",
+  "original": "pages-third-level-saved-v15.4.pages",
+  "originalSha256": "7e4c273343e1c34a5752f07bb4369c9ec9a052a240cb62fadade43315f5900e2",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "exactPatch": {
+    "source": "pages-third-level-saved-v15.4.pages",
+    "output": "pages-preserved-decimal-v15.4.pages",
+    "sourceSha256": "7e4c273343e1c34a5752f07bb4369c9ec9a052a240cb62fadade43315f5900e2",
+    "outputSha256": "8e20d81e90f339ce7e7acbc63d89a76f9b17cb8b656d9433f656865be3d76ab7",
+    "fileEntries": 13,
+    "recordsIncludingAuxiliary": 98,
+    "bodyRecordId": 3,
+    "paragraphs": [
+      {
+        "paragraph": 2,
+        "payloadByteOffset": 30,
+        "bytes": 12,
+        "before": "Parent seven",
+        "after": "Edited seven",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 3,
+        "payloadByteOffset": 43,
+        "bytes": 9,
+        "before": "Child one",
+        "after": "Child two",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 4,
+        "payloadByteOffset": 53,
+        "bytes": 14,
+        "before": "Grandchild one",
+        "after": "Grandchild six",
+        "storageRecordId": 3
+      },
+      {
+        "paragraph": 12,
+        "payloadByteOffset": 213,
+        "bytes": 22,
+        "before": "Resumed grandchild six",
+        "after": "Updated grandchild six",
+        "storageRecordId": 3
+      }
+    ],
+    "changedEntries": [
+      "Index/Document.iwa"
+    ],
+    "onlyDeclaredUtf8RangesDiffer": true,
+    "rawHeadersSiblingsAndOtherBytesIdentical": true,
+    "nativeStoragePropertiesIdenticalExceptText": true,
+    "numbersParser": "4.19.0",
+    "protobuf": "7.36.2",
+    "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176"
+  },
+  "cases": [
+    {
+      "source": "pages-preserved-decimal-v15.4.pages",
+      "sha256": "8e20d81e90f339ce7e7acbc63d89a76f9b17cb8b656d9433f656865be3d76ab7",
+      "numberedItems": 16,
+      "levels": [
+        0,
+        1,
+        2
+      ],
+      "nativeDocxAndPdfMatched": true,
+      "composedPdfTextAndCountersMatched": true
+    },
+    {
+      "source": "pages-preserved-decimal-edited-v15.4.pages",
+      "sha256": "4e9be6834d5544dec4605da1027cf7e448974657bb66e4f15afdd2798a58501f",
+      "numberedItems": 16,
+      "levels": [
+        0,
+        1,
+        2
+      ],
+      "nativeDocxAndPdfMatched": true,
+      "composedPdfTextAndCountersMatched": true
+    }
+  ],
+  "receivingApplicationPdfMatched": true,
+  "limits": [
+    "Selected one-page Arial12 decimal body profile; no broader typography or pagination claim.",
+    "Composed PDFs use explicit portable-font substitution; text/counters do not prove native typography.",
+    "Native resave may update unrelated application metadata; exact preservation applies before resave."
+  ]
+}

@@ -50,6 +50,6 @@ public sealed partial class IWorkNativeEditSession {
             if (!storageComplete || other != null && other.Identifier == storage.RecordIdentifier && candidate.Identifier != record.Identifier)
                 throw new NotSupportedException("Text-shape storage ownership must be unambiguous and unshared.");
         }
-        ReplaceNativeParagraphText(view, content, paragraph, text, cancellationToken);
+        ReplaceNativeParagraphText(view, content, paragraph, text, allowDecimalLists: false, cancellationToken);
     }
 }

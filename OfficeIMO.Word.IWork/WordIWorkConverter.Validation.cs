@@ -176,8 +176,11 @@ public static partial class WordIWorkConverter {
         return null;
     }
 
-    private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph) {
-        return IWorkDecimalListLayout.TryResolve(paragraph, out double markerSize, out double textOffset)
+    private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph) =>
+        CanApplyQualifiedListLayout(paragraph, out _);
+
+    private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph, out double markerSize) {
+        return IWorkDecimalListLayout.TryResolve(paragraph, out markerSize, out double textOffset)
             && markerSize <= int.MaxValue / 2d
             && FitsSignedTwips(textOffset, allowRounding: true)
             && FitsSignedTwips(paragraph.ListLayout!.MarkerIndentPoints + textOffset, allowRounding: true);

@@ -384,14 +384,20 @@ public static partial class WordIWorkConverter {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier
                     || sourceParagraph.ListStartNumber.HasValue;
-                bool qualifiedLayout = CanApplyQualifiedListLayout(sourceParagraph);
+                bool qualifiedLayout = CanApplyQualifiedListLayout(sourceParagraph, out double markerSize);
+                if (qualifiedLayout && markerSize != sourceParagraph.Style.TextStyle.FontSizePoints) {
+                    // Apple exports the paragraph mark at the first-run marker size.
+                    // Keeping the original default here scales the marker a second time on Pages import.
+                    paragraph.FontSizePoints = markerSize;
+                    paragraph.CopyRunFormattingToParagraphMark();
+                }
                 nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
                     sourceParagraph.ListLabel, qualifiedLayout
                         ? IWorkDecimalListLayout.MarkerFontName(sourceParagraph) : sourceParagraph.ListFontName,
                     sourceParagraph.ListMarkerKind, startsNewList, sourceParagraph.ListNumber,
                     qualifiedLayout ? paragraph.IndentationBefore : null,
                     qualifiedLayout ? paragraph.IndentationHanging : null,
-                    qualifiedLayout ? checked((int)sourceParagraph.Style.TextStyle.FontSizePoints!.Value) : null);
+                    qualifiedLayout ? checked((int)markerSize) : null);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
                 hasPreviousListParagraph = true;
             } else {

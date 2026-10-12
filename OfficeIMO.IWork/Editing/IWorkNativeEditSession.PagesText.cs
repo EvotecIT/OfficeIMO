@@ -4,10 +4,11 @@ using OfficeIMO.IWork.Internal;
 namespace OfficeIMO.IWork;
 
 public sealed partial class IWorkNativeEditSession {
-    /// <summary>Replaces one plain body paragraph while preserving its native text and byte offsets.</summary>
+    /// <summary>Replaces one uniform body paragraph while preserving its native text and byte offsets.</summary>
     /// <remarks>The paragraph number is one-based and the identity must match the source body text storage.
     /// Replacement text must retain the paragraph's UTF-16 length and UTF-8 byte length. Only complete, single-section
-    /// body-only Pages sources and uniform, non-list paragraphs without hyperlinks or inline content are supported.
+    /// body-only Pages sources and uniform paragraphs without hyperlinks or inline content are supported.
+    /// Plain paragraphs and qualified non-tiered decimal items at levels zero through eight retain their native layout and numbering.
     /// Styles, delimiters, IDs, references and unknown bytes remain intact. Edited saves require explicit visual-cache acceptance.</remarks>
     public void SetPagesBodyParagraphText(IWorkObjectIdentity bodyIdentity, int paragraph, string text,
         CancellationToken cancellationToken = default) {
@@ -31,6 +32,6 @@ public sealed partial class IWorkNativeEditSession {
             throw new NotSupportedException("Paragraph editing requires complete single-section body-only Pages content.");
         if (!SameIdentity(body.SourceIdentity, bodyIdentity))
             throw new ArgumentException("The identity must resolve to this source's body text storage.", nameof(bodyIdentity));
-        ReplaceNativeParagraphText(view, body, paragraph, text, cancellationToken);
+        ReplaceNativeParagraphText(view, body, paragraph, text, allowDecimalLists: true, cancellationToken);
     }
 }

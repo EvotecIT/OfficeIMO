@@ -1079,7 +1079,9 @@ Unsupported signatures, ranges, text and larger item counts retain existing cach
 
 `GCD` and `LCM` accept one to 255 arguments: finite numeric values, invariant
 numeric text, and cell or rectangular range references sharing a 100,000-cell
-budget. Fractions truncate toward zero; blank references contribute zero.
+budget. Fractions truncate toward zero. Blank direct cell arguments are ignored;
+if every direct argument is blank, the result is `#VALUE!`. Blank positions inside
+a range contribute zero.
 Negative operands produce `#NUM!`, while Boolean and nonnumeric text produce
 `#VALUE!`. Typed errors propagate. Operands outside ±(2^53−1), unsupported
 expressions and resource-limit failures retain existing caches, including inside
@@ -1087,6 +1089,8 @@ error handlers. `LCM` returns `#NUM!` when its nonzero result exceeds 2^53−1;
 a zero anywhere in the arguments returns zero even if an intermediate product
 would exceed that bound. [Native Numbers and fresh Excel results](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.json)
 qualify the recorded cases; Numbers reconstruction has its own narrower contract.
+The [blank-reference qualification](../Docs/Compatibility/iwork-numbers-blank-reference-native-aot-macos-arm64-2026-10-11.json)
+also records native fill/save/clear results and saved error caches for all-blank direct arguments.
 
 `FACT` evaluates one finite scalar, truncating nonnegative fractions before
 multiplication. Zero returns one. Negative inputs and values at least 171 produce

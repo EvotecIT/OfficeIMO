@@ -1,0 +1,466 @@
+{
+  "schemaVersion": 1,
+  "host": {
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64",
+    "model": "Mac16,10 AppleM4",
+    "dotnetSdk": "10.0.112"
+  },
+  "project": "OfficeIMO.IWork.AotSmoke",
+  "recordedUtc": "2026-10-11T06:17:18.714331+00:00",
+  "sourceRevision": "e6704d61ca79942436534c1b23141cc0ddd05138",
+  "sourceOnly": true,
+  "buildCheckoutNote": "Native executables compile the frozen reviewed candidate. Managed owner assemblies compiled the same runtime source before its local commit; loaded hashes bind each test run. Later qualification documentation does not change runtime behavior.",
+  "executions": [
+    {
+      "targetFramework": "net8.0",
+      "runtimeVersion": "8.0.31",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "FC506597FFDDE610A56CFF7BAE8755BF79076F727AA3DDC9DE30A28EC3D74CF7",
+      "executableBytes": 97832184,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 44,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers integer-text references",
+        "native Numbers blank integer references",
+        "native Pages third decimal level",
+        "native Pages decimal-item editing",
+        "native Pages nine decimal levels",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "1747D40B009080133A630104A161110F06E5146F0C7B368D659B98765E2F21B4",
+      "nativeRunLogSha256": "3C7A6E0AC4B8325D9D9B167924F803E322E7D877493FAE0D1ED9AFE4B4584927",
+      "linkerWarnings": [
+        "  ld: warning: -ld_classic is no longer supported and will be ignored"
+      ]
+    },
+    {
+      "targetFramework": "net10.0",
+      "runtimeVersion": "10.0.12",
+      "runtimeIdentifier": "osx-arm64",
+      "fileKind": "Mach-O 64-bit executable arm64",
+      "executableSha256": "C3BB005E3A9222DDC13D842F60F29F3B3EDC4B36D5EAD5E559D93FF6E8DB11A4",
+      "executableBytes": 53736968,
+      "publishExitCode": 0,
+      "nativeExitCode": 0,
+      "passCount": 44,
+      "profiles": [
+        "simple.pages",
+        "simple.numbers",
+        "simple.key",
+        "formulas.numbers",
+        "bounded iWork NativeAOT destination conversions",
+        "native Keynote creation",
+        "native Keynote rich runs",
+        "native Keynote images",
+        "native Keynote tables",
+        "native Keynote table borders",
+        "native Pages body creation",
+        "native Pages header/footer creation",
+        "native Pages paragraph layout",
+        "native Pages inline scalar-table creation",
+        "native Pages saved inline table edit",
+        "native Pages inline PNG/JPEG creation",
+        "native Pages resized inline images",
+        "native Pages decimal-list creation",
+        "native Pages edited decimal lists",
+        "native Pages rich decimal-list creation",
+        "native Pages decimal levels and continuation",
+        "native Pages table borders",
+        "native Numbers fixed second ranges",
+        "native Numbers fixed millisecond ranges",
+        "native Numbers integer functions",
+        "native Numbers integer references",
+        "native Numbers cross-table integer calls",
+        "native Numbers integer-text references",
+        "native Numbers blank integer references",
+        "native Pages third decimal level",
+        "native Pages decimal-item editing",
+        "native Pages nine decimal levels",
+        "native Numbers table borders",
+        "native Numbers scalar creation",
+        "native explicit numeric format creation",
+        "native unchanged Pages save",
+        "native unchanged Numbers save",
+        "native unchanged Keynote save",
+        "native Keynote image translation",
+        "native preservation tight source bounds",
+        "native Keynote image resizing",
+        "native Numbers scalar editing",
+        "native Pages paragraph editing",
+        "native Keynote paragraph editing"
+      ],
+      "publishLogSha256": "FC3D64EC8FE6E57E93275871EA377B6A356159D7A0CCB2E218FCA67351ECAFC2",
+      "nativeRunLogSha256": "014F0DDD76748539A3B2ACC7E8D5C08EDCF35979A1FA7DA71048B0AF82857F5A",
+      "linkerWarnings": []
+    }
+  ],
+  "managedValidation": {
+    "OfficeIMO.IWork.Tests/net8.0": {
+      "total": 3000,
+      "passed": 3000,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "1EE00DCACA26FB2160F001CD3604845A20638B95334F9341E8D36865B5D24FB5",
+      "loadedIWorkOwnerSha256": "EB0AE6CF1E05AEC514E218A96E74A927C8E55EE239D0B593B7B629FBAC175F96",
+      "loadedExcelOwnerSha256": "196BA95C8970035F74DE41FD7757B625D884365B16DED5C3F1A160B487D78ACE"
+    },
+    "OfficeIMO.IWork.Tests/net10.0": {
+      "total": 3000,
+      "passed": 3000,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "BEEB9EEF8C6F047CFB002A7D7CA0532F927CB01525C86775CE2FA4C89BDBD095",
+      "loadedIWorkOwnerSha256": "EB8114AEE6A590253FE26B1148D9A3252D2E91247FB9562E28BA988D7A7A35E6",
+      "loadedExcelOwnerSha256": "7D62525AB07FC0316A469B6B992FD01973180A5DFBAFF3B966EBA32738B245AD"
+    },
+    "OfficeIMO.Excel.Tests/net8.0": {
+      "total": 5876,
+      "passed": 5871,
+      "failed": 0,
+      "skipped": 5,
+      "trxSha256": "ACD61D7955484F3579D69BC413B06B93ECC9CE1228C21F44A0B4CAE2CBDA7210",
+      "loadedIWorkOwnerSha256": null,
+      "loadedExcelOwnerSha256": "DD3A4080D060FA9A336C9334D4393D2273CE238B1B680A22D0DC63298A8F578B"
+    },
+    "OfficeIMO.Excel.Tests/net10.0": {
+      "total": 5876,
+      "passed": 5871,
+      "failed": 0,
+      "skipped": 5,
+      "trxSha256": "517978B64A4D4E70F5CF258C90F8FA10F49D8F9611467732A754E6D3821C1BFA",
+      "loadedIWorkOwnerSha256": null,
+      "loadedExcelOwnerSha256": "E7BECE5E940425D2F92D70C9318F3D9DCF645578383901B01C4129F2D5FB4E35"
+    },
+    "OfficeIMO.Workflows.IWork.Tests/net8.0": {
+      "total": 125,
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "25523F94B98144D1952E164FD41E89725A8447D552FB27DF70D19BE84D6F1F84",
+      "loadedIWorkOwnerSha256": "8248A01077CCADCA6D4AC91199A338FE0971185B21B70F81B33266F32118461A",
+      "loadedExcelOwnerSha256": "DD3A4080D060FA9A336C9334D4393D2273CE238B1B680A22D0DC63298A8F578B"
+    },
+    "OfficeIMO.Workflows.IWork.Tests/net10.0": {
+      "total": 125,
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "trxSha256": "9BDC61236DD35F11EAADF3D5DD53D5F861E7A02783B4E7C6EFE8D7D6A6B4290D",
+      "loadedIWorkOwnerSha256": "D91F154BD6E0EAD8A72FD5A1A1ABE9A3ED6BF8D933AEA571785BDD8318D5AF4D",
+      "loadedExcelOwnerSha256": "E7BECE5E940425D2F92D70C9318F3D9DCF645578383901B01C4129F2D5FB4E35"
+    }
+  },
+  "ownerBuilds": [
+    {
+      "owner": "OfficeIMO.IWork",
+      "targetFramework": "netstandard2.0",
+      "exitCode": 0,
+      "warnings": 0,
+      "logSha256": "F1332C1A6828EDE9AA24C997C24405319AF1F1B9E5C900172FA5454A1A77ED94"
+    },
+    {
+      "owner": "OfficeIMO.Excel",
+      "targetFramework": "netstandard2.0",
+      "exitCode": 0,
+      "warnings": 0,
+      "logSha256": "902EA9FC900FFD477826ADE4504F49585E5C8E20CD20BACA0EFA170E2EEB91C7"
+    }
+  ],
+  "nativeReference": {
+    "producer": "Numbers14.5 (7045.0.17)",
+    "manifest": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-blank-reference-v14.5-decode.json",
+    "manifestSha256": "F5876E5856E3A12DC3862A933D7BA4488EC1B912F80DE221AFE4825392F6FDFF",
+    "sourceProvenance": {
+      "baseline": "Controlled Apple XLSX import from numbers-integer-text-reference-v14.5.xlsx, with four blank-only error controls in six edited cells; saved, closed and reopened in Numbers.",
+      "edited": "Native blank operand C4 set to numeric18 in Numbers; saved, closed and reopened; native XLSX exported for both states.",
+      "excelComparison": "Excel16.113.3 independently filled then cleared the same blank operand; direct and range caches matched Numbers. Scratch workbook retained outside corpus with an incidental unrelated A2 value documented in its evidence.",
+      "appearance": "No appearance or complete editable reconstruction claim; inherited formatting and native error controls remain reported."
+    },
+    "independentDecoder": "numbers-parser4.19.0/protobuf7.36.2; raw AST/table identities, physical tile row indexes and native XLSX XML; no OfficeIMO assembly",
+    "independentReceiptSha256": "6947F1C69AE7BFBAC3BA21F6531BDD4EC46A541952156EFCC495BA23F783BBCF",
+    "baselineCalls": 14,
+    "baselineQualifiedCalls": 10,
+    "baselinePreservedAllBlankErrors": 4,
+    "filledCalls": 14,
+    "filledQualifiedCalls": 14,
+    "nativeUi": "Numbers14.5 save/close/reopen of baseline and C4=18 native edit; native XLSX exports; both screenshots inspected",
+    "sourceImmutability": "Native package hashes pinned by tests and native executables",
+    "appearance": "No appearance or complete editable-reconstruction claim; inherited table formatting remains reported"
+  },
+  "destinationNativeReference": {
+    "producer": "Microsoft Excel16.113.3 (16.113.26092714)",
+    "workflow": "native UI opened a copy of the Apple Numbers blank-reference XLSX export; fill C4=18, save, clear C4, save; no owner assembly rewrote the files",
+    "extraction": "Workbook sheet-name relationships; require14 formula records and4 explicit all-blank controls, plus inputC4 state",
+    "filled": {
+      "sha256": "F656798413DBA1CE94B5C3ACC415DBF9B82EBBE55BA1A3BEB9EAFC455DB2F75F",
+      "size": 12091,
+      "worksheetParts": {
+        "Inputs - Operands": "xl/worksheets/sheet1.xml",
+        "Checks - Results": "xl/worksheets/sheet2.xml"
+      },
+      "inputC4": "18",
+      "formulaCount": 14,
+      "formulaCaches": [
+        {
+          "address": "C3",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$4,6)",
+          "value": "6"
+        },
+        {
+          "address": "D3",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$4,6)",
+          "value": "18"
+        },
+        {
+          "address": "C4",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$3:$C$4)",
+          "value": "6"
+        },
+        {
+          "address": "D4",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$3:$C$4)",
+          "value": "90"
+        },
+        {
+          "address": "C5",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$5,6)",
+          "value": "6"
+        },
+        {
+          "address": "D5",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$5,6)",
+          "value": "12"
+        },
+        {
+          "address": "C6",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$4)",
+          "value": "18"
+        },
+        {
+          "address": "D6",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$4)",
+          "value": "18"
+        },
+        {
+          "address": "C7",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "value": "18"
+        },
+        {
+          "address": "D7",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "value": "18"
+        },
+        {
+          "address": "C8",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$5)",
+          "value": "12"
+        },
+        {
+          "address": "D8",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$5)",
+          "value": "12"
+        },
+        {
+          "address": "C9",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "value": "18"
+        },
+        {
+          "address": "D9",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "value": "0"
+        }
+      ]
+    },
+    "cleared": {
+      "sha256": "B26953BF8BAE607B36570FD030B8544C2F413089996DBB06D49CF6E9ECD28FEF",
+      "size": 12133,
+      "worksheetParts": {
+        "Checks - Results": "xl/worksheets/sheet1.xml",
+        "Inputs - Operands": "xl/worksheets/sheet2.xml"
+      },
+      "inputC4": null,
+      "formulaCount": 14,
+      "formulaCaches": [
+        {
+          "address": "C3",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$4,6)",
+          "value": "6"
+        },
+        {
+          "address": "D3",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$4,6)",
+          "value": "6"
+        },
+        {
+          "address": "C4",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$3:$C$4)",
+          "value": "30"
+        },
+        {
+          "address": "D4",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$3:$C$4)",
+          "value": "0"
+        },
+        {
+          "address": "C5",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$5,6)",
+          "value": "6"
+        },
+        {
+          "address": "D5",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$5,6)",
+          "value": "12"
+        },
+        {
+          "address": "C6",
+          "type": "e",
+          "formula": "GCD('Inputs - Operands'!$C$4)",
+          "value": "#VALUE!"
+        },
+        {
+          "address": "D6",
+          "type": "e",
+          "formula": "LCM('Inputs - Operands'!$C$4)",
+          "value": "#VALUE!"
+        },
+        {
+          "address": "C7",
+          "type": "e",
+          "formula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "value": "#VALUE!"
+        },
+        {
+          "address": "D7",
+          "type": "e",
+          "formula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$4)",
+          "value": "#VALUE!"
+        },
+        {
+          "address": "C8",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$5)",
+          "value": "12"
+        },
+        {
+          "address": "D8",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$5)",
+          "value": "12"
+        },
+        {
+          "address": "C9",
+          "type": null,
+          "formula": "GCD('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "value": "0"
+        },
+        {
+          "address": "D9",
+          "type": null,
+          "formula": "LCM('Inputs - Operands'!$C$4,'Inputs - Operands'!$C$8)",
+          "value": "0"
+        }
+      ]
+    },
+    "screenshot": {
+      "path": "excel-allblank-cleared.png",
+      "sha256": "06DDF828CDCCB1D6B452CE159222E14746EEA105D9B38D731502D73352534660"
+    },
+    "evidenceReceiptSha256": "DF162A21EA864C42EEF0C5085CDCC9096D3EE1ECF091E43E97D741F6B13B592F",
+    "allBlankDirectResult": "#VALUE!",
+    "sessionReleased": true,
+    "recoveryPromptUntouched": true
+  },
+  "review": {
+    "initialCandidate": "a59a0a37a8e8006f338cab2a5da08403314e170b",
+    "confirmedCandidate": "e6704d61ca79942436534c1b23141cc0ddd05138",
+    "mode": "One fresh read-only full pass plus one targeted confirmation",
+    "initialP2Findings": 2,
+    "closedFindings": [
+      "Tile numrows mismatch",
+      "Unsupported or ambiguous tile_size",
+      "Native-confirmed shared Excel all-blank initializer result"
+    ],
+    "productDisposition": "accept as shaped",
+    "confirmationResult": "No concrete remediation regression; native screenshots and saved XML inspected",
+    "remainingHighOrMediumFindings": 0
+  },
+  "limits": [
+    "Direct blank GCD/LCM references are ignored beside at least one qualified numeric operand; bounded numeric/blank ranges retain zero positions. Native all-blank Numbers reconstruction remains partial with its source error cache.",
+    "Wider mixed-type and formula-dependent operands, whole-axis expansion and values beyond the conservative native integer/product bounds remain unqualified.",
+    "Missing, ambiguous, malformed or unsupported tile storage cannot establish blanks. A row-count mismatch preserves readable rows; an unsupported tile row stride withholds uncertain coordinates. Native numCells=0 is not used as a modern populated-cell count invariant.",
+    "Actual NativeAOT qualifies macOS arm64 only; PDF AOT, additional architectures, signed sandbox and physical devices remain separate gates.",
+    "No push, PR, merge, public package publication or deployment."
+  ],
+  "commands": [
+    "dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore --filter Category!=Performance",
+    "dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore --filter Category!=Performance",
+    "dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj -c Release -f <net8.0|net10.0> --artifacts-path <warm-artifacts> --no-restore --filter Category!=Performance",
+    "dotnet build OfficeIMO.<IWork|Excel>/OfficeIMO.<IWork|Excel>.csproj -c Release -f netstandard2.0 --artifacts-path <warm-artifacts> --no-restore",
+    "dotnet publish OfficeIMO.IWork.AotSmoke/OfficeIMO.IWork.AotSmoke.csproj -c Release -f <net8.0|net10.0> -r osx-arm64 --artifacts-path <warm-aot-artifacts> --no-restore -o <publish-directory>",
+    "<publish-directory>/OfficeIMO.IWork.AotSmoke",
+    "python Build/IWork/verify-numbers-blank-references.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports --out <independent-receipt.json>"
+  ]
+}

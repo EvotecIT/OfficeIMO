@@ -196,11 +196,13 @@ public sealed partial class IWorkTable {
         IReadOnlyDictionary<int, double>? rowHeights = null,
         IReadOnlyDictionary<int, double>? columnWidths = null,
         Guid? formulaIdentifier = null, IWorkArchiveRecord? modelRecord = null, bool bodyMetadataIsComplete = true, bool? autoResizeRows = null, IWorkTableTextStyles? textStyles = null, IWorkTableFillStyles? fillStyles = null,
-        IReadOnlyList<int>? hiddenRows = null, IReadOnlyList<int>? hiddenColumns = null, Internal.IWorkTableBorderResolver? borderResolver = null, IReadOnlyList<Internal.IWorkCellLayout?>? cellLayouts = null) {
+        IReadOnlyList<int>? hiddenRows = null, IReadOnlyList<int>? hiddenColumns = null, Internal.IWorkTableBorderResolver? borderResolver = null, IReadOnlyList<Internal.IWorkCellLayout?>? cellLayouts = null,
+        bool cellStorageIsComplete = true) {
         Name = name;
         FormulaIdentifier = formulaIdentifier;
         ModelRecord = modelRecord;
         BodyMetadataIsComplete = bodyMetadataIsComplete;
+        CellStorageIsComplete = cellStorageIsComplete;
         RowCount = rowCount;
         ColumnCount = columnCount;
         HeaderRowCount = headerRowCount;
@@ -228,12 +230,15 @@ public sealed partial class IWorkTable {
     }
 
     internal bool BodyMetadataIsComplete { get; }
+    // Absence denotes a blank only when selected sparse storage was fully read.
+    // Table dimensions alone cannot establish that an unreadable tile is empty.
+    internal bool CellStorageIsComplete { get; }
     internal Guid? FormulaIdentifier { get; }
     internal IWorkArchiveRecord? ModelRecord { get; }
     internal IWorkTable WithCells(IReadOnlyList<IWorkTableCell> cells) =>
         new(Name, RowCount, ColumnCount, cells, HeaderRowCount, HeaderColumnCount, FooterRowCount,
             DefaultRowHeight, DefaultColumnWidth, MergedRanges, Geometry, AccessibilityDescription,
-            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles, HiddenRows, HiddenColumns, _borderResolver, CellLayoutDefaults);
+            SourceIdentity, OmittedTextUnits, RowHeights, ColumnWidths, FormulaIdentifier, ModelRecord, BodyMetadataIsComplete, AutoResizeRows, TextStyles, FillStyles, HiddenRows, HiddenColumns, _borderResolver, CellLayoutDefaults, CellStorageIsComplete);
 
     /// <summary>Gets whether native table defaults or selected edges declare border formatting, including invisible or unresolved borders.</summary>
     public bool HasBorderDeclarations => _borderResolver?.HasDeclarations == true || Cells.Any(cell => cell.BorderStyle?.HasDeclarations == true);

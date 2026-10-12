@@ -9,6 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-mixed-size-*.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-mixed-font-*.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-third-level-*.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-preserved-decimal-*.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-nine-level-*.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-decimal-parentheses-*.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\native-exports\pages-decimal-closing-*.pages" Link="Corpus\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />

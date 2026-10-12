@@ -14,12 +14,14 @@ public sealed partial class IWorkNativeEditSession {
     }
 
     private void ReplaceNativeParagraphText(IWorkSourceDocument view, IWorkTextContent content, int paragraph,
-        string text, CancellationToken cancellationToken) {
+        string text, bool allowDecimalLists, CancellationToken cancellationToken) {
         if (paragraph > content.Paragraphs.Count) throw new ArgumentOutOfRangeException(nameof(paragraph));
         var selected = content.Paragraphs[paragraph - 1];
-        if (selected.ListMarkerKind != IWorkListMarkerKind.None || selected.Runs.Count > 1
+        if (selected.ListMarkerKind != IWorkListMarkerKind.None
+                && (!allowDecimalLists || !IWorkDecimalListLayout.TryResolve(selected, out _, out _))
+            || selected.Runs.Count > 1
             || selected.Runs.Any(run => run.Hyperlink != null || run.InlineObject != null))
-            throw new NotSupportedException("Only plain uniform-run paragraphs can be replaced.");
+            throw new NotSupportedException("The selected paragraph is outside the supported text-edit profile.");
         if (text.Length != selected.Text.Length)
             throw new NotSupportedException("Replacement text must retain the original UTF-16 length.");
 

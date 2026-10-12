@@ -19,10 +19,10 @@ internal static class NativeNumbersIntegerTextSmoke {
         Require(input.Kind == IWorkCellKind.Text && input.Value is string value && value == text,
             "Native numeric text lost its scalar type.");
         var table = result.Projection.Sheets[1].Tables.Single();
-        Require(table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 4
+        Require(table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete) == 10
             && result.Report.Diagnostics.Any(d => d.Code == "IWORK_TABLE_FORMULA_PARTIAL"),
             "Integer-text admission crossed its qualified boundary.");
-        foreach (int row in new[] { 2, 3, 5, 6, 8 })
+        foreach (int row in new[] { 5, 6 })
             Require(!table.GetCell(row, 2)!.FormulaIsComplete && !table.GetCell(row, 3)!.FormulaIsComplete,
                 "Unqualified native coercion became complete.");
         using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
@@ -35,9 +35,9 @@ internal static class NativeNumbersIntegerTextSmoke {
             && reopened.Sheets[1].GetFormulaText(7, 3) == "LCM('Inputs'!$B$4)", "Saved scalar reference changed.");
         Require(reopened.Sheets[1].CellAt(4, 3).GetValue<double>() == (text == "12" ? 12d : 18d),
             "Native formula cache changed.");
-        Require(reopened.Calculate() == 4, "Integer-text calculation did not use the shared evaluator.");
+        Require(reopened.Calculate() == 10, "Integer-text calculation did not use the shared evaluator.");
         reopened.Sheets[0].CellValue(4, 2, "18");
-        Require(reopened.Calculate() == 4 && reopened.Sheets[1].CellAt(4, 2).GetValue<double>() == 6d
+        Require(reopened.Calculate() == 10 && reopened.Sheets[1].CellAt(4, 2).GetValue<double>() == 6d
             && reopened.Sheets[1].CellAt(4, 3).GetValue<double>() == 18d
             && reopened.Sheets[1].CellAt(7, 2).GetValue<double>() == 18d
             && reopened.Sheets[1].CellAt(7, 3).GetValue<double>() == 18d, "Changed numeric text did not recalculate.");
