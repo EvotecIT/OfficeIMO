@@ -13,6 +13,7 @@ struct PageCanvas: UIViewRepresentable {
 
     func updateUIView(_ view: PageScrollView, context: Context) {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
+        view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
     }
 
@@ -71,7 +72,23 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         case .zoomOut: setZoom(zoomScale / 1.25)
         case .actualSize: setZoom(1)
         case .fitWidth: setZoom(fitZoom)
+        case .reveal(let page, let rect): reveal(rect, onPage: page)
         }
+    }
+
+    /// Scrolls a rectangle of a page into the middle of the visible area, unless it is already in view.
+    private func reveal(_ rect: CGRect, onPage page: Int) {
+        guard tiles.layout.frames.indices.contains(page - 1) else { return }
+        let frame = tiles.layout.frames[page - 1]
+        let target = rect.offsetBy(dx: frame.minX, dy: frame.minY)
+        let visible = convert(bounds.inset(by: adjustedContentInset), to: content)
+        guard !visible.insetBy(dx: 8, dy: 8).contains(target) else { return }
+        let size = visible.size
+        var offset = CGPoint(x: (target.midX - size.width / 2) * zoomScale - adjustedContentInset.left,
+                             y: (target.midY - size.height / 2) * zoomScale - adjustedContentInset.top)
+        offset.x = min(max(offset.x, -adjustedContentInset.left), max(-adjustedContentInset.left, contentSize.width + adjustedContentInset.right - bounds.width))
+        offset.y = min(max(offset.y, -adjustedContentInset.top), max(-adjustedContentInset.top, contentSize.height + adjustedContentInset.bottom - bounds.height))
+        setContentOffset(offset, animated: true)
     }
 
     override func layoutSubviews() {

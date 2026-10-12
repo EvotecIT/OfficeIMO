@@ -13,6 +13,7 @@ struct PageCanvas: NSViewRepresentable {
 
     func updateNSView(_ view: PageScrollView, context: Context) {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
+        view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
     }
 
@@ -71,7 +72,23 @@ final class PageScrollView: NSScrollView {
         case .zoomOut: setZoom(magnification / 1.25)
         case .actualSize: setZoom(1)
         case .fitWidth: setZoom(fitZoom)
+        case .reveal(let page, let rect): reveal(rect, onPage: page)
         }
+    }
+
+    /// Scrolls a rectangle of a page into the middle of the visible area, unless it is already in view.
+    private func reveal(_ rect: CGRect, onPage page: Int) {
+        guard tiles.layout.frames.indices.contains(page - 1) else { return }
+        let frame = tiles.layout.frames[page - 1]
+        let target = rect.offsetBy(dx: frame.minX, dy: frame.minY)
+        var visible = pages.visibleRect
+        let hidden = contentInsets.top / magnification
+        visible.origin.y += hidden
+        visible.size.height -= hidden
+        guard !visible.insetBy(dx: 8, dy: 8).contains(target) else { return }
+        let origin = CGPoint(x: target.midX - visible.width / 2, y: target.midY - visible.height / 2 - hidden)
+        contentView.scroll(to: contentView.constrainBoundsRect(CGRect(origin: origin, size: contentView.bounds.size)).origin)
+        reflectScrolledClipView(contentView)
     }
 
     override func layout() {

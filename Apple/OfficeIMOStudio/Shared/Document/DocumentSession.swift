@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import Observation
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The tasks a document window offers. Only tasks the engine supports are listed.
 enum StudioTask: String, CaseIterable, Identifiable {
@@ -33,6 +34,8 @@ struct CanvasRequest: Equatable {
         case zoomOut
         case actualSize
         case fitWidth
+        /// Brings a rectangle of a page, in the displayed page's points, into view without changing the zoom.
+        case reveal(page: Int, rect: CGRect)
     }
 
     let kind: Kind
@@ -74,6 +77,21 @@ final class DocumentSession {
     private(set) var canvasRequest: CanvasRequest?
     /// The window's undo manager, which the system's Edit menu, undo gestures and edited state follow.
     @ObservationIgnored weak var undoManager: UndoManager?
+
+    /// Identifies this window's pages in drag and drop, so pages dropped from another document are refused.
+    let id = UUID()
+
+    /// Pages written to a new PDF, waiting for the user to choose where to save them.
+    var extractedPages: ExtractedPages?
+
+    // Search
+    var searchText = ""
+    var isSearchFocused = false
+    private(set) var searchResult: SearchResult?
+    private(set) var isSearching = false
+    /// The hit shown, as an index into the current result's hits.
+    private(set) var currentHitIndex: Int?
+    @ObservationIgnored private var searchTask: Task<Void, Never>?
 
     /// Engine edits run one after another, in the order they were asked for.
     private var edits: Task<Void, Never>?
@@ -120,6 +138,9 @@ final class DocumentSession {
 
     // MARK: Editing
 
+    var canEditPages: Bool { isReady && facts?.canMutatePages != false }
+    var canExtractPages: Bool { isReady && facts?.canExtractPages != false }
+
     /// The pages a page command applies to: the selection in the Pages task, otherwise the current page.
     var targetPages: [Int] {
         task == .pages && !selection.isEmpty ? selection.sorted() : [currentPage]
@@ -127,30 +148,110 @@ final class DocumentSession {
 
     func rotate(_ pages: [Int], degrees: Int) {
         guard !pages.isEmpty else { return }
-        let name = String(localized: degrees < 0 ? "Rotate Left" : "Rotate Right")
-        // The undo is registered when the edit is asked for, as the system expects, and runs after it.
-        registerUndo(name, undoManager)
-        enqueue { try await $0.rotatePages(pages, degrees: degrees) }
+        edit(String(localized: degrees < 0 ? "Rotate Left" : "Rotate Right")) { try await $0.rotatePages(pages, degrees: degrees) }
     }
 
-    private func registerUndo(_ name: String, _ undoManager: UndoManager?) {
+    /// Deletes pages; a document keeps at least one.
+    func delete(_ pages: [Int]) {
+        guard !pages.isEmpty, pages.count < pageCount else { return }
+        let remaining = pageCount - pages.count
+        edit(String(localized: pages.count == 1 ? "Delete Page" : "Delete Pages")) { try await $0.deletePages(pages) } then: { session in
+            session.selection = []
+            session.currentPage = min(session.currentPage, remaining)
+        }
+    }
+
+    /// Duplicates pages; each copy follows its page, and the copies become the selection.
+    func duplicate(_ pages: [Int]) {
+        let pages = pages.sorted()
+        guard !pages.isEmpty else { return }
+        // Each copy lands after its page, shifted by the copies inserted before it.
+        let copies = Set(pages.enumerated().map { index, page in page + index + 1 })
+        edit(String(localized: pages.count == 1 ? "Duplicate Page" : "Duplicate Pages")) { try await $0.duplicatePages(pages) } then: { session in
+            session.selection = copies
+        }
+    }
+
+    /// Moves pages, in their current order, before a page, or to the end with the page count + 1.
+    func move(_ pages: [Int], before target: Int) {
+        let moving = pages.sorted()
+        let count = pageCount
+        guard !moving.isEmpty, (1...count + 1).contains(target) else { return }
+        let set = Set(moving)
+        var order = (1...count).filter { !set.contains($0) }
+        let position = order.firstIndex { $0 >= target } ?? order.count
+        order.insert(contentsOf: moving, at: position)
+        guard order != Array(1...count) else { return }
+        let moved = Set((position + 1)...(position + moving.count))
+        let newOrder = order
+        edit(String(localized: moving.count == 1 ? "Move Page" : "Move Pages")) { try await $0.reorderPages(newOrder) } then: { session in
+            session.selection = moved
+        }
+    }
+
+    /// Inserts a blank page the size of the page it follows, after the last target page.
+    func insertBlankPage() {
+        guard let facts, let after = targetPages.last, facts.pages.indices.contains(after - 1) else { return }
+        let size = facts.pages[after - 1].displaySize
+        edit(String(localized: "Insert Blank Page")) {
+            try await $0.insertBlankPage(before: after + 1, width: size.width, height: size.height)
+        } then: { session in
+            session.selection = [after + 1]
+            session.show(page: after + 1)
+        }
+    }
+
+    /// Writes pages to a new PDF, then asks where to save it.
+    func extract(_ pages: [Int]) {
+        guard let engine, !pages.isEmpty else { return }
+        let base = (facts?.fileName as NSString?)?.deletingPathExtension ?? "Document"
+        let name = pages.count == 1 ? "\(base) – Page \(pages[0]).pdf" : "\(base) – \(pages.count) Pages.pdf"
+        let folder = FileManager.default.temporaryDirectory.appending(path: "Extracted/\(UUID().uuidString)", directoryHint: .isDirectory)
+        let url = folder.appending(path: name)
+        isWorking = true
+        Task {
+            defer { isWorking = false }
+            do {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                try await engine.extractPages(pages, to: url)
+                extractedPages = ExtractedPages(url: url, document: try ExtractedPDF(url: url))
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    /// Runs an engine edit after any earlier one and registers its undo once it has succeeded.
+    private func edit(_ name: String, _ change: @escaping @Sendable (EngineDocument) async throws -> Void,
+                      then: ((DocumentSession) -> Void)? = nil) {
+        enqueue(change) { session in
+            session.registerUndo(name)
+            then?(session)
+        }
+    }
+
+    // While the system undoes or redoes, the inverse must be registered at once, so it goes on the opposite stack; the
+    // engine call follows. A failed engine undo or redo would leave the two histories apart, so it clears the window's.
+    private func registerUndo(_ name: String) {
         guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { session in
-            session.registerRedo(name, undoManager)
-            session.enqueue { try await $0.undo() }
+            session.registerRedo(name)
+            session.enqueue({ try await $0.undo() }, failureClearsHistory: true)
         }
         undoManager.setActionName(name)
     }
 
-    private func registerRedo(_ name: String, _ undoManager: UndoManager) {
+    private func registerRedo(_ name: String) {
+        guard let undoManager else { return }
         undoManager.registerUndo(withTarget: self) { session in
-            session.registerUndo(name, undoManager)
-            session.enqueue { try await $0.redo() }
+            session.registerUndo(name)
+            session.enqueue({ try await $0.redo() }, failureClearsHistory: true)
         }
         undoManager.setActionName(name)
     }
 
-    private func enqueue(_ edit: @escaping @Sendable (EngineDocument) async throws -> Void) {
+    private func enqueue(_ edit: @escaping @Sendable (EngineDocument) async throws -> Void, failureClearsHistory: Bool = false,
+                         succeeded: ((DocumentSession) -> Void)? = nil) {
         guard let engine else { return }
         let previous = edits
         isWorking = true
@@ -159,11 +260,105 @@ final class DocumentSession {
             do {
                 try await edit(engine)
                 facts = try await engine.facts()
+                succeeded?(self)
+                if searchResult != nil { runSearch() }
             } catch {
+                if failureClearsHistory { undoManager?.removeAllActions(withTarget: self) }
+                facts = try? await engine.facts()
                 errorMessage = error.localizedDescription
             }
             isWorking = false
         }
+    }
+
+    // MARK: Search
+
+    /// The current result's hits, if it belongs to the document as shown.
+    var searchHits: [SearchResult.Hit] {
+        guard let searchResult, searchResult.revision == revision else { return [] }
+        return searchResult.hits
+    }
+
+    var currentHit: SearchResult.Hit? {
+        guard let currentHitIndex, searchHits.indices.contains(currentHitIndex) else { return nil }
+        return searchHits[currentHitIndex]
+    }
+
+    /// Finds the search text and shows the first hit at or after the current page.
+    func runSearch() {
+        searchTask?.cancel()
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let engine, !query.isEmpty else {
+            clearSearch()
+            return
+        }
+        isSearching = true
+        let startPage = currentPage
+        searchTask = Task {
+            let result: SearchResult
+            do {
+                result = try await engine.search(query)
+            } catch {
+                if !Task.isCancelled {
+                    isSearching = false
+                    errorMessage = error.localizedDescription
+                }
+                return
+            }
+            guard !Task.isCancelled else { return }
+            isSearching = false
+            let keep = searchResult?.query == result.query ? currentHitIndex : nil
+            searchResult = result
+            currentHitIndex = keep.flatMap { result.hits.indices.contains($0) ? $0 : nil }
+                ?? result.hits.firstIndex { $0.page >= startPage } ?? (result.hits.isEmpty ? nil : 0)
+            if keep == nil { revealCurrentHit() }
+        }
+    }
+
+    /// Shows the next hit, or the previous one with a negative step, wrapping around the document.
+    func showHit(step: Int) {
+        let count = searchHits.count
+        guard count > 0 else { return }
+        currentHitIndex = ((currentHitIndex ?? -step) + step + count) % count
+        revealCurrentHit()
+    }
+
+    func clearSearch() {
+        searchTask?.cancel()
+        searchResult = nil
+        currentHitIndex = nil
+        isSearching = false
+    }
+
+    private func revealCurrentHit() {
+        guard let hit = currentHit else { return }
+        currentPage = hit.page
+        canvasRequest = CanvasRequest(kind: .reveal(page: hit.page, rect: hit.bounds.cgRect))
+    }
+}
+
+/// A PDF of extracted pages in the app's temporary folder, saved where the user chooses.
+struct ExtractedPages: Identifiable {
+    let url: URL
+    let document: ExtractedPDF
+    var id: URL { url }
+}
+
+/// The extracted pages as a document for the system's export panel.
+struct ExtractedPDF: FileDocument {
+    static let readableContentTypes: [UTType] = [.pdf]
+    let data: Data
+
+    init(url: URL) throws {
+        data = try Data(contentsOf: url)
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
 

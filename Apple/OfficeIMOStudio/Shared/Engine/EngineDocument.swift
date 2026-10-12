@@ -31,6 +31,9 @@ struct DocumentFacts: Decodable, Sendable {
     let pages: [Page]
     /// The largest page image the engine renders; absent from engines that predate it.
     let maxRenderPixels: Int64?
+    /// Whether pages can be rotated, deleted, duplicated, reordered and inserted, and extracted to a new PDF.
+    let canMutatePages: Bool?
+    let canExtractPages: Bool?
 
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
@@ -52,6 +55,33 @@ struct DocumentFacts: Decodable, Sendable {
         // Half a pixel inside, so rounding error cannot carry the width up to the next pixel.
         return (pixelWidth - 0.5) / size.width
     }
+}
+
+/// Search hits from officeimo_document_search_json. Rectangles are in points of the page as displayed, from its
+/// top-left corner, the space the page layout uses.
+struct SearchResult: Decodable, Sendable {
+    struct Rectangle: Decodable, Sendable {
+        let x: Double
+        let y: Double
+        let width: Double
+        let height: Double
+
+        var cgRect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
+    }
+
+    struct Hit: Decodable, Sendable, Identifiable {
+        let page: Int
+        let occurrence: Int
+        let text: String
+        let bounds: Rectangle
+        let lineBounds: [Rectangle]
+
+        var id: Int { occurrence }
+    }
+
+    let query: String
+    let revision: Int64
+    let hits: [Hit]
 }
 
 /// A page rendered by the engine as PNG.
@@ -155,6 +185,63 @@ actor EngineDocument {
             let status = numbers.withUnsafeBufferPointer {
                 officeimo_document_rotate_pages(handle, $0.baseAddress, Int32($0.count), Int32(degrees), cancellation, &error)
             }
+            try check(status, error)
+        }
+    }
+
+    func deletePages(_ pages: [Int]) async throws {
+        try await pageCall(pages) { officeimo_document_delete_pages(handle, $0, $1, $2, $3) }
+    }
+
+    func duplicatePages(_ pages: [Int]) async throws {
+        try await pageCall(pages) { officeimo_document_duplicate_pages(handle, $0, $1, $2, $3) }
+    }
+
+    /// Puts the pages in a new order: order lists every current page number once.
+    func reorderPages(_ order: [Int]) async throws {
+        try await pageCall(order) { officeimo_document_reorder_pages(handle, $0, $1, $2, $3) }
+    }
+
+    /// Inserts a blank page of width by height points before a page, or after the last with the page count + 1.
+    func insertBlankPage(before page: Int, width: Double, height: Double) async throws {
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            try check(officeimo_document_insert_blank_page(handle, Int32(page), width, height, cancellation, &error), error)
+        }
+    }
+
+    /// Writes pages to a new PDF at url; the open document is unchanged.
+    func extractPages(_ pages: [Int], to url: URL) async throws {
+        let numbers = pages.map(Int32.init)
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            let status = url.path.withCString { path in
+                numbers.withUnsafeBufferPointer {
+                    officeimo_document_extract_pages(handle, $0.baseAddress, Int32($0.count), path, cancellation, &error)
+                }
+            }
+            try check(status, error)
+        }
+    }
+
+    /// Finds text, ignoring case.
+    func search(_ query: String) async throws -> SearchResult {
+        let json: String = try await withEngineCancellation { cancellation in
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            let status = query.withCString { officeimo_document_search_json(handle, $0, cancellation, &json, &error) }
+            try check(status, error)
+            return takeString(json) ?? "{}"
+        }
+        return try JSONDecoder().decode(SearchResult.self, from: Data(json.utf8))
+    }
+
+    private func pageCall(_ pages: [Int],
+                          _ call: (UnsafePointer<Int32>?, Int32, officeimo_cancellation, UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>) -> Int32) async throws {
+        let numbers = pages.map(Int32.init)
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            let status = numbers.withUnsafeBufferPointer { call($0.baseAddress, Int32($0.count), cancellation, &error) }
             try check(status, error)
         }
     }

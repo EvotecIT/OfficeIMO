@@ -51,6 +51,12 @@ struct DocumentWindow: View {
                     Text("This document is protected. Enter its password to open it.")
                 }
             }
+            .fileExporter(isPresented: exportShown, document: session.extractedPages?.document,
+                          contentType: .pdf, defaultFilename: session.extractedPages?.url.deletingPathExtension().lastPathComponent) { result in
+                if let url = session.extractedPages?.url { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+                session.extractedPages = nil
+                if case .failure(let error) = result { session.errorMessage = error.localizedDescription }
+            }
             .alert("The Change Couldn’t Be Made", isPresented: errorShown) {
                 Button("OK") { session.errorMessage = nil }
             } message: {
@@ -130,6 +136,10 @@ struct DocumentWindow: View {
         } set: { _ in }
     }
 
+    private var exportShown: Binding<Bool> {
+        Binding { session.extractedPages != nil } set: { if !$0 { session.extractedPages = nil } }
+    }
+
     private var errorShown: Binding<Bool> {
         Binding { session.errorMessage != nil } set: { if !$0 { session.errorMessage = nil } }
     }
@@ -137,7 +147,7 @@ struct DocumentWindow: View {
 
 /// The Read task: the pages, with the page number floating over them while they scroll.
 struct ReadView: View {
-    let session: DocumentSession
+    @Bindable var session: DocumentSession
     @State private var isIndicatorShown = false
 
     var body: some View {
@@ -150,17 +160,30 @@ struct ReadView: View {
             .ignoresSafeArea()
             #endif
             .overlay(alignment: .bottom) {
-                if isIndicatorShown {
-                    Text("\(session.currentPage) of \(session.pageCount)")
-                        .font(.callout.weight(.medium))
-                        .monospacedDigit()
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .glassEffect(.regular, in: .capsule)
-                        .padding(.bottom, 12)
-                        .transition(.opacity)
-                        .accessibilityHidden(true)
+                // The page number and the find controls float over the pages as glass that samples them together.
+                GlassEffectContainer(spacing: 12) {
+                    VStack(spacing: 10) {
+                        if isIndicatorShown {
+                            Text("\(session.currentPage) of \(session.pageCount)")
+                                .font(.callout.weight(.medium))
+                                .monospacedDigit()
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .glassEffect(.regular, in: .capsule)
+                                .transition(.opacity)
+                                .accessibilityHidden(true)
+                        }
+                        if session.isSearching || session.searchResult != nil {
+                            FindBar(session: session)
+                        }
+                    }
                 }
+                .padding(.bottom, 12)
+            }
+            .searchable(text: $session.searchText, isPresented: $session.isSearchFocused, prompt: Text("Search"))
+            .onSubmit(of: .search) { session.runSearch() }
+            .onChange(of: session.searchText) { _, text in
+                if text.isEmpty { session.clearSearch() }
             }
             .task(id: session.currentPage) {
                 guard session.pageCount > 1 else { return }
@@ -170,6 +193,42 @@ struct ReadView: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Page \(session.currentPage) of \(session.pageCount)")
+    }
+}
+
+/// The search hit count with previous and next, as Safari and Preview show it while finding.
+struct FindBar: View {
+    let session: DocumentSession
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Group {
+                if session.isSearching {
+                    ProgressView().controlSize(.small)
+                    Text("Searching…")
+                } else if let index = session.currentHitIndex {
+                    Text("\(index + 1) of \(session.searchHits.count)").monospacedDigit()
+                } else {
+                    Text("No Results")
+                }
+            }
+            .font(.callout.weight(.medium))
+            .padding(.leading, 10)
+            .accessibilityAddTraits(.updatesFrequently)
+
+            Group {
+                Button("Previous", systemImage: "chevron.up") { session.showHit(step: -1) }
+                Button("Next", systemImage: "chevron.down") { session.showHit(step: 1) }
+            }
+            .frame(width: 36, height: 36)
+            .contentShape(.rect)
+        }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.borderless)
+        .disabled(session.searchHits.isEmpty)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .glassEffect(.regular, in: .capsule)
     }
 }
 

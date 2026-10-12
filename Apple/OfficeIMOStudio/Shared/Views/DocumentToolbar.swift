@@ -79,13 +79,10 @@ struct DocumentToolbar: ToolbarContent {
     }
     #endif
 
-    /// Rotation for the selected pages, shown while the Pages task is open.
+    /// Actions on the selected pages, shown while the Pages task is open.
     @ViewBuilder private var pageActions: some View {
         if session.task == .pages {
-            Button("Rotate Left", systemImage: "rotate.left") { session.rotate(session.selection.sorted(), degrees: -90) }
-                .disabled(session.selection.isEmpty)
-            Button("Rotate Right", systemImage: "rotate.right") { session.rotate(session.selection.sorted(), degrees: 90) }
-                .disabled(session.selection.isEmpty)
+            PageActionButtons(session: session, pages: session.selection.sorted())
         }
     }
 

@@ -33,6 +33,9 @@ final class PageTiles {
     private var tileTasks: [TileKey: Task<Void, Never>] = [:]
     private var needed = Set<TileKey>()
     private var tileScale = 0.0
+    private var highlights: [SearchResult.Hit] = []
+    private var currentHighlight: Int?
+    private var highlightLayers: [CALayer] = []
 
     init() {
         layer.anchorPoint = .zero
@@ -67,6 +70,36 @@ final class PageTiles {
                 layer.addSublayer(page)
                 pageLayers.append(page)
                 clipLayers.append(clip)
+            }
+            highlightLayers.removeAll()
+            drawHighlights()
+        }
+    }
+
+    /// Marks search hits on the pages, the current one more strongly. Rectangles are in the displayed page's points.
+    func highlight(_ hits: [SearchResult.Hit], current: Int?) {
+        guard hits.map(\.occurrence) != highlights.map(\.occurrence) || current != currentHighlight else { return }
+        highlights = hits
+        currentHighlight = current
+        withoutAnimation { drawHighlights() }
+    }
+
+    private func drawHighlights() {
+        highlightLayers.forEach { $0.removeFromSuperlayer() }
+        highlightLayers.removeAll()
+        for hit in highlights where clipLayers.indices.contains(hit.page - 1) {
+            let isCurrent = hit.occurrence == currentHighlight
+            for line in hit.lineBounds {
+                let mark = CALayer()
+                mark.frame = line.cgRect.insetBy(dx: -1.5, dy: -1)
+                mark.cornerRadius = 2
+                // Multiplying keeps the text legible under the mark, as a highlighter does.
+                mark.compositingFilter = "multiplyBlendMode"
+                mark.backgroundColor = isCurrent ? CGColor(red: 1, green: 0.62, blue: 0, alpha: 0.75)
+                                                 : CGColor(red: 1, green: 0.87, blue: 0.2, alpha: 0.55)
+                mark.zPosition = 10
+                clipLayers[hit.page - 1].addSublayer(mark)
+                highlightLayers.append(mark)
             }
         }
     }

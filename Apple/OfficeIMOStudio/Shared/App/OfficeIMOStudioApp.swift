@@ -79,14 +79,40 @@ struct StudioCommands: Commands {
                 .disabled(session.map { $0.currentPage >= $0.pageCount } ?? true)
         }
 
+        CommandGroup(after: .textEditing) {
+            Section {
+                Button("Find…") {
+                    session?.task = .read
+                    session?.isSearchFocused = true
+                }
+                .keyboardShortcut("f")
+                Button("Find Next") { session?.showHit(step: 1) }
+                    .keyboardShortcut("g")
+                    .disabled(session?.searchHits.isEmpty != false)
+                Button("Find Previous") { session?.showHit(step: -1) }
+                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                    .disabled(session?.searchHits.isEmpty != false)
+            }
+            .disabled(session?.isReady != true || session?.facts?.canExtractText == false)
+        }
+
         CommandMenu("Tools") {
             Group {
                 Button("Rotate Left") { rotate(-90) }
                     .keyboardShortcut("l")
                 Button("Rotate Right") { rotate(90) }
                     .keyboardShortcut("r")
+                Divider()
+                Button("Duplicate Pages") { session.map { $0.duplicate($0.targetPages) } }
+                    .keyboardShortcut("d")
+                Button("Delete Pages") { session.map { $0.delete($0.targetPages) } }
+                    .disabled((session?.targetPages.count ?? 0) >= (session?.pageCount ?? 0))
+                Button("Insert Blank Page") { session?.insertBlankPage() }
             }
-            .disabled(session?.isReady != true || (session?.task == .pages && session?.selection.isEmpty == true))
+            .disabled(session?.canEditPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
+            Divider()
+            Button("Extract Pages…") { session.map { $0.extract($0.targetPages) } }
+                .disabled(session?.canExtractPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
         }
     }
 
