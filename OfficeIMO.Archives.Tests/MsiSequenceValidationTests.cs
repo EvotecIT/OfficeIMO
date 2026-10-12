@@ -58,8 +58,9 @@ public sealed class MsiSequenceValidationTests {
         using var fixture = new ArchiveFixtures();
         byte[] cabinet = defect == 2 ? new byte[36] : ArchiveFixtures.StoredCab("Unknown", Encoding.UTF8.GetBytes("extra"));
         byte[] package = ArchiveFixtures.Msi(unmappedCabinet: cabinet);
-        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination,
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination,
             new ArchiveExtractionOptions { MaxCabinetCount = defect == 0 ? 1 : 2, IncludeFile = _ => !exclude }));
+        if (defect == 0) Assert.Contains("embedded-cabinet count", error.Message);
         AssertNoOutput(fixture);
     }
 
