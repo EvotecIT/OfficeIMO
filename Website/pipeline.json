@@ -155,9 +155,25 @@
     },
     {
       "task": "exec",
-      "id": "test-api-cross-links",
+      "id": "test-integration-example-downloads",
       "dependsOn": [
         "test-showcase-walkthroughs"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Sync-IntegrationExamples.ps1",
+        "-Check"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-api-cross-links",
+      "dependsOn": [
+        "test-integration-example-downloads"
       ],
       "command": "pwsh",
       "argsList": [
