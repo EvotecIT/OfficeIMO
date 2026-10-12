@@ -36,11 +36,14 @@ internal static class OfficePathFlattener {
     /// <summary>Bounds adaptive curve expansion across a complete native stroke projection.</summary>
     internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenStrokeProjection(
         IReadOnlyList<OfficePathCommand> commands, double pixelsPerUnit) {
-        const int expandedPointBudget = 65536;
+        const int targetExpandedPoints = 65536;
         int curves = 0;
         foreach (OfficePathCommand command in commands)
             if (command.Kind is OfficePathCommandKind.QuadraticBezierTo or OfficePathCommandKind.CubicBezierTo) curves++;
-        int cap = curves == 0 ? int.MaxValue : Math.Max(1, (expandedPointBudget - Math.Min(commands.Count, expandedPointBudget)) / curves);
+        // Four samples retain nondegenerate cubic loops; the existing total-point
+        // guard still rejects work beyond its hard limit. The target only limits
+        // additional adaptive expansion, never collapses a curve to its endpoint.
+        int cap = curves == 0 ? int.MaxValue : Math.Max(4, (targetExpandedPoints - Math.Min(commands.Count, targetExpandedPoints)) / curves);
         return FlattenCore(commands, 0, 0, 1, 0, pixelsPerUnit, false, cap);
     }
 
