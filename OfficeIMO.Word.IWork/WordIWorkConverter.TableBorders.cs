@@ -5,8 +5,11 @@ using OfficeIMO.IWork;
 namespace OfficeIMO.Word.IWork;
 
 public static partial class WordIWorkConverter {
-    private static void ApplyTableBorders(WordTableCell target, OfficeBorderBox borders) {
+    private static void ApplyTableBorders(WordTableCell target, OfficeBorderBox borders, bool clearMissing) {
         var result = target.Borders;
+        if (clearMissing) {
+            result.LeftStyle = result.TopStyle = result.RightStyle = result.BottomStyle = WordBorderStyle.Nil;
+        }
         if (borders.Left is { } left) {
             result.LeftStyle = left.IsVisible ? WordBorderStyle.Single : WordBorderStyle.Nil;
             result.LeftColorHex = left.IsVisible ? left.Color.ToRgbHex() : null;

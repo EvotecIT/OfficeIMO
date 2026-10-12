@@ -58,8 +58,8 @@ public static partial class PowerPointPdfConverterExtensions {
             .Select(source => source.Italic == null ? (bool?)null : source.Italic.Value)
             .FirstOrDefault(value => value.HasValue);
 
-        Uri? hyperlink = cell.SlidePart == null ? null : PptCore.PowerPointHyperlinkResolver.Resolve(
-            cell.SlidePart, cell.SlidePart, directProperties?.GetFirstChild<A.HyperlinkOnClick>());
+        Uri? hyperlink = cell.OwnerPart == null ? null : PptCore.PowerPointHyperlinkResolver.Resolve(
+            cell.OwnerPart, cell.SlidePart, directProperties?.GetFirstChild<A.HyperlinkOnClick>());
         string? destination = ResolveSlideLinkDestination(hyperlink, slideNumber, options, "table text run");
 
         return new PdfCore.PdfTextRun(

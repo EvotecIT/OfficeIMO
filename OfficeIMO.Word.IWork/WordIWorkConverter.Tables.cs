@@ -51,10 +51,10 @@ public static partial class WordIWorkConverter {
                 var borders = mergedBorders.TryGetValue((row, column), out var perimeter)
                     ? perimeter : source.GetBorders(row, column);
                 IWorkParagraphStyle? style = source.GetParagraphStyle(row, column);
-                if (fill == null && style == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null) continue;
+                if (fill == null && style == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null && !source.HasBorderDeclarations) continue;
                 targetCells ??= rows[row - 1].Cells;
                 WordTableCell target = targetCells[column - 1];
-                ApplyTableBorders(target, borders);
+                ApplyTableBorders(target, borders, source.HasBorderDeclarations);
                 if (fill != null) {
                     if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
                     else target.ShadingPattern = WordShadingPattern.Nil;
