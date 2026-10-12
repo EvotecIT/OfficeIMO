@@ -340,7 +340,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
 
     protected override void OnKeyDown(KeyEventArgs e) {
         base.OnKeyDown(e);
-        if (HandleAnnotationKey(e)) { e.Handled = true; return; }
+        if (PlaceWithKeyboard(e) || HandleObjectNudge(e) || HandleAnnotationKey(e)) { e.Handled = true; return; }
         if (e.Key == Key.C &&
             (e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta)) &&
             !string.IsNullOrEmpty(SelectedText)) {
@@ -675,6 +675,22 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         double right = _editorPath.Max(static point => point.X);
         double bottom = _editorPath.Max(static point => point.Y);
         return new Rect(left, top, Math.Max(0D, right - left), Math.Max(0D, bottom - top));
+    }
+
+    /// <summary>
+    /// The keyboard alternative to clicking a placement: with a placing tool active, Enter puts a new note, text, stamp,
+    /// image, signature or link in the middle of the page, where the keyboard or the pointer can then move it.
+    /// </summary>
+    private bool PlaceWithKeyboard(KeyEventArgs e) {
+        if (e.Key != Key.Enter || e.KeyModifiers != KeyModifiers.None || Scene is null || _editing) return false;
+        if (EditorTool is not (PdfEditorTool.Note or PdfEditorTool.FreeText or PdfEditorTool.Stamp or PdfEditorTool.AddText or
+            PdfEditorTool.AddImage or PdfEditorTool.Link or PdfEditorTool.SignatureAppearance)) return false;
+        Rect size = EnsureUsableBounds(default, EditorTool);
+        _editorPath.Clear();
+        _editorPath.Add(new Point(Math.Max(0D, (Scene.Drawing.Width - size.Width) / 2D), Math.Max(0D, (Scene.Drawing.Height - size.Height) / 2D)));
+        EmitEditorGesture();
+        _editorPath.Clear();
+        return true;
     }
 
     private static Rect EnsureUsableBounds(Rect bounds, PdfEditorTool tool) {

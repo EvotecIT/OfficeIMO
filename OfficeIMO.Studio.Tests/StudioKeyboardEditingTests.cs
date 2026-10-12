@@ -1,0 +1,91 @@
+using Avalonia.Input;
+using OfficeIMO.Studio.Features.Editor;
+using OfficeIMO.Studio.Features.Reader;
+
+namespace OfficeIMO.Studio.Tests;
+
+/// <summary>Everything the pointer does to a page object can also be done from the keyboard.</summary>
+public sealed class StudioKeyboardEditingTests {
+    [Theory]
+    [InlineData(PdfEditorSelectionKind.Image, PdfEditorSelectionMode.PageContent)]
+    [InlineData(PdfEditorSelectionKind.Annotation, PdfEditorSelectionMode.Annotations)]
+    public async Task Arrow_keys_move_and_resize_the_selected_object(PdfEditorSelectionKind kind, PdfEditorSelectionMode mode) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            var selection = new PdfEditorSelection(kind, 1, new PdfEditorVisualBounds(100, 100, 200, 150), ObjectNumber: 7);
+            using var canvas = new PdfPageCanvas { Scene = TestPdfPageScenes.Create(), SelectionMode = mode, SelectedObject = selection };
+            var transforms = new List<PdfEditorVisualBounds>();
+            canvas.ObjectTransformCompleted += gesture => transforms.Add(gesture.Target);
+            KeyModifiers primary = Features.Shell.StudioShortcuts.PrimaryModifier;
+
+            Press(canvas, Key.Right, primary);
+            Press(canvas, Key.Down, primary | KeyModifiers.Shift);
+            Press(canvas, Key.Right, primary | KeyModifiers.Alt);
+            Press(canvas, Key.Up, primary | KeyModifiers.Alt | KeyModifiers.Shift);
+            Press(canvas, Key.Right, KeyModifiers.None);
+
+            Assert.Equal(new[] {
+                new PdfEditorVisualBounds(101, 100, 201, 150), // moved one point
+                new PdfEditorVisualBounds(100, 110, 200, 160), // moved ten points with Shift
+                new PdfEditorVisualBounds(100, 100, 201, 150), // wider by one point
+                new PdfEditorVisualBounds(100, 100, 200, 140)  // shorter by ten points
+            }, transforms);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Enter_places_the_active_tool_in_the_middle_of_the_page() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            using var canvas = new PdfPageCanvas { Scene = TestPdfPageScenes.Create(), EditorTool = PdfEditorTool.Note };
+            PdfEditorGesture? placed = null;
+            canvas.EditorGestureCompleted += gesture => placed = gesture;
+
+            Press(canvas, Key.Enter, KeyModifiers.None);
+
+            Assert.NotNull(placed);
+            double width = canvas.Scene!.Drawing.Width, height = canvas.Scene.Drawing.Height;
+            Assert.InRange((placed.Left + placed.Right) / 2D, width / 2D - 1D, width / 2D + 1D);
+            Assert.InRange((placed.Top + placed.Bottom) / 2D, height / 2D - 1D, height / 2D + 1D);
+
+            // With the select tool Enter keeps its meaning of activating the focused link or field.
+            placed = null;
+            canvas.EditorTool = PdfEditorTool.Select;
+            Press(canvas, Key.Enter, KeyModifiers.None);
+            Assert.Null(placed);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Cancel_in_the_inspector_shows_the_saved_annotation_values_again() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-inspector-cancel-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string path = Path.Combine(root, "annotated.pdf");
+            byte[] annotated = Pdf.PdfDocument.Load(Pdf.PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes())
+                .Annotations.Add(new Pdf.PdfAnnotationCreateOptions { Subtype = "Text", Rectangle = [40D, 50D, 60D, 70D], Contents = "Original", Title = "Reviewer" }).Bytes;
+            await File.WriteAllBytesAsync(path, annotated);
+            using var document = new Features.Shell.MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await document.OpenDocumentAsync(path);
+            int objectNumber = Assert.Single(Pdf.PdfDocument.Load(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+            document.Pages[0].SelectObject(new PdfEditorSelection(PdfEditorSelectionKind.Annotation, 1,
+                new PdfEditorVisualBounds(40D, 730D, 60D, 750D), ObjectNumber: objectNumber, Subtype: "Text"));
+            double width = document.SelectedAnnotationWidth;
+
+            document.SelectedAnnotationContents = "Draft that should be discarded";
+            document.SelectedAnnotationAuthor = "Someone else";
+            document.SelectedAnnotationWidth = width + 50;
+            document.RevertSelectedAnnotationCommand.Execute(null);
+
+            Assert.Equal("Original", document.SelectedAnnotationContents);
+            Assert.Equal("Reviewer", document.SelectedAnnotationAuthor);
+            Assert.Equal(width, document.SelectedAnnotationWidth);
+            Assert.False(document.IsDirty);
+        } finally { Directory.Delete(root, true); }
+    }
+
+    private static void Press(PdfPageCanvas canvas, Key key, KeyModifiers modifiers) =>
+        canvas.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers });
+}

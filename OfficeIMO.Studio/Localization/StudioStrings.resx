@@ -2987,4 +2987,10 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.Loss.One" xml:space="preserve"><value>{0} was converted, but some content was approximated or left out. Review the details before relying on the output.</value></data>
   <data name="Conversion.Loss.Many" xml:space="preserve"><value>{0} files were converted with approximated or missing content. Review the details before relying on the outputs.</value></data>
   <data name="Conversion.Loss.Review" xml:space="preserve"><value>Review details</value></data>
+  <data name="Edit.AddTextHint" xml:space="preserve"><value>Adds new text on top of the page. To change text that is already there, choose Select and click the text.</value></data>
+  <data name="Edit.ReplaceTextTitle" xml:space="preserve"><value>Replace text</value></data>
+  <data name="Edit.ReplaceTextHint" xml:space="preserve"><value>Changes the selected words in the page itself, keeping their position. To add separate text, use Add text.</value></data>
+  <data name="Inspector.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Inspector.Advanced" xml:space="preserve"><value>Position and size</value></data>
+  <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+arrow keys move the selection, ten points at a time with Shift. {0}+{1}+arrow keys resize it.</value></data>
 </root>

@@ -2167,4 +2167,10 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Conversion.Loss.One" xml:space="preserve"><value>{0} a été converti, mais une partie du contenu a été approximée ou omise. Consultez les détails avant d&apos;utiliser le résultat.</value></data>
   <data name="Conversion.Loss.Many" xml:space="preserve"><value>{0} fichiers ont été convertis avec du contenu approximé ou manquant. Consultez les détails avant d&apos;utiliser les résultats.</value></data>
   <data name="Conversion.Loss.Review" xml:space="preserve"><value>Voir les détails</value></data>
+  <data name="Edit.AddTextHint" xml:space="preserve"><value>Ajoute du nouveau texte par-dessus la page. Pour modifier un texte existant, choisissez Sélectionner et cliquez sur le texte.</value></data>
+  <data name="Edit.ReplaceTextTitle" xml:space="preserve"><value>Remplacer le texte</value></data>
+  <data name="Edit.ReplaceTextHint" xml:space="preserve"><value>Modifie les mots sélectionnés dans la page elle-même, à la même position. Pour ajouter un texte séparé, utilisez Ajouter du texte.</value></data>
+  <data name="Inspector.Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Inspector.Advanced" xml:space="preserve"><value>Position et taille</value></data>
+  <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+flèches déplacent la sélection, de dix points avec Maj. {0}+{1}+flèches la redimensionnent.</value></data>
 </root>

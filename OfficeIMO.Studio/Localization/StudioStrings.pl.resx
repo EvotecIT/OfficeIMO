@@ -5645,4 +5645,10 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Conversion.Loss.One" xml:space="preserve"><value>Plik {0} został przekonwertowany, ale część treści przybliżono lub pominięto. Przejrzyj szczegóły, zanim zaczniesz korzystać z wyniku.</value></data>
   <data name="Conversion.Loss.Many" xml:space="preserve"><value>Przekonwertowane pliki z przybliżoną lub brakującą treścią: {0}. Przejrzyj szczegóły, zanim zaczniesz korzystać z wyników.</value></data>
   <data name="Conversion.Loss.Review" xml:space="preserve"><value>Przejrzyj szczegóły</value></data>
+  <data name="Edit.AddTextHint" xml:space="preserve"><value>Dodaje nowy tekst na wierzchu strony. Aby zmienić istniejący tekst, wybierz Zaznacz i kliknij tekst.</value></data>
+  <data name="Edit.ReplaceTextTitle" xml:space="preserve"><value>Zastąp tekst</value></data>
+  <data name="Edit.ReplaceTextHint" xml:space="preserve"><value>Zmienia zaznaczone słowa na samej stronie, zachowując ich położenie. Aby dodać osobny tekst, użyj opcji Dodaj tekst.</value></data>
+  <data name="Inspector.Cancel" xml:space="preserve"><value>Anuluj</value></data>
+  <data name="Inspector.Advanced" xml:space="preserve"><value>Położenie i rozmiar</value></data>
+  <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+strzałki przesuwają zaznaczenie, z klawiszem Shift o dziesięć punktów. {0}+{1}+strzałki zmieniają jego rozmiar.</value></data>
 </root>

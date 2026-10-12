@@ -878,19 +878,7 @@
                 <StackPanel IsVisible="{Binding !HasSelectedObject}" Spacing="{StaticResource StudioSpaceS}">
                   <TextBlock Text="{Binding SelectedEditorToolChoice.Label}" Classes="paneTitle" />
                   <TextBlock Text="{Binding EditorInstruction}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
-                  <TextBlock Text="{loc:Loc DocumentWorkspace.Color}" Classes="groupLabel" Margin="0,4,0,0" />
-                  <WrapPanel ItemSpacing="{StaticResource StudioSpaceXXS}" LineSpacing="{StaticResource StudioSpaceXXS}">
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#FFD83D}" Command="{Binding SetEditorColorCommand}" CommandParameter="#FFD83D" AutomationProperties.Name="{loc:Loc Color.Yellow}" ToolTip.Tip="{loc:Loc Color.Yellow}"><Border Classes="swatch" Background="#FFD83D" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#5CCB7A}" Command="{Binding SetEditorColorCommand}" CommandParameter="#5CCB7A" AutomationProperties.Name="{loc:Loc Color.Green}" ToolTip.Tip="{loc:Loc Color.Green}"><Border Classes="swatch" Background="#5CCB7A" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#4FA8F0}" Command="{Binding SetEditorColorCommand}" CommandParameter="#4FA8F0" AutomationProperties.Name="{loc:Loc Color.Blue}" ToolTip.Tip="{loc:Loc Color.Blue}"><Border Classes="swatch" Background="#4FA8F0" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#F08BC5}" Command="{Binding SetEditorColorCommand}" CommandParameter="#F08BC5" AutomationProperties.Name="{loc:Loc Color.Pink}" ToolTip.Tip="{loc:Loc Color.Pink}"><Border Classes="swatch" Background="#F08BC5" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#E5484D}" Command="{Binding SetEditorColorCommand}" CommandParameter="#E5484D" AutomationProperties.Name="{loc:Loc Color.Red}" ToolTip.Tip="{loc:Loc Color.Red}"><Border Classes="swatch" Background="#E5484D" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#1F2937}" Command="{Binding SetEditorColorCommand}" CommandParameter="#1F2937" AutomationProperties.Name="{loc:Loc Color.Ink}" ToolTip.Tip="{loc:Loc Color.Ink}"><Border Classes="swatch" Background="#1F2937" /></Button>
-                  </WrapPanel>
-                  <TextBox Text="{Binding EditorColorHex}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Color}" FontFamily="{StaticResource StudioMonoFont}">
-                    <TextBox.InnerLeftContent><Border Width="14" Height="14" CornerRadius="3" Margin="8,0,0,0" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
-                                                      Background="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.HexBrush}}" /></TextBox.InnerLeftContent>
-                  </TextBox>
+                  <editor:AnnotationColorPicker Margin="0,4,0,0" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.Author}" Classes="groupLabel" Margin="0,4,0,0" /><TextBox Text="{Binding EditorAuthor}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Author}" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.TextComment}" Classes="groupLabel" Margin="0,4,0,0" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc DocumentWorkspace.TextComment}" />
                 </StackPanel>
@@ -902,6 +890,7 @@
                 <StackPanel IsVisible="{Binding !HasSelectedObject}" Spacing="{StaticResource StudioSpaceS}">
                   <TextBlock Text="{loc:Loc DocumentWorkspace.EditProperties}" Classes="paneTitle" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.SelectExistingTextAnImageOrAnAnnotationOnThe}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+                  <Border Classes="callout" IsVisible="{Binding IsAddTextToolActive}"><TextBlock Text="{loc:Loc Edit.AddTextHint}" TextWrapping="Wrap" /></Border>
                   <TextBlock Text="{loc:Loc DocumentWorkspace.Tool}" Classes="groupLabel" Margin="0,4,0,0" />
                   <ComboBox ItemsSource="{Binding EditorTools}" SelectedItem="{Binding SelectedEditorToolChoice, Mode=TwoWay}" HorizontalAlignment="Stretch">
                     <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfEditorToolChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
@@ -974,6 +963,8 @@
                 </StackPanel>
 
                 <StackPanel IsVisible="{Binding HasSelectedText}" Spacing="{StaticResource StudioSpaceS}">
+                  <TextBlock Text="{loc:Loc Edit.ReplaceTextTitle}" Classes="groupLabel" />
+                  <TextBlock Text="{loc:Loc Edit.ReplaceTextHint}" Classes="muted" TextWrapping="Wrap" />
                   <editor:TextEditInspectorView />
                 </StackPanel>
 
@@ -991,19 +982,24 @@
                 <StackPanel IsVisible="{Binding HasSelectedAnnotation}" Spacing="{StaticResource StudioSpaceS}">
                   <TextBlock Text="{loc:Loc DocumentWorkspace.Comment}" Classes="groupLabel" /><TextBox Text="{Binding SelectedAnnotationContents}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
                   <TextBlock Text="{loc:Loc DocumentWorkspace.Author}" Classes="groupLabel" /><TextBox Text="{Binding SelectedAnnotationAuthor}" />
-                  <TextBlock Text="{loc:Loc DocumentWorkspace.Color}" Classes="groupLabel" />
-                  <WrapPanel ItemSpacing="{StaticResource StudioSpaceXXS}" LineSpacing="{StaticResource StudioSpaceXXS}">
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#FFD83D}" Command="{Binding SetEditorColorCommand}" CommandParameter="#FFD83D" AutomationProperties.Name="{loc:Loc Color.Yellow}" ToolTip.Tip="{loc:Loc Color.Yellow}"><Border Classes="swatch" Background="#FFD83D" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#5CCB7A}" Command="{Binding SetEditorColorCommand}" CommandParameter="#5CCB7A" AutomationProperties.Name="{loc:Loc Color.Green}" ToolTip.Tip="{loc:Loc Color.Green}"><Border Classes="swatch" Background="#5CCB7A" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#4FA8F0}" Command="{Binding SetEditorColorCommand}" CommandParameter="#4FA8F0" AutomationProperties.Name="{loc:Loc Color.Blue}" ToolTip.Tip="{loc:Loc Color.Blue}"><Border Classes="swatch" Background="#4FA8F0" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#F08BC5}" Command="{Binding SetEditorColorCommand}" CommandParameter="#F08BC5" AutomationProperties.Name="{loc:Loc Color.Pink}" ToolTip.Tip="{loc:Loc Color.Pink}"><Border Classes="swatch" Background="#F08BC5" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#E5484D}" Command="{Binding SetEditorColorCommand}" CommandParameter="#E5484D" AutomationProperties.Name="{loc:Loc Color.Red}" ToolTip.Tip="{loc:Loc Color.Red}"><Border Classes="swatch" Background="#E5484D" /></Button>
-                    <Button Classes="swatchButton" Classes.selected="{Binding EditorColorHex, Converter={x:Static infra:StudioConverters.NameEquals}, ConverterParameter=#1F2937}" Command="{Binding SetEditorColorCommand}" CommandParameter="#1F2937" AutomationProperties.Name="{loc:Loc Color.Ink}" ToolTip.Tip="{loc:Loc Color.Ink}"><Border Classes="swatch" Background="#1F2937" /></Button>
+                  <editor:AnnotationColorPicker />
+                  <!-- Property edits wait for Apply; Cancel shows the saved values again. Undo reverses an applied change. -->
+                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}">
+                    <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Inspector.Cancel}" AutomationProperties.Name="{loc:Loc Inspector.Cancel}" Command="{Binding RevertSelectedAnnotationCommand}" />
+                    <Button Grid.Column="2" Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyProperties}" Content="{loc:Loc DocumentWorkspace.ApplyProperties}" Command="{Binding UpdateSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+                  </Grid>
+                  <TextBox Text="{Binding AnnotationReplyText}" PlaceholderText="{loc:Loc DocumentWorkspace.Reply}" AcceptsReturn="True" MinHeight="50" />
+                  <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}">
+                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddReply}" Content="{loc:Loc DocumentWorkspace.AddReply}" Command="{Binding ReplyToSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenAnnotation}" Content="{loc:Loc DocumentWorkspace.FlattenAnnotation}" Command="{Binding FlattenSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
                   </WrapPanel>
-                  <TextBox Text="{Binding EditorColorHex}" FontFamily="{StaticResource StudioMonoFont}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Color}" />
-                  <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyProperties}" Content="{loc:Loc DocumentWorkspace.ApplyProperties}" Command="{Binding UpdateSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
-                  <Expander Classes="section" Header="{loc:Loc DocumentWorkspace.ApplyGeometry}">
-                    <StackPanel Spacing="{StaticResource StudioSpaceS}">
+                </StackPanel>
+
+                <!-- Exact geometry is for fine adjustments; dragging and the keyboard cover everyday moves. -->
+                <Expander Classes="section" Header="{loc:Loc Inspector.Advanced}" AutomationProperties.Name="{loc:Loc Inspector.Advanced}">
+                  <StackPanel Spacing="{StaticResource StudioSpaceS}">
+                    <TextBlock Text="{Binding ObjectKeyboardHint}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+                    <StackPanel IsVisible="{Binding HasSelectedAnnotation}" Spacing="{StaticResource StudioSpaceS}">
                       <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}" RowSpacing="{StaticResource StudioSpaceSM}">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.X}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.Y}" FontSize="{StaticResource StudioSecondaryFontSize}" />
                         <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding SelectedAnnotationX}" /><NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SelectedAnnotationY}" />
@@ -1012,25 +1008,17 @@
                       </Grid>
                       <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyGeometry}" Content="{loc:Loc DocumentWorkspace.ApplyGeometry}" Command="{Binding ResizeSelectedAnnotationCommand}" IsEnabled="{Binding CanResizeSelectedAnnotation}" />
                     </StackPanel>
-                  </Expander>
-                  <TextBox Text="{Binding AnnotationReplyText}" PlaceholderText="{loc:Loc DocumentWorkspace.Reply}" AcceptsReturn="True" MinHeight="50" />
-                  <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}">
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.AddReply}" Content="{loc:Loc DocumentWorkspace.AddReply}" Command="{Binding ReplyToSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
-                    <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenAnnotation}" Content="{loc:Loc DocumentWorkspace.FlattenAnnotation}" Command="{Binding FlattenSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
-                  </WrapPanel>
-                </StackPanel>
-
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}" RowSpacing="{StaticResource StudioSpaceSM}">
+                      <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.MoveX}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.MoveY}" FontSize="{StaticResource StudioSecondaryFontSize}" />
+                      <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding ObjectMoveX}" /><NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ObjectMoveY}" />
+                    </Grid>
+                    <Button Classes="tool" HorizontalAlignment="Left" AutomationProperties.Name="{loc:Loc DocumentWorkspace.MoveObject}" Content="{loc:Loc DocumentWorkspace.MoveObject}" Command="{Binding MoveSelectedObjectCommand}" />
+                  </StackPanel>
+                </Expander>
                 <Border Height="1" Background="{DynamicResource StudioSubtleBorderBrush}" Margin="0,4" />
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}" RowSpacing="{StaticResource StudioSpaceSM}">
-                  <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc DocumentWorkspace.MoveX}" FontSize="{StaticResource StudioSecondaryFontSize}" /><TextBlock Grid.Row="0" Grid.Column="1" Text="{loc:Loc DocumentWorkspace.MoveY}" FontSize="{StaticResource StudioSecondaryFontSize}" />
-                  <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding ObjectMoveX}" /><NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ObjectMoveY}" />
-                </Grid>
-                <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}">
-                  <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.MoveObject}" Content="{loc:Loc DocumentWorkspace.MoveObject}" Command="{Binding MoveSelectedObjectCommand}" />
-                  <Button Classes="danger" AutomationProperties.Name="{loc:Loc DocumentWorkspace.DeleteObject}" Command="{Binding DeleteSelectedObjectCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><PathIcon Data="{StaticResource IconTrash}" Width="13" Height="13" Foreground="{DynamicResource StudioErrorBrush}" /><TextBlock Text="{loc:Loc DocumentWorkspace.DeleteObject}" /></StackPanel>
-                  </Button>
-                </WrapPanel>
+                <Button Classes="danger" AutomationProperties.Name="{loc:Loc DocumentWorkspace.DeleteObject}" Command="{Binding DeleteSelectedObjectCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><PathIcon Data="{StaticResource IconTrash}" Width="13" Height="13" Foreground="{DynamicResource StudioErrorBrush}" /><TextBlock Text="{loc:Loc DocumentWorkspace.DeleteObject}" /></StackPanel>
+                </Button>
               </StackPanel>
 
               <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Spacing="{StaticResource StudioSpaceS}">

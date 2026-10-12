@@ -5645,4 +5645,10 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Conversion.Loss.One" xml:space="preserve"><value>{0} wurde konvertiert, aber einige Inhalte wurden angenähert oder ausgelassen. Prüfen Sie die Details, bevor Sie sich auf das Ergebnis verlassen.</value></data>
   <data name="Conversion.Loss.Many" xml:space="preserve"><value>{0} Dateien wurden mit angenäherten oder fehlenden Inhalten konvertiert. Prüfen Sie die Details, bevor Sie sich auf die Ergebnisse verlassen.</value></data>
   <data name="Conversion.Loss.Review" xml:space="preserve"><value>Details prüfen</value></data>
+  <data name="Edit.AddTextHint" xml:space="preserve"><value>Fügt neuen Text über der Seite hinzu. Um vorhandenen Text zu ändern, wählen Sie Auswählen und klicken Sie auf den Text.</value></data>
+  <data name="Edit.ReplaceTextTitle" xml:space="preserve"><value>Text ersetzen</value></data>
+  <data name="Edit.ReplaceTextHint" xml:space="preserve"><value>Ändert die ausgewählten Wörter direkt auf der Seite und behält ihre Position bei. Um separaten Text hinzuzufügen, verwenden Sie Text hinzufügen.</value></data>
+  <data name="Inspector.Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="Inspector.Advanced" xml:space="preserve"><value>Position und Größe</value></data>
+  <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+Pfeiltasten verschieben die Auswahl, mit Umschalt um zehn Punkte. {0}+{1}+Pfeiltasten ändern ihre Größe.</value></data>
 </root>

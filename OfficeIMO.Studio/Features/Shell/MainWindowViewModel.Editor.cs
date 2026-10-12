@@ -45,6 +45,13 @@ public sealed partial class MainWindowViewModel {
 
     public bool IsLinkToolActive => ActiveEditorTool == PdfEditorTool.Link;
 
+    /// <summary>Adding text places new text over the page; replacing changes text that is already there.</summary>
+    public bool IsAddTextToolActive => ActiveEditorTool == PdfEditorTool.AddText;
+
+    /// <summary>How to move and resize the selection from the keyboard, with this platform's modifier names.</summary>
+    public string ObjectKeyboardHint => _localizer.Format("Inspector.KeyboardHint",
+        StudioShortcuts.UsesCommandKey ? "⌘" : "Ctrl", StudioShortcuts.UsesCommandKey ? "⌥" : "Alt");
+
     [ObservableProperty]
     private double _editorFontSize = 14D;
 
@@ -202,6 +209,7 @@ public sealed partial class MainWindowViewModel {
         if (ShapeTools.Contains(value.Tool)) LastShapeTool = value.Tool;
         OnPropertyChanged(nameof(IsShapeToolActive));
         OnPropertyChanged(nameof(IsLinkToolActive));
+        OnPropertyChanged(nameof(IsAddTextToolActive));
         UpdateFormAnchor();
         // Choosing any other tool abandons a pending signature or date placement.
         if (IsPlacingFillSignItem && !IsFillSignPlacement(value.Tool)) {
@@ -603,6 +611,12 @@ public sealed partial class MainWindowViewModel {
         await RunMutationAsync(
             token => _workspace.ApplyPageNumbersAsync(token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
+    }
+
+    /// <summary>Discards property and geometry edits in the inspector and shows the selected annotation's saved values again.</summary>
+    [RelayCommand]
+    private void RevertSelectedAnnotation() {
+        if (SelectedObject is { Kind: PdfEditorSelectionKind.Annotation } selection) ApplyObjectSelection(selection);
     }
 
     [RelayCommand]

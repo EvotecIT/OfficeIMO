@@ -16,6 +16,27 @@ public sealed partial class PdfPageCanvas {
     private double? _alignmentY;
     internal event Action<PdfObjectTransformGesture>? ObjectTransformCompleted;
 
+    /// <summary>
+    /// The keyboard alternative to dragging: Ctrl+arrow keys move the selected image or annotation by one point (ten with
+    /// Shift), and Ctrl+Alt+arrow keys resize it from its right or bottom edge. Several selected annotations move together.
+    /// </summary>
+    private bool HandleObjectNudge(KeyEventArgs e) {
+        if (e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down)) return false;
+        if ((e.KeyModifiers & (KeyModifiers.Control | KeyModifiers.Meta)) == 0) return false;
+        if (SelectedObject is not { Kind: PdfEditorSelectionKind.Image or PdfEditorSelectionKind.Annotation } selected ||
+            SelectionMode is not (PdfEditorSelectionMode.PageContent or PdfEditorSelectionMode.Annotations)) return false;
+        bool resize = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
+        if (resize && SelectedAnnotations.Count > 1) return false;
+        double amount = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? 10D : 1D;
+        (double dx, double dy) = e.Key switch { Key.Left => (-amount, 0D), Key.Right => (amount, 0D), Key.Up => (0D, -amount), _ => (0D, amount) };
+        var bounds = selected.Bounds;
+        var target = resize
+            ? new PdfEditorVisualBounds(bounds.Left, bounds.Top, Math.Max(bounds.Left + 1D, bounds.Right + dx), Math.Max(bounds.Top + 1D, bounds.Bottom + dy))
+            : new PdfEditorVisualBounds(bounds.Left + dx, bounds.Top + dy, bounds.Right + dx, bounds.Bottom + dy);
+        ObjectTransformCompleted?.Invoke(new(selected, target, SelectedAnnotations.ToArray()));
+        return true;
+    }
+
     private bool BeginObjectTransform(PointerPressedEventArgs e) {
         if (IsAdditive(e.KeyModifiers)) return false;
         if (SelectedObject is not { Kind: PdfEditorSelectionKind.Image or PdfEditorSelectionKind.Annotation } selected ||
