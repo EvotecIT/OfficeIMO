@@ -5605,7 +5605,6 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="PdfPage.RenderingLimitation" xml:space="preserve"><value>Studio pomija na tej stronie część treści, której nie potrafi narysować. Porównaj ją z inną przeglądarką, zanim zaufasz jej wyglądowi.</value></data>
   <data name="PdfPage.TechnicalDetails" xml:space="preserve"><value>Szczegóły techniczne</value></data>
   <data name="PdfPage.RenderingSimplified" xml:space="preserve"><value>Niektóre szczegóły tej strony są rysowane w uproszczony sposób. Różnica jest zwykle trudna do zauważenia.</value></data>
-  <data name="PdfPage.EmbeddedFontReplaced" xml:space="preserve"><value>Ta strona zawiera osadzoną czcionkę, której Studio nie potrafi narysować, więc wyświetlana jest podobna czcionka zainstalowana. Kształty liter i odstępy mogą różnić się od oryginału.</value></data>
   <data name="Provenance.InputHash" xml:space="preserve"><value>SHA-256 pliku wejściowego</value></data>
   <data name="Provenance.CopyLabel" xml:space="preserve"><value>Kopia</value></data>
   <data name="Provenance.OutputHash" xml:space="preserve"><value>SHA-256 kopii</value></data>
@@ -5640,4 +5639,5 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Zadeklarowano kompozycję przechwyconych materiałów</value></data>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Zapisany typ źródła: {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Nie zapisano typu źródła</value></data>
+  <data name="PdfPage.FontReplaced" xml:space="preserve"><value>Czcionki używanej na tej stronie brakuje w pliku PDF lub nie można jej narysować, więc wyświetlana jest podobna czcionka zainstalowana. Kształty liter i odstępy mogą różnić się od oryginału.</value></data>
 </root>

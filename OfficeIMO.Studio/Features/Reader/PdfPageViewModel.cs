@@ -262,7 +262,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
                 Scene = scene;
                 ReplaceImage(bitmap);
                 RenderedScale = scene.RequiresRasterFallback ? requestedScale : 0D;
-                RenderingNote = PdfPageRenderingNotes.Classify(scene.CapabilityCodes.Concat(diagnostics));
+                RenderingNote = PdfPageRenderingNotes.Classify(scene.Capabilities, diagnostics);
                 DiagnosticsSummary = diagnostics.Count == 0 ? null : diagnostics[0];
                 DiagnosticsDetails = diagnostics.Count == 0
                     ? null

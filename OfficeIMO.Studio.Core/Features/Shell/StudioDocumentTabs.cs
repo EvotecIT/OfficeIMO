@@ -239,12 +239,16 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
     }
 
     internal async Task<bool> RequestCloseAllAsync() {
-        if (_applicationDocument is not null && !await _applicationDocument.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
-        if (!await _emptyDocument.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+        // The window-level document and the empty document close like any tab: every participant is prepared, then
+        // committed, and a veto anywhere cancels the preparation of all of them.
+        TDocument[] shared = _applicationDocument is null ? [_emptyDocument] : [_applicationDocument, _emptyDocument];
         TTab[] candidates = Tabs.ToArray();
         TTab? previousSelection = SelectedTab;
         bool prepared = false;
         try {
+            foreach (TDocument document in shared) {
+                if (!await document.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
+            }
             foreach (TTab tab in candidates) {
                 SelectedTab = tab;
                 if (!await tab.Document.PrepareCloseDocumentAsync().ConfigureAwait(true)) return false;
@@ -253,9 +257,13 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
                 SelectedTab = tab;
                 if (!await tab.Document.CommitPreparedDiscardAsync().ConfigureAwait(true)) return false;
             }
+            foreach (TDocument document in shared) {
+                if (!await document.CommitPreparedDiscardAsync().ConfigureAwait(true)) return false;
+            }
             prepared = true;
         } finally {
             if (!prepared) {
+                foreach (TDocument document in shared) document.CancelPreparedClose();
                 foreach (TTab tab in candidates) tab.Document.CancelPreparedClose();
                 if (previousSelection is not null && Tabs.Contains(previousSelection)) SelectedTab = previousSelection;
             }
@@ -267,6 +275,7 @@ internal sealed partial class StudioDocumentTabs<TDocument, TTab> : ObservableOb
             Tabs.Remove(tab);
             tab.Dispose();
         }
+        foreach (TDocument document in shared) document.CompletePreparedClose();
         OnPropertyChanged(nameof(HasTabs));
         SelectedTab = null;
         return true;

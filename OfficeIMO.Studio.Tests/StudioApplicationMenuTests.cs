@@ -8,6 +8,21 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioApplicationMenuTests {
     [Fact]
+    public void Each_translated_menu_gets_its_own_access_key() {
+        // German File and Document both start with D; French Édition starts with an accented letter.
+        var german = MainWindow.AssignAccessKeys([("File", "Datei"), ("Edit", "Bearbeiten"), ("View", "Ansicht"), ("Document", "Dokument"),
+            ("ToolsMenu", "Werkzeuge"), ("Window", "Fenster"), ("Help", "Hilfe")]);
+        Assert.Equal('D', german["File"].Key);
+        Assert.Equal('O', german["Document"].Key);
+        Assert.Equal("D_okument", german["Document"].Header);
+        Assert.Equal(german.Count, german.Values.Select(value => value.Key).Distinct().Count());
+
+        var french = MainWindow.AssignAccessKeys([("File", "Fichier"), ("Edit", "Édition"), ("View", "Affichage"), ("Document", "Document")]);
+        Assert.Equal('E', french["Edit"].Key);
+        Assert.Equal("_Édition", french["Edit"].Header);
+    }
+
+    [Fact]
     public async Task Application_menu_is_built_from_the_command_catalog() {
         if (OperatingSystem.IsMacOS()) return;
         using var app = TestAppBuilder.StartSession();

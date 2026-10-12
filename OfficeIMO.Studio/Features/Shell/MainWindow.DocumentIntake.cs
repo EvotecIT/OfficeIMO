@@ -62,32 +62,58 @@ public sealed partial class MainWindow {
         return next;
     }
 
-    /// <summary>Opens local paths forwarded by a later launch, or brings the window forward when there are none.</summary>
-    internal async Task OpenForwardedPathsAsync(IReadOnlyList<string> paths) {
+    /// <summary>False once the window is closing, so a later launch opens its files itself instead of forwarding them.</summary>
+    internal bool AcceptsForwardedLaunches => !_windowClosed;
+
+    /// <summary>
+    /// Opens local paths forwarded by a later launch, or brings the window forward when there are none. Forwarded paths
+    /// are ordinary local paths, as at startup, so package folders such as .pages go to Convert the same way.
+    /// </summary>
+    internal Task OpenForwardedPathsAsync(IReadOnlyList<string> paths) {
         Avalonia.Threading.Dispatcher.UIThread.VerifyAccess();
-        var items = new List<IStorageItem>(paths.Count);
-        bool missing = false;
-        foreach (string path in paths.Distinct(StudioPathComparer)) {
-            IStorageItem? item = null;
-            try {
-                item = File.Exists(path)
-                    ? await StorageProvider.TryGetFileFromPathAsync(path)
-                    : Directory.Exists(path) ? await StorageProvider.TryGetFolderFromPathAsync(path) : null;
-            } catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException) {
-                _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "FileActivation", "ForwardedPathUnavailable", error);
-            }
-            if (item is null) missing = true;
-            else items.Add(item);
-        }
-        if (items.Count == 0) {
+        Task next = OpenForwardedPathsAfterAsync(paths.Distinct(StudioPathComparer).ToArray(), _activationTail);
+        _activationTail = next;
+        return next;
+    }
+
+    private async Task OpenForwardedPathsAfterAsync(string[] paths, Task previous) {
+        try {
+            await previous;
             await _startupCompleted.Task;
             if (_windowClosed) return;
             BringToFront();
-            if (missing) ShowIntakeError(_services.Localizer.Get("Activation.Missing"));
-            return;
+            IntakeError? priorError = _intakeError;
+            bool missing = false;
+            foreach (string path in paths) {
+                if (_windowClosed) return;
+                bool isFile = File.Exists(path);
+                if (!isFile && !Directory.Exists(path)) {
+                    missing = true;
+                    continue;
+                }
+                bool isPdf = isFile && IsPdf(path);
+                if (!isPdf && !IsConvertible(path)) {
+                    ShowIntakeError(_services.Localizer.Get("Activation.Unsupported"));
+                    continue;
+                }
+                if (!ViewModel.CanStartDocumentTransition || (!isPdf && !ViewModel.ConversionWorkbench.CanEditQueue)) {
+                    ShowIntakeError(_services.Localizer.Get("Activation.Busy"));
+                    continue;
+                }
+                try {
+                    if (isPdf) {
+                        await TabHost.OpenDocumentAsync(path);
+                        if (ViewModel.HasDocument) ClearPriorIntakeError(priorError);
+                    } else if (ViewModel.ConversionWorkbench.AddDroppedPaths([path])) {
+                        ClearPriorIntakeError(priorError);
+                        ViewModel.ShowConversionWorkbenchCommand.Execute(null);
+                    }
+                } catch (Exception error) when (error is not OutOfMemoryException) { ReportIntakeError(error); }
+            }
+            if (missing && !_windowClosed) ShowIntakeError(_services.Localizer.Get("Activation.Missing"));
+        } catch (Exception error) when (error is not OutOfMemoryException) {
+            ReportIntakeError(error);
         }
-        await OpenActivatedItemsAsync(items);
-        if (missing && !_windowClosed) ShowIntakeError(_services.Localizer.Get("Activation.Missing"));
     }
 
     private static StringComparer StudioPathComparer => OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()

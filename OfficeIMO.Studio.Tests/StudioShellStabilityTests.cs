@@ -14,7 +14,7 @@ public sealed class StudioShellStabilityTests {
         using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
         Assert.True(primary.IsPrimary);
         var received = new TaskCompletionSource<IReadOnlyList<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
-        primary.StartListening(paths => { received.TrySetResult(paths); return Task.CompletedTask; });
+        primary.StartListening(paths => received.TrySetResult(paths));
 
         using StudioSingleInstance later = AcquireFromAnotherLaunch(name);
         Assert.False(later.IsPrimary);
@@ -30,7 +30,7 @@ public sealed class StudioShellStabilityTests {
         string name = UniqueInstanceName();
         using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
         var received = new TaskCompletionSource<IReadOnlyList<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
-        primary.StartListening(paths => { received.TrySetResult(paths); return Task.CompletedTask; });
+        primary.StartListening(paths => received.TrySetResult(paths));
 
         using StudioSingleInstance later = AcquireFromAnotherLaunch(name);
         Assert.True(later.TryForward([], TimeSpan.FromSeconds(5)));
@@ -42,7 +42,7 @@ public sealed class StudioShellStabilityTests {
         string name = UniqueInstanceName();
         using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
         var received = new TaskCompletionSource<IReadOnlyList<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
-        primary.StartListening(paths => { received.TrySetResult(paths); return Task.CompletedTask; });
+        primary.StartListening(paths => received.TrySetResult(paths));
 
         using (var hostile = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.CurrentUserOnly)) {
             hostile.Connect(5000);
@@ -59,12 +59,44 @@ public sealed class StudioShellStabilityTests {
     }
 
     [Fact]
+    public void Window_that_cannot_take_files_lets_the_later_launch_open_them() {
+        string name = UniqueInstanceName();
+        using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
+        primary.StartListening(_ => false);
+        using StudioSingleInstance later = AcquireFromAnotherLaunch(name);
+        Assert.False(later.TryForward([Path.Combine(Path.GetTempPath(), "rejected.pdf")], TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public void Listener_takes_the_next_launch_while_an_earlier_batch_is_still_opening() {
+        string name = UniqueInstanceName();
+        using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
+        var batches = new System.Collections.Concurrent.ConcurrentQueue<IReadOnlyList<string>>();
+        // Accepting only queues the batch; the slow open happens elsewhere and must not hold the pipe.
+        primary.StartListening(paths => { batches.Enqueue(paths); return true; });
+        using StudioSingleInstance second = AcquireFromAnotherLaunch(name);
+        using StudioSingleInstance third = AcquireFromAnotherLaunch(name);
+        Assert.True(second.TryForward([Path.Combine(Path.GetTempPath(), "slow.pdf")], TimeSpan.FromSeconds(5)));
+        Assert.True(third.TryForward([Path.Combine(Path.GetTempPath(), "next.pdf")], TimeSpan.FromSeconds(5)));
+        Assert.Equal(2, batches.Count);
+    }
+
+    [Fact]
     public void Unreachable_instance_lets_the_later_launch_run_independently() {
         string name = UniqueInstanceName();
         using StudioSingleInstance primary = StudioSingleInstance.Acquire(name);
         // The owner holds the lock but has not started listening yet.
         using StudioSingleInstance later = AcquireFromAnotherLaunch(name);
         Assert.False(later.TryForward(["/tmp/a.pdf"], TimeSpan.FromMilliseconds(200)));
+    }
+
+    [Fact]
+    public void Linux_picker_globs_match_any_letter_case() {
+        string[] globs = StudioPickerPatterns.CaseInsensitive(["*.pdf", "*.tar.gz"], platformIgnoresCase: false);
+        Assert.Equal(new[] { "*.[pP][dD][fF]", "*.[tT][aA][rR].[gG][zZ]" }, globs);
+        Assert.All(new[] { "report.pdf", "SCAN.PDF", "report.Pdf", "a.pDf" },
+            name => Assert.Matches("^" + System.Text.RegularExpressions.Regex.Escape(globs[0]).Replace(@"\*", ".*").Replace(@"\[", "[") + "$", name));
+        Assert.Equal(new[] { "*.pdf" }, StudioPickerPatterns.CaseInsensitive(["*.pdf"], platformIgnoresCase: true));
     }
 
     [Fact]
@@ -169,19 +201,30 @@ public sealed class StudioShellStabilityTests {
     [Fact]
     public async Task Recent_previews_can_be_turned_off_for_private_work() {
         using var session = TestAppBuilder.StartSession();
-        await session.Dispatch(() => {
+        await session.Dispatch(async () => {
             var services = TestAppBuilder.CreateTestServices();
             using var tab = CreateTab(services);
             Assert.True(tab.ShowRecentPreviews);
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "private.pdf");
+            PdfDocument.Create(document => document.Page(page => page.Size(200, 300).Content(content =>
+                content.Item(item => item.Paragraph(text => text.Text("Private")))))).Save(source);
+            var recent = new RecentDocumentViewModel(source, DateTimeOffset.UtcNow);
+            tab.RecentDocuments.Add(recent);
+            recent.EnsureThumbnail();
+            for (int attempt = 0; attempt < 200 && !recent.HasThumbnail; attempt++) {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                await Task.Delay(20);
+            }
+            Assert.True(recent.HasThumbnail);
 
             tab.Settings.ShowRecentPreviews = false;
 
+            // The rendered page disappears immediately, not when Home next refreshes its previews.
+            Assert.False(recent.HasThumbnail);
             Assert.False(services.Preferences.Current.ShowRecentPreviews);
             Assert.False(tab.ShowRecentPreviews);
             Assert.False(new JsonStudioPreferencesStore(services.Paths.PreferencesPath).Load().ShowRecentPreviews);
-            var recent = new RecentDocumentViewModel(Path.Combine(services.Paths.Root, "private.pdf"), DateTimeOffset.UtcNow);
-            recent.ClearThumbnail();
-            Assert.False(recent.HasThumbnail);
             return true;
         }, CancellationToken.None);
     }

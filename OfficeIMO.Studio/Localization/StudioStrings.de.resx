@@ -5562,7 +5562,7 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Commands.Watermark.Description" xml:space="preserve"><value>Text- oder Bildwasserzeichen auf ausgewählten Seiten in der Vorschau prüfen und platzieren.</value></data>
   <data name="Commands.PageNumbers.Title" xml:space="preserve"><value>Seitenzahlen hinzufügen</value></data>
   <data name="Commands.PageNumbers.Description" xml:space="preserve"><value>Alle Seiten nummerieren; Rückgängig entfernt sie bis zum Speichern.</value></data>
-  <data name="Commands.FlattenAnnotations.Title" xml:space="preserve"><value>Alle Anmerkungen reduzieren</value></data>
+  <data name="Commands.FlattenAnnotations.Title" xml:space="preserve"><value>Alle Anmerkungen in Seiteninhalt umwandeln</value></data>
   <data name="Commands.FlattenAnnotations.Description" xml:space="preserve"><value>Kommentare und Markierungen in den Seiteninhalt übernehmen, sodass sie nicht mehr bearbeitet werden können.</value></data>
   <data name="Commands.Split.Title" xml:space="preserve"><value>In Dokumente aufteilen</value></data>
   <data name="Commands.Split.Description" xml:space="preserve"><value>Die Aufteilung dieser PDF in mehrere Dokumente in der Vorschau prüfen und dann speichern.</value></data>
@@ -5588,9 +5588,9 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Commands.CreateSignature.Description" xml:space="preserve"><value>Eine Unterschrift zeichnen, tippen oder als Bild wählen und dann auf der Seite platzieren.</value></data>
   <data name="Commands.CreateInitials.Title" xml:space="preserve"><value>Initialen erstellen</value></data>
   <data name="Commands.CreateInitials.Description" xml:space="preserve"><value>Initialen zeichnen, tippen oder als Bild wählen und dann auf der Seite platzieren.</value></data>
-  <data name="Commands.FlattenFormField.Title" xml:space="preserve"><value>Ausgewähltes Feld reduzieren</value></data>
+  <data name="Commands.FlattenFormField.Title" xml:space="preserve"><value>Ausgewähltes Feld in Seiteninhalt umwandeln</value></data>
   <data name="Commands.FlattenFormField.Description" xml:space="preserve"><value>Das ausgewählte Formularfeld in festen Seiteninhalt umwandeln.</value></data>
-  <data name="Commands.FlattenForms.Title" xml:space="preserve"><value>Alle Formularfelder reduzieren</value></data>
+  <data name="Commands.FlattenForms.Title" xml:space="preserve"><value>Alle Formularfelder in Seiteninhalt umwandeln</value></data>
   <data name="Commands.FlattenForms.Description" xml:space="preserve"><value>Alle Formularfelder in festen Seiteninhalt umwandeln, sodass Werte nicht mehr geändert werden können.</value></data>
   <data name="Commands.BatesNumbers.Title" xml:space="preserve"><value>Bates-Nummern hinzufügen</value></data>
   <data name="Commands.BatesNumbers.Description" xml:space="preserve"><value>Fortlaufende Bates-Nummern mit dem unter Schützen festgelegten Präfix, Startwert und der Position stempeln.</value></data>
@@ -5605,7 +5605,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="PdfPage.RenderingLimitation" xml:space="preserve"><value>Studio lässt auf dieser Seite Inhalte aus, die es nicht darstellen kann. Vergleichen Sie sie mit einem anderen Viewer, bevor Sie sich auf ihr Aussehen verlassen.</value></data>
   <data name="PdfPage.TechnicalDetails" xml:space="preserve"><value>Technische Details</value></data>
   <data name="PdfPage.RenderingSimplified" xml:space="preserve"><value>Einige Details dieser Seite werden vereinfacht dargestellt. Der Unterschied ist meist kaum sichtbar.</value></data>
-  <data name="PdfPage.EmbeddedFontReplaced" xml:space="preserve"><value>Diese Seite bettet eine Schrift ein, die Studio nicht darstellen kann; stattdessen wird eine ähnliche installierte Schrift angezeigt. Buchstabenformen und Abstände können vom Original abweichen.</value></data>
   <data name="Provenance.InputHash" xml:space="preserve"><value>SHA-256 der Eingabe</value></data>
   <data name="Provenance.CopyLabel" xml:space="preserve"><value>Kopie</value></data>
   <data name="Provenance.OutputHash" xml:space="preserve"><value>SHA-256 der Ausgabe</value></data>
@@ -5640,4 +5639,5 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Zusammenstellung aufgenommener Medien angegeben</value></data>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Aufgezeichneter Quelltyp: {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Quelltyp nicht aufgezeichnet</value></data>
+  <data name="PdfPage.FontReplaced" xml:space="preserve"><value>Eine Schrift dieser Seite fehlt in der PDF-Datei oder kann nicht dargestellt werden; stattdessen wird eine ähnliche installierte Schrift angezeigt. Buchstabenformen und Abstände können vom Original abweichen.</value></data>
 </root>

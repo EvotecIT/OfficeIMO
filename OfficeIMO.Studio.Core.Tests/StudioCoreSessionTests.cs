@@ -126,8 +126,20 @@ public sealed class StudioCoreSessionTests {
         Assert.False(await tabs.RequestCloseAllAsync());
         Assert.Single(tabs.Tabs);
         application.AllowClose = true;
+
+        // A tab that refuses to close also releases the window-level document's preparation.
+        TestDocument tabDocument = tabs.Tabs[0].Document;
+        tabDocument.AllowClose = false;
+        int cancelled = application.CancelledCloses;
+        Assert.False(await tabs.RequestCloseAllAsync());
+        Assert.Equal(cancelled + 1, application.CancelledCloses);
+        Assert.Equal(0, application.Commits);
+        tabDocument.AllowClose = true;
+
         Assert.True(await tabs.RequestCloseAllAsync());
-        Assert.Equal(2, application.CloseRequests);
+        Assert.Equal(1, application.Commits);
+        Assert.Equal(1, application.CompletedCloses);
+        Assert.Equal(3, application.CloseRequests);
 
         tabs.Dispose();
         Assert.True(application.Disposed);
@@ -177,9 +189,12 @@ public sealed class StudioCoreSessionTests {
         public void RestoreSessionViewState(StudioDocumentViewState state) => SetView(state);
         public Task<bool> RequestCloseDocumentAsync() => Task.FromResult(true);
         public Task<bool> PrepareCloseDocumentAsync() { CloseRequests++; return Task.FromResult(AllowClose); }
-        public Task<bool> CommitPreparedDiscardAsync() => Task.FromResult(true);
-        public void CancelPreparedClose() { }
-        public void CompletePreparedClose() { }
+        public Task<bool> CommitPreparedDiscardAsync() { Commits++; return Task.FromResult(true); }
+        public void CancelPreparedClose() => CancelledCloses++;
+        public void CompletePreparedClose() => CompletedCloses++;
+        internal int Commits { get; private set; }
+        internal int CancelledCloses { get; private set; }
+        internal int CompletedCloses { get; private set; }
         public void CancelCurrentOperation() => Cancellations++;
         public void Dispose() => Disposed = true;
     }

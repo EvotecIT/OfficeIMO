@@ -61,7 +61,7 @@ public sealed partial class MainWindow {
         string Text(string key) => _services.Localizer.Get("Menu." + key);
 
         MenuItem Top(string id, params object[] items) {
-            var menu = new MenuItem { Header = "_" + Text(id), Tag = id };
+            var menu = new MenuItem { Header = AccessKeys()[id].Header, Tag = id };
             foreach (object item in items) menu.Items.Add(item);
             return menu;
         }
@@ -173,20 +173,57 @@ public sealed partial class MainWindow {
         return menu;
     }
 
-    private void ToggleFullScreen() =>
-        WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
+    private WindowState _stateBeforeFullScreen = WindowState.Normal;
+
+    // Leaving full screen returns to the state it was entered from, so a maximized window stays maximized.
+    private void ToggleFullScreen() {
+        if (WindowState == WindowState.FullScreen) {
+            WindowState = _stateBeforeFullScreen;
+            return;
+        }
+        _stateBeforeFullScreen = WindowState == WindowState.Minimized ? WindowState.Normal : WindowState;
+        WindowState = WindowState.FullScreen;
+    }
 
     // F10 opens the menu and Alt+letter opens one menu, matching Windows and most Linux desktops.
     private bool TryOpenAppMenuFromKeyboard(KeyEventArgs e) {
         if (_appMenu is null) return false;
         if (StudioShortcuts.Matches(StudioShortcuts.ApplicationMenu, e.Key, e.KeyModifiers)) return OpenAppMenu();
         if (e.KeyModifiers != KeyModifiers.Alt || e.Key is < Key.A or > Key.Z) return false;
-        // Access keys follow the translated menu names, as the underlined first letters do.
         char letter = (char)('A' + (e.Key - Key.A));
-        string? menu = TopLevelMenuIds.FirstOrDefault(id =>
-            _services.Localizer.Get("Menu." + id) is { Length: > 0 } title && char.ToUpperInvariant(title[0]) == letter);
+        string? menu = AccessKeys().FirstOrDefault(pair => pair.Value.Key == letter).Key;
         return menu is not null && OpenAppMenu(menu);
     }
 
     private static readonly string[] TopLevelMenuIds = ["File", "Edit", "View", "Document", "ToolsMenu", "Window", "Help"];
+
+    /// <summary>
+    /// One access key per top-level menu in the current language: the first letter of each name that an earlier menu has
+    /// not taken, compared without accents so "Édition" answers to E. The underlined letter is the key that opens it.
+    /// </summary>
+    internal IReadOnlyDictionary<string, (char? Key, string Header)> AccessKeys() =>
+        AssignAccessKeys(TopLevelMenuIds.Select(id => (id, _services.Localizer.Get("Menu." + id))));
+
+    internal static IReadOnlyDictionary<string, (char? Key, string Header)> AssignAccessKeys(IEnumerable<(string Id, string Title)> menus) {
+        var taken = new HashSet<char>();
+        var result = new Dictionary<string, (char? Key, string Header)>(StringComparer.Ordinal);
+        foreach ((string id, string title) in menus) {
+            string plain = title.Replace("_", "__", StringComparison.Ordinal);
+            (char? key, string header) = (null, plain);
+            for (int index = 0; index < title.Length; index++) {
+                char letter = BaseLetter(title[index]);
+                if (letter is < 'A' or > 'Z' || !taken.Add(letter)) continue;
+                key = letter;
+                header = title[..index].Replace("_", "__", StringComparison.Ordinal) + "_" + title[index..].Replace("_", "__", StringComparison.Ordinal);
+                break;
+            }
+            result[id] = (key, header);
+        }
+        return result;
+    }
+
+    private static char BaseLetter(char character) {
+        string decomposed = character.ToString().Normalize(System.Text.NormalizationForm.FormD);
+        return char.ToUpperInvariant(decomposed[0]);
+    }
 }

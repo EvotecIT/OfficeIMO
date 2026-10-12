@@ -72,7 +72,7 @@ public sealed partial class MainWindow {
         _documentMenuItems.Clear();
         foreach (var tab in TabHost.Tabs) {
             var item = new MenuItem {
-                Header = tab.Title,
+                [!MenuItem.HeaderProperty] = new Avalonia.Data.Binding(nameof(StudioDocumentTabViewModel.Title)) { Source = tab },
                 ToggleType = MenuItemToggleType.Radio,
                 IsChecked = ReferenceEquals(tab, TabHost.SelectedTab)
             };

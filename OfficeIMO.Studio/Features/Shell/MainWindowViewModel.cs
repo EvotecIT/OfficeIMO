@@ -241,6 +241,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         }
         _services.DocumentHistory.Cleared += OnDocumentHistoryCleared;
         _services.DocumentHistory.RecentDocumentsChanged += OnRecentDocumentsChanged;
+        _services.Preferences.Changed += OnPreferencesChanged;
         _services.Recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         foreach (RecentDocumentViewModel document in _recentDocumentStore?.Load() ?? []) RecentDocuments.Add(document);
     }
@@ -574,6 +575,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OnPropertyChanged(nameof(HasRecentDocuments));
     }
 
+    // Turning previews off hides them at once in every window, not when Home next refreshes its previews.
+    private void OnPreferencesChanged(object? sender, EventArgs e) {
+        if (ShowRecentPreviews) return;
+        foreach (RecentDocumentViewModel document in RecentDocuments) document.ClearThumbnail();
+    }
+
     private void OnRecentDocumentsChanged(object? writer, EventArgs e) {
         if (!ReferenceEquals(writer, this)) ReloadRecentDocuments();
     }
@@ -652,6 +659,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
         _services.DocumentHistory.RecentDocumentsChanged -= OnRecentDocumentsChanged;
+        _services.Preferences.Changed -= OnPreferencesChanged;
         if (_ownsWorkbenches) DisposeWorkbenches();
 
         CancelCurrentOperation();

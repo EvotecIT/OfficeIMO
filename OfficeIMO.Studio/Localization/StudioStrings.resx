@@ -2953,7 +2953,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="PdfPage.RenderingLimitation" xml:space="preserve"><value>Studio skips some content on this page that it cannot draw. Compare it with another viewer before relying on its appearance.</value></data>
   <data name="PdfPage.TechnicalDetails" xml:space="preserve"><value>Technical details</value></data>
   <data name="PdfPage.RenderingSimplified" xml:space="preserve"><value>Some details on this page are drawn in a simplified way. The difference is usually hard to see.</value></data>
-  <data name="PdfPage.EmbeddedFontReplaced" xml:space="preserve"><value>This page embeds a font Studio cannot draw, so a similar installed font is shown instead. Letter shapes and spacing may differ from the original.</value></data>
   <data name="Provenance.InputHash" xml:space="preserve"><value>Input SHA-256</value></data>
   <data name="Provenance.CopyLabel" xml:space="preserve"><value>Copy</value></data>
   <data name="Provenance.OutputHash" xml:space="preserve"><value>Output SHA-256</value></data>
@@ -2982,4 +2981,5 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Composite of captured media declared</value></data>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Recorded source type: {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Source type not recorded</value></data>
+  <data name="PdfPage.FontReplaced" xml:space="preserve"><value>A font this page relies on is missing from the PDF or cannot be drawn, so a similar installed font is shown instead. Letter shapes and spacing may differ from the original.</value></data>
 </root>

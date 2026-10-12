@@ -15,6 +15,7 @@ internal sealed class StudioSingleInstance : IDisposable {
     internal const int MaximumPaths = 64;
     private const int MaximumMessageBytes = 256 * 1024;
     private const byte Accepted = 1;
+    private const byte Rejected = 0;
     private static readonly TimeSpan ReadTimeout = TimeSpan.FromSeconds(5);
 
     private readonly Mutex? _mutex;
@@ -85,14 +86,19 @@ internal sealed class StudioSingleInstance : IDisposable {
         }
     }
 
-    /// <summary>Starts accepting forwarded launches. <paramref name="received"/> runs on a background thread.</summary>
-    internal void StartListening(Func<IReadOnlyList<string>, Task> received) {
-        ArgumentNullException.ThrowIfNull(received);
+    /// <summary>
+    /// Starts accepting forwarded launches. <paramref name="accept"/> runs on a background thread and must only queue the
+    /// paths: it returns true when the running window took them, and the later launch exits only then. Returning false
+    /// (or throwing) lets the later launch open its files itself. The listener is free for the next launch as soon as
+    /// <paramref name="accept"/> returns, so a slow document open never turns a third launch into a second process.
+    /// </summary>
+    internal void StartListening(Func<IReadOnlyList<string>, bool> accept) {
+        ArgumentNullException.ThrowIfNull(accept);
         if (!IsPrimary || _listener is not null) return;
-        _listener = Task.Run(() => ListenAsync(received, _stop.Token));
+        _listener = Task.Run(() => ListenAsync(accept, _stop.Token));
     }
 
-    private async Task ListenAsync(Func<IReadOnlyList<string>, Task> received, CancellationToken cancellation) {
+    private async Task ListenAsync(Func<IReadOnlyList<string>, bool> accept, CancellationToken cancellation) {
         while (!cancellation.IsCancellationRequested) {
             NamedPipeServerStream server;
             try {
@@ -109,9 +115,11 @@ internal sealed class StudioSingleInstance : IDisposable {
                     read.CancelAfter(ReadTimeout);
                     string[]? paths = await ReadLaunchAsync(server, read.Token).ConfigureAwait(false);
                     if (paths is null) continue;
-                    server.WriteByte(Accepted);
+                    bool accepted;
+                    try { accepted = accept(paths); }
+                    catch (Exception error) when (error is not OutOfMemoryException) { accepted = false; }
+                    server.WriteByte(accepted ? Accepted : Rejected);
                     await server.FlushAsync(cancellation).ConfigureAwait(false);
-                    await received(paths).ConfigureAwait(false);
                 } catch (OperationCanceledException) when (cancellation.IsCancellationRequested) {
                     return;
                 } catch (Exception error) when (error is IOException or OperationCanceledException or JsonException or ObjectDisposedException) {

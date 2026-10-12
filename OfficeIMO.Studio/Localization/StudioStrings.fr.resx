@@ -2127,7 +2127,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="PdfPage.RenderingLimitation" xml:space="preserve"><value>Studio omet sur cette page du contenu qu&apos;il ne peut pas dessiner. Comparez-la avec une autre visionneuse avant de vous fier à son apparence.</value></data>
   <data name="PdfPage.TechnicalDetails" xml:space="preserve"><value>Détails techniques</value></data>
   <data name="PdfPage.RenderingSimplified" xml:space="preserve"><value>Certains détails de cette page sont dessinés de manière simplifiée. La différence est généralement peu visible.</value></data>
-  <data name="PdfPage.EmbeddedFontReplaced" xml:space="preserve"><value>Cette page incorpore une police que Studio ne peut pas dessiner ; une police installée similaire est affichée à la place. La forme des lettres et l&apos;espacement peuvent différer de l&apos;original.</value></data>
   <data name="Provenance.InputHash" xml:space="preserve"><value>SHA-256 de l&apos;entrée</value></data>
   <data name="Provenance.CopyLabel" xml:space="preserve"><value>Copie</value></data>
   <data name="Provenance.OutputHash" xml:space="preserve"><value>SHA-256 de la sortie</value></data>
@@ -2162,4 +2161,5 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Provenance.SourceCompositeCapture" xml:space="preserve"><value>Composition de médias capturés déclarée</value></data>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Type de source enregistré : {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Type de source non enregistré</value></data>
+  <data name="PdfPage.FontReplaced" xml:space="preserve"><value>Une police utilisée par cette page est absente du PDF ou ne peut pas être dessinée ; une police installée similaire est affichée à la place. La forme des lettres et l&apos;espacement peuvent différer de l&apos;original.</value></data>
 </root>
