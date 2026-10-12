@@ -49,8 +49,10 @@ internal sealed partial class ArchiveFixtures : IDisposable {
         object?[][]? directoryRows = null, string firstDirectory = "LOCALE", string secondDirectory = "LOCALE",
         bool twoCabinets = false, bool backwardMedia = false, bool lowercaseCabinetKey = false,
         int cabinetCount = 0, bool emptyPayloads = false, bool emptySecondPayload = false, int emptySecondCompression = 0,
-        byte[]? unmappedCabinet = null, string? extraColumnTable = null, char extraColumnKind = 's') {
-        const string key = "PayloadKey";
+        byte[]? unmappedCabinet = null, string? extraColumnTable = null, char extraColumnKind = 's',
+        string fileKey = "PayloadKey",
+        Action<Dictionary<string, (string Name, char Kind)[]>, Dictionary<string, object?[][]>>? editDatabase = null) {
+        string key = fileKey;
         byte[] payload = Encoding.UTF8.GetBytes("hello");
         var schemas = MsiSchemas(wideMedia);
         var rows = new Dictionary<string, object?[][]> {
@@ -97,6 +99,7 @@ internal sealed partial class ArchiveFixtures : IDisposable {
             object? extra = extraColumnKind == 's' ? "extra value" : extraColumnKind == 'b' ? null : 123;
             rows[extraColumnTable] = rows[extraColumnTable].Select(row => row.Concat(new[] { extra }).ToArray()).ToArray();
         }
+        editDatabase?.Invoke(schemas, rows);
         return WriteMsi(schemas, rows, streams, longStrings);
     }
     internal static byte[] EmptyStoredCab(string name, int compression = 0) {

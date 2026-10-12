@@ -20,7 +20,7 @@ internal sealed partial class MsiPackageReader {
             if (!schemas.TryGetValue(table, out List<MsiColumn>? columns)) schemas.Add(table, columns = new List<MsiColumn>());
             if (columns.Any(column => column.Position == position || string.Equals(column.Name, name, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidDataException("MSI table has duplicate column definitions.");
-            char kind = (type & 0x800) != 0 ? 's' : (type & 0xff) == 4 ? 'I' : (type & 0xff) <= 2 ? 'i' : '?';
+            char kind = (type & 0x800) != 0 ? 's' : (type & 0xff) == 4 ? 'I' : (type & 0xff) == 2 ? 'i' : '?';
             if ((type & ~0x1000) == 0x900) kind = 'b';
             columns.Add(new MsiColumn(name, kind, position));
         }
@@ -36,9 +36,14 @@ internal sealed partial class MsiPackageReader {
             int index = Array.FindIndex(schema, field => string.Equals(field.Name, requiredColumns[column], StringComparison.Ordinal));
             if (index < 0 || schema[index].Kind == '?' || schema[index].Kind == 'b')
                 throw new InvalidDataException("Required MSI table column is absent or unsupported: " + name + "." + requiredColumns[column]);
-            bool numeric = requiredColumns[column] == "Attributes" || requiredColumns[column] == "FileSize"
-                || requiredColumns[column] == "Sequence" || requiredColumns[column] == "DiskId" || requiredColumns[column] == "LastSequence";
-            if (numeric == (schema[index].Kind == 's')) throw new InvalidDataException("MSI column has an incompatible type: " + name + "." + requiredColumns[column]);
+            char expected = requiredColumns[column] == "FileSize" ? 'I'
+                : requiredColumns[column] == "Attributes" || requiredColumns[column] == "DiskId"
+                    || requiredColumns[column] == "Sequence" || requiredColumns[column] == "LastSequence" ? 'i' : 's';
+            // Large packages may widen both sequence fields from i2 to i4.
+            bool wideSequence = (name == "File" && requiredColumns[column] == "Sequence"
+                || name == "Media" && requiredColumns[column] == "LastSequence") && schema[index].Kind == 'I';
+            if (schema[index].Kind != expected && !wideSequence)
+                throw new InvalidDataException("MSI column has an incompatible type: " + name + "." + requiredColumns[column]);
             projection[column] = index;
         }
         return ReadRows(name, schema).Select(row => projection.Select(index => row[index]).ToArray()).ToArray();
@@ -68,11 +73,20 @@ internal sealed partial class MsiPackageReader {
         return rows;
     }
     private static string RequiredString(object? value, string field) => value is string text && text.Length != 0 ? text : throw new InvalidDataException("MSI requires a nonempty string in " + field + ".");
+    /// <summary>Validates Identifier-typed standard fields independently of target filesystem paths.</summary>
+    private static string RequiredIdentifier(object? value, string field) {
+        string text = RequiredString(value, field);
+        bool Letter(char character) => character >= 'A' && character <= 'Z' || character >= 'a' && character <= 'z';
+        if (text.Length > 72 || !(Letter(text[0]) || text[0] == '_') || text.Any(character =>
+            !Letter(character) && !(character >= '0' && character <= '9') && character != '_' && character != '.'))
+            throw new InvalidDataException("MSI contains an invalid identifier in " + field + ".");
+        return text;
+    }
     private static int RequiredInteger(object? value, string field) => value is int number ? number : throw new InvalidDataException("MSI requires an integer in " + field + ".");
     private static Dictionary<string, object?[]> Index(object?[][] rows, string table, StringComparer? comparer = null) {
         var result = new Dictionary<string, object?[]>(comparer ?? StringComparer.Ordinal);
         foreach (object?[] row in rows) {
-            string key = RequiredString(row[0], table);
+            string key = RequiredIdentifier(row[0], table);
             if (result.ContainsKey(key)) throw new InvalidDataException("MSI table has duplicate identifiers: " + table);
             result.Add(key, row);
         }

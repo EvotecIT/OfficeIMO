@@ -12,6 +12,13 @@ internal sealed partial class MsiPackageReader {
         object?[][] fileRows = Table("File", "File", "Component_", "FileName", "FileSize", "Version", "Language", "Attributes", "Sequence");
         _ = Index(fileRows, "File", StringComparer.OrdinalIgnoreCase);
         var mediaRows = Table("Media", "DiskId", "LastSequence", "DiskPrompt", "Cabinet", "VolumeLabel", "Source");
+        foreach (object?[] row in directories.Values)
+            if (row[1] != null) RequiredIdentifier(row[1], "Directory.Directory_Parent");
+        foreach (object?[] row in components.Values) {
+            RequiredIdentifier(row[2], "Component.Directory_");
+            if (row[5] != null) RequiredIdentifier(row[5], "Component.KeyPath");
+        }
+        foreach (object?[] row in fileRows) RequiredIdentifier(row[1], "File.Component_");
         if (fileRows.Length > _limits.Entries) throw new InvalidDataException("MSI exceeds the configured file count.");
         bool compressedByDefault = ReadDefaultCompression();
         foreach (object?[] row in fileRows) {
@@ -54,10 +61,10 @@ internal sealed partial class MsiPackageReader {
         var result = new List<MsiPayloadFile>();
         foreach (object?[] row in fileRows) {
             _token.ThrowIfCancellationRequested();
-            string id = RequiredString(row[0], "File.File");
-            string component = RequiredString(row[1], "File.Component_");
+            string id = RequiredIdentifier(row[0], "File.File");
+            string component = RequiredIdentifier(row[1], "File.Component_");
             if (!components.TryGetValue(component, out object?[]? owner)) throw new InvalidDataException("MSI file references an absent component.");
-            MsiResolvedDirectory resolved = ResolveDirectory(RequiredString(owner[2], "Component.Directory_"), directories, directoryCache);
+            MsiResolvedDirectory resolved = ResolveDirectory(RequiredIdentifier(owner[2], "Component.Directory_"), directories, directoryCache);
             string directory = resolved.Path;
             string filename = LongName(RequiredString(row[2], "File.FileName"));
             ArchivePaths.ValidateSegment(filename);

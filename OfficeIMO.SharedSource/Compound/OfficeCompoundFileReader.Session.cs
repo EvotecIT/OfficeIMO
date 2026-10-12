@@ -29,7 +29,8 @@ namespace OfficeIMO.Core.Internal {
 
             /// <summary>The source remains caller-owned on constructor failure. Ownership on success
             /// follows leaveOpen; disposing this session invalidates every outstanding view.</summary>
-            internal ReadSession(Stream source, OfficeCompoundReadOptions options, bool leaveOpen, CancellationToken token) {
+            internal ReadSession(Stream source, OfficeCompoundReadOptions options, bool leaveOpen, CancellationToken token,
+                bool requireCanonicalHeader = false) {
                 if (source == null) throw new ArgumentNullException(nameof(source));
                 if (options == null) throw new ArgumentNullException(nameof(options));
                 if (!source.CanRead || !source.CanSeek) throw new ArgumentException("Compound sessions require a readable seekable source.", nameof(source));
@@ -55,6 +56,8 @@ namespace OfficeIMO.Core.Internal {
                     uint difatStart = ReadUInt32(header, 68);
                     int difatCount = checked((int)ReadUInt32(header, 72));
                     _miniCutoff = ReadUInt32(header, 56);
+                    if (requireCanonicalHeader && _miniCutoff != 4096)
+                        throw new InvalidDataException("The compound mini-stream cutoff must be 4096 bytes.");
                     ValidateAllocationTableCounts(fatCount, difatCount, miniFatCount, _physicalSectorCount, _sectorSize, options.MaxTotalStreamBytes);
                     _fatSectorIds = ReadFatSectorIds(source, _basePosition, header, _sectorSize, _physicalSectorCount,
                         difatStart, difatCount, fatCount, token);

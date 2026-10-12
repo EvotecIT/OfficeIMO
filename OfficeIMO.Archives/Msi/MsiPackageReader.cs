@@ -24,7 +24,8 @@ internal sealed partial class MsiPackageReader : IDisposable {
         _limits = limits; _token = token;
         var compoundOptions = new OfficeCompoundReadOptions(maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input);
         source.Position = 0;
-        _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token);
+        _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token,
+            requireCanonicalHeader: true);
         _streams = new Dictionary<string, string>(StringComparer.Ordinal);
         try {
             if (!_compound.HasCanonicalRootDirectory || _compound.HasInvalidDirectoryTree)

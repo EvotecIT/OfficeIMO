@@ -4,6 +4,40 @@ using OfficeIMO.OneNote.Markdown;
 namespace OfficeIMO.OneNote.Tests;
 
 public sealed class CabinetReaderTests {
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public void LzxFramesRejectBytesAfterTheirCompleteCompressedStream(bool literal, int extraBytes) {
+        const int length = 4;
+        byte[] chunk;
+        if (literal) {
+            var bits = new List<int>();
+            AppendBits(bits, 0, 1); AppendBits(bits, 1, 3);
+            AppendBits(bits, 0, 16); AppendBits(bits, length, 8);
+            AppendLiteralPathLengths(bits, 256, true);
+            AppendLiteralPathLengths(bits, 256, false);
+            AppendLiteralPathLengths(bits, 249, false);
+            AppendBits(bits, 0, length);
+            chunk = PackWords(bits);
+        } else chunk = BuildUncompressedLzxChunk(new byte[] { 1, 2, 3, 4 });
+        Assert.Equal(length, DecompressLzxCabinet(chunk, length, 16).Length);
+        byte[] malformed = chunk.Concat(Enumerable.Repeat((byte)0x55, extraBytes)).ToArray();
+        var exception = Assert.Throws<OneNoteFormatException>(() => DecompressLzxCabinet(malformed, length, 16));
+        Assert.Equal("ONENOTE_CAB_LZX_CORRUPT", exception.Code);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LzxOddUncompressedBlocksRequireAZeroPaddingByte(bool missing) {
+        byte[] chunk = BuildUncompressedLzxChunk(new byte[] { 1, 2, 3 });
+        if (missing) Array.Resize(ref chunk, chunk.Length - 1); else chunk[chunk.Length - 1] = 1;
+        var exception = Assert.Throws<OneNoteFormatException>(() => DecompressLzxCabinet(chunk, 3, 16));
+        Assert.Equal(missing ? "ONENOTE_CAB_LZX_TRUNCATED" : "ONENOTE_CAB_LZX_CORRUPT", exception.Code);
+    }
+
     [Fact]
     public void ReadsBoundedUncompressedCabinetEntry() {
         byte[] payload = Encoding.UTF8.GetBytes("offline OneNote package entry");
