@@ -156,199 +156,32 @@ The [image resize reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/nativ
 
 ## Bounded NativeAOT qualification
 
-The [macOS conditional-aggregate receipt](Compatibility/iwork-conditional-aggregates-native-aot-macos-arm64-2026-10-11.json) records 49 passing native smoke profiles on each of .NET 8 and .NET 10, with all 71 copied fixtures verified. It adds 20 Numbers conditional formulas, original and edited native Excel references, 16 empty-average results and 397 typed-error results, retaining the earlier Pages and Keynote profiles. All 3,043 iWork tests, 5,878 Excel tests and 140 dedicated workflow tests pass per runtime; five Excel cases are skipped. Excel, IWork and Excel.IWork .NET Standard 2.0 builds are clean. The [marker-size reference](Compatibility/iwork-pages-marker-size-roundtrip-native-aot-macos-arm64-2026-10-11.json) separately records two complete Pages DOCX conversion cycles retaining all 13 markers at 11 points and all 55 native word bounds. Broader typography, preservation-cache regeneration, other architectures, composed PDF NativeAOT and sandbox/device host acceptance retain separate gates.
+Native execution qualifies the recorded workflows and targets. It does not qualify every public API, all iWork documents, exact Apple appearance, sandbox permissions, physical devices or signed application distribution.
 
-The [shared Excel storage receipt](Compatibility/iwork-excel-future-storage-native-aot-macos-arm64-2026-10-11.json) extends the native runs to 50 profiles per runtime with 74 exact fixture copies. Thirty-two normal/array formula cells match native Excel before and after operand edits; bare-function controls expose native `#NAME?` failures. The shared storage owner qualifies `IFNA`, `MINIFS` and `MAXIFS` alongside `TEXTJOIN`, preserves literals and qualified names, and validates the complete array-prefix spelling before cell mutation. Thirteen focused tests cover saved calculation, the actual buffered package writer and atomic length rejection. All 3,043 iWork tests, 5,891 Excel tests and 140 dedicated workflow tests pass on each runtime, with five Excel skips; the three .NET Standard 2.0 owner builds are clean. Wider function and runtime qualification remains separate.
+The [current macOS conversion receipt](Compatibility/iwork-excel-future-storage-native-aot-macos-arm64-2026-10-11.json) records 50 passing smoke records on each of .NET 8.0.31 and .NET 10.0.12, with all 74 fixture copies verified. It includes the preceding conditional-aggregate, creation and preservation profiles. At that source revision, all 3,043 iWork tests, 5,891 Excel tests and 140 dedicated workflow tests pass per runtime, with five Excel skips; Excel, IWork and Excel.IWork .NET Standard 2.0 builds are clean.
 
-The [macOS blank-reference receipt](Compatibility/iwork-numbers-blank-reference-native-aot-macos-arm64-2026-10-11.json) records 44 passing native smoke profiles on each of .NET 8 and .NET 10. It qualifies ten native Numbers integer calls with blank, numeric and previously qualified text operands, fourteen calls after a native numeric edit, and saved/reopened XLSX recalculation. Four all-blank Numbers calls retain their source errors and remain partial; fresh Excel fill/save/clear evidence confirms typed `#VALUE!` for all-blank direct arguments in the shared evaluator. Incomplete tile storage cannot establish blanks. All 3,000 iWork tests, 5,871 Excel tests and 125 dedicated iWork workflow tests pass per runtime; Excel has five opt-in skips. Both .NET Standard 2.0 owners build cleanly. Wider coercion, producer versions, appearance, other architectures and PDF NativeAOT remain separate qualification gates.
+The [composed PDF receipt](Compatibility/iwork-composed-pdf-native-aot-macos-arm64-2026-10-11.json) separately qualifies `OfficeIMO.Workflows.IWork.AotSmoke` on macOS arm64 under .NET 10.0.12. The actual native executable passes four complete conversions, seven rejections and two cancellations, followed by its native-only completion record. All five source fixtures and six caller-supplied fonts match their pinned bytes. Independent PDF decoding and inspected rasters cover all seven successful pages. The dedicated workflow suite passes all 140 tests on both .NET 8 and .NET 10. This host uses the existing iWork adapters, destination PDF engines and shared workflow runner; it adds no production conversion provider. Both .NET 8 native publish attempts fail in Apple's linker before an executable is produced, so .NET 8 PDF NativeAOT execution remains unqualified on this host.
 
-The [macOS nine-level list receipt](Compatibility/iwork-pages-nine-level-native-aot-macos-arm64-2026-10-11.json) records 43 passing native smoke profiles on each of .NET 8 and .NET 10. It adds deterministic Pages decimal lists at levels 0–8, ancestor resets/restarts and resumed scopes, nine exact text-range edits, Apple-edited readback and strict saved/reopened DOCX. All 2,973 iWork tests and 125 dedicated iWork workflow tests pass per runtime, and the .NET Standard 2.0 owner build is clean. Native appearance evidence covers Pages 15.4 and the recorded one-page Arial 12 body-list profile; tiered numbering, broader text edits, other architectures and PDF NativeAOT retain separate qualification gates.
+| Profile | Native evidence and limits |
+| --- | --- |
+| Source and shared Reader | `OfficeIMO.Reader.IWork.AotSmoke` checks Pages body text, Numbers sparse typed cells and selected formulas, Keynote text/notes, root comments, path/stream parity, caller-owned streams, source reuse, JSON transport, cancellation and input limits. The [recorded Windows/Linux CI run](https://github.com/EvotecIT/OfficeIMO/actions/runs/37224856067) and macOS baseline cover .NET 8.0.31 and .NET 10.0.12 at their recorded source revisions. Corpus provenance remains in the [fixture owner](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md). |
+| Saved editable destinations | `OfficeIMO.IWork.AotSmoke` saves and reopens DOCX, XLSX and PPTX, checks selected content and formula caches, recalculates Numbers operands, and preserves caller streams and source bytes. The simple fixture baseline covers macOS arm64, Windows x64 and Linux x64 under both runtimes. Expanded profiles below are qualified on macOS arm64. Selected or inherited Numbers padding requires explicit partial XLSX acceptance and prevents complete PDF publication. |
+| Native creation | The basic three-slide Unicode Keynote model produces the same Apple-qualified 7,423 bytes on all three baseline targets: SHA-256 `8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1`. Expanded macOS profiles cover [Keynote rich runs, images and scalar tables](#native-keynote-creation), [Pages body text, tables, images, decimal lists and default headers/footers](#native-pages-creation), and [Numbers scalar tables](#native-numbers-creation). Deterministic saves, caller streams, operation bounds and saved destination readback are checked; broader writers and rendering remain outside those profiles. |
+| Numbers semantics and shared Excel storage | The [conditional-aggregate receipt](Compatibility/iwork-conditional-aggregates-native-aot-macos-arm64-2026-10-11.json) includes durations, integer direct/reference/blank/text cases, source borders and typed errors. The current conversion receipt adds 32 normal/array formula cells matching native Excel before and after operand edits, plus the final qualified-formula length boundary and actual buffered writer route. Wider criteria coercion, functions, display and producers retain their [formula and numeric-format limits](#formula-functions). |
+| Pages lists and typography | The current conversion profile retains nine non-tiered decimal levels, restarts/resumption, period and parenthesis markers, qualified mixed font families and whole-point sizes, and fixed-length decimal-item edits. The [marker-size reference](Compatibility/iwork-pages-marker-size-roundtrip-native-aot-macos-arm64-2026-10-11.json) records two complete DOCX cycles retaining all 13 markers at 11 points and all 55 native word bounds. These remain bounded body profiles; tiered/bullet styles, additional containers, broader typography and pagination are separate. |
+| Loaded-source preservation | The current conversion profile covers unchanged modern packages, Keynote image moves/resizes, existing Numbers numeric/boolean cells, fixed-length uniform Pages body/decimal-item text, and plain Keynote text-box paragraphs. It checks native-edited readback, saved editable destinations, cancellation, atomic rejection and original-byte restoration. [Visual-cache acceptance and broader editing limits](#native-source-preservation) remain explicit. |
+| Complete composed PDF | The dedicated .NET 10 macOS arm64 PDF host converts an Apple-saved Pages body to two pages, its mixed-size list profile to one, and an Apple-saved PNG/alpha/JPEG Keynote deck to three. A separately labelled [synthetic unpadded Numbers control](../OfficeIMO.TestAssets/Documents/IWorkCorpus/synthetic/README.md) produces one page; it establishes no Apple acceptance. Native Numbers padding, missing glyph coverage, partial/preview policies, content selection and output-budget failures reject publication. Pre-start and publication-time cancellation preserve source and destination bytes and remove staging. Unassessed record fidelity and font/rendering approximations remain in stage evidence. |
+| Recorded Tool/MCP artifact | The [macOS Tool receipt](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json) records an unsigned .NET 10 source executable, three simple CLI PDF conversions and real stdio MCP requests for all six editable/PDF file routes. It checks typed acceptance, source hashes, stage evidence and rejection preserving existing output. Installed packages, signed sandbox hosts, devices and other architectures require their own artifact evidence. |
 
-The [macOS decimal-item edit receipt](Compatibility/iwork-pages-decimal-editing-native-aot-macos-arm64-2026-10-11.json) records 42 passing native smoke profiles on each of .NET 8 and .NET 10. It adds exact-range Pages decimal-item text edits at levels 0, 1 and 2, native-edited readback, strict saved/reopened DOCX, atomic rejection and original-byte restoration. All 2,948 iWork tests and 121 dedicated iWork workflow tests pass per runtime, and the .NET Standard 2.0 owner build is clean. Native appearance evidence covers Pages 15.4 and the recorded Arial 12 body-list profile; broader list/text edits, other architectures and PDF NativeAOT retain separate qualification gates.
-
-The [macOS third-level list receipt](Compatibility/iwork-pages-third-level-native-aot-macos-arm64-2026-10-11.json) records 41 passing native smoke profiles on each of .NET 8 and .NET 10. It adds deterministic three-level Pages creation, Apple-edited readback, ancestor resets, scope resumption and strict saved/reopened DOCX. All 2,939 iWork tests and 119 dedicated iWork workflow tests pass per runtime, and the .NET Standard 2.0 owner build is clean. Native appearance evidence covers Pages 15.4, Arial 12 and the recorded one-page body-list profile; higher/tiered numbering, wider typography, other architectures and PDF NativeAOT retain separate qualification gates.
-
-The [macOS integer-text receipt](Compatibility/iwork-integer-text-reference-native-aot-macos-arm64-2026-10-11.json) records 40 passing native smoke profiles on each of .NET 8 and .NET 10. It adds four direct scalar GCD/LCM calls, retained text types and caches, saved/reopened XLSX recalculation after a text edit, and rejection of incomplete recovered rich text. The [calculation receipt](Compatibility/iwork-numbers-calculation-native-aot-macos-arm64-2026-10-11.json) retains the generated table-registration and numeric cross-table evidence. All 2,925 iWork tests and 116 dedicated iWork workflow tests pass per runtime; the general workflow suite passes 1,794 tests with three opt-in invoice standards cases skipped. The .NET Standard 2.0 owner build is clean. This profile qualifies macOS arm64; broader coercion, other application versions and complete PDF reconstruction for padded tables remain open.
-
-The [macOS Keynote paragraph-edit receipt](Compatibility/iwork-keynote-paragraph-editing-native-aot-macos-arm64-2026-10-11.json) records 36 passing native smoke profiles per .NET 8/10 runtime. It adds three fixed-length text replacements, native-edited readback, strict saved PPTX, cancellation, length rejection and original-byte restoration. All 2,892 iWork tests and 114 workflow tests pass per runtime, with 18 final composed-PDF cases per runtime. This extension qualifies macOS arm64 and the bounded plain text-box family; PDF NativeAOT, native typography, broader text/structural editing and visual-cache regeneration remain separate.
-
-The [macOS integer-reference receipt](Compatibility/iwork-integer-references-native-aot-macos-arm64-2026-10-11.json) records 37 passing native smoke profiles per .NET 8/10 runtime. It adds bounded Numbers numeric references for GCD/LCM, preserved incompatible caches and saved/reopened XLSX operand recalculation. All 2,896 iWork tests and 114 workflow tests pass per runtime. The extension qualifies macOS arm64; broader coercion and complete PDF reconstruction remain separate.
-
-The [macOS Pages paragraph-edit receipt](Compatibility/iwork-pages-paragraph-editing-native-aot-macos-arm64-2026-10-11.json) records 35 passing native smoke profiles per .NET 8/10 runtime. It adds three exact paragraph replacements, native-edited readback, strict saved DOCX, cancellation, length rejection and original-byte restoration. All 2,885 iWork tests and 112 workflow tests pass per runtime; complete composed PDF retains selected content with explicit font substitution. This extension qualifies macOS arm64 and the fixed-length plain-body family; broader text/structural edits, PDF AOT and native typography remain separate.
-
-The [macOS Numbers cell-edit receipt](Compatibility/iwork-numbers-cell-editing-native-aot-macos-arm64-2026-10-11.json) records 34 passing native smoke profiles per .NET 8/10 runtime, including six exact scalar edits, native-edited readback, typed saved XLSX, cancellation, type rejection and original-byte restoration. The full iWork and workflow suites pass on both runtimes. This extension is qualified on macOS arm64; formula-bearing sources and broader semantic edits remain outside its profile.
-
-The [macOS image-resize receipt](Compatibility/iwork-keynote-image-resize-native-aot-macos-arm64-2026-10-11.json) records 33 passing native smoke profiles per .NET 8/10 runtime, including composed moves/resizes, exact PNG/alpha/JPEG resources, Apple-edited readback, strict saved PPTX, pending-frame bounds and restoration. This extension is qualified on macOS arm64 only; retained native visual caches require explicit acceptance.
-
-`OfficeIMO.Reader.IWork.AotSmoke` publishes and executes the source reader and shared
-Reader handler on macOS arm64, Linux x64 and Windows x64 with .NET 8.0.31 and
-.NET 10.0.12. The [Linux and Windows CI evidence](https://github.com/EvotecIT/OfficeIMO/actions/runs/37224856067)
-retains the native executable hashes, diagnostics and output. The host rejects
-managed execution. Five hash-pinned corpus fixtures exercise Pages body text,
-Numbers sparse typed cells and selected arithmetic/range/string formulas, and
-Keynote slide titles, body text and presenter notes. The native comment fixture
-checks three Reader root comments against its independent manifest, including
-exact content, author, creation time, native identity and source cell anchors.
-It also checks source and
-Reader path/stream parity, caller-owned streams, replacement-token source views,
-independent cancellation and source reuse, source preservation and
-unassessed-fidelity diagnostics, Reader JSON transport round-trip, pre-cancellation
-and configured input byte limits. Fixture provenance and licenses remain in the
-[corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
-
-`OfficeIMO.IWork.AotSmoke` separately exercises editable conversion of four
-hash-pinned fixtures on these three targets under the same two runtimes. It saves and
-reopens DOCX, XLSX and PPTX, checks Pages body text, Numbers typed cells and a
-formula cache, Keynote titles/body text, presenter notes and qualified backgrounds,
-and recalculates the saved Numbers formula after an operand edit. Caller-owned
-streams, unchanged source bytes and retained source records are checked. The
-recorded Pages, Numbers and Keynote executions use the policies at their pinned source revisions.
-The current Numbers policy requires explicit partial acceptance for selected or inherited
-cell padding that XLSX cannot represent; complete PDF workflows reject that omission. Passing the native gate does
-not qualify complete appearance or broader source compatibility.
-
-The same `OfficeIMO.IWork.AotSmoke` host qualifies native Keynote creation on
-macOS arm64, Linux x64 and Windows x64 under .NET 8.0.31 and .NET 10.0.12. All six
-native executions of the three-slide Unicode model emit
-7,423 bytes with SHA-256 `8e25c78b8fff278dff256515d6d1a7b171f7c313f82ebcd841457c527f87d6a1`,
-identical to the independently decoded, Apple-opened fixture. Byte, caller-stream
-and atomic path saves agree; repeated encoding is deterministic. Native readback
-checks complete content, canvas, backgrounds, Unicode paragraph boundaries and
-text fill. Existing-path protection and pre-cancelled replacement preserve bytes;
-active stream-copy cancellation stops after the first 64 KiB and leaves the
-caller stream open. This does not qualify native encoding or path-staging
-cancellation latency, every writer limit, additional architectures or font rendering.
-
-The [macOS native creation evidence](Compatibility/iwork-keynote-creation-native-aot-macos-arm64-2026-10-09.json)
-extends this host's qualification to rich character runs, PNG/JPEG images and scalar tables under
-.NET 8.0.31 and .NET 10.0.12. Actual `osx-arm64` native executables create the
-Apple-qualified 8,281-byte rich-run, 13,399-byte image and 25,227-byte table packages with identical
-SHA-256 values on both runtimes. The image model uses identical encoded inputs;
-valid encodings of the same pixels can differ across runtime versions. Readback,
-saved/reopened PPTX, decoration resets, image alpha, descriptions, geometry,
-stacking, Decimal128 scalar values, empty tables and configured run/image/table budgets are checked. This bounded evidence does
-not extend the rich-run/image/table claims to Windows, Linux or other architectures.
-
-The [macOS table-border NativeAOT evidence](Compatibility/iwork-table-borders-native-aot-macos-arm64-2026-10-10.json)
-adds the native Keynote 15.4 border fixture under both runtimes. Saved/reopened PPTX
-retains inherited strokes, hidden region edges and ordered shared-cell overrides.
-Merged-cell perimeter and varied-edge policy checks have separate managed
-saved-output evidence; this native executable does not qualify their rendering.
-
-The [macOS Pages NativeAOT evidence](Compatibility/iwork-pages-creation-native-aot-macos-arm64-2026-10-10.json)
-adds the 47,534-byte body document under .NET 8.0.31 and .NET 10.0.12. Both native
-executables emit the Apple-qualified bytes and check rich Unicode paragraph order,
-plain resets, page settings, caller-owned streams, strict saved/reopened DOCX and
-paragraph bounds. This extension is qualified on macOS arm64 only.
-
-The [macOS Numbers NativeAOT evidence](Compatibility/iwork-numbers-creation-native-aot-macos-arm64-2026-10-10.json)
-adds the 22,090-byte two-sheet/three-table package under .NET 8.0.31 and .NET 10.0.12.
-Both native executables emit the Apple-qualified bytes and check typed Decimal128
-numbers, booleans, Unicode, a completely empty grid, caller streams, dense-cell
-bounds and strict saved/reopened XLSX. This extension is qualified on macOS arm64 only.
-
-The [macOS native-preservation NativeAOT evidence](Compatibility/iwork-native-preservation-native-aot-macos-arm64-2026-10-10.json)
-adds unchanged Pages/Numbers/Keynote file-entry saves and the exact 96,452-byte
-Keynote image translation under .NET 8.0.31 and .NET 10.0.12. Both native executables
-check content identity, resource preservation, explicit cache acceptance, caller
-streams, cancellation, strict saved/reopened PPTX and saves opened under tighter
-captured entry, decompression and record limits. Verification accounts for the
-completed ZIP carrier without raising captured semantic/decompression bounds.
-This extension is qualified on macOS arm64 only; native application and rendering
-evidence remain separate.
-
-The [macOS list-counter NativeAOT evidence](Compatibility/iwork-list-counters-native-aot-macos-arm64-2026-10-10.json)
-records 19 passing smoke checks under each runtime. It adds the native Pages
-continuation reference, strict saved/reopened DOCX counter evaluation and marker
-declarations to the preceding creation and preservation profiles. Native Pages
-and Keynote counter acceptance, composed PDF rendering and exact appearance
-retain their separate evidence boundaries.
-
-The [macOS second-duration NativeAOT evidence](Compatibility/iwork-duration-seconds-native-aot-macos-arm64-2026-10-10.json)
-records 20 passing smoke checks under each runtime. It adds native Numbers fixed
-hour/second, minute/second and second-only formats, 42 typed caches and 21
-formulas, saved/reopened recalculation and positive/negative integral-second
-display boundaries. Fractional display, composed PDF and additional native
-application versions retain their separate qualification limits.
-
-The [macOS millisecond-duration NativeAOT evidence](Compatibility/iwork-duration-milliseconds-native-aot-macos-arm64-2026-10-10.json)
-records 21 passing smoke checks under each runtime. It adds native Numbers fixed
-hour/millisecond, minute/millisecond and second/millisecond formats, 42 typed
-caches, 21 formulas and saved/reopened recalculation. Native Numbers displays
-separate millisecond components; destination text follows the native XLSX code
-with three fractional-second digits. That display difference remains reported.
-
-The [combined integer and native-table NativeAOT receipt](Compatibility/iwork-integer-and-native-tables-aot-macos-arm64-2026-10-10.json)
-records 24 passing smoke checks under each runtime. It adds bounded Numbers
-`GCD`/`LCM`, native Numbers indexed-palette borders and blank-cell preservation,
-and the fully selected Pages border grid with effective sizing. Native Numbers
-cell-padding omission remains explicit. This receipt records the earlier Pages
-positioned-table approximation; the separate [inline-flow qualification](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-inline-table-flow-word-v16.113.3.json)
-covers complete managed DOCX/PDF output for the bounded fixed-grid profile.
-
-The [Pages table-flow NativeAOT receipt](Compatibility/iwork-pages-table-flow-native-aot-macos-arm64-2026-10-10.json)
-records 24 passing checks under each runtime with complete inline-table flow,
-fixed column widths and padding-aware physical row heights. The saved/reopened
-DOCX retains the independently decoded 4×4 source without a leading attachment
-paragraph. Consecutive-table identity has separate managed and native Word
-evidence in the linked inline-flow qualification. Composed PDF NativeAOT,
-typography equivalence and Pages' taller DOCX reimport remain separate limits.
-
-The [native Pages table receipt](Compatibility/iwork-pages-native-tables-native-aot-macos-arm64-2026-10-10.json)
-records actual .NET 8 and .NET 10 macOS arm64 execution of all 26 smoke contracts,
-including mixed/table-only Pages creation and strict DOCX readback of the
-Apple-saved numeric edit. Applicable region padding and vertical alignment reach
-empty cells without densifying the source. Numbers smoke conversions explicitly
-accept the reported XLSX padding omission. The linked managed PDF proof remains
-separate from NativeAOT, sandbox, device and appearance qualification.
-
-The [native Pages image receipt](Compatibility/iwork-pages-native-images-native-aot-macos-arm64-2026-10-10.json)
-records actual .NET 8 and .NET 10 macOS arm64 execution of all 28 smoke contracts.
-The image checks cover deterministic PNG/JPEG creation, alpha, mixed body order,
-strict point-sized DOCX readback, image bounds and Apple's saved resize with a
-fractional flow-position cache. The native application and managed PDF reference
-retain their separate appearance, font, sandbox and platform limits.
-
-The [native Pages numbering receipt](Compatibility/iwork-pages-native-numbering-native-aot-macos-arm64-2026-10-10.json)
-records actual .NET 8 and .NET 10 macOS arm64 execution of all 30 smoke contracts.
-The added checks cover deterministic two-level decimal lists, explicit restarts,
-continuation through body text/tables/images and between list scopes, Unicode
-separator rejection, atomic list bounds, and strict saved/reopened DOCX. Apple's
-inserted paragraph qualifies sparse restart metadata separately from creation.
-Native spacing, richer lists, other containers and receiving-application DOCX
-appearance retain the limits in the native fixture manifest.
-
-The [native Pages header/footer receipt](Compatibility/iwork-pages-headers-native-aot-macos-arm64-2026-10-11.json)
-records actual .NET 8 and .NET 10 macOS arm64 execution of all 38 smoke contracts.
-The added checks cover deterministic default left page text, styles and point
-distances, Apple's saved edits, strict saved/reopened DOCX, shared paragraph
-budgets, cancellation, atomic rejection of empty text and explicit clearing.
-Native appearance and the complete managed PDF route retain the separate font,
-pagination and renderer limits in the fixture manifest.
-
-The [macOS Tool NativeAOT evidence](Compatibility/iwork-tool-native-aot-macos-arm64-2026-10-09.json)
-records an unsigned `osx-arm64` source executable using .NET 10. Its CLI converts
-the three simple licensed fixtures to independently readable PDFs. Real stdio MCP
-requests exercise all six editable/PDF file routes with typed acceptance options,
-source hashes and stage evidence; partial-policy and output-limit rejection
-preserve the existing output. This qualifies the recorded executable and fixtures.
-Signed sandbox, installed-package, device and other-architecture acceptance remain
-separate gates.
-
-Run the coordinated native gate from PowerShell with the pinned SDK and platform
-compiler installed:
+Run the coordinated native gate with the pinned SDK and platform compiler installed:
 
 ```powershell
-./Build/Test-AotScenarios.ps1 -Scenario reader-iwork-net8,reader-iwork,iwork-conversion-net8,iwork-conversion -RuntimeIdentifier osx-arm64 -JsonOutputPath <evidence.json>
+./Build/Test-AotScenarios.ps1 -Scenario reader-iwork-net8,reader-iwork,iwork-conversion-net8,iwork-conversion,iwork-pdf-net8,iwork-pdf -RuntimeIdentifier osx-arm64 -JsonOutputPath <evidence.json>
 ```
 
-The gate retains executable SHA-256, exit codes and output before deleting isolated
-publish and SDK directories. The scenario is also included in the full gate;
-`-Scenario` selects known scenario IDs and rejects unknown IDs before publishing.
-This evidence covers the invoked source/Reader, destination conversion and native creation paths,
-not every public API or all-file compatibility. It does not qualify rendered
-appearance, portable fonts, additional architectures, iOS/iPad, sandbox permissions
-or signed application distribution.
+The `.NET 8` PDF scenario is configured but has no successful macOS native execution receipt; the recorded Apple linker failure keeps that qualification open.
+
+The gate retains executable hashes, exit codes and output before deleting isolated publish and SDK directories. All six scenarios also participate in the full gate. `-Scenario` rejects unknown IDs before publishing. The PDF profile uses six hash-pinned, caller-supplied portable font files; it does not establish other fonts, native typography or equivalent appearance on additional platforms.
 
 ## Package and IWA boundary
 

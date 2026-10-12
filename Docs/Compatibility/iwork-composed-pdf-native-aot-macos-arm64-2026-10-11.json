@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-10-12T09:47:58.381545+00:00",
+  "host": {
+    "os": "macOS27.0.1 (26A434)",
+    "architecture": "arm64",
+    "model": "Mac16,10 AppleM4",
+    "dotnetSdk": "10.0.112",
+    "appleLinker": "ld 27037.1"
+  },
+  "project": "OfficeIMO.Workflows.IWork.AotSmoke",
+  "sourceRevision": "f71cfe356bde28f7947b155d902dd3a80469966d",
+  "sourceOnly": true,
+  "qualifiedTargets": [
+    {
+      "targetFramework": "net10.0",
+      "runtimeIdentifier": "osx-arm64"
+    }
+  ],
+  "executions": [
+    {
+      "sourceHead": "f71cfe356bde28f7947b155d902dd3a80469966d",
+      "targetFramework": "net10.0",
+      "runtimeIdentifier": "osx-arm64",
+      "startUtc": "2026-10-11T14:38:31.016877+00:00",
+      "endUtc": "2026-10-11T14:38:39.919498+00:00",
+      "argv": [
+        "<qualification-output>/publish-net10.0/OfficeIMO.Workflows.IWork.AotSmoke",
+        "<qualification-output>/run-net10.0"
+      ],
+      "exitCode": 0,
+      "executable": {
+        "bytes": 86223120,
+        "sha256": "aa22544bf5b205c4d80ed12a472057c007ed1ac197dbb0ab634dde77d7e319bd",
+        "file": "<qualification-output>/publish-net10.0/OfficeIMO.Workflows.IWork.AotSmoke: Mach-O 64-bit executable arm64"
+      },
+      "nativeGuard": {
+        "source": "OfficeIMO.Workflows.IWork.AotSmoke/Program.cs",
+        "sha256": "a346e3d4b0e9c8afc91fa657f8a9208420ae4d7375ddf63d1d700fac0da73722",
+        "dynamicCodeSupportedAndCompiledMustBothBeFalse": true
+      },
+      "fixtureAndFontCopies": [
+        {
+          "path": "Corpus/pages-created-edited-v15.4.pages",
+          "source": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-edited-v15.4.pages",
+          "bytes": 298435,
+          "sha256": "dc07fa4028ac9f261fdb7cb23f8b409cd80e092cdf8a8ed938adc420b37ad6b4"
+        },
+        {
+          "path": "Corpus/pages-mixed-size-edited-v15.4.pages",
+          "source": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-size-edited-v15.4.pages",
+          "bytes": 92443,
+          "sha256": "6511df28a9eb82c1a3f437165395f4541d07afecdcf96e1b8256f3793e15f9d8"
+        },
+        {
+          "path": "Corpus/keynote-preserved-paragraphs-edited-v15.4.key",
+          "source": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-paragraphs-edited-v15.4.key",
+          "bytes": 98720,
+          "sha256": "9ff8299c1acfa80055368f0b541544273087b747e51d1f6ae43e1ab4d8771212"
+        },
+        {
+          "path": "Corpus/numbers-created-edited-v14.5.numbers",
+          "source": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-edited-v14.5.numbers",
+          "bytes": 86050,
+          "sha256": "c907c567584786ce9c5183a376f61d813f3bf56757de531cbdbfb1fefb4fcfd6"
+        },
+        {
+          "path": "Corpus/numbers-unpadded-scalar.numbers",
+          "source": "OfficeIMO.TestAssets/Documents/IWorkCorpus/synthetic/numbers-unpadded-scalar.numbers",
+          "bytes": 268,
+          "sha256": "95878a6826028fd6f49badff7885436fe78734a768212694539b9655f679d9f3"
+        },
+        {
+          "path": "Fonts/Carlito-Regular.ttf",
+          "source": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Regular.ttf",
+          "bytes": 628032,
+          "sha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595"
+        },
+        {
+          "path": "Fonts/Carlito-Bold.ttf",
+          "source": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Bold.ttf",
+          "bytes": 682468,
+          "sha256": "bb5d20f79b82599ec72983597437373a80f2d2085fa91fc144fd74e876a594db"
+        },
+        {
+          "path": "Fonts/Carlito-Italic.ttf",
+          "source": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-Italic.ttf",
+          "bytes": 615236,
+          "sha256": "0b019225e58d702bfedcbd35c21696769f8ee115cb6343f84c2f240312450d1c"
+        },
+        {
+          "path": "Fonts/Carlito-BoldItalic.ttf",
+          "source": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/Carlito-BoldItalic.ttf",
+          "bytes": 808508,
+          "sha256": "b32928186c119599e03ca6a1ffc680fdcb7fac95772f4b95d989cf6cd3861517"
+        },
+        {
+          "path": "Fonts/NotoSansJP-OfficeIMO-Common.ttf",
+          "source": "Website/Apps/OfficeIMO.Web.Converter/Assets/Fonts/NotoSansJP-OfficeIMO-Common.ttf",
+          "bytes": 1012872,
+          "sha256": "4777e0ac6a42d1bab96f53bd9f87d5d003bf9852cea1a8358463696d9ed42337"
+        },
+        {
+          "path": "Fonts/NotoEmoji-VariableFont_wght.ttf",
+          "source": "OfficeIMO.Drawing.Tests/TestAssets/NotoEmoji-VariableFont_wght.ttf",
+          "bytes": 1989588,
+          "sha256": "dbd8394b0ee513b356b5a101fb0f64628ce9508294523e051a0efb1679bb34e3"
+        }
+      ],
+      "runtimePacks": [
+        {
+          "name": "Microsoft.NETCore.App.Runtime.osx-arm64",
+          "version": "[10.0.12, 10.0.12]"
+        },
+        {
+          "name": "runtime.osx-arm64.Microsoft.DotNet.ILCompiler",
+          "version": "[10.0.12, 10.0.12]"
+        }
+      ],
+      "compileGraphOwnerAssemblies": [
+        {
+          "file": "OfficeIMO.CSV.dll",
+          "bytes": 358912,
+          "sha256": "ef002e57083bb4beac118356743d39e54230ebbed22d79f54dd9cf5212d63b5f"
+        },
+        {
+          "file": "OfficeIMO.Core.dll",
+          "bytes": 4651520,
+          "sha256": "4c8df29eb5d5d92fcada90820e43c691bbbc782a911fa2973516d5dffa2788ac"
+        },
+        {
+          "file": "OfficeIMO.Email.Html.dll",
+          "bytes": 79360,
+          "sha256": "4e0ab47a7b486ccc00fd3a97212a15db443f6d614304889a77437c5c80fcaee8"
+        },
+        {
+          "file": "OfficeIMO.Email.dll",
+          "bytes": 1779712,
+          "sha256": "2b6a1297835a7ef0aec0ab368472fdbf082ffd3f4cdf8cb2cf2274d36e28cef2"
+        },
+        {
+          "file": "OfficeIMO.Epub.Image.dll",
+          "bytes": 36864,
+          "sha256": "cd62b0e457b2f020291b96cc3600fba46c70ff333adba7fa39bfafaba8aae77a"
+        },
+        {
+          "file": "OfficeIMO.Epub.dll",
+          "bytes": 447488,
+          "sha256": "ed325ea062a7d29ece6aecc78205d419e09058efe0fd6cbaeff44628be17baaf"
+        },
+        {
+          "file": "OfficeIMO.Excel.IWork.dll",
+          "bytes": 61440,
+          "sha256": "c3e75344e0dca1247392409f3d8b9ec2f7f12c5ac283fb9d9bc3779e763afc4c"
+        },
+        {
+          "file": "OfficeIMO.Excel.Pdf.dll",
+          "bytes": 178688,
+          "sha256": "374f3e3ef2e6c7fd071640e1b791c153bc06640e08517656cbe0ba0faaa26638"
+        },
+        {
+          "file": "OfficeIMO.Excel.dll",
+          "bytes": 5849600,
+          "sha256": "a8ac5b8b49f6f51624bdc4afb8819148e4e6687c83e8eec48139b90a0bd9c00b"
+        },
+        {
+          "file": "OfficeIMO.Html.AngleSharp.dll",
+          "bytes": 47104,
+          "sha256": "ff6cbcf17f0117f2c8757cdd54d36bf4e0f10ce1f6860f532d1820ffc05ecd2e"
+        },
+        {
+          "file": "OfficeIMO.Html.Core.dll",
+          "bytes": 147968,
+          "sha256": "44fed91a1f5ce7b436dc219f6e7c4b59fe698aeef84fdafcb0ce3f972de30367"
+        },
+        {
+          "file": "OfficeIMO.Html.Pdf.dll",
+          "bytes": 289792,
+          "sha256": "a191788222576bc692ca10ad036f13cbf87b16b48a10067452da31d3a990b8e2"
+        },
+        {
+          "file": "OfficeIMO.Html.Rtf.dll",
+          "bytes": 256000,
+          "sha256": "a241e4efd9a007c5f17d69fb129532c35ae2640ba6a34a570a89aff03a850f71"
+        },
+        {
+          "file": "OfficeIMO.Html.dll",
+          "bytes": 2316800,
+          "sha256": "c04c775fc90fec7fc9b2b558af2134e93ddfa51c9357f93e8f0772e9499351fa"
+        },
+        {
+          "file": "OfficeIMO.IWork.dll",
+          "bytes": 591872,
+          "sha256": "7731098b0256a3ce9761ac28b732fd035433f071865757928b79ee5b26c8e268"
+        },
+        {
+          "file": "OfficeIMO.Invoicing.Pdf.dll",
+          "bytes": 104448,
+          "sha256": "8edfb716e483420755ce35d7773fa42a2764bc8fc178d2ed2d384cd5788dc3e4"
+        },
+        {
+          "file": "OfficeIMO.Invoicing.Validation.dll",
+          "bytes": 177664,
+          "sha256": "7ae598aa4414a84c7dfca19713457a1ce85697a48af1e81b457f7b6bc8962b76"
+        },
+        {
+          "file": "OfficeIMO.Invoicing.dll",
+          "bytes": 268800,
+          "sha256": "bb814e20e1b8aa37b1c27cb15d0bdcdee16fd0e85ec589bdd7c6b069f64007e5"
+        },
+        {
+          "file": "OfficeIMO.Markdown.Pdf.dll",
+          "bytes": 172032,
+          "sha256": "d79877060eea18a5f2d04c7947d2bd45fab30b23d1531bda7114809012f04f35"
+        },
+        {
+          "file": "OfficeIMO.Markdown.dll",
+          "bytes": 1451008,
+          "sha256": "04e42b78826c7f37cca870a8cb4469b4fdda86b0253f8715e46da7951dde1360"
+        },
+        {
+          "file": "OfficeIMO.Ocr.dll",
+          "bytes": 59392,
+          "sha256": "190794791e8356bee8376e29d656de8efd7402eac1eca98ebf2fdfeeb5fa89ca"
+        },
+        {
+          "file": "OfficeIMO.OpenDocument.Odg.Pdf.dll",
+          "bytes": 13312,
+          "sha256": "392bde1f32e5a5b87c700a6c6595e269b2050df1cb79451b2b3c25f79b2fc431"
+        },
+        {
+          "file": "OfficeIMO.OpenDocument.dll",
+          "bytes": 848384,
+          "sha256": "334f5621b212f27834635e758a2038e2f3d1ed9e36a84b45ffad47a7ae7cdde8"
+        },
+        {
+          "file": "OfficeIMO.Pdf.Ocr.dll",
+          "bytes": 108032,
+          "sha256": "36885cd7248d154f053df4f34c55462a5488f278fdc46ffd14072c45844d6986"
+        },
+        {
+          "file": "OfficeIMO.Pdf.dll",
+          "bytes": 7905792,
+          "sha256": "3174cb6946b4307a7b3362a0bec0b306148e2708686913772a0ffafdc8c633d8"
+        },
+        {
+          "file": "OfficeIMO.PowerPoint.IWork.dll",
+          "bytes": 71168,
+          "sha256": "c0b01d092eb63db1535a3cdd35cf07308ead5161cc2e9a8e315689be7e46cf3c"
+        },
+        {
+          "file": "OfficeIMO.PowerPoint.Pdf.dll",
+          "bytes": 173056,
+          "sha256": "e4f66b10e234fe6f8dd4fb81a4fcef104b436a536cb09107e8d10d31b135d208"
+        },
+        {
+          "file": "OfficeIMO.PowerPoint.dll",
+          "bytes": 2949632,
+          "sha256": "97e9384e737b2a767caecefa19da8f35dac3ef5dd9454cd0e0c3816a64dcb404"
+        },
+        {
+          "file": "OfficeIMO.Project.dll",
+          "bytes": 1008640,
+          "sha256": "73e4e787e7896b33c3f86bfba2abf18c997f2e91eb7756d7de70606afe1444fe"
+        },
+        {
+          "file": "OfficeIMO.Reader.Core.dll",
+          "bytes": 1117184,
+          "sha256": "8be2d2690b9040f9c986a9849674b196f978ab119c1acd706bc9cd5397688d72"
+        },
+        {
+          "file": "OfficeIMO.Reader.Image.dll",
+          "bytes": 17408,
+          "sha256": "830d8cc6cc167b46fc4327f13f0ecd17536737440499daeb8a99189eb7c0b3c8"
+        },
+        {
+          "file": "OfficeIMO.Reader.Ocr.dll",
+          "bytes": 86016,
+          "sha256": "1cf9337d5d0247d4c20454fc249fc581e8b2e14c54688ef2efd872f2a376dee5"
+        },
+        {
+          "file": "OfficeIMO.Rtf.Pdf.dll",
+          "bytes": 75776,
+          "sha256": "f55aee5504a109cb82b3971194e612e9bee0a402b4598e5c14f9ee76c309311c"
+        },
+        {
+          "file": "OfficeIMO.Rtf.dll",
+          "bytes": 576512,
+          "sha256": "5cc06d6923d5251e65265e1b16a2e454754e48837585518341b035a846a2730d"
+        },
+        {
+          "file": "OfficeIMO.Visio.Pdf.dll",
+          "bytes": 14336,
+          "sha256": "60c83b7ebbd81caec85ef27e48a6500c0fc3efeab3969b9a65ae0b3f062ca915"
+        },
+        {
+          "file": "OfficeIMO.Visio.dll",
+          "bytes": 1910784,
+          "sha256": "975fb959acf6326dac079f50d50b0e722e956dd174d1e440790aff952cb39372"
+        },
+        {
+          "file": "OfficeIMO.Word.Html.dll",
+          "bytes": 491520,
+          "sha256": "c63a3c4025f1fada5c54275a481e3ec3eea4222e23900f634dbd67fb4cc983f9"
+        },
+        {
+          "file": "OfficeIMO.Word.IWork.dll",
+          "bytes": 81920,
+          "sha256": "0ec21cf1928bab858b16d94200237a4231115b70d2c60b79f96ee679213c4c41"
+        },
+        {
+          "file": "OfficeIMO.Word.Pdf.dll",
+          "bytes": 730112,
+          "sha256": "c3da36221b6fd386ff7a9308c8344d076185283ddf550b1919b5a2f88a36f595"
+        },
+        {
+          "file": "OfficeIMO.Word.dll",
+          "bytes": 4876288,
+          "sha256": "d86f704bb231a4cf34581e0031b4b47bde6b42206cd8479b1a7e08d9b5b41cec"
+        },
+        {
+          "file": "OfficeIMO.Workflows.IWork.AotSmoke.dll",
+          "bytes": 30720,
+          "sha256": "82e9675b90fc1740e29a3f4942b010a49828a50760be0be34721ac2d44bf3918"
+        },
+        {
+          "file": "OfficeIMO.Workflows.IWork.dll",
+          "bytes": 24576,
+          "sha256": "d81f332cfc5387ea7e98b338845a8509b5db81d1527c91b7e4d1cf2ed65aac6d"
+        },
+        {
+          "file": "OfficeIMO.Workflows.dll",
+          "bytes": 3453440,
+          "sha256": "8d5b57bfb74411eb1f5c6f3b3a5320c7b0e8efecba8283e1d407d62a38425cb9"
+        },
+        {
+          "file": "OfficeIMO.Xps.Pdf.dll",
+          "bytes": 23040,
+          "sha256": "4eaa9f195692529ed169035cf44265ca33dd6c485ddb16ae2719fee232ff1ead"
+        },
+        {
+          "file": "OfficeIMO.Xps.dll",
+          "bytes": 162304,
+          "sha256": "c1b9509ed39b20acd84ccdd353d0e7f7011a924d0db88063d8a687d78dfb6feb"
+        }
+      ],
+      "generatedAssemblyInfoSha256": "1a9970a5f3cc97a468ae56b0a861a4e98478172204643b45d96636e1fe071b79",
+      "passCount": 14,
+      "passLines": [
+        "PASS | pages-created-edited-v15.4.pages | 2 PDF pages | E2E370638AA11294CD33D26E56B8415588C1CCC6FE641EE77B42D076B7BF1717 | complete stages, saved/reopened content and source preservation",
+        "PASS | pages-mixed-size-edited-v15.4.pages | 1 PDF pages | 442BCA2C7D45FF3DDB5613A0FC8CC12B83051EAB40D6A315E704080A2E68477F | complete stages, saved/reopened content and source preservation",
+        "PASS | keynote-preserved-paragraphs-edited-v15.4.key | 3 PDF pages | 770C63CD603AE6F31AD9B9556A5FB88310ADF6942303290C32DF6AF63AFCABD0 | complete stages, saved/reopened content and source preservation",
+        "PASS | numbers-unpadded-scalar.numbers | 1 PDF pages | 1E18DE2A42D6683AB3362592C3F2C23DAAE6B3808C19D3C95F2B204674A9025B | complete stages, saved/reopened content and source preservation",
+        "PASS | rejection native-padding | existing destination, source and staging preserved",
+        "PASS | rejection missing-font | existing destination, source and staging preserved",
+        "PASS | rejection partial-policy | existing destination, source and staging preserved",
+        "PASS | rejection preview-policy | existing destination, source and staging preserved",
+        "PASS | rejection row-selection | existing destination, source and staging preserved",
+        "PASS | rejection content-exclusion | existing destination, source and staging preserved",
+        "PASS | rejection output-limit | existing destination, source and staging preserved",
+        "PASS | pre-start cancellation | destination and source preserved; staging removed",
+        "PASS | publication cancellation | destination and source preserved; staging removed",
+        "PASS | bounded composed iWork PDF NativeAOT | .NET 10.0.12"
+      ],
+      "outputLogSha256": "e108f39d2f83f780313f8ab3e5d9185666c86a880fd7fb8b2baaecd06e0505a5",
+      "pdfArtifacts": [
+        {
+          "path": "complete-keynote-preserved-paragraphs-edited-v15.4/output.pdf",
+          "bytes": 4938,
+          "sha256": "770c63cd603ae6f31ad9b9556a5fb88310adf6942303290c32df6af63afcabd0"
+        },
+        {
+          "path": "complete-numbers-unpadded-scalar/output.pdf",
+          "bytes": 1211,
+          "sha256": "1e18de2a42d6683ab3362592c3f2c23daae6b3808c19d3c95f2b204674a9025b"
+        },
+        {
+          "path": "complete-pages-created-edited-v15.4/output.pdf",
+          "bytes": 25759,
+          "sha256": "e2e370638aa11294cd33d26e56b8415588c1ccc6fe641ee77b42d076b7bf1717"
+        },
+        {
+          "path": "complete-pages-mixed-size-edited-v15.4/output.pdf",
+          "bytes": 2271,
+          "sha256": "442bca2c7d45ff3ddb5613a0fc8cc12b83051eab40d6a315e704080a2e68477f"
+        }
+      ]
+    }
+  ],
+  "independentPdfValidation": {
+    "targetFramework": "net10.0",
+    "independentTools": {
+      "pdfinfo": "pdfinfo version 26.09.0",
+      "pdftotext": "pdftotext version 26.09.0",
+      "pdffonts": "pdffonts version 26.09.0",
+      "pdfimages": "pdfimages version 26.09.0",
+      "pdftoppm": "pdftoppm version 26.09.0"
+    },
+    "nativeMarkerReference": {
+      "path": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-mixed-size-independent-verification.json",
+      "sha256": "fe6d6d370fd74a83f3b39af9503d561da071338cf15e0c67c760d59f1164e557"
+    },
+    "documents": [
+      {
+        "name": "pages-created-edited-v15.4",
+        "pdfSha256": "e2e370638aa11294cd33d26e56b8415588c1ccc6fe641ee77b42d076b7bf1717",
+        "pages": 2,
+        "checks": [
+          "80 native-source body paragraphs once and in order",
+          "native-edited Unicode sentence"
+        ],
+        "pageWordCounts": [
+          431,
+          380
+        ],
+        "pageDimensions": [
+          {
+            "width": "612.000000",
+            "height": "792.000000"
+          },
+          {
+            "width": "612.000000",
+            "height": "792.000000"
+          }
+        ],
+        "rasters": [
+          {
+            "path": "inspection-net10.0/pages-created-edited-v15.4/page-1.png",
+            "bytes": 266829,
+            "sha256": "e6af0e52781180529d10f6a4d312b3e22013dfed7c6e2cc44542c8adb2fd937d"
+          },
+          {
+            "path": "inspection-net10.0/pages-created-edited-v15.4/page-2.png",
+            "bytes": 231403,
+            "sha256": "4471d4dec706ac8c2511e595a174adde96c9b4e413123e7b5f91221b6fd2c21f"
+          }
+        ]
+      },
+      {
+        "name": "pages-mixed-size-edited-v15.4",
+        "pdfSha256": "442bca2c7d45ff3ddb5613a0fc8cc12b83051eab40d6a315e704080a2e68477f",
+        "pages": 1,
+        "checks": [
+          "18 native-export marker/item pairs in order"
+        ],
+        "pageWordCounts": [
+          114
+        ],
+        "pageDimensions": [
+          {
+            "width": "612.000000",
+            "height": "792.000000"
+          }
+        ],
+        "rasters": [
+          {
+            "path": "inspection-net10.0/pages-mixed-size-edited-v15.4/page-1.png",
+            "bytes": 72005,
+            "sha256": "795311d89293e6cc703cb590a333ce1493860a7bf68f11a183d1065843c7d94a"
+          }
+        ]
+      },
+      {
+        "name": "keynote-preserved-paragraphs-edited-v15.4",
+        "pdfSha256": "770c63cd603ae6f31ad9b9556a5fb88310adf6942303290c32df6af63afcabd0",
+        "pages": 3,
+        "checks": [
+          "all three native-edited titles and selected stacked text",
+          "three 96x64 image resources and one 96x64 soft mask"
+        ],
+        "pageWordCounts": [
+          12,
+          9,
+          7
+        ],
+        "pageDimensions": [
+          {
+            "width": "960.000000",
+            "height": "540.000000"
+          },
+          {
+            "width": "960.000000",
+            "height": "540.000000"
+          },
+          {
+            "width": "960.000000",
+            "height": "540.000000"
+          }
+        ],
+        "rasters": [
+          {
+            "path": "inspection-net10.0/keynote-preserved-paragraphs-edited-v15.4/page-1.png",
+            "bytes": 17250,
+            "sha256": "4761919f6234fdebddf0044cf25cf9573024d61695cea1aa5e848433e6a9e2d3"
+          },
+          {
+            "path": "inspection-net10.0/keynote-preserved-paragraphs-edited-v15.4/page-2.png",
+            "bytes": 17551,
+            "sha256": "03aa408aeff22282c2f5177b124a6fad8c9f5f409ba67be764fcba93b39dc465"
+          },
+          {
+            "path": "inspection-net10.0/keynote-preserved-paragraphs-edited-v15.4/page-3.png",
+            "bytes": 17786,
+            "sha256": "984ba0f5b05449f907f13f6266f75e300884746e8b7a384d666bf2f43381f1e7"
+          }
+        ]
+      },
+      {
+        "name": "numbers-unpadded-scalar",
+        "pdfSha256": "1e18de2a42d6683ab3362592c3f2c23daae6b3808c19d3c95f2b204674a9025b",
+        "pages": 1,
+        "checks": [
+          "synthetic scalar 42; no Apple acceptance claim"
+        ],
+        "pageWordCounts": [
+          1
+        ],
+        "pageDimensions": [
+          {
+            "width": "612.000000",
+            "height": "792.000000"
+          }
+        ],
+        "rasters": [
+          {
+            "path": "inspection-net10.0/numbers-unpadded-scalar/page-1.png",
+            "bytes": 4506,
+            "sha256": "893ca513d76341d2f5f08d5455742c41ca481e5156e7df412bf9390366b7df93"
+          }
+        ]
+      }
+    ],
+    "pageCount": 7,
+    "visualInspection": {
+      "status": "all seven emitted pages inspected with view_image",
+      "observations": [
+        "Pages body paragraphs 01-42 on page 1 and 43-80 on page 2; title and edited Unicode styling visible without clipped body lines.",
+        "Mixed-size list retains nine levels, native-edited root/child text and marker forms; whole-point size changes are visible.",
+        "Keynote opaque PNG covers the behind label and leaves TEXT IN FRONT visible; alpha PNG retains transparent/half/opaque regions over the dark background; JPEG has its stretched frame.",
+        "Synthetic Numbers page contains scalar 42; no Apple acceptance or general sheet-layout claim."
+      ],
+      "limits": [
+        "portable font substitutions and monochrome emoji remain approximations",
+        "inspection establishes these emitted pages, not Apple visual equivalence"
+      ],
+      "recordedUtc": "2026-10-11T14:41:25.791735+00:00"
+    }
+  },
+  "managedValidation": {
+    "OfficeIMO.Workflows.IWork.Tests": {
+      "net8.0": {
+        "passed": 140,
+        "skipped": 0
+      },
+      "net10.0": {
+        "passed": 140,
+        "skipped": 0
+      }
+    },
+    "strictNativeGuard": {
+      "source": "OfficeIMO.Workflows.IWork.AotSmoke/Program.cs",
+      "sha256": "a346e3d4b0e9c8afc91fa657f8a9208420ae4d7375ddf63d1d700fac0da73722",
+      "dynamicCodeSupportedAndCompiledMustBothBeFalse": true
+    }
+  },
+  "unqualifiedNet8": {
+    "state": "native-link-failed",
+    "attempts": [
+      {
+        "attempt": "default",
+        "sourceHead": "f71cfe356bde28f7947b155d902dd3a80469966d",
+        "startUtc": "2026-10-11T14:30:34.468556+00:00",
+        "endUtc": "2026-10-11T14:56:41.033656+00:00",
+        "exitCode": 1,
+        "logSha256": "09c5cb70a3928b0a43af3ae1397a01ea7a023958a8dcfda0e474170ccc6c0513",
+        "diagnostic": "Apple ld assertion: too many large addends (Fixup.cpp:1562)",
+        "nativeExecutableProduced": false
+      },
+      {
+        "attempt": "size-and-identical-method-folding",
+        "sourceHead": "f71cfe356bde28f7947b155d902dd3a80469966d",
+        "startUtc": "2026-10-11T15:02:02.503920+00:00",
+        "endUtc": "2026-10-11T15:28:04.369550+00:00",
+        "exitCode": 1,
+        "logSha256": "49e7f180dbe4e11a4fd9dcf6d87ba88ab483b40e5aa956dee09a83da81e98640",
+        "diagnostic": "Apple ld assertion: too many large addends (Fixup.cpp:1562)",
+        "nativeExecutableProduced": false
+      }
+    ],
+    "toolchainsChecked": "Xcode 27.0, Xcode 27.1 and Command Line Tools use the same installed ld 27037.1; no existing alternative linker was found.",
+    "acceptanceRemaining": "Produce and execute the actual .NET 8 osx-arm64 native binary and inspect its complete PDF outputs."
+  },
+  "generatorReproducibility": {
+    "source": "Build/IWork/generate-unpadded-pdf-control.py",
+    "sourceSha256": "093b9d2560a4e7e7fc0d5b2730a98069fe9ff7056cb0c26415bec2b524ccfb9f",
+    "archiveSha256": "95878a6826028fd6f49badff7885436fe78734a768212694539b9655f679d9f3",
+    "proof": "Explicit create_system=3 produces identical archive bytes with controlled initial ZipInfo defaults of 0 and 3 on macOS; this is not a Windows execution claim."
+  },
+  "limits": [
+    "Only the recorded .NET 10 macOS arm64 workflow profile is native-qualified.",
+    "The synthetic Numbers control establishes no Apple producer or native Numbers acceptance.",
+    "Native Numbers padding rejects complete PDF publication.",
+    "Fonts, Unicode display, pagination and other rendering approximations remain reported; no general Apple appearance equivalence.",
+    "Other architectures, the complete workflow API, installed packages, signed sandbox hosts and physical devices are unqualified by this receipt."
+  ],
+  "commands": [
+    "dotnet publish OfficeIMO.Workflows.IWork.AotSmoke/OfficeIMO.Workflows.IWork.AotSmoke.csproj -c Release -f net10.0 -r osx-arm64 -p:PublishAot=true",
+    "OfficeIMO.Workflows.IWork.AotSmoke <qualification-output>"
+  ]
+}

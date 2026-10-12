@@ -47,6 +47,20 @@ $nativeTools = @(
         evidence = 'The unified native executable starts and exposes namespaced HTML, Reader, and Markup commands.'
     }
 )
+$nativeWorkflowProfiles = @(
+    [ordered]@{
+        name = 'OfficeIMO.Workflows.IWork'
+        evidence = 'A dedicated macOS arm64 .NET 10 NativeAOT host executes bounded complete Pages body/list and Keynote image PDF workflows with caller-supplied portable fonts, a synthetic unpadded Numbers control, rejection and atomic cancellation. The .NET 8 PDF profile remains unqualified because native publishing fails in the Apple linker. Native Numbers padding rejects complete publication; other architectures and the complete API surface are not qualified by this profile.'
+    }
+)
+$iworkPdfHostPath = Join-Path $RepositoryRoot 'OfficeIMO.Workflows.IWork.AotSmoke\OfficeIMO.Workflows.IWork.AotSmoke.csproj'
+[xml] $iworkPdfHost = Get-Content -LiteralPath $iworkPdfHostPath -Raw
+$iworkPdfReferences = @($iworkPdfHost.Project.ItemGroup.ProjectReference |
+    ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension(([string] $_.Include).Replace('\', '/')) })
+if ($iworkPdfReferences.Count -ne 1 -or $iworkPdfReferences[0] -ne 'OfficeIMO.Workflows.IWork' -or
+    [string] $iworkPdfHost.Project.PropertyGroup.PublishAot -ne 'true') {
+    throw 'The bounded iWork PDF NativeAOT host must reference the workflow owner and enable native publishing.'
+}
 $nonNativeValidated = @(
     [ordered]@{
         name = 'OfficeIMO.Reader.Dbf'
@@ -142,11 +156,6 @@ $nonNativeValidated = @(
         name = 'OfficeIMO.Browser'
         classification = 'managed-cross-platform'
         evidence = 'Embedded JavaScript assets and content hashes are qualified by managed tests and packed .NET 8 and 10 consumers; no NativeAOT host is claimed.'
-    }
-    [ordered]@{
-        name = 'OfficeIMO.Workflows.IWork'
-        classification = 'managed-cross-platform'
-        evidence = 'Opt-in iWork workflow routes are qualified through managed .NET 8 and 10 tests; destination converter NativeAOT evidence does not qualify the complete workflow surface.'
     }
     [ordered]@{
         name = 'OfficeIMO.Invoicing.KSeF'
@@ -245,6 +254,7 @@ $classifiedNames = @(
     $fullyRootedLibraries
     $boundedLibraries
     $nativeTools.name
+    $nativeWorkflowProfiles.name
     $nonNativeValidated.name
     $buildAnalyzers.name
 ) | Sort-Object -Unique
@@ -277,6 +287,10 @@ $components = foreach ($component in @($catalog.components | Sort-Object name)) 
         $classification = 'native-bounded-workflow'
         $nativeValidated = $true
         $evidence = 'The token-store adapter round-trips from the native host. Google authorization APIs remain subject to Google.Apis and Newtonsoft.Json trimming warnings when the entire dependency is rooted.'
+    } elseif ($name -in $nativeWorkflowProfiles.name) {
+        $classification = 'native-bounded-workflow'
+        $nativeValidated = $true
+        $evidence = [string] ($nativeWorkflowProfiles | Where-Object name -EQ $name).evidence
     } elseif ($name -in $nativeTools.name) {
         $classification = 'native-executable'
         $nativeValidated = $true
@@ -310,7 +324,7 @@ $matrix = [ordered]@{
         productionProjectCount = $productionNames.Count
         nativeAotValidatedProjectCount = @($components | Where-Object nativeAotValidated).Count
         fullyRootedLibraryCount = $fullyRootedLibraries.Count
-        boundedWorkflowLibraryCount = $boundedLibraries.Count
+        boundedWorkflowLibraryCount = $boundedLibraries.Count + $nativeWorkflowProfiles.Count
         nativeExecutableCount = $nativeTools.Count
         nativeBuildAnalyzerCount = $buildAnalyzers.Count
         managedCrossPlatformProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-cross-platform').Count
@@ -319,7 +333,7 @@ $matrix = [ordered]@{
     }
     definitions = [ordered]@{
         nativeFullSurface = 'The production library is retained as a complete assembly in the NativeAOT compile graph.'
-        nativeBoundedWorkflow = 'A customer-facing workflow publishes and runs natively, but the complete optional third-party dependency surface is not claimed.'
+        nativeBoundedWorkflow = 'A specified workflow publishes and runs natively on its recorded targets; the complete library, dependency and platform surface is not claimed.'
         nativeExecutable = 'The production CLI publishes as a native executable and starts successfully.'
         nativeBuildAnalyzer = 'The build-time analyzer emits code that compiles into and executes from a NativeAOT consumer; the analyzer is not deployed as a runtime assembly.'
         managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
