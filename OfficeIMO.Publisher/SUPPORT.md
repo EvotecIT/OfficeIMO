@@ -120,6 +120,10 @@ confirms the visible dash and endpoint decorations; exact marker sizing and
 device-dependent dash spacing remain unqualified.
 Custom-path record mutations check coordinate offsets, compact vertices,
 line/cubic command consumption, subpaths, paint controls, malformed arrays,
+and counted AutoLine, CornerLine, AutoCurve, CornerCurve and SymmetricCurve
+editing runs. Zero-count joint markers remain inert. Nonzero SmoothLine,
+SmoothCurve, SymmetricLine and Freeform runs retain an unsupported-command
+fallback; their drawing semantics remain unqualified. These record checks cover
 guide/command fallback reports and inset picture masks. SG guide checks cover
 all 17 stored formula identifiers, unsigned constants, signed adjustment values,
 geometry-space centres and dimensions, inherited document defaults, local scalar

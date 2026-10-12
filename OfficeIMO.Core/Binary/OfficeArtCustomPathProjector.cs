@@ -86,6 +86,18 @@ internal static class OfficeArtCustomPathProjector {
                 token.ThrowIfCancellationRequested();
                 ushort word = U16(segments, 6 + index * 2);
                 int type = word >> 13, count = word & 0x1FFF;
+                if (type == 5) {
+                    int escape = (word >> 8) & 31;
+                    if (escape is >= 12 and <= 20) {
+                        count = word & 0xFF;
+                        // Zero-count joint markers add no geometry, including before the first MoveTo.
+                        if (count == 0) continue;
+                        // Qualified Publisher editing runs share ordinary line/cubic consumption.
+                        if (escape is 12 or 14) type = 0;
+                        else if (escape is 13 or 15 or 19) type = 1;
+                        else { failure = OfficeArtCustomPathFailure.Command; return false; }
+                    }
+                }
                 switch (type) {
                     case 0:
                     case 1:
@@ -113,12 +125,7 @@ internal static class OfficeArtCustomPathProjector {
                         int escape = (word >> 8) & 31;
                         if (escape == 10) noFill = true;
                         else if (escape == 11) noLine = true;
-                        else if (escape is >= 12 and <= 20) {
-                            // Editing-only metadata references POINT entries without adding drawing commands.
-                            int metadataPoints = word & 0xFF;
-                            if (metadataPoints > pointCount - nextPoint) return false;
-                            nextPoint += metadataPoints;
-                        } else { failure = OfficeArtCustomPathFailure.Command; return false; }
+                        else { failure = OfficeArtCustomPathFailure.Command; return false; }
                         break;
                     default:
                         failure = OfficeArtCustomPathFailure.Command; return false;

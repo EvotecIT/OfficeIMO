@@ -7,15 +7,17 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherCustomPathTests {
     [Theory]
-    [InlineData(12)]
-    [InlineData(13)]
-    public void Native_editing_escape_vertices_do_not_replace_later_artwork_coordinates(int escape) {
-        PublisherDocument publication = Load(1, new[] { (10, -20), (35, 80), (85, 80), (110, -20) },
-            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 2), 0x0001, 0x8000 });
+    [InlineData(12, false)]
+    [InlineData(13, true)]
+    public void Native_editing_escape_runs_preserve_their_artwork_coordinates(int escape, bool curve) {
+        PublisherDocument publication = Load(1, new[] { (10, -20), (35, -20), (85, 80), (110, 80), (110, -20) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | (curve ? 1 : 3)), 0x0001, 0x8000 });
         OfficeShape shape = Artwork(publication);
         Assert.Equal(OfficeShapeKind.Path, shape.Kind);
-        Assert.Equal(2, shape.PathCommands.Count);
-        Assert.Equal(new OfficePoint(shape.Width, 0), shape.PathCommands[1].Point);
+        Assert.Equal(curve ? 3 : 5, shape.PathCommands.Count);
+        Assert.Equal(new OfficePoint(shape.Width, 0), shape.PathCommands.Last().Point);
+        Assert.Equal(curve ? OfficePathCommandKind.CubicBezierTo : OfficePathCommandKind.LineTo,
+            shape.PathCommands[1].Kind);
         Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics,
             item => item.Code == "PUB_SHAPE_GEOMETRY_APPROXIMATED" || item.Code == "PUB_CUSTOM_PATH_INVALID");
     }
