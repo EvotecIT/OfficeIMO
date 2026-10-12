@@ -138,7 +138,8 @@ namespace OfficeIMO.Excel.Pdf {
                 int firstColumn,
                 int lastRow,
                 int lastColumn,
-                double defaultColumnWidth,
+                double? defaultColumnWidth,
+                double baseColumnWidth,
                 double defaultRowHeight,
                 IReadOnlyList<ExcelColumnSnapshot> columns,
                 IReadOnlyList<ExcelRowSnapshot> rows,
@@ -149,7 +150,9 @@ namespace OfficeIMO.Excel.Pdf {
                 FirstColumn = firstColumn;
                 LastRow = lastRow;
                 LastColumn = lastColumn;
-                DefaultColumnWidth = defaultColumnWidth;
+                DefaultColumnWidth = defaultColumnWidth ?? 8.43D;
+                HasExplicitDefaultColumnWidth = defaultColumnWidth.HasValue;
+                BaseColumnWidth = baseColumnWidth;
                 DefaultRowHeight = defaultRowHeight;
                 Columns = columns;
                 Rows = rows;
@@ -163,6 +166,8 @@ namespace OfficeIMO.Excel.Pdf {
             public int LastRow { get; }
             public int LastColumn { get; }
             public double DefaultColumnWidth { get; }
+            public bool HasExplicitDefaultColumnWidth { get; }
+            public double BaseColumnWidth { get; }
             public double? MaximumDigitWidthPoints { get; set; }
             public double DefaultRowHeight { get; }
             public IReadOnlyList<ExcelColumnSnapshot> Columns { get; }
