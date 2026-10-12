@@ -393,16 +393,23 @@ namespace OfficeIMO.Word.Pdf {
                 return (0D, 0D);
             }
 
-            double headerExpansion = UsesNativeRunningHeader(section, options) ? 0D : GetNativeHeaderFooterMarginExpansion(
+            bool headerUsesFlow = UsesNativeRunningHeader(section, options);
+            bool footerUsesFlow = UsesNativeRunningFooter(section, options);
+            WordHeaderFooter? Projection(WordHeaderFooter? story, bool footer) =>
+                (footer ? footerUsesFlow : headerUsesFlow) && UsesNativeRunningVariant(section, options, footer, story) ? null : story;
+            // Mixed sibling variants retain the same bounded flat-story margin
+            // estimate as their established projection. Native table/field
+            // variants still own their measured running exclusion separately.
+            double headerExpansion = GetNativeHeaderFooterMarginExpansion(
                 listMarkers,
-                section.ResolveDefaultHeader(),
-                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
-                section.DifferentOddAndEvenPages ? section.ResolveEvenHeader() : null);
-            double footerExpansion = UsesNativeRunningFooter(section, options) ? 0D : GetNativeFooterMarginExpansion(
+                Projection(section.ResolveDefaultHeader(), false),
+                section.DifferentFirstPage ? Projection(section.ResolveFirstHeader(), false) : null,
+                section.DocumentOddEvenSettingEnabled ? Projection(section.ResolveEvenHeader(), false) : null);
+            double footerExpansion = GetNativeFooterMarginExpansion(
                 listMarkers,
-                section.ResolveDefaultFooter(),
-                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
-                section.DifferentOddAndEvenPages ? section.ResolveEvenFooter() : null);
+                Projection(section.ResolveDefaultFooter(), true),
+                section.DifferentFirstPage ? Projection(section.ResolveFirstFooter(), true) : null,
+                section.DocumentOddEvenSettingEnabled ? Projection(section.ResolveEvenFooter(), true) : null);
 
             double baseTop = (section.Margins.Top ?? 0) / 20D;
             if (section._document.Settings.GutterAtTop) baseTop += section.Margins.Gutter / 20D;

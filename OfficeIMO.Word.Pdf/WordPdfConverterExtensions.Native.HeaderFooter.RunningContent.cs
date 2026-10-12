@@ -33,12 +33,11 @@ public static partial class WordPdfConverterExtensions {
         section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
 
     private static bool UsesNativeRunningStories(WordSection section, WordToPdfOptions? options, bool isFooter, params WordHeaderFooter?[] variants) {
-        // Admission switches all active variants, including an explicitly authored
-        // sibling of an inherited table or SECTIONPAGES story. Keep mixed and nested
-        // text boxes on the path that preserves their positioning and source order.
+        // Required table/field stories retain flow. Configure each active sibling
+        // independently so its mixed text-box projection keeps its established path.
+        if (variants.Any(RequiresNativeRunningStory)) return true;
         if (variants.Any(story => story != null && story.ChildElements
                 .Any(element => element.Descendants<W.TextBoxContent>().Any()))) return false;
-        if (variants.Any(RequiresNativeRunningStory)) return true;
         bool hasNumberedParagraph = false;
         bool hasParagraph = false;
         bool ordinaryStoriesSupported = !HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter);
@@ -111,11 +110,11 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningHeader(section, options)) {
             double distance = section.Margins.HeaderDistance / 20D;
             page.Header(header => {
-                if (section.ResolveDefaultHeader() != null)
+                if (UsesNativeRunningVariant(section, options, false, section.ResolveDefaultHeader()))
                     header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DifferentFirstPage && section.ResolveFirstHeader() != null)
+                if (section.DifferentFirstPage && UsesNativeRunningVariant(section, options, false, section.ResolveFirstHeader()))
                     header.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
-                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null)
+                if (section.DocumentOddEvenSettingEnabled && UsesNativeRunningVariant(section, options, false, section.ResolveEvenHeader()))
                     header.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: true, section.ResolveDefaultHeader(),
@@ -128,11 +127,11 @@ public static partial class WordPdfConverterExtensions {
         if (UsesNativeRunningFooter(section, options)) {
             double distance = section.Margins.FooterDistance / 20D;
             page.Footer(footer => {
-                if (section.ResolveDefaultFooter() != null)
+                if (UsesNativeRunningVariant(section, options, true, section.ResolveDefaultFooter()))
                     footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DifferentFirstPage && section.ResolveFirstFooter() != null)
+                if (section.DifferentFirstPage && UsesNativeRunningVariant(section, options, true, section.ResolveFirstFooter()))
                     footer.FirstPageContent(CreateNativeRunningStory(section.ResolveFirstFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
-                if (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
+                if (section.DocumentOddEvenSettingEnabled && UsesNativeRunningVariant(section, options, true, section.ResolveEvenFooter()))
                     footer.EvenPagesContent(CreateNativeRunningStory(section.ResolveEvenFooter(), section, options, fontMap, listMarkers, defaults, true), distance);
             });
             ReserveNativeEmptyRunningContentDistances(page.Options, isHeader: false, section.ResolveDefaultFooter(),
@@ -151,6 +150,9 @@ public static partial class WordPdfConverterExtensions {
                 page.Options.AllowRunningContentTextFallback(isHeader: false);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: true);
     }
+
+    private static bool UsesNativeRunningVariant(WordSection section, WordToPdfOptions? options, bool isFooter, WordHeaderFooter? story) =>
+        story != null && UsesNativeRunningStories(section, options, isFooter, story);
 
     private static Func<PdfCore.PdfRunningContentContext, Action<PdfCore.PdfContentBuilder>> CreateNativeRunningStory(
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,

@@ -60,14 +60,17 @@ namespace OfficeIMO.Word.Pdf {
 
             // Flat projections still supply field-numbering metadata. Their
             // approximation diagnostics do not describe admitted running flow.
-            WordToPdfOptions? headerTextDiagnostics = UsesNativeRunningHeader(section, options) ? null : options;
-            WordToPdfOptions? footerTextDiagnostics = UsesNativeRunningFooter(section, options) ? null : options;
-            NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.ResolveDefaultHeader(), listMarkers, nativeFontMap, headerTextDiagnostics);
-            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
-            NativeHeaderFooterText? evenHeader = hasEvenPageStory ? GetNativeHeaderFooterText(section.ResolveEvenHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
-            NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.ResolveDefaultFooter(), listMarkers, nativeFontMap, footerTextDiagnostics);
-            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstFooter(), listMarkers, nativeFontMap, footerTextDiagnostics) : null;
-            NativeHeaderFooterText? evenFooter = hasEvenPageStory ? GetNativeHeaderFooterText(section.ResolveEvenFooter(), listMarkers, nativeFontMap, footerTextDiagnostics) : null;
+            bool headerUsesFlow = UsesNativeRunningHeader(section, options);
+            bool footerUsesFlow = UsesNativeRunningFooter(section, options);
+            NativeHeaderFooterText? Projection(WordHeaderFooter? story, bool footer) => GetNativeHeaderFooterText(story,
+                listMarkers, nativeFontMap, (footer ? footerUsesFlow : headerUsesFlow) &&
+                    UsesNativeRunningVariant(section, options, footer, story) ? null : options);
+            NativeHeaderFooterText? defaultHeader = Projection(section.ResolveDefaultHeader(), false);
+            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? Projection(section.ResolveFirstHeader(), false) : null;
+            NativeHeaderFooterText? evenHeader = hasEvenPageStory ? Projection(section.ResolveEvenHeader(), false) : null;
+            NativeHeaderFooterText? defaultFooter = Projection(section.ResolveDefaultFooter(), true);
+            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? Projection(section.ResolveFirstFooter(), true) : null;
+            NativeHeaderFooterText? evenFooter = hasEvenPageStory ? Projection(section.ResolveEvenFooter(), true) : null;
             IReadOnlyList<NativeHeaderFooterImage> defaultHeaderImages = GetNativeHeaderFooterImages(section.ResolveDefaultHeader(), options, "default header image");
             IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = section.DifferentFirstPage ? GetNativeHeaderFooterImages(section.ResolveFirstHeader(), options, "first header image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = hasEvenPageStory ? GetNativeHeaderFooterImages(section.ResolveEvenHeader(), options, "even header image") : Array.Empty<NativeHeaderFooterImage>();

@@ -412,8 +412,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool NativeSectionHeaderFooterReferencesEquivalent(WordSection first, WordSection second) =>
             first.DifferentFirstPage == second.DifferentFirstPage &&
-            NativeDoubleEquals(first.Margins.HeaderDistance, second.Margins.HeaderDistance) &&
-            NativeDoubleEquals(first.Margins.FooterDistance, second.Margins.FooterDistance) &&
+            (!HasNativeSectionStory(first, isFooter: false) || NativeDoubleEquals(first.Margins.HeaderDistance, second.Margins.HeaderDistance)) &&
+            (!HasNativeSectionStory(first, isFooter: true) || NativeDoubleEquals(first.Margins.FooterDistance, second.Margins.FooterDistance)) &&
             ReferenceEquals(first.ResolveDefaultHeader()?._header, second.ResolveDefaultHeader()?._header) &&
             ReferenceEquals(first.ResolveDefaultFooter()?._footer, second.ResolveDefaultFooter()?._footer) &&
             (!first.DifferentFirstPage ||
@@ -422,6 +422,14 @@ namespace OfficeIMO.Word.Pdf {
             (!first.DocumentOddEvenSettingEnabled ||
                 (ReferenceEquals(first.ResolveEvenHeader()?._header, second.ResolveEvenHeader()?._header) &&
                  ReferenceEquals(first.ResolveEvenFooter()?._footer, second.ResolveEvenFooter()?._footer)));
+
+        private static bool HasNativeSectionStory(WordSection section, bool isFooter) => isFooter
+            ? section.ResolveDefaultFooter() != null ||
+                (section.DifferentFirstPage && section.ResolveFirstFooter() != null) ||
+                (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
+            : section.ResolveDefaultHeader() != null ||
+                (section.DifferentFirstPage && section.ResolveFirstHeader() != null) ||
+                (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null);
 
         private static bool NativeSectionPageNumberingEquivalent(WordSection first, WordSection second) =>
             NativeOpenXmlChildEquivalent<W.PageNumberType>(first, second);
