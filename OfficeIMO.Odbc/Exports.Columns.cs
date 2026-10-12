@@ -57,8 +57,9 @@ namespace OfficeIMO.Odbc {
                 *number = field switch {
                     2 => sqlType,
                     1002 => sqlType == 93 ? 9 : sqlType,
-                    3 or 6 or 1003 => (nint)NativeValue.ColumnSize(sqlType),
-                    4 or 1005 => NativeValue.Precision(sqlType),
+                    3 or 4 or 1003 => (nint)NativeValue.ColumnSize(sqlType),
+                    6 => NativeValue.DisplaySize(sqlType),
+                    1005 => NativeValue.Precision(sqlType),
                     5 or 1006 => sqlType == 93 ? 7 : 0,
                     7 or 1008 => 1,
                     8 or 9 or 10 or 11 or 35 => 0,

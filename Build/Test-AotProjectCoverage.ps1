@@ -47,6 +47,12 @@ $nativeTools = @(
         evidence = 'The unified native executable starts and exposes namespaced HTML, Reader, and Markup commands.'
     }
 )
+$nativeDrivers = @(
+    [ordered]@{
+        name = 'OfficeIMO.Odbc'
+        evidence = 'The optional Windows x64 shared library publishes with NativeAOT and executes through Windows ODBC manager and an independent System.Data.Odbc client in the Excel ODBC contracts workflow.'
+    }
+)
 $nonNativeValidated = @(
     [ordered]@{
         name = 'OfficeIMO.Reader.Dbf'
@@ -250,6 +256,7 @@ $classifiedNames = @(
     $fullyRootedLibraries
     $boundedLibraries
     $nativeTools.name
+    $nativeDrivers.name
     $nonNativeValidated.name
     $buildAnalyzers.name
 ) | Sort-Object -Unique
@@ -286,6 +293,10 @@ $components = foreach ($component in @($catalog.components | Sort-Object name)) 
         $classification = 'native-executable'
         $nativeValidated = $true
         $evidence = [string] ($nativeTools | Where-Object name -EQ $name).evidence
+    } elseif ($name -in $nativeDrivers.name) {
+        $classification = 'native-windows-driver'
+        $nativeValidated = $true
+        $evidence = [string] ($nativeDrivers | Where-Object name -EQ $name).evidence
     } elseif ($name -in $buildAnalyzers.name) {
         $classification = 'native-build-analyzer'
         $nativeValidated = $true
@@ -317,6 +328,7 @@ $matrix = [ordered]@{
         fullyRootedLibraryCount = $fullyRootedLibraries.Count
         boundedWorkflowLibraryCount = $boundedLibraries.Count
         nativeExecutableCount = $nativeTools.Count
+        nativeWindowsDriverCount = $nativeDrivers.Count
         nativeBuildAnalyzerCount = $buildAnalyzers.Count
         managedCrossPlatformProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-cross-platform').Count
         managedWindowsProjectCount = @($nonNativeValidated | Where-Object classification -EQ 'managed-windows').Count
@@ -326,6 +338,7 @@ $matrix = [ordered]@{
         nativeFullSurface = 'The production library is retained as a complete assembly in the NativeAOT compile graph.'
         nativeBoundedWorkflow = 'A customer-facing workflow publishes and runs natively, but the complete optional third-party dependency surface is not claimed.'
         nativeExecutable = 'The production CLI publishes as a native executable and starts successfully.'
+        nativeWindowsDriver = 'The Windows x64 shared library publishes with NativeAOT and executes through the operating system driver manager.'
         nativeBuildAnalyzer = 'The build-time analyzer emits code that compiles into and executes from a NativeAOT consumer; the analyzer is not deployed as a runtime assembly.'
         managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
         managedWindows = 'The package is validated in its supported managed Windows deployment model rather than advertised for NativeAOT.'

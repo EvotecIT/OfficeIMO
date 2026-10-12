@@ -39,24 +39,31 @@ namespace OfficeIMO.Odbc {
         [UnmanagedCallersOnly(EntryPoint = "SQLFreeHandle")]
         internal static short SQLFreeHandle(short kind, nint id) => DriverHandles.With<DriverHandle>(id, handle => {
             if (handle.Kind != kind) return -2;
+            if (handle is StatementHandle statement) { ReleaseStatement(id, statement); return 0; }
             lock (DriverHandles.All) {
                 if (handle is DescriptorHandle) return handle.Fail("HY017", "Implicit descriptors belong to their statement.");
                 if (DriverHandles.All.Values.Any(child => child.Parent == id && child is not DescriptorHandle)) return handle.Fail("HY010", "Free child handles first.");
-                if (handle is StatementHandle statement) {
-                    foreach (nint descriptor in statement.Descriptors.Values) {
-                        if (DriverHandles.All.TryRemove(descriptor, out DriverHandle? owned)) {
-                            lock (owned.Sync) owned.Freed = true;
-                        }
-                    }
-                }
                 handle.Freed = true;
                 DriverHandles.All.TryRemove(id, out _);
             }
             // Disposal may wait for provider resources; do not hold the process-wide registry lock.
-            if (handle is StatementHandle closing) closing.CloseCursor();
             if (handle is ConnectionHandle connection) { connection.Snapshot?.Dispose(); connection.Snapshot = null; }
             return 0;
         });
+
+        // Callers hold the connection and statement gates in that order.
+        private static void ReleaseStatement(nint id, StatementHandle statement) {
+            lock (DriverHandles.All) {
+                foreach (nint descriptor in statement.Descriptors.Values) {
+                    if (DriverHandles.All.TryRemove(descriptor, out DriverHandle? owned)) {
+                        lock (owned.Sync) owned.Freed = true;
+                    }
+                }
+                statement.Freed = true;
+                DriverHandles.All.TryRemove(id, out _);
+            }
+            statement.CloseCursor();
+        }
 
         [UnmanagedCallersOnly(EntryPoint = "SQLSetEnvAttr")]
         internal static short SQLSetEnvAttr(nint id, int attribute, nint value, int length) =>

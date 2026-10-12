@@ -53,7 +53,7 @@ namespace OfficeIMO.Odbc {
                         if (!Matches(definition.Name, field)) continue;
                         short type = definition.Type == typeof(double) ? (short)8 : definition.Type == typeof(bool) ? (short)-7 : definition.Type == typeof(DateTime) ? (short)93 : (short)-9;
                         result.Rows.Add(DBNull.Value, DBNull.Value, item.Name, definition.Name, type, NativeValue.TypeName(type),
-                            (int)NativeValue.ColumnSize(type), (int)NativeValue.OctetLength(type), (short)(type == 93 ? 7 : 0),
+                            (int)NativeValue.CatalogColumnSize(type), (int)NativeValue.CatalogOctetLength(type), type == 8 ? DBNull.Value : (object)(short)(type == 93 ? 7 : 0),
                             type is 8 or -7 ? (object)(short)10 : DBNull.Value, (short)1, DBNull.Value, DBNull.Value,
                             (short)(type == 93 ? 9 : type), type == 93 ? (object)(short)3 : DBNull.Value,
                             type == -9 ? (object)(64 * 1024 * 1024) : DBNull.Value, i + 1, "YES");
@@ -78,11 +78,11 @@ namespace OfficeIMO.Odbc {
                 ("SQL_DATETIME_SUB", typeof(short)), ("NUM_PREC_RADIX", typeof(int)), ("INTERVAL_PRECISION", typeof(short))]);
             foreach (short type in new short[] { -9, -7, -5, 5, 4, 8, 93 }) {
                 if (selected != 0 && selected != type) continue;
-                result.Rows.Add(NativeValue.TypeName(type), type, (int)NativeValue.ColumnSize(type), type is -9 or 93 ? "'" : DBNull.Value,
+                result.Rows.Add(NativeValue.TypeName(type), type, type == 8 ? 53 : (int)NativeValue.CatalogColumnSize(type), type is -9 or 93 ? "'" : DBNull.Value,
                     type is -9 or 93 ? "'" : DBNull.Value, DBNull.Value, (short)1, (short)(type == -9 ? 1 : 0), (short)3,
                     type is -9 or 93 ? DBNull.Value : (short)0, (short)0, (short)0, NativeValue.TypeName(type), (short)0,
                     (short)(type == 93 ? 7 : 0), (short)(type == 93 ? 9 : type), type == 93 ? (object)(short)3 : DBNull.Value,
-                    type is -9 or 93 ? DBNull.Value : 10, DBNull.Value);
+                    type is -9 or 93 ? DBNull.Value : type == 8 ? 2 : 10, DBNull.Value);
             }
             SetMetadata(statement, result);
             return 0;

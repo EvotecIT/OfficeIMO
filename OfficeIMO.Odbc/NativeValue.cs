@@ -19,9 +19,13 @@ namespace OfficeIMO.Odbc {
                 managed == typeof(byte[]) ? (short)-3 : (short)-9;
         }
 
-        internal static nuint ColumnSize(short sqlType) => sqlType switch { 8 => 15, -5 => 19, 4 => 10, 5 => 5, -7 => 1, 93 => 27, _ => 32 * 1024 * 1024 };
-        internal static short Precision(short sqlType) => sqlType switch { 8 => 15, -5 => 19, 4 => 10, 5 => 5, -7 => 1, 93 => 7, _ => 0 };
-        internal static nint OctetLength(short sqlType) => sqlType switch { -9 => 64 * 1024 * 1024, -7 => 1, 5 => 2, 4 => 4, 93 => 16, _ => 8 };
+        // SELECT expressions can exceed imported-cell bounds; unknown variable result sizes are not maxima.
+        internal static nuint ColumnSize(short sqlType) => sqlType switch { 8 => 15, -5 => 19, 4 => 10, 5 => 5, -7 => 1, 93 => 27, _ => 0 };
+        internal static nuint CatalogColumnSize(short sqlType) => sqlType == -9 ? 32 * 1024 * 1024 : ColumnSize(sqlType);
+        internal static short Precision(short sqlType) => sqlType switch { 8 => 53, -5 => 19, 4 => 10, 5 => 5, -7 => 1, 93 => 7, _ => 0 };
+        internal static nint OctetLength(short sqlType) => sqlType switch { -9 or -3 => -4, -7 => 1, 5 => 2, 4 => 4, 93 => 16, _ => 8 };
+        internal static nint CatalogOctetLength(short sqlType) => sqlType == -9 ? 64 * 1024 * 1024 : OctetLength(sqlType);
+        internal static nint DisplaySize(short sqlType) => sqlType switch { 8 => 24, -5 => 20, 4 => 11, 5 => 6, -9 or -3 => -4, _ => (nint)ColumnSize(sqlType) };
         internal static string TypeName(short sqlType) => sqlType switch { 8 => "DOUBLE", -5 => "BIGINT", 4 => "INTEGER", 5 => "SMALLINT", -7 => "BIT", 93 => "TIMESTAMP", -3 => "VARBINARY", _ => "WVARCHAR" };
 
         internal static short Write(StatementHandle statement, ushort column, short targetType, nint buffer, nint capacity, nint indicator, bool advance) {

@@ -10,7 +10,10 @@ namespace OfficeIMO.Odbc {
         internal static short SQLPrepare(nint id, nint sql, int length) => Prepare(id, sql, length, false);
         private static short Prepare(nint id, nint sql, int length, bool wide) => DriverHandles.With<StatementHandle>(id, statement => {
             statement.CloseCursor();
-            statement.Sql = QueryEnvelope.Prepare(NativeText.Read(sql, length, wide), out statement.ParameterCount);
+            statement.Sql = null;
+            statement.ParameterCount = 0;
+            statement.Sql = QueryEnvelope.Prepare(NativeText.Read(sql, length, wide), out int parameterCount);
+            statement.ParameterCount = parameterCount;
             return 0;
         });
 
@@ -20,7 +23,10 @@ namespace OfficeIMO.Odbc {
         internal static short SQLExecDirect(nint id, nint sql, int length) => Direct(id, sql, length, false);
         private static short Direct(nint id, nint sql, int length, bool wide) => DriverHandles.With<StatementHandle>(id, statement => {
             statement.CloseCursor();
-            statement.Sql = QueryEnvelope.Prepare(NativeText.Read(sql, length, wide), out statement.ParameterCount);
+            statement.Sql = null;
+            statement.ParameterCount = 0;
+            statement.Sql = QueryEnvelope.Prepare(NativeText.Read(sql, length, wide), out int parameterCount);
+            statement.ParameterCount = parameterCount;
             return Execute(statement, false);
         });
 
@@ -58,7 +64,7 @@ namespace OfficeIMO.Odbc {
 
         [UnmanagedCallersOnly(EntryPoint = "SQLFetchScroll")]
         internal static short SQLFetchScroll(nint id, short orientation, nint offset) => DriverHandles.With<StatementHandle>(id, statement =>
-            orientation == 1 && offset == 0 ? Fetch(statement) : statement.Fail("HYC00", "Only forward-only SQL_FETCH_NEXT is supported."));
+            orientation == 1 ? Fetch(statement) : statement.Fail("HY106", "Only forward-only SQL_FETCH_NEXT is supported."));
 
         private static short Fetch(StatementHandle statement) {
             statement.OnRow = false;

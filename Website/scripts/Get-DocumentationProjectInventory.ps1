@@ -22,6 +22,7 @@ $validationProjects = @($allProjects | Where-Object {
         'OfficeIMO.MarkdownRenderer.SamplePlugin',
         'OfficeIMO.Access.Verification',
         'OfficeIMO.DjVu.Verification',
+        'OfficeIMO.Odbc.Verification',
         'OfficeIMO.Project.Verification',
         'OfficeIMO.Project.IndependentVerification',
         'OfficeIMO.Project.ReportVerification'

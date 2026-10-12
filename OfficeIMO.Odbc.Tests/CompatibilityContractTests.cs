@@ -1,0 +1,194 @@
+using System.Data;
+using Xunit;
+
+namespace OfficeIMO.Odbc.Tests {
+    public sealed class CompatibilityContractTests {
+        [Fact]
+        public unsafe void DiagnosticHeaderWidthsMatchTheirFieldIdentifiers() {
+            using NativeHandles handles = new();
+            delegate* unmanaged<short, nint, short, short, nint, short, short*, short> get = &Exports.SQLGetDiagFieldW;
+            long* output = stackalloc long[2];
+            output[0] = 123;
+            output[1] = 456;
+            Assert.Equal(-1, get(3, handles.Statement, 0, 1, (nint)output, 0, null));
+            Assert.Equal(123, output[0]);
+            Assert.Equal(456, output[1]);
+            Assert.Equal(0, get(3, handles.Statement, 0, 3, (nint)output, 0, null));
+            Assert.Equal(-1, output[0]);
+            Assert.Equal(456, output[1]);
+        }
+
+        [Theory]
+        [InlineData(false, "DELETE FROM Customers")]
+        [InlineData(true, "DELETE FROM Customers")]
+        [InlineData(false, "SELECT ?1")]
+        [InlineData(true, "SELECT ?1")]
+        [InlineData(false, "markers")]
+        [InlineData(true, "markers")]
+        public unsafe void FailedReplacementLeavesTheStatementUnprepared(bool direct, string rejected) {
+            using NativeHandles handles = new();
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            statement.Sql = "SELECT @p1";
+            statement.ParameterCount = 1;
+            delegate* unmanaged<nint, nint, int, short> prepare = direct ? &Exports.SQLExecDirectW : &Exports.SQLPrepareW;
+            delegate* unmanaged<nint, short> execute = &Exports.SQLExecute;
+            if (rejected == "markers") rejected = "SELECT " + string.Join(",", Enumerable.Repeat("?", 257));
+            fixed (char* sql = rejected) Assert.Equal(-1, prepare(handles.Statement, (nint)sql, -3));
+            Assert.Null(statement.Sql);
+            Assert.Equal(0, statement.ParameterCount);
+            Assert.Equal(-1, execute(handles.Statement));
+            Assert.Equal("HY010", Assert.Single(statement.Diagnostics).State);
+        }
+
+        [Theory]
+        [InlineData(-12)]
+        [InlineData(12)]
+        public unsafe void FetchNextIgnoresTheOffset(int offset) {
+            using NativeHandles handles = new();
+            DataTable table = new();
+            table.Columns.Add("Value", typeof(string));
+            table.Rows.Add("row");
+            ((StatementHandle)DriverHandles.All[handles.Statement]).Reader = table.CreateDataReader();
+            delegate* unmanaged<nint, short, nint, short> fetch = &Exports.SQLFetchScroll;
+            Assert.Equal(0, fetch(handles.Statement, 1, offset));
+            Assert.Equal(100, fetch(handles.Statement, 1, offset));
+            Assert.Equal(-1, fetch(handles.Statement, 2, 0));
+            Assert.Equal("HY106", Assert.Single(DriverHandles.All[handles.Statement].Diagnostics).State);
+        }
+
+        [Theory]
+        [InlineData(1, 0)]
+        [InlineData(1, 1)]
+        [InlineData(2, 0)]
+        [InlineData(2, 1)]
+        public unsafe void TransactionlessCompletionIsASuccessfulNoOp(short kind, short completion) {
+            using NativeHandles handles = new();
+            delegate* unmanaged<short, nint, short, short> end = &Exports.SQLEndTran;
+            Assert.Equal(0, end(kind, kind == 1 ? handles.Environment : handles.Connection, completion));
+            Assert.Equal(-1, end(2, handles.Connection, 5));
+            Assert.Equal("HY012", Assert.Single(DriverHandles.All[handles.Connection].Diagnostics).State);
+            Assert.Equal(-2, end(3, handles.Statement, 0));
+        }
+
+        [Fact]
+        public unsafe void CapabilitiesMatchSqliteIdentifierAndSubqueryBehavior() {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            delegate* unmanaged<nint, ushort, nint, short, short*, short> get = &Exports.SQLGetInfoW;
+            ushort identifierCase = 0;
+            uint subqueries = 0;
+            Assert.Equal(0, get(handles.Connection, 93, (nint)(&identifierCase), 2, null));
+            Assert.Equal(4, identifierCase);
+            Assert.Equal(0, get(handles.Connection, 95, (nint)(&subqueries), 4, null));
+            Assert.Equal(23u, subqueries);
+            WorkbookSnapshot snapshot = ((ConnectionHandle)DriverHandles.All[handles.Connection]).Snapshot!;
+            using System.Data.Common.DbDataReader reader = snapshot.Query("SELECT \"name\" FROM \"customers\" WHERE \"amount\" IN (SELECT Amount FROM Customers)", new Dictionary<string, object?>(), CancellationToken.None);
+            Assert.True(reader.Read());
+        }
+
+        [Fact]
+        public unsafe void CatalogTruncationHasADiagnosticAndDisconnectDropsChildren() {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            nint[] descriptors = statement.Descriptors.Values.ToArray();
+            delegate* unmanaged<nint, int, nint, int, int*, short> get = &Exports.SQLGetConnectAttrW;
+            char* text = stackalloc char[2];
+            int length = 0;
+            Assert.Equal(1, get(handles.Connection, 109, (nint)text, 4, &length));
+            Assert.Equal(Path.GetFileName(fixture.FilePath).Length * 2, length);
+            Assert.Equal("01004", Assert.Single(DriverHandles.All[handles.Connection].Diagnostics).State);
+            delegate* unmanaged<nint, short> disconnect = &Exports.SQLDisconnect;
+            Assert.Equal(0, disconnect(handles.Connection));
+            Assert.True(statement.Freed);
+            Assert.False(DriverHandles.All.ContainsKey(handles.Statement));
+            Assert.All(descriptors, id => Assert.False(DriverHandles.All.ContainsKey(id)));
+            Assert.Equal(-2, disconnect(handles.Statement));
+        }
+
+        [Fact]
+        public unsafe void TypeAndColumnMetadataDistinguishBinaryAndDecimalPrecision() {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            delegate* unmanaged<nint, short, short> types = &Exports.SQLGetTypeInfoW;
+            Assert.Equal(0, types(handles.Statement, 8));
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            Assert.True(statement.Reader!.Read());
+            Assert.Equal(53, statement.Reader.GetInt32(2));
+            Assert.Equal(2, statement.Reader.GetInt32(17));
+            statement.CloseCursor();
+            DataTable table = new();
+            table.Columns.Add("Text", typeof(string));
+            table.Columns.Add("Number", typeof(double));
+            statement.Reader = table.CreateDataReader();
+            delegate* unmanaged<nint, ushort, ushort, nint, short, short*, nint*, short> column = &Exports.SQLColAttributeW;
+            nint output = 0;
+            Assert.Equal(0, column(handles.Statement, 1, 4, 0, 0, null, &output));
+            Assert.Equal((nint)0, output);
+            Assert.Equal(0, column(handles.Statement, 2, 4, 0, 0, null, &output));
+            Assert.Equal((nint)15, output);
+            Assert.Equal(0, column(handles.Statement, 2, 1005, 0, 0, null, &output));
+            Assert.Equal((nint)53, output);
+        }
+
+        [Theory]
+        [InlineData(typeof(double), 24)]
+        [InlineData(typeof(long), 20)]
+        [InlineData(typeof(int), 11)]
+        [InlineData(typeof(short), 6)]
+        [InlineData(typeof(byte[]), -4)]
+        [InlineData(typeof(string), -4)]
+        public unsafe void DisplayMetadataIncludesSignsExponentsAndBinaryEncoding(Type type, int expected) {
+            using NativeHandles handles = new();
+            DataTable table = new();
+            table.Columns.Add("Value", type);
+            ((StatementHandle)DriverHandles.All[handles.Statement]).Reader = table.CreateDataReader();
+            delegate* unmanaged<nint, ushort, ushort, nint, short, short*, nint*, short> column = &Exports.SQLColAttributeW;
+            nint output = 0;
+            Assert.Equal(0, column(handles.Statement, 1, 6, 0, 0, null, &output));
+            Assert.Equal((nint)expected, output);
+            if (type == typeof(byte[]) || type == typeof(string)) {
+                Assert.Equal(0, column(handles.Statement, 1, 1013, 0, 0, null, &output));
+                Assert.Equal((nint)(-4), output);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public unsafe void DescriptorNamesSupportNullBufferLengthQueries(bool wide) {
+            using NativeHandles handles = new();
+            DataTable table = new();
+            table.Columns.Add("Name", typeof(string));
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            statement.Reader = table.CreateDataReader();
+            delegate* unmanaged<nint, short, short, nint, int, int*, short> get = wide ? &Exports.SQLGetDescFieldW : &Exports.SQLGetDescField;
+            int length = -1;
+            Assert.Equal(0, get(statement.Descriptors[10012], 1, 1011, 0, 0, &length));
+            Assert.Equal(wide ? 8 : 4, length);
+            Assert.Equal(-1, get(statement.Descriptors[10012], 1, 1005, 0, 0, &length));
+            Assert.Equal("HY009", Assert.Single(DriverHandles.All[statement.Descriptors[10012]].Diagnostics).State);
+        }
+
+        private sealed class NativeHandles : IDisposable {
+            internal nint Environment { get; }
+            internal nint Connection { get; }
+            internal nint Statement { get; }
+            internal NativeHandles(string? path = null) {
+                Assert.Equal(0, DriverHandles.Allocate(1, 0, out nint environment));
+                Environment = environment;
+                Assert.Equal(0, DriverHandles.Allocate(2, environment, out nint connection));
+                Connection = connection;
+                if (path is not null) ((ConnectionHandle)DriverHandles.All[connection]).Snapshot = new WorkbookSnapshot(path, CancellationToken.None);
+                Assert.Equal(0, DriverHandles.Allocate(3, connection, out nint statement));
+                Statement = statement;
+            }
+            public unsafe void Dispose() {
+                delegate* unmanaged<short, nint, short> free = &Exports.SQLFreeHandle;
+                if (DriverHandles.All.ContainsKey(Statement)) Assert.Equal(0, free(3, Statement));
+                Assert.Equal(0, free(2, Connection));
+                Assert.Equal(0, free(1, Environment));
+            }
+        }
+    }
+}

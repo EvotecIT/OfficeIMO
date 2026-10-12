@@ -12,7 +12,7 @@ namespace OfficeIMO.Odbc {
 
         private static short GetDescriptorField(nint id, short record, short field, nint output, int capacity, int* length, bool wide) =>
             DriverHandles.With<DescriptorHandle>(id, descriptor => {
-                if (output == 0) return descriptor.Fail("HY009", "Output buffer is required.");
+                if (output == 0 && field != 1011) return descriptor.Fail("HY009", "Output buffer is required.");
                 StatementHandle statement = descriptor.Statement;
                 if (field == 1099) { *(short*)output = 1; if (length != null) *length = 2; return 0; }
                 if (field == 1001) {

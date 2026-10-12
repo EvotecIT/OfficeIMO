@@ -67,7 +67,9 @@ namespace OfficeIMO.Odbc {
                     if (handle.Freed) return -2;
                     if (capacity < 0) return -1;
                     if (field == 2 && output != 0) { *(int*)output = handle.Diagnostics.Count; return 0; }
-                    if (field == 3 && output != 0) { *(nint*)output = -1; return 0; }
+                    // SQL_DIAG_RETURNCODE is maintained by the Driver Manager.
+                    if (field == 1) return -1;
+                    if (field == 3 && output != 0 && handle is StatementHandle) { *(nint*)output = -1; return 0; }
                     if (record < 1 || record > handle.Diagnostics.Count) return 100;
                     DriverDiagnostic diagnostic = handle.Diagnostics[record - 1];
                     if (field == 5 && output != 0) { *(int*)output = 0; return 0; }

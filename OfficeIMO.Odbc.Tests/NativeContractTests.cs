@@ -125,7 +125,7 @@ namespace OfficeIMO.Odbc.Tests {
             }
             public unsafe void Dispose() {
                 delegate* unmanaged<short, nint, short> free = &Exports.SQLFreeHandle;
-                Assert.Equal(0, free(3, Statement));
+                if (DriverHandles.All.ContainsKey(Statement)) Assert.Equal(0, free(3, Statement));
                 Assert.Equal(0, free(2, Connection));
                 Assert.Equal(0, free(1, Environment));
             }

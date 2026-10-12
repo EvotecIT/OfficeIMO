@@ -46,7 +46,7 @@ class Manager:
             "SQLSetEnvAttr": [h, i, h, i], "SQLDriverConnectW": [h, h, w, s, p, s, p, u],
             "SQLGetDiagRecW": [s, h, s, p, p, p, s, p], "SQLDisconnect": [h],
             "SQLExecDirectW": [h, w, i], "SQLFetch": [h], "SQLGetData": [h, u, s, p, n, p],
-            "SQLNumResultCols": [h, p], "SQLCloseCursor": [h], "SQLPrepareW": [h, w, i],
+            "SQLNumResultCols": [h, p], "SQLNumParams": [h, p], "SQLCloseCursor": [h], "SQLPrepareW": [h, w, i],
             "SQLBindParameter": [h, u, s, s, s, c.c_size_t, s, p, n, p], "SQLExecute": [h],
             "SQLTablesW": [h, w, s, w, s, w, s, w, s], "SQLColumnsW": [h, w, s, w, s, w, s, w, s],
             "SQLBindCol": [h, u, s, p, n, p], "SQLFreeStmt": [h, u], "SQLCancel": [h],
@@ -54,6 +54,9 @@ class Manager:
             "SQLSetStmtAttrW": [h, i, h, i],
             "SQLGetStmtAttrW": [h, i, p, i, p], "SQLGetEnvAttr": [h, i, p, i, p],
             "SQLGetDescFieldW": [h, s, s, p, i, p], "SQLGetDiagFieldW": [s, h, s, s, p, s, p],
+            "SQLGetConnectAttrW": [h, i, p, i, p], "SQLEndTran": [s, h, s],
+            "SQLFetchScroll": [h, s, n], "SQLGetTypeInfoW": [h, s],
+            "SQLColAttributeW": [h, u, u, p, s, p, p],
         }
         for name, args in signatures.items():
             function = getattr(self.dll, name)
@@ -353,12 +356,19 @@ def verify_native_widths(driver):
     assert version.value == 380
     connection = m.allocate(2, environment)
     statement = m.allocate(3, connection)
+    descriptor = c.c_void_p()
+    canary = (c.c_int * 2)(0, 0x12345678)
     try:
         assert m.SQLSetStmtAttrW(statement, 999, None, 0) == -1
-        canary = (c.c_int * 2)(0, 0x12345678)
         m.check(m.SQLGetDiagFieldW(3, statement, 1, -1247, canary, 0, None), 3, statement)
         assert canary[0] == -1 and canary[1] == 0x12345678
-        descriptor = c.c_void_p()
+        # Identifier 3 is SQL_DIAG_ROW_COUNT (SQLLEN), not SQL_DIAG_RETURNCODE (1).
+        row_count = (c.c_ssize_t * 2)(0, 0x12345678)
+        m.check(m.SQLGetDiagFieldW(3, statement, 0, 3, row_count, 0, None), 3, statement)
+        assert row_count[0] == -1 and row_count[1] == 0x12345678
+        return_code = (c.c_short * 4)(123, 456, 789, 123)
+        assert m.SQLGetDiagFieldW(3, statement, 0, 1, return_code, 0, None) == -1
+        assert list(return_code) == [123, 456, 789, 123]
         m.check(m.SQLGetStmtAttrW(statement, 10010, c.byref(descriptor), 0, None), 3, statement)
         length = c.c_int()
         m.check(m.SQLGetDescFieldW(descriptor, 0, 25, canary, 0, c.byref(length)), 4, descriptor)
@@ -368,11 +378,92 @@ def verify_native_widths(driver):
             m.check(m.SQLGetStmtAttrW(statement, attribute, c.byref(value), 0, None), 3, statement)
             assert value.value == expected
     finally:
-        m.check(m.SQLFreeHandle(3, statement), 3, statement)
-        assert m.SQLGetDescFieldW(descriptor, 0, 25, canary, 0, None) == -2
-        m.check(m.SQLFreeHandle(2, connection), 2, connection)
-        m.check(m.SQLFreeHandle(1, environment), 1, environment)
+        try:
+            m.check(m.SQLFreeHandle(3, statement), 3, statement)
+            if descriptor.value:
+                assert m.SQLGetDescFieldW(descriptor, 0, 25, canary, 0, None) == -2
+        finally:
+            try:
+                m.check(m.SQLFreeHandle(2, connection), 2, connection)
+            finally:
+                m.check(m.SQLFreeHandle(1, environment), 1, environment)
     print("Native ABI: diagnostic/descriptor canaries, native-width attributes, ODBC version and stale handles passed.")
+
+
+def verify_native_compatibility(driver, path):
+    m = Manager(driver)
+    environment = m.allocate(1)
+    connection = m.allocate(2, environment)
+    statement = None
+    connected = False
+    try:
+        m.check(m.SQLDriverConnectW(connection, None, f"DBQ={{{path}}};ReadOnly=1;", -3, None, 0, None, 0), 2, connection)
+        connected = True
+        statement = m.allocate(3, connection)
+        catalog, length = c.create_unicode_buffer(2), c.c_int()
+        assert m.SQLGetConnectAttrW(connection, 109, catalog, c.sizeof(catalog), c.byref(length)) == 1
+        assert m.diagnostics(2, connection)[0][0] == "01004"
+        for kind, handle in [(1, environment), (2, connection)]:
+            for completion in (0, 1):
+                m.check(m.SQLEndTran(kind, handle, completion), kind, handle)
+        for info, expected in [(93, 4), (95, 23)]:
+            value = c.c_uint()
+            m.check(m.SQLGetInfoW(connection, info, c.byref(value), 4, None), 2, connection)
+            assert value.value == expected
+        m.check(m.SQLGetTypeInfoW(statement, 8), 3, statement)
+        m.check(m.SQLFetch(statement), 3, statement)
+        assert m.text(statement, 3) == "53" and m.text(statement, 18) == "2"
+        m.check(m.SQLCloseCursor(statement), 3, statement)
+        m.check(m.SQLExecDirectW(statement, 'SELECT "name", "amount" FROM "customers"', -3), 3, statement)
+        value = c.c_ssize_t()
+        for ordinal, field, expected in [(1, 4, 0), (2, 4, 15), (2, 1005, 53), (2, 6, 24), (1, 6, -4), (1, 1013, -4)]:
+            m.check(m.SQLColAttributeW(statement, ordinal, field, None, 0, None, c.byref(value)), 3, statement)
+            assert value.value == expected
+        result_descriptor = c.c_void_p()
+        m.check(m.SQLGetStmtAttrW(statement, 10012, c.byref(result_descriptor), 0, None), 3, statement)
+        m.check(m.SQLGetDescFieldW(result_descriptor, 1, 1011, None, 0, c.byref(length)), 4, result_descriptor)
+        assert length.value == 8
+        m.check(m.SQLFetchScroll(statement, 1, 123), 3, statement)
+        m.check(m.SQLCloseCursor(statement), 3, statement)
+        m.check(m.SQLExecDirectW(statement, "SELECT x'000102030405060708'", -3), 3, statement)
+        for field, expected in [(1013, -4), (6, -4), (4, 0)]:
+            m.check(m.SQLColAttributeW(statement, 1, field, None, 0, None, c.byref(value)), 3, statement)
+            assert value.value == expected
+        m.check(m.SQLFetch(statement), 3, statement)
+        binary = (c.c_ubyte * 9)()
+        size = c.c_ssize_t()
+        m.check(m.SQLGetData(statement, 1, -2, binary, 9, c.byref(size)), 3, statement)
+        assert size.value == 9 and list(binary) == list(range(9))
+        m.check(m.SQLCloseCursor(statement), 3, statement)
+        for replace in (m.SQLPrepareW, m.SQLExecDirectW):
+            m.check(m.SQLPrepareW(statement, "SELECT 1", -3), 3, statement)
+            assert replace(statement, "DELETE FROM Customers", -3) == -1
+            assert m.SQLExecute(statement) == -1
+            assert m.diagnostics(3, statement)[0][0] == "HY010"
+            assert replace(statement, "SELECT ?1", -3) == -1
+            parameter_count = c.c_short(-1)
+            m.check(m.SQLNumParams(statement, c.byref(parameter_count)), 3, statement)
+            assert parameter_count.value == 0
+        descriptor = c.c_void_p()
+        m.check(m.SQLGetStmtAttrW(statement, 10010, c.byref(descriptor), 0, None), 3, statement)
+        m.check(m.SQLDisconnect(connection), 2, connection)
+        connected = False
+        stale = statement
+        statement = None
+        assert m.SQLFreeHandle(3, stale) == -2
+        assert m.SQLGetDescFieldW(descriptor, 0, 25, c.byref(value), 0, None) == -2
+    finally:
+        try:
+            if statement:
+                m.check(m.SQLFreeHandle(3, statement), 3, statement)
+            if connected:
+                m.check(m.SQLDisconnect(connection), 2, connection)
+        finally:
+            try:
+                m.check(m.SQLFreeHandle(2, connection), 2, connection)
+            finally:
+                m.check(m.SQLFreeHandle(1, environment), 1, environment)
+    print("Native compatibility: metadata, failed prepare, fetch offsets, transactionless completion and disconnect lifetime passed.")
 
 
 if __name__ == "__main__":
@@ -392,6 +483,7 @@ if __name__ == "__main__":
                 with tempfile.TemporaryDirectory(prefix="OfficeIMO-Odbc-") as directory:
                     path = Path(directory) / "customers;Żółć.xlsx"
                     workbook(path)
+                    verify_native_compatibility(args.driver, path)
                     verify(args.registered_name, path, args.ado_consumer, args.hive)
             finally:
                 assert override(c.c_void_p(0xFFFFFFFF80000002), None) == 0

@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 301,
-    "productionComponentCount": 152,
-    "testProjectCount": 58,
+    "projectCount": 304,
+    "productionComponentCount": 153,
+    "testProjectCount": 59,
     "benchmarkProjectCount": 36,
-    "validationProjectCount": 56,
+    "validationProjectCount": 57,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54768
+    "conceptualWordCount": 54852
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 34,
       "componentIndexes": [
-        95,
         96,
         97,
         98,
@@ -49,7 +48,8 @@
         125,
         126,
         127,
-        128
+        128,
+        129
       ]
     },
     {
@@ -69,7 +69,6 @@
         30,
         31,
         54,
-        73,
         74,
         75,
         76,
@@ -78,10 +77,11 @@
         79,
         80,
         81,
-        93,
+        82,
         94,
-        137,
-        138
+        95,
+        138,
+        139
       ]
     },
     {
@@ -99,9 +99,9 @@
         70,
         71,
         72,
-        92,
-        132,
-        151
+        93,
+        133,
+        152
       ]
     },
     {
@@ -125,20 +125,20 @@
         36,
         37,
         38,
-        85,
         86,
         87,
         88,
         89,
         90,
-        139,
+        91,
         140,
         141,
         142,
         143,
         144,
         145,
-        146
+        146,
+        147
       ]
     },
     {
@@ -165,11 +165,11 @@
         58,
         59,
         60,
-        83,
         84,
-        129,
+        85,
         130,
-        131
+        131,
+        132
       ]
     },
     {
@@ -183,7 +183,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 25,
+      "componentCount": 26,
       "componentIndexes": [
         0,
         2,
@@ -200,16 +200,17 @@
         24,
         68,
         69,
-        82,
-        91,
-        133,
+        73,
+        83,
+        92,
         134,
         135,
         136,
-        147,
+        137,
         148,
         149,
-        150
+        150,
+        151
       ]
     }
   ],
@@ -637,7 +638,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1143,
+      "sourceFileCount": 1144,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1162,6 +1163,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ocr-tesseract/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Ocr.Tesseract"
+    },
+    {
+      "name": "OfficeIMO.Odbc",
+      "packageId": "OfficeIMO.Odbc",
+      "category": "Specialized components",
+      "description": "Read-only native ODBC access to OfficeIMO Excel workbook snapshots.",
+      "kind": "library",
+      "projectPath": "OfficeIMO.Odbc/OfficeIMO.Odbc.csproj",
+      "sourceFileCount": 14,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": null
     },
     {
       "name": "OfficeIMO.OneNote",
@@ -2028,7 +2042,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 778,
+      "sourceFileCount": 779,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",

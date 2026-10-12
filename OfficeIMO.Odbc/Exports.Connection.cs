@@ -36,8 +36,8 @@ namespace OfficeIMO.Odbc {
         [UnmanagedCallersOnly(EntryPoint = "SQLDisconnect")]
         internal static short SQLDisconnect(nint id) => DriverHandles.With<ConnectionHandle>(id, handle => {
             if (handle.Snapshot is null) return handle.Fail("08003", "Connection is not open.");
-            foreach (KeyValuePair<nint, DriverHandle> entry in DriverHandles.All.Where(entry => entry.Value.Parent == id)) {
-                lock (entry.Value.Sync) ((StatementHandle)entry.Value).CloseCursor();
+            foreach (KeyValuePair<nint, DriverHandle> entry in DriverHandles.All.Where(entry => entry.Value.Parent == id).ToArray()) {
+                lock (entry.Value.Sync) ReleaseStatement(entry.Key, (StatementHandle)entry.Value);
             }
             handle.Snapshot.Dispose();
             handle.Snapshot = null;
@@ -66,6 +66,7 @@ namespace OfficeIMO.Odbc {
                     short result = NativeText.Write(handle.Snapshot is null ? "" : System.IO.Path.GetFileName(handle.Snapshot.Path), output,
                         wide ? capacity / 2 : capacity, &actual, wide);
                     if (length != null) *length = actual * (wide ? 2 : 1);
+                    if (result == 1) handle.Diagnostics.Add(new("01004", "Current catalog was truncated."));
                     return result;
                 }
                 if (output == 0) return handle.Fail("HY009", "Output buffer is required.");
@@ -77,6 +78,7 @@ namespace OfficeIMO.Odbc {
 
         [UnmanagedCallersOnly(EntryPoint = "SQLEndTran")]
         internal static short SQLEndTran(short kind, nint id, short completion) => DriverHandles.With<DriverHandle>(id, handle =>
-            kind != handle.Kind ? (short)-2 : handle.Fail("HYC00", "Workbook snapshots do not support transactions."));
+            kind != handle.Kind || kind is not (1 or 2) ? (short)-2 :
+                completion is 0 or 1 ? (short)0 : handle.Fail("HY012", "Invalid transaction completion type."));
     }
 }
