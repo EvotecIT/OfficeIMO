@@ -383,8 +383,7 @@ public static partial class OfficeDrawingRasterRenderer {
         OfficeCurveFlattening.RoundedRectangle(0D, 0D, width, height, radius, radius, pixelsPerUnit);
 
     private static double GetShapePixelScale(OfficeDrawingShape shape, double scale) {
-        OfficeTransform transform = shape.Shape.Transform ?? OfficeTransform.Identity;
-        return scale * Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12 + transform.M21 * transform.M21 + transform.M22 * transform.M22);
+        return OfficeStrokeGeometry.LocalFlatteningDensity(shape.Shape.Transform ?? OfficeTransform.Identity, scale);
     }
     private static List<OfficePoint> TransformShapePoints(OfficeDrawingShape drawingShape, IReadOnlyList<OfficePoint> points, double scale) {
         List<OfficePoint> transformed = new List<OfficePoint>(points.Count);
@@ -491,9 +490,19 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static IReadOnlyList<OfficeDrawingShape> CreateShadowShapes(OfficeDrawingShape drawingShape) {
         OfficeShape shape = drawingShape.Shape;
+        IReadOnlyList<OfficeShadowLayer> layers = CreateShadowLayers(shape);
+        var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
+        for (int index = 0; index < layers.Count; index++) {
+            shadowShapes.Add(CreateShadowShape(drawingShape, shape.Shadow!, layers[index]));
+        }
+        return shadowShapes;
+    }
+
+    // Importers measure the same emitted layers without cloning path geometry.
+    internal static IReadOnlyList<OfficeShadowLayer> CreateShadowLayers(OfficeShape shape) {
         OfficeShadow? shadow = shape.Shadow;
         if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) {
-            return Array.Empty<OfficeDrawingShape>();
+            return Array.Empty<OfficeShadowLayer>();
         }
 
         bool hasStroke = shape.Kind == OfficeShapeKind.Line ||
@@ -504,7 +513,7 @@ public static partial class OfficeDrawingRasterRenderer {
         bool hasFill = shape.Kind != OfficeShapeKind.Line &&
             (shape.FillRadialGradient != null || shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
         double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
-        IReadOnlyList<OfficeShadowLayer> layers = OfficeShadowLayerPlanner.Create(
+        return OfficeShadowLayerPlanner.Create(
             shadow.Opacity,
             shadow.BlurRadius,
             baseStrokeWidth,
@@ -512,12 +521,6 @@ public static partial class OfficeDrawingRasterRenderer {
             hasStroke,
             OfficeShadowLayerPlanner.CanExpand(shape),
             Math.Min(shape.Width, shape.Height));
-        var shadowShapes = new List<OfficeDrawingShape>(layers.Count);
-        for (int index = 0; index < layers.Count; index++) {
-            OfficeShadowLayer layer = layers[index];
-            shadowShapes.Add(CreateShadowShape(drawingShape, shadow, layer));
-        }
-        return shadowShapes;
     }
 
     private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, OfficeShadowLayer layer) {

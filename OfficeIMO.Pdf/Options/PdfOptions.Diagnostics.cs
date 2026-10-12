@@ -1,6 +1,14 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfOptions {
+    internal void AddUnassessedLayoutWarning(string code, string source, string message) {
+        if (_diagnosticsReport == null) return;
+        string key = code + "|" + source + "|" + message;
+        if (!(_reportedLayoutDiagnostics ??= new HashSet<string>()).Add(key)) return;
+        _diagnosticsReport.Add(new PdfConversionWarning(_diagnosticsConverter, code, source, message,
+            PdfConversionWarningSeverity.Information, OfficeConversionLossKind.Unassessed));
+    }
+
     internal void AddLayoutDiagnostic(
         string code,
         string source,

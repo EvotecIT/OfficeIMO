@@ -9,7 +9,7 @@
     "validationProjectCount": 57,
     "apiReferenceCount": 122,
     "conceptualPageCount": 125,
-    "conceptualWordCount": 54786
+    "conceptualWordCount": 54784
   },
   "categories": [
     {
@@ -455,7 +455,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1055,
+      "sourceFileCount": 1060,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -1300,7 +1300,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1391,
+      "sourceFileCount": 1397,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1430,7 +1430,7 @@
       "description": "Managed Microsoft Publisher publication recovery with positioned drawing pages and fidelity reports.",
       "kind": "package",
       "projectPath": "OfficeIMO.Publisher/OfficeIMO.Publisher.csproj",
-      "sourceFileCount": 29,
+      "sourceFileCount": 34,
       "referencingTestProjectCount": 0,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
