@@ -48,20 +48,26 @@ The merged cross-reference map is committed at [`Website/data/xrefmap.json`](../
 
 ### PSWriteOffice PowerShell API
 
-Generated from a synced `PSWriteOffice` repo snapshot when available, with checked-in website fallback inputs under:
+The PowerShell reference uses the PSWriteOffice release pinned in `Website/site.json`, with checked-in fallback inputs under:
 
 - [`Website/data/apidocs/powershell/PSWriteOffice-Help.xml`](../Website/data/apidocs/powershell/PSWriteOffice-Help.xml)
+- [`Website/data/apidocs/powershell/bundle-manifest.json`](../Website/data/apidocs/powershell/bundle-manifest.json)
+- [`Website/data/pswriteoffice_command_catalog.json`](../Website/data/pswriteoffice_command_catalog.json)
+- [`Website/data/apidocs/powershell/documentation-manifest.json`](../Website/data/apidocs/powershell/documentation-manifest.json)
 - [`Website/data/apidocs/powershell/examples/`](../Website/data/apidocs/powershell/examples/)
 
 Those inputs are refreshed by [`Website/scripts/Sync-PSWriteOfficeApiDocs.ps1`](../Website/scripts/Sync-PSWriteOfficeApiDocs.ps1).
 
 The sync script:
 
-- looks for a synced or local `PSWriteOffice` repo
-- prefers `Docs/Generated/PSWriteOffice-help.xml` from that repo
-- falls back to `Artefacts/Unpacked/Modules/PSWriteOffice/en-US/PSWriteOffice-help.xml`
-- mirrors the repo `Examples/` folder into the website fallback folder
-- preserves clean-checkout behavior when the source repo is unavailable
+- requires an available source checkout to be clean and at the configured release commit
+- validates the API bundle's manifest, help, metadata, command names, commit, and component fingerprints before importing it
+- generates the documentation catalog through that release's `Build/Export-WebsiteDocumentationCatalog.ps1` and imports its documentation pages together, after checking that the tracked pages are present
+- records separate fingerprints for the generated catalog and its version-pinned website links; a caller-supplied API export cannot replace the documentation catalog
+- mirrors the pinned source's `Examples/` folder into the website fallback folder
+- validates checked-in API and documentation catalog evidence before using fallback content when source inputs are unavailable
+
+`-ExportedArtifactsRoot` selects an API bundle and requires an explicit `-PSWriteOfficeRoot`. Documentation still comes from that verified source checkout. `Test-DocumentationContracts.ps1` includes catalog integrity checks, including stale catalogs with unchanged command totals and equivalent Windows/Linux text checkouts.
 
 ## CI / GitHub Pages
 
