@@ -39,15 +39,17 @@ public sealed partial class OfficeDrawing {
                 foreach (OfficeRichTextParagraph paragraph in richText.Paragraphs) {
                     var paragraphRuns = new List<OfficeRichTextRun>(paragraph.Runs.Count);
                     foreach (OfficeRichTextRun run in paragraph.Runs) paragraphRuns.Add(TintRichTextRun(run, tint));
-                    paragraphs.Add((paragraph.Label == null
+                    OfficeRichTextParagraph tinted = (paragraph.Label == null
                         ? new OfficeRichTextParagraph(paragraphRuns, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)
-                        : new OfficeRichTextParagraph(paragraphRuns, paragraph.Label.WithRun(TintRichTextRun(paragraph.Label.Run, tint)), paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)).WithTabStops(TintTabStops(paragraph.TabStops, tint)));
+                        : new OfficeRichTextParagraph(paragraphRuns, paragraph.Label.WithRun(TintRichTextRun(paragraph.Label.Run, tint)), paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor)).WithTabStops(TintTabStops(paragraph.TabStops, tint));
+                    tinted.ContinuesInNextRegion = paragraph.ContinuesInNextRegion;
+                    paragraphs.Add(tinted);
                 }
                 replacement = new OfficeDrawingRichText(
                     runs, richText.X, richText.Y, richText.Width, richText.Height, richText.Alignment,
                     richText.LineHeight, richText.VerticalAlignment, richText.RotationDegrees,
                     richText.RotationCenterX, richText.RotationCenterY, richText.WrapText, richText.ShrinkToFit,
-                    richText.FlipHorizontal, richText.FlipVertical, richText.Padding, richText.ParagraphIndent)
+                    richText.FlipHorizontal, richText.FlipVertical, richText.Padding, richText.ParagraphIndent, allowOverflow: true)
                     .WithParagraphs(paragraphs).WithTextAreaAlignment(richText.TextAreaAlignment);
                 ((OfficeDrawingRichText)replacement).NormalizeHorizontalPaint = richText.NormalizeHorizontalPaint;
             } else if (current is OfficeDrawingGroup group) {

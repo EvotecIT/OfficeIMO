@@ -89,6 +89,21 @@ $nonNativeValidated = @(
         evidence = 'Native MDB/ACCDB reading, inert application inspection, unchanged preservation and Jet 4/ACE 12 creation are qualified through managed .NET tests and independent Access/DAO evidence; no dedicated NativeAOT qualification host is claimed.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Publisher'
+        classification = 'managed-cross-platform'
+        evidence = 'Bounded native Publisher decoding, styled text flow and page SVG reconstruction are qualified through managed .NET tests and independent-producer fixtures; no dedicated whole-library NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Publisher.Pdf'
+        classification = 'managed-cross-platform'
+        evidence = 'The Publisher PDF bridge is qualified through managed conversion tests and packed .NET consumers; the PDF owner NativeAOT host does not qualify the complete bridge.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.Reader.Publisher'
+        classification = 'managed-cross-platform'
+        evidence = 'The modular Publisher Reader adapter is qualified through managed extraction, registration, transport and packed-consumer tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.DjVu'
         classification = 'managed-cross-platform'
         evidence = 'Managed DjVu source, Reader and searchable PDF contracts are qualified through .NET tests and independent artifact comparisons; no complete NativeAOT qualification is claimed.'
@@ -122,6 +137,11 @@ $nonNativeValidated = @(
         name = 'OfficeIMO.ChartForgeX.Markdown'
         classification = 'managed-cross-platform'
         evidence = 'Static Mermaid Word/PDF/HTML/PowerPoint integration, packed .NET 8 and 10 consumers and .NET Framework 4.7.2 cross-compilation are validated; complete adapter NativeAOT qualification is separate.'
+    }
+    [ordered]@{
+        name = 'OfficeIMO.ChartForgeX.Examples'
+        classification = 'managed-cross-platform'
+        evidence = 'The document-delivery example is a managed .NET application qualified through saved-format and rendered artifact checks; NativeAOT execution is not claimed.'
     }
     [ordered]@{
         name = 'OfficeIMO.Browser'
