@@ -61,6 +61,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Xlsb_StreamingSnapshot_NumericSchemaPreservesMissingValuesWithOrWithoutHeaders(bool includeHeaders) {
+            var rows = new (int? Id, double? Value, bool? Enabled)[] {
+                (1, 1.5, true),
+                (null, 2.5, false),
+                (3, null, null),
+            };
+            using ExcelDocument document = ExcelDocument.Create();
+            document.AddWorksheet("Data").InsertObjects(rows, includeHeaders, startRow: 1,
+                ("Id", static row => row.Id), ("Value", static row => row.Value), ("Enabled", static row => row.Enabled));
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = false });
+
+            Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package,
+                new ExcelReadOptions { HasHeaderRow = includeHeaders });
+            Assert.Equal(3, reader.FieldCount);
+            if (includeHeaders) {
+                Assert.Equal(new[] { "Id", "Value", "Enabled" }, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName));
+            }
+            foreach (var row in rows) {
+                Assert.True(reader.Read());
+                Assert.Equal(!row.Id.HasValue, reader.IsDBNull(0));
+                Assert.Equal(!row.Value.HasValue, reader.IsDBNull(1));
+                Assert.Equal(!row.Enabled.HasValue, reader.IsDBNull(2));
+                if (row.Id.HasValue) Assert.Equal(row.Id.Value, reader.GetInt32(0));
+                if (row.Value.HasValue) Assert.Equal(row.Value.Value, reader.GetDouble(1));
+                if (row.Enabled.HasValue) Assert.Equal(row.Enabled.Value, reader.GetBoolean(2));
+            }
+            Assert.False(reader.Read());
+            Assert.False(reader.NextResult());
+        }
+
+        [Theory]
         [InlineData(false, false)]
         [InlineData(true, false)]
         [InlineData(false, true)]

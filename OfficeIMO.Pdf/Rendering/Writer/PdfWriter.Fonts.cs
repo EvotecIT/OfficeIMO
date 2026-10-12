@@ -160,6 +160,7 @@ internal static partial class PdfWriter {
     }
 
     private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
+        featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         if (!string.IsNullOrEmpty(text) && ContainsLineBreak(text!)) {
             return MaxLineWidthForOptions(text!, font, fontSize, options, featureSettings);
         }
@@ -185,7 +186,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         if (options != null &&
@@ -209,7 +210,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);
@@ -232,6 +233,7 @@ internal static partial class PdfWriter {
         double fontSize,
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null) {
+        featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         if (!string.IsNullOrEmpty(text) && ContainsLineBreak(text!)) {
             return MaxLineWidthForOptions(text!, fallbackFont, namedFont, fontSize, options, featureSettings);
         }
@@ -258,7 +260,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         if (namedFont.HasValue &&
@@ -283,7 +285,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language, featureSettings, options.UseFontUnitTextLayout);
         }
 
         return EstimateSimpleTextWidthForOptions(text, fallbackFont, fontSize, options, featureSettings);

@@ -3,6 +3,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$null = & (Join-Path $PSScriptRoot 'Test-PSWriteOfficeCatalog.ps1') -SiteRoot $SiteRoot
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-Failure([string] $Message) { $failures.Add($Message) }
@@ -510,6 +511,26 @@ if ((@($powerShellCatalog.families | Measure-Object commandCount -Sum).Sum) -ne 
 }
 if ($powerShellCatalog.module.aliasCount -lt 0) {
     Add-Failure 'The PSWriteOffice snapshot alias count cannot be negative.'
+}
+
+$apiSnapshotRoot = Join-Path $SiteRoot 'data/apidocs/powershell'
+$apiBundle = Get-Content -LiteralPath (Join-Path $apiSnapshotRoot 'bundle-manifest.json') -Raw | ConvertFrom-Json
+if ($apiBundle.schemaVersion -ne 1 -or $apiBundle.moduleName -cne 'PSWriteOffice' -or
+    $apiBundle.moduleVersion -cne $psWriteOfficeVersion -or
+    $apiBundle.sourceCommit -cne $psWriteOfficeSource[0].Ref) {
+    Add-Failure 'The PowerShell API bundle provenance must identify the imported release.'
+}
+foreach ($component in @(
+    @{ Key = 'manifest'; File = 'PSWriteOffice.psd1' },
+    @{ Key = 'help'; File = 'PSWriteOffice-Help.xml' },
+    @{ Key = 'metadata'; File = 'command-metadata.json' }
+)) {
+    $path = Join-Path $apiSnapshotRoot $component.File
+    $evidence = $apiBundle.components.($component.Key)
+    if ($null -eq $evidence -or (Get-Item -LiteralPath $path).Length -ne $evidence.bytes -or
+        (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ine $evidence.sha256) {
+        Add-Failure "The PowerShell API $($component.Key) must match its release fingerprint."
+    }
 }
 
 $codeExamplesPath = Join-Path $SiteRoot 'data\code_examples.json'

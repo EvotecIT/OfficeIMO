@@ -7,6 +7,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     private const uint OpenTypeCffScalerType = 0x4F54544F;
 
     private readonly byte[] _data;
+    private readonly PdfFontUnitLayoutMetrics _fontUnitLayoutMetrics;
     // Immutable PDF-unit widths are shared by document forks.
     private readonly int[] _advanceWidths1000;
     private readonly Dictionary<int, int> _cmap;
@@ -36,6 +37,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         Dictionary<string, TableRecord> tables,
         int cffTableLength) {
         _data = data.ToArray();
+        _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
@@ -54,6 +56,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     private PdfOpenTypeCffFontProgram(PdfOpenTypeCffFontProgram source) {
         _data = source._data;
+        _fontUnitLayoutMetrics = source._fontUnitLayoutMetrics;
         LineMetrics = source.LineMetrics;
         _tables = source._tables;
         FontName = source.FontName;
@@ -186,12 +189,16 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return _advanceWidths1000[glyphId];
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null) {
+    internal double MeasureFontUnitAdvanceWidth1000(PdfGlyphRun run, double horizontalScaling = 100D) =>
+        _fontUnitLayoutMetrics.MeasureAdvanceWidth1000(run, horizontalScaling);
+
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null, bool useFontUnitAdvances = false) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
+        if (useFontUnitAdvances) return MeasureFontUnitAdvanceWidth1000(ShapeText(text!, options)) * fontSize / 1000D;
         int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures
             ? MeasureDefaultLatinAdvanceWidth1000(text!, options)
             : ShapeText(text!, options).TotalAdvanceWidth1000;

@@ -390,7 +390,7 @@ internal static partial class PdfWriter {
                 }
 
                 double segmentStartX = xCursor;
-                PdfTextShowCommand textCommand = EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
+                PdfTextShowCommand textCommand = s.KerningCommand ?? EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale);
                 if (HasRichTextSpacing(s.HorizontalTextScaling, s.CharacterSpacing)) {
                     content.TextMatrix(lineXOrigin + xCursor, lineY);
                     ApplyRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, wordSpacing);

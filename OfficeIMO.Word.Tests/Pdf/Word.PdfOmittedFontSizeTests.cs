@@ -13,20 +13,19 @@ public sealed class WordPdfOmittedFontSizeTests {
     [InlineData("24", false, false)]
     [InlineData("20", true, false)]
     [InlineData("20", false, true)]
-    public void ConditionalLineSpacingUsesTheInheritedTableFontSize(string documentSize, bool derivedStyle, bool derivedConditional) {
+    public void ConditionalParagraphLineUnitsRetainTheirUnitWhenTheTableFontSizeChanges(string documentSize, bool derivedStyle, bool derivedConditional) {
         double plainBaseline = FirstTableBaseline(documentSize, includeSpacing: false, derivedStyle, derivedConditional);
         double spacedBaseline = FirstTableBaseline(documentSize, includeSpacing: true, derivedStyle, derivedConditional);
-        // One Arial single-line box at the inherited table size of 11pt.
-        Assert.Equal(11D * 1.15D, plainBaseline - spacedBaseline, precision: 3);
+        Assert.Equal(12D, plainBaseline - spacedBaseline, precision: 3);
     }
 
     [Theory]
-    [InlineData("Times New Roman", "Times", 1.15D)]
-    [InlineData("Calibri", "Helvetica", 1.220703125D)]
-    public void InheritedConditionalSpacingUsesTheFontFamilyAppliedToTheCell(string family, string pdfFamily, double lineRatio) {
+    [InlineData("Times New Roman", "Times")]
+    [InlineData("Calibri", "Helvetica")]
+    public void InheritedConditionalParagraphLineUnitsRetainTheirUnitWhenTheFontFamilyChanges(string family, string pdfFamily) {
         double plain = FirstTableBaseline("20", false, false, true, family, pdfFamily);
         double spaced = FirstTableBaseline("20", true, false, true, family, pdfFamily);
-        Assert.Equal(11D * lineRatio, plain - spaced, precision: 3);
+        Assert.Equal(12D, plain - spaced, precision: 3);
     }
 
     private static double FirstTableBaseline(string documentSize, bool includeSpacing, bool derivedStyle, bool derivedConditional, string? conditionalFamily = null, string? expectedPdfFamily = null) {

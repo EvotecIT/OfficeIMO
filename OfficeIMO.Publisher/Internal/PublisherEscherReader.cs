@@ -29,10 +29,12 @@ internal sealed class PublisherEscherReader {
         foreach (PublisherEscherRecord child in Records(record.Offset, record.End)) {
             if (record.Kind == 0xF003 && child.Kind == 0xF004) {
                 PublisherEscherShape? shape = ReadShape(child, childSpace);
-                if (shape != null && shape.IsGroup && shape.GroupCoordinates.HasValue && shape.Bounds.HasValue) {
-                    childSpace = new PublisherGroupSpace(shape.GroupCoordinates.Value, shape.Bounds.Value);
-                    if (shape.Transform.RotationDegrees.GetValueOrDefault() != 0 || shape.Transform.FlipHorizontal || shape.Transform.FlipVertical) _context.Add("PUB_GROUP_TRANSFORM_UNASSESSED",
-                        "Group rotation or mirroring was not applied to the flattened child scene.", OfficeConversionLossKind.Approximation, ShapeLocation(shape.Id));
+                if (shape != null && shape.IsGroup) {
+                    childSpace = new PublisherGroupSpace(shape);
+                    if (!shape.Bounds.HasValue && (shape.Transform.RotationDegrees.GetValueOrDefault() != 0
+                        || shape.Transform.FlipHorizontal || shape.Transform.FlipVertical))
+                        _context.Add("PUB_GROUP_TRANSFORM_UNRESOLVED", "A transformed group has no resolved anchor. Its inherited transform remains unavailable.",
+                            OfficeConversionLossKind.Omission, ShapeLocation(shape.Id));
                 }
             } else Visit(child, childSpace, depth + 1);
         }
@@ -49,8 +51,12 @@ internal sealed class PublisherEscherReader {
             Dictionary<ushort, uint> values = ClientValues(client);
             if (!values.TryGetValue(0x6801, out id)) return null;
         }
-        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties);
         PublisherEscherRecord? anchor = Single(children, 0xF010), childAnchor = Single(children, 0xF00F), coordinates = Single(children, 0xF009);
+        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties, relativeToParent: space.HasValue) {
+            GroupTransform = (anchor != null ? space?.ClientTransform : space?.Transform) ?? OfficeTransform.Identity,
+            LayoutTransform = (anchor != null ? space?.ClientLayoutTransform : space?.LayoutTransform) ?? OfficeTransform.Identity,
+            HiddenByGroup = space?.Hidden ?? false
+        };
         if (anchor != null) {
             Dictionary<ushort, uint> values = ClientValues(anchor);
             if (values.TryGetValue(0x2001, out uint x1) && values.TryGetValue(0x2002, out uint y1)
@@ -59,7 +65,7 @@ internal sealed class PublisherEscherReader {
         } else if (childAnchor != null) {
             _data.Range(childAnchor.Offset, 16, childAnchor.End);
             var relative = Rectangle(childAnchor.Offset);
-            if (space.HasValue) shape.Bounds = space.Value.Resolve(relative);
+            if (space.HasValue && space.Value.TryResolve(relative, out PublisherNativeRectangle resolved)) shape.Bounds = resolved;
             else _context.Add("PUB_GROUP_COORDINATES_UNRESOLVED", "A child anchor has no enclosing group coordinate system.", OfficeConversionLossKind.Omission, ShapeLocation(id));
         }
         if (coordinates != null) { _data.Range(coordinates.Offset, 16, coordinates.End); shape.GroupCoordinates = Rectangle(coordinates.Offset); }
@@ -184,9 +190,9 @@ internal sealed class PublisherEscherData {
 }
 
 internal sealed class PublisherEscherShape {
-    internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties) {
+    internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties, bool relativeToParent = false) {
         Id = id; Type = type; Flags = flags; Properties = properties;
-        Style = OfficeArtShapeStyle.Decode(properties); Transform = OfficeArtShapeTransform.Decode(flags, properties);
+        Style = OfficeArtShapeStyle.Decode(properties); Transform = OfficeArtShapeTransform.Decode(flags, properties, relativeToParent);
     }
     internal uint Id { get; }
     internal int Type { get; }
@@ -195,27 +201,11 @@ internal sealed class PublisherEscherShape {
     internal IReadOnlyList<OfficeArtProperty> Properties { get; }
     internal OfficeArtShapeStyle Style { get; }
     internal OfficeArtShapeTransform Transform { get; }
+    internal OfficeTransform GroupTransform { get; set; } = OfficeTransform.Identity;
+    internal OfficeTransform LayoutTransform { get; set; } = OfficeTransform.Identity;
+    internal bool HiddenByGroup { get; set; }
+    internal bool Hidden => HiddenByGroup || Style.Hidden == true;
     internal PublisherNativeRectangle? Bounds { get; set; }
     internal PublisherNativeRectangle? GroupCoordinates { get; set; }
-    internal uint? Property(int id) => Properties.FirstOrDefault(item => item.PropertyId == id)?.Value;
-}
-
-internal readonly struct PublisherNativeRectangle {
-    internal PublisherNativeRectangle(double x1, double y1, double x2, double y2) { X1 = x1; Y1 = y1; X2 = x2; Y2 = y2; }
-    internal double X1 { get; }
-    internal double Y1 { get; }
-    internal double X2 { get; }
-    internal double Y2 { get; }
-}
-internal readonly struct PublisherGroupSpace {
-    internal PublisherGroupSpace(PublisherNativeRectangle coordinates, PublisherNativeRectangle absolute) { Coordinates = coordinates; Absolute = absolute; }
-    internal PublisherNativeRectangle Coordinates { get; }
-    internal PublisherNativeRectangle Absolute { get; }
-    internal PublisherNativeRectangle Resolve(PublisherNativeRectangle relative) {
-        double width = Coordinates.X2 - Coordinates.X1, height = Coordinates.Y2 - Coordinates.Y1;
-        if (width == 0 || height == 0) throw new InvalidDataException("Publisher group coordinate system is degenerate.");
-        double sx = (Absolute.X2 - Absolute.X1) / width, sy = (Absolute.Y2 - Absolute.Y1) / height;
-        return new PublisherNativeRectangle(Absolute.X1 + (relative.X1 - Coordinates.X1) * sx, Absolute.Y1 + (relative.Y1 - Coordinates.Y1) * sy,
-            Absolute.X1 + (relative.X2 - Coordinates.X1) * sx, Absolute.Y1 + (relative.Y2 - Coordinates.Y1) * sy);
-    }
+    internal uint? Property(int id) => OfficeArtProperty.GetScalarProperty(Properties, id)?.Value;
 }

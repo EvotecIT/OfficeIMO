@@ -23,8 +23,7 @@ public sealed class OfficeArtShapeGeometry {
         var adjustments = new int?[AdjustmentCount];
         for (int index = 0; index < adjustments.Length; index++) {
             ushort propertyId = checked((ushort)(FirstAdjustmentPropertyId + index));
-            OfficeArtProperty? property = source.LastOrDefault(item =>
-                item.PropertyId == propertyId && !item.IsComplex);
+            OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(source, propertyId);
             if (property != null) adjustments[index] = unchecked((int)property.Value);
         }
         return new OfficeArtShapeGeometry(adjustments);

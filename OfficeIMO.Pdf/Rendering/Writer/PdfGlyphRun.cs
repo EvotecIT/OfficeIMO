@@ -99,6 +99,15 @@ internal sealed class PdfGlyphRun {
 internal sealed class PdfTextShowCommand {
     private string? _glyphHex;
 
+    /// <summary>Imported layout advance, including the requested horizontal scale, before PDF rounding.</summary>
+    internal double? FontUnitLayoutAdvanceWidth1000 { get; private set; }
+
+    internal PdfTextShowCommand WithFontUnitLayoutAdvance(double advanceWidth1000) {
+        var copy = (PdfTextShowCommand)MemberwiseClone();
+        copy.FontUnitLayoutAdvanceWidth1000 = advanceWidth1000;
+        return copy;
+    }
+
     internal PdfTextShowCommand(PdfGlyphRun run) {
         PositionedGlyphs = run.HasPositioning ? run.Glyphs : null;
         ActualText = run.ActualText;

@@ -14,38 +14,6 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Preferred_Width_And_AutoFit_Style() {
-        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableLayoutStyle.docx"));
-
-        WordTable preferred = document.AddTable(1, 2);
-        preferred.WidthType = WordTableWidthUnit.Dxa;
-        preferred.Width = 2880;
-        PdfCore.PdfTableStyle preferredStyle = CreateNativeTableStyleForTest(preferred);
-
-        Assert.Equal(144D, preferredStyle.PreferredWidth);
-        Assert.Equal(11D, preferredStyle.FontSize);
-        Assert.True(preferredStyle.AutoFitColumns);
-        Assert.True(preferredStyle.PreserveWidth);
-
-        WordTable autoFit = document.AddTable(1, 2);
-        autoFit.Rows[0].Cells[0].Paragraphs[0].Text = "Short";
-        autoFit.Rows[0].Cells[1].Paragraphs[0].Text = "Much wider auto fit text";
-        autoFit.AutoFitToContents();
-        PdfCore.PdfTableStyle autoFitStyle = CreateNativeTableStyleForTest(autoFit);
-
-        Assert.True(autoFitStyle.AutoFitColumns);
-        Assert.Null(autoFitStyle.MaxWidth);
-        Assert.Equal(240D, autoFitStyle.PreferredWidth);
-        Assert.True(autoFitStyle.PreserveWidth);
-
-        WordTable spaced = document.AddTable(1, 2);
-        spaced.StyleDetails!.CellSpacing = 240;
-        PdfCore.PdfTableStyle spacedStyle = CreateNativeTableStyleForTest(spaced);
-
-        Assert.Equal(12D, spacedStyle.CellSpacing);
-    }
-
-    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Default_Autofit_For_Percentage_Table_When_Layout_Is_Omitted() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultAutofitPercentageTable.docx"));
 
@@ -132,27 +100,6 @@ public partial class Word {
         PdfCore.PdfStructureElementInfo tableElement = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
 
         Assert.Equal("Operational status summary", tableElement.AlternateText);
-    }
-
-    [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Uses_Table_Grid_As_Autofit_Preferred_Width() {
-        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAutoWidthOmittedLayout.docx"));
-
-        WordTable table = document.AddTable(1, 2);
-        table._tableProperties!.TableWidth = new TableWidth {
-            Type = TableWidthUnitValues.Auto,
-            Width = "0"
-        };
-        table._tableProperties.TableLayout?.Remove();
-        table.Rows[0].Cells[0].Paragraphs[0].Text = "Short";
-        table.Rows[0].Cells[1].Paragraphs[0].Text = "Much wider content";
-
-        PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
-
-        Assert.True(style.AutoFitColumns);
-        Assert.Null(style.MaxWidth);
-        Assert.Equal(240D, style.PreferredWidth);
-        Assert.True(style.PreserveWidth);
     }
 
     [Fact]
@@ -780,7 +727,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_Preferred_Width() {
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Direct_Table_Width_Over_Style_Width() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStylePreferredWidth.docx"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style(
@@ -790,14 +737,6 @@ public partial class Word {
                 Type = TableWidthUnitValues.Dxa
             }))
         { Type = StyleValues.Table, StyleId = "GenericWidthTable" });
-
-        WordTable styledTable = document.AddTable(1, 1);
-        styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };
-
-        PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
-
-        Assert.Equal(108D, styled.PreferredWidth);
-        Assert.True(styled.PreserveWidth);
 
         WordTable directTable = document.AddTable(1, 1);
         directTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };

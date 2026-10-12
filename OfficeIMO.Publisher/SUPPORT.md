@@ -17,6 +17,10 @@ The generation signature does not establish qualification for every Publisher
 release or object type. Independent producer files exercise real native storage;
 they are not produced by an OfficeIMO writer.
 
+Inline OfficeArt picture data stays in the preserved source and reports omitted
+artwork; positioned reconstruction uses image-store references. Cleared picture
+references do not report missing images.
+
 ## Reconstruction
 
 | Content | Current behavior | Limit |
@@ -26,10 +30,13 @@ they are not produced by an OfficeIMO writer.
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | Native track sizes, cell spans and styled cell text | Individual cell borders, fills and padding are unassessed |
-| Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and non-solid fills report approximation; compound strokes and arrowheads remain unassessed |
-| Groups | Native child coordinate spaces and nested placement | Group rotation/mirroring reports approximation when present |
+| Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
+| Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
+| Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; marker shadows and decorations on unsupported open geometry are omitted with diagnostics |
+| Groups | Native child coordinate spaces, non-uniform scale after child rotation, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
 | Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
-| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder; recoloring and other picture effects are unassessed |
+| Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images and source crop | WMF/EMF use a supplied application codec or reported placeholder |
+| Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
@@ -55,7 +62,14 @@ from managed measurement, not claimed as native cached break positions. Later
 empty frames have zero-length ranges. Native chains are checked for reciprocal
 links, matching story ownership, consecutive ordinals, cycles and disconnected
 frames. Ambiguous unlinked roots report omission instead of guessed ordering.
-A missing printable frame stops subsequent assignment for that story.
+A missing printable frame stops subsequent assignment for that story. Frame
+`X`, `Y`, `Width` and `Height` describe its unrotated rectangle; `PageTransform`
+maps frame-local points into page-local points after object and ancestor-group
+rotation/reflection and scale. Child-anchor rotations use `relRotation` when
+explicitly stored, including zero; otherwise they use the ordinary rotation
+property. The same transforms reach artwork and rectangular wrap
+exclusions. Hidden group descendants retain their source stories and assets but
+do not paint or exclude printable text.
 
 ## Qualification and limits
 
@@ -73,6 +87,39 @@ cancellation and caller stream ownership. The native newsletter exercises ten
 linked stories, including chains whose object order differs from story order,
 and declared picture exclusions. Multi-column property and malformed-link
 mutations protect the native codec boundary; they are synthetic evidence.
+Group rotation/reflection mutations verify text-frame corners, picture placement,
+hidden-child wrapping and scene copying. A reflected picture starting above the
+page retains its pixels through the group transform and final page clip.
+Constructed nested native records check
+composition about distinct centres, quarter-turn anchor dimensions and the
+projected-item ceiling. These tests do not establish Publisher-rendered fidelity.
+Native line-property mutations check caps, joins, fixed-point miter limits,
+dash order and spacing, all five supported marker kinds, disabled strokes,
+unknown values and scene copying. SVG, raster and PDF retain open arrows as
+outlines and other markers as filled geometry. Marker dimensions and native dash
+rendering remain unqualified against Publisher-produced output.
+Native linear-fill mutations check physical and aspect-scaled angles, positive
+and negative focus, reversed ramps, duplicate color positions, transparency,
+fill-use masks and picture layering. Foreground/background opacity uses a
+common shape opacity and relative stop alpha; ratios requiring RGBA rounding
+report loss. Multi-color fills retain foreground opacity and report distinct
+background opacity as an approximation. Native shading corrections use reported
+sRGB interpolation. Custom fill rectangles and view-origin anchors retain their
+primary color with a mapping diagnostic; non-rotating fills on transformed
+frames report approximation. Other gradient, pattern, texture and background
+fill modes retain their current approximation boundary. The five supported
+producer fixtures contain no declared non-solid fills, so these record checks
+and managed SVG/raster/PDF outputs do not establish native gradient fidelity.
+Picture-control mutations exercise transparency keys before tone changes,
+brightness endpoints, contrast, preserve-grays, grayscale and two-color
+precedence. Controlled raster output in original native picture frames is
+checked through SVG, raster and reopened PDF output; original embedded payloads
+remain unchanged. Invalid or unqualified controls retain their diagnostics when
+other valid controls apply. Per-image and cumulative pixel ceilings account for
+inspected GIF frames and repeated references; cumulative encoded-byte checks
+reject repeated large-payload decoding, and codec cancellation aborts the read. These are managed
+record and artifact checks; the supported producer fixtures contain no enabled
+visible picture controls, so native Publisher pixel equivalence remains open.
 The brochure and newsletter also verify referenced style defaults, direct
 formatting precedence, native bullet labels and tab-array positions. Those
 checks compare decoded values with the native records, not Publisher-rendered
@@ -95,10 +142,22 @@ The default resource limits are 64 MiB input, 4 million source/projected text
 characters, 1 million inspected records, 250,000 source/projected items,
 512 compound streams, 1,024 document/master pages, nesting depth 64,
 16 MiB per extracted/projected image and 64 MiB aggregate image accounting.
-Application raster codec output is limited to 8 million pixels. Limits are
+Decoded picture-effect rasters and application codec output are limited to
+8 million pixels per image. Cumulative picture-effect work is limited to
+64 million pixels, charging the selected raster once for decoding and once for
+filtering, plus each inspected GIF, WebP or icon frame across all references.
+Image extraction and each actual picture decode also charge their encoded bytes
+against `Limits.MaxInputBytes`. Effect decoding fails the read when the image or
+selected codec cannot produce a raster within those bounds.
+Multi-frame effect sources use their first frame and report omitted frames;
+`Images` retains the complete payload. Limits are
 caller-configurable, reject oversized input and also account for repeated
 projection work. The input byte ceiling also bounds cumulative encoded image
 processing, and unavailable image-store entries consume the item ceiling.
+The item ceiling also bounds cumulative projected gradient-stop work, including
+focus expansion and repeated master-page projection. A native color-stop table
+supports at most 256 entries; malformed or larger tables retain primary paint
+with an invalid-gradient diagnostic.
 Delayed decoding is cached and cancellation is checked between image entries.
 The text ceiling also bounds cumulative continuation measurement, and the record
 ceiling bounds exclusion-region inspection. Native frames support at most
