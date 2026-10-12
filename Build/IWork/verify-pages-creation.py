@@ -36,14 +36,16 @@ def verify(path, descriptor):
         decoded, objects = {}, []
         assert not ({71, 72} & graph.keys())
         for identifier, (kind, payload, header) in graph.items():
-            message = decode(SCHEMAS[kind], payload)
-            decoded[identifier] = message
-            refs = creation_references(message)
+            decoded[identifier] = decode(SCHEMAS[kind], payload)
+        native_variations = 22 in decoded and graph[22][0] == 2022 and decoded[22].super.style_identifier == 'paragraph-style-default'
+        for identifier, (kind, payload, header) in graph.items():
+            message = decoded[identifier]
+            refs = creation_references(message, omit_style_sheet_backrefs=native_variations)
             if kind == 10001:
                 theme = fields(fields(payload)[1][0])
                 for field, schema in [(100, 'TSD.ThemePresetsArchive'), (110, 'TSWP.ThemePresetsArchive')]:
                     for value in theme.get(field, []):
-                        refs.update(creation_references(decode(schema, value)))
+                        refs.update(creation_references(decode(schema, value), omit_style_sheet_backrefs=native_variations))
             assert set(header.message_infos[0].object_references) == refs, identifier
             assert refs.issubset(graph.keys()), (identifier, refs - graph.keys())
             assert not header.message_infos[0].data_references
@@ -74,7 +76,8 @@ def verify(path, descriptor):
                 'text': encoded[entry.character_index * 2:end * 2].decode('utf-16-le'),
                 'font': style.font_name, 'size': style.font_size, 'bold': style.bold, 'italic': style.italic,
                 'underline': int(style.underline), 'strikethrough': int(style.strikethru)})
-        para_positions = [entry.character_index for entry in body.table_para_style.entries]
+        para_entries = [entry for entry in body.table_para_style.entries if entry.HasField('object')]
+        para_positions = [entry.character_index for entry in para_entries]
         expected_positions = [0]
         offset = 0
         for paragraph in text.splitlines(keepends=True):
@@ -82,6 +85,20 @@ def verify(path, descriptor):
             if offset < len(encoded) // 2:
                 expected_positions.append(offset)
         assert para_positions == expected_positions
+        if native_variations:
+            terminator = body.table_para_style.entries[-1]
+            assert not terminator.HasField('object') and terminator.character_index == len(encoded) // 2
+        paragraph_layouts = []
+        for entry in para_entries:
+            style = decoded[entry.object.identifier].para_properties
+            assert style.alignment == 0 and style.default_tab_stops == 36
+            assert style.first_line_indent == style.left_indent == style.right_indent == 0
+            assert style.line_spacing.mode == 0 and style.line_spacing.amount > 0
+            assert all(not tab.leader for tab in style.tabs.tabs)
+            paragraph_layouts.append({'start': entry.character_index, 'styleId': entry.object.identifier,
+                'lineSpacingMultiplier': style.line_spacing.amount, 'spaceBeforePoints': style.space_before,
+                'spaceAfterPoints': style.space_after, 'decimalTab': style.decimal_tab,
+                'tabStops': [{'positionPoints': tab.position, 'alignment': tab.alignment} for tab in style.tabs.tabs]})
         assert len(body.table_section.entries) == 1
         section = decoded[body.table_section.entries[0].object.identifier]
         assert section.section_page_number_start == 1
@@ -94,7 +111,7 @@ def verify(path, descriptor):
             'descriptorSha256': hashlib.sha256(descriptor_bytes).hexdigest(), 'recordCount': len(graph),
             'page': {'width': root.page_width, 'height': root.page_height,
                 'margins': [root.left_margin, root.right_margin, root.top_margin, root.bottom_margin]},
-            'paragraphCount': len(para_positions), 'text': text, 'runs': runs, 'objects': objects,
+            'paragraphCount': len(para_positions), 'text': text, 'runs': runs, 'paragraphLayouts': paragraph_layouts, 'objects': objects,
             'scope': 'Owned body paragraphs and graph declarations; native application acceptance is separate.'}
 
 

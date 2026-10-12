@@ -1,6 +1,7 @@
 using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.PowerPoint.IWork;
 
@@ -86,7 +87,10 @@ public static partial class PowerPointIWorkConverter {
                 paragraph.LeftMarginPoints = source.Style.LeftIndentPoints.GetValueOrDefault()
                     + layout.MarkerIndentPoints + textOffset;
                 paragraph.IndentPoints = source.Style.FirstLineIndentPoints.GetValueOrDefault() - textOffset;
-                paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
+                if (IWorkDecimalListLayout.TryResolve(source, out double markerSize, out _)) {
+                    paragraph.BulletSizePoints = checked((int)markerSize);
+                    paragraph.BulletFontName = IWorkDecimalListLayout.MarkerFontName(source);
+                } else paragraph.BulletSizePercent = checked((int)Math.Round(layout.MarkerScale * 100d));
             }
         }
     }
@@ -124,20 +128,44 @@ public static partial class PowerPointIWorkConverter {
         private readonly HashSet<int> _observedLevels = new();
         private bool _inList;
         private ulong? _listIdentifier;
+        private int? _previousQualifiedLevel;
+        private string? _markerFontName;
+        private double? _markerFontSize;
 
         internal bool StartsAtSourceLabel(IWorkTextParagraph paragraph) {
             if (paragraph.ListLevel < 0) {
                 _inList = false;
                 _listIdentifier = null;
                 _observedLevels.Clear();
+                _previousQualifiedLevel = null;
+                _markerFontName = null;
+                _markerFontSize = null;
                 return false;
             }
             if (!_inList || paragraph.ListIdentifier != _listIdentifier) {
                 _inList = true;
                 _listIdentifier = paragraph.ListIdentifier;
                 _observedLevels.Clear();
+                _previousQualifiedLevel = null;
+                _markerFontName = null;
+                _markerFontSize = null;
             }
-            return _observedLevels.Add(paragraph.ListLevel);
+            bool parentTransition = paragraph.ListNumber.HasValue && _previousQualifiedLevel.HasValue
+                && paragraph.ListLevel < _previousQualifiedLevel.Value;
+            bool markerProfileChanged = false;
+            if (paragraph.ListNumber.HasValue
+                && IWorkDecimalListLayout.TryResolve(paragraph, out double markerSize, out _)) {
+                string? markerFont = IWorkDecimalListLayout.MarkerFontName(paragraph);
+                markerProfileChanged = _previousQualifiedLevel.HasValue
+                    && (_markerFontSize != markerSize
+                        || !string.Equals(_markerFontName, markerFont, StringComparison.Ordinal));
+                _markerFontName = markerFont;
+                _markerFontSize = markerSize;
+            }
+            _previousQualifiedLevel = paragraph.ListNumber.HasValue ? paragraph.ListLevel : null;
+            // Receiving applications can start a different native sequence after
+            // a parent transition or marker-profile change. Restate the known counter.
+            return _observedLevels.Add(paragraph.ListLevel) || parentTransition || markerProfileChanged;
         }
     }
 

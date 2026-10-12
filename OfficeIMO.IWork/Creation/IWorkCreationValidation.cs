@@ -21,11 +21,12 @@ internal static class IWorkCreationValidation {
         StrictUtf8.GetByteCount(fontName);
     }
 
-    internal static string NormalizeText(string text) {
+    internal static string NormalizeText(string text, bool allowTabs = false) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
-        if (normalized.Any(character => char.IsControl(character) && character != '\n'))
-            throw new ArgumentException("Text supports line breaks but no other control characters.", nameof(text));
+        if (normalized.Any(character => char.IsControl(character) && character != '\n' && !(allowTabs && character == '\t')))
+            throw new ArgumentException(allowTabs ? "Text supports line breaks and tabs but no other control characters."
+                : "Text supports line breaks but no other control characters.", nameof(text));
         // Invalid UTF-16 must not silently change to replacement glyphs when encoded.
         StrictUtf8.GetByteCount(normalized);
         return normalized;

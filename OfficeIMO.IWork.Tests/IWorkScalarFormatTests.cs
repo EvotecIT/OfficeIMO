@@ -75,7 +75,8 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal(!customSettings, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode == "@");
-        Assert.Equal("", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Null(reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out _));
     }
 
     [Theory]

@@ -58,9 +58,20 @@ The manifest identifies the schema revision, descriptor hash and isolated number
 
 `native-exports/pages-simple-v15.4.json` pins the unchanged `nim-iwork/simple.pages` source and its Pages 15.4 DOCX/PDF exports. Reproduce them by opening a copy in Pages and choosing File > Export To > Word or PDF, with password protection off and best PDF image quality. Native controls show Times Regular 12-point text, single spacing, no custom tabs and a 36-point default tab interval. Saved DOCX comparisons check all three paragraphs including the empty paragraph, spacing, paragraph-mark font metrics, page size and margins. The native font label `Times Roman` and decoded `Times-Roman` resolve to Times in this renderer. A one-page native rendering of the saved OfficeIMO DOCX matches all seven word bounds and the 1200-pixel raster after paragraph-mark formatting is preserved. The adjacent manifest records the exact output, fonts and comparison hashes. This qualifies only the recorded fixture and renderer; larger documents, other fonts and producer versions remain open.
 
+The [paragraph-layout creation manifest](native-exports/pages-created-layout-v15.4.json) adds a seven-paragraph document with 1.25/1.5/2 relative spacing, before/after spacing, left/center/right/decimal tabs, TAB text, a blank paragraph and formatting resets. `IWorkPagesParagraphWritingTests.Example()` reproduces its deterministic 8,450-byte input. The 37-object graph uses native paragraph variations, a named default parent and the paragraph table's null end marker. The Apple-saved edit retains the requested layout after close/reopen. Its complete body text, spacing and tabs agree with the native Word export under an independent pinned-schema decoder:
+
+```text
+python Build/IWork/verify-pages-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-v15.4.pages --descriptor <pages-descriptor.pb> --out <created-graph.json>
+python Build/IWork/extract-pages-native-layout.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-edited-v15.4.pages --descriptor <pages-descriptor.pb> --docx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-v15.4.docx --out <native-layout.json>
+```
+
+The native PDF and the Pages rendering of OfficeIMO's strict DOCX each contain all 75 words on one page. The DOCX stores the source period separator; Pages 15.4 reimport still shifts `123.45` left by 15.0146 points. The other 74 word bounds agree. The manifest retains both inspected outputs and this rendering boundary. Newly authored fixtures use MIT; the native PDF's installed-font subsets do not establish other font environments.
+
 ## Pages paragraph spacing and decimal counters
 
 `native-exports/pages-paragraph-list-v15.4.json` pins a native Pages 15.4 derivative of the licensed `nim-iwork/simple.pages` fixture. Its parent style uses 1.5 spacing and a 180-point left tab; the second paragraph overrides these with 2.0 spacing and a 216-point tab, and the third resets to single spacing and no custom tabs. A non-tiered, level-zero decimal list visibly numbers four paragraphs as 7, 8, 3, 4. The native source, DOCX, complete one-page PDF and screenshot are hashed. Independent numbers-parser 4.19.0 schemas identify storage field `14` starts and zero continuation, the selected decimal kind and disabled tiered numbering.
+
+`native-exports/pages-list-continuation-v15.4.json` pins an Apple Pages 15.4 package produced from an OfficeIMO-owned synthetic DOCX recipe. Its complete one-page native PDF visibly numbers the two levels as 7, 8, 9, 1, 2, 10, 1, 5, 6, 7, 11, 3, 4 across two ordinary-text gaps, child resets and explicit restarts. The source, native DOCX/PDF, independent decode, reconstructed DOCX and both native/composed rendered pages are hashed. Native markers use Calibri 11 points and body text uses ArialMT 12 points, with 1.5 em text offset and an 18-point nested marker indent. Saved DOCX matches the native export’s 330/690-twip left and 330-twip hanging declarations. Pages reimports every counter and exact text/marker starts, but renders the declared 11-point markers at 12 points. The composed PDF retains 11-point marker size and every counter with explicit font substitutions. Font-size roundtrip, broader typography and producer/container coverage remain separate qualification boundaries.
 
 Reproduce the reference by editing a copy in Pages, updating the parent paragraph style, applying the child overrides/resets, and using the numbered-list inspector to set starts at 7 and 3. Save before exporting Word and best-quality PDF with password/comments off. Saved OfficeIMO DOCX checks all paragraph text, effective spacing/tabs, explicit native start overrides and the native 393-twip list indentation. Reader checks all four counters. Original MIT attribution applies; the selected installed Times font and native DOCX marker-font fallback are recorded in the manifest. Other list levels, scripts, mixed marker sizes, interacting indents, text containers and producers need additional native references.
 
@@ -96,6 +107,10 @@ The optional wrapped probes change only selected body text and keep-lines in a c
 
 The [native scalar-table creation reference](native-exports/keynote-created-tables-v15.4.json) records a template-free three-slide graph, independent typed-cell and style-network decoding, Keynote 15.4 open/export and edits that survive save/reopen. The fixture includes multilingual text, numbers, booleans, literal equals-sign text and an empty editable table. The [native border reference](native-exports/keynote-table-borders-v15.4.json) adds one header row, one header column, one footer row, hidden region edges and ordered cell overrides. Independent schema decoding, saved/reopened PPTX and inspected all-slide PDF comparisons qualify this border profile. The manifests record locale, font and emoji differences separately.
 
+The [Numbers border reference](native-exports/numbers-table-borders-v14.5.json) contains a controlled four-by-four table imported and edited in Numbers 14.5. Independent protobuf and numbers-parser decoding checks all 64 cell edges against Apple's XLSX export. Saved/reopened OfficeIMO XLSX retains the one- and two-point colors, hidden shared edge, later edit and styled empty cell. Native cell padding requires explicit partial editable acceptance with an omission diagnostic; complete iWork PDF conversion rejects this source. The manifest keeps native PDF appearance and editable edge equivalence separate.
+
+The [Pages border reference](native-exports/pages-table-borders-v15.4.json) checks all 16 values and 64 cell-edge declarations against Pages 15.4 DOCX export. Every physical grid segment has an explicit edit, replacing inactive rounded defaults. Pages opens, saves and reopens the reconstructed DOCX with the edges, ten bold cells and blank D3 intact. The effective row heights and column widths fit DOCX precision; an unused fractional default does not count as precision loss. The explicit partial policy reports positioned-table approximation, and complete iWork PDF rejects this source. Separate inspected PDF comparisons retain the visible edges but differ in font substitution, placement and row heights. Reproduce the source oracle with `Build/IWork/extract-pages-table-borders.py` and destination readback with `Build/IWork/verify-pages-table-borders.py`; each script accepts explicit artifact paths.
+
 ## Everyday Apple export references
 
 `native-exports/numbers-formula-formatting-v14.5.json` records a Numbers 14.5 derivative of the licensed cross-table workbook. Formula Tests A9 uses 18-point bold/italic/underline text aligned right; A10 uses 14-point strikethrough text aligned center. The source, XLSX and two-page PDF are hashed. Saved OfficeIMO XLSX checks compare both formula caches, source expressions, font traits, font size, opaque black foreground and alignment with the Apple export after its table-title row is accounted for. The source PostScript name `HelveticaNeue` and exported family name `Helvetica Neue` are recorded aliases for this fixture. Native PDF inspection covers the two source cells; complete appearance and recalculation remain unqualified. Original MIT attribution applies to the derivative.
@@ -124,7 +139,7 @@ python Build/IWork/extract-pages-paragraph-layout.py OfficeIMO.TestAssets/Docume
 
 ## Pages list-style declarations
 
-`pages-list-styles.json` records the selected body list styles and paragraph-data boundaries in the unchanged `picodocs/sample-v14.4.pages` fixture. The ordered span selects native number labels and decimal numbering (`number_types = 0`), with no string labels and tiered numbering disabled. The preceding bullet span selects string labels and the `Symbol` marker font. The reader retains inherited marker fonts and explicit font clearing; DOCX numbering and PPTX bullets preserve explicit fonts independently of run fonts. Saved DOCX coverage checks the native bullet font, and saved PPTX coverage checks a distinct explicit font. Font installation and rendered glyph equivalence remain separate qualification requirements. The independent schema enum names identify native marker kinds separately: none (`0`), image (`1`), string (`2`) and number (`3`). Literal string markers never imply a numbering format. Image markers retain incomplete-formatting and source-declaration diagnostics instead of using dormant string labels. The reader projects initial markers for decimal, upper/lower Roman and upper/lower alphabetic numbering, each with a dot, paired parentheses or a closing parenthesis. Selected native numbering kinds take precedence over dormant string labels. Paragraph-data field `6/1/2` supplies explicit list levels, as identified by the pinned independent parser source in the manifest. Explicit levels take precedence over indentation and remain distinct in the style cache; absent or rejected values use the bounded indentation fallback with rejected metadata reported. Nonzero values in the neighboring unqualified field `6/1/3` retain source-declaration evidence and incomplete-formatting diagnostics. Saved DOCX regression coverage checks the fixture’s three decimal items share one numbering instance; saved DOCX/PPTX cases check all fifteen qualified initial numbering formats. The separate Pages 15.4 paragraph/list reference qualifies level-zero, non-tiered decimal starts/restarts and contiguous continuation. This older fixture retains unqualified nonzero field `6/1/3` metadata and still requires partial editable reconstruction. Other levels, numbering scripts, tiered numbering and continuation across non-list text remain unassessed.
+`pages-list-styles.json` records the selected body list styles and paragraph-data boundaries in the unchanged `picodocs/sample-v14.4.pages` fixture. The ordered span selects native number labels and decimal numbering (`number_types = 0`), with no string labels and tiered numbering disabled. The preceding bullet span selects string labels and the `Symbol` marker font. The reader retains inherited marker fonts and explicit font clearing; DOCX numbering and PPTX bullets preserve explicit fonts independently of run fonts. Saved DOCX coverage checks the native bullet font, and saved PPTX coverage checks a distinct explicit font. Font installation and rendered glyph equivalence remain separate qualification requirements. The independent schema enum names identify native marker kinds separately: none (`0`), image (`1`), string (`2`) and number (`3`). Literal string markers never imply a numbering format. Image markers retain incomplete-formatting and source-declaration diagnostics instead of using dormant string labels. The reader projects initial markers for decimal, upper/lower Roman and upper/lower alphabetic numbering, each with a dot, paired parentheses or a closing parenthesis. Selected native numbering kinds take precedence over dormant string labels. Paragraph-data field `6/1/2` supplies explicit list levels, as identified by the pinned independent parser source in the manifest. Explicit levels take precedence over indentation and remain distinct in the style cache; absent or rejected values use the bounded indentation fallback with rejected metadata reported. Unknown values or an uncorrelated restart flag in `6/1/3` retain source-declaration evidence and incomplete-formatting diagnostics. Saved DOCX regression coverage checks the fixture’s three decimal items share one numbering instance; saved DOCX/PPTX cases check all fifteen qualified initial numbering formats. The separate Pages 15.4 paragraph/list reference qualifies level-zero decimal starts/restarts. The [continuation reference](native-exports/pages-list-continuation-v15.4.json) extends the non-tiered decimal contract to levels 0 and 1, parent resets and ordinary-text gaps. Its observed `6/1/3 = 1` restart flag requires a positive start at the same paragraph boundary. This older fixture retains unqualified metadata and still requires partial editable reconstruction. Deeper levels, numbering scripts, tiered numbering and continuation through other numbered or bullet styles remain unassessed.
 
 Reproduce with the pinned opt-in numbers-parser 4.19.0 provider:
 
@@ -418,6 +433,30 @@ python Build/IWork/extract-date-formats.py OfficeIMO.TestAssets/Documents/IWorkC
 ```sh
 python Build/IWork/extract-duration-ranges.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/duration-ranges.json
 ```
+## Native Numbers fixed second ranges
+
+[`native-exports/numbers-duration-seconds-v14.5.json`](native-exports/numbers-duration-seconds-v14.5.json) records a controlled Numbers 14.5 workbook, its Apple XLSX/PDF exports, three inspected PDF pages, and native Excel 16.113.3 observations on macOS 27.0.1. The OfficeIMO-authored intake is imported into Numbers; each C2:D8 range is explicitly set to fixed abbreviated hour/second, minute/second or second-only units, and D2:D8 contains native `C+C` formulas. Sources and exports are MIT-licensed OfficeIMO contributor fixtures. The native PDF embeds the host's Calibri font; OfficeIMO does not bundle it.
+
+The generated decode retains all 42 selected declarations, raw seconds, 21 typed formula caches and matching native XLSX formats/day serials. Saved/reopened OfficeIMO XLSX matches those codes and caches; edited duration operands recalculate. Thirty integral display cases match the Numbers PDF. Fractional-second display remains approximated: Numbers rounds, the shared elapsed formatter can truncate, and native Excel differs by range, including hashes for the recorded negative hour/second and minute/second cells. The manifest records these limits instead of treating matching values or codes as proof of appearance. The default complete PDF workflow retains all populated rows and 21 formula results across six inspected pages with caller fonts and reported font/display approximation. Apple exports three positioned-sheet pages; the composed route splits the formula column onto each second page. Synthetic Pages/Keynote and blank-cell tests qualify adapter behavior; their native rendering remains separate.
+
+Regenerate the decode with the pinned opt-in oracle; PDF tables, screenshots and native application observations are separate evidence:
+
+```sh
+python Build/IWork/extract-duration-seconds.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5-decode.json
+```
+
+## Native Numbers fixed millisecond ranges
+
+[`native-exports/numbers-duration-milliseconds-v14.5.json`](native-exports/numbers-duration-milliseconds-v14.5.json) records a task-owned copy of the preceding Numbers 14.5 reference with milliseconds enabled on all three C2:D8 ranges. The saved local source, Apple XLSX/PDF exports, three UI screenshots and three native PDF pages retain the same MIT contributor provenance. Independent decoding pairs all 42 raw-second values, 21 native formulas and five-field selected formats with Apple XLSX day serials and codes. The native PDF embeds host Calibri; OfficeIMO does not bundle it.
+
+Numbers displays separate millisecond labels, such as `1h 1m 1s 750ms`. Its XLSX export uses fractional-second codes, including a terminal literal space; the shared formatter displays `1h 1m 1.750s `. The manifest records native PDF display and independently calculated shared display separately. Saved/reopened conversion preserves numeric caches and codes, edited operands recalculate, and the complete PDF route retains every populated row and all 21 formula results across six inspected pages. Native Excel appearance, millisecond-only totals, other label styles and automatic units remain unqualified. PDF text extraction misreads some label ligatures; visual inspection verifies the labels.
+
+Regenerate the decode with the same isolated oracle:
+
+```sh
+python Build/IWork/extract-duration-seconds.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5-decode.json
+```
+
 ## Keynote slide background evidence
 
 `keynote-backgrounds.json` records slide-style chains and background declarations from four unchanged pinned native Keynote packages and `native-exports/keynote-colors-v15.4.key`. It includes inactive templates; conversion tests compare only selected slides. Opaque RGB/sRGB colors qualify the additional fixed32 field `13` only at value `1`. Its meaning remains unspecified; other values and Display P3 remain unsupported. Existing fixture licenses and provenance above apply. Reproduce the manifest with numbers-parser 4.19.0:
@@ -480,7 +519,48 @@ Reproduce with the pinned numbers-parser 4.19.0 environment:
 python Build/IWork/extract-integer-function-boundaries.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/integer-function-boundaries.json
 ```
 
+The [controlled Numbers 14.5 reference](native-exports/numbers-integer-functions-v14.5.json)
+adds 17 cases, 70 formulas, Numbers XLSX/PDF exports and a separate Excel 16.113.3
+copy saved after **Calculate Now**. The authored intake, native source, both exports
+and screenshots are hash-pinned under the repository MIT license. The independent
+decoder records function identities 58 (`GCD`) and 75 (`LCM`), source values,
+formula text and both producers' saved results.
+
+Nineteen literal calls qualify reconstruction and local recalculation. References,
+text, Booleans and large operands retain the narrower source reconstruction
+boundary. Native Numbers stores a numeric-text range LCM as zero where Excel
+recalculates 360. Native `2^53` and `2^53-1` power caches both round to
+`9007199254740990`; fresh Excel caches preserve the distinct integer results.
+The unchanged large-operand fixture above retains its separate evidence limits.
+Excel 16.113.3 accepts referenced `2^53` in GCD despite the documented error
+boundary. Neither that observation nor matching function names qualifies a wider
+domain. Native Numbers errors still have no XLSX error code; their PDF cells are
+blank. The complete native PDF and both app screenshots were inspected.
+
+Reproduce the controlled fixture decode with the pinned oracle:
+
+```sh
+python Build/IWork/extract-numbers-integer-functions.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-excel-v16.113.3.xlsx OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5-decode.json
+```
+
+The [Excel optional-lookup reference](native-exports/excel-xlookup-optional-v16.113.3.json)
+records seven XLOOKUP cases after explicit native recalculation from an intake
+without formula caches. Empty fallback, match-mode and search-mode positions
+retain their native defaults; reverse search and explicit fallback have separate
+controls. The original intake, saved Excel 16.113.3 workbook and inspected app
+screenshot are hash-pinned. This qualifies these optional-argument cases only.
+
 ### Complete native-content PDF references
+
+The [paragraph-layout creation reference](native-exports/pages-created-layout-v15.4.json)
+also retains its composed one-page PDF, inspected raster and public workflow
+result. Independent extraction agrees with all 75 native words in order. The
+eight selected source paragraphs are reconstructed with no omitted or unassessed
+content units; opaque record fidelity remains unassessed. Spacing, custom tabs,
+blank-paragraph height and rich/default resets remain visible. PDF font inspection
+confirms 14-point Helvetica Bold for `Rich layout` and 12-point Helvetica for the
+plain run. The shared portable profile reports Arial substitution and retains its
+separate typography and monochrome-emoji limits.
 
 `native-exports/iwork-composed-pdf-portable.json` pins the Apple-edited Pages body,
 Numbers scalar workbook and Keynote table deck, all three composed PDFs, nine

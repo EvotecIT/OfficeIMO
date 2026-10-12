@@ -58,7 +58,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("unknown-second")]
     [InlineData("inside-paragraph")]
     [InlineData("tiered")]
-    [InlineData("nested")]
+    [InlineData("deeper")]
     public void Unqualified_counter_metadata_never_exposes_a_qualified_number(string fault) {
         byte[] starts = fault switch {
             "missing-start" => AttributeTable(14, ListLevelEntry(0, 0)),
@@ -68,7 +68,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => AttributeTable(14, ListLevelEntry(0, 7), ListLevelEntry(6, 0))
         };
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers, starts,
-            tiered: fault == "tiered", level: fault == "nested" ? 1ul : 0ul);
+            tiered: fault == "tiered", level: fault == "deeper" ? 2ul : 0ul);
         var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(content.IsFormattingComplete);
@@ -78,24 +78,22 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Counter_continuation_after_non_list_text_remains_unqualified() {
+    public void Counter_continuation_after_non_list_text_retains_the_selected_list_scope() {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers,
             listStyles: AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)),
                 AttributeEntry(6, ReferenceField(2, 22)), AttributeEntry(11, ReferenceField(2, 19))));
         var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
-        // The explicit restart after the gap is qualified; a zero continuation after
-        // the gap would require independent evidence before it can reuse a counter.
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, null, 3, 4 }, content.Paragraphs.Select(p => p.ListNumber));
         using var continuation = DecimalCounterPackage(IWorkDocumentKind.Numbers,
             AttributeTable(14, ListLevelEntry(0, 7), ListLevelEntry(6, 0)),
             listStyles: AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)),
                 AttributeEntry(6, ReferenceField(2, 22)), AttributeEntry(11, ReferenceField(2, 19))));
-        var unqualified = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(continuation),
+        var continued = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(continuation),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
-        Assert.False(unqualified.IsFormattingComplete);
-        Assert.Equal(new int?[] { 7, null, null, null }, unqualified.Paragraphs.Select(p => p.ListNumber));
+        Assert.True(continued.IsFormattingComplete);
+        Assert.Equal(new int?[] { 7, null, 8, 9 }, continued.Paragraphs.Select(p => p.ListNumber));
     }
 
     [Fact]
@@ -150,14 +148,15 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream DecimalCounterPackage(IWorkDocumentKind kind, byte[]? starts = null,
-        bool tiered = false, ulong level = 0, byte[]? listStyles = null) => SelectedRichTextPackage(kind,
+        bool tiered = false, ulong level = 0, byte[]? listStyles = null, byte[]? levels = null,
+        byte[]? plainStyle = null) => SelectedRichTextPackage(kind,
         Message(StringField(3, "\nNext\nRestart\nContinue"),
-            AttributeTable(6, ListLevelEntry(0, level)),
+            levels ?? AttributeTable(6, ListLevelEntry(0, level)),
             starts ?? AttributeTable(14, ListLevelEntry(0, 7), ListLevelEntry(6, 0),
                 ListLevelEntry(11, 3), ListLevelEntry(19, 0)),
             listStyles ?? AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)))),
         additionalRecords: Message(
             ArchiveRecord(19, 2023, Message(VarintField(11, 3), VarintField(11, 3),
                 VarintField(15, 0), VarintField(15, 0), VarintField(25, tiered ? 1ul : 0ul), VarintField(25, 0))),
-            ArchiveRecord(22, 2023, Message(VarintField(11, 0)))));
+            ArchiveRecord(22, 2023, plainStyle ?? Message(VarintField(11, 0)))));
 }

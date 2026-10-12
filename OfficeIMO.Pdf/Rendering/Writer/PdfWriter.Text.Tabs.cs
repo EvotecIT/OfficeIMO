@@ -66,12 +66,12 @@ internal static partial class PdfWriter {
     private static PdfTabLeaderStyle ResolveTabLeader(PdfTabLeaderStyle runLeader, PdfTabStop? tabStop) =>
         tabStop != null && runLeader == PdfTabLeaderStyle.None ? tabStop.Leader : runLeader;
 
-    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D) {
+    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null, PdfNamedFontFace? namedFont = null, OfficeIMO.Drawing.OfficeTextFeatureSettings? featureSettings = null, double horizontalTextScaling = 100D, double characterSpacing = 0D, char? decimalSeparator = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        int decimalIndex = text.IndexOfAny(DecimalTabAnchorChars);
+        int decimalIndex = decimalSeparator.HasValue ? text.IndexOf(decimalSeparator.Value) : text.IndexOfAny(DecimalTabAnchorChars);
         if (decimalIndex < 0) {
             return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
         }

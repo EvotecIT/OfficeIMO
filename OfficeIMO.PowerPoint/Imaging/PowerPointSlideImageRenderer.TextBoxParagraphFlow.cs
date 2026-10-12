@@ -30,7 +30,7 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            var numberingState = new Dictionary<int, int>();
+            var numberingState = new PowerPointParagraphNumberingState();
             List<PowerPointParagraphDrawing> paragraphDrawings = CreateTextBoxParagraphDrawings(textBox, paragraphs, numberingState, textWidth, mapping, colorScheme, measure, defaultFontFamily);
             double flowHeight = paragraphDrawings.Sum(paragraph => paragraph.TotalHeight);
             double currentY = top + marginTop + ResolveTextBoxVerticalOffset(textBox.TextVerticalAlignment, textHeight, flowHeight);
@@ -109,14 +109,14 @@ namespace OfficeIMO.PowerPoint {
         private static List<PowerPointParagraphDrawing> CreateTextBoxParagraphDrawings(
             PowerPointTextBox textBox,
             IReadOnlyList<PowerPointParagraph> paragraphs,
-            Dictionary<int, int> numberingState,
+            PowerPointParagraphNumberingState numberingState,
             double textWidth,
             PowerPointShapeBoundsMapping mapping,
             A.ColorScheme? colorScheme, Func<string?, double, string?, OfficeFontStyle, double> measure, string? defaultFontFamily) {
             var results = new List<PowerPointParagraphDrawing>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 PowerPointParagraph paragraph = paragraphs[i];
-                string? marker = CreateParagraphMarker(paragraph, numberingState);
+                string? marker = numberingState.CreateMarker(paragraph);
                 OfficeTextParagraphIndent indent = CreateParagraphIndent(paragraph, mapping);
                 OfficeTextAlignment alignment = MapTextAlignment(paragraph.Alignment);
                 List<OfficeRichTextRun> richRuns = CreateParagraphRichTextRuns(textBox, paragraph, marker, colorScheme, mapping, defaultFontFamily);

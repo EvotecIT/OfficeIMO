@@ -22,20 +22,25 @@ namespace OfficeIMO.Excel {
             error = default;
             if (_offsetFormulaReferenceDepth >= 32 || !HasSufficientFormulaExecutionStack()) return false;
             _offsetFormulaReferenceDepth++;
+            FormulaArgumentValue previousError = _formulaReferenceError;
+            _formulaReferenceError = default;
             try {
                 IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
                 if (tokens.Count < 3 || tokens.Count > 5 || string.IsNullOrWhiteSpace(tokens[0])
                     || string.IsNullOrWhiteSpace(tokens[1]) || string.IsNullOrWhiteSpace(tokens[2])) return false;
-                if (!TryResolveFormulaRangeReference(tokens[0], currentRow, out sheet, out int baseRow, out int baseColumn,
-                    out int baseEndRow, out int baseEndColumn)) return false;
+                bool baseResolved = TryResolveFormulaRangeReference(tokens[0], currentRow, out sheet, out int baseRow, out int baseColumn,
+                    out int baseEndRow, out int baseEndColumn);
+                if (!baseResolved && !_formulaReferenceError.IsError) return false;
+                error = _formulaReferenceError;
                 double[] parameters = { 0d, 0d, (double)baseEndRow - baseRow + 1d, (double)baseEndColumn - baseColumn + 1d };
                 for (int index = 1; index < tokens.Count; index++) {
                     if (index >= 3 && string.IsNullOrWhiteSpace(tokens[index])) continue;
                     if (!TryResolveFormulaArgument(tokens[index], out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
-                    if (value.IsError) { error = value; return true; }
+                    if (value.IsError) { if (!error.IsError) error = value; continue; }
                     if (!IsFiniteFormulaNumber(value)) return false;
                     parameters[index - 1] = Math.Truncate(value.Number!.Value);
                 }
+                if (error.IsError) return true;
                 double top = baseRow + parameters[0], left = baseColumn + parameters[1];
                 double bottom = top + parameters[2] - 1d, right = left + parameters[3] - 1d;
                 if (parameters[2] <= 0d || parameters[3] <= 0d || top < 1d || left < 1d
@@ -46,6 +51,7 @@ namespace OfficeIMO.Excel {
                 r1 = (int)top; c1 = (int)left; r2 = (int)bottom; c2 = (int)right;
                 return true;
             } finally {
+                _formulaReferenceError = previousError;
                 _offsetFormulaReferenceDepth--;
             }
         }

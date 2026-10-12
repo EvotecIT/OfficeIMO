@@ -12,7 +12,20 @@
     <ProjectReference Include="../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj" />
     <ProjectReference Include="../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.pages" Link="simple.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-list-continuation-v15.4.pages" Link="pages-list-continuation.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4.pages" Link="native-pages-borders.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4.docx" Link="native-pages-borders.docx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4-decode.json" Link="native-pages-borders-decode.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.numbers" Link="simple.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.numbers" Link="duration-seconds.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-seconds-v14.5.xlsx" Link="duration-seconds-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.numbers" Link="duration-milliseconds.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-duration-milliseconds-v14.5.xlsx" Link="duration-milliseconds-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.numbers" Link="integer-functions.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.xlsx" Link="integer-functions-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-table-borders-v14.5.numbers" Link="native-numbers-borders.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-table-borders-v14.5.xlsx" Link="native-numbers-borders.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-table-borders-v14.5-decode.json" Link="native-numbers-borders-decode.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.key" Link="simple.key" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/test-10-formulas.numbers" Link="formulas.numbers" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-opaque.png" Link="created-opaque.png" CopyToOutputDirectory="PreserveNewest" />

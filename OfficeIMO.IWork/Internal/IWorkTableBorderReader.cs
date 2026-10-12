@@ -8,6 +8,12 @@ internal static partial class IWorkTableBorderReader {
         IWorkWireMessage message, IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references,
         int rows, int columns, int headerRows, int headerColumns, int footerRows, bool ordinaryLayout) {
         var defaults = new IWorkTableBorderStyles(rows, columns, headerRows, headerColumns, footerRows);
+        var overrides = ReadOverrides(source, model, message, budget, references, rows, columns);
+        // Explicit supported edits on every physical edge make inherited border defaults inactive.
+        // Keep the existing region/layout boundary even when the sparse grid is complete.
+        if (ordinaryLayout && headerRows <= 1 && headerColumns <= 1 && footerRows <= 1
+            && overrides.CoversAllEdges(rows, columns, source.CancellationToken))
+            return new IWorkTableBorderResolver(defaults, overrides);
         if (message.HasField(3)) {
             bool complete = true;
             var chain = ReadChain(source, model, message, 3, 6003, budget, references, ref complete);
@@ -64,7 +70,6 @@ internal static partial class IWorkTableBorderReader {
             defaults.StructureIsComplete = false;
             references.Declarations.Record(model, "$table-border-regions", null, IWorkSourceDeclarationIssueKind.RejectedMessageSet);
         }
-        var overrides = ReadOverrides(source, model, message, budget, references, rows, columns);
         if (!ordinaryLayout) { defaults.StructureIsComplete = false; overrides.RejectLocations(); }
         return new IWorkTableBorderResolver(defaults, overrides);
     }

@@ -36,6 +36,26 @@ internal sealed class IWorkTableBorderOverrides {
         return null;
     }
 
+    internal bool CoversAllEdges(int rows, int columns, CancellationToken cancellationToken) {
+        if (!FullyReconstructed || !LocationsAreComplete || rows <= 0 || columns <= 0
+            || _segments.Count != (long)rows + columns + 2) return false;
+        // Check only the bounded sparse representation, never allocate or walk the cell grid.
+        foreach (var pair in _segments) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int lastLine = pair.Key.Horizontal ? rows : columns;
+            if (pair.Key.Line < 0 || pair.Key.Line > lastLine) return false;
+            int extent = pair.Key.Horizontal ? columns : rows;
+            int end = 0;
+            foreach (var segment in pair.Value) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (segment.Start != end || !segment.Stroke.IsSupported) return false;
+                end = segment.End;
+            }
+            if (end != extent) return false;
+        }
+        return true;
+    }
+
     internal void Seal(CancellationToken cancellationToken) {
         foreach (var pair in _runs) {
             cancellationToken.ThrowIfCancellationRequested();

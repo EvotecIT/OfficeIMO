@@ -402,6 +402,16 @@ public static partial class PowerPointIWorkConverter {
                     box.Layout.TopInsetPoints, box.Layout.RightInsetPoints, box.Layout.BottomInsetPoints }
                     .Any(points => points.HasValue && !IsExactEmu(points.Value)));
         var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(slide => slide.TextBoxes.Select(box => box.Content)
+                .Concat(slide.TitleBox == null ? Array.Empty<IWorkTextContent>() : new[] { slide.TitleBox.Content })
+                .Append(slide.PresenterNoteContent))
+            .SelectMany(content => global::OfficeIMO.IWork.Internal.IWorkDecimalTabLayout.Symbols(content, cancellationToken: cancellationToken))
+            .Concat(projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => global::OfficeIMO.IWork.Internal.IWorkDecimalTabLayout.Symbols(table, cancellationToken)))
+            .Any(symbol => symbol != null)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_DECIMAL_TAB_SYMBOL_OMITTED",
+                "PPTX retains decimal tab stops but cannot explicitly preserve their source separator through the current owner; the iWork projection retains it.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
         if (projection.Slides.SelectMany(slide => slide.Tables)
             .Any(table => table.ResolveMergedBorders(cancellationToken).Any(merge => !merge.IsUniform))) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -497,6 +507,11 @@ public static partial class PowerPointIWorkConverter {
 
     private static bool CanApplyListLayout(IWorkTextParagraph paragraph) {
         if (paragraph.ListLayout is not { } layout) return true;
+        if (IWorkDecimalListLayout.TryResolve(paragraph, out double markerSize, out double decimalOffset)) {
+            return markerSize <= 4000d
+                && FitsTextCoordinate(layout.MarkerIndentPoints + decimalOffset)
+                && FitsTextCoordinate(-decimalOffset);
+        }
         if (paragraph.Style.TextStyle.FontSizePoints is not double fontSize || !IsFinite(fontSize)
             || fontSize <= 0 || paragraph.Runs.Any(run => run.Style.FontSizePoints is double size
                 && Math.Abs(size - fontSize) > 0.00001d)) return false;

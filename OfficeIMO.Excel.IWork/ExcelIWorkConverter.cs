@@ -208,8 +208,10 @@ public static partial class ExcelIWorkConverter {
                                 sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
                                     formula!, cachedText);
                                 formulaWritten = true;
-                            } else if (cell.Kind != IWorkCellKind.Formula
-                                || cell.Value != null && cell.CachedValueIsComplete) {
+                            } else if (cell.Kind != IWorkCellKind.Empty
+                                && (cell.Kind != IWorkCellKind.Formula
+                                    || cell.Value != null && cell.CachedValueIsComplete)) {
+                                // SetValue(null) writes empty text; source empty cells must retain blank semantics.
                                 targetCell.SetValue(value);
                             }
                             if (cell.Kind != IWorkCellKind.Formula

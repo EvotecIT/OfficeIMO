@@ -22,26 +22,56 @@ internal static partial class IWorkTextReader {
     private static string CounterPath(AttributeBoundary boundary) => "14/1["
         + boundary.Position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
 
-    // A counter belongs to one contiguous list in one text storage. A positive start
-    // is qualified only on its own paragraph; zero continues an already-qualified
-    // counter. Continuation across non-list text and other levels remains unassessed.
+    private static string LevelPath(AttributeBoundary boundary) => "6/1["
+        + boundary.Position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/3";
+
+    private static void ValidateListRestartBoundaries(IReadOnlyList<AttributeBoundary> levels,
+        IReadOnlyList<AttributeBoundary> starts, string text, IWorkArchiveRecord owner,
+        IWorkSourceReferenceIssueCollector references, ref bool complete) {
+        foreach (AttributeBoundary boundary in levels) {
+            if (boundary.SecondaryValue != 1) continue;
+            int upper = UpperBound(starts, boundary.Index);
+            AttributeBoundary? start = upper == 0 ? null : starts[upper - 1];
+            if (IsParagraphStart(text, boundary.Index) && boundary.Index < text.Length
+                && start?.Index == boundary.Index && start.HasObject && start.Identifier > 0) continue;
+            complete = false;
+            references.Declarations.Record(owner, LevelPath(boundary), 1,
+                IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
+        }
+    }
+
+    // One counter scope belongs to one selected list style in one text storage.
+    // Ordinary non-list paragraphs preserve it; a different numbered/bullet style
+    // or rejected metadata ends it. The observed two non-tiered decimal levels
+    // reset their children whenever a parent item advances or explicitly restarts.
     private sealed class ParagraphListCounter {
         private ulong? _identifier;
-        private int? _number;
+        private readonly int?[] _numbers = new int?[2];
 
         internal (int? Number, int? Start) Resolve(IReadOnlyList<AttributeBoundary> starts,
-            int offset, ulong? identifier, IWorkListMarkerKind kind, bool qualifiedProfile,
+            IReadOnlyList<AttributeBoundary> levels, int offset, ulong? identifier, int level,
+            IWorkListMarkerKind kind, bool qualifiedProfile, bool qualifiedPlainProfile,
             IWorkArchiveRecord owner, IWorkSourceReferenceIssueCollector references,
             ref bool complete) {
             int upper = UpperBound(starts, offset);
             AttributeBoundary? boundary = upper == 0 ? null : starts[upper - 1];
             ulong? raw = boundary?.HasObject == true ? boundary.Identifier : null;
             bool explicitStart = boundary?.Index == offset && raw > 0;
+            int levelUpper = UpperBound(levels, offset);
+            AttributeBoundary? levelBoundary = levelUpper == 0 ? null : levels[levelUpper - 1];
+            if (levelBoundary?.SecondaryValue == 1
+                && (!explicitStart || kind != IWorkListMarkerKind.Number)) {
+                complete = false;
+                references.Declarations.Record(owner, LevelPath(levelBoundary), 1,
+                    IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
+                Reset();
+                return (null, null);
+            }
             if (kind != IWorkListMarkerKind.Number) {
                 // Apple also writes a default start for bullets and non-list text.
                 // It has no numbering meaning in those profiles; the table shape
                 // and paragraph boundaries have already been validated separately.
-                Reset();
+                if (!qualifiedPlainProfile) Reset();
                 return (null, null);
             }
             if (!qualifiedProfile || !raw.HasValue) {
@@ -49,20 +79,29 @@ internal static partial class IWorkTextReader {
                 Reset();
                 return (null, null);
             }
+            if (_identifier != identifier) Reset();
             if (explicitStart) {
                 _identifier = identifier;
-                _number = (int)raw!.Value;
-                return (_number, _number);
+                _numbers[level] = (int)raw!.Value;
+                if (level == 0) _numbers[1] = null;
+                return (_numbers[level], _numbers[level]);
             }
-            if (raw == 0 && identifier == _identifier && _number.HasValue && _number < int.MaxValue) {
-                _number++;
-                return (_number, null);
+            if (raw == 0 && identifier == _identifier) {
+                if (_numbers[level] is int number && number < int.MaxValue) {
+                    _numbers[level] = number + 1;
+                    if (level == 0) _numbers[1] = null;
+                    return (_numbers[level], null);
+                }
+                if (level == 1 && !_numbers[1].HasValue && _numbers[0].HasValue) {
+                    _numbers[1] = 1;
+                    return (1, null);
+                }
             }
             complete = false;
             Reset();
             return (null, null);
         }
 
-        private void Reset() { _identifier = null; _number = null; }
+        private void Reset() { _identifier = null; _numbers[0] = null; _numbers[1] = null; }
     }
 }

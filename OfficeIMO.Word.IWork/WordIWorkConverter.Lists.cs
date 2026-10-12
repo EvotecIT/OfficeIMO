@@ -11,6 +11,9 @@ public static partial class WordIWorkConverter {
         private readonly WordDocument _document;
         private readonly HashSet<int> _observedLevels = new();
         private WordList? _current;
+        private string? _markerFontName;
+        private int? _markerFontSize;
+        private int? _previousQualifiedLevel;
 
         internal IWorkNativeListCatalog(WordDocument document) {
             _document = document;
@@ -20,10 +23,21 @@ public static partial class WordIWorkConverter {
 
         internal void Apply(WordParagraph paragraph, int level, string? label, string? fontName,
             IWorkListMarkerKind markerKind, bool startsNewList, int? qualifiedNumber,
-            int? qualifiedTextOffset) {
-            if (startsNewList || _current == null) {
+            int? qualifiedLeftOffset, int? qualifiedHangingOffset, int? qualifiedMarkerFontSize) {
+            // Numbering run properties apply to every level of one WordList. Start
+            // a new list rather than changing earlier markers when that profile changes.
+            bool markerProfileChanged = qualifiedMarkerFontSize.HasValue
+                && (_markerFontSize != qualifiedMarkerFontSize
+                    || !string.Equals(_markerFontName, fontName, StringComparison.Ordinal));
+            // Isolate a recovered parent counter from child instance starts.
+            // Receiving applications can otherwise reuse those starts on reset.
+            bool parentTransition = qualifiedNumber.HasValue && _previousQualifiedLevel.HasValue
+                && level < _previousQualifiedLevel.Value;
+            if (startsNewList || _current == null || markerProfileChanged || parentTransition) {
                 _current = WordList.AddCustomList(_document);
                 _observedLevels.Clear();
+                _markerFontName = fontName;
+                _markerFontSize = qualifiedMarkerFontSize;
             }
             WordList list = _current;
             WordListLevelKind levelKind = markerKind == IWorkListMarkerKind.Number
@@ -37,7 +51,12 @@ public static partial class WordIWorkConverter {
                 ReplacePlaceholderLevel(list, level, levelKind);
             }
             if (firstObservation && levelKind != WordListLevelKind.Bullet) {
-                if (qualifiedNumber.HasValue) list.Numbering.Levels[level].SetStartNumberingValue(qualifiedNumber.Value);
+                if (qualifiedNumber.HasValue) {
+                    // A recovered item seeds this instance once. Keep a child's
+                    // abstract start at one for the next parent-triggered reset.
+                    list.SetStartNumberingValue(qualifiedNumber.Value, level);
+                    if (level > 0) list.Numbering.Levels[level].SetStartNumberingValue(1);
+                }
                 else if (TryParseStart(label, levelKind, out int start) && start != 1)
                     list.Numbering.Levels[level].SetStartNumberingValue(start);
             }
@@ -51,10 +70,11 @@ public static partial class WordIWorkConverter {
                     + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
             }
             if (firstObservation && fontName != null) list.FontName = fontName;
-            if (qualifiedTextOffset.HasValue) {
+            if (firstObservation && qualifiedMarkerFontSize.HasValue) list.FontSize = qualifiedMarkerFontSize;
+            if (qualifiedLeftOffset.HasValue && qualifiedHangingOffset.HasValue) {
                 WordListLevel numberingLevel = list.Numbering.Levels[level];
-                numberingLevel.IndentationLeft = qualifiedTextOffset.Value;
-                numberingLevel.IndentationHanging = qualifiedTextOffset.Value;
+                numberingLevel.IndentationLeft = qualifiedLeftOffset.Value;
+                numberingLevel.IndentationHanging = qualifiedHangingOffset.Value;
                 numberingLevel.LevelSuffix = WordListLevelSuffix.Tab;
             }
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
@@ -62,6 +82,7 @@ public static partial class WordIWorkConverter {
             properties.NumberingProperties = new OpenXmlNumberingProperties(
                 new OpenXmlNumberingLevelReference { Val = level },
                 new OpenXmlNumberingId { Val = list.NumberId });
+            _previousQualifiedLevel = qualifiedNumber.HasValue ? level : null;
         }
 
         private static void ReplacePlaceholderLevel(WordList list, int level,

@@ -15,6 +15,8 @@ public sealed class IWorkKeynoteTextBox : IWorkKeynoteCreationDrawable {
         IWorkTextRunData[] input = runs.ToArray();
         if (input.Length == 0 || input.Any(run => run == null))
             throw new ArgumentException("At least one non-null character run is required.", nameof(runs));
+        if (input.Any(run => run.Text.IndexOf('\t') >= 0))
+            throw new ArgumentException("Native Keynote creation does not support tabbed character runs.", nameof(runs));
         // Empty ranges have no native character position. Keep one default run
         // for a blank box, otherwise discard them without emitting duplicate offsets.
         IWorkTextRunData[] retained = input.Where(run => run.Text.Length > 0).ToArray();

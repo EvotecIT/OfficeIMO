@@ -47,6 +47,7 @@ internal static partial class IWorkFormulaReader {
         [52] = new("FALSE", 0, 0),
         [53] = new("FIND", 2, 3),
         [55] = new("FLOOR", 2, 2),
+        [58] = new("GCD", 1, 255),
         [60] = new("HOUR", 1, 1),
         [61] = new("HYPERLINK", 1, 2),
         [62] = new("IF", 2, 3),
@@ -54,6 +55,7 @@ internal static partial class IWorkFormulaReader {
         [65] = new("INT", 1, 1),
         [69] = new("ISBLANK", 1, 1),
         [70] = new("ISERROR", 1, 1),
+        [75] = new("LCM", 1, 255),
         [76] = new("LEFT", 1, 2),
         [77] = new("LEN", 1, 1),
         [78] = new("LN", 1, 1),
@@ -149,6 +151,8 @@ internal static partial class IWorkFormulaReader {
                         name = function.Name;
                         if (argumentCount < function.MinimumArguments
                             || argumentCount > function.MaximumArguments) complete = false;
+                        if ((name is "GCD" or "LCM")
+                            && !HasQualifiedIntegerLiterals(name, arguments)) complete = false;
                     } else {
                         name = functionIndex == 212
                             ? "DURATION"

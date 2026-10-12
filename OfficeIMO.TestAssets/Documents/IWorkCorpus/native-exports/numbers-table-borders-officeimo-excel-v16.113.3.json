@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "sourceRevision": "58dcd0f87560cc3b7fa100b35cb2e025a34541a7",
+  "sourceOnly": true,
+  "nativeApp": "Microsoft Excel 16.113.3",
+  "host": "macOS 27.0.1 (26A434), arm64",
+  "input": "numbers-table-borders-officeimo.xlsx",
+  "inputSha256": "c25ce669ba01e3a8e0c9b9545cceabd5afa3fad83f2c86058b23771b2146ce8e",
+  "savedOutput": "numbers-table-borders-officeimo-excel-v16.113.3.xlsx",
+  "savedOutputSha256": "d3f2b7da8f3d0ea91719cfbcee753c2af08d5c3415035c14a5221171d27f53dd",
+  "steps": [
+    "Open current-source reconstructed XLSX without repair",
+    "Save locally in native Excel",
+    "Close and reopen native-saved workbook without repair",
+    "Inspect both native views and independently read saved cells and styles"
+  ],
+  "values": 16,
+  "borders": 64,
+  "boldCells": 10,
+  "styledEmptyCell": "D3 remains genuinely blank, with style and no value/string/formula before and after native save.",
+  "independentReadback": "numbers-table-borders-officeimo-readback.json",
+  "screenshots": [
+    "numbers-table-borders-officeimo-excel-v16.113.3-open.png",
+    "numbers-table-borders-officeimo-excel-v16.113.3-reopened.png"
+  ],
+  "screenshotsInspected": true,
+  "initiallyRunning": false,
+  "ownedAppsClosed": true,
+  "limits": [
+    "Explicit partial editable reconstruction because native cell padding has no XLSX equivalent.",
+    "No formula recalculation claim: this reference contains scalar text and one styled blank.",
+    "The prior complete iWork PDF boundary remains unchanged; separate XLSX-to-PDF appearance evidence does not close it."
+  ]
+}

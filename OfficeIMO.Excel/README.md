@@ -1077,6 +1077,17 @@ avoids factorial overflow and accumulated rounding; large finite results use the
 workbook’s floating-point representation. Evaluation takes at most 1,023 steps.
 Unsupported signatures, ranges, text and larger item counts retain existing caches.
 
+`GCD` and `LCM` accept one to 255 arguments: finite numeric values, invariant
+numeric text, and cell or rectangular range references sharing a 100,000-cell
+budget. Fractions truncate toward zero; blank references contribute zero.
+Negative operands produce `#NUM!`, while Boolean and nonnumeric text produce
+`#VALUE!`. Typed errors propagate. Operands outside ±(2^53−1), unsupported
+expressions and resource-limit failures retain existing caches, including inside
+error handlers. `LCM` returns `#NUM!` when its nonzero result exceeds 2^53−1;
+a zero anywhere in the arguments returns zero even if an intermediate product
+would exceed that bound. [Native Numbers and fresh Excel results](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-integer-functions-v14.5.json)
+qualify the recorded cases; Numbers reconstruction has its own narrower contract.
+
 `FACT` evaluates one finite scalar, truncating nonnegative fractions before
 multiplication. Zero returns one. Negative inputs and values at least 171 produce
 `#NUM!`; at most 169 multiplications are needed for a finite result. Large
@@ -1119,6 +1130,13 @@ reference errors propagate through reference consumers and error handlers.
 Unsupported inputs and resource limits remain unevaluated inside `IFERROR`,
 `IFNA` and error predicates, preserving existing caches. Completed supported
 lookup searches return typed `#N/A` when no match exists.
+
+`XLOOKUP` retains empty optional argument positions: an empty fallback uses
+`#N/A`, an empty match mode uses exact matching, and an empty search mode scans
+from the first item. The [fresh Excel reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-xlookup-optional-v16.113.3.json)
+records no-match, explicit-fallback and reverse-search cases. Conditional
+aggregates resolve unquoted criteria as formula arguments; unsupported criterion
+expressions preserve existing caches. Quoted criteria remain literal text.
 
 Named references can resolve to A1 ranges or numeric, text, Boolean, and error
 constants, including bounded aliases and worksheet-local scope. Arbitrary

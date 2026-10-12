@@ -13,7 +13,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory, json_format
-from numbers_parser.iwafile import IWACompressedChunk, get_archive_info_and_remainder
+from iwork_protobuf_evidence import archive_messages
 
 DESCRIPTOR_SHA256 = '2408cf25920c39fe59d500a0b580bd64bf10a24630c81ca2d543e64322853917'
 SOURCE_SHA256 = '2032ce6cdee7f75da8de21d502b47d4e5c7f4eb4d152786a84dd81feda176d45'
@@ -30,19 +30,8 @@ def extract(path, descriptor):
     graph = {}
     with ZipFile(path) as package:
         assert package.testzip() is None
-        for name in package.namelist():
-            if not name.endswith('.iwa'):
-                continue
-            data = b''.join(IWACompressedChunk._decompress_all(package.read(name)))
-            while data:
-                header, payload = get_archive_info_and_remainder(data)
-                offset = 0
-                for info in header.message_infos:
-                    content = payload[offset:offset + info.length]
-                    assert len(content) == info.length
-                    graph.setdefault((header.identifier, info.type), []).append(content)
-                    offset += info.length
-                data = payload[offset:]
+        for _, header, info, content in archive_messages(package):
+            graph.setdefault((header.identifier, info.type), []).append(content)
 
     def decode(identifier, kind, name):
         candidates = graph[(identifier, kind)]

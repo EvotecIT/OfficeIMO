@@ -77,20 +77,23 @@ internal static partial class IWorkTextReader {
                     IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
                 level = null;
             }
-            // Keep an invalid value as a boundary so a rejected declaration cannot
-            // silently carry a preceding level or counter into later paragraphs.
-            result.Add(new AttributeBoundary((int)rawIndex.Value, level, level.HasValue, entryIndex));
             ulong? unassessedValue = entry.GetUnsigned(3);
             if (entry.FieldCount(3) != 1 || entry.HasUnexpectedWireKind(3, IWorkWireKind.Varint)
                 || !unassessedValue.HasValue || unassessedValue.Value > uint.MaxValue) {
                 complete = false;
                 references.Declarations.Record(owner, EntryPath(entryIndex) + "/3", entry.FieldCount(3),
                     IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
-            } else if (unassessedValue.Value != 0) {
+                unassessedValue = null;
+            } else if (unassessedValue.Value != 0 && !(field == 6 && unassessedValue.Value == 1)) {
                 complete = false;
                 references.Declarations.Record(owner, EntryPath(entryIndex) + "/3", 1,
                     IWorkSourceDeclarationIssueKind.UnsupportedField);
             }
+            // Keep rejected values as boundaries so they cannot silently carry a
+            // preceding level or counter. The observed field-six restart flag is
+            // qualified separately against the corresponding positive start.
+            result.Add(new AttributeBoundary((int)rawIndex.Value, level, level.HasValue,
+                entryIndex, unassessedValue));
         }
         AttributeBoundary[] ordered = result.OrderBy(boundary => boundary.Index).ToArray();
         for (int index = 1; index < ordered.Length; index++) {

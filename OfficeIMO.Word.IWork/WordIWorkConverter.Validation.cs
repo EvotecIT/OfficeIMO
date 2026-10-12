@@ -1,5 +1,6 @@
 using System.Threading;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Word.IWork;
 
@@ -107,10 +108,7 @@ public static partial class WordIWorkConverter {
                 && cell.RichText is { IsComplete: false })) {
                 return $"Pages table '{table.Name}' contains formula cached text with incomplete formatting that the DOCX owner cannot preserve.";
             }
-            if (!FitsSignedTwips(table.DefaultRowHeight, allowPartialEditableReconstruction)
-                || !FitsSignedTwips(table.DefaultColumnWidth, allowPartialEditableReconstruction)
-                || table.RowHeights.Values.Any(height => !FitsSignedTwips(height, allowPartialEditableReconstruction))
-                || table.ColumnWidths.Values.Any(width => !FitsSignedTwips(width, allowPartialEditableReconstruction))) {
+            if (WordTableDimensions(table).Any(size => !FitsSignedTwips(size, allowPartialEditableReconstruction))) {
                 return $"Pages table '{table.Name}' has sizing outside the DOCX measurement range.";
             }
             if (table.Cells.Any(cell => cell.Padding != null
@@ -128,6 +126,8 @@ public static partial class WordIWorkConverter {
             }
             destinationTableCells += tableCells;
         }
+        if (PagesDecimalTabSymbols(projection, cancellationToken).Length > 1)
+            return "Pages decimal tabs use different or unspecified separators that cannot share one DOCX document setting.";
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) {
             if (textBox.Geometry is { } geometry
                 && (!FitsEmuOffset(geometry.LeftPoints, allowPartialEditableReconstruction) || !FitsEmuOffset(geometry.TopPoints, allowPartialEditableReconstruction)
@@ -174,15 +174,10 @@ public static partial class WordIWorkConverter {
     }
 
     private static bool CanApplyQualifiedListLayout(IWorkTextParagraph paragraph) {
-        if (paragraph.ListLayout is not { } layout || !paragraph.ListNumber.HasValue
-            || paragraph.ListLevel != 0 || layout.MarkerScale != 1 || layout.MarkerIndentPoints != 0
-            || paragraph.Style.FirstLineIndentPoints.GetValueOrDefault() != 0
-            || paragraph.Style.LeftIndentPoints.GetValueOrDefault() != 0
-            || paragraph.Style.RightIndentPoints.GetValueOrDefault() != 0
-            || paragraph.Style.TextStyle.FontSizePoints is not double size
-            || !IsFinite(size) || size <= 0 || size != Math.Round(size)
-            || paragraph.Runs.Any(run => run.Style.FontSizePoints is double runSize && runSize != size)) return false;
-        return FitsSignedTwips(layout.TextIndentEm * size, allowRounding: true);
+        return IWorkDecimalListLayout.TryResolve(paragraph, out double markerSize, out double textOffset)
+            && markerSize <= int.MaxValue / 2d
+            && FitsSignedTwips(textOffset, allowRounding: true)
+            && FitsSignedTwips(paragraph.ListLayout!.MarkerIndentPoints + textOffset, allowRounding: true);
     }
 
     private static IEnumerable<double> PaddingPoints(IWorkCellPadding padding) {
@@ -219,10 +214,7 @@ public static partial class WordIWorkConverter {
             yield return layout.FooterMarginPoints;
         }
         foreach (IWorkTable table in projection.Tables) {
-            yield return table.DefaultRowHeight;
-            yield return table.DefaultColumnWidth;
-            foreach (double height in table.RowHeights.Values) yield return height;
-            foreach (double width in table.ColumnWidths.Values) yield return width;
+            foreach (double? size in WordTableDimensions(table)) yield return size;
             foreach (IWorkTableCell cell in table.Cells)
                 if (cell.Padding != null)
                     foreach (double points in PaddingPoints(cell.Padding)) yield return points;
@@ -237,6 +229,15 @@ public static partial class WordIWorkConverter {
         }
     }
 
+    private static IEnumerable<double?> WordTableDimensions(IWorkTable table) {
+        // DOCX writes effective sizes, so a fully overridden axis never uses its default.
+        // The projection contains unique, in-range indices; counting keeps this sparse.
+        if (table.RowHeights.Count < table.RowCount) yield return table.DefaultRowHeight;
+        foreach (double height in table.RowHeights.Values) yield return height;
+        if (table.ColumnWidths.Count < table.ColumnCount) yield return table.DefaultColumnWidth;
+        foreach (double width in table.ColumnWidths.Values) yield return width;
+    }
+
     private static IEnumerable<IWorkParagraphStyle> TableParagraphStyles(IWorkTable table) =>
         new[] { table.TextStyles.Body, table.TextStyles.HeaderRow, table.TextStyles.HeaderColumn, table.TextStyles.FooterRow }
             .Concat(table.Cells.Select(cell => cell.ParagraphStyle)).Where(style => style != null).Cast<IWorkParagraphStyle>();
@@ -244,6 +245,13 @@ public static partial class WordIWorkConverter {
     private static IEnumerable<IWorkParagraphStyle> AllPagesParagraphStyles(IWorkPagesProjection projection) =>
         AllPagesText(projection).SelectMany(content => content.Paragraphs).Select(paragraph => paragraph.Style)
             .Concat(projection.Tables.SelectMany(TableParagraphStyles));
+
+    private static string?[] PagesDecimalTabSymbols(IWorkPagesProjection projection, CancellationToken cancellationToken) =>
+        new[] { projection.Body }.Concat(projection.Sections.SelectMany(section => section.HeaderContents.Concat(section.FooterContents)))
+            .Concat(projection.TextBoxObjects.Select(box => box.Content))
+            .SelectMany(content => global::OfficeIMO.IWork.Internal.IWorkDecimalTabLayout.Symbols(content, cancellationToken: cancellationToken))
+            .Concat(projection.Tables.SelectMany(table => global::OfficeIMO.IWork.Internal.IWorkDecimalTabLayout.Symbols(table, cancellationToken)))
+            .Distinct(StringComparer.Ordinal).Take(2).ToArray();
 
     private static IEnumerable<IWorkTextStyle> AllPagesRunStyles(IWorkPagesProjection projection) =>
         AllPagesText(projection).SelectMany(content => content.Paragraphs).SelectMany(paragraph => paragraph.Runs).Select(run => run.Style)

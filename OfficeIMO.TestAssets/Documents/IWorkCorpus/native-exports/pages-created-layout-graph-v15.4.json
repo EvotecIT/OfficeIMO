@@ -1,0 +1,509 @@
+{
+  "source": "OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-layout-v15.4.pages",
+  "sha256": "689b9a9a31704d48e8092e189f46928f11b30f783cf87f92d7220edf33fbebfd",
+  "descriptorSha256": "01ce8096cdba082feb5cc8ac45bbc70d3651b500d0116808c934be3c571fc176",
+  "recordCount": 37,
+  "page": {
+    "width": 612.0,
+    "height": 792.0,
+    "margins": [
+      72.0,
+      72.0,
+      72.0,
+      72.0
+    ]
+  },
+  "paragraphCount": 7,
+  "text": "Native paragraph layout\nRelative spacing 1.5: this paragraph has six points before and nine points after. Its text wraps across lines so the native line spacing can be inspected alongside the exported paragraph settings.\nStart\tLeft\tCenter\tRight\t123.45\nDouble spacing: this paragraph has twelve points before and eighteen points after. Wrapped lines make the relative spacing visible without changing the font or body width.\n\nRich layout plain Za\u017c\u00f3\u0142\u0107 \ud83d\ude00\nDefault reset paragraph.\n",
+  "runs": [
+    {
+      "start": 0,
+      "end": 24,
+      "text": "Native paragraph layout\n",
+      "font": "Arial",
+      "size": 18.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 24,
+      "end": 221,
+      "text": "Relative spacing 1.5: this paragraph has six points before and nine points after. Its text wraps across lines so the native line spacing can be inspected alongside the exported paragraph settings.\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 221,
+      "end": 252,
+      "text": "Start\tLeft\tCenter\tRight\t123.45\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 252,
+      "end": 424,
+      "text": "Double spacing: this paragraph has twelve points before and eighteen points after. Wrapped lines make the relative spacing visible without changing the font or body width.\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 424,
+      "end": 425,
+      "text": "\n",
+      "font": "Arial",
+      "size": 18.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 425,
+      "end": 436,
+      "text": "Rich layout",
+      "font": "Arial",
+      "size": 14.0,
+      "bold": true,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 436,
+      "end": 453,
+      "text": " plain Za\u017c\u00f3\u0142\u0107 \ud83d\ude00\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    },
+    {
+      "start": 453,
+      "end": 478,
+      "text": "Default reset paragraph.\n",
+      "font": "Arial",
+      "size": 12.0,
+      "bold": false,
+      "italic": false,
+      "underline": 0,
+      "strikethrough": 0
+    }
+  ],
+  "paragraphLayouts": [
+    {
+      "start": 0,
+      "styleId": 32,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 24,
+      "styleId": 34,
+      "lineSpacingMultiplier": 1.5,
+      "spaceBeforePoints": 6.0,
+      "spaceAfterPoints": 9.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 221,
+      "styleId": 36,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": [
+        {
+          "positionPoints": 90.0,
+          "alignment": 0
+        },
+        {
+          "positionPoints": 180.0,
+          "alignment": 1
+        },
+        {
+          "positionPoints": 270.0,
+          "alignment": 2
+        },
+        {
+          "positionPoints": 360.0,
+          "alignment": 3
+        }
+      ]
+    },
+    {
+      "start": 252,
+      "styleId": 38,
+      "lineSpacingMultiplier": 2.0,
+      "spaceBeforePoints": 12.0,
+      "spaceAfterPoints": 18.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 424,
+      "styleId": 40,
+      "lineSpacingMultiplier": 1.5,
+      "spaceBeforePoints": 6.0,
+      "spaceAfterPoints": 6.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 425,
+      "styleId": 42,
+      "lineSpacingMultiplier": 1.25,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 6.0,
+      "decimalTab": ".",
+      "tabStops": []
+    },
+    {
+      "start": 453,
+      "styleId": 45,
+      "lineSpacingMultiplier": 1.0,
+      "spaceBeforePoints": 0.0,
+      "spaceAfterPoints": 0.0,
+      "decimalTab": ".",
+      "tabStops": []
+    }
+  ],
+  "objects": [
+    {
+      "id": 1,
+      "type": 10000,
+      "references": [
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "id": 3,
+      "type": 2001,
+      "references": [
+        5,
+        7,
+        9,
+        10,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "id": 4,
+      "type": 10001,
+      "references": [
+        5,
+        10,
+        11,
+        12,
+        13,
+        22,
+        33
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "references": [
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        22,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46
+      ]
+    },
+    {
+      "id": 6,
+      "type": 10012,
+      "references": []
+    },
+    {
+      "id": 7,
+      "type": 10011,
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 10143,
+      "references": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ]
+    },
+    {
+      "id": 9,
+      "type": 2024,
+      "references": []
+    },
+    {
+      "id": 10,
+      "type": 2023,
+      "references": []
+    },
+    {
+      "id": 11,
+      "type": 2050,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2025,
+      "references": [
+        22
+      ]
+    },
+    {
+      "id": 13,
+      "type": 3016,
+      "references": []
+    },
+    {
+      "id": 14,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 16,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 17,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 18,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 19,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 20,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 21,
+      "type": 2001,
+      "references": [
+        5,
+        9,
+        10,
+        14,
+        15
+      ]
+    },
+    {
+      "id": 22,
+      "type": 2022,
+      "references": [
+        10
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 33,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 34,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 35,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 36,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 37,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 38,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 39,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 40,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 41,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 42,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 43,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 44,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 45,
+      "type": 2022,
+      "references": [
+        10,
+        22
+      ]
+    },
+    {
+      "id": 46,
+      "type": 2021,
+      "references": []
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "references": []
+    }
+  ],
+  "scope": "Owned body paragraphs and graph declarations; native application acceptance is separate."
+}

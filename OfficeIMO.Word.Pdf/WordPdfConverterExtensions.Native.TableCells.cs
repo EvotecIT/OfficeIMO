@@ -475,7 +475,7 @@ namespace OfficeIMO.Word.Pdf {
                 result.Add(new PdfCore.PdfTabStop(
                     framePosition,
                     MapNativeTabAlignment(tabStop.Alignment),
-                    MapNativeTabLeader(tabStop.Leader)));
+                    MapNativeTabLeader(tabStop.Leader)) { DecimalSeparator = GetNativeDecimalTabSeparator(paragraph) });
             }
 
             return result;

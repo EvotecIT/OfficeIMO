@@ -151,6 +151,10 @@ public sealed partial class IWorkEverydayNativeExportTests {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Corpus("native-exports/" + name)));
         JsonElement root = manifest.RootElement;
         Assert.Equal(root.GetProperty("sourceSha256").GetString(), Hash(Corpus(root.GetProperty("source").GetString()!)));
+        VerifyArtifactHashes(root);
+    }
+
+    private static void VerifyArtifactHashes(JsonElement root) {
         foreach (JsonElement artifact in root.GetProperty("artifacts").EnumerateArray())
             Assert.Equal(artifact.GetProperty("sha256").GetString(), Hash(Corpus(artifact.GetProperty("path").GetString()!)));
     }

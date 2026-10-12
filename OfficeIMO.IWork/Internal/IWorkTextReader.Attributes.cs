@@ -135,16 +135,19 @@ internal static partial class IWorkTextReader {
     }
 
     private sealed class AttributeBoundary {
-        internal AttributeBoundary(int index, ulong? identifier, bool hasObject, int position) {
+        internal AttributeBoundary(int index, ulong? identifier, bool hasObject, int position,
+            ulong? secondaryValue = null) {
             Index = index;
             Identifier = identifier;
             HasObject = hasObject;
             Position = position;
+            SecondaryValue = secondaryValue;
         }
         internal int Position { get; }
         internal int Index { get; }
         internal ulong? Identifier { get; }
         internal bool HasObject { get; }
+        internal ulong? SecondaryValue { get; }
         internal ulong? CarriedIdentifier { get; set; }
     }
 
