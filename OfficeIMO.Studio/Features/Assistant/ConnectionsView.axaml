@@ -62,8 +62,8 @@
                 <TextBox Text="{Binding ApiKey}" PasswordChar="●" IsVisible="{Binding !IsApi}" AutomationProperties.Name="{loc:Loc Assistant.Credential}" />
                 <TextBlock Text="{loc:Loc Assistant.SessionCredential}" Classes="muted" />
               </StackPanel>
-              <TextBlock Text="{loc:Loc Connections.ImportExplanation}" Classes="muted" IsVisible="{Binding IsChatGpt}" />
-              <Button Classes="tool" Content="{loc:Loc Assistant.ImportCodex}" Command="{Binding ImportCodexLoginCommand}" IsVisible="{Binding IsChatGpt}" />
+              <TextBlock Text="{loc:Loc Connections.ImportExplanation}" Classes="muted" IsVisible="{Binding CanImportCodexLogin}" />
+              <Button Classes="tool" Content="{loc:Loc Assistant.ImportCodex}" Command="{Binding ImportCodexLoginCommand}" IsVisible="{Binding CanImportCodexLogin}" />
               <Button Classes="ghost" Content="{loc:Loc Assistant.SignOut}" Command="{Binding SignOutCommand}" IsVisible="{Binding !UsesEndpoint}" />
             </StackPanel>
           </Expander>

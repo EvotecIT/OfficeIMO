@@ -5,8 +5,8 @@ using OfficeIMO.Provenance.C2pa;
 namespace OfficeIMO.Studio.Features.Workflows;
 
 public sealed partial class ProvenanceWorkbenchViewModel {
-    /// <summary>External executables are configured only by desktop hosts with local paths.</summary>
-    public bool CanConfigureProvider => !UsesWorkingCopies && !OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS() && !OperatingSystem.IsBrowser();
+    /// <summary>External executables are configured only by desktop distributions that may run them, with local paths.</summary>
+    public bool CanConfigureProvider => Infrastructure.StudioDistributionPolicy.ExternalToolsAllowed && !UsesWorkingCopies && !OperatingSystem.IsAndroid() && !OperatingSystem.IsBrowser();
     [ObservableProperty] private string _c2paToolPath = "";
     [ObservableProperty] private string _trustAnchorsPath = "";
     [ObservableProperty] private string _allowedListPath = "";

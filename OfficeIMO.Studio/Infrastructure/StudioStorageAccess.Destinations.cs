@@ -35,6 +35,30 @@ internal sealed partial class StudioStorageAccess {
         return location;
     }
 
+    internal override async Task<bool> FolderContainsAsync(string folderLocation, string name, CancellationToken token) {
+        IStorageFile? existing;
+        try { existing = await FindFolderFileAsync(SelectedFolder(folderLocation), name, token).ConfigureAwait(false); }
+        catch (FileNotFoundException) { return false; }
+        if (existing is null) return false;
+        if (!OwnsProviderItem(existing)) existing.Dispose();
+        return true;
+    }
+
+    internal override async Task<string> SelectNewFileAsync(string folderLocation, string name, CancellationToken token) {
+        SelectedFolder(folderLocation);
+        string location = await SelectFileDestinationAsync(folderLocation, name, token).ConfigureAwait(false);
+        lock (_sync) if (_pendingDestinations.ContainsKey(location)) return location;
+        throw new IOException("A file with this name appeared in the selected folder. Check the folder before trying again.");
+    }
+
+    private IStorageFolder SelectedFolder(string folderLocation) {
+        lock (_sync) {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return _folders.TryGetValue(OfficeStorageIdentity.Normalize(folderLocation), out var folder) ? folder
+                : throw new IOException("Select the output folder again to grant provider access.");
+        }
+    }
+
     private async Task<IStorageFile> ResolveForWriteAsync(string location, CancellationToken token) {
         string key = OfficeStorageIdentity.Normalize(location);
         (IStorageFolder Folder, string Name) pending;

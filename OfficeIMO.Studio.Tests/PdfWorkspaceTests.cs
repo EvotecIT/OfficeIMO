@@ -29,6 +29,27 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task ImageExportPublishesNewChildrenOfAProviderFolder() {
+        // Files on iPad and sandboxed Mac folders grant no file-system access: images go through the provider.
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
+        using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
+        var source = new TestStorageFile("content://documents/images", document.ToBytes(), name: "images.pdf");
+        string location = await storage.RegisterAsync(source.Item, CancellationToken.None);
+        var folder = new StudioProviderOutputFolderTests.OutputFolder(hierarchical: true);
+        byte[] sentinel = [1, 2, 3, 4];
+        folder.Files["images-p1-1.png"] = new TestStorageFile("content://folder/selected/images-p1-1.png", sentinel, "images-p1-1.png");
+        string destination = Assert.IsType<string>(await storage.RegisterFolderAsync([folder.Item], CancellationToken.None));
+        using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(location, CancellationToken.None, storage: storage);
+
+        Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, destination, CancellationToken.None));
+        Assert.Equal(sentinel, folder.Files["images-p1-1.png"].Bytes);
+        Assert.Equal(1, folder.Creations);
+        TestStorageFile created = folder.Files["images-1-p1-1.png"];
+        Assert.True(OfficeIMO.Drawing.OfficeImageReader.TryValidateContent(created.Bytes, created.Name, default, out _));
+    }
+
+    [Fact]
     public async Task ImageExportKeepsExistingFilesAndUsesOneNewBatchName() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-export-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
