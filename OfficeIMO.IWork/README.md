@@ -491,7 +491,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Create | 2 | 0 | 0 | 0 | 0 | 0 |
 | Read | 1 | 0 | 0 | 0 | 0 | 0 |
-| Edit | 0 | 1 | 0 | 0 | 1 | 0 |
+| Edit | 0 | 2 | 0 | 0 | 0 | 0 |
 | Preserve | 1 | 0 | 0 | 0 | 0 | 0 |
 | Inspect | 1 | 0 | 0 | 0 | 0 | 0 |
 
