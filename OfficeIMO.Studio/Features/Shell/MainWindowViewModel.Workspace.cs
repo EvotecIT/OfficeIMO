@@ -494,7 +494,7 @@ public sealed partial class MainWindowViewModel {
             DocumentName = _workspace.FileName + (_workspace.IsDirty ? " *" : string.Empty);
             string pageLabel = _workspace.Pages.Count == 1 ? UiText("Document.Page") : UiText("Document.Pages");
             DocumentDescription = UiFormat("Document.Summary", _workspace.Pages.Count, pageLabel, FormatByteSize(_workspace.FileSize));
-            if (_workspace.HasRecovery) OperationStatus = UiText("Workspace.RecoveryAvailable");
+            if (_workspace.HasRecovery && !HasError) OperationStatus = UiText("Workspace.RecoveryAvailable");
         }
         RebuildBookmarks();
         RebuildFormFields();
