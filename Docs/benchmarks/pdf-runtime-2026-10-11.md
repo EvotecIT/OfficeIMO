@@ -374,3 +374,51 @@ The companion's `finalCheckpoint` object retains the complete 924 raw observatio
 
 
 The final cohort's retained archive is `final-qualified-evidence-43b3c8b4-20261012T015843Z.zip`, 164,877,976 bytes, SHA `DB6E5B3CDCD4EA8BF5BAAD0B3EAF6DA7EA518B58B8C9243139D59070B5C2E411`. Independent verification checks all 5,329 entries (3,665 files and 1,664 directories), 597,902,774 decompressed bytes, and all 3,688 mapped original files. The embedded `archive-control/final-qualified-evidence-43b-membership.jsonl` resolves original task-relative paths and 24 content-identical sparse aliases to their exact payloads. It preserves the complete final runtime/output graph, source-bound gate/native/layout producers and control evidence. Baseline90 stays in its existing archive, with all 37 mapped entries freshly verified; it is not duplicated. The companion's `finalCheckpoint.retention` binds the archive, map, execution, release and independent admission. Final PDF/Word visual deliverables and original native references also remain available in place. Sparse producer preservation is not a self-contained test build: the declared .NET runtime, native analysis/render tools and installed fonts remain external. Fresh cleanup/accounting receipts are separate from this archive identity and do not establish physical disk reclamation.
+
+
+## Structured reading and saving follow-up — 2026-10-12
+
+Guarded reuse of PDF operator observations reduces repeated parser work during structured reading. Bounded reuse of immutable font measurements reduces repeated text work during saving, while each document retains its own glyph usage, subset and Unicode mappings. Writer kerning bookkeeping is allocated only when needed. The measured allocation reduction is consistent across the original comparison and its one reproducibility repeat. Elapsed-time results vary substantially between those cohorts.
+
+This follow-up compares the previously qualified product `43b3c8b4fe7b4c8918155b78741ab7ab73614c9f` with `e01dcd8f984a54749b72e3e67b36640853722bee`. All 17 canonical harness files remain at `2ed26d029163294b5b2113c979ea59530bd895ff`. The baseline snapshot has 37 files/137,139,639 bytes; the candidate has 37 files/137,142,233 bytes. Legacy directory labels containing `90` identify the baseline role here; its actual product source is `43b3`, not the older `90e0` baseline used in the preceding checkpoint.
+
+The original full comparison ran at 11:10–11:14 UTC on 12 October and retains 924 observations across 66 paired cells. All output checks passed, and paired inputs were identical. Across all families, 28 median latencies were lower and 38 higher; mean managed allocation was lower in 53 cells and higher in 13. All 18 targeted structured-read and destination-save medians were higher. The companion JSON preserves every control-family cell and raw sample as `structuredSavingFollowup.original924`.
+
+One bounded repeat of the targeted families ran at 12:35:00–12:37:18 UTC, after an explicit extension of the coordinating agent's quiet window through 12:40 UTC. It retains 252 observations, eight calls and 18 paired cells. The source, frozen binaries, input bytes, fonts, output validation and original measurement settings were unchanged: two warmups, seven measurements, Normal priority, rotated operation order, no removed outliers, and both freshly verified 96 MiB L3 domains (`0xFFFF` and `0xFFFF0000`). Domain A runs baseline then candidate; B reverses product order. The coordinating agent kept its own heavy work idle; this did not establish that the whole machine was idle.
+
+In the repeat, 17 of 18 targeted medians were lower and one was higher. Structured-read medians were 34.10–58.02% lower; 100-page destination-save medians were 12.13–34.80% lower. Direct saving of one page on domain B remained 8.40% higher, or 4.6792 → 5.0723 ms. Domain A's one-page direct-save observed p95 was also 18.13% higher despite its lower median. Every repeat cell allocated less managed memory: structured reading decreased by 22.26–32.78%, and 100-page saving by 9.17–9.72%. The original allocation reductions were about 22–33% and 7%, respectively.
+
+The table keeps both timing directions and every targeted pair. Negative change means lower cost; observed p95 comes from seven samples and is not a production tail guarantee.
+
+| Domain | Operation | Pages | Original median change | Repeat median ms: before → after | Repeat median change | Repeat observed p95 change | Mean allocation change: original / repeat |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| A | `StructuredRead` | 20 | +57.67% | 25.9090 → 10.8756 | -58.02% | -76.88% | -21.69% / -22.35% |
+| A | `StructuredRead` | 100 | +140.83% | 136.4740 → 78.4442 | -42.52% | -17.37% | -29.84% / -30.30% |
+| A | `StructuredRead` | 500 | +90.48% | 576.8858 → 355.7425 | -38.33% | -29.14% | -32.38% / -32.78% |
+| A | `DestinationCopied` | 1 | +22.56% | 4.7910 → 4.5282 | -5.49% | -6.94% | -0.21% / -0.23% |
+| A | `DestinationCopied` | 20 | +81.11% | 8.8707 → 7.3882 | -16.71% | -4.15% | -3.83% / -4.86% |
+| A | `DestinationCopied` | 100 | +194.58% | 33.2181 → 21.6581 | -34.80% | -23.81% | -6.68% / -9.26% |
+| A | `DestinationDirect` | 1 | +0.20% | 4.9959 → 4.6292 | -7.34% | +18.13% | -0.26% / -0.05% |
+| A | `DestinationDirect` | 20 | +52.17% | 11.5426 → 9.6164 | -16.69% | -37.71% | -3.87% / -5.09% |
+| A | `DestinationDirect` | 100 | +163.92% | 26.0899 → 20.4673 | -21.55% | -28.48% | -7.14% / -9.17% |
+| B | `StructuredRead` | 20 | +36.01% | 14.2198 → 8.0221 | -43.59% | -49.15% | -23.83% / -22.26% |
+| B | `StructuredRead` | 100 | +1.51% | 63.6859 → 38.0474 | -40.26% | -40.98% | -30.76% / -30.29% |
+| B | `StructuredRead` | 500 | +5.98% | 358.0069 → 235.9328 | -34.10% | -35.78% | -33.02% / -32.73% |
+| B | `DestinationCopied` | 1 | +4.95% | 4.8384 → 4.7273 | -2.30% | -6.74% | -0.31% / -0.31% |
+| B | `DestinationCopied` | 20 | +62.74% | 14.4497 → 10.5138 | -27.24% | -28.48% | -4.23% / -5.09% |
+| B | `DestinationCopied` | 100 | +48.08% | 41.7660 → 36.6982 | -12.13% | -26.42% | -7.25% / -9.72% |
+| B | `DestinationDirect` | 1 | +0.86% | 4.6792 → 5.0723 | +8.40% | +4.89% | -0.35% / -0.38% |
+| B | `DestinationDirect` | 20 | +80.88% | 11.9467 → 10.1807 | -14.78% | -3.88% | -4.12% / -5.45% |
+| B | `DestinationDirect` | 100 | +47.72% | 55.9527 → 41.3061 | -26.18% | -33.94% | -7.38% / -9.69% |
+
+The allocation profiles identify repeated parser/state/string work during structured reading and repeated font measurement and glyph-processing work during saving. They attribute sampled allocation ticks over full processes, including preparation and validation. They are approximate diagnostics rather than latency measurements. In the original diagnostic cohort, observed collection counts decreased from 123 to 104 for reading but increased from 284 to 327 for saving; the saving increase remains a loss despite lower sampled allocation.
+
+Separate diagnostics retain 126 observations with twenty warmups, 28 instrumented canonical measurements, and single longer repeated-loop pairs. More warmups reduced most original gaps but left mixed latency: 20- and 100-page reading stayed about 12% slower, 500-page reading was about 1% faster, and 100-page direct saving was about 40% slower. Instrumentation reversed the original timing direction. Long-loop process CPU changed by about −1.56% for reading and +0.74% for saving while elapsed time rose about 19.1% and 1.51%. No JIT cause was established because the captured trace level contained no JIT events. These diagnostics remain separate and are not pooled with either benchmark cohort.
+
+The broad original latency regression did not reproduce with unchanged inputs and code. Lower allocation is supported consistently; a uniform latency, CPU, throughput or capacity improvement is not established. The original losses, the repeat's one-page loss and all raw outliers remain in the evidence. The investigation stops at this bounded repeat because it exposes no further attributable product cost that would justify another speculative fix or repeated timing runs. Broader performance qualification remains in the existing roadmap.
+
+Conversion quality is qualified independently of timing: nine fresh product/framework lanes passed 44,801 tests with no failures, 18 expected COM opt-in skips and 978 critical passes. Five layout artifacts retain equal geometry and byte-identical PNGs. All 50 Word-native controls passed, and all 55 preview PNGs were personally inspected and match the prior qualified build. Native reference documents were retained rather than regenerated in Word. The existing watermark proportions/image opacity, Cambria Math and general font fidelity, and physical 100-point overflow limits remain.
+
+Both analyses bind their actual reports, producer snapshots, input fingerprints and independent output validation. The original 924 observations and diagnostic exports/profiles resolve through an entry-verified archive after expanded copies were removed; original paths in retained analysis objects are historical references. Archive membership records preserve those paths and hashes. The companion JSON keeps the earlier `90e0` → `43b3` checkpoint and isolated renderer evidence unchanged, with this follow-up in a separate object.
+
+The final follow-up archive is `final-followup-runtime-and-repeat-e01.zip`, 53,684,048 bytes, SHA `142D7957DD258B82754D2549E0BDAB9FF3BFBF8EC2D897CB02D1A04F0D7295AC`. Independent verification checks all 311 decompressed entries and 1,599 original paths, including both exact 37-file runtime graphs and every repeat artifact. `archive-control/membership.json` maps each original path to its content-addressed payload. The original 924-observation cohort and diagnostics remain in `completed-runtime-observations-e01.zip`; quality/native/layout producers remain in `qualified-producers-e01.zip`. The final expanded copies were removed after their consumers completed and archive identities were verified. Visual deliverables and compact evidence remain available separately.
