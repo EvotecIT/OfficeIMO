@@ -39,6 +39,9 @@ public sealed class PdfDrawingStyle {
     /// <summary>Moves the drawing object to the next page with the first visible part of the following block when they fit together.</summary>
     public bool KeepWithNext { get; set; }
 
+    /// <summary>Proportionally reduces oversized drawing scenes to the current flow or row-column content width, without enlarging smaller scenes.</summary>
+    public bool ConstrainToContentWidth { get; set; }
+
     /// <summary>Optional alternate text for meaningful generated shapes and drawing scenes.</summary>
     public string? AlternativeText {
         get => _alternativeText;
@@ -61,6 +64,7 @@ public sealed class PdfDrawingStyle {
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             KeepWithNext = KeepWithNext,
+            ConstrainToContentWidth = ConstrainToContentWidth,
             AlternativeText = AlternativeText,
             Decorative = Decorative
         };

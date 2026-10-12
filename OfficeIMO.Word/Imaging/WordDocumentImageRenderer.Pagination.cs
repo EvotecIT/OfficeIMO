@@ -177,12 +177,12 @@ namespace OfficeIMO.Word {
             WordImageFlowContext context,
             List<OfficeImageExportDiagnostic> diagnostics) {
             WordImageTextLayout initialTextLayout = ResolveTextLayout(context, listMarker, paragraph);
-            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+            OfficeRichTextBlockLayout layout = OfficeTextLayoutEngine.LayoutStyledRichTextBlock(
                 richRuns,
                 initialTextLayout.ContentWidth,
                 double.MaxValue,
                 Math.Max(1D, lineHeight / Math.Max(1D, maxFontSize)),
-                CreateRichTextMeasure(context.CancellationToken),
+                CreateRichTextMeasure(context),
                 wrap: true,
                 shrinkToFit: false,
                 minimumFontSize: Math.Min(6D, maxFontSize),
@@ -548,6 +548,7 @@ namespace OfficeIMO.Word {
             string text,
             OfficeFontInfo font,
             double contentWidth,
+            OfficeRasterCanvas metrics,
             CancellationToken cancellationToken = default,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint = null) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -555,15 +556,13 @@ namespace OfficeIMO.Word {
             cancellationToken.ThrowIfCancellationRequested();
             string[] explicitLines = normalized.Split('\n');
             var lines = new List<string>();
-            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
-            OfficeTextMeasurementStyle style = measurer.CreateStyle(font, 72D);
+            Func<string, double> measure = value => metrics.MeasureText(value, font.Size, font.FamilyName, font.Style);
             foreach (string explicitLine in explicitLines) {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddMeasuredWrappedLine(
                     explicitLine,
                     Math.Max(1D, contentWidth),
-                    measurer,
-                    style,
+                    measure,
                     lines,
                     cancellationToken,
                     cancellationCheckpoint);
@@ -575,8 +574,7 @@ namespace OfficeIMO.Word {
         private static void AddMeasuredWrappedLine(
             string text,
             double contentWidth,
-            OfficeTextMeasurer measurer,
-            OfficeTextMeasurementStyle style,
+            Func<string, double> measure,
             List<string> lines,
             CancellationToken cancellationToken,
             Action<WordImageCancellationCheckpoint>? cancellationCheckpoint) {
@@ -600,8 +598,8 @@ namespace OfficeIMO.Word {
                 }
 
                 string candidate = current + word;
-                if (measurer.MeasureWidth(candidate, style) <= contentWidth || current.Length == 0) {
-                    if (measurer.MeasureWidth(candidate, style) <= contentWidth) {
+                if (measure(candidate) <= contentWidth || current.Length == 0) {
+                    if (measure(candidate) <= contentWidth) {
                         current = candidate;
                         continue;
                     }
@@ -609,8 +607,7 @@ namespace OfficeIMO.Word {
                     AddMeasuredWordFragments(
                         word,
                         contentWidth,
-                        measurer,
-                        style,
+                        measure,
                         lines,
                         cancellationToken);
                     continue;
@@ -683,15 +680,14 @@ namespace OfficeIMO.Word {
         private static void AddMeasuredWordFragments(
             string word,
             double contentWidth,
-            OfficeTextMeasurer measurer,
-            OfficeTextMeasurementStyle style,
+            Func<string, double> measure,
             List<string> lines,
             CancellationToken cancellationToken) {
             string current = string.Empty;
             for (int i = 0; i < word.Length; i++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string candidate = current + word[i];
-                if (current.Length > 0 && measurer.MeasureWidth(candidate, style) > contentWidth) {
+                if (current.Length > 0 && measure(candidate) > contentWidth) {
                     lines.Add(current);
                     current = word[i].ToString();
                     continue;
