@@ -323,8 +323,8 @@ options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 
 Hosts that ship the OfficeIMO portable browser font set can activate its layout
 aliases, fallback order, PDF embedding, and substitutions through one reusable
-profile. The profile does not embed or download fonts; the host remains responsible
-for supplying pinned and licensed bytes:
+profile. The package does not include or download font files; the host supplies
+pinned and licensed bytes:
 
 ```csharp
 HtmlPortableBrowserFontProfile fonts = HtmlPortableBrowserFontProfile.Create(
@@ -337,6 +337,23 @@ HtmlToPdfOptions options = fonts.CreateHtmlOptions(
 
 The same `options` instance can drive screen images, browser-print PDF, and
 screen-to-page PDF so layout and encoded output use the same fonts.
+
+For hosts that load fallback fonts on demand, start with the four Carlito faces:
+
+```csharp
+HtmlPortableBrowserFontProfile defaultFonts = HtmlPortableBrowserFontProfile.CreateDefaultOnly(
+    "my-portable-fonts-v1",
+    fileName => File.ReadAllBytes(Path.Combine(fontDirectory, fileName)));
+
+// Once the Japanese, Arabic, and symbol font files are available:
+HtmlPortableBrowserFontProfile fullFonts = defaultFonts.WithFallbackFonts(
+    fileName => File.ReadAllBytes(Path.Combine(fallbackFontDirectory, fileName)));
+```
+
+The upgrade reads only the three fallback files and reuses the Carlito font
+programs and PDF family. The original profile remains unchanged; each profile
+creates layout and PDF options for its own activated fonts. `Create` reads all
+seven files when the complete font set is already available.
 
 If no configured provider accepts a run that requires provider-owned complex shaping, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback, including outlined-font output.
 
