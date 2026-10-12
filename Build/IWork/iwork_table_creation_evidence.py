@@ -1,4 +1,4 @@
-"""Independent scalar-table checks for the owned native Keynote creation profile.
+"""Independent scalar-table checks for the owned native iWork creation profiles.
 
 Opt-in validation only. Decodes native cell storage through numbers-parser's
 Decimal128 implementation; never loads OfficeIMO or becomes a runtime provider.

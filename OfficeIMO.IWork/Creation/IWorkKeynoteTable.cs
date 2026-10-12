@@ -1,3 +1,5 @@
+using OfficeIMO.IWork.Internal;
+
 namespace OfficeIMO.IWork;
 
 /// <summary>An immutable positioned scalar table in a newly created Keynote presentation.</summary>
@@ -6,37 +8,25 @@ namespace OfficeIMO.IWork;
 public sealed class IWorkKeynoteTable : IWorkKeynoteCreationDrawable {
     internal IWorkKeynoteTable(IWorkTableData data, float left, float top, float width, float height,
         string name, string fontName, float fontSize, IWorkColor color) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        IWorkCreationValidation.ValidateFinite(left, nameof(left));
-        IWorkCreationValidation.ValidateFinite(top, nameof(top));
-        IWorkCreationValidation.ValidatePositive(width, nameof(width));
-        IWorkCreationValidation.ValidatePositive(height, nameof(height));
-        IWorkCreationValidation.ValidateFontName(fontName);
-        IWorkCreationValidation.ValidatePositive(fontSize, nameof(fontSize));
-        if (name == null) throw new ArgumentNullException(nameof(name));
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 128 || name.Any(char.IsControl))
-            throw new ArgumentException("A table name of at most 128 characters without controls is required.", nameof(name));
-        Name = IWorkCreationValidation.NormalizeText(name);
-        RowCount = data.RowCount; ColumnCount = data.ColumnCount;
-        Cells = Array.AsReadOnly(data.Snapshot());
-        Geometry = new IWorkGeometry(left, top, width, height, 0);
-        FontName = fontName; FontSizePoints = fontSize; Color = color;
+        Data = new IWorkNativeTableData(data, left, top, width, height, name, fontName, fontSize, color);
     }
 
+    internal IWorkNativeTableData Data { get; }
+
     /// <summary>Gets the table name retained in the native model. The visible title is disabled.</summary>
-    public string Name { get; }
+    public string Name => Data.Name;
     /// <summary>Gets the row count, including unset positions.</summary>
-    public int RowCount { get; }
+    public int RowCount => Data.RowCount;
     /// <summary>Gets the column count, including unset positions.</summary>
-    public int ColumnCount { get; }
+    public int ColumnCount => Data.ColumnCount;
     /// <summary>Gets set cells in row-major order. Unset positions remain empty.</summary>
-    public IReadOnlyList<IWorkTableCell> Cells { get; }
+    public IReadOnlyList<IWorkTableCell> Cells => Data.Cells;
     /// <summary>Gets the unrotated table frame in points.</summary>
-    public IWorkGeometry Geometry { get; }
+    public IWorkGeometry Geometry => Data.Geometry;
     /// <summary>Gets the font shared by all cells.</summary>
-    public string FontName { get; }
+    public string FontName => Data.FontName;
     /// <summary>Gets the font size shared by all cells.</summary>
-    public float FontSizePoints { get; }
+    public float FontSizePoints => Data.FontSizePoints;
     /// <summary>Gets the opaque sRGB text color shared by all cells.</summary>
-    public IWorkColor Color { get; }
+    public IWorkColor Color => Data.Color;
 }

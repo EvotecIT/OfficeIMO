@@ -105,7 +105,7 @@ internal sealed class IWorkProtoWriter {
     private void Ensure(int count) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (_output.Length > (long)_maximumBytes - count) {
-            throw new InvalidDataException($"Native Keynote encoding exceeds the configured {_maximumBytes}-byte limit.");
+            throw new InvalidDataException($"Native iWork encoding exceeds the configured {_maximumBytes}-byte limit.");
         }
     }
 

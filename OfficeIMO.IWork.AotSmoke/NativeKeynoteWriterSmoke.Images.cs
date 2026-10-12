@@ -56,8 +56,8 @@ internal static partial class NativeKeynoteWriterSmoke {
         var second = document.AddSlide("003366");
         second.AddText("Native alpha PNG", 60, 30, 840, 60, "Helvetica Neue", 32, "FFFFFF");
         second.AddImage(alpha, 60, 120, 480, 320, "Transparent, half-alpha, opaque purple");
-        second.AddRichText(new[] { new IWorkKeynoteTextRun("0% / 50% / ", "Arial", 28, "FFFFFF"),
-            new IWorkKeynoteTextRun("100% alpha", "Arial", 28, "FFD700", bold: true) }, 60, 450, 840, 60);
+        second.AddRichText(new[] { new IWorkTextRunData("0% / 50% / ", "Arial", 28, "FFFFFF"),
+            new IWorkTextRunData("100% alpha", "Arial", 28, "FFD700", bold: true) }, 60, 450, 840, 60);
         var third = document.AddSlide();
         third.AddText("Native JPEG", 60, 30, 840, 60, "Helvetica Neue", 32, "003366");
         third.AddImage(jpeg, 60, 120, 600, 240, "Four-color JPEG, intentionally stretched frame");

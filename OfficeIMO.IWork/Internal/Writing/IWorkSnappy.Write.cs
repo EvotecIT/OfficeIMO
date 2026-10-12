@@ -22,7 +22,7 @@ internal static partial class IWorkSnappy {
             raw.Write(source, offset, length);
             int rawLength = checked((int)raw.Length);
             if (output.Length > (long)maximumBytes - rawLength - 4) {
-                throw new InvalidDataException($"Native Keynote IWA data exceeds the configured {maximumBytes}-byte limit.");
+                throw new InvalidDataException($"Native iWork IWA data exceeds the configured {maximumBytes}-byte limit.");
             }
             output.WriteByte(0);
             output.WriteByte((byte)rawLength);

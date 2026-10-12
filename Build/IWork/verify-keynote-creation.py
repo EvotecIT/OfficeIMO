@@ -13,9 +13,8 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory
-from numbers_parser.iwafile import IWACompressedChunk, get_archive_info_and_remainder
-from iwork_protobuf_evidence import fields
-from keynote_table_creation_evidence import verify_tables
+from iwork_protobuf_evidence import fields, creation_records as records, creation_references as references
+from iwork_table_creation_evidence import verify_tables
 
 SCHEMAS = {1: 'KN.DocumentArchive', 11006: 'TSP.PackageMetadata', 2: 'KN.ShowArchive',
     10: 'KN.ThemeArchive', 401: 'TSS.StylesheetArchive', 2021: 'TSWP.CharacterStyleArchive',
@@ -26,34 +25,6 @@ SCHEMAS = {1: 'KN.DocumentArchive', 11006: 'TSP.PackageMetadata', 2: 'KN.ShowArc
     6000: 'TST.TableInfoArchive', 6001: 'TST.TableModelArchive', 6002: 'TST.Tile',
     6003: 'TST.TableStyleArchive', 6004: 'TST.CellStyleArchive', 6005: 'TST.TableDataList',
     6006: 'TST.HeaderStorageBucket', 6008: 'TST.TableStylePresetArchive', 6247: 'TST.TableStyleNetworkArchive'}
-
-
-def records(package):
-    result = {}
-    for name in package.namelist():
-        if not name.endswith('.iwa'):
-            continue
-        data = b''.join(IWACompressedChunk._decompress_all(package.read(name)))
-        while data:
-            header, payload = get_archive_info_and_remainder(data)
-            assert len(header.message_infos) == 1
-            info = header.message_infos[0]
-            assert header.identifier not in result
-            result[header.identifier] = (info.type, payload[:info.length], header)
-            data = payload[info.length:]
-    return result
-
-
-def references(message, name='TSP.Reference'):
-    if message.DESCRIPTOR.full_name == name:
-        return {message.identifier}
-    result = set()
-    for field, value in message.ListFields():
-        if field.message_type is None:
-            continue
-        for nested in value if field.is_repeated else [value]:
-            result.update(references(nested, name))
-    return result
 
 
 def verify(path, descriptor):

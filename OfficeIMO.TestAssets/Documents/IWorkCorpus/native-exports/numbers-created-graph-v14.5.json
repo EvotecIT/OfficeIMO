@@ -1,0 +1,1153 @@
+{
+  "source": "native-exports/numbers-created-v14.5.numbers",
+  "sha256": "08f6f8c2b82b99514d657fdbb0402e3fad25ef7c7005c9b84afafd929d1e719c",
+  "bytes": 22090,
+  "descriptor_sha256": "d5e97836e04ffffe2145b6bd93aa01a0c3fa4af420a0f82ae9d3c8019844d45e",
+  "numbers_parser_version": "4.19.0",
+  "required_fields_complete": true,
+  "references_complete": true,
+  "deterministic_zip_profile": true,
+  "records": 108,
+  "objects": [
+    {
+      "id": 1,
+      "type": 1,
+      "schema": "TN.DocumentArchive",
+      "references": [
+        3,
+        4,
+        5,
+        6,
+        9,
+        10,
+        32,
+        92
+      ]
+    },
+    {
+      "id": 3,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        33,
+        93
+      ]
+    },
+    {
+      "id": 4,
+      "type": 12009,
+      "schema": "TN.ThemeArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        46,
+        73,
+        106
+      ]
+    },
+    {
+      "id": 5,
+      "type": 401,
+      "schema": "TSS.StylesheetArchive",
+      "references": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        17,
+        36,
+        37,
+        38,
+        39,
+        40,
+        61,
+        62,
+        63,
+        64,
+        65,
+        96,
+        97,
+        98,
+        99,
+        100
+      ]
+    },
+    {
+      "id": 6,
+      "type": 4000,
+      "schema": "TSCE.CalculationEngineArchive",
+      "references": [
+        7
+      ]
+    },
+    {
+      "id": 7,
+      "type": 4003,
+      "schema": "TSCE.NamedReferenceManagerArchive",
+      "references": [
+        8
+      ]
+    },
+    {
+      "id": 8,
+      "type": 4004,
+      "schema": "TSCE.TrackedReferenceStoreArchive",
+      "references": []
+    },
+    {
+      "id": 9,
+      "type": 222,
+      "schema": "TSK.CustomFormatListArchive",
+      "references": []
+    },
+    {
+      "id": 10,
+      "type": 601,
+      "schema": "TSA.FunctionBrowserStateArchive",
+      "references": []
+    },
+    {
+      "id": 11,
+      "type": 12050,
+      "schema": "TN.SheetStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 12,
+      "type": 2021,
+      "schema": "TSWP.CharacterStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 13,
+      "type": 2022,
+      "schema": "TSWP.ParagraphStyleArchive",
+      "references": [
+        5,
+        14
+      ]
+    },
+    {
+      "id": 14,
+      "type": 2023,
+      "schema": "TSWP.ListStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 15,
+      "type": 2025,
+      "schema": "TSWP.ShapeStyleArchive",
+      "references": [
+        5,
+        13
+      ]
+    },
+    {
+      "id": 16,
+      "type": 2050,
+      "schema": "TSWP.TextStylePresetArchive",
+      "references": [
+        13,
+        14
+      ]
+    },
+    {
+      "id": 17,
+      "type": 3016,
+      "schema": "TSD.MediaStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 32,
+      "type": 2,
+      "schema": "TN.SheetArchive",
+      "references": [
+        11,
+        34,
+        59,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91
+      ]
+    },
+    {
+      "id": 33,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        32,
+        58,
+        85
+      ]
+    },
+    {
+      "id": 34,
+      "type": 6000,
+      "schema": "TST.TableInfoArchive",
+      "references": [
+        32,
+        35
+      ]
+    },
+    {
+      "id": 35,
+      "type": 6001,
+      "schema": "TST.TableModelArchive",
+      "references": [
+        36,
+        37,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57
+      ]
+    },
+    {
+      "id": 36,
+      "type": 6003,
+      "schema": "TST.TableStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 37,
+      "type": 6004,
+      "schema": "TST.CellStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 38,
+      "type": 2021,
+      "schema": "TSWP.CharacterStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 39,
+      "type": 2022,
+      "schema": "TSWP.ParagraphStyleArchive",
+      "references": [
+        5,
+        14
+      ]
+    },
+    {
+      "id": 40,
+      "type": 2025,
+      "schema": "TSWP.ShapeStyleArchive",
+      "references": [
+        5,
+        39
+      ]
+    },
+    {
+      "id": 41,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 42,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 43,
+      "type": 6002,
+      "schema": "TST.Tile",
+      "references": []
+    },
+    {
+      "id": 44,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 45,
+      "type": 6247,
+      "schema": "TST.TableStyleNetworkArchive",
+      "references": [
+        36,
+        37,
+        39,
+        40
+      ]
+    },
+    {
+      "id": 46,
+      "type": 6008,
+      "schema": "TST.TableStylePresetArchive",
+      "references": [
+        45
+      ]
+    },
+    {
+      "id": 47,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 48,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 49,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 50,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 51,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 52,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 53,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 54,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 55,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 56,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 57,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 58,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        34
+      ]
+    },
+    {
+      "id": 59,
+      "type": 6000,
+      "schema": "TST.TableInfoArchive",
+      "references": [
+        32,
+        60
+      ]
+    },
+    {
+      "id": 60,
+      "type": 6001,
+      "schema": "TST.TableModelArchive",
+      "references": [
+        61,
+        62,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84
+      ]
+    },
+    {
+      "id": 61,
+      "type": 6003,
+      "schema": "TST.TableStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 62,
+      "type": 6004,
+      "schema": "TST.CellStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 63,
+      "type": 2021,
+      "schema": "TSWP.CharacterStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 64,
+      "type": 2022,
+      "schema": "TSWP.ParagraphStyleArchive",
+      "references": [
+        5,
+        14
+      ]
+    },
+    {
+      "id": 65,
+      "type": 2025,
+      "schema": "TSWP.ShapeStyleArchive",
+      "references": [
+        5,
+        64
+      ]
+    },
+    {
+      "id": 66,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 67,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 68,
+      "type": 6002,
+      "schema": "TST.Tile",
+      "references": []
+    },
+    {
+      "id": 69,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 70,
+      "type": 6247,
+      "schema": "TST.TableStyleNetworkArchive",
+      "references": [
+        61,
+        62,
+        64,
+        65
+      ]
+    },
+    {
+      "id": 73,
+      "type": 6008,
+      "schema": "TST.TableStylePresetArchive",
+      "references": [
+        70
+      ]
+    },
+    {
+      "id": 74,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 75,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 76,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 77,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 78,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 79,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 80,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 81,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 82,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 83,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 84,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 85,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        59
+      ]
+    },
+    {
+      "id": 86,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 87,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 88,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 89,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 90,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 91,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 92,
+      "type": 2,
+      "schema": "TN.SheetArchive",
+      "references": [
+        11,
+        94,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124
+      ]
+    },
+    {
+      "id": 93,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        92,
+        118
+      ]
+    },
+    {
+      "id": 94,
+      "type": 6000,
+      "schema": "TST.TableInfoArchive",
+      "references": [
+        92,
+        95
+      ]
+    },
+    {
+      "id": 95,
+      "type": 6001,
+      "schema": "TST.TableModelArchive",
+      "references": [
+        96,
+        97,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117
+      ]
+    },
+    {
+      "id": 96,
+      "type": 6003,
+      "schema": "TST.TableStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 97,
+      "type": 6004,
+      "schema": "TST.CellStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 98,
+      "type": 2021,
+      "schema": "TSWP.CharacterStyleArchive",
+      "references": [
+        5
+      ]
+    },
+    {
+      "id": 99,
+      "type": 2022,
+      "schema": "TSWP.ParagraphStyleArchive",
+      "references": [
+        5,
+        14
+      ]
+    },
+    {
+      "id": 100,
+      "type": 2025,
+      "schema": "TSWP.ShapeStyleArchive",
+      "references": [
+        5,
+        99
+      ]
+    },
+    {
+      "id": 101,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 102,
+      "type": 6006,
+      "schema": "TST.HeaderStorageBucket",
+      "references": []
+    },
+    {
+      "id": 103,
+      "type": 6002,
+      "schema": "TST.Tile",
+      "references": []
+    },
+    {
+      "id": 104,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 105,
+      "type": 6247,
+      "schema": "TST.TableStyleNetworkArchive",
+      "references": [
+        96,
+        97,
+        99,
+        100
+      ]
+    },
+    {
+      "id": 106,
+      "type": 6008,
+      "schema": "TST.TableStylePresetArchive",
+      "references": [
+        105
+      ]
+    },
+    {
+      "id": 107,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 108,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 109,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 110,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 111,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 112,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 113,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 114,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 115,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 116,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 117,
+      "type": 6005,
+      "schema": "TST.TableDataList",
+      "references": []
+    },
+    {
+      "id": 118,
+      "type": 205,
+      "schema": "TSK.TreeNode",
+      "references": [
+        94
+      ]
+    },
+    {
+      "id": 119,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 120,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 121,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 122,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 123,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 124,
+      "type": 2001,
+      "schema": "TSWP.StorageArchive",
+      "references": [
+        5,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": 2,
+      "type": 11006,
+      "schema": "TSP.PackageMetadata",
+      "references": []
+    }
+  ],
+  "sheets": [
+    {
+      "name": "Budget",
+      "table_ids": [
+        35,
+        60
+      ],
+      "hidden_header_footer_storages_complete": true
+    },
+    {
+      "name": "Empty grid",
+      "table_ids": [
+        95
+      ],
+      "hidden_header_footer_storages_complete": true
+    }
+  ],
+  "native_tables": [
+    {
+      "id": 35,
+      "name": "Data",
+      "rows": 4,
+      "columns": 4,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Text",
+          "value": "Item"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Text",
+          "value": "Value"
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "kind": "Text",
+          "value": "Flag"
+        },
+        {
+          "row": 1,
+          "column": 4,
+          "kind": "Text",
+          "value": "Notes"
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Text",
+          "value": "Apples"
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Number",
+          "value": 12.5
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "kind": "Boolean",
+          "value": true
+        },
+        {
+          "row": 2,
+          "column": 4,
+          "kind": "Text",
+          "value": "Zażółć 😀"
+        },
+        {
+          "row": 3,
+          "column": 1,
+          "kind": "Text",
+          "value": "Negative"
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "kind": "Number",
+          "value": -0.125
+        },
+        {
+          "row": 3,
+          "column": 3,
+          "kind": "Boolean",
+          "value": false
+        },
+        {
+          "row": 3,
+          "column": 4,
+          "kind": "Text",
+          "value": "=literal"
+        },
+        {
+          "row": 4,
+          "column": 1,
+          "kind": "Text",
+          "value": "Line1\nLine2"
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "kind": "Number",
+          "value": 12345.6789
+        },
+        {
+          "row": 4,
+          "column": 3,
+          "kind": "Boolean",
+          "value": true
+        },
+        {
+          "row": 4,
+          "column": 4,
+          "kind": "Empty",
+          "value": null
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true
+    },
+    {
+      "id": 60,
+      "name": "Totals",
+      "rows": 2,
+      "columns": 2,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Text",
+          "value": "Totals"
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Number",
+          "value": 99.0
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Boolean",
+          "value": false
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true
+    },
+    {
+      "id": 95,
+      "name": "Empty",
+      "rows": 2,
+      "columns": 3,
+      "cells": [
+        {
+          "row": 1,
+          "column": 1,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 1,
+          "column": 3,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "kind": "Empty",
+          "value": null
+        },
+        {
+          "row": 2,
+          "column": 3,
+          "kind": "Empty",
+          "value": null
+        }
+      ],
+      "row_offsets_and_counts_complete": true,
+      "style_preset_network_complete": true
+    }
+  ]
+}

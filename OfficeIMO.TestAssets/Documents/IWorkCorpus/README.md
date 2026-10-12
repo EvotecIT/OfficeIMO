@@ -1,6 +1,6 @@
 # iWork reader corpus
 
-These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote fixtures qualify the bounded creation model.
+These package fixtures prove the bounded Pages, Numbers, and Keynote reader against files produced by multiple iWork generations. They remain read-only test inputs. Separate OfficeIMO-created native Keynote, Pages and Numbers fixtures qualify their bounded creation models.
 
 | Folder | Upstream | Revision | Producer evidence | License |
 |---|---|---|---|---|
@@ -13,6 +13,44 @@ These package fixtures prove the bounded Pages, Numbers, and Keynote reader agai
 The complete upstream license notices are reproduced in `OfficeIMO.IWork/THIRD-PARTY-NOTICES.md`. Fixture provenance and expected semantic assertions live beside the executable corpus tests in `OfficeIMO.IWork.Tests`.
 
 The parameterized independent-corpus output check converts all 12 fixtures listed by `IWorkCorpusTests.Corpus` to editable DOCX, XLSX or PPTX, saves and reopens the result, and validates the destination Open XML schema. It explicitly accepts partial reconstruction and normalizes worksheet names. This gate catches invalid destination packages; separate semantic tests establish supported content. Passing it does not qualify native application rendering, pagination or complete document fidelity.
+
+## Native Numbers scalar-table creation
+
+The [Numbers creation manifest](native-exports/numbers-created-v14.5.json) pins a template-free OfficeIMO two-sheet/three-table spreadsheet, its native Numbers 14.5 numeric edit/save/close/reopen, and PDF/XLSX exports. `IWorkNumbersWritingTests.Example()` reproduces the frozen input with scalar text, finite numbers, booleans, Polish text, emoji, an inline LF, literal `=` text and a completely empty 2-by-3 table. Both native PDF pages are inspected. These are newly authored MIT fixtures; no seed archive or standalone font is distributed.
+
+`numbers-created-graph-v14.5.json` independently decodes all 108 objects with complete required fields and object references, typed scalar tiles/catalogs, style networks, ordered sidebar/sheet tables, modern custom-format references and mandatory blank header/footer storages. Reproduce it with the manifest's pinned protobuf descriptor and isolated numbers-parser version:
+
+```sh
+python Build/IWork/verify-numbers-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-created-v14.5.numbers --descriptor <numbers-descriptor.pb> --out <graph.json>
+```
+
+Native readback and strict saved/reopened OfficeIMO XLSX retain all tables and typed values after B2 changes from 12.5 to 20.75. The populated tables agree with Apple's XLSX export. Apple's empty-grid positioning is B2:D3; the adapter produces a table-relative A1:C2 grid. Exact Excel positioning and appearance, broader authored objects, formulas, formats, comments, other native versions and fonts/scripts remain unqualified.
+
+## Native source preservation
+
+The [native preservation manifest](native-exports/native-preservation-macos.json) records unchanged saves of the Apple-edited Pages body, Numbers scalar tables and Keynote image deck, plus a preservation-aware translation of Keynote image record 154. These newly authored MIT fixtures retain the original resources and unknown content; no external font is redistributed.
+
+The independent verifier compares every file-entry payload for unchanged saves and independently decompresses all IWA archives. For the translation it checks the complete raw archive against the original after replacing only the two fixed32 position values, including exact ArchiveInfo/MessageInfo bytes and auxiliary/sibling payloads. Pinned descriptors additionally check known and unknown protobuf fields. Reproduce the translation comparison with:
+
+```sh
+python Build/IWork/verify-native-preservation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-created-images-edited-v15.4.key OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/keynote-preserved-translated-v15.4.key --descriptor <numbers-descriptor.pb> --image 154 100 130 --out <evidence.json>
+```
+
+Omit `--image` and `--descriptor` to compare a reproduced unchanged encoding. The manifest pins source/output hashes and record/entry counts for all three applications. Byte comparison applies to OfficeIMO output before native opening; Keynote can update application view state during inspection.
+
+Keynote 15.4 reports the requested X100/Y130 frame, accepts a native one-point horizontal edit and retains X101/Y130/W600/H240 after save/close/reopen. All three native PDF pages are inspected, and saved-source resources match the original PNG/JPEG payloads. Unchanged outputs open in Pages 15.4, Numbers 14.5 and Keynote 15.4, retaining the observed two-page body, two-sheet/three-table workbook and three-slide geometry. This is fixture-specific native acceptance; unrefreshed preview/cache behavior, wider native metadata and other producer versions remain unassessed.
+
+## Native Pages body creation
+
+The [Pages creation manifest](native-exports/pages-created-v15.4.json) pins a template-free OfficeIMO body document, its native Pages 15.4 edit/save/close/reopen, and PDF/DOCX exports. `IWorkPagesWritingTests.Example()` reproduces the frozen 83-paragraph input with Arial and Times New Roman, independent character decorations, explicit plain resets, a blank paragraph, Polish text and a non-BMP emoji. The original graph, native-saved edit, all two PDF pages and reference DOCX are newly authored MIT fixtures; no seed archive or standalone font is distributed.
+
+`pages-created-graph-v15.4.json` records pinned-schema independent decoding of all 189 objects and their declared references. It includes the six required empty header/footer storages, even though headers/footers are hidden. Missing these objects can permit initial open but produce an unreadable package after native save. Reproduce the graph with:
+
+```text
+python Build/IWork/verify-pages-creation.py OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-created-v15.4.pages --descriptor <pages-descriptor.pb> --out <graph.json>
+```
+
+The manifest identifies the schema revision, descriptor hash and isolated numbers-parser version. Native Pages/PDF retain the rich styling after the text edit. Apple's DOCX export agrees with the complete authored content and page dimensions/margins but changes selected font runs and bold/italic overrides; native DOCX typography is not qualified as equivalent. Strict OfficeIMO DOCX separately preserves source run properties and includes the empty paragraph projected from the final LF. Other native versions, fonts, scripts, pagination contexts and broader authored objects remain open.
 
 ## Native default paragraph layout
 
@@ -441,3 +479,38 @@ Reproduce with the pinned numbers-parser 4.19.0 environment:
 ```sh
 python Build/IWork/extract-integer-function-boundaries.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/single-cell-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/integer-function-boundaries.json
 ```
+
+### Complete native-content PDF references
+
+`native-exports/iwork-composed-pdf-portable.json` pins the Apple-edited Pages body,
+Numbers scalar workbook and Keynote table deck, all three composed PDFs, nine
+composed page rasters and their native comparison exports. The fresh Keynote PDF
+includes the edited numeric/text cells and text entered into the formerly empty
+table. `keynote-created-tables-pdf-export-v15.4.key` separately retains the
+metadata/resource normalization performed by Keynote during that export; its
+composed pages match the original edited fixture. Original source fixtures remain
+unchanged. These authored documents use
+the repository MIT license; the registered and embedded fallback fonts retain
+their recorded SIL OFL 1.1 licenses.
+
+The workflow uses the public shared rendering profile with four Carlito style
+faces, Noto Emoji and the Noto Sans JP common subset, under the portable
+deterministic PDF resource policy. It discovers no installed fonts. The manifest
+records font checksums, producer versions, selected-unit coverage and both
+stages' fidelity diagnostics. Independent Poppler text extraction verifies all
+80 numbered Pages paragraphs in order, every populated Numbers scalar/literal
+value and all Keynote text and native edits. Every composed and comparison page
+is visually inspected; the completely unset Numbers grid retains its drawn
+page. The workflow tests exercise this contract on .NET 8 and 10.
+
+The composed exports have two Pages pages, four Numbers pages and three Keynote
+pages. They retain complete selected content with visible font, text-inset,
+monochrome-emoji and invariant/localized display differences. Pages breaks its
+body after paragraph 42 instead of Apple's 41. Numbers follows the XLSX
+table-per-worksheet projection and splits the wide first table by columns;
+Apple's positioned-sheet export has two pages. Opaque source-record fidelity,
+native typography/pagination equivalence, additional scripts/producers and
+composed-PDF NativeAOT/platform acceptance remain separate qualification work.
+Use the [workflow font example](../../../OfficeIMO.Workflows.IWork/README.md) and
+the manifest's routes and reproduction commands to regenerate and inspect the
+outputs.

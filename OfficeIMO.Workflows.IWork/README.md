@@ -49,6 +49,34 @@ OfficeWorkflowResult pdf = await runner.RunAsync(new OfficeWorkflowRequest {
 
 Use `PagesPdfOptions`, `NumbersPdfOptions`, and `KeynotePdfOptions` for destination layout, font, and resource policy; request snapshots copy these options. Registered PDF options reject encryption before opening the source; apply the PDF protection workflow to a completed conversion. `ConversionEvidence` retains both the iWork and PDF reports, including serialization/font preflight evidence, with `conversionStages = iwork-editable,pdf`. `OfficeWorkflowRequest.ConversionOptions.CompressPdfOutput` applies the shared verified lossless PDF optimizer. Failed PDF saves and postprocessing retain available stage evidence and preserve an existing destination. Cancellation after staged-output reopening also removes staging without replacing the destination.
 
+Supply a shared `OfficeRenderingProfile` when the source needs glyphs outside the PDF base fonts. This profile uses caller-owned font files and disables installed-font discovery:
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Pdf;
+
+var fonts = new OfficeFontFaceCollection();
+foreach (var (name, style) in new[] {
+    ("Regular", OfficeFontStyle.Regular), ("Bold", OfficeFontStyle.Bold),
+    ("Italic", OfficeFontStyle.Italic), ("BoldItalic", OfficeFontStyle.Bold | OfficeFontStyle.Italic)
+}) fonts.Add("Carlito", File.ReadAllBytes($"fonts/Carlito-{name}.ttf"), style);
+fonts.Add("Noto Emoji", File.ReadAllBytes("fonts/NotoEmoji-VariableFont_wght.ttf"))
+    .AddFallbackFamily("Noto Emoji");
+fonts.Add("Noto JP Common", File.ReadAllBytes("fonts/NotoSansJP-OfficeIMO-Common.ttf"))
+    .AddFallbackFamily("Noto JP Common");
+fonts.AddFallbackFamily("Carlito");
+var profile = new OfficeRenderingProfile("portable-iwork", fonts);
+var portablePdfSettings = new IWorkWorkflowSettings();
+portablePdfSettings.PagesPdfOptions.UseRenderingProfile(profile);
+portablePdfSettings.NumbersPdfOptions.UseRenderingProfile(profile);
+portablePdfSettings.KeynotePdfOptions.UseRenderingProfile(profile);
+portablePdfSettings.PagesPdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
+portablePdfSettings.NumbersPdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
+portablePdfSettings.KeynotePdfOptions.ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic();
+```
+
+Pass `portablePdfSettings` as `RegisteredConversionSettings`. Choose licensed faces covering the characters and styles in the source; the profile does not bundle fonts in OfficeIMO. The [native-content PDF reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-composed-pdf-portable.json) pins these font inputs and licenses, complete text/value checks and every rendered page: Pages produces two pages, Numbers four and Keynote three. Font substitutions, monochrome emoji, text metrics and numeric display remain approximations. Numbers follows the XLSX adapter's table-per-worksheet layout and can split column ranges across PDF pages; this differs from Apple's positioned sheet export.
+
 Routes accept local ZIP files, local directory packages, provider ZIP streams, and provider directory packages. Directory capture uses the bounded iWork container owner, including nested `Index.zip` packages. Output cannot be placed inside a source package or alias one of its members. For provider directories, set `InputDirectoryPackage` to an `OfficeWorkflowDirectoryPackageInput` containing the selected filename, a reopenable `OfficeWorkflowDirectoryInput`, and a permission-aware root identity/output-separation guard. Set an explicit `OutputPath` and omit `InputStream`. The shared runner captures at most `MaximumEntries` members (10,000 by default) within `Limits.MaximumInputBytes`, then invokes the format owner on private staging. Before publication it re-enumerates the original provider and verifies member identities and bytes. The provider guard must reject root replacement and destinations inside or containing the source package. Native sandbox/bookmark qualification remains separate from this provider contract. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md) for format limits and the [workflow guide](../OfficeIMO.Workflows/README.md) for publication and provider contracts.
 
 Retained evidence includes identified source-unit totals and reconstructed, omitted, and unassessed counts. These totals describe units selected by the semantic projection, including explicitly omitted unsupported drawables and Numbers sheet references. Inactive templates, auxiliary table models/tiles, unresolved references, and unassessed content paths remain excluded. A visual preview does not establish individual object coverage. Full per-kind counts and native object identities are available on the owning adapter's `IWorkConversionReport`.

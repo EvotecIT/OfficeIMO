@@ -407,21 +407,21 @@ public sealed class OfficeOperationCapabilityCatalogTests {
     [InlineData(".pages")]
     [InlineData(".numbers")]
     [InlineData(".key")]
-    public void IWorkLifecycleDoesNotOverstateAuthoringSupport(string extension) {
-        IReadOnlyList<OfficeOperationCapability> rows = OfficeOperationCapabilityCatalog.FindByExtension(extension);
+    public void IWorkLifecycleSeparatesCreationPreservationAndBoundedSourceEditing(string extension) {
+        OfficeOperationCapability[] rows = OfficeOperationCapabilityCatalog.FindByExtension(extension)
+            .Where(row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" && row.PackageId == "OfficeIMO.IWork")
+            .ToArray();
 
-        Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
-            row.Operation == OfficeOperationKind.Read && row.State == OfficeOperationSupportState.Supported);
-        Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
-            row.Operation == OfficeOperationKind.Inspect && row.State == OfficeOperationSupportState.Supported);
-        Assert.All(new[] { OfficeOperationKind.Edit, OfficeOperationKind.Preserve }, operation =>
-            Assert.Contains(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle" &&
-                row.Operation == operation && row.State == OfficeOperationSupportState.Unsupported));
-        OfficeOperationCapability creation = Assert.Single(rows, row => row.SourceCatalog == "OfficeIMO.NativeLifecycle"
-            && row.Operation == OfficeOperationKind.Create);
-        Assert.Equal(extension == ".key" ? OfficeOperationSupportState.Supported : OfficeOperationSupportState.Unsupported,
-            creation.State);
-        Assert.False(string.IsNullOrWhiteSpace(creation.Limitation));
+        Assert.All(new[] { OfficeOperationKind.Create, OfficeOperationKind.Read,
+            OfficeOperationKind.Preserve, OfficeOperationKind.Inspect }, operation =>
+            Assert.Equal(OfficeOperationSupportState.Supported,
+                Assert.Single(rows, row => row.Operation == operation).State));
+
+        OfficeOperationCapability edit = Assert.Single(rows, row => row.Operation == OfficeOperationKind.Edit);
+        Assert.Equal(extension == ".key" ? OfficeOperationSupportState.Partial : OfficeOperationSupportState.Unsupported,
+            edit.State);
+        Assert.DoesNotContain(rows, row => row.Operation == OfficeOperationKind.Edit &&
+            row.State == OfficeOperationSupportState.Supported);
     }
 
     [Theory]

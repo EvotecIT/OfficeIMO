@@ -4,33 +4,17 @@ using System.Threading;
 namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Builds an owned Keynote 14.4.1 object graph from the creation model. No seed package or opaque archive payload is used.</summary>
-internal sealed partial class IWorkKeynoteArchiveBuilder {
-    private const ulong DocumentId = 1, MetadataId = 2, ShowId = 3, ThemeId = 4, StylesheetId = 5;
+internal sealed partial class IWorkKeynoteArchiveBuilder : IWorkNativeCreationGraph {
+    private const ulong DocumentId = 1, MetadataId = 2, ShowId = 3, ThemeId = 4;
     private const ulong DefaultCharacterId = 6, DefaultParagraphId = 7, DefaultFrameId = 8, BlankBackgroundId = 9;
-    private const ulong ListId = 14, TextPresetId = 15, BlankSlideId = 30, BlankNodeId = 31;
+    private const ulong TextPresetId = 15, BlankSlideId = 30, BlankNodeId = 31;
     private readonly IWorkKeynoteWriteOptions _limits;
-    private readonly CancellationToken _cancellationToken;
-    private readonly List<(ulong Id, uint Type, IWorkProtoWriter Message)> _records = new();
-    private readonly List<(ulong Id, string Identifier)> _styles = new();
-    private readonly byte[] _modelHash;
-    private ulong _nextId = 32;
-
-    internal IWorkKeynoteArchiveBuilder(IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken, byte[] modelHash) {
+    internal IWorkKeynoteArchiveBuilder(IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken, byte[] modelHash)
+        : base(limits.MaximumPackageBytes, cancellationToken, modelHash, IWorkDocumentKind.Keynote, 5, 14) {
         _limits = limits;
-        _cancellationToken = cancellationToken;
-        _modelHash = modelHash;
     }
 
-    internal string DocumentIdentifier => IWorkKeynoteIdentity.Create(_modelHash, "document").Text;
-    private IWorkProtoWriter P() => new(_limits.MaximumPackageBytes, _cancellationToken);
-    private ulong Allocate() {
-        // Apple reserves 71/72 for document/support metadata during unarchiving.
-        // Using either ID for a style or storage makes larger decks unreadable.
-        if (_nextId is 71 or 72) _nextId = 73;
-        return _nextId++;
-    }
-    private void Add(ulong id, uint type, IWorkProtoWriter message) => _records.Add((id, type, message));
-
+    internal string DocumentIdentifier => IWorkCreationIdentity.Create(_modelHash, "document").Text;
     internal (byte[] Document, byte[] Metadata) Build(IWorkCanvasSize size,
         IReadOnlyList<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)> slides) {
         _cancellationToken.ThrowIfCancellationRequested();
@@ -58,7 +42,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
                     continue;
                 }
                 if (drawable is IWorkKeynoteTable table) {
-                    ulong tableId = AddTable(slideId, table);
+                    ulong tableId = AddTable(slideId, table.Data);
                     slide.Reference(7, tableId).Reference(42, tableId);
                     continue;
                 }
@@ -71,7 +55,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
                 Add(frameId, 2011, Frame(slideId, frameStyleId, storageId, box.Geometry));
                 var characters = new List<(int Offset, ulong Style)> { (0, characterId) };
                 int offset = box.Runs[0].Text.Length;
-                foreach (IWorkKeynoteTextRun run in box.Runs.Skip(1)) {
+                foreach (IWorkTextRunData run in box.Runs.Skip(1)) {
                     ulong runStyle = Allocate();
                     AddCharacterStyle(runStyle, CharacterProperties(run));
                     characters.Add((offset, runStyle));
@@ -109,40 +93,17 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
             IWorkSnappy.EncodeIwa(metadataBytes, _limits.MaximumPackageBytes, _cancellationToken));
     }
 
-    private byte[] Archive(IEnumerable<(ulong Id, uint Type, IWorkProtoWriter Message)> records) {
-        var output = P();
-        foreach (var record in records) {
-            _cancellationToken.ThrowIfCancellationRequested();
-            byte[] payload = record.Message.ToArray();
-            var info = P().UInt(1, record.Type).UInt(3, (ulong)payload.Length);
-            Version(info, 2, 1, 0, 5);
-            foreach (ulong reference in record.Message.References) info.UInt(5, reference);
-            foreach (ulong reference in record.Message.DataReferences) info.UInt(6, reference);
-            byte[] header = P().UInt(1, record.Id).Message(2, info).ToArray();
-            output.AppendLength(header.Length);
-            output.Append(header);
-            output.Append(payload);
-        }
-        return output.ToArray();
-    }
-
-    private static void Version(IWorkProtoWriter message, int field, params uint[] values) {
-        foreach (uint value in values) message.UInt(field, value);
-    }
-
-    private IWorkProtoWriter Size(double width, double height) => P().Float(1, (float)width).Float(2, (float)height);
-    private IWorkProtoWriter Point(double x, double y) => P().Float(1, (float)x).Float(2, (float)y);
-    private IWorkProtoWriter Color(IWorkColor color) => P().UInt(1, 1).Float(3, color.Red / 255f)
-        .Float(4, color.Green / 255f).Float(5, color.Blue / 255f).Float(6, 1).UInt(12, 1);
+    private byte[] Archive(IEnumerable<(ulong Id, uint Type, IWorkProtoWriter Message)> records) =>
+        IWorkNativeArchiveWriter.Encode(records, _limits.MaximumPackageBytes, _cancellationToken);
 
     private IWorkProtoWriter Transition() => P().Message(2, P().Message(8,
         P().String(1, "Transition").String(2, "none").Double(3, 1).Double(5, 0).Bool(6, false).UInt(11, 1).Bool(16, false)));
 
     private IWorkProtoWriter Node(ulong slideId, string role) {
-        var templateId = IWorkKeynoteIdentity.Create(_modelHash, "blank-layout");
+        var templateId = IWorkCreationIdentity.Create(_modelHash, "blank-layout");
         return P().Reference(2, slideId).Bool(4, false).Bool(6, false).Bool(7, false).Bool(8, false)
             .Bool(18, false).Bool(28, false).UInt(21, 1).Bool(14, true).UInt(26, uint.MaxValue).UInt(27, uint.MaxValue)
-            .String(11, IWorkKeynoteIdentity.Create(_modelHash, role).Text)
+            .String(11, IWorkCreationIdentity.Create(_modelHash, role).Text)
             .Message(29, P().UInt(1, templateId.Lower).UInt(2, templateId.Upper));
     }
 
