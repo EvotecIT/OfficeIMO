@@ -135,7 +135,7 @@ internal static partial class PdfWriter {
 
             int linesToReserve = 1;
             PdfKeepTogetherOverflowBehavior overflow = ResolveParagraphConstraintOverflow(paragraphStyle, wrap.Lines, wrap.LineHeights, leading);
-            bool keepAllLines = paragraphStyle?.KeepTogether == true && overflow == PdfKeepTogetherOverflowBehavior.Reject;
+            bool keepAllLines = !reserveSingleLine && paragraphStyle?.KeepTogether == true && overflow == PdfKeepTogetherOverflowBehavior.Reject;
             if (keepAllLines) {
                 linesToReserve = wrap.LineHeights.Count;
             } else if (paragraphStyle != null && !reserveSingleLine) {
