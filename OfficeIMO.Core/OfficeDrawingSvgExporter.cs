@@ -506,7 +506,7 @@ public static partial class OfficeDrawingSvgExporter {
             return;
         }
 
-        sb.AppendPathElement(shape.PathCommands, originX, originY, paint + BuildFillRuleAttribute(shape.FillRule) + transform);
+        sb.AppendPaintPathElement(shape.PathCommands, originX, originY, paint + BuildFillRuleAttribute(shape.FillRule) + transform);
         AppendPathMarkers(sb, shape, originX, originY, transform, strokeGradientId);
     }
 

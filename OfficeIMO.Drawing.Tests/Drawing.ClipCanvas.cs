@@ -5,6 +5,60 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(OfficeStrokeLineCap.Round)]
+    [InlineData(OfficeStrokeLineCap.Square)]
+    public void ClipPath_MoveOnlyClosuresDoNotAcquireSvgStrokeCaps(OfficeStrokeLineCap cap) {
+        string Svg(params OfficePathCommand[] commands) {
+            var shape = OfficeShape.Path(20, 20, commands);
+            shape.StrokeColor = OfficeColor.Blue; shape.StrokeWidth = 8; shape.StrokeLineCap = cap;
+            return OfficeDrawingSvgExporter.ToSvg(new OfficeDrawing(20, 20).AddShape(shape, 0, 0));
+        }
+        string empty = Svg(OfficePathCommand.MoveTo(10, 10), OfficePathCommand.Close());
+        Assert.Equal("M10 10Z", OfficeSvgFormatting.FormatPathData(new[] { OfficePathCommand.MoveTo(10, 10), OfficePathCommand.Close() }));
+        Assert.Contains("d=\"M10 10\"", empty);
+        Assert.DoesNotContain("M10 10Z", empty);
+        string drawn = Svg(OfficePathCommand.MoveTo(10, 10), OfficePathCommand.LineTo(10, 10), OfficePathCommand.Close());
+        Assert.Contains("M10 10L10 10Z", drawn);
+        string mixed = Svg(OfficePathCommand.MoveTo(5, 5), OfficePathCommand.Close(),
+            OfficePathCommand.MoveTo(10, 10), OfficePathCommand.LineTo(15, 15), OfficePathCommand.Close());
+        Assert.Contains("M5 5M10 10L15 15Z", mixed);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClipPath_DeclaredCanvasMoveOnlyPathsNeitherPaintNorRevealClippedContent(bool close) {
+        var commands = close ? new[] { OfficePathCommand.MoveTo(5, 5), OfficePathCommand.Close() }
+            : new[] { OfficePathCommand.MoveTo(5, 5) };
+        OfficeShape shape = OfficeShape.Path(20, 20, commands);
+        shape.FillColor = OfficeColor.Red; shape.StrokeColor = OfficeColor.Blue; shape.StrokeWidth = 4;
+        OfficeRasterImage shapeRaster = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(20, 20).AddShape(shape, 0, 0));
+        OfficeClipPath clip = OfficeClipPath.Path(20, 20, commands);
+        var content = OfficeShape.Rectangle(20, 20); content.FillColor = OfficeColor.Red;
+        var inner = new OfficeDrawing(20, 20).AddShape(content, 0, 0);
+        OfficeRasterImage clippedRaster = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(20, 20).AddClippedDrawing(inner, 0, 0, clip));
+        Assert.Equal(commands, shape.Clone().PathCommands);
+        Assert.Equal(commands, clip.Clone().Commands);
+        Assert.All(Enumerable.Range(0, 20), y => Assert.All(Enumerable.Range(0, 20), x => {
+            Assert.Equal(0, shapeRaster.GetPixel(x, y).A);
+            Assert.Equal(0, clippedRaster.GetPixel(x, y).A);
+        }));
+    }
+
+    [Fact]
+    public void ClipPath_ContentSizedMoveOnlyPathsStillCannotInventACanvas() {
+        var commands = new[] { OfficePathCommand.MoveTo(0, 0), OfficePathCommand.MoveTo(20, 20) };
+        Assert.Throws<ArgumentException>(() => OfficeShape.Path(commands));
+        Assert.Throws<ArgumentException>(() => OfficeClipPath.Path(commands));
+    }
+
+    [Fact]
+    public void ClipPath_DeclaredCanvasStillRejectsMissingCommands() {
+        Assert.Throws<ArgumentException>(() => OfficeShape.Path(20, 20, Array.Empty<OfficePathCommand>()));
+        Assert.Throws<ArgumentException>(() => OfficeClipPath.Path(20, 20, Array.Empty<OfficePathCommand>()));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ClipPath_ZeroAreaDeclaredCanvasDoesNotRevealItsRectangle(bool transformed) {

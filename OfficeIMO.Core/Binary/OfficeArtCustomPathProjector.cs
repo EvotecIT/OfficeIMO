@@ -35,7 +35,7 @@ internal static class OfficeArtCustomPathProjector {
         }
         OfficeArtProperty? vertexProperty = Property(properties, 0x0145);
         if (!TryArray(vertexProperty, true, out OfficeArtComplexData vertices, out int pointCount, out int pointSize)
-            || pointCount < 2) return false;
+            || pointCount == 0) return false;
         OfficeArtProperty? segmentProperty = Property(properties, 0x0146);
         OfficeArtComplexData segments = default; int segmentCount = 0;
         if (segmentProperty?.Value > 0 && !TryArray(segmentProperty, false, out segments, out segmentCount, out _)) return false;
@@ -70,7 +70,7 @@ internal static class OfficeArtCustomPathProjector {
             }
             if ((kind & 1) != 0) Add(OfficePathCommand.Close());
         } else {
-            int nextPoint = 0; bool started = false, drew = false, ended = false;
+            int nextPoint = 0; bool started = false, ended = false;
             for (int index = 0; index < segmentCount; index++) {
                 token.ThrowIfCancellationRequested();
                 ushort word = U16(segments, 6 + index * 2);
@@ -98,7 +98,7 @@ internal static class OfficeArtCustomPathProjector {
                                 Add(Cubic(points[nextPoint], points[nextPoint + 1], points[nextPoint + 2])); nextPoint += 3;
                             }
                         }
-                        drew |= count > 0; break;
+                        break;
                     case 2:
                         if (count != 0 || nextPoint == pointCount) return false;
                         OfficePoint start = points[nextPoint++]; Add(OfficePathCommand.MoveTo(start.X, start.Y));
@@ -107,7 +107,8 @@ internal static class OfficeArtCustomPathProjector {
                         if (count != 1 || !started) return false;
                         Add(OfficePathCommand.Close()); break;
                     case 4:
-                        if (count != 0 || !drew) return false;
+                        // Move-only paths are valid empty geometry, including picture masks.
+                        if (count != 0 || !started) return false;
                         if (index != segmentCount - 1) { failure = OfficeArtCustomPathFailure.PaintGroups; return false; }
                         ended = true; break;
                     case 5:

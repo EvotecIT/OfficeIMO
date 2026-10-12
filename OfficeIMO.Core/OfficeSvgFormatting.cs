@@ -791,9 +791,16 @@ public static partial class OfficeSvgFormatting {
     /// <param name="offsetY">Additional y offset applied to command points.</param>
     /// <param name="attributes">Optional already-formatted SVG attributes to append after the path data.</param>
     /// <returns>The supplied builder for call chaining.</returns>
-    public static StringBuilder AppendPathElement(this StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX = 0D, double offsetY = 0D, string? attributes = null) {
+    public static StringBuilder AppendPathElement(this StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX = 0D, double offsetY = 0D, string? attributes = null) =>
+        AppendPathElementCore(builder, commands, offsetX, offsetY, attributes, suppressEmptyClosure: false);
+
+    /// <summary>Paints empty contours without making a closure-only contour acquire an SVG stroke cap.</summary>
+    internal static StringBuilder AppendPaintPathElement(this StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX, double offsetY, string? attributes) =>
+        AppendPathElementCore(builder, commands, offsetX, offsetY, attributes, suppressEmptyClosure: true);
+
+    private static StringBuilder AppendPathElementCore(StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX, double offsetY, string? attributes, bool suppressEmptyClosure) {
         builder.Append("<path d=\"");
-        builder.AppendPathData(commands, offsetX, offsetY)
+        AppendPathData(builder, commands, offsetX, offsetY, preservePrecision: false, suppressEmptyClosure)
             .Append('"');
         if (!string.IsNullOrEmpty(attributes)) {
             builder.Append(attributes);
