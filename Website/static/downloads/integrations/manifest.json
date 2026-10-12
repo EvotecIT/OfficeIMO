@@ -1,117 +1,88 @@
 {
-  "sourceRepository": "EvotecIT/PSWriteOffice",
-  "sourceCommit": "130d9f1d65d59a8c027318b3a9bbbd85b20526bb",
+  "sourceRepository": "EvotecIT/OfficeIMO",
   "modules": {
     "PSWriteOffice": "3.0.8",
     "PSParseHTML": "3.0.3",
-    "Mailozaurr": "3.0.2"
-  },
-  "eventLiveCollectionModule": {
+    "Mailozaurr": "3.0.2",
     "PSEventViewer": "4.0.1"
   },
-  "inputs": "Bundled synthetic supplier and incident data; example.invalid mail recipients.",
-  "generation": "Run a downloaded example from any folder with published modules and explicit OutputDirectory. ZIPs and displayed source: scripts/Sync-IntegrationExamples.ps1. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeExcelRangeImage, Offers A1:D10 and Events A1:G10.",
-  "artifacts": [
+  "inputs": "Illustrative supplier table embedded in the article; synthetic events in Build/ReportExamples/EventSnapshot.json; reserved example.invalid mail recipients.",
+  "generation": "Run the fenced PowerShell blocks in each article in order, excluding installation and SMTP delivery. For the retained event sample, substitute EventSnapshot.json for the live query and its collection timestamp. PDF previews: pdftocairo -png -singlefile -scale-to 1400. Workbook previews: Export-OfficeExcelRangeImage, Offers A1:D8 and Events A1:G8.",
+  "articleSources": [
     {
-      "path": "/downloads/integrations/supplier/SupplierReview.docx",
-      "bytes": 20976,
-      "sha256": "e0af7d0ccf0ecaa1152ce44b1b7aee8b963049d03e003e3255998f9077e9deab"
+      "path": "content/docs/integrations/supplier-review/index.md",
+      "codeSha256": "4be92afcd8b8380d9bebfe195d9bf8b1e6340525422a6a573eabf98922129142"
     },
     {
-      "path": "/downloads/integrations/supplier/SupplierReview.pdf",
-      "bytes": 2337,
-      "sha256": "c46b90d7dd93bf09974f71c8af10ac418be4c9771b07da5ed8ececca865d7f20"
+      "path": "content/docs/integrations/event-brief/index.md",
+      "codeSha256": "491f4e32b4652426c9c78989d974568d875188560c9f548abdfbfd8f32dae3a0"
+    },
+    {
+      "path": "content/docs/integrations/report-email/index.md",
+      "codeSha256": "dd3684a7e70b4038bd96598764d75202bd548a835ea540305e830dfe30a211e0"
+    }
+  ],
+  "generationInputs": [
+    {
+      "path": "Build/ReportExamples/EventSnapshot.json",
+      "sha256": "197576c537cbb3616c1406e0ec99c8fd92f253a8271a5917dd1c18fb9bb6b825"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/downloads/integrations/events/EventIncidentBrief.docx",
+      "bytes": 20902,
+      "sha256": "9f8396aceaddba7a3cfda46e444ffaf67ee244a7faa8e967f0f6cf6fc9fa8c5f"
+    },
+    {
+      "path": "/downloads/integrations/events/EventIncidentBrief.pdf",
+      "bytes": 2100,
+      "sha256": "4777896243ebde9247cd4a904e1c23ef7ba8ec5ff1afc1f8eb854a3354378cce"
+    },
+    {
+      "path": "/downloads/integrations/events/EventRegister.xlsx",
+      "bytes": 5681,
+      "sha256": "f780023ec1d59af25d935bc2ecf448fe6a2e9432018aeb3a323b3fd995d8f45d"
+    },
+    {
+      "path": "/downloads/integrations/events/preview.png",
+      "bytes": 99129,
+      "sha256": "e58cc53380fb6449c73848e63b7eeb4b29dd1eb4bdcbc92ceb7b06f20a0106de"
+    },
+    {
+      "path": "/downloads/integrations/events/workbook.png",
+      "bytes": 22211,
+      "sha256": "1e26139c5c9e1811e938813b89ee0f285ed8a596bb6d6fb8cbdde8bc8dc418f0"
+    },
+    {
+      "path": "/downloads/integrations/mail/ReportReview.eml",
+      "bytes": 11288,
+      "sha256": "725a4ba20deba7cd1bf6573d1fe28069ab105d96ec6ae4d22f8cf15f562da92e"
+    },
+    {
+      "path": "/downloads/integrations/supplier/preview.png",
+      "bytes": 91114,
+      "sha256": "37d1ed7554e1549681dd36b3a025fee7b09b557649992a67c89260ca417ba431"
     },
     {
       "path": "/downloads/integrations/supplier/SupplierOffers.xlsx",
       "bytes": 5128,
-      "sha256": "8a474b5b7ddf30bfebd83a50aa929dbee6c9c26990b35b0833537cf3a9bc241e"
+      "sha256": "a12147c93332a54f7f177593936770544c372d56067fed1f34e7e3b7ff075933"
     },
     {
-      "path": "/downloads/integrations/supplier/preview.png",
-      "bytes": 105348,
-      "sha256": "695018c3ff84f0cfe6bcb4329841d313b71f34f26d1eb0573d5d5ae3e826cd02"
+      "path": "/downloads/integrations/supplier/SupplierReview.docx",
+      "bytes": 20817,
+      "sha256": "d6f4a8c331c3ccf047b1a93d726dd84a01460d63cf5a803d2d607e7e4c436420"
+    },
+    {
+      "path": "/downloads/integrations/supplier/SupplierReview.pdf",
+      "bytes": 2141,
+      "sha256": "78f2d4b65fe31cf02a50d97b56b48ec9b220e96dc76458d3099f33c660c23e6b"
     },
     {
       "path": "/downloads/integrations/supplier/workbook.png",
-      "bytes": 10037,
-      "sha256": "ae9744a18c02f50c0d62c23ab157aa89203a3b0ad60bd4b79c0de73a8c2fe635"
-    },
-    {
-      "path": "/downloads/integrations/events/EventIncidentBrief.docx",
-      "bytes": 21020,
-      "sha256": "5c0a652f29d89f96feff6f662d36dd59eb227fb53df116f41959894b1e570b9e"
-    },
-    {
-      "path": "/downloads/integrations/events/EventIncidentBrief.pdf",
-      "bytes": 2530,
-      "sha256": "514f37a4359b5311bfdc2fac4debf326a6a9da86b687999b62e4300e7ebcfa65"
-    },
-    {
-      "path": "/downloads/integrations/events/EventRegister.xlsx",
-      "bytes": 5515,
-      "sha256": "b64e3e8a744913bac0d057114807294dc2788700eac98df8a4ec0ed038bc2327"
-    },
-    {
-      "path": "/downloads/integrations/events/preview.png",
-      "bytes": 121220,
-      "sha256": "2540a5c3f81c60fcd8ebcb171d661081ad984290d5d7a2788e00514cee92c3ff"
-    },
-    {
-      "path": "/downloads/integrations/events/workbook.png",
-      "bytes": 18559,
-      "sha256": "8f14abbcc7079f170946e68eebbb1e287cac47052cdca6b95a0ae6a8fed7c6ac"
-    },
-    {
-      "path": "/downloads/integrations/mail-default/Daily-Service-Report.pdf",
-      "bytes": 4360,
-      "sha256": "d4609732d341285f73d5d895bd38ec7f5e9e6e1d49276c657448b81e75ebe04a"
-    },
-    {
-      "path": "/downloads/integrations/mail-default/ReportReview.eml",
-      "bytes": 6842,
-      "sha256": "4fc38eec1e0463a304ada5c210737b1a9ea84329cb58bc6cad3402dce488624a"
-    },
-    {
-      "path": "/downloads/integrations/mail-default/preview.png",
-      "bytes": 49096,
-      "sha256": "95476153c59f1f9f160bfcdfff33b3522cbb441ccd0e234aa73b10c2f7c94e31"
-    },
-    {
-      "path": "/downloads/integrations/source/Recipe-HtmlSupplierReview.ps1",
-      "bytes": 6579,
-      "sha256": "ff568087fb8f9bbf1d747e587f7de2cf58426f2ea5da708d1974e61bffe3f3f9"
-    },
-    {
-      "path": "/downloads/integrations/source/Recipe-PSEventViewer-OfficeReport.ps1",
-      "bytes": 8302,
-      "sha256": "8968683da1897706022ec501813f73b4a136b3725f66ed0710122673d842b75e"
-    },
-    {
-      "path": "/downloads/integrations/source/Recipe-Mailozaurr-PdfDelivery.ps1",
-      "bytes": 3583,
-      "sha256": "10477c55875040db61521cfc1db34459bced774b80c35def18907c102088a432"
-    },
-    {
-      "path": "/downloads/integrations/source/Input/SupplierOffers.html",
-      "bytes": 688,
-      "sha256": "420c968f3621fce301a5ce961a345c80826d6f502cb4f5921fc8c50f38b33fc8"
-    },
-    {
-      "path": "/downloads/integrations/supplier-review.zip",
-      "bytes": 3021,
-      "sha256": "85084dde08ca61ae5971053a91d11d0470e6278a465b7171dc522c62657bc019"
-    },
-    {
-      "path": "/downloads/integrations/event-brief.zip",
-      "bytes": 2963,
-      "sha256": "42063e5797f402efacd8d7d2404ff1d251c65572b2c23bbb2a7866ec81d1bd5c"
-    },
-    {
-      "path": "/downloads/integrations/report-email.zip",
-      "bytes": 1640,
-      "sha256": "6ca8e05262d3d11c50e63974ef0e2884584922d2153348ba1c9793ebaf1a822d"
+      "bytes": 9833,
+      "sha256": "16f313eac51a2a02ca7b962f6fd9a5c43817a2103cce9d31680e2fdf2a6c6e82"
     }
-  ],
-  "documentGenerationSourceCommit": "2ca77f6b772cd954f553124fb801bed087213986"
+  ]
 }

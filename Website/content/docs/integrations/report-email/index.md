@@ -1,52 +1,98 @@
 ---
-title: "Prepare a report email for review"
-description: "Use Mailozaurr to save report attachments in a local EML for review, with an optional PSWriteOffice sample PDF. Sending requires an explicit operation."
+title: "Review a report email before sending it"
+description: "Attach a generated PDF and Excel workbook with Mailozaurr, inspect a saved email, and send the reports through your SMTP service when ready."
 layout: docs
 ---
 
-Prepare the message as a file so a reviewer can inspect recipients, text and attachments. The default recipe creates this small service PDF and embeds it in an EML with example.invalid recipients and a unique example.invalid message identity.
+The report looks right. Then the email goes out with yesterday's PDF, no workbook, or a subject that tells the recipient nothing. Report generation is only part of the job; the person receiving it needs the right files and a clear explanation of what to do with them.
 
-![Generated service report with space between its heading, table and next action](/downloads/integrations/mail-default/preview.png)
+Let's take the PDF and workbook from the [supplier comparison](/docs/integrations/supplier-review/) and prepare a purchasing review email. Mailozaurr can save the message as an `.eml` file with the attachments embedded. You can open it in a mail client and inspect the recipients, text and files before adding delivery to an automated task.
 
-[Service PDF](/downloads/integrations/mail-default/Daily-Service-Report.pdf) · [Local EML package](/downloads/integrations/mail-default/ReportReview.eml)
+## Start with the files you want reviewed
 
-## Try the sample report
-
-Download the [report email example ZIP](/downloads/integrations/report-email.zip) to your working folder. It contains one standalone script. Open PowerShell in that folder and run:
-
-```powershell
-Install-Module PSWriteOffice, Mailozaurr -Scope CurrentUser
-Expand-Archive -LiteralPath ./report-email.zip -DestinationPath ./ReportEmailExample
-./ReportEmailExample/Recipe-Mailozaurr-PdfDelivery.ps1 -OutputDirectory ./Output/Mail
-```
-
-Open `Output/Mail/ReportReview.eml` in a mail client to inspect the message and its attached PDF. This sample requires PSWriteOffice 3.0.8 and Mailozaurr 3.0.2 or later. If older copies are installed, run `Update-Module PSWriteOffice, Mailozaurr` and start a fresh PowerShell session. You can also save the [standalone script](/downloads/integrations/source/Recipe-Mailozaurr-PdfDelivery.ps1) anywhere and run it from that location.
-
-If Windows blocks the downloaded script, read it first, then unblock that file with `Unblock-File -LiteralPath ./ReportEmailExample/Recipe-Mailozaurr-PdfDelivery.ps1`. Keep your normal execution policy.
-
-## Prepare your own attachments
+Install Mailozaurr once if needed:
 
 ```powershell
 Install-Module Mailozaurr -Scope CurrentUser
-$attachments = @(
-    './Output/EventBrief/EventIncidentBrief.pdf'
-    './Output/EventBrief/EventRegister.xlsx'
-)
-./ReportEmailExample/Recipe-Mailozaurr-PdfDelivery.ps1 -AttachmentPath $attachments -OutputDirectory ./Output/Mail
 ```
 
-The attachment paths above match the [event brief example](/docs/integrations/event-brief/). Replace them with your own report paths. Packaging existing attachments requires only Mailozaurr 3.0.2 or later; PSWriteOffice is used when the script generates the sample PDF.
+Use your existing reports, or run the supplier comparison first. Change the two paths below if your reports are in another folder. Resolving them before composing the message catches a missing file before you reach the send step.
 
-Open `ReportReview.eml` in a mail client to review it. The default command saves locally and needs no SMTP server, OAuth session or credentials. Mailozaurr embeds the ordinary report files; the document library does not own mail transport.
+```powershell
+Import-Module Mailozaurr
+$ErrorActionPreference = 'Stop'
 
-## Delivery options
+$attachments = @(
+    (Get-Item -LiteralPath ./Output/SupplierReview/SupplierReview.pdf).FullName
+    (Get-Item -LiteralPath ./Output/SupplierReview/SupplierOffers.xlsx).FullName
+)
+```
 
-The recipe's `-Send` switch is an explicit delivery operation. Set real `-From` and `-To` recipients, supply `-SmtpServer` and use `-Credential` when required. Port 587 and StartTLS are the recipe defaults. Choose settings appropriate to your server; the example does not configure it or authenticate an account for you.
+The PDF is the quick read. The workbook lets the reviewer inspect the numbers. Sending both avoids a follow-up asking for the editable data, and the message can explain the price-versus-delivery choice instead of just saying "report attached."
 
-Create the source reports with the [supplier review](/docs/integrations/supplier-review/) or [event brief](/docs/integrations/event-brief/) and keep their editable workbooks alongside the PDF review copies.
+## Give the recipient a useful decision to make
 
-## Complete PowerShell script
+The example uses reserved `example.invalid` addresses. Replace them with your own sender and reviewer when adapting it. This block creates a MIME message in memory; it doesn't connect to a mail server.
 
-The code below is the same script included in the ZIP and standalone download. The default run saves the message locally. Delivery requires the explicit `-Send` switch and your server settings.
+```powershell
+$from = 'Purchasing reports <reports@example.invalid>'
+$to = 'Equipment reviewer <review@example.invalid>'
+$subject = 'Equipment quotes: review price and delivery before ordering'
+$body = @'
+Hello,
 
-{{< integration-example id="report-email" >}}
+Please review the attached supplier comparison and editable price register.
+
+For the USB-C docks, Northwind is $2.50 cheaper per unit but takes two days longer.
+For the monitors, Contoso saves $7 per unit but also adds two days to delivery.
+
+Can you confirm the required delivery date and preferred supplier for each item?
+Freight, tax, stock and quote expiry still need checking before we place the order.
+
+Thank you.
+'@
+
+$messageId = '<{0}@example.invalid>' -f [guid]::NewGuid().ToString('N')
+$message = New-MimeMessage -From $from -To $to -Subject $subject `
+    -TextBody $body -AttachmentPath $attachments -Header @{'Message-Id'=$messageId}
+```
+
+That text belongs to the four offers in the supplier article. Update it when the inputs change; an old summary attached to a new report is just as confusing as an old attachment. In a scheduled report, build the summary from the same objects used to create the documents.
+
+## Inspect the complete email locally
+
+Save the message and open it with a mail client that reads EML files:
+
+```powershell
+$output = New-Item -ItemType Directory -Path ./Output/Mail -Force
+$eml = Join-Path $output.FullName 'ReportReview.eml'
+$message | Save-MimeMessage -Path $eml
+Get-Item -LiteralPath $eml | Select-Object Name, Length
+```
+
+The saved message contains the actual attachment bytes, not links back to files on your machine. Check that the recipients are correct, open both attachments, and make sure the email asks the reviewer for the decision you need. Saving an EML does not deliver it or add it to a mail client's Drafts folder.
+
+You can inspect the [example email](/downloads/integrations/mail/ReportReview.eml) and its [attached PDF](/downloads/integrations/supplier/SupplierReview.pdf). The email is built from the illustrative supplier offers, with the same PDF and workbook linked in that article.
+
+## Add delivery when the review is ready
+
+For an SMTP service that supports STARTTLS on port 587, the send step uses the same files and message text. Replace the example server and addresses with your service settings. Run this block only when you intend to send; your mail service must permit the sender and authentication method you choose.
+
+```powershell
+$mail = @{
+    Server = 'smtp.example.invalid'
+    Port = 587
+    SecureSocketOptions = 'StartTls'
+    Credential = Get-Credential
+    From = $from
+    To = $to
+    Subject = $subject
+    Text = $body
+    Attachment = $attachments
+}
+Send-EmailMessage @mail
+```
+
+This composes an outgoing email from those values; it does not send the saved EML file itself. If your service uses another authentication method, follow the [Mailozaurr email documentation](https://github.com/EvotecIT/Mailozaurr#sending-emails) for that setup.
+
+The same pattern works for an [event investigation handoff](/docs/integrations/event-brief/): attach the brief and register, name the incident in the subject, and ask for an owner and a follow-up time. Keep report creation and delivery as separate steps so you can inspect the output while developing the task.

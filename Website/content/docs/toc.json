@@ -62,22 +62,22 @@
     "title": "Report Integrations",
     "items": [
       {
-        "title": "Choose an Input",
+        "title": "Reporting Tasks",
         "path": "integrations/index.md",
         "href": "/docs/integrations/"
       },
       {
-        "title": "HTML Supplier Review",
+        "title": "Compare Supplier Quotes",
         "path": "integrations/supplier-review/index.md",
         "href": "/docs/integrations/supplier-review/"
       },
       {
-        "title": "Event Incident Brief",
+        "title": "Investigate Windows Events",
         "path": "integrations/event-brief/index.md",
         "href": "/docs/integrations/event-brief/"
       },
       {
-        "title": "Email Review Package",
+        "title": "Review Report Email",
         "path": "integrations/report-email/index.md",
         "href": "/docs/integrations/report-email/"
       }
