@@ -52,10 +52,11 @@
       {{ excerpt = null }}
       {{ if preview && data.showcase_excerpts }}{{ excerpt = data.showcase_excerpts[preview.id] }}{{ end }}
       {{ if excerpt }}
-      {{ is_powershell = preview.source_path | string.ends_with ".ps1" }}
+      {{ card = preview; include "showcase-language" }}
+      {{ is_powershell = source_language == "powershell" }}
       {{ if is_powershell == (page.title == "PSWriteOffice") }}
       <div class="imo-product-proof__code">
-        <span>{{ if is_powershell }}PowerShell{{ else }}C#{{ end }} · excerpt cut from the example source; the full file is linked above</span><pre tabindex="0" class="language-{{ if is_powershell }}powershell{{ else }}csharp{{ end }}"><code class="language-{{ if is_powershell }}powershell{{ else }}csharp{{ end }}">{{ excerpt | html.escape }}</code></pre>
+        <span>{{ source_language_label }} · excerpt cut from the example source; the full file is linked above</span><pre tabindex="0" class="language-{{ source_language }}"><code class="language-{{ source_language }}">{{ excerpt | html.escape }}</code></pre>
       </div>
       {{ end }}
       {{ end }}
