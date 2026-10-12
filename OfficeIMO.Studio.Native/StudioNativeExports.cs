@@ -205,6 +205,17 @@ internal static unsafe class StudioNativeExports {
     internal static int DocumentRemoveAnnotation(nint document, int objectNumber, nint cancellation, byte** error) =>
         WithDocument(document, error, cancellation, (target, token) => target.RemoveAnnotationAsync(objectNumber, token).GetAwaiter().GetResult());
 
+    /// <summary>A page's text elements and their boxes as UTF-8 JSON, for selection and copying.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_page_text_json")]
+    internal static int DocumentPageTextJson(nint document, int page, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativePageText text = target.GetPageTextAsync(page, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(text, StudioNativeJson.Default.StudioNativePageText));
+        });
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_undo")]
     internal static int DocumentUndo(nint document, nint cancellation, byte** error) =>
         WithDocument(document, error, cancellation, (target, token) => target.UndoAsync(token).GetAwaiter().GetResult());

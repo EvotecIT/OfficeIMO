@@ -171,6 +171,15 @@ int32_t officeimo_document_update_annotation_json(officeimo_document document, c
 int32_t officeimo_document_remove_annotation(officeimo_document document, int32_t object_number,
                                              officeimo_cancellation cancellation, char **error);
 
+/*
+ * A page's text for selection and copying, as JSON: { "abiVersion", "revision", "page", "texts": [ ], "boxes": [ ] }.
+ * texts holds the page's text elements, usually one character each, in extraction order; boxes holds four numbers per
+ * element, x, y, width and height, in points of the page as displayed from its top-left corner. A document that
+ * restricts text extraction fails with OFFICEIMO_UNSUPPORTED.
+ */
+int32_t officeimo_document_page_text_json(officeimo_document document, int32_t page, officeimo_cancellation cancellation,
+                                          char **json, char **error);
+
 int32_t officeimo_document_undo(officeimo_document document, officeimo_cancellation cancellation, char **error);
 int32_t officeimo_document_redo(officeimo_document document, officeimo_cancellation cancellation, char **error);
 

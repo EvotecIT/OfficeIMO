@@ -45,6 +45,17 @@ internal sealed class PdfDocumentSession {
     internal PdfVisualComparisonReport CompareTo(PdfDocumentSession actual, PdfVisualComparisonOptions options, CancellationToken token) =>
         _document.Proof.CompareVisual(actual._document, token, options: options);
 
+    /// <summary>
+    /// A page's text elements in extraction order, each with its geometry on the page as displayed: from its top-left
+    /// corner, after the page box, rotation and user unit. Hosts select and copy text from them.
+    /// </summary>
+    internal IReadOnlyList<PdfPageInteractionRegion> GetTextRegions(int pageNumber, CancellationToken cancellationToken) {
+        if (pageNumber <= 0 || pageNumber > Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        if (!CanSearch) throw new NotSupportedException("Copying text is restricted by this document's permissions.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return _document.Render.Interactions(pageNumber).TextRegions;
+    }
+
     internal async Task<IReadOnlyList<PdfSearchHit>> SearchAsync(
         string query,
         CancellationToken cancellationToken,

@@ -45,7 +45,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_redo) X(officeimo_document_save) X(officeimo_document_delete_pages) \
     X(officeimo_document_duplicate_pages) X(officeimo_document_reorder_pages) X(officeimo_document_insert_blank_page) \
     X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
-    X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation)
+    X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation) \
+    X(officeimo_document_page_text_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -234,6 +235,11 @@ int main(int argc, char **argv) {
     expect(has(json, "rotation", "90") && !has(json, "number", "2"), "page edits not undone", json);
     engine_officeimo_free(json);
 
+    CHECK("page text", engine_officeimo_document_page_text_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"texts\":[") && strstr(json, "\"boxes\":["), "the page text is missing", json);
+    engine_officeimo_free(json);
+    CHECK("page text missing page", engine_officeimo_document_page_text_json(document, 99, 0, &json, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
     CHECK("search", engine_officeimo_document_search_json(document, "no such words", 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "hits", "[]"), "unexpected search hits", json);
     engine_officeimo_free(json);

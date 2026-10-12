@@ -285,6 +285,37 @@ public sealed class StudioNativeEngineTests : IDisposable {
         } finally { close(document); }
     }
 
+    [Fact]
+    public async Task Page_text_gives_each_element_a_box_on_the_page_as_displayed() {
+        string path = Path.Combine(_root, "text.pdf");
+        PdfDocument.Create(document => document.Page(page => page.Size(400, 300)
+            .Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Hello world")))))).Save(path);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+
+        StudioNativePageText text = await document.GetPageTextAsync(1, default);
+
+        Assert.Equal("Hello world", string.Concat(text.Texts).Trim());
+        Assert.Equal(text.Texts.Count * 4, text.Boxes.Count);
+        for (int index = 0; index < text.Texts.Count; index++) {
+            Assert.InRange(text.Boxes[index * 4], 0D, 400D);
+            Assert.InRange(text.Boxes[index * 4 + 1], 0D, 300D);
+        }
+        // Elements read left to right along the line.
+        Assert.True(text.Boxes[4] > text.Boxes[0]);
+
+        await document.RotatePagesAsync([1], 90, default);
+        StudioNativePageText rotated = await document.GetPageTextAsync(1, default);
+        // On the page turned a quarter, the 300 x 400 page is shown 400 high and the line runs down it.
+        int last = (rotated.Texts.Count - 1) * 4;
+        Assert.True(Math.Abs(rotated.Boxes[last + 1] - rotated.Boxes[1]) > Math.Abs(rotated.Boxes[last] - rotated.Boxes[0]),
+            "The rotated line runs down the displayed page.");
+        for (int index = 0; index < rotated.Texts.Count; index++) {
+            Assert.InRange(rotated.Boxes[index * 4], 0D, 300D);
+            Assert.InRange(rotated.Boxes[index * 4 + 1], 0D, 400D);
+        }
+        Assert.True(rotated.Revision > text.Revision);
+    }
+
     private static async Task<byte[]> SavedBytesAsync(StudioNativeDocument document) {
         string copy = Path.Combine(Path.GetTempPath(), "officeimo-native-annotations-" + Guid.NewGuid().ToString("N") + ".pdf");
         try {
