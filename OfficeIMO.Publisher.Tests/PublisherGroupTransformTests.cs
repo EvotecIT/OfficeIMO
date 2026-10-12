@@ -18,6 +18,23 @@ public sealed class PublisherGroupTransformTests {
             frame.PageTransform.TransformPoint(new OfficePoint(0, 0)));
     }
 
+    [Theory]
+    [InlineData(30, 0x80008000U, true, false)]
+    [InlineData(0, 0x40004000U, false, true)]
+    [InlineData(30, 0xC000C000U, true, true)]
+    [InlineData(0, 0x0000C000U, false, false)]
+    public void Grouped_client_anchors_apply_relative_rotation_and_masked_flips(double angle, uint flips, bool horizontal, bool vertical) {
+        byte[] leaf = Shape(3, flips == 0x0000C000U ? 0xC0U : 0, 20, false, new[] { -127000, -254000, 127000, 254000 },
+            relativeAngle: angle, filled: true, relativeFlips: flips);
+        PublisherDocument document = ProjectRecords(Record(0xF003, 15,
+            Shape(1, 1, 30, false, new[] { -1270000, -635000, 1270000, 635000 }, 1270000), leaf));
+        PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
+        foreach (OfficePoint point in new[] { new OfficePoint(0, 0), new OfficePoint(20, 0), new OfficePoint(20, 40) }) {
+            OfficePoint local = Transform(new OfficePoint(296 + point.X, 376 + point.Y), 306, 396, angle, horizontal, vertical);
+            Equal(Transform(local, 306, 396, 30, false, false), frame.PageTransform.TransformPoint(point));
+        }
+    }
+
     private static PublisherDocument CreateNonuniformGroup(bool relative, double angle) {
         byte[] leaf = Shape(3, 0, relative ? 20 : angle, true, new[] { 317500, 317500, 952500, 952500 },
             relativeAngle: relative ? angle : null, filled: true);
@@ -257,14 +274,15 @@ public sealed class PublisherGroupTransformTests {
         Record(0xF003, 15, Shape(id, 1U | (horizontal ? 0x40U : 0) | (vertical ? 0x80U : 0), angle, child, anchor,
             child ? 500 : 1000), contents);
 
-    private static byte[] Shape(uint id, uint flags, double angle, bool child, int[] anchor, int coordinateExtent = 500, double? relativeAngle = null, bool filled = false) {
+    private static byte[] Shape(uint id, uint flags, double angle, bool child, int[] anchor, int coordinateExtent = 500, double? relativeAngle = null, bool filled = false, uint? relativeFlips = null) {
         byte[] anchorRecord = child ? Record(0xF00F, 0, Integers(anchor)) : Record(0xF010, 0,
             Client(new ushort[] { 0x2001, 0x2002, 0x2003, 0x2004 }, anchor.Select(value => unchecked((uint)value)).ToArray()));
         byte[] coordinates = (flags & 1) == 0 ? Array.Empty<byte>() : Record(0xF009, 1,
             Integers(0, 0, coordinateExtent, coordinateExtent));
         return Record(0xF004, 15, coordinates, Record(0xF00A, 2, Integers(unchecked((int)id), unchecked((int)flags))),
-            Record(0xF00B, (ushort)(((1 + (relativeAngle.HasValue ? 1 : 0) + (filled ? 1 : 0)) << 4) | 3), new byte[] { 4, 0 }.Concat(BitConverter.GetBytes((int)(angle * 65536)))
+            Record(0xF00B, (ushort)(((1 + (relativeAngle.HasValue ? 1 : 0) + (filled ? 1 : 0) + (relativeFlips.HasValue ? 1 : 0)) << 4) | 3), new byte[] { 4, 0 }.Concat(BitConverter.GetBytes((int)(angle * 65536)))
                 .Concat(relativeAngle.HasValue ? new byte[] { 0xC4, 3 }.Concat(BitConverter.GetBytes((int)(relativeAngle.Value * 65536))) : Array.Empty<byte>())
+                .Concat(relativeFlips.HasValue ? new byte[] { 0xFF, 3 }.Concat(BitConverter.GetBytes(relativeFlips.Value)) : Array.Empty<byte>())
                 .Concat(filled ? new byte[] { 0x81, 1, 0xFF, 0, 0, 0 } : Array.Empty<byte>()).ToArray()), anchorRecord,
             Record(0xF011, 0, Client(new ushort[] { 0x6801 }, new[] { id })));
     }

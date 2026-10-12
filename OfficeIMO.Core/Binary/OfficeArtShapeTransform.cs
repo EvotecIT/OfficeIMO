@@ -26,7 +26,8 @@ public sealed class OfficeArtShapeTransform {
         IReadOnlyList<OfficeArtProperty>? properties = null) => Decode(fspFlags, properties, false);
 
     // RelXfrm belongs to a parent coordinate space; callers opt in only after
-    // resolving a child anchor. Explicit relative zero overrides absolute rotation.
+    // identifying group membership, independently of the anchor encoding.
+    // Explicit relative zero overrides absolute rotation.
     internal static OfficeArtShapeTransform Decode(uint fspFlags,
         IReadOnlyList<OfficeArtProperty>? properties, bool relativeToParent) {
         IReadOnlyList<OfficeArtProperty> source = properties ?? Array.Empty<OfficeArtProperty>();
@@ -41,6 +42,10 @@ public sealed class OfficeArtShapeTransform {
         bool flipVertical = OfficeArtProperty.GetBoolean(source, 0x033F, UseFlipVerticalOverride, FlipVerticalOverride)
             ?? (fspFlags & FlipVerticalFlag) != 0;
 
+        if (relativeToParent) {
+            flipHorizontal = OfficeArtProperty.GetBoolean(source, 0x03FF, 1U << 15, 1U << 31) ?? flipHorizontal;
+            flipVertical = OfficeArtProperty.GetBoolean(source, 0x03FF, 1U << 14, 1U << 30) ?? flipVertical;
+        }
         return new OfficeArtShapeTransform(rotationDegrees, flipHorizontal, flipVertical);
     }
 
