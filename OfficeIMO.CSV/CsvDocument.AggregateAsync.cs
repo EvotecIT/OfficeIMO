@@ -107,7 +107,7 @@ public sealed partial class CsvDocument
                     createAccumulator, accumulate, merge, result, stop).ConfigureAwait(false);
             else
             {
-                while (await reader.ReadAsync(stop.Token).ConfigureAwait(false))
+                while (await reader.ReadRecordAsync(stop.Token).ConfigureAwait(false))
                 {
                     stop.Token.ThrowIfCancellationRequested();
                     accumulate(ref result, new CsvRecord(reader));
