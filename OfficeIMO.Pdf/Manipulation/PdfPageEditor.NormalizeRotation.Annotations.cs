@@ -87,8 +87,9 @@ internal static partial class PdfPageEditor {
         }
         if (resolved is not PdfStream stream)
             throw new InvalidOperationException("The annotation appearance cannot be resolved to a stream.");
-        Matrix2D placement = PdfAppearancePlacement.Read(stream.Dictionary, item => PdfObjectLookup.Resolve(objects, item),
-            rectangle[0], rectangle[1], rectangle[2] - rectangle[0], rectangle[3] - rectangle[1], out _);
+        if (!PdfAppearancePlacement.TryRead(stream.Dictionary, item => PdfObjectLookup.Resolve(objects, item),
+            rectangle[0], rectangle[1], rectangle[2] - rectangle[0], rectangle[3] - rectangle[1], out Matrix2D placement, out _))
+            return value; // An empty appearance paints nothing, including an empty state on a visible widget.
         Matrix2D wrapperMatrix = Matrix2D.Multiply(Matrix2D.Translation(-left, -bottom), Matrix2D.Multiply(pageMatrix, placement));
         PdfReference original = value as PdfReference ?? new PdfReference(AddNormalizationObject(objects, ref nextObject, stream), 0);
         var xObjects = new PdfDictionary(); xObjects.Items["Original"] = original;
