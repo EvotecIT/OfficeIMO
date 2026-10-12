@@ -20,7 +20,8 @@ public sealed class InvoiceWorkbenchTests {
             using var shell = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             shell.Commands["Invoices"].Execute(null);
             Assert.True(shell.IsInvoiceMode); Assert.False(shell.HasDocument);
-            var model = shell.InvoiceWorkbench; model.InputPath = input;
+            // Sandboxed builds write only to a chosen folder, never beside a picked file.
+            var model = shell.InvoiceWorkbench; model.InputPath = input; model.OutputFolder = services.Paths.Root;
             model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.EditSource);
             model.EditNumber = "EDITED-42"; model.EditDueDate = "2026-11-30";
             await model.RunCommand.ExecuteAsync(null);
@@ -89,7 +90,7 @@ public sealed class InvoiceWorkbenchTests {
     public async Task CancellationReachesInvoiceRunnerAndCapturesRenderingChoicesBeforeAwait() {
         var runner = new RecordingRunner();
         using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null), runner) {
-            InputPath = Path.Combine(Path.GetTempPath(), "input.xml")
+            InputPath = Path.Combine(Path.GetTempPath(), "input.xml"), OutputFolder = Path.GetTempPath()
         };
         model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.RenderPresentationPdf);
         model.SelectedTarget = model.Targets.First(t => t.Options.Syntax == InvoiceSyntax.Cii);

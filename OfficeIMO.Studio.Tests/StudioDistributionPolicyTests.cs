@@ -64,21 +64,23 @@ public sealed class StudioDistributionPolicyTests {
         Assert.Equal(!picked, invoice.CanRun);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task LocationBoxesAreReadOnlyWhereOnlyPickedLocationsAreReachable(bool requiresPickedLocations) {
+    [Fact]
+    public async Task LocationBoxesAreReadOnlyWhereOnlyPickedLocationsAreReachable() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(() => {
+            // The application applies the policy of this build; a window can apply the sandboxed policy explicitly.
+            var current = new Avalonia.Controls.TextBox { Classes = { "path" } };
             var location = new Avalonia.Controls.TextBox { Classes = { "path" } };
             var other = new Avalonia.Controls.TextBox();
-            var window = new Avalonia.Controls.Window { Content = new Avalonia.Controls.StackPanel { Children = { location, other } } };
-            App.ApplyLocationPolicy(window.Styles, requiresPickedLocations);
+            var window = new Avalonia.Controls.Window { Content = new Avalonia.Controls.StackPanel { Children = { current } } };
+            var sandboxed = new Avalonia.Controls.Window { Content = new Avalonia.Controls.StackPanel { Children = { location, other } } };
+            App.ApplyLocationPolicy(sandboxed.Styles, requiresPickedLocations: true);
             try {
-                window.Show();
-                Assert.Equal(requiresPickedLocations, location.IsReadOnly);
+                window.Show(); sandboxed.Show();
+                Assert.Equal(StudioDistributionPolicy.RequiresPickedLocations, current.IsReadOnly);
+                Assert.True(location.IsReadOnly);
                 Assert.False(other.IsReadOnly);
-            } finally { window.Close(); }
+            } finally { window.Close(); sandboxed.Close(); }
             return true;
         }, CancellationToken.None);
     }
