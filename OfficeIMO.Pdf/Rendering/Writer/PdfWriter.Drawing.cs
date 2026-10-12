@@ -346,18 +346,18 @@ internal static partial class PdfWriter {
     private static void AppendPathCommandsCore(ContentStreamBuilder content,
         System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double yScale) {
         OfficeIMO.Drawing.OfficePoint current = default, start = default;
-        bool hasCurrent = false;
+        bool hasCurrent = false, subpathHasDraw = false;
         for (int i = 0; i < commands.Count; i++) {
             var command = commands[i];
             switch (command.Kind) {
                 case OfficeIMO.Drawing.OfficePathCommandKind.MoveTo:
                     if (i > 0) content.PathSeparator();
                     content.MoveTo(x + command.Point.X, y + yScale * command.Point.Y);
-                    current = start = command.Point; hasCurrent = true;
+                    current = start = command.Point; hasCurrent = true; subpathHasDraw = false;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
                     content.LineTo(x + command.Point.X, y + yScale * command.Point.Y);
-                    current = command.Point;
+                    current = command.Point; subpathHasDraw = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.QuadraticBezierTo:
                     if (!hasCurrent) {
@@ -369,16 +369,19 @@ internal static partial class PdfWriter {
                     OfficeIMO.Drawing.OfficePoint second = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
                     content.CubicTo(x + first.X, y + yScale * first.Y, x + second.X, y + yScale * second.Y,
                         x + command.Point.X, y + yScale * command.Point.Y);
-                    current = command.Point;
+                    current = command.Point; subpathHasDraw = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.CubicBezierTo:
                     content.CubicTo(x + command.ControlPoint1.X, y + yScale * command.ControlPoint1.Y,
                         x + command.ControlPoint2.X, y + yScale * command.ControlPoint2.Y,
                         x + command.Point.X, y + yScale * command.Point.Y);
-                    current = command.Point;
+                    current = command.Point; subpathHasDraw = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.Close:
-                    content.ClosePath(); current = start;
+                    // A closed single-point PDF subpath paints a dot with round caps.
+                    // Keep no-draw contours empty, preserving actual zero-length lines.
+                    if (subpathHasDraw) content.ClosePath();
+                    current = start; subpathHasDraw = false;
                     break;
             }
         }
