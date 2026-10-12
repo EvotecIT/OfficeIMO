@@ -19,8 +19,8 @@ public sealed class PdfEmbeddedFontSnapshotTests {
             new PdfEmbeddedFontFamily("Repeated snapshot", caller));
 
         if (cff) {
-            Assert.True(first.TryGetEmbeddedOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? a));
-            Assert.True(second.TryGetEmbeddedOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? b));
+            Assert.True(first.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? a));
+            Assert.True(second.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? b));
             Assert.NotSame(a, b);
             Assert.Same(a!.FontDataForInspection, b!.FontDataForInspection);
             Assert.True(a.TryGetGlyphId('A', out int ga));
