@@ -269,6 +269,7 @@ public static partial class OfficeDocumentReadResultJson {
         bool requiresVersion11 = kind == ReaderInputKind.Chm;
         bool requiresVersion12 = kind == ReaderInputKind.DjVu;
         bool requiresVersion13 = kind == ReaderInputKind.Dbf;
+        bool requiresVersion14 = kind == ReaderInputKind.Publisher;
         if (!Enum.IsDefined(typeof(ReaderInputKind), kind) ||
             schemaVersion < 6 && requiresVersion6 ||
             schemaVersion < 7 && requiresVersion7 ||
@@ -276,7 +277,8 @@ public static partial class OfficeDocumentReadResultJson {
             schemaVersion < 10 && requiresVersion10 ||
             schemaVersion < 11 && requiresVersion11 ||
             schemaVersion < 12 && requiresVersion12 ||
-            schemaVersion < 13 && requiresVersion13) {
+            schemaVersion < 13 && requiresVersion13 ||
+            schemaVersion < 14 && requiresVersion14) {
             throw new JsonException(
                 $"Reader input kind '{kind}' is not supported by document read result schema version {schemaVersion}.");
         }

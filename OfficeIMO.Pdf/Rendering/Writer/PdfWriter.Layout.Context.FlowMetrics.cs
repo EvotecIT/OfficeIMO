@@ -122,7 +122,7 @@ internal static partial class PdfWriter {
 
         private (double Height, PdfKeepTogetherOverflowBehavior Overflow) MeasureParagraphFirstVisual(
             RichParagraphBlock paragraph, double frameX, double frameWidth, double fontSize, bool suppressSpacingBefore = false,
-            double closingPadding = 0D) {
+            double closingPadding = 0D, bool reserveSingleLine = false) {
             PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(paragraph);
             fontSize = paragraphStyle?.FontSize ?? currentOpts.DefaultFontSize;
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
@@ -138,7 +138,7 @@ internal static partial class PdfWriter {
             bool keepAllLines = paragraphStyle?.KeepTogether == true && overflow == PdfKeepTogetherOverflowBehavior.Reject;
             if (keepAllLines) {
                 linesToReserve = wrap.LineHeights.Count;
-            } else if (paragraphStyle != null) {
+            } else if (paragraphStyle != null && !reserveSingleLine) {
                 int minimumOrphanLines = ResolveMinimumOrphanLines(paragraphStyle);
                 if (minimumOrphanLines > 1 && wrap.LineHeights.Count > 1) {
                     linesToReserve = Math.Min(minimumOrphanLines, wrap.LineHeights.Count);
@@ -271,7 +271,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is DrawingBlock drawing) {
-                return MeasureDrawingBlockHeight(drawing);
+                return MeasureDrawingBlockHeight(drawing, frameWidth);
             }
 
 
@@ -498,7 +498,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is DrawingBlock drawing) {
-                return MeasureDrawingBlockHeight(drawing);
+                return MeasureDrawingBlockHeight(drawing, frameWidth);
             }
 
             if (block is RowBlock row) {
@@ -550,9 +550,10 @@ internal static partial class PdfWriter {
             return ResolveTopLevelSpacingBefore(style.SpacingBefore) + shape.Shape.Height + style.SpacingAfter;
         }
 
-        private double MeasureDrawingBlockHeight(DrawingBlock drawing) {
+        private double MeasureDrawingBlockHeight(DrawingBlock drawing, double frameWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(drawing, currentOpts);
-            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + drawing.Drawing.Height + style.SpacingAfter;
+            var box = ResolveDrawingFlowBox(drawing, style, frameWidth);
+            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + box.Height + style.SpacingAfter;
         }
 
 

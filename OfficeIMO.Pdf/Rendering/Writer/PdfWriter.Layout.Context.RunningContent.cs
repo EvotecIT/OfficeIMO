@@ -9,6 +9,7 @@ internal static partial class PdfWriter {
         private readonly int previousDocumentPages;
         private readonly Dictionary<(PdfOptions Source, double Top, double Bottom), PdfOptions> runningFrameOptions = new();
         private double? runningFirstBodyHeight;
+        private bool runningFirstBodyAllowsFooterOverlap;
 
         // A paragraph continuation can reclaim an optional imported header's
         // exclusion. Preserve footer and active-container reservations.
@@ -79,8 +80,19 @@ internal static partial class PdfWriter {
             double top = Exclusion(header, headerHeight, source.MarginTop);
             double bottom = Exclusion(footer, footerHeight, source.MarginBottom);
             if (header?.AllowTextFallback == true && top > source.MarginTop + .001D) {
-                double firstBodyHeight = runningFirstBodyHeight ?? MeasureRunningContentFirstBodyHeight(source);
-                if (firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
+                double? footerOverlapHeight;
+                double firstBodyHeight;
+                if (runningFirstBodyHeight is double continuationHeight) {
+                    // Paragraph flow already measured this actual continuation
+                    // line, including its active-container reservation.
+                    firstBodyHeight = continuationHeight;
+                    footerOverlapHeight = runningFirstBodyAllowsFooterOverlap ? continuationHeight : null;
+                } else firstBodyHeight = MeasureRunningContentFirstBodyHeight(source, out footerOverlapHeight);
+                // Imported paragraphs may place their first line beside a tall
+                // footer while retaining the header and physical body margins.
+                bool fitsBesideFooter = footerOverlapHeight.HasValue && bottom > source.MarginBottom + .001D &&
+                    footerOverlapHeight.Value <= source.PageHeight - top - source.MarginBottom + .001D;
+                if (!fitsBesideFooter && firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&
                     source.PageHeight - top - bottom + .001D < firstBodyHeight) {
                     fallbackHeader = true;
                     header = null;
@@ -128,7 +140,9 @@ internal static partial class PdfWriter {
                     : Math.Max(physicalMargin, content.DistanceFromEdge + height + content.BodyGap);
         }
 
-        private double MeasureRunningContentFirstBodyHeight(PdfOptions source) {
+        private double MeasureRunningContentFirstBodyHeight(PdfOptions source, out double? footerOverlapHeight) {
+            double? firstVisualFooterOverlapHeight = null;
+            footerOverlapHeight = null;
             for (int depth = activeBlockSequences.Count - 1; depth >= 0; depth--) {
                 BlockSequenceScope sequence = activeBlockSequences[depth];
                 int start = sequence.Index + (depth == activeBlockSequences.Count - 1 ? 0 : 1);
@@ -137,7 +151,11 @@ internal static partial class PdfWriter {
                 var frame = GetRunningBodyContinuationFrame(source, depth);
                 double? height = FirstVisual(PendingBlocks(sequence.Blocks, start), frame.X, frame.Width,
                     GetClosingContainerPadding(depth));
-                if (height.HasValue) return height.Value <= .001D ? height.Value : height.Value + frame.ReservedHeight;
+                if (height.HasValue) {
+                    footerOverlapHeight = firstVisualFooterOverlapHeight.HasValue
+                        ? firstVisualFooterOverlapHeight.Value + frame.ReservedHeight : null;
+                    return height.Value <= .001D ? height.Value : height.Value + frame.ReservedHeight;
+                }
                 // Do not look through the end of an explicit page/section.
                 if (depth > 0 && activeBlockSequences[depth - 1].Blocks[activeBlockSequences[depth - 1].Index] is PageBlock) break;
             }
@@ -154,15 +172,24 @@ internal static partial class PdfWriter {
                     double height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
                         allowTableFragments: true, suppressParagraphSpacingBefore: true);
                     if (height <= .001D && block is ContainerBlock or SpacerBlock) continue;
+                    double paragraphClosingPadding = 0D;
                     if (closingPadding > 0D) {
                         bool closesSequence = true;
                         while (pending.MoveNext()) {
                             cancellationToken.ThrowIfCancellationRequested();
                             if (!IsNonVisualFlowMarker(pending.Current)) { closesSequence = false; break; }
                         }
-                        if (closesSequence) height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
-                            allowTableFragments: true, suppressParagraphSpacingBefore: true, closingPadding: closingPadding);
+                        if (closesSequence) {
+                            paragraphClosingPadding = closingPadding;
+                            height = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, source.DefaultFontSize,
+                                allowTableFragments: true, suppressParagraphSpacingBefore: true, closingPadding: closingPadding);
+                        }
                     }
+                    if (activeColumnFlow == null && block is RichParagraphBlock paragraph &&
+                        EffectiveParagraphStyle(paragraph)?.AllowFirstLineOverlapWithRunningFooter == true)
+                        firstVisualFooterOverlapHeight = MeasureParagraphFirstVisual(paragraph, frameX, frameWidth,
+                            source.DefaultFontSize, suppressSpacingBefore: true, closingPadding: paragraphClosingPadding,
+                            reserveSingleLine: true).Height;
                     return height;
                 }
                 return null;

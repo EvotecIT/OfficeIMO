@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO;
 
@@ -24,22 +25,11 @@ internal static class OfficeLegacyImportBuffer {
             throw new InvalidDataException($"Legacy input exceeds the configured {limits.MaxInputBytes} byte limit.");
         }
 
-        using var output = new MemoryStream(Math.Min(limits.MaxInputBytes, 81920));
-        var buffer = new byte[81920];
-        int total = 0;
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int remaining = limits.MaxInputBytes - total;
-            int requested = remaining >= buffer.Length ? buffer.Length : remaining + 1;
-            int read = stream.Read(buffer, 0, requested);
-            if (read == 0) break;
-            if (read > remaining) {
-                throw new InvalidDataException($"Legacy input exceeds the configured {limits.MaxInputBytes} byte limit.");
-            }
-            total += read;
-            output.Write(buffer, 0, read);
+        try {
+            return OfficeStreamReader.ReadForwardBytes(stream, cancellationToken, limits.MaxInputBytes);
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
+            throw new InvalidDataException($"Legacy input exceeds the configured {limits.MaxInputBytes} byte limit.");
         }
-        return output.ToArray();
     }
 
     internal static bool StartsWith(byte[] data, params byte[] prefix) {
