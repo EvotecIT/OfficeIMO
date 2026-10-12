@@ -3,6 +3,62 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Archives.Tests;
 
 public sealed class MsiMetadataBoundaryTests {
+    [Theory]
+    [InlineData(68, "self")]
+    [InlineData(72, "self")]
+    [InlineData(68, "shared")]
+    [InlineData(72, "shared")]
+    [InlineData(68, "root")]
+    [InlineData(72, "root")]
+    [InlineData(68, "outside")]
+    [InlineData(72, "outside")]
+    [InlineData(68, "unused")]
+    [InlineData(72, "unused")]
+    [InlineData(68, "end-of-chain")]
+    [InlineData(72, "end-of-chain")]
+    public void MalformedDirectorySiblingLinksCannotPassReachability(int linkOffset, string target) {
+        byte[] package = ArchiveFixtures.Msi();
+        int[] slots = DirectorySlots(package);
+        int leaf = Array.FindIndex(slots, offset => package[offset + 66] == 2
+            && BitConverter.ToUInt32(package, offset + 68) == uint.MaxValue
+            && BitConverter.ToUInt32(package, offset + 72) == uint.MaxValue);
+        Assert.True(leaf > 0);
+        uint id = target switch {
+            "self" => (uint)leaf,
+            "shared" => (uint)Array.FindIndex(slots, offset => package[offset + 66] == 2 && offset != slots[leaf]),
+            "root" => 0,
+            "outside" => (uint)slots.Length,
+            "unused" => (uint)Array.FindIndex(slots, offset => package[offset + 66] == 0),
+            _ => 0xfffffffeU
+        };
+        Buffer.BlockCopy(BitConverter.GetBytes(id), 0, package, slots[leaf] + linkOffset, 4);
+        AssertInvalid(package);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ReachableEntriesCannotDisappearFromTheStrictDirectoryIndex(bool unknownType) {
+        byte[] package = Rewrite(ArchiveFixtures.Msi(), streams => streams.Add("Extra", Array.Empty<byte>()));
+        int slot = DirectorySlots(package).Single(offset => Name(package, offset) == "Extra");
+        if (unknownType) package[slot + 66] = 3;
+        else Buffer.BlockCopy(BitConverter.GetBytes((ushort)0), 0, package, slot + 64, 2);
+        AssertInvalid(package);
+    }
+
+    [Theory]
+    [InlineData(true, 68)]
+    [InlineData(true, 72)]
+    [InlineData(false, 76)]
+    public void DirectoryLinksMustRespectRootAndStreamRoles(bool root, int linkOffset) {
+        byte[] package = ArchiveFixtures.Msi();
+        int[] slots = DirectorySlots(package);
+        int entry = root ? 0 : Array.FindIndex(slots, offset => package[offset + 66] == 2);
+        Assert.True(entry >= 0);
+        Buffer.BlockCopy(BitConverter.GetBytes((uint)entry), 0, package, slots[entry] + linkOffset, 4);
+        AssertInvalid(package);
+    }
+
     [Fact]
     public void ActiveOrphanStorageCannotHideBehindAReachableStreamName() {
         byte[] package = ArchiveFixtures.Msi();

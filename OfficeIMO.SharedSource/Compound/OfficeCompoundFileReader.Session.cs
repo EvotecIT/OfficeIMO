@@ -67,8 +67,8 @@ namespace OfficeIMO.Core.Internal {
                     if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > physicalBytes)
                         throw new InvalidDataException("Compound mini stream exceeds configured or physical bounds.");
                     _rootSize = root.Size;
-                    Entries = BuildCompoundEntries(entries, out bool hasUnreachableEntries, token);
-                    HasUnreachableDirectoryEntries = hasUnreachableEntries;
+                    Entries = BuildCompoundEntries(entries, out bool hasInvalidDirectoryTree, token);
+                    HasInvalidDirectoryTree = hasInvalidDirectoryTree;
                     IReadOnlyDictionary<int, string> paths = BuildCompoundEntryPaths(entries, token);
                     long total = 0;
                     foreach (DirectoryEntry entry in entries.Where(entry => entry.ObjectType == 2)) {
@@ -104,8 +104,9 @@ namespace OfficeIMO.Core.Internal {
             /// <summary>True when one active root exists at directory ID zero and is named Root Entry.</summary>
             internal bool HasCanonicalRootDirectory { get; }
 
-            /// <summary>True when an active non-root entry is unreachable, including entries hidden by lookup aliases.</summary>
-            internal bool HasUnreachableDirectoryEntries { get; }
+            /// <summary>True for unreachable entries, cycles, shared nodes, invalid links or invalid entry roles.
+            /// Compatibility lookups remain available; strict formats must reject this structure.</summary>
+            internal bool HasInvalidDirectoryTree { get; }
 
             internal long GetStreamLength(string path) {
                 ThrowIfDisposed(); _token.ThrowIfCancellationRequested();

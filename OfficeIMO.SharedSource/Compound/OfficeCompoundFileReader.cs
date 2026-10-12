@@ -402,18 +402,22 @@ namespace OfficeIMO.Core.Internal {
 
         private static IReadOnlyList<OfficeCompoundFileEntry>
             BuildCompoundEntries(IReadOnlyList<DirectoryEntry> entries,
-                out bool hasUnreachableDirectoryEntries, CancellationToken cancellationToken = default) {
+                out bool hasInvalidDirectoryTree, CancellationToken cancellationToken = default) {
             var result = new List<OfficeCompoundFileEntry>();
             DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
             var visited = new HashSet<int>();
+            hasInvalidDirectoryTree = root == null;
             if (root != null) {
+                // The allocation root cannot also be a sibling or descendant.
+                visited.Add(root.Index);
+                hasInvalidDirectoryTree = root.LeftSiblingId != FreeSect || root.RightSiblingId != FreeSect;
                 TraverseDirectoryTree(entries, root.ChildId, string.Empty,
-                    result, visited, 0, cancellationToken);
+                    result, visited, ref hasInvalidDirectoryTree, 0, cancellationToken);
             }
             // Reachability is a raw entry identity, independent of the compatibility
             // aliases below, which may coalesce equal unqualified lookup names.
-            hasUnreachableDirectoryEntries = root == null || entries.Any(entry =>
-                entry.ObjectType != 0 && entry.Index != root.Index && !visited.Contains(entry.Index));
+            hasInvalidDirectoryTree |= entries.Any(entry =>
+                entry.ObjectType != 0 && !visited.Contains(entry.Index));
 
             var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (OfficeCompoundFileEntry entry in result) {
@@ -467,32 +471,40 @@ namespace OfficeIMO.Core.Internal {
             string parentPath,
             List<OfficeCompoundFileEntry> result,
             HashSet<int> visited,
+            ref bool hasInvalidDirectoryTree,
             int depth,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (depth > 256) throw new InvalidDataException("Compound directory tree exceeds the supported depth.");
-            if (entryId == FreeSect || entryId == EndOfChain || entryId >= entries.Count) {
+            if (entryId == FreeSect) return;
+            if (entryId >= entries.Count) {
+                hasInvalidDirectoryTree = true;
                 return;
             }
 
             DirectoryEntry entry = entries[(int)entryId];
             if (!visited.Add(entry.Index)) {
+                hasInvalidDirectoryTree = true;
                 return;
             }
+            if ((entry.ObjectType != 1 && entry.ObjectType != 2) || string.IsNullOrEmpty(entry.Name)) {
+                hasInvalidDirectoryTree = true;
+            }
+            if (entry.ObjectType == 2 && entry.ChildId != FreeSect) hasInvalidDirectoryTree = true;
 
             TraverseDirectoryTree(entries, entry.LeftSiblingId, parentPath,
-                result, visited, depth + 1, cancellationToken);
+                result, visited, ref hasInvalidDirectoryTree, depth + 1, cancellationToken);
             if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
                 string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
                 result.Add(CreateCompoundEntry(entry, path, directoryOrder: result.Count));
                 if (entry.ObjectType == 1 || entry.ObjectType == 5) {
                     TraverseDirectoryTree(entries, entry.ChildId, path,
-                        result, visited, depth + 1, cancellationToken);
+                        result, visited, ref hasInvalidDirectoryTree, depth + 1, cancellationToken);
                 }
             }
 
             TraverseDirectoryTree(entries, entry.RightSiblingId, parentPath,
-                result, visited, depth + 1, cancellationToken);
+                result, visited, ref hasInvalidDirectoryTree, depth + 1, cancellationToken);
         }
 
         private static void TraverseDirectoryTree(

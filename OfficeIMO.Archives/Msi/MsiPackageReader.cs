@@ -28,8 +28,8 @@ internal sealed partial class MsiPackageReader : IDisposable {
         _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token);
         _streams = new Dictionary<string, string>(StringComparer.Ordinal);
         try {
-            if (!_compound.HasCanonicalRootDirectory || _compound.HasUnreachableDirectoryEntries)
-                throw new InvalidDataException("MSI compound directory has an invalid root or unreachable active entries.");
+            if (!_compound.HasCanonicalRootDirectory || _compound.HasInvalidDirectoryTree)
+                throw new InvalidDataException("MSI compound directory has an invalid root, tree links or unreachable active entries.");
             if (_compound.RootEntry.ClassId != InstallerClass) throw new NotSupportedException("The compound container is not an ordinary Windows Installer database. Patches and transforms are unsupported.");
             foreach (OfficeCompoundFileEntry entry in _compound.Entries) {
                 token.ThrowIfCancellationRequested();
