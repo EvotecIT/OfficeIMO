@@ -4,6 +4,22 @@ using System.Collections.Generic;
 namespace OfficeIMO.Drawing;
 
 internal static class OfficeLineMarkerGeometry {
+    /// <summary>Finds exact marker directions without flattening the painted path.</summary>
+    internal static bool TryEndpoints(OfficeShape shape, out OfficePoint start, out OfficePoint startOutward, out OfficePoint end, out OfficePoint endOutward) {
+        start = end = startOutward = endOutward = default;
+        if (shape.Kind == OfficeShapeKind.Path) {
+            if (!OfficePathGeometry.TryOpenMarkerEndpoints(shape.PathCommands, out start, out var inwardStart, out end, out var inwardEnd)) return false;
+            startOutward = new(-inwardStart.X, -inwardStart.Y);
+            endOutward = new(-inwardEnd.X, -inwardEnd.Y);
+            return true;
+        }
+        if (shape.Kind != OfficeShapeKind.Line || shape.Points.Count < 2) return false;
+        start = shape.Points[0]; end = shape.Points[shape.Points.Count - 1];
+        startOutward = new(start.X - end.X, start.Y - end.Y);
+        endOutward = new(-startOutward.X, -startOutward.Y);
+        return startOutward.X != 0 || startOutward.Y != 0;
+    }
+
     internal static IReadOnlyList<OfficePoint> CreateContour(OfficeLineMarker? marker, OfficePoint tip, OfficePoint lineDirection) {
         if (marker == null || marker.Kind == OfficeLineMarkerKind.None) {
             return Array.Empty<OfficePoint>();
