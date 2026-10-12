@@ -3,7 +3,6 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private const double ExcelDefaultMaximumDigitWidth = 7D;
         private const double WorksheetHeadingHeight = 22D;
 
         private static void AddWorksheetCanvasPages(
@@ -253,7 +252,18 @@ namespace OfficeIMO.Excel.Pdf {
                 break;
             }
 
-            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / ExcelDefaultMaximumDigitWidth)) / 256D * ExcelDefaultMaximumDigitWidth) + 5D;
+            if (geometry.MaximumDigitWidthPoints is double maximumDigitWidth) {
+                // The stored width already includes the character-unit padding.
+                // Keep PDF geometry in points rather than quantizing it to a screen
+                // pixel grid. Printer-specific hinting remains a separate limit.
+                return Math.Max(0.75D, width * maximumDigitWidth);
+            }
+
+            // Preserve the established estimate when the authored Normal font
+            // program is unavailable; a substituted text font does not establish
+            // the workbook's column units.
+            const double fallbackDigitWidth = 7D;
+            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / fallbackDigitWidth)) / 256D * fallbackDigitWidth) + 5D;
             return Math.Max(0.75D, Math.Max(1D, pixels) * 72D / 96D);
         }
 

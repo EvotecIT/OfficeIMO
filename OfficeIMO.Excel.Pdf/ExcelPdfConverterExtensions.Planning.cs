@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel.Pdf {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
-        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelToPdfOptions options, bool preserveConfiguredFontSlots) {
+        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelToPdfOptions options, bool preserveConfiguredFontSlots, OfficeFontInfo? normalFont) {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
 
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -177,6 +177,12 @@ namespace OfficeIMO.Excel.Pdf {
                 }
             }
 
+            if (options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas &&
+                options.UseWorksheetColumnWidths && normalFont.HasValue &&
+                options.ResourcePolicy.AllowSystemFontEmbedding && options.ResourcePolicy.AllowDocumentFontEmbedding) {
+                RegisterWorksheetFontCandidate(normalFont.Value.FamilyName, pdfOptions, registeredFamilies,
+                    registeredFontSlots, options, exportPlans.FirstOrDefault()?.SheetName ?? string.Empty);
+            }
             return registeredFontSlots;
         }
 

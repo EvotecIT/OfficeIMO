@@ -163,6 +163,7 @@ namespace OfficeIMO.Excel.Pdf {
             public int LastRow { get; }
             public int LastColumn { get; }
             public double DefaultColumnWidth { get; }
+            public double? MaximumDigitWidthPoints { get; set; }
             public double DefaultRowHeight { get; }
             public IReadOnlyList<ExcelColumnSnapshot> Columns { get; }
             public IReadOnlyList<ExcelRowSnapshot> Rows { get; }
