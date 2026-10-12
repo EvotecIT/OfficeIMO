@@ -151,7 +151,7 @@ Use Excel when the data grid, formula model, filtering, chart interaction, or wo
 
 - [Quarterly business review](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1) creates a title slide, a data chart, a priority table, bullets, and speaker notes.
 - [Training workshop](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/PowerPoint/Recipe-PowerPoint-TrainingWorkshop.ps1) builds learning objectives, an agenda table, a call-to-action slide, and presenter notes.
-- [Service brief](https://github.com/EvotecIT/PSWriteOffice/blob/f28d09d2ff157925598d9396bf0f2c8ef19a2b25/Examples/Showcase/ServiceBrief.md) combines a semantic deck plan with a ticket-count chart and action table. Its CSV input recalculates totals, location cards, comparisons and the priority review.
+- [Service brief](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1) combines semantic designer plans with direct slide composition, charts, sections, transitions, and inspection.
 - [Object composition](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1) keeps a presentation object for loop-driven slide creation.
 - [Inspect, update, and reuse slides](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/README.md#read-modify-combine-and-convert) cover existing-presentation workflows.
 

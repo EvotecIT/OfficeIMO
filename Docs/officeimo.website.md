@@ -62,10 +62,10 @@ The sync script:
 
 - requires an available source checkout to be clean and at the configured release commit
 - validates the API bundle's manifest, help, metadata, command names, commit, and component fingerprints before importing it
-- generates the documentation catalog through that release's `Build/Export-WebsiteDocumentationCatalog.ps1` and imports its documentation pages together, after checking that the tracked pages are present
-- records separate fingerprints for the generated catalog and its version-pinned website links; a caller-supplied API export cannot replace the documentation catalog
+- generates the documentation catalog through that release's `Build/Export-WebsiteDocumentationCatalog.ps1` and imports its documentation pages together, after checking that the producer and tracked pages are present
+- records separate source and derived fingerprints for the catalog and each documentation page, plus the PowerShell navigation; a caller-supplied API export cannot replace the documentation catalog
 - mirrors the pinned source's `Examples/` folder into the website fallback folder
-- validates checked-in API and documentation catalog evidence before using fallback content when source inputs are unavailable
+- validates checked-in API, catalog, page inventory, and navigation evidence before using fallback content when source inputs are unavailable or incomplete
 
 `-ExportedArtifactsRoot` selects an API bundle and requires an explicit `-PSWriteOfficeRoot`. Documentation still comes from that verified source checkout. `Test-DocumentationContracts.ps1` includes catalog integrity checks, including stale catalogs with unchanged command totals and equivalent Windows/Linux text checkouts.
 
