@@ -33,6 +33,10 @@ internal static class OfficeArtCustomPathProjector {
             || double.IsNaN(width) || double.IsNaN(height) || double.IsInfinity(width) || double.IsInfinity(height)) {
             failure = OfficeArtCustomPathFailure.InvalidGeometrySpace; return false;
         }
+        if (Scalar(properties, 0x0153, int.MinValue) != int.MinValue
+            || Scalar(properties, 0x0154, int.MinValue) != int.MinValue) {
+            failure = OfficeArtCustomPathFailure.Scaling; return false;
+        }
         OfficeArtProperty? vertexProperty = Property(properties, 0x0145);
         if (!TryArray(vertexProperty, true, out OfficeArtComplexData vertices, out int pointCount, out int pointSize)
             || pointCount == 0) return false;
@@ -42,6 +46,7 @@ internal static class OfficeArtCustomPathProjector {
         // Charge declared work before allocating decoded arrays or expanding commands.
         accountItems(pointCount + segmentCount);
         var points = new OfficePoint[pointCount];
+        OfficeArtGeometryGuides? guides = null;
         for (int index = 0; index < points.Length; index++) {
             token.ThrowIfCancellationRequested();
             int offset = 6 + index * pointSize;
@@ -49,7 +54,12 @@ internal static class OfficeArtCustomPathProjector {
             // elements retain signed 32-bit coordinates and guide sentinels.
             int x = pointSize == 8 ? I32(vertices, offset) : U16(vertices, offset);
             int y = pointSize == 8 ? I32(vertices, offset + 4) : U16(vertices, offset + 2);
-            if (IsGuide(x) || IsGuide(y)) { failure = OfficeArtCustomPathFailure.GuideReference; return false; }
+            if (IsGuide(x) || IsGuide(y)) {
+                if (guides == null && !OfficeArtGeometryGuides.TryCreate(properties, width, height,
+                    accountItems, token, out guides, out failure)) return false;
+                if (IsGuide(x) && !guides!.TryGetValue(x & 0x7F, out x, out failure)
+                    || IsGuide(y) && !guides!.TryGetValue(y & 0x7F, out y, out failure)) return false;
+            }
             points[index] = new OfficePoint((x - left) / (right - left) * width, (y - top) / (bottom - top) * height);
         }
         var commands = new List<OfficePathCommand>();
@@ -126,7 +136,7 @@ internal static class OfficeArtCustomPathProjector {
         token.ThrowIfCancellationRequested();
         OfficeShape shape = OfficeShape.Path(Math.Max(.01D, width), Math.Max(.01D, height), commands);
         shape.FillRule = OfficeFillRule.NonZero;
-        projection = new OfficeArtCustomPathProjection(shape, noFill, noLine);
+        projection = new OfficeArtCustomPathProjection(shape, noFill, noLine, guides != null);
         failure = OfficeArtCustomPathFailure.None; return true;
     }
 
@@ -160,10 +170,15 @@ internal static class OfficeArtCustomPathProjector {
 }
 
 internal sealed class OfficeArtCustomPathProjection {
-    internal OfficeArtCustomPathProjection(OfficeShape shape, bool noFill, bool noLine) { Shape = shape; NoFill = noFill; NoLine = noLine; }
+    internal OfficeArtCustomPathProjection(OfficeShape shape, bool noFill, bool noLine, bool usesGuides) {
+        Shape = shape; NoFill = noFill; NoLine = noLine; UsesGuides = usesGuides;
+    }
     internal OfficeShape Shape { get; }
     internal bool NoFill { get; }
     internal bool NoLine { get; }
+    internal bool UsesGuides { get; }
 }
 
-internal enum OfficeArtCustomPathFailure { None, InvalidData, InvalidGeometrySpace, GuideReference, Command, PaintGroups }
+internal enum OfficeArtCustomPathFailure {
+    None, InvalidData, InvalidGeometrySpace, InvalidGuide, GuideFormula, GuideParameter, Scaling, Command, PaintGroups
+}
