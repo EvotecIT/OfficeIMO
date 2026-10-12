@@ -135016,6 +135016,69 @@
       "path": "evidence/final-runtime-checkpoint-independent-admission.json",
       "sha256": "C8B1D566DDEC5C9BE487AFE7474A33A65D6B3719E1520091B391C40E2B6F42C3",
       "bytes": 119155
+    },
+    "retention": {
+      "status": "final-archive-all-entries-and-originals-independently-admitted",
+      "archive": {
+        "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\archives\\final-qualified-evidence-43b3c8b4-20261012T015843Z.zip",
+        "bytes": 164877976,
+        "sha256": "DB6E5B3CDCD4EA8BF5BAAD0B3EAF6DA7EA518B58B8C9243139D59070B5C2E411"
+      },
+      "execution": {
+        "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\evidence\\final-qualified-evidence-43b-archive-execution.json",
+        "bytes": 3479,
+        "sha256": "9877967873715D8ED8174561AE4675B4B6CB46793949B7042529734720392FF3"
+      },
+      "release": {
+        "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\evidence\\final-qualified-evidence-43b-archive-release.json",
+        "bytes": 944,
+        "sha256": "41C9D61FCC739720B600BC515E17CE53418ACFA68C55B704B8C3CDE2DF8F20F6"
+      },
+      "membership": {
+        "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\evidence\\final-qualified-evidence-43b-membership.jsonl",
+        "bytes": 4246114,
+        "sha256": "6BD442C639AA670F2FED1E123F4D5E7EF08F4A3679C7744F2CD332A917559B84"
+      },
+      "archiveEntries": {
+        "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\evidence\\final-qualified-evidence-43b-archive-entries.json",
+        "bytes": 3087957,
+        "sha256": "61E268EB5AE3EFD8EA52F0C5A39A058DFC7A7A1FBA2DC882EA1EC402974D70EA"
+      },
+      "independentRootAdmission": {
+        "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\evidence\\final-qualified-evidence-43b-archive-independent-root-admission.json",
+        "bytes": 2740,
+        "sha256": "5BC5DBCB227384A7269E30E000F0DC127A5A5443518CB4075FCFB4E0421E71B9"
+      },
+      "files": 3665,
+      "directories": 1664,
+      "decompressedEntries": 5329,
+      "decompressedBytes": 597902774,
+      "mappedOriginalFiles": 3688,
+      "mappedOriginalFileBytes": 722976122,
+      "sparseContentAliases": 24,
+      "embeddedOriginalPathMapEntry": "archive-control/final-qualified-evidence-43b-membership.jsonl",
+      "baseline90": {
+        "existingArchive": {
+          "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\archives\\final-phase-runtime-binaries.zip",
+          "bytes": 92390423,
+          "sha256": "B3668391E037F2E55161B8FE5334B770A4A22099B06E5977F4512BC4C831EAFC"
+        },
+        "fresh37EntryAndOriginalVerification": {
+          "path": "D:\\Dev\\Scratch\\officeimo-pdf-improvements\\evidence\\baseline90-final-retention-verification.json",
+          "bytes": 13451,
+          "sha256": "B94C136195F1366AE67C30E2786D1DAA64D547886584979B9119499C67098EF6"
+        },
+        "payloadNotDuplicated": true
+      },
+      "directlyViewableRetainedEvidence": [
+        "layout-remediation/artifacts/final-r3",
+        "evidence/final-word-native-controls-r6/actual",
+        "evidence/final-word-native-controls-r6/*.png",
+        "evidence/final-word-native-controls-r6/*-rois"
+      ],
+      "nativeSourceReferencesRetainedInPlace": true,
+      "cleanupAccounting": "Fresh expanded-output cleanup and incremental accounting are separate receipts. This mapping makes no physical-reclamation claim.",
+      "replayBoundary": "Sparse exact producer/consumer binaries are preserved. This is not a self-contained xUnit build; .NET runtime, native analysis/render tools and installed font inputs remain external."
     }
   }
 }
