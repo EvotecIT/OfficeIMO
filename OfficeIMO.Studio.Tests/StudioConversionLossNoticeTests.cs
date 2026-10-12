@@ -33,6 +33,17 @@ public sealed class StudioConversionLossNoticeTests {
             model.ReviewLossCommand.Execute(null);
             Assert.Same(job, model.SelectedJob);
 
+            // A later run of other files keeps the earlier lossy result in the notice.
+            string notes = Path.Combine(root, "notes.txt");
+            File.WriteAllText(notes, "Plain notes");
+            files = [notes];
+            model.SelectedRoute = model.Routes.Single(route => route.Route.Id == "txt-pdf");
+            await model.AddFilesCommand.ExecuteAsync(null);
+            await model.RunQueueCommand.ExecuteAsync(null);
+            Assert.True(model.HasLossNotice);
+            Assert.Contains("newsletter.pub", model.LossNotice, StringComparison.Ordinal);
+            model.SelectedJob = job;
+
             // Removing the job takes it out of the notice.
             model.RemoveSelectedCommand.Execute(null);
             Assert.False(model.HasLossNotice);

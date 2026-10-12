@@ -54,7 +54,9 @@ public sealed partial class MainWindow {
     private void SaveWindowPlacement() {
         StudioWindowPlacement? normal = _normalPlacement;
         if (normal is null) return;
-        StudioWindowPlacement placement = normal with { Maximized = WindowState is WindowState.Maximized or WindowState.FullScreen };
+        // Full screen is not restored at launch; the window returns to the state full screen was entered from.
+        WindowState saved = WindowState == WindowState.FullScreen ? _stateBeforeFullScreen : WindowState;
+        StudioWindowPlacement placement = normal with { Maximized = saved == WindowState.Maximized };
         _services.Preferences.UpdatePresentation(current => current with { MainWindow = placement });
     }
 }

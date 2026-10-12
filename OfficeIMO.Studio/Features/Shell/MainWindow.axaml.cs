@@ -203,7 +203,8 @@ public sealed partial class MainWindow : Window {
 
     /// <summary>
     /// A document tab always shows its document. Closing a tab while an application screen (Convert, Jobs,
-    /// Settings…) is visible keeps that screen, and with no document left the window returns to Home.
+    /// Settings…) is visible keeps that screen, even when it was the last tab; closing the last tab from the document view
+    /// returns to Home.
     /// </summary>
     private StudioWorkspaceMode ChooseScreenForActivatedDocument(StudioWorkspaceMode previous, MainWindowViewModel document) {
         bool applicationScreen = previous != StudioWorkspaceMode.PdfWorkspace;

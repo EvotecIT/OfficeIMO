@@ -153,7 +153,7 @@ public sealed partial class MainWindow {
             AsyncAction("KeyboardShortcuts", ShowCommandPaletteAsync),
             AsyncAction("Documentation", () => OpenUriAsync(new Uri(DocumentationUri))),
             AsyncAction("ReportProblem", () => OpenUriAsync(new Uri(ReportProblemUri))),
-            new Separator(), Action("About", () => ViewModel.Commands["Settings"].Execute(null)));
+            new Separator(), Action("About", () => ViewModel.ShowSettingsSection(Settings.StudioSettingsViewModel.AboutSection)));
 
         return [file, edit, view, document, tools, window, help];
     }

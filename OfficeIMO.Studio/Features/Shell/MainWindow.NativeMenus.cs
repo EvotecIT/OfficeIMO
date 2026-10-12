@@ -76,7 +76,7 @@ public sealed partial class MainWindow {
             new NativeMenuItemSeparator(), Item("Home"), Item("Tools"), Item("Jobs"),
             new NativeMenuItemSeparator(), Item("ZoomIn"), Item("ZoomOut"),
             Item("ActualSize"), Item("FitPage"), Item("FitWidth"), Item("FocusReading"));
-        var fullscreen = Action("FullScreen", () => WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen, "Meta+Control+F");
+        var fullscreen = Action("FullScreen", ToggleFullScreen, "Meta+Control+F");
         var window = Group("Window", Action("Minimize", () => WindowState = WindowState.Minimized, "Meta+M"), fullscreen,
             new NativeMenuItemSeparator(), Action("NextTab", () => TabHost.SelectRelativeTab(false), "Control+Tab"),
             Action("PreviousTab", () => TabHost.SelectRelativeTab(true), "Control+Shift+Tab"),

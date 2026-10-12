@@ -62,8 +62,8 @@ public sealed partial class MainWindow {
         return next;
     }
 
-    /// <summary>False once the window is closing, so a later launch opens its files itself instead of forwarding them.</summary>
-    internal bool AcceptsForwardedLaunches => !_windowClosed;
+    /// <summary>False once the window is closing or asking whether to close, so a later launch opens its files itself.</summary>
+    internal bool AcceptsForwardedLaunches => !_windowClosed && !_closePromptOpen && !_allowClose;
 
     /// <summary>
     /// Opens local paths forwarded by a later launch, or brings the window forward when there are none. Forwarded paths

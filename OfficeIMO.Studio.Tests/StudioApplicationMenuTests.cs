@@ -46,6 +46,12 @@ public sealed class StudioApplicationMenuTests {
                 Assert.False(window.ViewModel.Commands["Save"].CanExecute(null));
                 Assert.Equal(window.ViewModel.Commands["Save"].UnavailableReason, ToolTip.GetTip(save));
                 Assert.Equal(KeyGesture.Parse("Ctrl+S"), save.InputGesture);
+
+                // About opens Settings at the version and update details rather than wherever Settings was left.
+                MenuItem about = menus.Single(menu => Equals(menu.Tag, "Help")).Items.OfType<MenuItem>().Single(item => Equals(item.Tag, "About"));
+                about.Command!.Execute(null);
+                Assert.True(window.ViewModel.IsSettingsMode);
+                Assert.Equal(Features.Settings.StudioSettingsViewModel.AboutSection, window.ViewModel.Settings.RequestedSection);
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);

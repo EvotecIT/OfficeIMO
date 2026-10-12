@@ -21,9 +21,14 @@ public sealed partial class ConversionWorkbenchViewModel {
         LossNotice = null;
     }
 
+    // Jobs being run again leave the notice until their new result is known; lossy results from earlier runs stay.
+    private void ForgetLoss(IEnumerable<ConversionJobViewModel> rerun) {
+        foreach (ConversionJobViewModel job in rerun) _lossJobs.Remove(job);
+        RefreshLossNotice();
+    }
+
     private void ReportLoss(IEnumerable<ConversionJobViewModel> completed) {
-        _lossJobs.Clear();
-        _lossJobs.AddRange(completed.Where(job => job.HasLoss));
+        foreach (ConversionJobViewModel job in completed.Where(job => job.HasLoss && !_lossJobs.Contains(job))) _lossJobs.Add(job);
         RefreshLossNotice();
     }
 

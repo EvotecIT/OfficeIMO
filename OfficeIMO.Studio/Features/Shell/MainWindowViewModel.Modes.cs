@@ -151,8 +151,11 @@ public sealed partial class MainWindowViewModel {
 
     /// <summary>Shows Settings scrolled to text recognition setup.</summary>
     [RelayCommand]
-    internal void ShowTextRecognitionSetup() {
-        Settings.RequestedSection = StudioSettingsViewModel.TextRecognitionSection;
+    internal void ShowTextRecognitionSetup() => ShowSettingsSection(StudioSettingsViewModel.TextRecognitionSection);
+
+    /// <summary>Shows Settings scrolled to one of its sections.</summary>
+    internal void ShowSettingsSection(string section) {
+        Settings.RequestedSection = section;
         WorkspaceMode = StudioWorkspaceMode.Settings;
     }
 

@@ -315,7 +315,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         var registeredSettings = candidates.ToDictionary(job => job.Id, job => job.CreateRegisteredConversionSettings());
         OfficeWorkflowConflictPolicy conflictPolicy = SelectedConflict.Value;
         foreach (ConversionJobViewModel job in candidates) job.PrepareAttempt();
-        ResetLossNotice();
+        ForgetLoss(candidates);
         var history = new Dictionary<string, StudioJobRecord>(StringComparer.Ordinal);
         bool ownerStarted = false;
         StudioStorageAccess.DirectoryOutputSession? directoryOutput = null;
