@@ -34,7 +34,7 @@ var request = new OfficeWorkflowRequest {
 OfficeWorkflowResult preview = await runner.RunAsync(request);
 ```
 
-The `pages-pdf`, `numbers-pdf`, and `keynote-pdf` routes compose the same editable adapters with the existing Word, Excel, and PowerPoint PDF owners. They reject visual previews, explicitly partial reconstruction, content-excluding options, and reported PDF-stage omissions, clipping or failures before publication. Numbers includes every worksheet, row, and column without print-area clipping; Keynote includes hidden slides. Complete editable content does not establish exact pagination or typography. Font and rendering approximations remain in the result.
+The `pages-pdf`, `numbers-pdf`, and `keynote-pdf` routes compose the same editable adapters with the existing Word, Excel, and PowerPoint PDF owners. They reject visual previews, explicitly partial reconstruction, content-excluding options, and reported PDF-stage omissions, clipping or failures before publication. Numbers includes every worksheet, row, and column without print-area clipping; Keynote includes hidden slides; presenter notes are reported as omissions and prevent publication in the slide-page route. Complete editable content does not establish exact pagination or typography. Font and rendering approximations remain in the result.
 
 ```csharp
 var pdfSettings = new IWorkWorkflowSettings();

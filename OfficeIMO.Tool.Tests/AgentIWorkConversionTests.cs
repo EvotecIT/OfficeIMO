@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Security.Cryptography;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
@@ -26,6 +27,7 @@ public sealed partial class AgentIWorkConversionTests {
         using var response = System.Text.Json.JsonDocument.Parse(stdout.ToString());
         Assert.Equal(overwrite, response.RootElement.GetProperty("workflow").GetProperty("succeeded").GetBoolean());
         Assert.Equal((int)(overwrite ? OfficeImoToolExitCode.Success : OfficeImoToolExitCode.OperationFailed), exit);
+        Assert.Equal(overwrite ? output : string.Empty, response.RootElement.GetProperty("outputPath").GetString());
         if (!overwrite) Assert.Equal("keep existing", File.ReadAllText(output));
     }
 
@@ -65,6 +67,7 @@ public sealed partial class AgentIWorkConversionTests {
         CallToolResult rejected = await client.CallToolAsync("officeimo_convert", arguments, cancellationToken: timeout.Token);
         Assert.True(rejected.IsError);
         Assert.NotNull(rejected.StructuredContent);
+        Assert.Equal(string.Empty, rejected.StructuredContent.Value.GetProperty("outputPath").GetString());
         Assert.Equal(outputHash, Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Output("pdf")))));
     }
 
@@ -98,6 +101,9 @@ public sealed partial class AgentIWorkConversionTests {
         var response = await tools.ConvertAsync(files.Input, output, "pdf", overwrite: true, maximumOutputBytes: 32);
         Assert.True(response.IsError);
         Assert.NotNull(response.StructuredContent);
+        Assert.Equal(string.Empty, response.StructuredContent.Value.GetProperty("outputPath").GetString());
+        Assert.Equal(0, response.StructuredContent.Value.GetProperty("lengthBytes").GetInt64());
+        Assert.Equal(string.Empty, response.StructuredContent.Value.GetProperty("sha256").GetString());
         Assert.Equal("keep existing", File.ReadAllText(output));
     }
 
@@ -107,7 +113,11 @@ public sealed partial class AgentIWorkConversionTests {
         string output = files.Output("docx");
         File.WriteAllText(output, "keep existing");
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]));
-        Assert.False((await service.ConvertAsync(files.Input, output, "docx")).Workflow!.Succeeded);
+        AgentConvertResult result = await service.ConvertAsync(files.Input, output, "docx");
+        Assert.False(result.Workflow!.Succeeded);
+        Assert.Empty(result.OutputPath);
+        Assert.Equal(0, result.LengthBytes);
+        Assert.Empty(result.Sha256);
         Assert.Equal("keep existing", File.ReadAllText(output));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.ConvertAsync(files.Input,
             Path.Combine(Path.GetDirectoryName(files.Root)!, "outside.docx"), "docx"));
@@ -117,11 +127,20 @@ public sealed partial class AgentIWorkConversionTests {
         public string Root { get; } = Path.Combine(Path.GetTempPath(), "officeimo-agent-iwork-" + Guid.NewGuid().ToString("N"));
         public string Input { get; }
         public string Output(string format) => Path.Combine(Root, "output." + format);
-        public Files(bool directoryPackage = false, string kind = "pages") {
+        public Files(bool directoryPackage = false, string kind = "pages", bool noteFreeKeynote = false) {
             Directory.CreateDirectory(Root);
             Input = Path.Combine(Root, "source." + kind);
             string fixture = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "nim-iwork", "simple." + kind);
-            if (directoryPackage) System.IO.Compression.ZipFile.ExtractToDirectory(fixture, Input);
+            if (noteFreeKeynote) {
+                IWorkKeynoteDocument source = IWorkKeynoteDocument.Create();
+                source.AddSlide().AddText("hello keynote", 40, 40, 600, 180, fontSizePoints: 24);
+                source.AddSlide().AddText("Second slide", 40, 40, 600, 180, fontSizePoints: 24);
+                if (directoryPackage) {
+                    using var bytes = new MemoryStream(source.SaveBytes(), writable: false);
+                    using var archive = new ZipArchive(bytes, ZipArchiveMode.Read);
+                    archive.ExtractToDirectory(Input);
+                } else source.Save(Input);
+            } else if (directoryPackage) ZipFile.ExtractToDirectory(fixture, Input);
             else File.Copy(fixture, Input);
         }
         public void Dispose() => Directory.Delete(Root, true);

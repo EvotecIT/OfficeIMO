@@ -36,6 +36,7 @@ public static partial class PowerPointPdfConverterExtensions {
         options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) ? null
             : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
+        ReportOmittedSpeakerNotes(presentation, options);
 
         if (options.PageLayout == PowerPointPdfPageLayout.NotesPages) {
             RenderNotesPages(pdf, presentation, pdfOptions.PageWidth, pdfOptions.PageHeight, options);

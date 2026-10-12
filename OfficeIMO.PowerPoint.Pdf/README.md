@@ -78,7 +78,7 @@ presentation.SaveAsPdf("training-handout.pdf", new PowerPointToPdfOptions {
 });
 ```
 
-Handouts support 1, 2, 3, 4, 6, or 9 slides per landscape page. Three-up output pairs each thumbnail with notes or writing lines. Notes are read without creating missing notes parts.
+Handouts support 1, 2, 3, 4, 6, or 9 slides per landscape page. Three-up output pairs each thumbnail with notes or writing lines. Notes are read without creating missing notes parts. A slide-page layout or `IncludeSpeakerNotes = false` reports existing nonempty notes as `speaker-notes-omitted` with typed omission evidence.
 
 ### Review conversion warnings
 
