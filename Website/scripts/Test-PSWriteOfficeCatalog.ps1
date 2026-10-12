@@ -75,7 +75,7 @@ try {
     }
     & git -C $sourceFixture init --quiet
     & git -C $sourceFixture add -- 'Website/content/project-docs/docs'
-    & git -C $sourceFixture -c user.name='Documentation test' -c user.email='docs@example.invalid' commit --quiet -m 'Documentation fixture'
+    & git -C $sourceFixture -c commit.gpgSign=false -c user.name='Documentation test' -c user.email='docs@example.invalid' commit --quiet -m 'Documentation fixture'
     if ($LASTEXITCODE -ne 0) { throw 'Could not commit the documentation fixture.' }
     $sourceCommit = & git -C $sourceFixture rev-parse HEAD
     if (-not (Test-CompleteSourceDocumentation -RepositoryRoot $sourceFixture -SourceCommit $sourceCommit)) {
