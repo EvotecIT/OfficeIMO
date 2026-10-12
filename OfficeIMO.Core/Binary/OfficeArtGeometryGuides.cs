@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Threading;
 
 namespace OfficeIMO.Drawing.Binary;
@@ -70,6 +71,11 @@ internal static class OfficeArtGeometryGuides {
             value = (int)magnitude; return true;
         }
         if (kind is 11 or 12) return NormalizedProduct(first, second, third, kind == 12, out value);
+        if (kind == 15) {
+            long minor = (long)first * first, major = (long)second * second;
+            if (major == 0 || minor > major) return false;
+            return RootRatioFloor((BigInteger)third * third * (major - minor), (ulong)major, third < 0, out value);
+        }
         double result = kind switch {
             0 => (long)first + second - third,
             2 => ((long)first + second) / 2,
@@ -82,7 +88,6 @@ internal static class OfficeArtGeometryGuides {
             10 => first * Cosine(second),
             13 => Math.Sqrt(first),
             14 => (long)first + (long)second * 65536 + (long)third * 65536,
-            15 => third * Math.Sqrt(1D - (double)first * first / ((double)second * second)),
             16 => first * Tangent(second),
             _ => double.NaN
         };
@@ -98,15 +103,20 @@ internal static class OfficeArtGeometryGuides {
 
     private static bool NormalizedProduct(int first, int second, int third, bool sine, out int value) {
         value = 0;
-        ulong squared = MagnitudeSquared(0, second, third), root = MagnitudeFloor(squared);
+        ulong squared = MagnitudeSquared(0, second, third);
         if (squared == 0) return false;
         long product = (long)first * (sine ? third : second);
-        double result;
-        if (root * root == squared) {
-            long quotient = product / (long)root;
-            if (product % (long)root < 0) quotient--;
-            result = quotient;
-        } else result = Math.Floor(product / Math.Sqrt(squared));
+        return RootRatioFloor((BigInteger)product * product, squared, product < 0, out value);
+    }
+
+    private static bool RootRatioFloor(BigInteger numerator, ulong denominator, bool negative, out int value) {
+        // Ratios from signed-int SG operands have magnitudes no greater than
+        // Int32's magnitude. Integer division before the square root preserves
+        // its floor; exact remainder comparison distinguishes negative ties.
+        ulong root = MagnitudeFloor((ulong)(numerator / denominator));
+        bool integral = (BigInteger)root * root * denominator == numerator;
+        long result = negative ? -(long)root - (integral ? 0 : 1) : (long)root;
+        value = 0;
         if (result < int.MinValue || result > int.MaxValue) return false;
         value = (int)result; return true;
     }

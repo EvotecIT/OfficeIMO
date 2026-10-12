@@ -20,6 +20,31 @@ public partial class DrawingTests {
     }
 
     [Theory]
+    [InlineData(15, 17, 17, 8)]
+    [InlineData(15, -17, 17, 8)]
+    [InlineData(21, 29, 29, 20)]
+    [InlineData(15, 17, 18, 8)]
+    [InlineData(15, 17, -18, -9)]
+    public void OfficeArtGeometryGuides_EllipsePreservesExactAndFractionalFloors(int first, int second, int third, int expected) {
+        var properties = Guides(((ushort)0xE00F, (ushort)0x0147, (ushort)0x0148, (ushort)0x0149));
+        properties.Add(new OfficeArtProperty(1, 0x0147, unchecked((uint)first)));
+        properties.Add(new OfficeArtProperty(2, 0x0148, unchecked((uint)second)));
+        properties.Add(new OfficeArtProperty(3, 0x0149, unchecked((uint)third)));
+        Assert.True(OfficeArtGeometryGuides.TryEvaluate(properties, 72, 144, _ => { }, default, out var values, out _));
+        Assert.Equal(expected, Assert.Single(values));
+    }
+
+    [Theory]
+    [InlineData(0x0140)]
+    [InlineData(0x0141)]
+    public void OfficeArtGeometryGuides_NegativeHalfUnitCentersFloor(int id) {
+        var properties = new[] { new OfficeArtProperty(0, (ushort)id, unchecked((uint)-2)),
+            new OfficeArtProperty(1, (ushort)(id + 2), 1) };
+        Assert.True(new OfficeArtGeometryGuideContext(properties, 80, 40).TryParameter(id, out int value, out _));
+        Assert.Equal(-1, value);
+    }
+
+    [Theory]
     [InlineData(825954780, 1982291472, 0, 2147482428)]
     [InlineData(-825954780, 0, 1982291472, 2147482428)]
     [InlineData(2147483646, 1, 0, 2147483646)]

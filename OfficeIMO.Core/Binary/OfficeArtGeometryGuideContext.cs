@@ -17,8 +17,8 @@ internal sealed class OfficeArtGeometryGuideContext {
         failure = OfficeArtCustomPathFailure.InvalidGuide;
         long result;
         switch (id) {
-            case 0x0140: result = ((long)Scalar(0x0140, 0) + Scalar(0x0142, 21600)) / 2; break;
-            case 0x0141: result = ((long)Scalar(0x0141, 0) + Scalar(0x0143, 21600)) / 2; break;
+            case 0x0140: result = HalfFloor((long)Scalar(0x0140, 0) + Scalar(0x0142, 21600)); break;
+            case 0x0141: result = HalfFloor((long)Scalar(0x0141, 0) + Scalar(0x0143, 21600)); break;
             case 0x0142: result = (long)Scalar(0x0142, 21600) - Scalar(0x0140, 0); break;
             case 0x0143: result = (long)Scalar(0x0143, 21600) - Scalar(0x0141, 0); break;
             case >= 0x0147 and <= 0x014E: result = Scalar(id, 0); break;
@@ -40,6 +40,8 @@ internal sealed class OfficeArtGeometryGuideContext {
         if (result < int.MinValue || result > int.MaxValue) return false;
         value = (int)result; failure = OfficeArtCustomPathFailure.None; return true;
     }
+    private static long HalfFloor(long value) => value / 2 - (value < 0 && value % 2 != 0 ? 1 : 0);
+
     private int Scalar(int id, int fallback) {
         OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(_properties, id);
         return property == null ? fallback : unchecked((int)property.Value);
