@@ -32,7 +32,7 @@ $expectedSitemapPolicies = @{
     solutions   = 'sourceDate'
     comparisons = 'sourceDate'
     docs        = 'sourceDate'
-    blog        = 'publishedDate'
+    blog        = 'sourceDate'
 }
 foreach ($entry in $expectedSitemapPolicies.GetEnumerator()) {
     $collection = @($siteConfig.Collections | Where-Object Name -EQ $entry.Key)
