@@ -60,11 +60,15 @@ namespace OfficeIMO.Core.Internal {
                     List<DirectoryEntry> entries = ReadDirectoryEntries(directory, major, options.MaxDirectoryEntries, token);
                     DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
                     if (root == null) throw new InvalidDataException("Compound root directory entry is missing.");
+                    RootEntry = CreateCompoundEntry(root, string.Empty);
+                    HasCanonicalRootDirectory = root.Index == 0 && string.Equals(root.Name, "Root Entry", StringComparison.Ordinal)
+                        && entries.Count(entry => entry.ObjectType == 5) == 1;
                     long physicalBytes = checked((long)_physicalSectorCount * _sectorSize);
                     if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > physicalBytes)
                         throw new InvalidDataException("Compound mini stream exceeds configured or physical bounds.");
                     _rootSize = root.Size;
-                    Entries = BuildCompoundEntries(entries, token);
+                    Entries = BuildCompoundEntries(entries, out bool hasUnreachableEntries, token);
+                    HasUnreachableDirectoryEntries = hasUnreachableEntries;
                     IReadOnlyDictionary<int, string> paths = BuildCompoundEntryPaths(entries, token);
                     long total = 0;
                     foreach (DirectoryEntry entry in entries.Where(entry => entry.ObjectType == 2)) {
@@ -93,6 +97,15 @@ namespace OfficeIMO.Core.Internal {
             }
 
             internal IReadOnlyList<OfficeCompoundFileEntry> Entries { get; }
+
+            /// <summary>The physical root whose allocation and child tree this session uses.</summary>
+            internal OfficeCompoundFileEntry RootEntry { get; }
+
+            /// <summary>True when one active root exists at directory ID zero and is named Root Entry.</summary>
+            internal bool HasCanonicalRootDirectory { get; }
+
+            /// <summary>True when an active non-root entry is unreachable, including entries hidden by lookup aliases.</summary>
+            internal bool HasUnreachableDirectoryEntries { get; }
 
             internal long GetStreamLength(string path) {
                 ThrowIfDisposed(); _token.ThrowIfCancellationRequested();

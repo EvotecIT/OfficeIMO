@@ -10,6 +10,7 @@ namespace OfficeIMO.Archives;
 /// <summary>Reads inert MSI metadata and embedded streams; never invokes Windows Installer.</summary>
 internal sealed partial class MsiPackageReader : IDisposable {
     private static readonly Guid InstallerClass = new("000c1084-0000-0000-c000-000000000046");
+    private static readonly char[] InvalidCompoundNameCharacters = { '/', '\\', ':', '!' };
     private readonly ArchiveLimits _limits;
     private readonly CancellationToken _token;
     private readonly OfficeCompoundFileReader.ReadSession _compound;
@@ -27,12 +28,26 @@ internal sealed partial class MsiPackageReader : IDisposable {
         _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token);
         _streams = new Dictionary<string, string>(StringComparer.Ordinal);
         try {
-            OfficeCompoundFileEntry? root = _compound.Entries.FirstOrDefault(entry => entry.ObjectType == 5);
-            if (root == null || root.ClassId != InstallerClass) throw new NotSupportedException("The compound container is not an ordinary Windows Installer database. Patches and transforms are unsupported.");
+            if (!_compound.HasCanonicalRootDirectory || _compound.HasUnreachableDirectoryEntries)
+                throw new InvalidDataException("MSI compound directory has an invalid root or unreachable active entries.");
+            if (_compound.RootEntry.ClassId != InstallerClass) throw new NotSupportedException("The compound container is not an ordinary Windows Installer database. Patches and transforms are unsupported.");
+            foreach (OfficeCompoundFileEntry entry in _compound.Entries) {
+                token.ThrowIfCancellationRequested();
+                if (entry.Name.IndexOfAny(InvalidCompoundNameCharacters) >= 0)
+                    throw new InvalidDataException("MSI compound entry has an invalid raw directory name.");
+            }
+            // Inspect storages before stream aliases: the compound reader may also
+            // expose unqualified fallback aliases for streams inside a valid storage.
+            foreach (OfficeCompoundFileEntry entry in _compound.Entries.Where(entry => entry.ObjectType == 1)) {
+                token.ThrowIfCancellationRequested();
+                if (entry.IsFallback)
+                    throw new InvalidDataException("MSI contains unreachable compound entries.");
+                throw new NotSupportedException("MSI embedded substorage, including customization transforms, is unsupported.");
+            }
             foreach (OfficeCompoundFileEntry entry in _compound.Entries.Where(entry => entry.IsStream)) {
                 token.ThrowIfCancellationRequested();
-                if (entry.IsFallback || entry.Path.IndexOf('/') >= 0 || _streams.ContainsKey(entry.Path))
-                    throw new InvalidDataException("MSI contains unreachable, nested or ambiguous stream names.");
+                if (entry.IsFallback || _streams.ContainsKey(entry.Path))
+                    throw new InvalidDataException("MSI contains unreachable or ambiguous stream names.");
                 _streams.Add(entry.Path, entry.Path);
             }
             LoadStrings();

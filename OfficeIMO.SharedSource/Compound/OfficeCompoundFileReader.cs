@@ -397,13 +397,23 @@ namespace OfficeIMO.Core.Internal {
 
         private static IReadOnlyList<OfficeCompoundFileEntry>
             BuildCompoundEntries(IReadOnlyList<DirectoryEntry> entries,
-                CancellationToken cancellationToken = default) {
+                CancellationToken cancellationToken = default) =>
+            BuildCompoundEntries(entries, out _, cancellationToken);
+
+        private static IReadOnlyList<OfficeCompoundFileEntry>
+            BuildCompoundEntries(IReadOnlyList<DirectoryEntry> entries,
+                out bool hasUnreachableDirectoryEntries, CancellationToken cancellationToken = default) {
             var result = new List<OfficeCompoundFileEntry>();
             DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
+            var visited = new HashSet<int>();
             if (root != null) {
                 TraverseDirectoryTree(entries, root.ChildId, string.Empty,
-                    result, new HashSet<int>(), 0, cancellationToken);
+                    result, visited, 0, cancellationToken);
             }
+            // Reachability is a raw entry identity, independent of the compatibility
+            // aliases below, which may coalesce equal unqualified lookup names.
+            hasUnreachableDirectoryEntries = root == null || entries.Any(entry =>
+                entry.ObjectType != 0 && entry.Index != root.Index && !visited.Contains(entry.Index));
 
             var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (OfficeCompoundFileEntry entry in result) {

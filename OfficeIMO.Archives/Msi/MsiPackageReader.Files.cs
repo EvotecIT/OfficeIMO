@@ -45,8 +45,10 @@ internal sealed partial class MsiPackageReader {
         cabinets = media.Select(item => item.Item3).Distinct(StringComparer.Ordinal).ToArray();
         var sequences = new HashSet<int>();
         var directoryCache = new Dictionary<string, MsiResolvedDirectory>(StringComparer.Ordinal);
-        if (directories.Count(pair => pair.Value[1] == null || string.Equals(pair.Key, pair.Value[1] as string, StringComparison.Ordinal)) != 1)
-            throw new InvalidDataException("MSI requires exactly one authored directory root.");
+        var roots = directories.Where(pair => pair.Value[1] == null || string.Equals(pair.Key, pair.Value[1] as string, StringComparison.Ordinal)).Take(2).ToArray();
+        if (roots.Length != 1 || !string.Equals(roots[0].Key, "TARGETDIR", StringComparison.Ordinal) ||
+            !string.Equals(roots[0].Value[2] as string, "SourceDir", StringComparison.Ordinal))
+            throw new InvalidDataException("MSI requires exactly one TARGETDIR root with SourceDir as DefaultDir.");
         foreach (string directoryId in directories.Keys)
             ResolveDirectory(directoryId, directories, directoryCache);
         var result = new List<MsiPayloadFile>();
