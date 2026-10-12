@@ -272,6 +272,41 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData(null, null, 12d, 8d)]
+    [InlineData(0f, 0f, 0d, 0d)]
+    [InlineData(4f, 6f, 4d, 6d)]
+    public void Pages_rich_table_paragraph_spacing_preserves_defaults_and_explicit_overrides(
+        float? before, float? after, double expectedBefore, double expectedAfter) {
+        using var package = TableTextStylePackage(IWorkDocumentKind.Pages,
+            TableParagraphStyle(30, 18, false, spaceBefore: 12, spaceAfter: 8),
+            richRunFontName: "HelveticaNeue", richSpaceBefore: before, richSpaceAfter: after);
+        var source = IWorkSourceDocument.Open(package);
+        IWorkTable table = source.ReadPages().Tables[0];
+        Assert.Equal(12d, table.GetParagraphStyle(1, 1)!.SpaceBeforePoints);
+        Assert.Equal(8d, table.GetParagraphStyle(1, 1)!.SpaceAfterPoints);
+        Assert.All(table.GetCell(1, 1)!.RichText!.Paragraphs, paragraph => {
+            Assert.Equal((double?)before, paragraph.Style.SpaceBeforePoints);
+            Assert.Equal((double?)after, paragraph.Style.SpaceAfterPoints);
+        });
+        using var result = source.ToWordDocumentResult(new IWorkConversionOptions {
+            AllowPartialEditableReconstruction = true
+        });
+        Assert.False(result.IsVisualFallback);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
+        var cells = reopened.Tables[0].Rows[0].Cells;
+        Assert.Contains("Styled", cells[0].Paragraphs.Select(paragraph => paragraph.Text));
+        Assert.All(cells[0].Paragraphs, paragraph => {
+            Assert.Equal(expectedBefore, paragraph.LineSpacingBeforePoints);
+            Assert.Equal(expectedAfter, paragraph.LineSpacingAfterPoints);
+        });
+        Assert.Equal(12d, cells[1].Paragraphs[0].LineSpacingBeforePoints);
+        Assert.Equal(8d, cells[1].Paragraphs[0].LineSpacingAfterPoints);
+    }
+
+    [Theory]
     [InlineData(IWorkDocumentKind.Pages, 1_100_000_000f)]
     [InlineData(IWorkDocumentKind.Keynote, 4001f)]
     public void Empty_rich_paragraph_font_outside_destination_range_falls_back(IWorkDocumentKind kind, float fontSize) {
@@ -345,14 +380,16 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static byte[] TableParagraphStyle(ulong id, float fontSize, bool? bold, ulong? parent = null, ulong alignment = 2,
-        string fontName = "HelveticaNeue") =>
+        string fontName = "HelveticaNeue", float? spaceBefore = null, float? spaceAfter = null) =>
         ArchiveRecord(id, 2022, Message(parent.HasValue ? BytesField(1, ReferenceField(3, parent.Value)) : Array.Empty<byte>(),
             BytesField(11, Message(FloatField(3, fontSize), bold.HasValue ? VarintField(1, bold.Value ? 1UL : 0) : Array.Empty<byte>(), StringField(5, fontName))),
-            BytesField(12, VarintField(1, alignment))));
+            BytesField(12, Message(VarintField(1, alignment),
+                spaceAfter.HasValue ? FloatField(20, spaceAfter.Value) : Array.Empty<byte>(),
+                spaceBefore.HasValue ? FloatField(21, spaceBefore.Value) : Array.Empty<byte>()))));
 
     private static MemoryStream TableTextStylePackage(IWorkDocumentKind kind, byte[]? selectedStyle = null, bool cellStyle = false,
         bool emptyRichParagraph = false, float richParagraphFontSize = 36, string? richRunFontName = null,
-        bool? richParagraphBold = true) {
+        bool? richParagraphBold = true, float? richSpaceBefore = null, float? richSpaceAfter = null) {
         bool richText = emptyRichParagraph || richRunFontName != null;
         byte[] first = new byte[cellStyle ? 28 : 24]; first[0] = 5; first[1] = 2; first[8] = cellStyle ? (byte)0x62 : (byte)0x42;
         Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, first, 12, 8); first[20] = cellStyle ? (byte)2 : (byte)1;
@@ -383,7 +420,8 @@ public sealed partial class IWorkBoundaryTests {
             records.Add(ArchiveRecord(15, 6218, ReferenceField(1, 16)));
             records.Add(ArchiveRecord(16, 2001, Message(StringField(3, richRunFontName is null ? "\n" : "Styled\n"),
                 BytesField(5, BytesField(1, Message(VarintField(1, 0), ReferenceField(2, 17)))))));
-            records.Add(TableParagraphStyle(17, richParagraphFontSize, richParagraphBold, fontName: richRunFontName ?? "HelveticaNeue"));
+            records.Add(TableParagraphStyle(17, richParagraphFontSize, richParagraphBold,
+                fontName: richRunFontName ?? "HelveticaNeue", spaceBefore: richSpaceBefore, spaceAfter: richSpaceAfter));
         }
         records.Add(selectedStyle ?? TableParagraphStyle(30, 18, false, 31, alignment: 1));
         records.Add(TableParagraphStyle(31, 24, true));

@@ -373,6 +373,7 @@ public static partial class WordIWorkConverter {
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             cancellationToken.ThrowIfCancellationRequested();
             WordParagraph paragraph = addParagraph(string.Empty);
+            InitializeParagraphSpacing(paragraph);
             if (defaultStyle != null) {
                 ApplyParagraphStyle(paragraph, defaultStyle, sourceParagraph.Text);
                 ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);
@@ -456,6 +457,13 @@ public static partial class WordIWorkConverter {
         }
     }
 
+    private static void InitializeParagraphSpacing(WordParagraph paragraph) {
+        // Start with native defaults before layering table and rich-text styles.
+        // Blank header/footer stories must not inherit destination template spacing.
+        paragraph.LineSpacingBeforePoints = 0d;
+        paragraph.LineSpacingAfterPoints = 0d;
+    }
+
     private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkParagraphStyle style, string text) {
         paragraph.BiDi = OfficeTextElements.ResolveBaseDirection(text)
             == OfficeTextDirection.RightToLeft;
@@ -472,10 +480,8 @@ public static partial class WordIWorkConverter {
         if (style.FirstLineIndentPoints.HasValue) paragraph.IndentationFirstLinePoints = style.FirstLineIndentPoints;
         if (style.LeftIndentPoints.HasValue) paragraph.IndentationBeforePoints = style.LeftIndentPoints;
         if (style.RightIndentPoints.HasValue) paragraph.IndentationAfterPoints = style.RightIndentPoints;
-        // Native paragraph defaults must not inherit the destination template's
-        // spacing, including blank header/footer stories with no declarations.
-        paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints ?? 0d;
-        paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints ?? 0d;
+        if (style.SpaceBeforePoints.HasValue) paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints;
+        if (style.SpaceAfterPoints.HasValue) paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints;
         if (style.LineSpacingMultiplier is double multiplier) {
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = checked((int)Math.Round(multiplier * 240d, MidpointRounding.AwayFromZero));

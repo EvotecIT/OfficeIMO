@@ -79,6 +79,7 @@ public static partial class WordIWorkConverter {
                 }
                 if (style != null) {
                     WordParagraph paragraph = target.Paragraphs[0];
+                    InitializeParagraphSpacing(paragraph);
                     ApplyParagraphStyle(paragraph, style, string.Empty);
                     ApplyParagraphTextStyle(paragraph, style.TextStyle);
                 }
@@ -106,6 +107,7 @@ public static partial class WordIWorkConverter {
                 sourceCell.TryGetFormattedNumber(out string cellText, out string? numericColor);
                 WordParagraph paragraph = target.AddParagraph(cellText,
                     removeExistingParagraphs: true);
+                InitializeParagraphSpacing(paragraph);
                 if (defaultStyle != null) {
                     ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
                     ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);
