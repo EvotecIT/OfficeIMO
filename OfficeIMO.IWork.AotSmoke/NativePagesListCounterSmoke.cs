@@ -7,9 +7,16 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 internal static class NativePagesListCounterSmoke {
     internal static void Run() {
-        string path = Path.Combine(AppContext.BaseDirectory, "pages-list-continuation.pages");
-        const string Hash = "4696FF27D21DB00E93D7A7985ABA09C22F5F483BF714CE97C680E1A5528A4D53";
-        Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == Hash, "Native list fixture changed.");
+        Verify("pages-list-continuation.pages", "4696FF27D21DB00E93D7A7985ABA09C22F5F483BF714CE97C680E1A5528A4D53");
+        Verify("pages-list-marker-size-roundtrip.pages", "C74495F1952ADB4B0CE431F2FC72EC311D7C7CF9AE770696699C7AA4DF7BFB83");
+        Console.WriteLine("PASS | native Pages decimal levels and continuation"
+            + " | original and Apple-saved DOCX reimport, parent resets, explicit restarts, plain-text gaps,"
+            + " strict DOCX save/reopen, evaluated counters, 11-point markers and 12-point body defaults");
+    }
+
+    private static void Verify(string fixture, string expectedHash) {
+        string path = Path.Combine(AppContext.BaseDirectory, fixture);
+        Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == expectedHash, "Native list fixture changed.");
         using var result = WordIWorkConverter.ConvertPagesToWordResult(path,
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
@@ -38,6 +45,9 @@ internal static class NativePagesListCounterSmoke {
             Require(properties.NumberingProperties!.NumberingLevelReference!.Val!.Value == level
                 && properties.Indentation!.Left!.Value == (level == 0 ? "330" : "690")
                 && properties.Indentation.Hanging!.Value == "330", "DOCX list level or hanging geometry differs.");
+            Require(properties.ParagraphMarkRunProperties!.GetFirstChild<W.FontSize>()!.Val!.Value == "24"
+                && paragraphs[index].Elements<W.Run>().All(run => run.RunProperties!.FontSize!.Val!.Value == "24"),
+                "DOCX leading run or paragraph mark changed the 12-point body size used for marker scaling.");
             int id = properties.NumberingProperties.NumberingId!.Val!.Value;
             int abstractId = numbering.Elements<W.NumberingInstance>().Single(number => number.NumberID!.Value == id)
                 .AbstractNumId!.Val!.Value;
@@ -47,9 +57,7 @@ internal static class NativePagesListCounterSmoke {
             Require(font.GetFirstChild<W.FontSize>()!.Val!.Value == "22"
                 && font.GetFirstChild<W.RunFonts>()!.Ascii!.Value == "Calibri", "DOCX changed native marker font declarations.");
         }
-        Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == Hash, "List conversion changed source bytes.");
-        Console.WriteLine("PASS | native Pages decimal levels and continuation | " + Hash
-            + " | parent resets, explicit restarts, plain-text gaps, strict DOCX save/reopen, evaluated counters, marker declarations and geometry");
+        Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))) == expectedHash, "List conversion changed source bytes.");
     }
 
     private static void Require(bool condition, string message) {

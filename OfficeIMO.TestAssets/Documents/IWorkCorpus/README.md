@@ -134,7 +134,7 @@ The native PDF and the Pages rendering of OfficeIMO's strict DOCX each contain a
 
 `native-exports/pages-paragraph-list-v15.4.json` pins a native Pages 15.4 derivative of the licensed `nim-iwork/simple.pages` fixture. Its parent style uses 1.5 spacing and a 180-point left tab; the second paragraph overrides these with 2.0 spacing and a 216-point tab, and the third resets to single spacing and no custom tabs. A non-tiered, level-zero decimal list visibly numbers four paragraphs as 7, 8, 3, 4. The native source, DOCX, complete one-page PDF and screenshot are hashed. Independent numbers-parser 4.19.0 schemas identify storage field `14` starts and zero continuation, the selected decimal kind and disabled tiered numbering.
 
-`native-exports/pages-list-continuation-v15.4.json` pins an Apple Pages 15.4 package produced from an OfficeIMO-owned synthetic DOCX recipe. Its complete one-page native PDF visibly numbers the two levels as 7, 8, 9, 1, 2, 10, 1, 5, 6, 7, 11, 3, 4 across two ordinary-text gaps, child resets and explicit restarts. The source, native DOCX/PDF, independent decode, reconstructed DOCX and both native/composed rendered pages are hashed. Native markers use Calibri 11 points and body text uses ArialMT 12 points, with 1.5 em text offset and an 18-point nested marker indent. Saved DOCX matches the native export’s 330/690-twip left and 330-twip hanging declarations. Pages reimports every counter and exact text/marker starts, but renders the declared 11-point markers at 12 points. The composed PDF retains 11-point marker size and every counter with explicit font substitutions. Font-size roundtrip, broader typography and producer/container coverage remain separate qualification boundaries.
+`native-exports/pages-list-continuation-v15.4.json` pins an Apple Pages 15.4 package produced from an OfficeIMO-owned synthetic DOCX recipe. Its complete one-page native PDF visibly numbers the two levels as 7, 8, 9, 1, 2, 10, 1, 5, 6, 7, 11, 3, 4 across two ordinary-text gaps, child resets and explicit restarts. The source, native DOCX/PDF, independent decode, reconstructed DOCX and both native/composed rendered pages are hashed. Native markers use Calibri 11 points and body text uses ArialMT 12 points, with 1.5 em text offset and an 18-point nested marker indent. Saved DOCX matches the native export’s 330/690-twip left and 330-twip hanging declarations. The [marker-size roundtrip reference](native-exports/pages-list-marker-size-roundtrip-v15.4.json) retains the earlier 12-point-marker failure and controlled variants, then qualifies the fixed DOCX through Pages import, native save and reopen. All 13 markers remain 11 points and all 55 native word bounds match exactly. Independent schema decoding verifies both the original 11-point paragraph default and the saved 12-point body default, with equal physical indentation and counters. All five controlled/reference PDF pages and native import/reopen screenshots are inspected. A second strict conversion of the Apple-saved native file also retains all 13 markers and 55 word bounds; its complete receiving PDF page and import screenshot are inspected. Reproduce the independent checks with `Build/IWork/verify-pages-marker-size-roundtrip.py`, supplying the native-exports directory, pinned descriptor and output path. The composed PDF retains 11-point marker size and every counter with explicit font substitutions. Broader typography, scales and producer/container coverage retain separate qualification boundaries.
 
 Reproduce the reference by editing a copy in Pages, updating the parent paragraph style, applying the child overrides/resets, and using the numbered-list inspector to set starts at 7 and 3. Save before exporting Word and best-quality PDF with password/comments off. Saved OfficeIMO DOCX checks all paragraph text, effective spacing/tabs, explicit native start overrides and the native 393-twip list indentation. Reader checks all four counters. Original MIT attribution applies; the selected installed Times font and native DOCX marker-font fallback are recorded in the manifest. Other list levels, scripts, mixed marker sizes, interacting indents, text containers and producers need additional native references.
 
@@ -254,13 +254,70 @@ OfficeIMO tests compare all sixteen reconstructed source ranges and saved/reopen
 
 ## Formula function identities
 
-`numbers-parser/function-identities.json` records 75 native function identifiers from the pinned numbers-parser 4.19.0 function map, plus the expressions, function nodes and typed caches of three cases in the unmodified `cross-table-formulas.numbers` fixture. OfficeIMO checks every selected identity, rejects unknown identifiers and invalid argument counts, and saves/reopens the native nested `OR`, `POWER`, and cross-table `TEXTJOIN` cases. The `TEXTJOIN` descriptor records independently resolved coordinates and a join of current referenced values that agrees with its cache. Its saved-output test checks the XLSX compatibility prefix, typed string cache, and recalculation after changing a referenced value and testing both empty-cell policies. The additional `MINA`, `MAXA` and `AVERAGEA` identities use the independent map; synthetic native-format cases check saved output separately from the three unmodified document cases. Sample argument counts exercise reconstruction; they do not qualify evaluation for arbitrary argument types. Reproduce the evidence without rewriting the package:
+`numbers-parser/function-identities.json` records 77 native function identifiers from the pinned numbers-parser 4.19.0 function map, plus the expressions, function nodes and typed caches of three cases in the unmodified `cross-table-formulas.numbers` fixture. OfficeIMO checks every selected identity, rejects unknown identifiers and invalid argument counts, and saves/reopens the native nested `OR`, `POWER`, and cross-table `TEXTJOIN` cases. The `TEXTJOIN` descriptor records independently resolved coordinates and a join of current referenced values that agrees with its cache. Its saved-output test checks the XLSX compatibility prefix, typed string cache, and recalculation after changing a referenced value and testing both empty-cell policies. The additional `MINA`, `MAXA` and `AVERAGEA` identities use the independent map; synthetic native-format cases check saved output separately from the three unmodified document cases. Sample argument counts exercise reconstruction; they do not qualify evaluation for arbitrary argument types. Reproduce the evidence without rewriting the package:
 
 ```bash
 python Build/IWork/extract-function-identities.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/cross-table-formulas.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/function-identities.json
 ```
 
 The existing numbers-parser MIT notice covers the provider and fixture. The manifest does not qualify Apple export, appearance, recalculation or cache freshness.
+
+## Native conditional aggregates
+
+`native-exports/numbers-conditional-aggregates-v14.5-decode.json` binds 20 formulas in a controlled Numbers 14.5 document to its native XLSX/PDF exports and two freshly recalculated Excel 16.113.3 workbooks. The second Excel workbook changes C2 from 10 to 40. The profile covers `SUMIFS`, `COUNTIFS`, `AVERAGEIF` and `AVERAGEIFS`, complete criteria pairs, numeric rectangular and single-cell references, case-insensitive text, literal/cell criteria, wildcards, escaped wildcards, zero/no matches and an `IFERROR` fallback. The source PDF and native app screenshots are inspected for content and values.
+
+A separate uncached Excel intake supplies 16 direct and dependent formulas for empty conditional averages, including matching text/blank values. Native Excel records typed `#DIV/0!`, `IFERROR` fallback, `IFNA` propagation and Boolean `ISERROR` results. The intake uses `_xlfn.IFNA` for native XLSX storage. The fixture content is newly authored synthetic data under the repository's MIT license; the independent decoder remains isolated qualification tooling, with the existing numbers-parser notice applying to it.
+
+The typed-error intake adds 98 cases and 397 uncached formulas, including five error operands. Its fresh native reference distinguishes selected and unmatched errors, mixed numeric/error values, typed error criteria from ordinary error text, two error codes, nonblank/not-equal criteria, wildcards and ordering, no-match extrema and dependent handlers. The decoder retains native shared-formula metadata and expands only the three fixed handler columns with their same-row `G` reference. Edited-workbook capture temporarily widens the result column for readable values; the viewing change is discarded and the saved reference bytes remain unchanged.
+
+Reproduce the manifest with isolated numbers-parser 4.19.0 without rewriting any input:
+
+```bash
+corpus=OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports
+python Build/IWork/extract-numbers-conditional-aggregates.py \
+  "$corpus/numbers-conditional-aggregates-cases-v14.5.numbers" \
+  "$corpus/numbers-conditional-aggregates-cases-v14.5.xlsx" \
+  "$corpus/numbers-conditional-aggregates-excel-v16.113.3.xlsx" \
+  "$corpus/numbers-conditional-aggregates-excel-edited-v16.113.3.xlsx" \
+  "$corpus/numbers-conditional-aggregates-v14.5-decode.json" \
+  --empty-average-input "$corpus/excel-conditional-average-errors-input.xlsx" \
+  --empty-average-xlsx "$corpus/excel-conditional-average-errors-v16.113.3.xlsx" \
+  --typed-error-input "$corpus/excel-conditional-typed-errors-input.xlsx" \
+  --typed-error-xlsx "$corpus/excel-conditional-typed-errors-qualified-v16.113.3.xlsx" \
+  --artifacts "$corpus/numbers-conditional-aggregates-cases-v14.5.pdf" \
+  "$corpus/numbers-conditional-aggregates-wide-intake.xlsx" \
+  "$corpus/numbers-conditional-aggregates-wide-intake.json" \
+  "$corpus/numbers-wide-import.png" "$corpus/excel-original-recalculated.png" \
+  "$corpus/excel-edited-recalculated.png" "$corpus/excel-empty-averages-qualified.png" \
+  "$corpus/excel-typed-errors-top.png" "$corpus/excel-typed-errors-middle.png" \
+  "$corpus/excel-typed-errors-bottom.png"
+```
+
+Saved-output tests compare formulas, typed caches, recalculation and saved operand edits with these references. Apple XLSX aliases and single-cell array declarations remain recorded separately from canonical expressions. Native cell padding still requires explicit partial editable acceptance. This evidence does not qualify complete workbook/PDF fidelity, exact typography, wider mixed-type coercion, unequal ranges, localized criteria, Numbers native error mappings or other producer versions.
+
+## Native XLSX future-function storage
+
+`native-exports/excel-future-functions-v16.113.3.json` records eight controlled expressions in normal and single-cell array formulas, with two copies of each route. It binds uncached intake files, fresh Microsoft Excel 16.113.3 original/edited references and three inspected screenshots. Bare `IFNA`, `MINIFS` and `MAXIFS` calls produce 16 native `#NAME?` results; the 16 explicitly qualified controls calculate correctly. The shared writer's qualified intake calculates all 32 formulas correctly. Changing B2 from 10 to 50 recalculates the minimum and maximum results in both routes. Error results retain their types.
+
+The Python standard-library decoder records authored formulas separately from native function-name capitalization. The profile uses newly authored synthetic data under the repository's MIT license. Reproduce its manifest without rewriting any input:
+
+```bash
+corpus=OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports
+python Build/IWork/extract-excel-future-functions.py \
+  "$corpus/excel-future-functions-bare-input.xlsx" \
+  "$corpus/excel-future-functions-bare-native-v16.113.3.xlsx" \
+  "$corpus/excel-future-functions-qualified-input.xlsx" \
+  "$corpus/excel-future-functions-qualified-native-v16.113.3.xlsx" \
+  "$corpus/excel-future-functions-qualified-edited-native-v16.113.3.xlsx" \
+  "$corpus/excel-future-functions-v16.113.3.json" \
+  --source-revision c612e177b5edfb75265220b4c38cfc1b9816d186 \
+  --storage-source-sha256 69652fe5a44d5ced1add55e9084133b095dcf6d0daab323093a73d600eef0c7f \
+  --artifacts "$corpus/excel-bare-versus-qualified.png" \
+  "$corpus/excel-qualified-recalculated.png" \
+  "$corpus/excel-qualified-edited-recalculated.png"
+```
+
+Saved-output checks retain formula spelling, normal/array metadata, typed caches and values after operand edits. Other future functions, dynamic spills, applications and producer versions remain separate qualification gates.
 
 ## Empty hidden-state extents and disabled filters
 

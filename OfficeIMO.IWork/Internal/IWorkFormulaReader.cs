@@ -97,6 +97,12 @@ internal static partial class IWorkFormulaReader {
         [157] = new("TRUNC", 1, 2),
         [158] = new("UPPER", 1, 1),
         [SumFunctionIndex] = new("SUM", 1, 255),
+        // Apple-produced conditional-aggregate references also qualify these IDs.
+        // Criteria ranges and conditions must remain complete pairs in XLSX.
+        [231] = new("SUMIFS", 3, 255, 2),
+        [232] = new("AVERAGEIFS", 3, 255, 2),
+        [233] = new("COUNTIFS", 2, 254, 2),
+        [234] = new("AVERAGEIF", 2, 3),
         [235] = new("IFERROR", 2, 2),
         [304] = new("ISNUMBER", 1, 1),
         [305] = new("ISTEXT", 1, 1),
@@ -152,7 +158,8 @@ internal static partial class IWorkFormulaReader {
                     if (Functions.TryGetValue(functionIndex, out FunctionDefinition function)) {
                         name = function.Name;
                         if (argumentCount < function.MinimumArguments
-                            || argumentCount > function.MaximumArguments) complete = false;
+                            || argumentCount > function.MaximumArguments
+                            || (argumentCount - function.MinimumArguments) % function.ArgumentStep != 0) complete = false;
                         if (name is "GCD" or "LCM") {
                             if (arguments.Any(argument => argument.IntegerReference != null)) needsLocalBodyBinding = true;
                             if (!HasQualifiedIntegerOperands(name, arguments, budget, cancellationToken,
@@ -330,15 +337,17 @@ internal static partial class IWorkFormulaReader {
     }
 
     private readonly struct FunctionDefinition {
-        internal FunctionDefinition(string name, int minimumArguments, int maximumArguments) {
+        internal FunctionDefinition(string name, int minimumArguments, int maximumArguments, int argumentStep = 1) {
             Name = name;
             MinimumArguments = minimumArguments;
             MaximumArguments = maximumArguments;
+            ArgumentStep = argumentStep;
         }
 
         internal string Name { get; }
         internal int MinimumArguments { get; }
         internal int MaximumArguments { get; }
+        internal int ArgumentStep { get; }
     }
 
     internal static bool TryReadAbsoluteRange(IWorkWireMessage formula, int maximumNodes,

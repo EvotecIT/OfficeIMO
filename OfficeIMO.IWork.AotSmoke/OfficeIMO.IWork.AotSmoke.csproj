@@ -8,6 +8,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-qualified-input.xlsx" Link="future-functions-input.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-qualified-native-v16.113.3.xlsx" Link="future-functions-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-future-functions-qualified-edited-native-v16.113.3.xlsx" Link="future-functions-edited.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-cases-v14.5.numbers" Link="conditional-aggregates.numbers" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-excel-v16.113.3.xlsx" Link="conditional-aggregates-excel-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/numbers-conditional-aggregates-excel-edited-v16.113.3.xlsx" Link="conditional-aggregates-excel-edited.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-average-errors-input.xlsx" Link="conditional-average-errors-input.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-average-errors-v16.113.3.xlsx" Link="conditional-average-errors-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-typed-errors-input.xlsx" Link="conditional-typed-errors-input.xlsx" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/excel-conditional-typed-errors-qualified-v16.113.3.xlsx" Link="conditional-typed-errors-native.xlsx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-identity-parentheses-edited-v15.4.pages" Link="pages-identity-parentheses.pages" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-identity-closing-edited-v15.4.pages" Link="pages-identity-closing.pages" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-identity-mixed-font-edited-v15.4.pages" Link="pages-identity-mixed-font.pages" CopyToOutputDirectory="PreserveNewest" />
@@ -35,6 +45,7 @@
     <ProjectReference Include="../OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/nim-iwork/simple.pages" Link="simple.pages" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-list-continuation-v15.4.pages" Link="pages-list-continuation.pages" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-list-marker-size-roundtrip-v15.4.pages" Link="pages-list-marker-size-roundtrip.pages" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4.pages" Link="native-pages-borders.pages" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4.docx" Link="native-pages-borders.docx" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/pages-table-borders-v15.4-decode.json" Link="native-pages-borders-decode.json" CopyToOutputDirectory="PreserveNewest" />

@@ -94,6 +94,8 @@ NativeNumbersIntegerReferenceSmoke.Run();
 NativeNumbersCrossTableIntegerSmoke.Run();
 NativeNumbersIntegerTextSmoke.Run();
 NativeNumbersBlankReferenceSmoke.Run();
+NativeNumbersConditionalAggregateSmoke.Run();
+NativeExcelFutureFunctionStorageSmoke.Run();
 NativePagesThirdLevelSmoke.Run();
 NativePagesDecimalTextSmoke.Run();
 NativePagesNineLevelSmoke.Run();

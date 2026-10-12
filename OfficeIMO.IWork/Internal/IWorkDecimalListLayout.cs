@@ -26,10 +26,13 @@ internal static class IWorkDecimalListLayout {
         }
         double bodySize = firstRunSize ?? size;
         double scaledBody = layout.MarkerScale * bodySize;
+        double uniformMarkerSize = bodySize == size ? Math.Round(scaledBody) : size;
         if (uniformSize && IsFinite(scaledBody)
-            && Math.Abs(scaledBody - size) <= Math.Max(1e-6d, size * 1e-7d)) {
-            // Preserve the qualified uniform-run profile with a relative marker scale.
-            markerFontSizePoints = size;
+            && uniformMarkerSize > 0
+            && Math.Abs(scaledBody - uniformMarkerSize) <= Math.Max(1e-6d, uniformMarkerSize * 1e-7d)) {
+            // Native uniform items use either a marker-size or body-size paragraph default.
+            // Resolve the relative scale to a whole-point marker without changing the em indent.
+            markerFontSizePoints = uniformMarkerSize;
         } else if (layout.MarkerScale == 1 && wholePointSizes) {
             // Native mixed-size items take their marker size from the first character.
             // Later larger runs do not change the marker or paragraph-default em indent.

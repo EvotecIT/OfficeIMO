@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Excel future-function spelling
+
+Normal and array formula authoring stores `IFNA`, `MINIFS` and `MAXIFS` with the XLSX `_xlfn.` prefix. For example, `CellFormula(1, 1, "IFNA(NA(),99)")` stores `_xlfn.IFNA(NA(),99)`, which `GetFormulaText` returns. Update literal formula-text comparisons to use that stored spelling. Prefix expansion above 8,192 characters throws before changing the destination cells.
+
 ## Formula entry in generated Numbers files
 
 Regenerate Numbers files created by the earlier scalar-table codec when native formula editing is required. The current creator registers every table with the native calculation engine; earlier generated files can leave newly entered formulas blank. Preservation-aware source saving retains the original graph and does not repair those registrations. Reading and converting existing scalar values remain supported.

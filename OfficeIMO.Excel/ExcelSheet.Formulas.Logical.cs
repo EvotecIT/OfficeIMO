@@ -403,8 +403,9 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryEvaluateConditionalAggregate(string function, string args, out double result) {
+        private bool TryEvaluateConditionalAggregate(string function, string args, out double result, out FormulaArgumentValue error) {
             result = 0;
+            error = default;
             var tokens = SplitFormulaArguments(args);
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             if (tokens.Count < 2 || tokens.Count > 3
@@ -437,6 +438,10 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            // Selected errors survive aggregation; unmatched errors remain irrelevant.
+            error = matched.FirstOrDefault(value => value.IsError);
+            if (error.IsError) return false;
+
             var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIF") {
                 result = numbers.Sum();
@@ -444,6 +449,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (numbers.Count == 0) {
+                error = FormulaArgumentValue.Error("#DIV/0!");
                 return false;
             }
 

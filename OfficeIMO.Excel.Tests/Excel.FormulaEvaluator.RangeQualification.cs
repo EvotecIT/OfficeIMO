@@ -57,6 +57,7 @@ namespace OfficeIMO.Tests {
                 "FORECAST.LINEAR(1,OFFSET(A1,-1,0),B1)", "SUMXMY2(OFFSET(A1,-1,0),B1)",
                 "STDEV.S(OFFSET(A1,-1,0))", "LARGE(OFFSET(A1,-1,0),1)",
                 "COUNTIFS(OFFSET(A1,-1,0),1)", "SUMIF(OFFSET(A1,-1,0),1)",
+                "AVERAGEIF(OFFSET(A1,-1,0),1)", "AVERAGEIFS(B1,OFFSET(A1,-1,0),1)",
                 "SUBTOTAL(9,OFFSET(A1,-1,0))", "FORMULATEXT(OFFSET(A1,-1,0))", "ISFORMULA(OFFSET(A1,-1,0))",
                 "XLOOKUP(1,OFFSET(A1,-1,0),B1,,0,-1)" };
             for (int index = 0; index < expressions.Length; index++)

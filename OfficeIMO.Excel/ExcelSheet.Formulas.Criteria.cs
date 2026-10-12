@@ -37,8 +37,9 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryEvaluateMultiCriteriaAggregate(string function, string args, out double result) {
+        private bool TryEvaluateMultiCriteriaAggregate(string function, string args, out double result, out FormulaArgumentValue error) {
             result = 0;
+            error = default;
             var tokens = SplitFormulaArguments(args);
             bool countOnly = function == "COUNTIFS";
             if (countOnly) {
@@ -96,6 +97,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            // Qualify every input before publishing a selected operand error.
+            // Numeric filtering must not turn an error into an empty or partial aggregate.
+            error = matched.FirstOrDefault(value => value.IsError);
+            if (error.IsError) return false;
+
             var numbers = matched.Where(value => value.IsNumericAggregateValue).Select(value => value.Number!.Value).ToList();
             if (function == "SUMIFS") {
                 result = numbers.Sum();
@@ -103,6 +109,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (numbers.Count == 0) {
+                if (function == "AVERAGEIFS") error = FormulaArgumentValue.Error("#DIV/0!");
+                else if (matched.Count == 0 && (function == "MINIFS" || function == "MAXIFS")) return true;
                 return false;
             }
 
@@ -259,6 +267,10 @@ namespace OfficeIMO.Excel {
                 criteria = default;
                 return false;
             }
+            if (criteriaValue.IsError) {
+                criteria = new FormulaCriteria("=", string.Empty, null, criteriaValue.ErrorCode);
+                return true;
+            }
             if (criteriaValue.HasValue) {
                 value = FormulaValueToText(criteriaValue);
             }
@@ -278,10 +290,17 @@ namespace OfficeIMO.Excel {
                 : (double?)null;
 
             criteria = new FormulaCriteria(op, value, number);
-            return value.Length > 0 || op == "=";
+            return value.Length > 0 || op == "=" || op == "<>";
         }
 
         private static bool MatchesCriteria(FormulaArgumentValue value, FormulaCriteria criteria) {
+            if (criteria.ErrorCode != null) {
+                return value.IsError && string.Equals(value.ErrorCode, criteria.ErrorCode, StringComparison.Ordinal);
+            }
+            // Error cells are distinct from ordinary text, including a literal "#N/A".
+            // They satisfy an ordinary not-equal criterion, but no text/numeric ordering or wildcard.
+            if (value.IsError) return criteria.Operator == "<>";
+
             if (criteria.Number.HasValue && value.Number.HasValue) {
                 double left = value.Number.Value;
                 double right = criteria.Number.Value;

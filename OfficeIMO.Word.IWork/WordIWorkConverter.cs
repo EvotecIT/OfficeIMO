@@ -385,11 +385,15 @@ public static partial class WordIWorkConverter {
                     || sourceParagraph.ListIdentifier != previousListIdentifier
                     || sourceParagraph.ListStartNumber.HasValue;
                 bool qualifiedLayout = CanApplyQualifiedListLayout(sourceParagraph, out double markerSize);
-                if (qualifiedLayout && markerSize != sourceParagraph.Style.TextStyle.FontSizePoints) {
-                    // Apple exports the paragraph mark at the first-run marker size.
-                    // Keeping the original default here scales the marker a second time on Pages import.
-                    paragraph.FontSizePoints = markerSize;
-                    paragraph.CopyRunFormattingToParagraphMark();
+                if (qualifiedLayout) {
+                    double firstRunSize = sourceParagraph.Runs.FirstOrDefault()?.Style.FontSizePoints
+                        ?? sourceParagraph.Style.TextStyle.FontSizePoints!.Value;
+                    if (firstRunSize != sourceParagraph.Style.TextStyle.FontSizePoints) {
+                        // Pages interprets relative marker sizes using the leading run and paragraph mark.
+                        // Keep both at the first body run's size; the numbering level owns the marker size.
+                        paragraph.FontSizePoints = firstRunSize;
+                        paragraph.CopyRunFormattingToParagraphMark();
+                    }
                 }
                 nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
                     sourceParagraph.ListLabel, qualifiedLayout

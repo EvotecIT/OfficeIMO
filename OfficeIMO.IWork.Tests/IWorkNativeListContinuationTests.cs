@@ -36,11 +36,14 @@ public sealed partial class IWorkEverydayNativeExportTests {
         }
     }
 
-    [Fact]
-    public void Native_decimal_levels_and_continuation_preserve_source_counters_and_DOCX_measurements() {
-        VerifyManifest("pages-list-continuation-v15.4.json");
+    [Theory]
+    [InlineData("pages-list-continuation-v15.4", false)]
+    [InlineData("pages-list-marker-size-roundtrip-v15.4", true)]
+    public void Native_decimal_levels_and_continuation_preserve_source_counters_and_DOCX_measurements(
+        string fixture, bool reimported) {
+        VerifyManifest(fixture + ".json");
         using var result = WordIWorkConverter.ConvertPagesToWordResult(
-            Corpus("native-exports/pages-list-continuation-v15.4.pages"),
+            Corpus("native-exports/" + fixture + ".pages"),
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.True(result.Projection.Body.IsFormattingComplete);
@@ -48,7 +51,9 @@ public sealed partial class IWorkEverydayNativeExportTests {
         var source = result.Projection.Body.Paragraphs;
         Assert.Equal(new int?[] { null, 7, 8, null, 9, 1, 2, 10, 1, 5, 6, null, 7, 11, 3, 4 },
             source.Select(paragraph => paragraph.ListNumber));
-        Assert.Equal(new int?[] { null, 7, null, null, null, null, null, null, null, 5, null, null, null, 11, 3, null },
+        Assert.Equal(reimported
+                ? new int?[] { null, 7, null, null, 9, null, null, 10, null, 5, null, null, 7, 11, 3, null }
+                : new int?[] { null, 7, null, null, null, null, null, null, null, 5, null, null, null, 11, 3, null },
             source.Select(paragraph => paragraph.ListStartNumber));
         Assert.Equal(new[] { -1, 0, 0, -1, 0, 1, 1, 0, 1, 1, 1, -1, 1, 0, 0, 0 },
             source.Select(paragraph => paragraph.ListLevel));
@@ -60,7 +65,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
                 WordDocumentTraversal.BuildListIndices(reopened).Values.Select(value => value.Index));
         }
         using var actual = WordprocessingDocument.Open(saved, false);
-        using var native = WordprocessingDocument.Open(Corpus("native-exports/pages-list-continuation-v15.4.docx"), false);
+        using var native = WordprocessingDocument.Open(Corpus("native-exports/" + fixture + ".docx"), false);
         var paragraphs = actual.MainDocumentPart!.Document!.Body!.Elements<W.Paragraph>().ToArray();
         Assert.Equal(native.MainDocumentPart!.Document!.Body!.Elements<W.Paragraph>().Select(Text), paragraphs.Select(Text));
         var numbering = actual.MainDocumentPart.NumberingDefinitionsPart!.Numbering!;
@@ -92,7 +97,11 @@ public sealed partial class IWorkEverydayNativeExportTests {
                 && expected.GetFirstChild<W.PreviousParagraphProperties>()?.Indentation?.Left?.Value == left
                 && expected.GetFirstChild<W.PreviousParagraphProperties>()?.Indentation?.Hanging?.Value == "330"
                 && expected.GetFirstChild<W.NumberingSymbolRunProperties>()?.GetFirstChild<W.FontSize>()?.Val?.Value == "22");
-            Assert.All(paragraph.Elements<W.Run>().Where(run => run.InnerText.Length > 0),
+            // Pages uses the leading run and paragraph mark to interpret the relative marker size.
+            // Both retain the 12-point body size while the numbering level stays at 11 points.
+            Assert.Equal("24", paragraph.ParagraphProperties.ParagraphMarkRunProperties!
+                .GetFirstChild<W.FontSize>()!.Val!.Value);
+            Assert.All(paragraph.Elements<W.Run>(),
                 run => Assert.Equal("24", run.RunProperties!.FontSize!.Val!.Value));
         }
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(actual));
