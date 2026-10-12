@@ -3,12 +3,12 @@
         x:Class="OfficeIMO.Studio.Features.Organizer.PageImportDialogContent" x:DataType="local:PageImportPreviewViewModel"
         Title="{loc:Loc Organizer.ImportTitle}" Width="600" Height="590" MinWidth="380" MinHeight="440"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
-  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="10">
-    <StackPanel Spacing="4">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+    <StackPanel Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Organizer.ImportTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{loc:Loc Organizer.ImportHint}" TextWrapping="Wrap" />
     </StackPanel>
-    <StackPanel Grid.Row="1" Spacing="4">
+    <StackPanel Grid.Row="1" Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Organizer.ImportBeforePage}" />
       <TextBox x:Name="InsertionInput" Text="{Binding InsertBeforePage, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"
                AutomationProperties.Name="{loc:Loc Organizer.ImportBeforePage}" />
@@ -18,28 +18,28 @@
              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
              AutomationProperties.Name="{loc:Loc Organizer.ImportSources}">
       <ListBox.ItemTemplate><DataTemplate x:DataType="local:PageImportSourceViewModel">
-        <StackPanel Spacing="4">
+        <StackPanel Spacing="{StaticResource StudioSpaceXS}">
           <CheckBox IsChecked="{Binding IsIncluded}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                     AutomationProperties.Name="{Binding Name}">
             <TextBlock Text="{Binding Name}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
           </CheckBox>
-          <StackPanel Orientation="Horizontal" Spacing="5"><TextBlock Text="{loc:Loc Organizer.SplitCount}" /><TextBlock Text="{Binding PageCount}" /></StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><TextBlock Text="{loc:Loc Organizer.SplitCount}" /><TextBlock Text="{Binding PageCount}" /></StackPanel>
           <TextBox Text="{Binding PageRange, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsIncluded}" MaxLength="5000"
                    AutomationProperties.Name="{Binding RangeLabel}" PlaceholderText="{loc:Loc Organizer.PageRange}" />
           <TextBlock Classes="error" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
         </StackPanel>
       </DataTemplate></ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel Grid.Row="3" Spacing="4">
+    <StackPanel Grid.Row="3" Spacing="{StaticResource StudioSpaceXS}">
       <!-- Reorder and the selected-page count share one row so small windows keep room for the list. -->
-      <WrapPanel ItemSpacing="6" LineSpacing="4">
+      <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceXS}">
         <Button Classes="tool" Content="{loc:Loc Organizer.ImportEarlier}" Command="{Binding MoveSourceUpCommand}" />
         <Button Classes="tool" Content="{loc:Loc Organizer.ImportLater}" Command="{Binding MoveSourceDownCommand}" />
-        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="6,0,0,0"><TextBlock Text="{loc:Loc Organizer.ImportSelectedCount}" /><TextBlock Text="{Binding ImportedPageCount}" /></StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" VerticalAlignment="Center" Margin="6,0,0,0"><TextBlock Text="{loc:Loc Organizer.ImportSelectedCount}" /><TextBlock Text="{Binding ImportedPageCount}" /></StackPanel>
       </WrapPanel>
       <TextBlock Classes="error" Text="{Binding ErrorMessage}" TextWrapping="Wrap" MaxHeight="60" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </StackPanel>
-    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+    <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="{StaticResource StudioSpaceS}">
       <Button Classes="tool" Content="{loc:Loc Common.Cancel}" IsCancel="True" Click="OnCancel" />
       <Button Classes="primary" Content="{loc:Loc Organizer.ImportApply}" IsEnabled="{Binding CanApply}" Click="OnApply" />
     </StackPanel>

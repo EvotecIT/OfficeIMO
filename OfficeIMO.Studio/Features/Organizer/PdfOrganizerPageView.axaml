@@ -5,7 +5,7 @@
              xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
              x:Class="OfficeIMO.Studio.Features.Organizer.PdfOrganizerPageView"
              x:DataType="organizer:PdfOrganizerPageViewModel">
-  <StackPanel Margin="6" Spacing="6" HorizontalAlignment="Center">
+  <StackPanel Margin="6" Spacing="{StaticResource StudioSpaceSM}" HorizontalAlignment="Center">
     <Border Width="124" Height="154"
             Background="White"
             BorderBrush="{DynamicResource StudioSubtleBorderBrush}"

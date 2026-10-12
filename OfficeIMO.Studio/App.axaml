@@ -318,7 +318,9 @@
       <x:Double x:Key="StudioDisplayFontSize">28</x:Double>
       <!-- Spacing scale on a 4px grid, paired with the type ramp. Page shells, headers and cards use the layout
            tokens below so every screen starts its content at the same place. -->
+      <x:Double x:Key="StudioSpaceXXS">2</x:Double>
       <x:Double x:Key="StudioSpaceXS">4</x:Double>
+      <x:Double x:Key="StudioSpaceSM">6</x:Double>
       <x:Double x:Key="StudioSpaceS">8</x:Double>
       <x:Double x:Key="StudioSpaceM">12</x:Double>
       <x:Double x:Key="StudioSpaceL">16</x:Double>

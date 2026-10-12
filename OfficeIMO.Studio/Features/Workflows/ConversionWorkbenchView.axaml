@@ -12,8 +12,8 @@
     <Border x:Name="SetupPanel" Grid.Column="0" Grid.RowSpan="2" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="18" Spacing="12">
-          <StackPanel Spacing="2">
+        <StackPanel Margin="18" Spacing="{StaticResource StudioSpaceM}">
+          <StackPanel Spacing="{StaticResource StudioSpaceXXS}">
             <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ChooseTheResult}" />
             <TextBlock Classes="muted" Text="{loc:Loc Conversion.DefaultsHint}" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
           </StackPanel>
@@ -55,9 +55,9 @@
                   Command="{Binding ConversionWorkbench.ChooseOutputFolderCommand}"
                   HorizontalAlignment="Left" />
           <Expander x:Name="BatchExportPanel" Header="{loc:Loc Conversion.BatchExport.Title}" HorizontalAlignment="Stretch">
-            <StackPanel Spacing="8">
+            <StackPanel Spacing="{StaticResource StudioSpaceS}">
               <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" TextWrapping="Wrap" />
-              <StackPanel Spacing="6" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
+              <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
                 <TextBlock Text="{loc:Loc Conversion.BatchExport.Source}" FontWeight="SemiBold" />
                 <TextBox Text="{Binding ConversionWorkbench.BatchExport.InputDirectory, Mode=TwoWay}" />
                 <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseSource}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="input" />
@@ -86,7 +86,7 @@
     </Border>
 
     <Grid x:Name="QueuePanel" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="18,0">
-      <StackPanel Grid.Row="0" Spacing="10" Margin="0,16,0,12">
+      <StackPanel Grid.Row="0" Spacing="{StaticResource StudioSpaceM}" Margin="0,16,0,12">
         <!-- Lossy outputs are named once, with a way to their details, rather than only marked in the Status column. -->
         <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding ConversionWorkbench.HasLossNotice}" Message="{Binding ConversionWorkbench.LossNotice}"
                                ActionText="{loc:Loc Conversion.Loss.Review}" ActionCommand="{Binding ConversionWorkbench.ReviewLossCommand}"
@@ -95,7 +95,7 @@
           <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ConversionQueue}" />
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.QueueSummary}" FontSize="{StaticResource StudioSecondaryFontSize}" />
         </StackPanel>
-        <WrapPanel ItemSpacing="7" LineSpacing="6" IsVisible="{Binding ConversionWorkbench.HasJobs}">
+        <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding ConversionWorkbench.HasJobs}">
           <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddFiles}" Content="{loc:Loc ConversionWorkbench.AddFiles}" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddPackage}" Content="{loc:Loc ConversionWorkbench.AddPackage}" Command="{Binding ConversionWorkbench.AddPackageCommand}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.Remove}" Content="{loc:Loc ConversionWorkbench.Remove}" Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
@@ -104,10 +104,10 @@
       </StackPanel>
 
       <Border Grid.Row="1" IsVisible="{Binding ConversionWorkbench.HasUnmatchedInputs}" Classes="card" Margin="0,0,0,12" Padding="16">
-        <StackPanel Spacing="10" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
+        <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
           <TextBlock Text="{Binding ConversionWorkbench.UnmatchedInputMessage}" TextWrapping="Wrap" />
           <ItemsControl ItemsSource="{Binding ConversionWorkbench.MatchingInputRoutes}">
-            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel ItemSpacing="8" LineSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceS}" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="workflow:ConversionRouteChoice">
                 <Button Classes="tool" Content="{Binding Label}" CommandParameter="{Binding}"
@@ -121,7 +121,7 @@
       <!-- An empty queue is an invitation, not an empty table: one call to action, no frame inside a frame. -->
       <Panel Grid.Row="2">
           <Border IsVisible="{Binding !ConversionWorkbench.HasJobs}" Padding="36,24,36,48">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="400">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="{StaticResource StudioSpaceM}" MaxWidth="400">
               <Border Width="58" Height="58" CornerRadius="16" Background="{DynamicResource StudioAccentSoftBrush}">
                 <PathIcon Data="{StaticResource IconConvert}" Width="26" Height="26" Foreground="{DynamicResource StudioAccentBrush}" />
               </Border>
@@ -129,7 +129,7 @@
                          HorizontalAlignment="Center" />
               <TextBlock Classes="muted" Text="{loc:Loc ConversionWorkbench.AddOneOrMoreMatchingFilesTheSelectedRouteProfile}"
                          TextAlignment="Center" TextWrapping="Wrap" />
-              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,4,0,0">
+              <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}" HorizontalAlignment="Center" Margin="0,4,0,0">
                 <Button Classes="primary" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddFiles}" Content="{loc:Loc ConversionWorkbench.AddFiles}" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
                 <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.AddPackage}" Content="{loc:Loc ConversionWorkbench.AddPackage}" Command="{Binding ConversionWorkbench.AddPackageCommand}" />
               </StackPanel>
@@ -178,7 +178,7 @@
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <Grid>
-          <StackPanel IsVisible="{Binding ConversionWorkbench.HasJobs}" Margin="18" Spacing="11">
+          <StackPanel IsVisible="{Binding ConversionWorkbench.HasJobs}" Margin="18" Spacing="{StaticResource StudioSpaceM}">
           <TextBlock Classes="eyebrow" Text="{loc:Loc ConversionWorkbench.SELECTEDJOB}" />
           <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.DetailsAndFidelity}" />
           <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
@@ -191,7 +191,7 @@
             <Button Classes="tool" Content="{loc:Loc Conversion.Preview.Action}" Command="{Binding ConversionWorkbench.PreviewOutputCommand}" Margin="0,0,6,6" />
             <Button Classes="tool" Content="{loc:Loc Conversion.Output.Open}" Command="{Binding ConversionWorkbench.OpenOutputCommand}" Margin="0,0,0,6" />
           </WrapPanel>
-          <StackPanel x:Name="ConversionEvidencePanel" IsVisible="{Binding ConversionWorkbench.SelectedJob.HasConversionEvidence}" Spacing="4">
+          <StackPanel x:Name="ConversionEvidencePanel" IsVisible="{Binding ConversionWorkbench.SelectedJob.HasConversionEvidence}" Spacing="{StaticResource StudioSpaceXS}">
             <TextBlock Text="{loc:Loc Conversion.IWork.SourceEvidence}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.ConversionEvidenceSummary}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
             <Expander Header="{loc:Loc Conversion.IWork.SourceFingerprint}"><TextBox x:Name="SourceFingerprintText" Text="{Binding ConversionWorkbench.SelectedJob.SourceFingerprint}" IsReadOnly="True" TextWrapping="Wrap" FontSize="{StaticResource StudioLabelFontSize}" /></Expander>
@@ -206,9 +206,9 @@
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Route.Description}" TextWrapping="Wrap" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Fidelity}"
                      Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
-          <StackPanel Spacing="8" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
-            <StackPanel Spacing="8" IsEnabled="{Binding ConversionWorkbench.SelectedJob.CanEditOptions}">
-              <StackPanel x:Name="IWorkAcceptancePanel" IsVisible="{Binding ConversionWorkbench.SelectedJob.SupportsIWorkOptions}" Spacing="6">
+          <StackPanel Spacing="{StaticResource StudioSpaceS}" IsEnabled="{Binding ConversionWorkbench.CanEditQueue}">
+            <StackPanel Spacing="{StaticResource StudioSpaceS}" IsEnabled="{Binding ConversionWorkbench.SelectedJob.CanEditOptions}">
+              <StackPanel x:Name="IWorkAcceptancePanel" IsVisible="{Binding ConversionWorkbench.SelectedJob.SupportsIWorkOptions}" Spacing="{StaticResource StudioSpaceSM}">
                 <TextBlock Text="{loc:Loc Conversion.IWork.Representation}" FontWeight="SemiBold" />
                 <ComboBox x:Name="IWorkModeChoice" ItemsSource="{Binding ConversionWorkbench.SelectedJob.IWorkModes}" SelectedItem="{Binding ConversionWorkbench.SelectedJob.IWorkMode, Mode=TwoWay}">
                   <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource ConversionModeLabel}}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate>
@@ -219,42 +219,42 @@
                 <CheckBox IsVisible="{Binding ConversionWorkbench.SelectedJob.IsNumbersImport}" IsChecked="{Binding ConversionWorkbench.SelectedJob.NormalizeWorksheetNames, Mode=TwoWay}"><TextBlock Text="{loc:Loc Conversion.IWork.NormalizeNames}" TextWrapping="Wrap" /></CheckBox>
               </StackPanel>
               <CheckBox IsVisible="{Binding ConversionWorkbench.SelectedJob.IsLegacyWordExport}" Content="{loc:Loc Conversion.BatchExport.AcceptLoss}" IsChecked="{Binding ConversionWorkbench.SelectedJob.AllowLegacyImportLoss, Mode=TwoWay}" />
-              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsPlainTextExport}" Spacing="4">
+              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsPlainTextExport}" Spacing="{StaticResource StudioSpaceXS}">
                 <TextBlock Text="{loc:Loc Conversion.Text.Encoding}" />
                 <TextBox Text="{Binding ConversionWorkbench.SelectedJob.TextEncoding, Mode=TwoWay}" PlaceholderText="{loc:Loc Conversion.Text.EncodingHint}" />
                 <TextBlock Text="{loc:Loc Conversion.Text.Tabs}" />
                 <NumericUpDown Minimum="1" Maximum="32" Increment="1" Value="{Binding ConversionWorkbench.SelectedJob.TabSize, Mode=TwoWay}" />
               </StackPanel>
-              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.SupportsPageSelection}" Spacing="4">
+              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.SupportsPageSelection}" Spacing="{StaticResource StudioSpaceXS}">
                 <TextBlock Text="{loc:Loc Conversion.Options.SourcePages}" FontWeight="SemiBold" />
                 <TextBox Text="{Binding ConversionWorkbench.SelectedJob.PageRanges, Mode=TwoWay}" PlaceholderText="{loc:Loc Conversion.Options.PagePlaceholder}" />
                 <TextBlock Classes="muted" Text="{loc:Loc Conversion.Options.ScanHint}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
               </StackPanel>
-              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsWordImport}" Spacing="4">
+              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsWordImport}" Spacing="{StaticResource StudioSpaceXS}">
                 <TextBlock Text="{loc:Loc Conversion.Options.WordContent}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding ConversionWorkbench.SelectedJob.WordModes}" SelectedItem="{Binding ConversionWorkbench.SelectedJob.WordMode, Mode=TwoWay}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource ConversionModeLabel}}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
               </StackPanel>
-              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsPowerPointImport}" Spacing="4">
+              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsPowerPointImport}" Spacing="{StaticResource StudioSpaceXS}">
                 <TextBlock Text="{loc:Loc Conversion.Options.SlideContent}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding ConversionWorkbench.SelectedJob.PowerPointModes}" SelectedItem="{Binding ConversionWorkbench.SelectedJob.PowerPointMode, Mode=TwoWay}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource ConversionModeLabel}}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
               </StackPanel>
-              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.UsesRasterPages}" Spacing="4">
+              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.UsesRasterPages}" Spacing="{StaticResource StudioSpaceXS}">
                 <TextBlock Text="{loc:Loc Conversion.Options.Resolution}" FontWeight="SemiBold" />
                 <NumericUpDown Minimum="36" Maximum="600" Increment="12" Value="{Binding ConversionWorkbench.SelectedJob.RasterDpi, Mode=TwoWay}" />
                 <TextBlock Classes="muted" Text="{loc:Loc Conversion.Options.VisualHint}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
               </StackPanel>
-              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsWorksheetExport}" Spacing="4">
+              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsWorksheetExport}" Spacing="{StaticResource StudioSpaceXS}">
                 <TextBlock Text="{loc:Loc Conversion.Options.WorksheetLayout}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding ConversionWorkbench.SelectedJob.WorksheetLayouts}" SelectedItem="{Binding ConversionWorkbench.SelectedJob.WorksheetLayout, Mode=TwoWay}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource ConversionModeLabel}}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
               </StackPanel>
-              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsHtmlExport}" Spacing="4">
+              <StackPanel IsVisible="{Binding ConversionWorkbench.SelectedJob.IsHtmlExport}" Spacing="{StaticResource StudioSpaceXS}">
                 <TextBlock Text="{loc:Loc Conversion.Options.HtmlLayout}" FontWeight="SemiBold" />
                 <ComboBox ItemsSource="{Binding ConversionWorkbench.SelectedJob.HtmlProfiles}" SelectedItem="{Binding ConversionWorkbench.SelectedJob.HtmlProfile, Mode=TwoWay}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource ConversionModeLabel}}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
               </StackPanel>
               <CheckBox IsVisible="{Binding ConversionWorkbench.SelectedJob.SupportsPdfCompression}" Content="{loc:Loc Conversion.Options.CompressPdf}" IsChecked="{Binding ConversionWorkbench.SelectedJob.CompressPdfOutput, Mode=TwoWay}" />
             </StackPanel>
           </StackPanel>
-          <Expander Header="{loc:Loc Conversion.Options.Details}"><StackPanel Spacing="6">
+          <Expander Header="{loc:Loc Conversion.Options.Details}"><StackPanel Spacing="{StaticResource StudioSpaceSM}">
           <TextBlock Text="{loc:Loc ConversionWorkbench.Engine}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" Margin="0,5,0,0" />
           <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Engine}" FontFamily="{StaticResource StudioMonoFont}" />
           <TextBlock Text="{loc:Loc ConversionWorkbench.KnownLimitations}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" Margin="0,5,0,0" />
@@ -274,7 +274,7 @@
           </ItemsControl>
           </StackPanel>
           <StackPanel IsVisible="{Binding !ConversionWorkbench.HasJobs}"
-                      Margin="22" Spacing="9" VerticalAlignment="Center">
+                      Margin="22" Spacing="{StaticResource StudioSpaceS}" VerticalAlignment="Center">
             <Border Width="42" Height="42" CornerRadius="12" HorizontalAlignment="Left"
                     Background="{DynamicResource StudioPanelMutedBrush}">
               <PathIcon Data="{StaticResource IconInfo}" Width="18" Height="18" Foreground="{DynamicResource StudioMutedTextBrush}" />
@@ -294,7 +294,7 @@
     </TabControl>
     <Border Grid.Row="2" Grid.ColumnSpan="3" Background="{DynamicResource StudioPanelBrush}" IsVisible="{Binding ConversionWorkbench.HasRunBar}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
-      <Grid Margin="18,10" ColumnDefinitions="*,Auto" ColumnSpacing="16">
+      <Grid Margin="18,10" ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceL}">
         <TextBlock Text="{Binding ConversionWorkbench.Status}" TextWrapping="Wrap" VerticalAlignment="Center" />
         <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" IsVisible="{Binding ConversionWorkbench.HasJobs}">
           <ProgressBar Minimum="0" Maximum="1" Value="{Binding ConversionWorkbench.ProgressFraction}" IsVisible="{Binding ConversionWorkbench.IsBusy}"

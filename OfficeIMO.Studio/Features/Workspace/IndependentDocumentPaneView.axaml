@@ -12,8 +12,8 @@
   <Border Classes="paneFrame" Classes.active="{Binding IsActive}" BorderThickness="2" Background="{DynamicResource StudioCanvasBrush}">
     <Grid RowDefinitions="Auto,*">
       <Border Background="{DynamicResource StudioPanelBrush}" Padding="8,6" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource StudioSubtleBorderBrush}">
-        <StackPanel Spacing="5">
-          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+        <StackPanel Spacing="{StaticResource StudioSpaceSM}">
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceXS}">
             <ComboBox ItemsSource="{Binding OpenDocuments}" SelectedItem="{Binding SelectedTab}" HorizontalAlignment="Stretch"
                       AutomationProperties.Name="{Binding DocumentLabel}" ToolTip.Tip="{Binding Title}">
               <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:StudioDocumentTabViewModel"><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
@@ -21,7 +21,7 @@
             <Button Grid.Column="1" Classes="icon" Command="{Binding ActivatePaneCommand}" AutomationProperties.Name="{Binding ActivateLabel}" ToolTip.Tip="{Binding ActivateLabel}"><PathIcon Data="{StaticResource IconFocus}" Width="13" Height="13" /></Button>
             <Button Grid.Column="2" Classes="icon" Command="{Binding CloseCommand}" AutomationProperties.Name="{Binding CloseLabel}" ToolTip.Tip="{Binding CloseLabel}"><PathIcon Data="{StaticResource IconClose}" Width="13" Height="13" /></Button>
           </Grid>
-          <WrapPanel ItemSpacing="4" LineSpacing="4">
+          <WrapPanel ItemSpacing="{StaticResource StudioSpaceXS}" LineSpacing="{StaticResource StudioSpaceXS}">
             <Button Classes="icon" Command="{Binding PreviousCommand}" IsEnabled="{Binding CanPrevious}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Previous}"><PathIcon Data="{StaticResource IconChevronLeft}" Width="13" Height="13" /></Button>
             <TextBox x:Name="PanePageNumber" Width="42" MinHeight="28" Text="{Binding SelectedPage.PageNumber, Mode=OneWay}" KeyDown="OnPageNumberKeyDown" AutomationProperties.Name="{loc:Loc Shell.PageNumber}" ToolTip.Tip="{Binding PagePosition}" />
             <Button Classes="icon" Command="{Binding NextCommand}" IsEnabled="{Binding CanNext}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Next}"><PathIcon Data="{StaticResource IconChevronRight}" Width="13" Height="13" /></Button>

@@ -64,23 +64,23 @@
 
       <shell:StudioSessionView DataContext="{Binding Session}" />
 
-      <Grid x:Name="HeroGrid" ColumnDefinitions="1.15*,*" RowDefinitions="Auto,Auto" ColumnSpacing="18" RowSpacing="18">
+      <Grid x:Name="HeroGrid" ColumnDefinitions="1.15*,*" RowDefinitions="Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceL}" RowSpacing="{StaticResource StudioSpaceL}">
         <!-- Drop target: the primary way in. -->
         <Panel x:Name="DropTarget" MinHeight="250">
           <Border CornerRadius="16" Background="{DynamicResource StudioAccentSoftBrush}" Opacity="0.55" />
           <Rectangle RadiusX="16" RadiusY="16" Stroke="{DynamicResource StudioAccentBrush}" StrokeThickness="1.5"
                      StrokeDashArray="5,4" Opacity="0.7" IsHitTestVisible="False" />
-          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Margin="24" MaxWidth="440">
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="{StaticResource StudioSpaceM}" Margin="24" MaxWidth="440">
             <Border Width="60" Height="60" CornerRadius="16" Background="{DynamicResource StudioPanelRaisedBrush}" HorizontalAlignment="Center"
                     BoxShadow="{DynamicResource StudioCardShadow}">
               <PathIcon Data="{StaticResource IconOpen}" Width="28" Height="28" Foreground="{DynamicResource StudioAccentBrush}" />
             </Border>
             <TextBlock x:Name="OpenPrompt" Text="{loc:Loc Home.DragAndDropFilesHere}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Home.SupportedInputGuidance}" Classes="muted" TextAlignment="Center" HorizontalAlignment="Center" />
-            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,4,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}" HorizontalAlignment="Center" Margin="0,4,0,0">
               <Button Classes="primary" Command="{Binding Commands[Open]}" IsEnabled="{Binding CanStartDocumentTransition}"
                       AutomationProperties.Name="{loc:Loc Home.OpenFile}">
-                <StackPanel Orientation="Horizontal" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}">
                   <PathIcon Data="{StaticResource IconOpen}" Width="15" Height="15" />
                   <TextBlock Text="{loc:Loc Home.OpenFile}" />
                 </StackPanel>
@@ -91,41 +91,41 @@
         </Panel>
 
         <!-- Quick tasks: compact, icon-led, grouped by what people come to do. -->
-        <StackPanel x:Name="QuickTasks" Grid.Column="1" Spacing="10">
+        <StackPanel x:Name="QuickTasks" Grid.Column="1" Spacing="{StaticResource StudioSpaceM}">
           <TextBlock Text="{loc:Loc Home.QuickTasks}" Classes="groupLabel" />
-          <infra:AdaptiveCardPanel MinimumCardWidth="190" ColumnSpacing="10" RowSpacing="10">
+          <infra:AdaptiveCardPanel MinimumCardWidth="190" ColumnSpacing="{StaticResource StudioSpaceM}" RowSpacing="{StaticResource StudioSpaceM}">
             <Button Classes="task" Command="{Binding Commands[Assemble]}" AutomationProperties.Name="{loc:Loc Home.Merge}">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioAccentSoftBrush}"><PathIcon Data="{StaticResource IconMerge}" Width="16" Height="16" Foreground="{DynamicResource StudioAccentBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Merge}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.MergeHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
             <Button Classes="task" Command="{Binding Commands[Convert]}" AutomationProperties.Name="{loc:Loc Home.Convert}">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioSpineSoftBrush}"><PathIcon Data="{StaticResource IconConvert}" Width="16" Height="16" Foreground="{DynamicResource StudioSpineBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Convert}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.ConvertHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
             <Button Classes="task" Command="{Binding Commands[Ocr]}" AutomationProperties.Name="{loc:Loc Home.OCR}">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioWarningSoftBrush}"><PathIcon Data="{StaticResource IconOcr}" Width="16" Height="16" Foreground="{DynamicResource StudioWarningBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.OCR}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.OcrHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
             <Button Classes="task" Command="{Binding Commands[Optimize]}" AutomationProperties.Name="{loc:Loc Home.Compress}">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioSuccessSoftBrush}"><PathIcon Data="{StaticResource IconCompress}" Width="16" Height="16" Foreground="{DynamicResource StudioSuccessBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Compress}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.CompressHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
             <Button Classes="task" Command="{Binding Commands[Protect]}" AutomationProperties.Name="{loc:Loc Home.Protect}" ToolTip.Tip="{Binding Commands[Protect].UnavailableReason}" ToolTip.ShowOnDisabled="True">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioErrorSoftBrush}"><PathIcon Data="{StaticResource IconProtect}" Width="16" Height="16" Foreground="{DynamicResource StudioErrorBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Protect}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.ProtectHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
             <Button Classes="task" Command="{Binding Commands[Tools]}" AutomationProperties.Name="{loc:Loc MainWindow.Tools}">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioPanelMutedBrush}"><PathIcon Data="{StaticResource IconTools}" Width="16" Height="16" Foreground="{DynamicResource StudioTextBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.AllTools}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.AllToolsHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
@@ -135,21 +135,21 @@
       </Grid>
 
       <!-- Recent documents as recognizable cards. -->
-      <StackPanel Spacing="10">
+      <StackPanel Spacing="{StaticResource StudioSpaceM}">
         <Grid ColumnDefinitions="*,Auto">
           <TextBlock Text="{loc:Loc Home.Recent}" Classes="sectionTitle" VerticalAlignment="Center" />
           <Button Grid.Column="1" Classes="link" Command="{Binding ClearRecentDocumentsCommand}"
                   IsVisible="{Binding HasRecentDocuments}" AutomationProperties.Name="{loc:Loc Home.ClearList}" Content="{loc:Loc Home.ClearList}" />
         </Grid>
         <Border IsVisible="{Binding !HasRecentDocuments}" CornerRadius="12" Padding="24" Background="{DynamicResource StudioPanelMutedBrush}">
-          <StackPanel Spacing="4" HorizontalAlignment="Center">
+          <StackPanel Spacing="{StaticResource StudioSpaceXS}" HorizontalAlignment="Center">
             <TextBlock Text="{loc:Loc Home.NoRecentDocuments}" FontWeight="SemiBold" HorizontalAlignment="Center" />
             <TextBlock Classes="muted" Text="{loc:Loc Home.DocumentsYouOpenWillAppearHere}" HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
         <ItemsControl x:Name="RecentList" IsVisible="{Binding HasRecentDocuments}" ItemsSource="{Binding RecentDocuments}">
           <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate><infra:AdaptiveCardPanel MinimumCardWidth="190" MaximumCardWidth="300" ColumnSpacing="14" RowSpacing="14" /></ItemsPanelTemplate>
+            <ItemsPanelTemplate><infra:AdaptiveCardPanel MinimumCardWidth="190" MaximumCardWidth="300" ColumnSpacing="{StaticResource StudioSpaceL}" RowSpacing="{StaticResource StudioSpaceL}" /></ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="home:RecentDocumentViewModel">
@@ -180,10 +180,10 @@
                       </Border>
                     </Panel>
                   </Border>
-                  <StackPanel Grid.Row="1" Margin="12,10,12,12" Spacing="2">
+                  <StackPanel Grid.Row="1" Margin="12,10,12,12" Spacing="{StaticResource StudioSpaceXXS}">
                     <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                     <TextBlock Text="{Binding DirectoryName}" Classes="caption" TextTrimming="PathSegmentEllipsis" />
-                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,3,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" Margin="0,3,0,0">
                       <Border CornerRadius="3" Padding="4,0" Background="{DynamicResource StudioErrorSoftBrush}">
                         <TextBlock Text="{loc:Loc Home.PDF}" FontSize="{StaticResource StudioMicroFontSize}" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}" />
                       </Border>

@@ -5,7 +5,7 @@
   <StackPanel Classes="pageContent" Spacing="{StaticResource StudioSpaceL}" MaxWidth="1000" HorizontalAlignment="Stretch">
    <TextBlock Classes="pageTitle" Text="{loc:Loc Provenance.Title}" />
    <TextBlock Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Provenance.Description}" />
-   <Border Classes="card"><StackPanel Spacing="8">
+   <Border Classes="card"><StackPanel Spacing="{StaticResource StudioSpaceS}">
     <TextBlock Text="{loc:Loc Provenance.Source}" FontWeight="SemiBold" />
     <TextBlock IsVisible="{Binding ProvenanceWorkbench.UsesWorkingCopies}" Text="{Binding ProvenanceWorkbench.InputName}" TextWrapping="Wrap" />
     <TextBlock IsVisible="{Binding ProvenanceWorkbench.UsesWorkingCopies}" Classes="muted" TextWrapping="Wrap" Text="{loc:Loc Provenance.WorkingCopyHint}" />
@@ -15,7 +15,7 @@
      <Button Classes="accent" Content="{loc:Loc Provenance.Assess}" Command="{Binding ProvenanceWorkbench.AssessCommand}" IsEnabled="{Binding ProvenanceWorkbench.CanAssess}" /></WrapPanel>
    </StackPanel></Border>
    <Expander Header="{loc:Loc Provenance.ProviderTitle}" IsVisible="{Binding ProvenanceWorkbench.CanConfigureProvider}">
-    <StackPanel Spacing="8" Margin="8" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}">
+    <StackPanel Spacing="{StaticResource StudioSpaceS}" Margin="8" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}">
      <TextBlock Text="{loc:Loc Provenance.ProviderHint}" TextWrapping="Wrap" Classes="muted" />
      <TextBlock Text="{loc:Loc Provenance.ToolPath}" />
      <TextBox Text="{Binding ProvenanceWorkbench.C2paToolPath}" AutomationProperties.Name="{loc:Loc Provenance.ToolPath}" />
@@ -30,12 +30,12 @@
    <TextBlock Text="{Binding ProvenanceWorkbench.Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
    <TextBlock Text="{Binding ProvenanceWorkbench.Checks}" TextWrapping="Wrap" />
    <TextBlock Classes="muted" Text="{Binding ProvenanceWorkbench.Coverage}" TextWrapping="Wrap" />
-   <StackPanel Spacing="10" IsVisible="{Binding ProvenanceWorkbench.HasCredentials}" AutomationProperties.Name="{loc:Loc Provenance.Credentials}">
+   <StackPanel Spacing="{StaticResource StudioSpaceM}" IsVisible="{Binding ProvenanceWorkbench.HasCredentials}" AutomationProperties.Name="{loc:Loc Provenance.Credentials}">
     <TextBlock Text="{loc:Loc Provenance.Credentials}" FontWeight="SemiBold" />
     <TextBlock Text="{loc:Loc Provenance.CredentialHint}" Classes="muted" TextWrapping="Wrap" />
     <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Credentials}">
      <ItemsControl.ItemTemplate><DataTemplate x:DataType="workflows:ProvenanceCredentialViewModel">
-      <Border Classes="card" Margin="0,0,0,10"><StackPanel Spacing="8">
+      <Border Classes="card" Margin="0,0,0,10"><StackPanel Spacing="{StaticResource StudioSpaceS}">
        <TextBlock Text="{Binding Generator}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" TextWrapping="Wrap" />
        <TextBlock Text="{Binding Asset}" TextWrapping="Wrap" />
        <TextBlock IsVisible="{Binding DeclaresGenerativeAi}" Text="{loc:Loc Provenance.SourceGenerativeAi}" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -47,7 +47,7 @@
         <DataTemplate x:DataType="workflows:ProvenanceCredentialActionViewModel">
          <Grid ColumnDefinitions="32,*" Margin="0,7">
           <TextBlock Text="{Binding Position}" FontWeight="SemiBold" />
-          <StackPanel Grid.Column="1" Spacing="3">
+          <StackPanel Grid.Column="1" Spacing="{StaticResource StudioSpaceXS}">
            <TextBlock Text="{Binding Action}" FontWeight="SemiBold" TextWrapping="Wrap" />
            <TextBlock Text="{Binding Software}" TextWrapping="Wrap" />
            <TextBlock Text="{Binding Time}" Classes="muted" TextWrapping="Wrap" />
@@ -60,7 +60,7 @@
        <ItemsControl ItemsSource="{Binding IngredientDescriptions}"><ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate>
        </ItemsControl.ItemTemplate></ItemsControl>
-       <Expander Header="{loc:Loc Provenance.RecordDetails}"><StackPanel Spacing="5" Margin="8">
+       <Expander Header="{loc:Loc Provenance.RecordDetails}"><StackPanel Spacing="{StaticResource StudioSpaceSM}" Margin="8">
         <TextBlock Text="{Binding ManifestCountDescription}" TextWrapping="Wrap" />
         <TextBlock Text="{Binding Label}" Classes="muted" TextWrapping="Wrap" />
         <TextBlock Text="{Binding Location}" Classes="muted" TextWrapping="Wrap" />
@@ -69,15 +69,15 @@
      </DataTemplate></ItemsControl.ItemTemplate>
     </ItemsControl>
    </StackPanel>
-   <Border Classes="card"><StackPanel Spacing="8">
+   <Border Classes="card"><StackPanel Spacing="{StaticResource StudioSpaceS}">
     <TextBlock Text="{loc:Loc Provenance.Findings}" FontWeight="SemiBold" />
     <ItemsControl ItemsSource="{Binding ProvenanceWorkbench.Findings}"><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,3" /></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-    <StackPanel Spacing="2" IsVisible="{Binding ProvenanceWorkbench.InputHash, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+    <StackPanel Spacing="{StaticResource StudioSpaceXXS}" IsVisible="{Binding ProvenanceWorkbench.InputHash, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
      <TextBlock Text="{loc:Loc Provenance.InputHash}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" />
      <SelectableTextBlock Text="{Binding ProvenanceWorkbench.InputHash}" FontFamily="{StaticResource StudioMonoFont}" FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
     </StackPanel>
    </StackPanel></Border>
-   <Border Classes="card"><StackPanel Spacing="8" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}">
+   <Border Classes="card"><StackPanel Spacing="{StaticResource StudioSpaceS}" IsEnabled="{Binding !ProvenanceWorkbench.IsBusy}">
     <TextBlock Text="{loc:Loc Provenance.CopyTitle}" FontWeight="SemiBold" />
     <TextBlock Text="{loc:Loc Provenance.CopyDescription}" TextWrapping="Wrap" Classes="muted" />
     <CheckBox Content="{loc:Loc Provenance.Manifests}" IsChecked="{Binding ProvenanceWorkbench.RemoveManifests}" />

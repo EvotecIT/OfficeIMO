@@ -16,9 +16,9 @@
     </Style>
   </UserControl.Styles>
   <Border Background="{DynamicResource StudioPanelBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
-    <Grid RowDefinitions="Auto,*,Auto" Margin="16" RowSpacing="12">
-      <StackPanel Spacing="6">
-        <StackPanel Orientation="Horizontal" Spacing="10">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="16" RowSpacing="{StaticResource StudioSpaceM}">
+      <StackPanel Spacing="{StaticResource StudioSpaceSM}">
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceM}">
           <Border Width="32" Height="32" CornerRadius="9" Background="{DynamicResource StudioAccentSoftBrush}">
             <PathIcon Data="{StaticResource IconSparkle}" Width="16" Height="16" Foreground="{DynamicResource StudioAccentBrush}" />
           </Border>
@@ -32,7 +32,7 @@
       <Grid Grid.Row="1">
         <ScrollViewer IsVisible="{Binding ShowConnections}" HorizontalScrollBarVisibility="Disabled">
           <Border Classes="card" Margin="0,8">
-            <StackPanel Spacing="12">
+            <StackPanel Spacing="{StaticResource StudioSpaceM}">
               <TextBlock Text="{loc:Loc Connections.Welcome}" Classes="sectionTitle" />
               <TextBlock Text="{loc:Loc Connections.WelcomeHelp}" Classes="muted" />
               <Button Classes="primary" Content="{loc:Loc Connections.ChooseProvider}" Click="ManageConnectionsClick" />
@@ -40,8 +40,8 @@
           </Border>
         </ScrollViewer>
         <ScrollViewer x:Name="ConversationScroll" IsVisible="{Binding !ShowConnections}" HorizontalScrollBarVisibility="Disabled">
-          <StackPanel Spacing="8">
-          <StackPanel Spacing="8" IsVisible="{Binding !HasConversation}" IsEnabled="{Binding !IsBusy}">
+          <StackPanel Spacing="{StaticResource StudioSpaceS}">
+          <StackPanel Spacing="{StaticResource StudioSpaceS}" IsVisible="{Binding !HasConversation}" IsEnabled="{Binding !IsBusy}">
             <TextBlock Text="{loc:Loc Assistant.StartWith}" Classes="sectionTitle" />
             <WrapPanel>
               <Button Classes="tool" Content="{loc:Loc Assistant.Summarize}" Command="{Binding UsePromptCommand}" CommandParameter="Summary" Margin="0,0,6,6" />
@@ -59,16 +59,16 @@
               <DataTemplate x:DataType="ai:AssistantMessage">
                 <Border Margin="0,0,0,10" Padding="12,10" CornerRadius="12"
                         Classes.question="{Binding IsQuestion}" Classes="message">
-                  <StackPanel Spacing="8">
+                  <StackPanel Spacing="{StaticResource StudioSpaceS}">
                     <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding Citations}">
                       <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="ai:AssistantCitation">
                           <Border Margin="0,3" Padding="8,6" CornerRadius="8" Background="{DynamicResource StudioPanelMutedBrush}"
                                   BorderBrush="{DynamicResource StudioSpineBrush}" BorderThickness="2,0,0,0">
-                            <StackPanel Spacing="3">
+                            <StackPanel Spacing="{StaticResource StudioSpaceXS}">
                               <Button Classes="link" Command="{Binding NavigateCommand}" HorizontalAlignment="Left" Padding="0">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}">
                                   <PathIcon Data="{StaticResource IconDocument}" Width="11" Height="11" />
                                   <TextBlock Text="{Binding Label}" FontSize="{StaticResource StudioSecondaryFontSize}" FontWeight="SemiBold" />
                                 </StackPanel>
@@ -91,10 +91,10 @@
           </StackPanel>
         </ScrollViewer>
       </Grid>
-      <StackPanel Grid.Row="2" Spacing="8" IsVisible="{Binding !ShowConnections}">
+      <StackPanel Grid.Row="2" Spacing="{StaticResource StudioSpaceS}" IsVisible="{Binding !ShowConnections}">
         <TextBlock Text="{Binding Status}" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" AutomationProperties.LiveSetting="Polite" />
         <ProgressBar IsVisible="{Binding IsBusy}" IsIndeterminate="True" Height="3" />
-        <StackPanel IsEnabled="{Binding !IsBusy}" Spacing="6">
+        <StackPanel IsEnabled="{Binding !IsBusy}" Spacing="{StaticResource StudioSpaceSM}">
           <CheckBox Content="{loc:Loc Assistant.CurrentPage}" IsChecked="{Binding CurrentPageOnly}" />
           <CheckBox IsVisible="{Binding !Connections.IsLocal}" IsChecked="{Binding AllowRemoteProcessing}">
             <TextBlock Text="{loc:Loc Assistant.RemoteConsent}" TextWrapping="Wrap" />
@@ -102,7 +102,7 @@
           <TextBox Text="{Binding Question}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="66" MaxHeight="110" MaxLength="8000"
                    PlaceholderText="{loc:Loc Assistant.Question}" AutomationProperties.Name="{loc:Loc Assistant.Question}" />
         </StackPanel>
-        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}">
           <Button Classes="primary" Content="{loc:Loc Assistant.Ask}" Command="{Binding AskCommand}" HorizontalAlignment="Stretch" />
           <Button Classes="tool" Grid.Column="1" Content="{loc:Loc MainWindow.Cancel}" IsVisible="{Binding IsBusy}" Command="{Binding CancelCommand}" />
           <Button Classes="tool" Grid.Column="2" Content="{loc:Loc Assistant.NewChat}" Command="{Binding NewConversationCommand}" />

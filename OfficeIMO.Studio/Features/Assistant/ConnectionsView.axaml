@@ -1,15 +1,15 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ai="using:OfficeIMO.Studio.Features.Assistant" xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              x:Class="OfficeIMO.Studio.Features.Assistant.ConnectionsView" x:DataType="ai:StudioAiConnections">
-  <Grid ColumnDefinitions="190,*" ColumnSpacing="24">
+  <Grid ColumnDefinitions="190,*" ColumnSpacing="{StaticResource StudioSpaceXL}">
     <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Spacing="12">
+      <StackPanel Spacing="{StaticResource StudioSpaceM}">
         <TextBlock Text="{loc:Loc Connections.ChooseProvider}" Classes="eyebrow" />
         <ListBox Classes="providers" ItemsSource="{Binding ProviderChoices}" SelectedIndex="{Binding ProviderIndex}" IsEnabled="{Binding !IsBusy}"
                  Background="Transparent" BorderThickness="0" AutomationProperties.Name="{loc:Loc Assistant.Provider}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="ai:StudioAiProvider">
-              <StackPanel Spacing="3" Margin="3,8">
+              <StackPanel Spacing="{StaticResource StudioSpaceXS}" Margin="3,8">
                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Category}" Classes="muted" FontSize="{StaticResource StudioSecondaryFontSize}" />
               </StackPanel>
@@ -19,31 +19,31 @@
       </StackPanel>
     </ScrollViewer>
     <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
-      <StackPanel Spacing="20">
-        <StackPanel Spacing="8">
+      <StackPanel Spacing="{StaticResource StudioSpaceXL}">
+        <StackPanel Spacing="{StaticResource StudioSpaceS}">
           <TextBlock Text="{Binding SelectedProvider.Category}" Classes="eyebrow" />
           <TextBlock Text="{Binding SelectedProvider.Name}" Classes="pageTitle" />
           <TextBlock Text="{Binding SelectedProvider.Description}" Classes="muted" />
         </StackPanel>
         <Border Classes="card" Background="{DynamicResource StudioAccentSoftBrush}">
-          <StackPanel Spacing="8">
+          <StackPanel Spacing="{StaticResource StudioSpaceS}">
             <TextBlock Text="{loc:Loc Connections.BeforeConnecting}" FontWeight="SemiBold" TextWrapping="Wrap" />
             <TextBlock Text="{Binding SelectedProvider.Preparation}" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
-        <StackPanel Spacing="10" IsEnabled="{Binding !IsBusy}">
+        <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding !IsBusy}">
           <TextBlock Text="{loc:Loc Connections.ConnectAccount}" Classes="sectionTitle" />
-          <StackPanel Spacing="6" IsVisible="{Binding IsApi}">
+          <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding IsApi}">
             <TextBlock Text="{loc:Loc Assistant.Endpoint}" />
             <TextBox Text="{Binding Endpoint}" AutomationProperties.Name="{loc:Loc Assistant.Endpoint}" />
             <TextBlock Text="{loc:Loc Connections.ApiKey}" />
             <TextBox Text="{Binding ApiKey}" PasswordChar="●" AutomationProperties.Name="{loc:Loc Connections.ApiKey}" />
           </StackPanel>
-          <StackPanel Spacing="6" IsVisible="{Binding IsCopilot}">
+          <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding IsCopilot}">
             <TextBlock Text="{loc:Loc Assistant.GitHubClient}" TextWrapping="Wrap" />
             <TextBox Text="{Binding GitHubClientId}" PlaceholderText="{loc:Loc Connections.GitHubClientHint}" AutomationProperties.Name="{loc:Loc Assistant.GitHubClient}" />
           </StackPanel>
-          <StackPanel Spacing="6" IsVisible="{Binding HasSavedAccounts}">
+          <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding HasSavedAccounts}">
             <TextBlock Text="{loc:Loc Assistant.Account}" />
             <ComboBox ItemsSource="{Binding Accounts}" SelectedItem="{Binding AccountId}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Assistant.Account}" />
           </StackPanel>
@@ -52,12 +52,12 @@
             <Button Classes="tool" Content="{loc:Loc Connections.TestConnection}" Command="{Binding ConnectCommand}" Margin="0,0,8,8" />
           </WrapPanel>
           <Expander Header="{loc:Loc Connections.Advanced}" IsExpanded="{Binding ShowAdvanced}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-            <StackPanel Spacing="8" Margin="0,8,0,0">
-              <StackPanel Spacing="6" IsVisible="{Binding IsLocal}">
+            <StackPanel Spacing="{StaticResource StudioSpaceS}" Margin="0,8,0,0">
+              <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding IsLocal}">
                 <TextBlock Text="{loc:Loc Assistant.Endpoint}" />
                 <TextBox Text="{Binding Endpoint}" AutomationProperties.Name="{loc:Loc Assistant.Endpoint}" />
               </StackPanel>
-              <StackPanel Spacing="6" IsVisible="{Binding !IsChatGpt}">
+              <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding !IsChatGpt}">
                 <TextBlock Text="{loc:Loc Assistant.Credential}" IsVisible="{Binding !IsApi}" />
                 <TextBox Text="{Binding ApiKey}" PasswordChar="●" IsVisible="{Binding !IsApi}" AutomationProperties.Name="{loc:Loc Assistant.Credential}" />
                 <TextBlock Text="{loc:Loc Assistant.SessionCredential}" Classes="muted" />
@@ -69,14 +69,14 @@
           </Expander>
         </StackPanel>
         <Border Classes="card" Background="{DynamicResource StudioPanelMutedBrush}">
-          <StackPanel Spacing="8">
+          <StackPanel Spacing="{StaticResource StudioSpaceS}">
             <TextBlock Text="{Binding ConnectionHeading}" FontWeight="SemiBold" />
             <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
             <ProgressBar IsVisible="{Binding IsBusy}" IsIndeterminate="True" Height="3" />
             <Button Classes="tool" Content="{loc:Loc MainWindow.Cancel}" Command="{Binding CancelCommand}" IsVisible="{Binding IsBusy}" />
           </StackPanel>
         </Border>
-        <StackPanel Spacing="8" IsVisible="{Binding IsConnected}" IsEnabled="{Binding !IsBusy}">
+        <StackPanel Spacing="{StaticResource StudioSpaceS}" IsVisible="{Binding IsConnected}" IsEnabled="{Binding !IsBusy}">
           <TextBlock Text="{loc:Loc Connections.ChooseModel}" Classes="sectionTitle" />
           <TextBlock Text="{loc:Loc Connections.ModelHelp}" Classes="muted" />
           <ComboBox ItemsSource="{Binding Models}" SelectedItem="{Binding Model}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Assistant.AvailableModels}" />

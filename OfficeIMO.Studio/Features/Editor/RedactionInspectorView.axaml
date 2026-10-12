@@ -5,16 +5,16 @@
              xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
              x:Class="OfficeIMO.Studio.Features.Editor.RedactionInspectorView"
              x:DataType="shell:MainWindowViewModel">
-  <StackPanel Spacing="8">
+  <StackPanel Spacing="{StaticResource StudioSpaceS}">
     <TextBlock Text="{loc:Loc DocumentWorkspace.PermanentRedaction}" FontSize="{StaticResource StudioSubtitleFontSize}" FontWeight="SemiBold" />
     <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.DrawARedactionAreaReviewMatchedContentAndApplyOnly}" TextWrapping="Wrap" />
     <Button Classes="tool" Content="{loc:Loc DocumentWorkspace.UseRedactionTool}" Command="{Binding Commands[Redact]}" IsEnabled="{Binding CanRedact}" />
-    <StackPanel IsVisible="{Binding !CanRedact}" Spacing="5">
+    <StackPanel IsVisible="{Binding !CanRedact}" Spacing="{StaticResource StudioSpaceSM}">
       <TextBlock Classes="muted" Text="{loc:Loc Redaction.BlockedPreparation}" TextWrapping="Wrap" />
       <Button Classes="tool" Content="{loc:Loc Redaction.OpenSanitization}" Command="{Binding ShowSanitizeCommand}" />
     </StackPanel>
     <Expander Header="{loc:Loc Redaction.FindMarks}" IsExpanded="{Binding RedactionSearchExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch">
-      <StackPanel Spacing="5">
+      <StackPanel Spacing="{StaticResource StudioSpaceSM}">
         <TextBox Text="{Binding RedactionSearchText}" PlaceholderText="{loc:Loc Redaction.SearchText}" AutomationProperties.Name="{loc:Loc Redaction.SearchText}" />
         <CheckBox Content="{loc:Loc Redaction.Regex}" IsChecked="{Binding RedactionSearchRegex}" />
         <CheckBox Content="{loc:Loc Redaction.MatchCase}" IsChecked="{Binding RedactionSearchMatchCase}" />
@@ -33,8 +33,8 @@
       </ListBox.ItemContainerTheme>
       <ListBox.ItemTemplate>
         <DataTemplate x:DataType="editor:PdfRedactionMarkViewModel">
-          <StackPanel Spacing="3">
-            <StackPanel Orientation="Horizontal" Spacing="6">
+          <StackPanel Spacing="{StaticResource StudioSpaceXS}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}">
               <CheckBox IsChecked="{Binding IsIncluded}" Content="{loc:Loc Redaction.Include}" AutomationProperties.Name="{Binding IncludeAccessibleName}" />
               <TextBlock Text="{Binding PageNumber}" VerticalAlignment="Center" />
             </StackPanel>
@@ -43,13 +43,13 @@
         </DataTemplate>
       </ListBox.ItemTemplate>
     </ListBox>
-    <StackPanel IsVisible="{Binding HasPendingRedaction}" Spacing="5">
+    <StackPanel IsVisible="{Binding HasPendingRedaction}" Spacing="{StaticResource StudioSpaceSM}">
       <TextBox Text="{Binding SelectedRedactionMark.Reason}" PlaceholderText="{loc:Loc Redaction.Reason}" AutomationProperties.Name="{loc:Loc Redaction.Reason}" />
       <Button Classes="tool" Content="{loc:Loc Redaction.RemoveMark}" Command="{Binding RemoveRedactionMarkCommand}" />
       <CheckBox Content="{loc:Loc Redaction.Sanitize}" IsChecked="{Binding SanitizeAfterRedaction}" />
       <TextBlock IsVisible="{Binding SanitizeAfterRedaction}" Classes="muted" Text="{loc:Loc Redaction.SanitizeScope}" TextWrapping="Wrap" />
       <Border Background="{DynamicResource StudioErrorSoftBrush}" BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="1" CornerRadius="7" Padding="10">
-        <StackPanel Spacing="7">
+        <StackPanel Spacing="{StaticResource StudioSpaceS}">
           <TextBlock Text="{Binding PendingRedactionSummary}" TextWrapping="Wrap" />
           <Button Classes="tool" Content="{loc:Loc Redaction.ReviewImpact}" Command="{Binding ReviewRedactionsCommand}" IsEnabled="{Binding CanReviewRedactions}" />
           <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ApplyAndVerify}" Content="{loc:Loc DocumentWorkspace.ApplyAndVerify}" Command="{Binding ApplyPendingRedactionCommand}" IsEnabled="{Binding CanApplyReviewedRedactions}" />
@@ -60,7 +60,7 @@
         </StackPanel>
       </Border>
     </StackPanel>
-    <StackPanel IsVisible="{Binding HasRedactionEvidence}" Spacing="5">
+    <StackPanel IsVisible="{Binding HasRedactionEvidence}" Spacing="{StaticResource StudioSpaceSM}">
       <TextBlock Classes="muted" Text="{loc:Loc Redaction.EvidencePrivacy}" TextWrapping="Wrap" />
       <Button Classes="primary" Content="{loc:Loc Redaction.SaveCopy}" Command="{Binding SaveVerifiedRedactionCopyCommand}" />
       <Button Classes="tool" Content="{loc:Loc Redaction.ExportReport}" Command="{Binding ExportRedactionEvidenceCommand}" IsEnabled="{Binding CanExportRedactionEvidence}" />

@@ -6,8 +6,8 @@
         x:DataType="local:PageExtractionPreviewViewModel"
         Title="{loc:Loc Organizer.ExtractTitle}" Width="580" Height="560" MinWidth="380" MinHeight="460"
         HasContentHeading="True" WindowStartupLocation="CenterOwner" Background="{DynamicResource StudioPanelBrush}" FontSize="{DynamicResource StudioBodyFontSize}">
-  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
-    <StackPanel Spacing="4">
+  <Grid Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}">
+    <StackPanel Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Organizer.ExtractTitle}" FontSize="{StaticResource StudioTitleFontSize}" FontWeight="SemiBold" />
       <TextBlock Text="{Binding Destination}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Destination}" IsVisible="{Binding IsPreview}" />
       <TextBlock Text="{Binding DestinationHint}" TextWrapping="Wrap" IsVisible="{Binding IsPreview}" />
@@ -15,7 +15,7 @@
       <TextBlock Text="{Binding OutputPath}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding OutputPath}" IsVisible="{Binding CanOpenOutput}" />
       <TextBlock Text="{loc:Loc Organizer.ExtractRecovery}" TextWrapping="Wrap" IsVisible="{Binding HasRecovery}" />
     </StackPanel>
-    <StackPanel Grid.Row="1" IsVisible="{Binding IsPreview}" Spacing="4">
+    <StackPanel Grid.Row="1" IsVisible="{Binding IsPreview}" Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Organizer.ExtractRange}" />
       <TextBox x:Name="PageRangeInput" Text="{Binding PageRange, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000000"
                AutomationProperties.Name="{loc:Loc Organizer.ExtractRange}" />

@@ -39,41 +39,41 @@
         <TextBlock Text="{loc:Loc Tools.Tools}" Classes="pageTitle" />
         <TextBlock Text="{loc:Loc Tools.Introduction}" Classes="muted" />
       </StackPanel>
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceM}">
         <TextBox Text="{Binding Commands.ToolQuery, Mode=TwoWay}" PlaceholderText="{loc:Loc Commands.SearchTools}"
                  AutomationProperties.Name="{loc:Loc Commands.SearchTools}" MinHeight="40" VerticalContentAlignment="Center">
           <TextBox.InnerLeftContent><PathIcon Data="{StaticResource IconSearch}" Width="15" Height="15" Margin="12,0,2,0" Foreground="{DynamicResource StudioMutedTextBrush}" /></TextBox.InnerLeftContent>
         </TextBox>
         <Button Grid.Column="1" Classes="primary" Command="{Binding Commands[Open]}">
-          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource IconOpen}" Width="15" Height="15" /><TextBlock Text="{loc:Loc Commands.Open.Title}" /></StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}"><PathIcon Data="{StaticResource IconOpen}" Width="15" Height="15" /><TextBlock Text="{loc:Loc Commands.Open.Title}" /></StackPanel>
         </Button>
       </Grid>
       <TextBlock Text="{loc:Loc Commands.NoResults}" IsVisible="{Binding !Commands.HasTools}" TextWrapping="Wrap" Classes="muted" />
       <!-- Tools are grouped by the kind of work they do, in the order people usually need them. -->
       <ItemsControl ItemsSource="{Binding Commands.FilteredToolGroups}">
         <ItemsControl.ItemsPanel>
-          <ItemsPanelTemplate><StackPanel Spacing="26" /></ItemsPanelTemplate>
+          <ItemsPanelTemplate><StackPanel Spacing="{StaticResource StudioSpaceXL}" /></ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
           <DataTemplate x:DataType="shell:StudioCommandGroup">
-            <StackPanel Spacing="10">
+            <StackPanel Spacing="{StaticResource StudioSpaceM}">
               <TextBlock Text="{Binding Title}" Classes="sectionTitle" />
               <ItemsControl ItemsSource="{Binding Items}">
                 <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate><infra:AdaptiveCardPanel MinimumCardWidth="270" ColumnSpacing="14" RowSpacing="14" /></ItemsPanelTemplate>
+                  <ItemsPanelTemplate><infra:AdaptiveCardPanel MinimumCardWidth="270" ColumnSpacing="{StaticResource StudioSpaceL}" RowSpacing="{StaticResource StudioSpaceL}" /></ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="shell:StudioCommandItem">
                   <Button Classes="toolCard" Command="{Binding}"
                           AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}">
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceL}">
                       <Border Classes="toolGlyph" Width="40" Height="40" CornerRadius="10" Background="{DynamicResource StudioAccentSoftBrush}" VerticalAlignment="Top">
                         <PathIcon Data="{Binding Id, Converter={x:Static infra:StudioConverters.CommandIcon}}" Width="18" Height="18" Foreground="{DynamicResource StudioAccentBrush}" />
                       </Border>
-                      <StackPanel Grid.Column="1" Spacing="4">
+                      <StackPanel Grid.Column="1" Spacing="{StaticResource StudioSpaceXS}">
                         <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontWeight="SemiBold" FontSize="{StaticResource StudioSubtitleFontSize}" />
                         <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" FontSize="{DynamicResource StudioBodyFontSize}" />
-                        <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasUnavailableReason}" Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding HasUnavailableReason}" Margin="0,4,0,0">
                           <PathIcon Data="{StaticResource IconInfo}" Width="12" Height="12" Foreground="{DynamicResource StudioMutedTextBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
                           <TextBlock Text="{Binding UnavailableReason}" Classes="caption" TextWrapping="Wrap" MaxWidth="180" />
                         </StackPanel>

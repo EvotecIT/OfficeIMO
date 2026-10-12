@@ -7,7 +7,7 @@
              x:DataType="reader:PdfPageViewModel">
   <UserControl.Resources>
     <Flyout x:Key="SelectionActions" Placement="TopEdgeAlignedLeft" ShowMode="Transient">
-      <StackPanel Orientation="Horizontal" Spacing="2">
+      <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceXXS}">
         <Button Classes="cmd" Click="OnCopySelectionClick" AutomationProperties.Name="{loc:Loc PageActions.Copy}" ToolTip.Tip="{loc:Loc PageActions.CopyTip}">
           <StackPanel Orientation="Horizontal"><PathIcon Data="{StaticResource IconDuplicate}" /><TextBlock Classes="cmdLabel" Text="{loc:Loc PageActions.Copy}" /></StackPanel>
         </Button>
@@ -45,7 +45,7 @@
       </MenuItem>
     </MenuFlyout>
   </UserControl.Resources>
-  <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="8">
+  <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="{StaticResource StudioSpaceS}">
     <Border x:Name="PagePaper" Width="{Binding DisplayWidth}"
             Height="{Binding DisplayHeight}"
             Background="White"
@@ -97,7 +97,7 @@
         <StackPanel IsVisible="{Binding IsRendering}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Spacing="10">
+                    Spacing="{StaticResource StudioSpaceM}">
           <ProgressBar Width="120" IsIndeterminate="True" />
           <TextBlock Text="{loc:Loc PdfPage.RenderingPage}"
                      Foreground="{DynamicResource StudioMutedTextBrush}"
@@ -112,7 +112,7 @@
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 MaxWidth="480">
-          <StackPanel Spacing="8">
+          <StackPanel Spacing="{StaticResource StudioSpaceS}">
             <TextBlock Text="{loc:Loc PdfPage.ThisPageCouldNotBeRendered}"
                        Foreground="{DynamicResource StudioErrorBrush}"
                        FontWeight="SemiBold"

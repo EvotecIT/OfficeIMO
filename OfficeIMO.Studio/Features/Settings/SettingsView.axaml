@@ -63,7 +63,7 @@
                       HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Settings.InterfaceLanguage}">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="settings:StudioCultureChoice">
-                  <StackPanel Orientation="Horizontal" Spacing="8">
+                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}">
                     <TextBlock Text="{Binding Label}" />
                     <TextBlock Text="{Binding Name}" Classes="muted" />
                   </StackPanel>
@@ -92,16 +92,16 @@
             <TextBlock Text="{loc:Loc OcrSetup.Title}" Classes="sectionTitle" />
             <TextBlock Text="{loc:Loc OcrSetup.Description}" Classes="muted" TextWrapping="Wrap" />
             <TextBlock Text="{Binding Status}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-            <StackPanel Spacing="10" IsVisible="{Binding IsAvailable}">
+            <StackPanel Spacing="{StaticResource StudioSpaceM}" IsVisible="{Binding IsAvailable}">
               <TextBlock Text="{loc:Loc OcrSetup.ExecutablePath}" Classes="settingLabel" />
               <TextBox Text="{Binding ExecutablePath, Mode=TwoWay}" PlaceholderText="{loc:Loc OcrSetup.AutomaticDiscovery}"
                        IsEnabled="{Binding !IsBusy}" AutomationProperties.Name="{loc:Loc OcrSetup.ExecutablePath}" />
-              <WrapPanel ItemSpacing="8" LineSpacing="6">
+              <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
                 <Button Classes="tool" Content="{loc:Loc OcrSetup.ChooseExecutable}" Command="{Binding ChooseExecutableCommand}" />
                 <Button Classes="tool" Content="{loc:Loc OcrSetup.CheckAndSave}" Command="{Binding CheckCommand}" />
                 <Button Classes="tool" Content="{loc:Loc OcrSetup.UseAutomatic}" Command="{Binding UseAutomaticDiscoveryCommand}" />
               </WrapPanel>
-              <StackPanel Spacing="4" IsVisible="{Binding IsReady}">
+              <StackPanel Spacing="{StaticResource StudioSpaceXS}" IsVisible="{Binding IsReady}">
                 <TextBlock Text="{Binding DetectedExecutable}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Version}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding InstalledLanguages}" TextWrapping="Wrap" AutomationProperties.Name="{loc:Loc OcrSetup.InstalledLanguages}" />
@@ -127,16 +127,16 @@
             <TextBlock Text="{loc:Loc Settings.ShowRecentPreviewsDescription}" TextWrapping="Wrap" Classes="muted" />
             <TextBlock Text="{loc:Loc Settings.DocumentHistory}" Classes="settingLabel" />
             <TextBlock Text="{loc:Loc Settings.HistoryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
-            <WrapPanel ItemSpacing="8" LineSpacing="6">
+            <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
               <Button Classes="tool" Content="{Binding HistoryPersistenceAction}" Command="{Binding ToggleDocumentHistoryCommand}" />
               <Button Classes="tool" Content="{loc:Loc Settings.ClearHistory}" Command="{Binding RequestHistoryClearCommand}"
                       IsVisible="{Binding !ConfirmHistoryClear}" />
             </WrapPanel>
             <TextBlock Text="{loc:Loc Settings.HistoryDisabled}" IsVisible="{Binding !RememberDocumentHistory}" TextWrapping="Wrap" />
             <Border IsVisible="{Binding ConfirmHistoryClear}" Classes="callout warning">
-              <StackPanel Spacing="10">
+              <StackPanel Spacing="{StaticResource StudioSpaceM}">
                 <TextBlock Text="{loc:Loc Settings.HistoryClearWarning}" TextWrapping="Wrap" />
-                <WrapPanel ItemSpacing="8" LineSpacing="6">
+                <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
                   <Button Classes="tool" Content="{loc:Loc Settings.DeleteHistory}" Command="{Binding ClearHistoryCommand}" />
                   <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelHistoryClearCommand}" />
                 </WrapPanel>
@@ -151,7 +151,7 @@
             <TextBlock Text="{loc:Loc Settings.RecoverySection}" Classes="sectionTitle" />
             <TextBlock Text="{loc:Loc Settings.RecoveryStorage}" Classes="settingLabel" />
             <TextBlock Text="{loc:Loc Settings.RecoveryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />
-            <WrapPanel ItemSpacing="8" LineSpacing="6">
+            <WrapPanel ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
               <Button Classes="tool" Content="{Binding RecoveryPersistenceAction}" Command="{Binding ToggleRecoveryPersistenceCommand}"
                       IsEnabled="{Binding !IsRecoveryBusy}" />
               <Button Classes="tool" Content="{loc:Loc Settings.ClearRecovery}" Command="{Binding RequestRecoveryClearCommand}"
@@ -160,9 +160,9 @@
             <TextBlock Text="{loc:Loc Settings.RecoveryDisabled}" IsVisible="{Binding !CreateRecoverySnapshots}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.RecoveryRetention}" TextWrapping="Wrap" Classes="muted" />
             <Border IsVisible="{Binding ConfirmRecoveryClear}" Classes="callout warning">
-              <StackPanel Spacing="10">
+              <StackPanel Spacing="{StaticResource StudioSpaceM}">
                 <TextBlock Text="{loc:Loc Settings.RecoveryClearWarning}" TextWrapping="Wrap" />
-                <WrapPanel IsEnabled="{Binding !IsRecoveryBusy}" ItemSpacing="8" LineSpacing="6">
+                <WrapPanel IsEnabled="{Binding !IsRecoveryBusy}" ItemSpacing="{StaticResource StudioSpaceS}" LineSpacing="{StaticResource StudioSpaceSM}">
                   <Button Classes="tool" Foreground="{DynamicResource StudioErrorBrush}" Content="{loc:Loc Settings.DeleteRecovery}" Command="{Binding ClearRecoveryCommand}" />
                   <Button Classes="tool" Content="{loc:Loc Settings.CancelRecoveryClear}" Command="{Binding CancelRecoveryClearCommand}" />
                 </WrapPanel>
@@ -178,7 +178,7 @@
         <Border x:Name="AboutSection" Classes="card settingsSection">
           <StackPanel>
             <TextBlock Text="{loc:Loc Settings.AboutAndUpdates}" Classes="sectionTitle" />
-            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="7">
+            <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="{StaticResource StudioSpaceS}">
               <TextBlock Text="{loc:Loc Settings.Version}" Classes="muted" />
               <SelectableTextBlock Grid.Column="1" Text="{Binding ProductVersion}" />
               <TextBlock Grid.Row="1" Text="{loc:Loc Settings.Runtime}" Classes="muted" />
