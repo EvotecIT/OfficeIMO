@@ -81,6 +81,12 @@ Check 'cancelled render' ([OfficeImoEngine]::Render($document, 1, 1.0, $cancella
 Check 'rotate page 1' ([OfficeImoEngine]::Rotate($document, [int[]]@(1), 1, 90, 0, [ref]$err)) $err
 $info = Info $document
 if ($info.pages[0].rotation -ne 90 -or -not $info.isDirty -or -not $info.canUndo) { $failures.Add("rotation not recorded: $($info | ConvertTo-Json -Compress)") }
+Check 'rotate page 1 again' ([OfficeImoEngine]::Rotate($document, [int[]]@(1), 1, 90, 0, [ref]$err)) $err
+$info = Info $document
+if ($info.pages[0].rotation -ne 180) { $failures.Add("relative rotation not accumulated: $($info.pages[0].rotation)") }
+Check 'undo repeated rotation' ([OfficeImoEngine]::Undo($document, 0, [ref]$err)) $err
+$info = Info $document
+if ($info.pages[0].rotation -ne 90) { $failures.Add("repeated rotation undo has angle $($info.pages[0].rotation)") }
 Check 'undo' ([OfficeImoEngine]::Undo($document, 0, [ref]$err)) $err
 $info = Info $document
 if ($info.pages[0].rotation -ne 0 -or -not $info.canRedo) { $failures.Add("undo not applied: $($info | ConvertTo-Json -Compress)") }
