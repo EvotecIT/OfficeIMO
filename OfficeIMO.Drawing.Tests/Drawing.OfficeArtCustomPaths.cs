@@ -7,6 +7,51 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(0U)]
+    [InlineData(1U)]
+    [InlineData(2U)]
+    [InlineData(3U)]
+    public void OfficeArtCustomPath_OnePointImplicitPathsRetainEmptyGeometry(uint pathKind) {
+        var properties = CustomPath(new[] { (5400, 10800) });
+        properties.Add(new OfficeArtProperty(1, 0x0144, pathKind));
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(new OfficePoint(20, 20), path!.Shape.PathCommands[0].Point);
+        Assert.All(path.Shape.PathCommands, command =>
+            Assert.True(command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.Close));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtCustomPath_OnePointExplicitPathsCanEndWithoutDrawingASegment(bool close) {
+        ushort[] segments = close ? new ushort[] { 0x4000, 0x6001, 0x8000 } : new ushort[] { 0x4000, 0x8000 };
+        var properties = CustomPath(new[] { (5400, 10800) }, segments);
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(new OfficePoint(20, 20), path!.Shape.PathCommands[0].Point);
+        Assert.Equal(close ? 2 : 1, path.Shape.PathCommands.Count);
+        Assert.All(path.Shape.PathCommands, command =>
+            Assert.True(command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.Close));
+    }
+
+    [Fact]
+    public void OfficeArtCustomPath_MoveOnlySubpathsDoNotBecomeConnectingLines() {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) }, new ushort[] { 0x4000, 0x4000, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Equal(2, path!.Shape.PathCommands.Count);
+        Assert.All(path.Shape.PathCommands, command => Assert.Equal(OfficePathCommandKind.MoveTo, command.Kind));
+    }
+
+    [Theory]
+    [InlineData(0x0001)]
+    [InlineData(0x2001)]
+    [InlineData(0x8001)]
+    public void OfficeArtCustomPath_OnePointPathsStillRejectUnavailableSegmentsAndInvalidEnds(ushort word) {
+        var properties = CustomPath(new[] { (5400, 10800) }, new ushort[] { 0x4000, word, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var path, out _));
+        Assert.Null(path);
+    }
+
+    [Theory]
     [InlineData(-2000000000, 2000000000, 40D)]
     [InlineData(int.MinValue, int.MaxValue, 40.000000009313226D)]
     public void OfficeArtCustomPath_FullSignedGeometrySpacesProjectWithoutIntegerDeltaOverflow(int first, int last, double expectedX) {

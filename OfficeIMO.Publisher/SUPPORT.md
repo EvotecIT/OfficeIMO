@@ -124,7 +124,9 @@ and counted AutoLine, CornerLine, AutoCurve, CornerCurve and SymmetricCurve
 editing runs. Zero-count joint markers remain inert. Nonzero SmoothLine,
 SmoothCurve, SymmetricLine and Freeform runs retain an unsupported-command
 fallback; their drawing semantics remain unqualified. These record checks cover
-guide/command fallback reports and inset picture masks. SG guide checks cover
+guide/command fallback reports and inset picture masks. One-point and move-only
+paths retain empty geometry and empty picture masks rather than revealing the
+unmasked image. SG guide checks cover
 all 17 stored formula identifiers, unsigned constants, signed adjustment values,
 geometry-space centres and dimensions, inherited document defaults, local scalar
 and stroke-use overrides, physical frame EMUs,

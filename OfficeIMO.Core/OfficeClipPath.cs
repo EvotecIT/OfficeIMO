@@ -78,7 +78,7 @@ public sealed class OfficeClipPath {
         CreatePath(commands, fillRule, null, null);
 
     /// <summary>Creates a clipping path while retaining its coordinates within a declared local canvas.</summary>
-    /// <remarks>Unlike the content-sized overload, this overload retains offsets and control points without normalization.</remarks>
+    /// <remarks>Retains offsets and control points without normalization. Move-only paths retain an empty clip.</remarks>
     public static OfficeClipPath Path(double width, double height, IEnumerable<OfficePathCommand> commands,
         OfficeFillRule fillRule = OfficeFillRule.EvenOdd) {
         if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D)
@@ -135,7 +135,7 @@ public sealed class OfficeClipPath {
             source.Add(command);
         }
 
-        if (source.Count == 0 || !hasDraw) {
+        if (source.Count == 0 || (!hasDraw && !canvasWidth.HasValue)) {
             throw new ArgumentException("Clip paths require at least one drawing command.", nameof(commands));
         }
 
