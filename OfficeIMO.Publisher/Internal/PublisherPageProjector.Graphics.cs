@@ -11,13 +11,11 @@ internal sealed partial class PublisherPageProjector {
         shape.StrokeColor = style.LineEnabled != false ? Resolve(style.LineColor, source.Id) : null;
         shape.StrokeWidth = Math.Max(0, (style.LineWidthEmus ?? 9525) / 12700D);
         shape.FillOpacity = style.FillOpacity; shape.StrokeOpacity = style.LineOpacity;
+        ProjectFill(source, shape, geometryWidth, geometryHeight);
         ProjectLineDetails(source, shape);
         if (style.HasProjectableShadow) {
             shape.Shadow = new OfficeShadow(Resolve(style.ShadowColor, source.Id) ?? OfficeColor.Black, style.ShadowOpacity ?? 1,
                 (style.ShadowOffsetXEmus ?? 0) / 12700D, (style.ShadowOffsetYEmus ?? 0) / 12700D, Math.Max(0, (style.ShadowSoftnessEmus ?? 0) / 12700D));
-        }
-        if (style.FillEnabled != false && style.FillType.HasValue && style.FillType > 0) {
-            _context.Add("PUB_FILL_APPROXIMATED", "A non-solid native fill was approximated by its primary color.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(source.Id));
         }
         OfficeArtProperty? pictureReference = source.Properties.LastOrDefault(property => property.PropertyId == 0x0104);
         if (pictureReference == null || pictureReference.Value == 0 || pictureReference.IsComplex || !pictureReference.IsBlipId) {
@@ -27,19 +25,20 @@ internal sealed partial class PublisherPageProjector {
             if (pictureReference is { IsComplex: false, IsBlipId: false, Value: not 0 })
                 _context.Add("PUB_IMAGE_REFERENCE_INVALID", "A native picture reference lacks the required BLIP identifier flag; its image is retained without artwork projection.",
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id));
-            if (shape.FillColor.HasValue || shape.StrokeColor.HasValue || shape.Shadow != null) drawing.AddShape(shape, 0, 0);
+            if (HasFill(shape) || shape.StrokeColor.HasValue || shape.Shadow != null) drawing.AddShape(shape, 0, 0);
             return;
         }
         // A picture paints inside its frame, before the outline. Keep fill and
         // shadow beneath it while preserving the native outline above it.
         OfficeShape background = shape.Clone();
         background.StrokeColor = null;
-        if (background.FillColor.HasValue || background.Shadow != null) drawing.AddShape(background, 0, 0);
+        if (HasFill(background) || background.Shadow != null) drawing.AddShape(background, 0, 0);
         ProjectPicture(source, drawing, pictureReference.Value);
         OfficeShape outline = shape.Clone();
-        outline.FillColor = null; outline.Shadow = null;
+        outline.FillColor = null; outline.FillGradient = null; outline.FillRadialGradient = null; outline.Shadow = null;
         if (outline.StrokeColor.HasValue) drawing.AddShape(outline, 0, 0);
     }
+    private static bool HasFill(OfficeShape shape) => shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null;
     private void ProjectPicture(PublisherEscherShape source, OfficeDrawing drawing, uint imageId) {
         if (imageId > int.MaxValue || !_escher.Images.TryGetValue((int)imageId, out PublisherImage? image)) {
             _context.Add("PUB_IMAGE_REFERENCE_UNRESOLVED", "A native picture refers to an unavailable embedded image.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id)); return;
@@ -50,28 +49,9 @@ internal sealed partial class PublisherPageProjector {
         if (!crop.HasVisibleSourceArea) {
             _context.Add("PUB_IMAGE_CROP_INVALID", "The native crop removes the entire image; its picture is omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id)); return;
         }
-        byte[] projectedBytes = ProjectImage(image, source.Id, out string projectedContentType);
+        OfficeArtPictureEffectProjector effects = PictureEffects(picture, source.Id);
+        byte[] projectedBytes = ProjectImage(image, source.Id, effects, out string projectedContentType);
         drawing.AddImage(projectedBytes, projectedContentType, new OfficeImageProjection(new OfficeImagePlacement(0, 0, drawing.Width, drawing.Height), crop));
-        if (picture.HasPictureEffect) _context.Add("PUB_PICTURE_EFFECT_UNASSESSED", "Native picture recoloring, brightness, contrast, or transparency effects require additional projection.",
-            OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(source.Id));
-    }
-    private byte[] ProjectImage(PublisherImage image, uint objectId, out string contentType) {
-        contentType = image.ContentType;
-        OfficeImageFormat format = OfficeImageInfo.FromMimeType(contentType);
-        if (format is not (OfficeImageFormat.Wmf or OfficeImageFormat.Emf)) return image.Bytes;
-        var diagnostics = new List<OfficeImageExportDiagnostic>();
-        var codec = new OfficeRasterImageFallbackCodec(_context.Options.ImageCodec, diagnostics, PublisherEscherReader.ShapeLocation(objectId));
-        _context.Token.ThrowIfCancellationRequested();
-        codec.TryDecode(image.Bytes, contentType, out OfficeRasterImage? raster);
-        _context.Token.ThrowIfCancellationRequested();
-        if (raster == null || (long)raster.Width * raster.Height > _context.Options.MaximumRasterPixels)
-            throw new InvalidDataException("Publisher application image codec exceeded the pixel limit or returned no image.");
-        foreach (OfficeImageExportDiagnostic diagnostic in diagnostics) _context.Add(diagnostic.Code, diagnostic.Message, diagnostic.LossKind, diagnostic.Source);
-        if (!diagnostics.Any(item => item.LossKind == OfficeConversionLossKind.Omission))
-            _context.Add("PUB_METAFILE_RASTERIZED", "A WMF/EMF picture was rasterized by the application codec. Images retains the original native payload.",
-                OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(objectId));
-        contentType = "image/png";
-        return OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png, null, _context.Options.MaximumImageBytes, _context.Token);
     }
     private OfficeShape Geometry(PublisherEscherShape source, double width, double height) {
         switch (source.Type) {

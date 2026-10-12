@@ -6,6 +6,18 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(0x0182)]
+    [InlineData(0x0184)]
+    public void OfficeArtBooleanInheritance_MalformedEffectiveOpacityDoesNotReviveAnOlderInvalidValue(int id) {
+        var properties = new[] { new OfficeArtProperty(0, 0x0180, 4),
+            new OfficeArtProperty(1, (ushort)id, 65537),
+            new OfficeArtProperty(2, (ushort)(id | 0x8000), 1, 1, complexData: new byte[] { 0 }) };
+        Assert.True(OfficeArtLinearGradientProjector.TryProject(OfficeArtShapeStyle.Decode(properties),
+            80, 40, _ => null, out var fill, out _));
+        Assert.NotNull(fill);
+    }
+
+    [Theory]
     [InlineData(0U, false)]
     [InlineData(1U, true)]
     public void OfficeArtShapeStyle_GradientStopsHonorTheFinalNonComplexOverride(uint replacement, bool invalid) {
@@ -22,6 +34,48 @@ public partial class DrawingTests {
         OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
             new OfficeArtProperty(0, 0x4186, 7), new OfficeArtProperty(1, 0x0186, 0) });
         Assert.Null(style.FillBlipStoreIndex);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtShapeStyle_UnderstatedFullAndCompactColorArraysDoNotHideExtraStops(bool compact) {
+        byte[] colors = compact
+            ? new byte[] { 1, 0, 1, 0, 0xF0, 0xFF, 0xFF, 0, 0, 0, 0, 0xFF, 0, 0 }
+            : new byte[] { 1, 0, 1, 0, 8, 0, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0, 0, 0, 0, 1, 0 };
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x8197, (uint)colors.Length, colors.Length, complexData: colors) });
+        Assert.Empty(style.FillGradientStops);
+        Assert.True(style.IsFillGradientStopTableTruncated);
+    }
+
+    [Fact]
+    public void OfficeArtShapeStyle_DecodesCompactGradientStopsWithZeroExtendedPositions() {
+        byte[] colors = { 2, 0, 2, 0, 0xF0, 0xFF, 0xFF, 0, 0, 0, 0, 0xFF, 0, 0 };
+        var properties = new[] { new OfficeArtProperty(0, 0x8197, (uint)colors.Length,
+            colors.Length, complexData: colors) };
+        // Caller buffers and public copies cannot mutate the owned payload
+        // borrowed by repeated native style decodes.
+        colors[6] = 0;
+        properties[0].CopyComplexData()![10] = 0xFF;
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(properties);
+        Assert.False(style.IsFillGradientStopTableTruncated);
+        Assert.Equal(2, style.FillGradientStops.Count);
+        Assert.Equal(new[] { 0D, 0D }, style.FillGradientStops.Select(stop => stop.Position));
+        Assert.Equal(new[] { 0x000000FFU, 0x0000FF00U }, style.FillGradientStops.Select(stop => stop.Color.Value));
+    }
+
+    [Theory]
+    [InlineData(0x00360036U, true)]
+    [InlineData(0x00000036U, null)]
+    public void OfficeArtShapeStyle_DecodesFillMappingOnlyWhenItsUseBitsAreSet(uint flags, bool? expected) {
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x01BF, flags), new OfficeArtProperty(1, 0x019C, 0x40000003U)
+        });
+        Assert.Equal(expected, style.FillRotatesWithShape);
+        Assert.Equal(expected, style.FillAlignedWithShape);
+        Assert.Equal(expected, style.FillUsesCustomRectangle);
+        Assert.Equal(0x40000003U, style.FillShadeType);
     }
 
     [Theory]
