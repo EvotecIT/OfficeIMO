@@ -90,15 +90,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             containingWidth,
             parentStyle,
             out HtmlRenderBoxStyle callStyle);
-        if (!hasCallStyle) callStyle = parentStyle.Clone();
+        if (!hasCallStyle) {
+            callStyle = parentStyle.Clone();
+            callStyle.Font = callStyle.Font.WithSize(HtmlRenderStyleResolver.ResolveDefaultFootnoteCallFontSize(parentStyle.Font.Size));
+        }
         string source = HtmlRenderStyleResolver.DescribeSource(element) + ":footnote-call";
         AddFootnoteCallDestination(element, number, callStyle, source, runs);
         if (callStyle.Display == "none"
             || _generatedContent.Suppresses(element, HtmlPseudoElementKind.FootnoteCall)) {
             return;
-        }
-        if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "font-size")) {
-            callStyle.Font = callStyle.Font.WithSize(parentStyle.Font.Size * 0.7D);
         }
         if (!hasCallStyle || !_styleResolver.IsPseudoPropertyAuthored(element, HtmlPseudoElementKind.FootnoteCall, "vertical-align")) {
             callStyle.Baseline = OfficeTextBaseline.Superscript;
