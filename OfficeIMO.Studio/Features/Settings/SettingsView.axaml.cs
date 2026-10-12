@@ -15,6 +15,44 @@ public sealed partial class SettingsView : UserControl {
         SectionList.SelectionChanged += (_, _) => ScrollToSelectedSection();
         SectionScroller.ScrollChanged += (_, _) => FollowScrolledSection();
         SizeChanged += (_, e) => UseCompactLayout(e.NewSize.Width < CompactWidth);
+        DataContextChanged += (_, _) => ObserveRequests();
+    }
+
+    private StudioSettingsViewModel? _observed;
+
+    // Another screen can ask for a section (for example text recognition setup). The view may still be hidden or not
+    // laid out when that happens, so the request is applied on the first layout pass where the page is on screen.
+    private void ObserveRequests() {
+        if (_observed is not null) _observed.PropertyChanged -= OnSettingsPropertyChanged;
+        _observed = DataContext as StudioSettingsViewModel;
+        if (_observed is null) return;
+        _observed.PropertyChanged += OnSettingsPropertyChanged;
+        if (_observed.RequestedSection is not null) WaitToShowRequestedSection();
+    }
+
+    private void OnSettingsPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
+        if (e.PropertyName == nameof(StudioSettingsViewModel.RequestedSection) && _observed?.RequestedSection is not null) WaitToShowRequestedSection();
+    }
+
+    private void WaitToShowRequestedSection() {
+        LayoutUpdated -= OnLayoutForRequestedSection;
+        LayoutUpdated += OnLayoutForRequestedSection;
+        InvalidateMeasure();
+    }
+
+    private void OnLayoutForRequestedSection(object? sender, EventArgs e) {
+        if (!IsEffectivelyVisible || SettingsContent.Bounds.Height <= 0) return;
+        LayoutUpdated -= OnLayoutForRequestedSection;
+        if (_observed?.RequestedSection is not { } name) return;
+        _observed.RequestedSection = null;
+        ShowSection(name);
+    }
+
+    /// <summary>Selects a section by its name and scrolls it to the top of the page.</summary>
+    internal void ShowSection(string name) {
+        if (SectionList.Items.OfType<ListBoxItem>().FirstOrDefault(item => Equals(item.Tag, name)) is not { } item) return;
+        if (ReferenceEquals(SectionList.SelectedItem, item)) ScrollToSelectedSection();
+        else SectionList.SelectedItem = item;
     }
 
     internal void UseTouchPresentation() => FocusReadingHelp.IsVisible = false;

@@ -82,6 +82,9 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
     }
     private void SelectedItemChanged(object? sender, PropertyChangedEventArgs args) => OnPropertyChanged(nameof(HasSelectedOutput));
     public string? RecognitionUnavailableReason { get; }
+
+    /// <summary>Shared check for the recognition engine, shown above the queue.</summary>
+    public OcrReadinessViewModel? Readiness { get; internal set; }
     public bool IsRecognitionAvailable => RecognitionUnavailableReason is null;
     public bool CanRun => IsRecognitionAvailable && !_disposed && !IsBusy && !string.IsNullOrWhiteSpace(OutputFolder) &&
         Languages.Any(item => item.IsSelected) && Items.Any(item => item.Status is null);

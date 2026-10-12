@@ -87,6 +87,10 @@
 
     <Grid x:Name="QueuePanel" Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="18,0">
       <StackPanel Grid.Row="0" Spacing="10" Margin="0,16,0,12">
+        <!-- Lossy outputs are named once, with a way to their details, rather than only marked in the Status column. -->
+        <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding ConversionWorkbench.HasLossNotice}" Message="{Binding ConversionWorkbench.LossNotice}"
+                               ActionText="{loc:Loc Conversion.Loss.Review}" ActionCommand="{Binding ConversionWorkbench.ReviewLossCommand}"
+                               DismissCommand="{Binding ConversionWorkbench.DismissLossNoticeCommand}" CornerRadius="8" />
         <StackPanel>
           <TextBlock Classes="sectionTitle" Text="{loc:Loc ConversionWorkbench.ConversionQueue}" />
           <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.QueueSummary}" FontSize="{StaticResource StudioSecondaryFontSize}" />

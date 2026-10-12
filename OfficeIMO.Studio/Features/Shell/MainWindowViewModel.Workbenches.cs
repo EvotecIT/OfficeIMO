@@ -26,6 +26,7 @@ public sealed partial class MainWindowViewModel {
         OcrWorkbench = owner.OcrWorkbench;
         Settings = owner.Settings;
         OcrSession = owner.OcrSession;
+        OcrReadiness = owner.OcrReadiness;
     }
 
     private void CancelWorkbenchOperations() {
@@ -59,6 +60,7 @@ public sealed partial class MainWindowViewModel {
         ProvenanceWorkbench.Dispose();
         OcrWorkbench.Dispose();
         OcrSession.Dispose();
+        OcrReadiness.Dispose();
         Settings.Dispose();
     }
 }

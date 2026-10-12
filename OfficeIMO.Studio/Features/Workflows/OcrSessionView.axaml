@@ -1,12 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization" xmlns:infra="using:OfficeIMO.Studio.Infrastructure" xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
              x:Class="OfficeIMO.Studio.Features.Workflows.OcrSessionView" x:DataType="workflow:OcrSessionViewModel">
   <Grid Background="{DynamicResource StudioWindowBrush}">
     <Grid Classes="pageContent" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="{StaticResource StudioSpaceM}" IsVisible="{Binding !HasReview}">
       <StackPanel Classes="pageHeading">
         <TextBlock Text="{loc:Loc OcrSession.Title}" Classes="pageTitle" />
         <TextBlock Text="{loc:Loc OcrSession.Hint}" TextWrapping="Wrap" Classes="muted" />
-        <TextBlock Text="{Binding RecognitionUnavailableReason}" IsVisible="{Binding !IsRecognitionAvailable}" TextWrapping="Wrap" Foreground="{DynamicResource StudioWarningBrush}"/>
+        <infra:StudioNoticeBar Severity="Warning" IsVisible="{Binding Readiness.HasNotice, FallbackValue=False}" Message="{Binding Readiness.Notice}" Margin="0,6,0,0" CornerRadius="8"
+                               ActionText="{loc:Loc Ocr.Notice.SetUp}" ActionCommand="{Binding Readiness.SetUpCommand}" IsActionVisible="{Binding Readiness.CanSetUp, FallbackValue=False}" />
       </StackPanel>
       <ScrollViewer Grid.Row="1" MaxHeight="230" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
       <StackPanel Spacing="8" Margin="0,0,16,0" IsEnabled="{Binding !IsBusy}">

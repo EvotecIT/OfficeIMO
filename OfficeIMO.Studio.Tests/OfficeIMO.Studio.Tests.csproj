@@ -46,5 +46,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="../OfficeIMO.TestAssets/Documents/Provenance/unsigned-credential-12-actions.png" Link="Fixtures/unsigned-credential-12-actions.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Publisher.Tests\Fixtures\Sample.pub" Link="Fixtures\Publisher\Sample.pub" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

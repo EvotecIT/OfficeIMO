@@ -76,6 +76,9 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
 
     public bool HasOutput => State == ConversionJobState.Completed && !string.IsNullOrWhiteSpace(OutputPath);
 
+    /// <summary>Completed, but the conversion's fidelity evidence reports approximated or omitted content.</summary>
+    public bool HasLoss => State == ConversionJobState.Completed && ConversionEvidence?.HasLoss == true;
+
     internal bool CanRetry => State is ConversionJobState.Failed or ConversionJobState.Cancelled;
 
     internal void PrepareAttempt() {
@@ -88,6 +91,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
         ConversionEvidence = null;
         OnPropertyChanged(nameof(SourceFingerprint));
         OnPropertyChanged(nameof(HasWarnings));
+        OnPropertyChanged(nameof(HasLoss));
     }
 
     internal void ReportProgress(OfficeWorkflowProgress progress) {
@@ -130,6 +134,7 @@ public sealed partial class ConversionJobViewModel : ObservableObject {
             _ => T("Failed", "Failed")
         };
         OnPropertyChanged(nameof(HasWarnings));
+        OnPropertyChanged(nameof(HasLoss));
     }
 
     private string T(string suffix, string fallback) =>

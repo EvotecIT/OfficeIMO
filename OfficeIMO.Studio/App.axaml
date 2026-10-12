@@ -419,7 +419,7 @@
         <Setter Property="Padding" Value="14,7,8,7" />
         <Setter Property="Template">
           <ControlTemplate>
-            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="3,0,0,1" Padding="{TemplateBinding Padding}">
+            <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="3,0,0,1" Padding="{TemplateBinding Padding}" CornerRadius="{TemplateBinding CornerRadius}">
               <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" MinHeight="30">
                 <PathIcon x:Name="PART_Icon" Width="15" Height="15" VerticalAlignment="Center" Data="{StaticResource IconInfo}" Foreground="{TemplateBinding BorderBrush}" />
                 <SelectableTextBlock Grid.Column="1" Text="{TemplateBinding Message}" Foreground="{TemplateBinding Foreground}" TextWrapping="Wrap" VerticalAlignment="Center" />

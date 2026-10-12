@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Settings;
 using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Workflows;
 using System.ComponentModel;
@@ -66,6 +67,7 @@ public sealed partial class MainWindowViewModel {
 
     public SearchablePdfOcrViewModel OcrWorkbench { get; private set; } = null!;
     public OcrSessionViewModel OcrSession { get; private set; } = null!;
+    public OcrReadinessViewModel OcrReadiness { get; private set; } = null!;
 
     public StudioJobsViewModel Jobs { get; private set; } = null!;
 
@@ -109,6 +111,8 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnWorkspaceModeChanged(StudioWorkspaceMode value) {
+        // Opening an OCR screen checks for the engine, so a missing prerequisite is explained before recognition starts.
+        if (value == StudioWorkspaceMode.Ocr) OcrReadiness?.Refresh();
         OnPropertyChanged(nameof(ShowOcrPrompt));
         ResetNotificationScopeForNavigation();
         NotifyVisibleNotifications();
@@ -143,6 +147,13 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private void ShowSettings() => WorkspaceMode = StudioWorkspaceMode.Settings;
+
+    /// <summary>Shows Settings scrolled to text recognition setup.</summary>
+    [RelayCommand]
+    internal void ShowTextRecognitionSetup() {
+        Settings.RequestedSection = StudioSettingsViewModel.TextRecognitionSection;
+        WorkspaceMode = StudioWorkspaceMode.Settings;
+    }
 
     [RelayCommand]
     private void ShowProvenance() => WorkspaceMode = StudioWorkspaceMode.Provenance;

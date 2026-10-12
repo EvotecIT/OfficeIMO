@@ -5640,4 +5640,9 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Aufgezeichneter Quelltyp: {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Quelltyp nicht aufgezeichnet</value></data>
   <data name="PdfPage.FontReplaced" xml:space="preserve"><value>Eine Schrift dieser Seite fehlt in der PDF-Datei oder kann nicht dargestellt werden; stattdessen wird eine ähnliche installierte Schrift angezeigt. Buchstabenformen und Abstände können vom Original abweichen.</value></data>
+  <data name="Ocr.Notice.EngineMissing" xml:space="preserve"><value>Die Texterkennung benötigt Tesseract, das auf diesem Computer nicht gefunden wurde. Installieren Sie es oder wählen Sie den Installationsort in den Einstellungen.</value></data>
+  <data name="Ocr.Notice.SetUp" xml:space="preserve"><value>Texterkennung einrichten</value></data>
+  <data name="Conversion.Loss.One" xml:space="preserve"><value>{0} wurde konvertiert, aber einige Inhalte wurden angenähert oder ausgelassen. Prüfen Sie die Details, bevor Sie sich auf das Ergebnis verlassen.</value></data>
+  <data name="Conversion.Loss.Many" xml:space="preserve"><value>{0} Dateien wurden mit angenäherten oder fehlenden Inhalten konvertiert. Prüfen Sie die Details, bevor Sie sich auf die Ergebnisse verlassen.</value></data>
+  <data name="Conversion.Loss.Review" xml:space="preserve"><value>Details prüfen</value></data>
 </root>

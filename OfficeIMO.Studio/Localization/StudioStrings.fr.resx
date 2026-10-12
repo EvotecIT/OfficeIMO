@@ -2162,4 +2162,9 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Type de source enregistré : {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Type de source non enregistré</value></data>
   <data name="PdfPage.FontReplaced" xml:space="preserve"><value>Une police utilisée par cette page est absente du PDF ou ne peut pas être dessinée ; une police installée similaire est affichée à la place. La forme des lettres et l&apos;espacement peuvent différer de l&apos;original.</value></data>
+  <data name="Ocr.Notice.EngineMissing" xml:space="preserve"><value>La reconnaissance de texte nécessite Tesseract, introuvable sur cet ordinateur. Installez-le ou indiquez son emplacement dans les paramètres.</value></data>
+  <data name="Ocr.Notice.SetUp" xml:space="preserve"><value>Configurer la reconnaissance de texte</value></data>
+  <data name="Conversion.Loss.One" xml:space="preserve"><value>{0} a été converti, mais une partie du contenu a été approximée ou omise. Consultez les détails avant d&apos;utiliser le résultat.</value></data>
+  <data name="Conversion.Loss.Many" xml:space="preserve"><value>{0} fichiers ont été convertis avec du contenu approximé ou manquant. Consultez les détails avant d&apos;utiliser les résultats.</value></data>
+  <data name="Conversion.Loss.Review" xml:space="preserve"><value>Voir les détails</value></data>
 </root>

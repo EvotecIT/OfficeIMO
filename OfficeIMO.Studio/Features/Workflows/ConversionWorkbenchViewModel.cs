@@ -44,6 +44,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _runner = runner ?? OfficeIMO.Workflows.IWork.IWorkWorkflow.CreateRunner();
         _publicationGuard = publicationGuard;
         _localizer = localizer ?? StudioLocalization.Current;
+        Jobs.CollectionChanged += (_, _) => { if (_lossJobs.Count > 0) RefreshLossNotice(); };
         BatchExport = new PdfBatchExportViewModel(pickOutputFolder, publicationGuard, () => IsBusy, _localizer, _runner, jobHistory);
         BatchExport.PropertyChanged += (_, change) => {
             if (change.PropertyName == nameof(PdfBatchExportViewModel.Status)) Status = BatchExport.Status;
@@ -314,6 +315,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         var registeredSettings = candidates.ToDictionary(job => job.Id, job => job.CreateRegisteredConversionSettings());
         OfficeWorkflowConflictPolicy conflictPolicy = SelectedConflict.Value;
         foreach (ConversionJobViewModel job in candidates) job.PrepareAttempt();
+        ResetLossNotice();
         var history = new Dictionary<string, StudioJobRecord>(StringComparer.Ordinal);
         bool ownerStarted = false;
         StudioStorageAccess.DirectoryOutputSession? directoryOutput = null;
@@ -370,6 +372,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                     else entry.Unconfirmed(job.Summary!);
                 }
             }
+            ReportLoss(candidates);
             Status = _localizer.FormatOrDefault(
                 "Conversion.Queue.Outcomes",
                 "{0:N0} completed · {1:N0} failed · {2:N0} cancelled · {3:N0} need checking",

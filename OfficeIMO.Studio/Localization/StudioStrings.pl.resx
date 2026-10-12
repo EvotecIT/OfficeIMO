@@ -5640,4 +5640,9 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Zapisany typ źródła: {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Nie zapisano typu źródła</value></data>
   <data name="PdfPage.FontReplaced" xml:space="preserve"><value>Czcionki używanej na tej stronie brakuje w pliku PDF lub nie można jej narysować, więc wyświetlana jest podobna czcionka zainstalowana. Kształty liter i odstępy mogą różnić się od oryginału.</value></data>
+  <data name="Ocr.Notice.EngineMissing" xml:space="preserve"><value>Rozpoznawanie tekstu wymaga programu Tesseract, którego nie znaleziono na tym komputerze. Zainstaluj go lub wskaż jego lokalizację w Ustawieniach.</value></data>
+  <data name="Ocr.Notice.SetUp" xml:space="preserve"><value>Skonfiguruj rozpoznawanie tekstu</value></data>
+  <data name="Conversion.Loss.One" xml:space="preserve"><value>Plik {0} został przekonwertowany, ale część treści przybliżono lub pominięto. Przejrzyj szczegóły, zanim zaczniesz korzystać z wyniku.</value></data>
+  <data name="Conversion.Loss.Many" xml:space="preserve"><value>Przekonwertowane pliki z przybliżoną lub brakującą treścią: {0}. Przejrzyj szczegóły, zanim zaczniesz korzystać z wyników.</value></data>
+  <data name="Conversion.Loss.Review" xml:space="preserve"><value>Przejrzyj szczegóły</value></data>
 </root>

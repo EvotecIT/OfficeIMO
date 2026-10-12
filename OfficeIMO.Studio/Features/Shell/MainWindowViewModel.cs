@@ -229,6 +229,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 _pickOutputFolder, _localizer, _services.Storage, _services.Jobs, _services.WorkflowRecovery,
                 publicationGuard, confirmWorkflowProviderWrite ?? _confirmProviderWrite,
                 createEngine: StudioDistributionPolicy.ExternalToolsAllowed ? _services.Ocr.CreateEngineAsync : null, openOutput: openWorkflowOutput);
+            OcrReadiness = new OcrReadinessViewModel(_services.Preferences, _localizer);
+            OcrSession.Readiness = OcrReadiness;
             ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
             ConversionWorkbench.BatchExport.PropertyChanged += OnWorkflowPropertyChanged;
             InvoiceWorkbench.PropertyChanged += OnWorkflowPropertyChanged;

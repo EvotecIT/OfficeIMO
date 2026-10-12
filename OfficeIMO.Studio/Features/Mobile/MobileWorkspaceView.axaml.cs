@@ -53,6 +53,7 @@ public sealed partial class MobileWorkspaceView : UserControl {
         if (!ReferenceEquals(_observedDocument, Document)) CommandPalette.Dismiss();
         if (_observedDocument is not null) {
             _observedDocument.PropertyChanged -= OnDocumentChanged;
+            if (_observedDocument.OcrReadiness is { } previousReadiness) previousReadiness.SetUpRequested -= OnOcrSetUpRequested;
             _noteDrafts[_observedDocument] = NoteText.Text ?? string.Empty;
         }
         _observedDocument = Document;
@@ -63,9 +64,12 @@ public sealed partial class MobileWorkspaceView : UserControl {
         UpdateActiveViewport();
         if (_observedDocument is null) return;
         _observedDocument.PropertyChanged += OnDocumentChanged;
+        if (_observedDocument.OcrReadiness is { } readiness) readiness.SetUpRequested += OnOcrSetUpRequested;
         UpdateDocumentStatus();
         if (_configuredDocuments.Add(_observedDocument)) FitNewDocument();
     }
+
+    private void OnOcrSetUpRequested(object? sender, EventArgs e) => Document?.ShowTextRecognitionSetup();
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(MainWindowViewModel.DocumentMode) && Document is { } active)

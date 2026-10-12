@@ -33,6 +33,8 @@ public sealed partial class MainWindow : Window {
         _applicationDocument = CreateDocumentViewModel((path, token) => TabHost!.OpenDocumentAsync(path, token));
         _applicationDocument.FindOpenDocument = FindOpenDocument;
         _applicationDocument.PropertyChanged += OnApplicationDocumentChanged;
+        // Recognition setup opens Settings on the document the user is looking at.
+        _applicationDocument.OcrReadiness.SetUpRequested += (_, _) => (ViewModel ?? _applicationDocument).ShowTextRecognitionSetup();
         TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument,
             document => ConfirmActiveCloseAsync([document]), _applicationDocument);
         ViewModel = TabHost.ActiveDocument;

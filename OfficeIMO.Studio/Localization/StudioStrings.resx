@@ -2982,4 +2982,9 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Provenance.SourceRecorded" xml:space="preserve"><value>Recorded source type: {0}</value></data>
   <data name="Provenance.SourceNotRecorded" xml:space="preserve"><value>Source type not recorded</value></data>
   <data name="PdfPage.FontReplaced" xml:space="preserve"><value>A font this page relies on is missing from the PDF or cannot be drawn, so a similar installed font is shown instead. Letter shapes and spacing may differ from the original.</value></data>
+  <data name="Ocr.Notice.EngineMissing" xml:space="preserve"><value>Text recognition needs Tesseract, which was not found on this computer. Install it, or choose where it is installed, in Settings.</value></data>
+  <data name="Ocr.Notice.SetUp" xml:space="preserve"><value>Set up text recognition</value></data>
+  <data name="Conversion.Loss.One" xml:space="preserve"><value>{0} was converted, but some content was approximated or left out. Review the details before relying on the output.</value></data>
+  <data name="Conversion.Loss.Many" xml:space="preserve"><value>{0} files were converted with approximated or missing content. Review the details before relying on the outputs.</value></data>
+  <data name="Conversion.Loss.Review" xml:space="preserve"><value>Review details</value></data>
 </root>

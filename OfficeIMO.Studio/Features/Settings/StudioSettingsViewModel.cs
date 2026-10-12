@@ -14,6 +14,12 @@ internal sealed record StudioDensityChoice(StudioDensityPreference Value, string
 
 /// <summary>Presents application-wide preferences and privacy-bounded support information.</summary>
 internal sealed partial class StudioSettingsViewModel : ObservableObject, IDisposable {
+    internal const string TextRecognitionSection = "TextRecognitionSection";
+
+    /// <summary>A section another screen asked Settings to show; the view scrolls to it and clears the request.</summary>
+    [ObservableProperty]
+    private string? _requestedSection;
+
     private readonly StudioPreferencesService _preferences;
     private readonly IStudioLocalizer _localizer;
     private readonly IStudioDiagnostics _diagnostics;
