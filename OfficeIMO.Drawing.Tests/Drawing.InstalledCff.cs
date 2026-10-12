@@ -6,6 +6,31 @@ namespace OfficeIMO.Tests;
 
 public sealed class InstalledCffFontTests {
     [Fact]
+    public void RetainedApproximateFaceDoesNotHideAnExactFaceInLaterCandidates() {
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO.InstalledCff", Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(root);
+            byte[] regular = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestAssets", "SourceSansPro-Regular.otf"));
+            OfficeOpenTypeReader reader = OfficeOpenTypeReader.TryCreate(regular)!;
+            string family = reader.ReadFamilyName()!;
+            byte[] light = (byte[])regular.Clone();
+            Assert.True(reader.TryGetTable("OS/2", out int offset, out _));
+            light[offset + 4] = 1; light[offset + 5] = 44; // 300, with identical glyph metrics.
+            string lightPath = Path.Combine(root, "123.otf"), regularPath = Path.Combine(root, "456.otf");
+            File.WriteAllBytes(lightPath, light); File.WriteAllBytes(regularPath, regular);
+            var fonts = new OfficeFontFaceCollection();
+            Assert.True(fonts.TryAddInstalledCffFamily(family, OfficeFontFaceDescriptor.Regular,
+                new[] { lightPath }, regular.Length * 4, regular.Length, CancellationToken.None, out _, out string? error), error);
+            Assert.Equal(300, Assert.Single(fonts.Faces).Descriptor.Weight);
+            Assert.True(fonts.TryAddInstalledCffFamily(family, OfficeFontFaceDescriptor.Regular,
+                new[] { lightPath, regularPath }, regular.Length * 4, regular.Length, CancellationToken.None, out _, out error), error);
+            Assert.Contains(fonts.Faces, face => face.Descriptor == OfficeFontFaceDescriptor.Regular);
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void InstalledCffSelectionUsesFaceMetadataAndRetainsScopedBudgets() {
         string root = Path.Combine(Path.GetTempPath(), "OfficeIMO.InstalledCff", Guid.NewGuid().ToString("N"));
         try {

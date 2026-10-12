@@ -6,7 +6,6 @@ namespace OfficeIMO.Drawing;
 
 public sealed partial class OfficeFontFaceCollection {
     private readonly Dictionary<string, List<OfficeFontFace>> _installedCffSources = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, Dictionary<OfficeFontFaceDescriptor, OfficeFontFace>> _installedCffSelections = new(StringComparer.Ordinal);
 
     // The same bounded source reader and scoped decoder used by mathematical fonts
     // also serve ordinary CFF families. Paths and metadata remain discovery hints.
@@ -29,11 +28,12 @@ public sealed partial class OfficeFontFaceCollection {
         if (nativeSelection) foreach (string path in candidates) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeFontFace? previous = null;
-            if (_installedCffSelections.TryGetValue(path, out var selections)) selections.TryGetValue(requested, out previous);
-            if (previous == null && _installedCffSources.TryGetValue(path, out var retainedFaces))
+            // Only an exact face can win without comparing the other candidates.
+            // A prior fallback may lose when another alias or candidate set is used.
+            if (_installedCffSources.TryGetValue(path, out var retainedFaces))
                 previous = retainedFaces.Find(face => face.Descriptor == requested);
             if (previous != null && OfficeFontNameMetadata.MatchesFamily(previous.DataSnapshot, key, cancellationToken)) {
-                RetainInstalledCffSelection(path, requested, RegisterInstalledCffAlias(family, previous));
+                RegisterInstalledCffAlias(family, previous);
                 return true;
             }
         }
@@ -73,7 +73,7 @@ public sealed partial class OfficeFontFaceCollection {
         if (nativeSelection && _installedCffSources.TryGetValue(selectedPath, out List<OfficeFontFace>? faces)) {
             OfficeFontFace? registered = faces.Find(face => face.Descriptor == selectedDescriptor);
             if (registered != null) {
-                RetainInstalledCffSelection(selectedPath, requested, RegisterInstalledCffAlias(family, registered));
+                RegisterInstalledCffAlias(family, registered);
                 return true;
             }
         }
@@ -86,7 +86,6 @@ public sealed partial class OfficeFontFaceCollection {
                 _installedCffSources[selectedPath] = retained = new List<OfficeFontFace>();
             OfficeFontFace registered = _faces.FindLast(face => face.FamilyName == family && face.ResourceFamilyName == resource)!;
             retained.Add(registered);
-            RetainInstalledCffSelection(selectedPath, requested, registered);
         }
         return true;
     }
@@ -101,9 +100,4 @@ public sealed partial class OfficeFontFaceCollection {
         return alias;
     }
 
-    private void RetainInstalledCffSelection(string path, OfficeFontFaceDescriptor requested, OfficeFontFace face) {
-        if (!_installedCffSelections.TryGetValue(path, out var selections))
-            _installedCffSelections[path] = selections = new Dictionary<OfficeFontFaceDescriptor, OfficeFontFace>();
-        selections[requested] = face;
-    }
 }
