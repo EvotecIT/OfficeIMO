@@ -8,7 +8,7 @@
     <StackPanel Spacing="{StaticResource StudioSpaceM}" IsEnabled="{Binding CanEdit}">
      <TextBlock Text="{loc:Loc Invoice.Input}" Classes="sectionTitle" />
      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}">
-      <TextBox Text="{Binding InputPath}" PlaceholderText="{loc:Loc Invoice.Input}" AutomationProperties.Name="{loc:Loc Invoice.Input}" />
+      <TextBox Classes="path" Text="{Binding InputPath}" PlaceholderText="{loc:Loc Invoice.Input}" AutomationProperties.Name="{loc:Loc Invoice.Input}" />
       <Button Grid.Column="1" Classes="tool" Content="{loc:Loc Invoice.ChooseInput}" Command="{Binding ChooseInputCommand}" />
      </Grid>
      <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.Operation}" /><ComboBox ItemsSource="{Binding Operations}" SelectedItem="{Binding SelectedOperation}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.Operation}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceOperationChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
@@ -18,7 +18,7 @@
      </StackPanel>
      <StackPanel IsVisible="{Binding IsWriting}" Spacing="{StaticResource StudioSpaceXS}">
       <TextBlock Text="{loc:Loc Invoice.OutputFolder}" />
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}"><TextBox Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc Invoice.OutputFolder}" AutomationProperties.Name="{loc:Loc Invoice.OutputFolder}" /><Button Grid.Column="1" Classes="tool" Content="{loc:Loc Invoice.ChooseFolder}" Command="{Binding ChooseOutputFolderCommand}" /></Grid>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}"><TextBox Classes="path" Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc Invoice.OutputFolder}" AutomationProperties.Name="{loc:Loc Invoice.OutputFolder}" /><Button Grid.Column="1" Classes="tool" Content="{loc:Loc Invoice.ChooseFolder}" Command="{Binding ChooseOutputFolderCommand}" /></Grid>
      </StackPanel>
      <StackPanel IsVisible="{Binding IsEditing}" Spacing="{StaticResource StudioSpaceS}">
       <TextBlock Text="{loc:Loc Invoice.EditFields}" Classes="sectionTitle" /><TextBlock Text="{Binding EditingHint}" Classes="muted" TextWrapping="Wrap" />
@@ -31,7 +31,7 @@
      <Expander Header="{loc:Loc Invoice.Presentation}" IsVisible="{Binding IsRendering}">
       <StackPanel Spacing="{StaticResource StudioSpaceS}" Margin="0,8,0,0">
 <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.Languages}" /><TextBox Text="{Binding Languages}" PlaceholderText="{loc:Loc Invoice.Languages}" AutomationProperties.Name="{loc:Loc Invoice.Languages}" /></StackPanel>
-<StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.Font}" /><TextBox Text="{Binding FontPath}" PlaceholderText="{loc:Loc Invoice.Font}" AutomationProperties.Name="{loc:Loc Invoice.Font}" /></StackPanel>
+<StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.Font}" /><Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}"><TextBox Classes="path" Text="{Binding FontPath}" PlaceholderText="{loc:Loc Invoice.Font}" AutomationProperties.Name="{loc:Loc Invoice.Font}" /><Button Grid.Column="1" Classes="tool" Content="{loc:Loc Invoice.ChooseFont}" Command="{Binding ChooseFontCommand}" IsVisible="{Binding CanChooseFont}" /></Grid></StackPanel>
        <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.Table}" /><ComboBox ItemsSource="{Binding TableLayouts}" SelectedItem="{Binding SelectedTableLayout}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.Table}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceTableLayoutChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
        <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.UnitDisplay}" /><ComboBox ItemsSource="{Binding CodeDisplays}" SelectedItem="{Binding SelectedUnitDisplay}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.UnitDisplay}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceCodeDisplayChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>
        <StackPanel Spacing="{StaticResource StudioSpaceXS}"><TextBlock Text="{loc:Loc Invoice.PaymentDisplay}" /><ComboBox ItemsSource="{Binding CodeDisplays}" SelectedItem="{Binding SelectedPaymentDisplay}" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Invoice.PaymentDisplay}"><ComboBox.ItemTemplate><DataTemplate x:DataType="workflow:InvoiceCodeDisplayChoice"><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></StackPanel>

@@ -143,6 +143,30 @@ public sealed class InvoiceWorkbenchTests {
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task FontPickedFromAProviderIsReadThroughStorage() {
+        // A font chosen in Files or a sandboxed folder has no path Studio may open directly.
+        byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "Fonts", "OpenSans-Bold.ttf"));
+        using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
+        var provider = new TestStorageFile("content://fonts/open-sans", font, "OpenSans-Bold.ttf");
+        string fontLocation = await storage.RegisterAsync(provider.Item, CancellationToken.None);
+        var runner = new RecordingRunner();
+        using var model = new InvoiceWorkbenchViewModel(_ => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null), runner,
+            localizer: null, storage: storage, pickFont: _ => Task.FromResult<string?>(fontLocation)) {
+            InputPath = Path.Combine(Path.GetTempPath(), "input.xml"), OutputFolder = Path.GetTempPath()
+        };
+        Assert.True(model.CanChooseFont);
+        await model.ChooseFontCommand.ExecuteAsync(null);
+        Assert.Equal(fontLocation, model.FontPath);
+        model.SelectedOperation = model.Operations.Single(o => o.Value == OfficeInvoiceWorkflowOperation.RenderPresentationPdf);
+        model.SelectedTarget = model.Targets.First(t => t.Options.Syntax == InvoiceSyntax.Cii);
+        var running = model.RunCommand.ExecuteAsync(null);
+        await runner.Entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.NotNull(runner.Request!.PdfOptions);
+        model.CancelCommand.Execute(null);
+        await running.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
     [Theory]
     [InlineData(false, "Not requested")]
     [InlineData(true, "Not run")]

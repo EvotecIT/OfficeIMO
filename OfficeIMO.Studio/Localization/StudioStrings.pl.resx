@@ -5675,4 +5675,8 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Apple.Documentation" xml:space="preserve"><value>Dokumentacja OfficeIMO Studio</value></data>
   <data name="Apple.ReportProblem" xml:space="preserve"><value>Zgłoś problem</value></data>
   <data name="Apple.About" xml:space="preserve"><value>O programie OfficeIMO Studio</value></data>
+  <data name="Invoice.ChooseFont" xml:space="preserve"><value>Wybierz czcionkę</value></data>
+  <data name="Invoice.ChooseFontTitle" xml:space="preserve"><value>Wybierz czcionkę do osadzenia</value></data>
+  <data name="Invoice.FontFiles" xml:space="preserve"><value>Czcionki</value></data>
+  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>Eksport folderów do PDF wymaga stałego dostępu do całych folderów, którego ta wersja Studio nie ma. Użyj opcji Dodaj pliki i Uruchom oczekujące, aby przekonwertować kilka dokumentów.</value></data>
 </root>

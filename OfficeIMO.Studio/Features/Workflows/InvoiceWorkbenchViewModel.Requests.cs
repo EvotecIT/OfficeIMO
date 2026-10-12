@@ -20,26 +20,18 @@ public sealed partial class InvoiceWorkbenchViewModel {
                 throw new ArgumentException(T("EditRequired", "Enter at least one source-field replacement."));
         }
         var layout = IsRendering ? InvoicePdfLayoutOptions.ForCultures(Languages.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)) : new();
-        PdfOptions? pdfOptions = null;
         if (IsRendering) {
             layout.LineColumns.Clear();
             foreach (var column in SelectedTableLayout.Columns) layout.LineColumns.Add(column);
             layout.UnitCodeDisplay = SelectedUnitDisplay.Value; layout.PaymentCodeDisplay = SelectedPaymentDisplay.Value;
             layout.CompactDetails = CompactDetails; layout.IncludePageIdentity = PageIdentity;
             if (ModernLayout) layout.Theme = new InvoicePdfTheme();
-            if (!string.IsNullOrWhiteSpace(FontPath)) {
-                using var file = File.OpenRead(FontPath);
-                if (file.Length is <= 0 or > 16 * 1024 * 1024) throw new ArgumentException(T("FontLimit", "The embedded font must contain between one byte and 16 MiB."));
-                byte[] font = new byte[(int)file.Length]; file.ReadExactly(font);
-                pdfOptions = new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
-                    .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Invoice font");
-            }
         }
         string? output = null;
         if (IsWriting) {
-            string folder = string.IsNullOrWhiteSpace(OutputFolder)
-                ? Path.GetDirectoryName(OfficeStorageIdentity.GetLocalPath(InputPath) ?? throw new ArgumentException(T("OutputRequired", "Choose an output folder.")))!
-                : OutputFolder;
+            string folder = !string.IsNullOrWhiteSpace(OutputFolder) ? OutputFolder
+                : CanWriteBesideInput ? Path.GetDirectoryName(OfficeStorageIdentity.GetLocalPath(InputPath))!
+                : throw new ArgumentException(T("OutputRequired", "Choose an output folder."));
             output = _storage?.UsesProviderPublication(folder) == true ? folder
                 : Path.Combine(OfficeStorageIdentity.GetLocalPath(folder) ?? throw new ArgumentException(T("OutputRequired", "Choose an output folder.")), GetOutputName());
         }
@@ -47,9 +39,21 @@ public sealed partial class InvoiceWorkbenchViewModel {
             InputPath = InputPath, InputStream = _storage?.CreateWorkflowInput(InputPath), Operation = operation,
             OutputPath = output, Target = target, SourceEdits = edits,
             ValidationRelease = RequireStandards ? target?.Release ?? SelectedRelease.Value : null,
-            Layout = layout.Clone(), PdfOptions = pdfOptions, PublicationGuard = _guard, ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+            Layout = layout.Clone(), PublicationGuard = _guard, ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
         };
     }
+    /// <summary>Reads the chosen font through storage, so a font picked from Files or a sandboxed folder can be embedded.</summary>
+    private async Task<PdfOptions?> LoadFontOptionsAsync(string fontPath, CancellationToken token) {
+        if (fontPath.Length == 0) return null;
+        const long limit = 16 * 1024 * 1024;
+        byte[] font = _storage is null
+            ? await File.ReadAllBytesAsync(fontPath, token).ConfigureAwait(true)
+            : (await _storage.ReadSnapshotAsync(fontPath, token, limit).ConfigureAwait(true)).Bytes;
+        if (font.Length is <= 0 or > (int)limit) throw new ArgumentException(T("FontLimit", "The embedded font must contain between one byte and 16 MiB."));
+        return new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
+            .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Invoice font");
+    }
+
     private InvoiceValidator? CaptureValidator() {
         if (!RequireStandards) return null;
         if (!IsStandardsAvailable) throw new NotSupportedException(StandardsHint);

@@ -90,9 +90,9 @@
             <Expander Header="{loc:Loc Ocr.FileOptions}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" IsEnabled="{Binding !OcrWorkbench.IsBusy}">
               <StackPanel Spacing="{StaticResource StudioSpaceS}" Margin="0,8,0,0">
                 <TextBlock Text="{loc:Loc SearchablePdfOcr.ScannedPDF}" />
-                <TextBox Text="{Binding OcrWorkbench.InputPath, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.ScannedPDF}" />
+                <TextBox Classes="path" Text="{Binding OcrWorkbench.InputPath, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.ScannedPDF}" />
                 <TextBlock Text="{loc:Loc SearchablePdfOcr.SearchablePDF}" />
-                <TextBox Text="{Binding OcrWorkbench.OutputPath, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.SearchablePDF}" />
+                <TextBox Classes="path" Text="{Binding OcrWorkbench.OutputPath, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.SearchablePDF}" />
                 <Button Classes="tool" Content="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" Command="{Binding OcrWorkbench.ChooseOutputFolderCommand}" />
                 <CheckBox IsVisible="{Binding !OcrWorkbench.IsProviderOutput}" IsChecked="{Binding OcrWorkbench.ReplaceExistingOutput, Mode=TwoWay}">
                   <TextBlock Text="{loc:Loc SearchablePdfOcr.ReplaceAnExistingOutputFile}" TextWrapping="Wrap" />

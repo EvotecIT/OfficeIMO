@@ -49,7 +49,7 @@
                      FontSize="{StaticResource StudioSecondaryFontSize}" TextWrapping="Wrap" />
 
           <TextBlock Text="{loc:Loc ConversionWorkbench.OutputFolder}" FontWeight="SemiBold" Margin="0,8,0,0" />
-          <TextBox Text="{Binding ConversionWorkbench.OutputFolder, Mode=TwoWay}"
+          <TextBox Classes="path" Text="{Binding ConversionWorkbench.OutputFolder, Mode=TwoWay}"
                    PlaceholderText="{loc:Loc ConversionWorkbench.UseEachSourceFolder}" />
           <Button Classes="tool" AutomationProperties.Name="{loc:Loc ConversionWorkbench.ChooseFolder}" Content="{loc:Loc ConversionWorkbench.ChooseFolder}"
                   Command="{Binding ConversionWorkbench.ChooseOutputFolderCommand}"
@@ -59,13 +59,13 @@
               <TextBlock Text="{loc:Loc Conversion.BatchExport.Description}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" TextWrapping="Wrap" />
               <StackPanel Spacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding ConversionWorkbench.BatchExport.IsAvailable}" IsEnabled="{Binding ConversionWorkbench.BatchExport.CanEdit}">
                 <TextBlock Text="{loc:Loc Conversion.BatchExport.Source}" FontWeight="SemiBold" />
-                <TextBox Text="{Binding ConversionWorkbench.BatchExport.InputDirectory, Mode=TwoWay}" />
+                <TextBox Classes="path" Text="{Binding ConversionWorkbench.BatchExport.InputDirectory, Mode=TwoWay}" />
                 <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseSource}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="input" />
                 <TextBlock Text="{loc:Loc Conversion.BatchExport.Output}" FontWeight="SemiBold" />
-                <TextBox Text="{Binding ConversionWorkbench.BatchExport.OutputDirectory, Mode=TwoWay}" />
+                <TextBox Classes="path" Text="{Binding ConversionWorkbench.BatchExport.OutputDirectory, Mode=TwoWay}" />
                 <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseOutput}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="output" />
                 <TextBlock Text="{loc:Loc Conversion.BatchExport.Checkpoint}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                <TextBox Text="{Binding ConversionWorkbench.BatchExport.CheckpointDirectory, Mode=TwoWay}" />
+                <TextBox Classes="path" Text="{Binding ConversionWorkbench.BatchExport.CheckpointDirectory, Mode=TwoWay}" />
                 <Button Classes="tool" Content="{loc:Loc Conversion.BatchExport.ChooseCheckpoint}" Command="{Binding ConversionWorkbench.BatchExport.ChooseFolderCommand}" CommandParameter="state" />
                 <TextBlock Text="{loc:Loc Conversion.Text.Encoding}" />
                 <TextBox Text="{Binding ConversionWorkbench.BatchExport.TextEncoding, Mode=TwoWay}" PlaceholderText="{loc:Loc Conversion.Text.EncodingHint}" />

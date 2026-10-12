@@ -2203,4 +2203,8 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Apple.Documentation" xml:space="preserve"><value>Documentation d&apos;OfficeIMO Studio</value></data>
   <data name="Apple.ReportProblem" xml:space="preserve"><value>Signaler un problème</value></data>
   <data name="Apple.About" xml:space="preserve"><value>À propos d&apos;OfficeIMO Studio</value></data>
+  <data name="Invoice.ChooseFont" xml:space="preserve"><value>Choisir une police</value></data>
+  <data name="Invoice.ChooseFontTitle" xml:space="preserve"><value>Choisissez une police à incorporer</value></data>
+  <data name="Invoice.FontFiles" xml:space="preserve"><value>Polices</value></data>
+  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>L&apos;export PDF de dossiers nécessite un accès permanent à des dossiers entiers, dont cette édition de Studio ne dispose pas. Utilisez Ajouter des fichiers et Exécuter les tâches en attente pour convertir plusieurs documents.</value></data>
 </root>

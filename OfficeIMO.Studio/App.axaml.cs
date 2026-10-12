@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Avalonia.Markup.Xaml;
+using Avalonia.Styling;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Studio.Infrastructure.Diagnostics;
@@ -29,6 +30,7 @@ public sealed partial class App : Application {
         StudioLocalization.Configure(Services.Localizer);
         AvaloniaXamlLoader.Load(this);
         InitializeNativeApplicationMenu();
+        ApplyLocationPolicy(Styles, StudioDistributionPolicy.RequiresPickedLocations);
         ApplyDensity();
         RequestedThemeVariant = Services.Preferences.Current.Theme switch {
             StudioThemePreference.Light => Avalonia.Styling.ThemeVariant.Light,
@@ -47,6 +49,17 @@ public sealed partial class App : Application {
             StudioThemePreference.HighContrast => StudioThemeVariants.HighContrast,
             _ => Avalonia.Styling.ThemeVariant.Default
         };
+    }
+
+    /// <summary>
+    /// Where user files are reachable only through a picker, location boxes (class <c>path</c>) show the chosen location
+    /// but cannot be typed into: a typed path would bypass the permission the picker grants.
+    /// </summary>
+    internal static void ApplyLocationPolicy(Styles styles, bool requiresPickedLocations) {
+        if (!requiresPickedLocations) return;
+        styles.Add(new Style(selector => selector!.OfType<Avalonia.Controls.TextBox>().Class("path")) {
+            Setters = { new Setter(Avalonia.Controls.TextBox.IsReadOnlyProperty, true) }
+        });
     }
 
     private void ApplyDensity() {

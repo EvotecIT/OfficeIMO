@@ -5675,4 +5675,8 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Apple.Documentation" xml:space="preserve"><value>OfficeIMO Studio-Dokumentation</value></data>
   <data name="Apple.ReportProblem" xml:space="preserve"><value>Problem melden</value></data>
   <data name="Apple.About" xml:space="preserve"><value>Über OfficeIMO Studio</value></data>
+  <data name="Invoice.ChooseFont" xml:space="preserve"><value>Schrift wählen</value></data>
+  <data name="Invoice.ChooseFontTitle" xml:space="preserve"><value>Einzubettende Schrift wählen</value></data>
+  <data name="Invoice.FontFiles" xml:space="preserve"><value>Schriften</value></data>
+  <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>Der PDF-Export ganzer Ordner benötigt dauerhaften Zugriff auf ganze Ordner, den diese Studio-Ausgabe nicht hat. Verwenden Sie „Dateien hinzufügen“ und „Ausstehende ausführen“, um mehrere Dokumente zu konvertieren.</value></data>
 </root>

@@ -16,7 +16,7 @@
           <Button Classes="tool" Content="{loc:Loc OcrSession.Remove}" Command="{Binding RemoveSelectedCommand}" />
         </WrapPanel>
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceS}">
-          <TextBox Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc OcrSession.OutputFolder}" AutomationProperties.Name="{loc:Loc OcrSession.OutputFolder}" />
+          <TextBox Classes="path" Text="{Binding OutputFolder}" PlaceholderText="{loc:Loc OcrSession.OutputFolder}" AutomationProperties.Name="{loc:Loc OcrSession.OutputFolder}" />
           <Button Grid.Column="1" Classes="tool" Content="{loc:Loc SearchablePdfOcr.ChooseOutputFolder}" Command="{Binding ChooseOutputFolderCommand}" />
         </Grid>
         <Expander Header="{loc:Loc SearchablePdfOcr.RecognitionLanguages}">

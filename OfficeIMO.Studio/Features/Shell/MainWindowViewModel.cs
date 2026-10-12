@@ -198,7 +198,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                     new StudioFileType("Invoice XML", ["xml"], "application/xml"), token),
                 _pickOutputFolder, runner: null, localizer: _localizer, storage: _services.Storage, guard: publicationGuard,
                 jobs: _services.Jobs, recovery: _services.WorkflowRecovery,
-                confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput);
+                confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite, openOutput: openWorkflowOutput,
+                pickFont: token => FileDialogs.PickOpenFileAsync(_localizer.GetOrDefault("Invoice.ChooseFontTitle", "Choose a font to embed"),
+                    new StudioFileType(_localizer.GetOrDefault("Invoice.FontFiles", "Fonts"), ["ttf", "otf"], "font/ttf"), token));
             OutputWorkbench = new OutputIntakeWorkbenchViewModel(
                 _pickPdf,
                 _pickOutputFolder,

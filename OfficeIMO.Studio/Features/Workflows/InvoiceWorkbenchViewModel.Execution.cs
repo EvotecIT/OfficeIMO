@@ -21,6 +21,15 @@ public sealed partial class InvoiceWorkbenchViewModel {
         } catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status = error.Message; }
     }
+    [RelayCommand(CanExecute = nameof(CanEdit))]
+    private async Task ChooseFontAsync(CancellationToken token) {
+        if (_pickFont == null) return;
+        try {
+            string? font = await _pickFont(token).ConfigureAwait(true);
+            if (!_disposed && !string.IsNullOrWhiteSpace(font)) FontPath = font;
+        } catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Status = error.Message; }
+    }
     [RelayCommand(CanExecute = nameof(CanRun))]
     private async Task RunAsync() {
         var cancellation = new CancellationTokenSource(); _cancellation = cancellation;
@@ -33,6 +42,8 @@ public sealed partial class InvoiceWorkbenchViewModel {
             // Capture all UI choices before awaiting permission or a storage provider.
             var validator = CaptureValidator(); var request = CaptureRequest();
             string outputName = GetOutputName(), folder = OutputFolder, label = SelectedOperation.Label;
+            string fontPath = IsRendering ? FontPath.Trim() : string.Empty;
+            if (fontPath.Length > 0) request = request with { PdfOptions = await LoadFontOptionsAsync(fontPath, cancellation.Token).ConfigureAwait(true) };
             if (request.OutputPath != null && !string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(folder) == true) {
                 if (!await _confirmProviderWrite(folder).ConfigureAwait(true)) {
                     Status = T("BeforeWriteCancelled", "Cancelled before publishing."); return;
