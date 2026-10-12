@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel.Utilities {
             if (ExcelOpenXmlFontProperty.IsEnabled(font.GetFirstChild<Bold>())) style |= OfficeFontStyle.Bold;
             if (ExcelOpenXmlFontProperty.IsEnabled(font.GetFirstChild<Italic>())) style |= OfficeFontStyle.Italic;
             OfficeTrueTypeFont? program = OfficeTrueTypeFont.TryLoadFontFamilyForText(family, style, "0123456789", out _);
-            if (program == null || !program.MatchesFamilyName(family)) return 7D;
+            if (program == null || !program.MatchesFamilyName(family!)) return 7D;
 
             double size = font.GetFirstChild<FontSize>()?.Val?.Value ?? 11D;
             if (size <= 0D || double.IsNaN(size) || double.IsInfinity(size)) return 7D;

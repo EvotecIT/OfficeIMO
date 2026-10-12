@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Excel {
     internal static partial class ExcelRangeVisualSnapshotBuilder {
-        private static bool TryGetImageAnchor(ExcelWorksheetGeometryIndex geometry, 
+        private static bool TryGetImageAnchor(ExcelWorksheetGeometryIndex geometry,
             ExcelImageExportOptions options,
             int firstRow,
             int firstColumn,
@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static double ResolveRelativeColumnOffset(ExcelWorksheetGeometryIndex geometry, 
+        private static double ResolveRelativeColumnOffset(ExcelWorksheetGeometryIndex geometry,
             int firstColumn,
             int anchorColumn,
             int offsetPixels,
@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
             return x + offsetPixels;
         }
 
-        private static double ResolveImageWidth(ExcelWorksheetGeometryIndex geometry, 
+        private static double ResolveImageWidth(ExcelWorksheetGeometryIndex geometry,
             ExcelImageExportOptions options,
             int firstColumn,
             IReadOnlyList<ExcelColumnSnapshot> columnDefinitions,
