@@ -17,12 +17,33 @@ public sealed partial class PdfPageInteractionMap {
         return TextRegions.Skip(first).Take(last - first + 1).ToArray();
     }
 
+    /// <summary>Classifies how <paramref name="next"/> follows <paramref name="previous"/>: touching, after a gap on the same
+    /// line, or on another line. Words written as separate runs without space characters, such as an OCR text layer, are
+    /// separated by gaps rather than by text.</summary>
+    public static PdfTextBreak GetTextBreak(PdfPageInteractionRegion previous, PdfPageInteractionRegion next) {
+        Guard.NotNull(previous, nameof(previous));
+        Guard.NotNull(next, nameof(next));
+        if (AreWordNeighbors(previous, next)) return PdfTextBreak.None;
+        return AreOnSameLine(previous.Quad, next.Quad) ? PdfTextBreak.Space : PdfTextBreak.Line;
+    }
+
+    private static bool AreOnSameLine(PdfSelectionQuad a, PdfSelectionQuad b) {
+        double dx = a.BottomRight.X - a.BottomLeft.X, dy = a.BottomRight.Y - a.BottomLeft.Y;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+        if (length < 1e-6) { dx = 1D; dy = 0D; length = 1D; }
+        // The offset of the next baseline from this one, across the line's direction.
+        double offset = ((b.BottomLeft.X - a.BottomLeft.X) * -dy + (b.BottomLeft.Y - a.BottomLeft.Y) * dx) / length;
+        double height = Math.Min(Distance(a.TopLeft, a.BottomLeft), Distance(b.TopLeft, b.BottomLeft));
+        return Math.Abs(offset) <= Math.Max(0.5D, height * 0.5D);
+    }
+
     private static bool IsWordElement(PdfPageInteractionRegion region) => !string.IsNullOrEmpty(region.Text) && !region.Text!.Any(char.IsWhiteSpace);
 
     private static bool AreWordNeighbors(PdfPageInteractionRegion first, PdfPageInteractionRegion second) {
         PdfSelectionQuad a = first.Quad, b = second.Quad;
         double height = Math.Min(Distance(a.TopLeft, a.BottomLeft), Distance(b.TopLeft, b.BottomLeft));
-        double tolerance = Math.Max(0.5D, height * 0.15D);
+        // Below the gap text extraction reads as a word space: about a fifth of the font size, at most two points.
+        double tolerance = Math.Max(0.5D, Math.Min(2D, height * 0.15D));
         return (Distance(a.TopRight, b.TopLeft) <= tolerance && Distance(a.BottomRight, b.BottomLeft) <= tolerance) ||
             (Distance(b.TopRight, a.TopLeft) <= tolerance && Distance(b.BottomRight, a.BottomLeft) <= tolerance);
     }

@@ -9,6 +9,8 @@ namespace OfficeIMO.Studio.Features.Reader;
 /// </summary>
 internal sealed class PdfDocumentSession {
     private readonly PdfDocument _document;
+    private readonly object _displayLock = new();
+    private PdfPageDisplayRenderer? _display;
     private readonly bool _canEditAnnotations;
 
     private PdfDocumentSession(
@@ -38,10 +40,24 @@ internal sealed class PdfDocumentSession {
 
     internal bool CanSearch => ViewInfo.CanExtractText;
 
+    // Search finds a scan's OCR layer, so selection and copying reach it too.
+    private static readonly PdfPageInteractionOptions SelectionOptions = new() { IncludeTextRenderingMode3 = true };
+
     internal IReadOnlyList<PdfPageInfo> Pages => ViewInfo.Pages;
 
     internal PdfVisualComparisonReport CompareTo(PdfDocumentSession actual, PdfVisualComparisonOptions options, CancellationToken token) =>
         _document.Proof.CompareVisual(actual._document, token, options: options);
+
+    /// <summary>
+    /// A page's text elements in extraction order, each with its geometry on the page as displayed: from its top-left
+    /// corner, after the page box, rotation and user unit. Hosts select and copy text from them.
+    /// </summary>
+    internal IReadOnlyList<PdfPageInteractionRegion> GetTextRegions(int pageNumber, CancellationToken cancellationToken) {
+        if (pageNumber <= 0 || pageNumber > Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        if (!CanSearch) throw new NotSupportedException("Copying text is restricted by this document's permissions.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return _document.Render.Interactions(pageNumber, SelectionOptions).TextRegions;
+    }
 
     internal async Task<IReadOnlyList<PdfSearchHit>> SearchAsync(
         string query,
@@ -103,18 +119,15 @@ internal sealed class PdfDocumentSession {
         return await Task.Run(() => {
             cancellationToken.ThrowIfCancellationRequested();
             if (!ViewInfo.CanExtractContent) {
-                PdfPageInfo info = Pages[pageNumber - 1];
-                bool rotated = Math.Abs(info.RotationDegrees) % 180 == 90;
-                double width = (info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D);
-                double height = (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D);
-                var display = new OfficeIMO.Drawing.OfficeDrawing(rotated ? height : width, rotated ? width : height);
+                (double width, double height) = GetDisplaySize(pageNumber);
+                var display = new OfficeIMO.Drawing.OfficeDrawing(width, height);
                 PdfPageInteractionMap? annotationInteractions = _canEditAnnotations
                     ? _document.Annotations.GetEditingInteractions(pageNumber) : null;
                 return new PdfPageScene(pageNumber, display, annotationInteractions, [], RequiresRasterFallback: true);
             }
             OfficeIMO.Drawing.OfficeDrawing drawing = _document.Render.Drawing(pageNumber);
             cancellationToken.ThrowIfCancellationRequested();
-            PdfPageInteractionMap interactions = _document.Render.Interactions(pageNumber);
+            PdfPageInteractionMap interactions = _document.Render.Interactions(pageNumber, SelectionOptions);
             IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics =
                 _document.Render.CapabilityDiagnostics(pageNumber);
             IReadOnlyList<string> adapterDiagnostics =
@@ -159,6 +172,22 @@ internal sealed class PdfDocumentSession {
         return new PdfDocumentSession(fullPath, file.Name, file.Length, document, documentInfo);
     }
 
+    /// <summary>The page as displayed, in points: its effective box at the page's user unit, rotated.</summary>
+    internal (double Width, double Height) GetDisplaySize(int pageNumber) {
+        PdfPageInfo info = Pages[pageNumber - 1];
+        (double width, double height) = GetPhysicalSize(info);
+        return Math.Abs(info.RotationDegrees) % 180 == 90 ? (height, width) : (width, height);
+    }
+
+    /// <summary>The page's size in points (1/72 inch) before rotation: its effective box at the page's user unit.</summary>
+    internal static (double Width, double Height) GetPhysicalSize(PdfPageInfo info) =>
+        ((info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D),
+         (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D));
+
+    /// <summary>
+    /// Renders a page as PNG. The page image stays within <see cref="StudioPdfSecurityPolicy.MaximumRasterPixels"/>;
+    /// a larger scale is refused before any page content is read.
+    /// </summary>
     internal async Task<PdfRenderedPage> RenderPageAsync(
         int pageNumber,
         double scale,
@@ -166,13 +195,20 @@ internal sealed class PdfDocumentSession {
         if (pageNumber <= 0 || pageNumber > Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber));
         }
+        (double displayWidth, double displayHeight) = GetDisplaySize(pageNumber);
+        double pixels = Math.Ceiling(displayWidth * scale) * Math.Ceiling(displayHeight * scale);
+        if (!(pixels <= StudioPdfSecurityPolicy.MaximumRasterPixels)) {
+            throw new ArgumentOutOfRangeException(nameof(scale), scale,
+                $"At this scale the page needs {pixels:N0} pixels; pages render at up to {StudioPdfSecurityPolicy.MaximumRasterPixels:N0}.");
+        }
 
         var options = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
             Scale = scale,
             MaxPages = 1,
-            ContinueOnError = true,
-            MaxPixelsPerPage = StudioPdfSecurityPolicy.MaximumRasterPixels,
+            // One page: its failure, such as a read or pixel limit, reaches the host as the typed exception.
+            ContinueOnError = false,
+            MaxPixelsPerPage = StudioPdfSecurityPolicy.MaximumRenderWorkingPixels,
             RenderTimeout = StudioPdfSecurityPolicy.RenderTimeout,
             MaxTotalOutputBytes = StudioPdfSecurityPolicy.MaximumRasterOutputBytes,
             MaxOutputBytesPerPage = StudioPdfSecurityPolicy.MaximumRasterOutputBytes
@@ -183,7 +219,7 @@ internal sealed class PdfDocumentSession {
             result = await Task.Run(() => _document.Render.DisplayPage(pageNumber,
                 new PdfPageDisplayOptions {
                     Scale = scale,
-                    MaximumPixels = StudioPdfSecurityPolicy.MaximumRasterPixels,
+                    MaximumPixels = StudioPdfSecurityPolicy.MaximumRenderWorkingPixels,
                     MaximumOutputBytes = options.MaxOutputBytesPerPage,
                     Timeout = StudioPdfSecurityPolicy.RenderTimeout
                 }, cancellationToken),
@@ -213,4 +249,37 @@ internal sealed class PdfDocumentSession {
             result.Elapsed,
             result.Diagnostics);
     }
+
+    /// <summary>
+    /// Renders a rectangle of a page as opaque RGBA pixels for display. The page image at <paramref name="scale"/> is
+    /// the page's display size times the scale, each side rounded up; the rectangle may be all of it or a tile, and
+    /// tiles join without seams. A rectangle holds at most <see cref="StudioPdfSecurityPolicy.MaximumRasterPixels"/>.
+    /// Recently rendered pages and their decoded images are kept for further tiles and zoom levels of this revision.
+    /// </summary>
+    internal async Task<PdfRenderedPixels> RenderRegionAsync(
+        int pageNumber, double scale, int x, int y, int width, int height, CancellationToken cancellationToken) {
+        if (pageNumber <= 0 || pageNumber > Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        if (!(scale > 0D) || double.IsInfinity(scale))
+            throw new ArgumentOutOfRangeException(nameof(scale), scale, "The scale must be a finite positive number.");
+        if (width <= 0 || height <= 0 || (long)width * height > StudioPdfSecurityPolicy.MaximumRasterPixels) {
+            throw new ArgumentOutOfRangeException(nameof(width),
+                $"A rectangle holds 1 to {StudioPdfSecurityPolicy.MaximumRasterPixels:N0} pixels; render a larger area as tiles.");
+        }
+        var limits = new PdfPageRegionLimits {
+            MaximumRegionPixels = StudioPdfSecurityPolicy.MaximumRasterPixels,
+            MaximumWorkingPixels = StudioPdfSecurityPolicy.MaximumRenderWorkingPixels,
+            Timeout = StudioPdfSecurityPolicy.RenderTimeout
+        };
+        OfficeIMO.Drawing.OfficeRasterImage image = await Task.Run(() => {
+            lock (_displayLock) {
+                _display ??= new PdfPageDisplayRenderer(_document, StudioPdfSecurityPolicy.DisplayCachedPages,
+                    StudioPdfSecurityPolicy.DisplayImageCacheBytes);
+                return _display.RenderRegion(pageNumber, scale, x, y, width, height, limits, cancellationToken);
+            }
+        }, cancellationToken).ConfigureAwait(false);
+        return new PdfRenderedPixels(pageNumber, scale, x, y, image.Width, image.Height, image.PixelBuffer);
+    }
 }
+
+/// <summary>Opaque RGBA pixels of a page rectangle, rows top to bottom, four bytes per pixel.</summary>
+internal sealed record PdfRenderedPixels(int PageNumber, double Scale, int X, int Y, int Width, int Height, byte[] Pixels);

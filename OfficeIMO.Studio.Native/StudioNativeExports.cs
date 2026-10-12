@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Scan;
 
 namespace OfficeIMO.Studio.Native;
 
@@ -44,6 +45,29 @@ internal static unsafe class StudioNativeExports {
         GCHandle handle = GCHandle.FromIntPtr(cancellation);
         (handle.Target as CancellationTokenSource)?.Dispose();
         handle.Free();
+    }
+
+    /// <summary>
+    /// Makes a PDF at <paramref name="outputPath"/> from scanned page images and the words the host recognized on them,
+    /// described as UTF-8 JSON, and returns a summary as JSON.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_create_pdf_from_scan_json")]
+    internal static int CreatePdfFromScanJson(byte* request, byte* outputPath, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        StudioNativeScanRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeScanRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The scan request is not valid JSON.", exception)); }
+        if (parsed?.Pages is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        string? destination = StudioNativeAbi.FromUtf8(outputPath);
+        return Run(error, cancellation, token => {
+            var pages = parsed.Pages.Select(page => new PdfScanPage(page.Image ?? string.Empty,
+                (page.Words ?? []).Select(word => new PdfScanWord(word.Text ?? string.Empty, word.X, word.Y, word.Width, word.Height, word.Confidence)).ToArray()))
+                .ToArray();
+            PdfScanResult result = PdfScanComposer.ComposeAsync(pages, destination!, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(
+                new StudioNativeScanResult(StudioNativeAbi.Version, result.Pages, result.SearchablePages, result.Words), StudioNativeJson.Default.StudioNativeScanResult));
+        });
     }
 
     // Documents --------------------------------------------------------------------------------------------------
@@ -95,12 +119,125 @@ internal static unsafe class StudioNativeExports {
         });
     }
 
+    /// <summary>
+    /// Renders a rectangle of a page as opaque RGBA pixels for display: <paramref name="x"/>, <paramref name="y"/>,
+    /// <paramref name="width"/> by <paramref name="height"/> of the page image at <paramref name="scale"/>.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_render_region")]
+    internal static int DocumentRenderRegion(nint document, int page, double scale, int x, int y, int width, int height,
+        nint cancellation, byte** pixels, nuint* length, byte** error) {
+        if (pixels is null || length is null) return Fail(error, new ArgumentNullException(pixels is null ? nameof(pixels) : nameof(length)));
+        *pixels = null; *length = 0;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            PdfRenderedPixels rendered = target.RenderRegionAsync(page, scale, x, y, width, height, token).GetAwaiter().GetResult();
+            *pixels = StudioNativeAbi.ToNative(rendered.Pixels);
+            *length = (nuint)rendered.Pixels.Length;
+        });
+    }
+
     /// <summary>Rotates pages by a multiple of 90 degrees as one undoable change.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_rotate_pages")]
     internal static int DocumentRotatePages(nint document, int* pages, int count, int degrees, nint cancellation, byte** error) {
         if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
         int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
         return WithDocument(document, error, cancellation, (target, token) => target.RotatePagesAsync(selected, degrees, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Deletes pages as one undoable change; a document keeps at least one page.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_delete_pages")]
+    internal static int DocumentDeletePages(nint document, int* pages, int count, nint cancellation, byte** error) {
+        if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
+        int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
+        return WithDocument(document, error, cancellation, (target, token) => target.DeletePagesAsync(selected, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Duplicates pages as one undoable change; each copy follows its page.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_duplicate_pages")]
+    internal static int DocumentDuplicatePages(nint document, int* pages, int count, nint cancellation, byte** error) {
+        if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
+        int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
+        return WithDocument(document, error, cancellation, (target, token) => target.DuplicatePagesAsync(selected, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Puts the pages in a new order as one undoable change; <paramref name="order"/> lists every current page once.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_reorder_pages")]
+    internal static int DocumentReorderPages(nint document, int* order, int count, nint cancellation, byte** error) {
+        if (order is null || count <= 0) return Fail(error, new ArgumentException("The new order must list every page."));
+        int[] pages = new ReadOnlySpan<int>(order, count).ToArray();
+        return WithDocument(document, error, cancellation, (target, token) => target.ReorderPagesAsync(pages, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Inserts a blank page of <paramref name="width"/> by <paramref name="height"/> points before a page.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_insert_blank_page")]
+    internal static int DocumentInsertBlankPage(nint document, int insertBefore, double width, double height, nint cancellation, byte** error) =>
+        WithDocument(document, error, cancellation, (target, token) => target.InsertBlankPageAsync(insertBefore, width, height, token).GetAwaiter().GetResult());
+
+    /// <summary>Writes pages to a new PDF at <paramref name="path"/>, leaving the open document unchanged.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_extract_pages")]
+    internal static int DocumentExtractPages(nint document, int* pages, int count, byte* path, nint cancellation, byte** error) {
+        if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
+        int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
+        string? destination = StudioNativeAbi.FromUtf8(path);
+        return WithDocument(document, error, cancellation, (target, token) => target.ExtractPagesAsync(selected, destination!, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Finds text, ignoring case, and returns the hits with their page rectangles as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_search_json")]
+    internal static int DocumentSearchJson(nint document, byte* query, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        string text = StudioNativeAbi.FromUtf8(query) ?? string.Empty;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeSearchResult result = target.SearchAsync(text, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(result, StudioNativeJson.Default.StudioNativeSearchResult));
+        });
+    }
+
+    /// <summary>Adds a markup annotation described by a UTF-8 JSON request as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_add_annotation_json")]
+    internal static int DocumentAddAnnotationJson(nint document, byte* request, nint cancellation, byte** error) {
+        StudioNativeAnnotationRequest? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeAnnotationRequest); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The annotation request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => target.AddAnnotationAsync(parsed, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>The markup annotations on a page as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_annotations_json")]
+    internal static int DocumentAnnotationsJson(nint document, int page, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeAnnotationList list = target.GetAnnotationsAsync(page, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(list, StudioNativeJson.Default.StudioNativeAnnotationList));
+        });
+    }
+
+    /// <summary>Changes an annotation's text, author or colour, described by a UTF-8 JSON update, as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_update_annotation_json")]
+    internal static int DocumentUpdateAnnotationJson(nint document, byte* update, nint cancellation, byte** error) {
+        StudioNativeAnnotationUpdate? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(update) ?? "null", StudioNativeJson.Default.StudioNativeAnnotationUpdate); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The annotation update is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(update)));
+        return WithDocument(document, error, cancellation, (target, token) => target.UpdateAnnotationAsync(parsed, token).GetAwaiter().GetResult());
+    }
+
+    /// <summary>Removes an annotation, by its object number from the annotation list, as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_remove_annotation")]
+    internal static int DocumentRemoveAnnotation(nint document, int objectNumber, nint cancellation, byte** error) =>
+        WithDocument(document, error, cancellation, (target, token) => target.RemoveAnnotationAsync(objectNumber, token).GetAwaiter().GetResult());
+
+    /// <summary>A page's text elements and their boxes as UTF-8 JSON, for selection and copying.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_page_text_json")]
+    internal static int DocumentPageTextJson(nint document, int page, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativePageText text = target.GetPageTextAsync(page, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(text, StudioNativeJson.Default.StudioNativePageText));
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_undo")]

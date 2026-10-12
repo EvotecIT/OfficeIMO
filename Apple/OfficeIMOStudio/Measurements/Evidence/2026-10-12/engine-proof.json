@@ -1,0 +1,146 @@
+{
+  "macos": {
+    "journeyPassed": true,
+    "engineFirstCallMs": 10.5,
+    "processToAppMs": 44.4,
+    "openpreserve-high-resolution-image.pdf": {
+      "device": "Mac16,10 (arm64)",
+      "pages": 1,
+      "openMs": 7.1,
+      "firstPageMs": 318.0,
+      "firstPagePixels": "900 x 457",
+      "sampledMedianRenderMs": 0.0,
+      "sampledP90RenderMs": 0.0,
+      "sampledMedianDecodeMs": 0.0,
+      "sampledMedianPngBytes": 0.0,
+      "zoom": [
+        "x1: 900 x 457",
+        "x1.5: 1351 x 685",
+        "x2: 1800 x 913",
+        "x3: 2701 x 1369",
+        "x4: 3600 x 1825"
+      ],
+      "peakFootprintMB": 181.0,
+      "processToAppMs": 28.2
+    },
+    "long.pdf": {
+      "device": "Mac16,10 (arm64)",
+      "pages": 600,
+      "openMs": 95.9,
+      "firstPageMs": 355.2,
+      "firstPagePixels": "901 x 1165",
+      "sampledMedianRenderMs": 86.4,
+      "sampledP90RenderMs": 243.8,
+      "sampledMedianDecodeMs": 4.0,
+      "sampledMedianPngBytes": 164503.0,
+      "zoom": [
+        "x1: 901 x 1165",
+        "x1.5: 1350 x 1748",
+        "x2: 1801 x 2330",
+        "x3: At this scale the page needs 9.436.500 pixels; pages render at up to 8.400.000. (Parameter 'scale')\nActual value was 4,411764705882353.",
+        "x4: At this scale the page needs 16.777.059 pixels; pages render at up to 8.400.000. (Parameter 'scale')\nActual value was 5,882352941176471."
+      ],
+      "peakFootprintMB": 171.5,
+      "processToAppMs": 26.2
+    },
+    "scanned.pdf": {
+      "device": "Mac16,10 (arm64)",
+      "pages": 40,
+      "openMs": 45.9,
+      "firstPageMs": 1068.9,
+      "firstPagePixels": "900 x 1161",
+      "sampledMedianRenderMs": 914.1,
+      "sampledP90RenderMs": 1027.3,
+      "sampledMedianDecodeMs": 4.3,
+      "sampledMedianPngBytes": 403859.0,
+      "zoom": [
+        "x1: 900 x 1161",
+        "x1.5: 1350 x 1741",
+        "x2: 1800 x 2321",
+        "x3: At this scale the page needs 9.398.700 pixels; pages render at up to 8.400.000. (Parameter 'scale')\nActual value was 4,39453125.",
+        "x4: At this scale the page needs 16.707.600 pixels; pages render at up to 8.400.000. (Parameter 'scale')\nActual value was 5,859375."
+      ],
+      "peakFootprintMB": 747.4,
+      "processToAppMs": 26.7
+    }
+  },
+  "simulator": {
+    "journeyPassed": false,
+    "engineFirstCallMs": 14.2,
+    "processToAppMs": 252.2,
+    "openpreserve-high-resolution-image.pdf": {
+      "device": "Simulator: iPad17,4 on arm64",
+      "pages": 1,
+      "openMs": 46.2,
+      "firstPageMs": 3107.1,
+      "firstPagePixels": "2064 x 1047",
+      "sampledMedianRenderMs": 0.0,
+      "sampledP90RenderMs": 0.0,
+      "sampledMedianDecodeMs": 0.0,
+      "sampledMedianPngBytes": 0.0,
+      "zoom": [
+        "x1: 2064 x 1047",
+        "x1.5: 3096 x 1570",
+        "x2: At this scale the page needs 8 639 904 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 7,110376188507648.",
+        "x3: At this scale the page needs 19 436 688 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 10,665564282761473.",
+        "x4: At this scale the page needs 34 551 360 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 14,220752377015296."
+      ],
+      "peakFootprintMB": 182.0,
+      "processToAppMs": 302.5
+    },
+    "long.pdf": {
+      "device": "Simulator: iPad17,4 on arm64",
+      "pages": 600,
+      "openMs": 248.9,
+      "firstPageMs": 1132.5,
+      "firstPagePixels": "2064 x 2672",
+      "sampledMedianRenderMs": 619.9,
+      "sampledP90RenderMs": 1189.3,
+      "sampledMedianDecodeMs": 19.7,
+      "sampledMedianPngBytes": 386511.0,
+      "zoom": [
+        "x1: 2064 x 2672",
+        "x1.5: At this scale the page needs 12 405 672 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 5,0588235294117645.",
+        "x2: At this scale the page needs 22 055 904 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 6,745098039215686.",
+        "x3: At this scale the page needs 49 622 688 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 10,117647058823529.",
+        "x4: At this scale the page needs 88 215 360 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 13,490196078431373."
+      ],
+      "peakFootprintMB": 270.0,
+      "processToAppMs": 249.9
+    },
+    "scanned.pdf": {
+      "device": "Simulator: iPad17,4 on arm64",
+      "pages": 40,
+      "openMs": 92.0,
+      "firstPageMs": 2985.4,
+      "firstPagePixels": "2064 x 2661",
+      "sampledMedianRenderMs": 2320.8,
+      "sampledP90RenderMs": 2853.6,
+      "sampledMedianDecodeMs": 26.5,
+      "sampledMedianPngBytes": 1276755.0,
+      "zoom": [
+        "x1: 2064 x 2661",
+        "x1.5: At this scale the page needs 12 356 136 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 5,0390625.",
+        "x2: At this scale the page needs 21 969 216 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 6,71875.",
+        "x3: At this scale the page needs 49 424 544 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 10,078125.",
+        "x4: At this scale the page needs 87 868 608 pixels; pages render at up to 8 400 000. (Parameter 'scale')\nActual value was 13,4375."
+      ],
+      "peakFootprintMB": 624.8,
+      "processToAppMs": 302.6
+    }
+  },
+  "size": {
+    "ios": {
+      "engineBytes": 26690712,
+      "linkedBytes": 27540178,
+      "executableBytes": 64049936,
+      "appBytes": 64116414.0,
+      "zippedAppBytes": 14129360
+    },
+    "macOS": {
+      "engineBytes": 26729170,
+      "linkedBytes": 27581602,
+      "universalExecutableBytes": 64282944
+    }
+  }
+}
