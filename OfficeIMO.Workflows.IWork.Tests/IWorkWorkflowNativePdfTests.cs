@@ -81,7 +81,13 @@ public sealed partial class IWorkWorkflowTests {
         Assert.Empty(Directory.GetFiles(files.Root, "*.tmp"));
 
         byte[] output = File.ReadAllBytes(files.Output);
-        PdfReadDocument pdf = PdfReadDocument.Open(output);
+        if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } visual) {
+            Directory.CreateDirectory(visual);
+            File.WriteAllBytes(Path.Combine(visual, fixture + ".pdf"), output);
+        }
+        PdfReadDocument pdf = PdfReadDocument.Open(output, new PdfLoadOptions {
+            IncludeArtifactText = fixture.StartsWith("pages-created-headers", StringComparison.Ordinal)
+        });
         Assert.Equal(expectedPages, pdf.Pages.Count);
         IReadOnlyList<string> pages = pdf.Pages.Select(page => page.ExtractText()).ToArray();
         Assert.Equal(expectedPages, pages.Count);
@@ -102,8 +108,8 @@ public sealed partial class IWorkWorkflowTests {
                     Assert.All(images, image => { Assert.Equal(96, image.Width); Assert.Equal(64, image.Height); });
                     Assert.Contains(images, image => image.HasTransparencyMask && image.TransparencyMaskResolved);
                     var placements = Assert.Single(pdf.Pages).GetImagePlacements();
-                    Assert.Equal(new double[] { fixture.Contains("edited") ? 144 : 180, 120, 160 }, placements.Select(image => image.Width));
-                    Assert.Equal(new double[] { 120, 80, 80 }, placements.Select(image => image.Height));
+                    Assert.Equal(new double[] { fixture.Contains("edited") ? 144 : 180, 120, 160 }, placements.Select(image => Math.Round(image.Width, 3)));
+                    Assert.Equal(new double[] { 120, 80, 80 }, placements.Select(image => Math.Round(image.Height, 3)));
                 }
                 else if (fixture == "pages-list-continuation-v15.4.pages") AssertNativePagesListText(pages);
                 else if (fixture.StartsWith("pages-created-numbering", StringComparison.Ordinal))

@@ -602,9 +602,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
-                !conditionalStyle.TextSpacing.WidthPercentage.HasValue &&
-                !conditionalStyle.TextSpacing.CharacterSpacing.HasValue &&
-                !conditionalStyle.TextSpacing.KerningMinimumFontSize.HasValue &&
+                conditionalStyle.TextSpacing == default &&
                 string.IsNullOrWhiteSpace(conditionalStyle.FontFamily) &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&

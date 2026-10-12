@@ -472,8 +472,10 @@ public static partial class WordIWorkConverter {
         if (style.FirstLineIndentPoints.HasValue) paragraph.IndentationFirstLinePoints = style.FirstLineIndentPoints;
         if (style.LeftIndentPoints.HasValue) paragraph.IndentationBeforePoints = style.LeftIndentPoints;
         if (style.RightIndentPoints.HasValue) paragraph.IndentationAfterPoints = style.RightIndentPoints;
-        if (style.SpaceBeforePoints.HasValue) paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints;
-        if (style.SpaceAfterPoints.HasValue) paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints;
+        // Native paragraph defaults must not inherit the destination template's
+        // spacing, including blank header/footer stories with no declarations.
+        paragraph.LineSpacingBeforePoints = style.SpaceBeforePoints ?? 0d;
+        paragraph.LineSpacingAfterPoints = style.SpaceAfterPoints ?? 0d;
         if (style.LineSpacingMultiplier is double multiplier) {
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = checked((int)Math.Round(multiplier * 240d, MidpointRounding.AwayFromZero));

@@ -76,6 +76,26 @@ internal static partial class PdfWriter {
             return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
         }
 
+        // Shape the whole token: a pair spanning the separator can adjust both
+        // the preceding advance and the separator's own painted position.
+        PdfTextShowCommand command = EncodeTextShowCommand(text, font, namedFont, options, featureSettings,
+            layoutHorizontalScaling: horizontalTextScaling);
+        if (command.VisualGlyphs is { Count: > 0 } glyphs) {
+            double effectiveSize = EffectiveRichFontSize(fontSize, baseline);
+            double scale = horizontalTextScaling / 100D;
+            double advance = 0D;
+            double tracking = GetIntrinsicGlyphTrackingAdvance(command, effectiveSize);
+            for (int index = 0; index < glyphs.Count; index++) {
+                PdfGlyphInfo glyph = glyphs[index];
+                if (glyph.TextIndex == decimalIndex) {
+                    return advance + glyph.OffsetX1000 * effectiveSize / 1000D * scale;
+                }
+                double glyphAdvance = glyph.AdvanceWidth1000 * effectiveSize / 1000D;
+                if (command.TrackingBoundaries?[index] == true) glyphAdvance += tracking;
+                advance += glyphAdvance * scale + characterSpacing;
+            }
+        }
+
         return MeasureRichText(text.Substring(0, decimalIndex), font, namedFont, fontSize, baseline, options, featureSettings, horizontalTextScaling, characterSpacing);
     }
 
