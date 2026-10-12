@@ -14,6 +14,38 @@ using PdfPageCanvas = OfficeIMO.Studio.Features.Reader.PdfPageCanvas;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioAnnotationSelectionTests {
+    [Fact]
+    public async Task PageMenuSelectsEveryAnnotationWithoutAKeyboard() {
+        // Touch has no Ctrl+A or modifier tap; touch-and-hold opens the page menu instead.
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "annotations.pdf");
+            File.WriteAllBytes(source, CreateSource());
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(source);
+            model.ShowAnnotateModeCommand.Execute(null);
+            var window = new Window { Width = 1100, Height = 760, Content = new DocumentWorkspaceView { DataContext = model } };
+            try {
+                window.Show(); window.UpdateLayout();
+                await model.SelectedPage!.EnsureRenderedAsync();
+                window.UpdateLayout();
+                var canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>().First(control =>
+                    control.Scene?.PageNumber == 1 && control.SelectionMode == PdfEditorSelectionMode.Annotations);
+                var page = canvas.FindAncestorOfType<PdfPageView>()!;
+                canvas.RaiseEvent(new ContextRequestedEventArgs());
+                var menu = (MenuFlyout)page.Resources["PageMenu"]!;
+                MenuItem selectAll = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Tag, "annotations"));
+                Assert.True(selectAll.IsVisible);
+                selectAll.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                Assert.True(model.SelectedAnnotations.Count >= 2);
+                menu.Hide();
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Theory]
     [InlineData(960, false)]
     [InlineData(1280, true)]

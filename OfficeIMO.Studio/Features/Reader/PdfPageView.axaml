@@ -30,6 +30,10 @@
       <MenuItem Header="{loc:Loc PageActions.SelectAll}" InputGesture="Ctrl+A" Click="OnSelectAllClick">
         <MenuItem.Icon><PathIcon Data="{StaticResource IconSelectAll}" Width="14" Height="14" /></MenuItem.Icon>
       </MenuItem>
+      <!-- The pointer-free way to select every annotation, for touch as well as the Ctrl+A shortcut. -->
+      <MenuItem Tag="annotations" Header="{loc:Loc PageActions.SelectAllAnnotations}" Click="OnSelectAllAnnotationsClick">
+        <MenuItem.Icon><PathIcon Data="{StaticResource IconSelectAll}" Width="14" Height="14" /></MenuItem.Icon>
+      </MenuItem>
       <Separator />
       <MenuItem Tag="selection" Header="{loc:Loc PageActions.HighlightSelection}" Click="OnHighlightSelectionClick">
         <MenuItem.Icon><PathIcon Data="{StaticResource IconHighlight}" Width="14" Height="14" /></MenuItem.Icon>

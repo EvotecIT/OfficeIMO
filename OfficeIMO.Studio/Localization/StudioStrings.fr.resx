@@ -2207,4 +2207,5 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Invoice.ChooseFontTitle" xml:space="preserve"><value>Choisissez une police à incorporer</value></data>
   <data name="Invoice.FontFiles" xml:space="preserve"><value>Polices</value></data>
   <data name="Conversion.BatchExport.Unavailable" xml:space="preserve"><value>L&apos;export PDF de dossiers nécessite un accès permanent à des dossiers entiers, dont cette édition de Studio ne dispose pas. Utilisez Ajouter des fichiers et Exécuter les tâches en attente pour convertir plusieurs documents.</value></data>
+  <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Sélectionner toutes les annotations</value></data>
 </root>

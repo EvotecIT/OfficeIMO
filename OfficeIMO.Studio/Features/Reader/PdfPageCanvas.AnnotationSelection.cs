@@ -34,7 +34,7 @@ public sealed partial class PdfPageCanvas {
         _selectionStart = null; _selectionEnd = null;
     }
 
-    private void SelectAllAnnotations() {
+    internal void SelectAllAnnotations() {
         if (Scene?.Interactions is not { } interactions) return;
         AnnotationSelectionRequested?.Invoke(new(interactions.Regions.Where(region => region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue)
             .Select(region => CreateSelection(Scene.PageNumber, region)).ToArray(), false, Toggle: false));
