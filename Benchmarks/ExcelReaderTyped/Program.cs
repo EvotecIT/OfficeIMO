@@ -341,7 +341,7 @@ if (string.Equals(csv, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkCsv=true"));
 if (string.Equals(arrow, "true", StringComparison.OrdinalIgnoreCase))
     buildArguments.Add(new MsBuildArgument("/p:OfficeIMOBenchmarkArrow=true"));
-Job benchmarkJob = Job.Default.WithArguments(buildArguments.ToArray());
+Job benchmarkJob = Job.Default.DontEnforcePowerPlan().WithArguments(buildArguments.ToArray());
 string? affinityMask = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_AFFINITY_MASK");
 if (!string.IsNullOrEmpty(affinityMask)) {
     if (args.Any(argument => argument == "--affinity" || argument.StartsWith("--affinity=", StringComparison.Ordinal)))

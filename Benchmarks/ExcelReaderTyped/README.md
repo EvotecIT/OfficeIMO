@@ -56,6 +56,10 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 enabled workload and parameter case. It checks declaration compatibility before
 fixture qualification; a Dry run also proves generated-process execution.
 
+The runner preserves the active power plan. Record that plan, power source,
+processor placement and background load with the results, and use the same
+settings for each implementation in a comparison.
+
 Source is the default OfficeIMO input. For a published-package comparison,
 pass an explicit version when building or running the project:
 
