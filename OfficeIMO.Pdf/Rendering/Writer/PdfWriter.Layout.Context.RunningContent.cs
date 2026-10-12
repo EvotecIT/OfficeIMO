@@ -92,8 +92,8 @@ internal static partial class PdfWriter {
                 double firstBodyHeight;
                 bool allowsExactOverflow;
                 if (runningFirstBodyHeight is double continuationHeight) {
-                    // Paragraph flow already wrapped and measured this actual
-                    // continuation line, including its container reservation.
+                    // Paragraph flow already measured this actual continuation
+                    // line, including its active-container reservation.
                     firstBodyHeight = continuationHeight;
                     footerOverlapHeight = runningFirstBodyAllowsFooterOverlap ? continuationHeight : null;
                     allowsExactOverflow = runningFirstBodyAllowsExactOverflow;

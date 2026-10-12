@@ -5,6 +5,8 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+using System.Threading;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Visio;
 
@@ -21,14 +23,17 @@ internal static partial class VisioLegacyXmlCodec {
             throw new NotSupportedException("Legacy XML supports macro-free drawing, template and stencil families.");
     }
 
-    internal static MemoryStream ToPackage(XDocument source, VisioPackageType type, VisioXmlConversionReport report) {
-        XElement root = NormalizeLegacyRoot(source, report);
+    internal static MemoryStream ToPackage(XDocument source, VisioPackageType type, VisioXmlConversionReport report,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        XElement root = NormalizeLegacyRoot(source, report, cancellationToken);
         if (root.Descendants(Legacy + "VBProjectData").Any()) throw new NotSupportedException("Legacy XML VBA projects are not supported.");
-        XElement converted = ToModern(root, report);
-        ResolveLegacyFontTable(converted, report);
-        ResolveLegacyPalette(converted, report);
-        CaptureLegacyCellMetadata(converted, report);
-        ReportUnmodeledConnectors(converted, report);
+        XElement converted = ToModern(root, report, cancellationToken);
+        ResolveLegacyFontTable(converted, report, cancellationToken);
+        ResolveLegacyPalette(converted, report, cancellationToken);
+        CaptureLegacyCellMetadata(converted, report, cancellationToken);
+        ReportUnmodeledConnectors(converted, report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new MemoryStream();
         int foreignResourceCount = 0;
         long foreignBytes = 0;
@@ -37,6 +42,7 @@ internal static partial class VisioLegacyXmlCodec {
                 PackagePart document = AddPart(package, "/visio/document.xml", VisioPackageFormat.GetContentType(type));
                 package.CreateRelationship(document.Uri, TargetMode.Internal, RelationshipBase + "document", "rId1");
                 foreach (string family in new[] { "Pages", "Masters" }) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     XElement? container = converted.Element(Modern + family);
                     if (container == null && family == "Masters") continue;
                     container ??= new XElement(Modern + family);
@@ -48,6 +54,7 @@ internal static partial class VisioLegacyXmlCodec {
                     document.CreateRelationship(index.Uri, TargetMode.Internal, RelationshipBase + lower, "rId" + family);
                     int ordinal = 0;
                     foreach (XElement entry in container.Elements(Modern + item)) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         string relId = "rId" + (++ordinal).ToString(System.Globalization.CultureInfo.InvariantCulture);
                         // Text whitespace inherited from VisioDocument must remain significant
                         // after moving Shapes into a separate page or master package part.
@@ -60,16 +67,17 @@ internal static partial class VisioLegacyXmlCodec {
                         indexXml.Add(reference);
                         PackagePart part = AddPart(package, "/visio/" + lower + "/" + item.ToLowerInvariant() + ordinal + ".xml", "application/vnd.ms-visio." + item.ToLowerInvariant() + "+xml");
                         index.CreateRelationship(part.Uri, TargetMode.Internal, RelationshipBase + item.ToLowerInvariant(), relId);
-                        ExtractForeignData(content, part, report, ref foreignResourceCount, ref foreignBytes);
-                        Write(part, content);
+                        ExtractForeignData(content, part, report, ref foreignResourceCount, ref foreignBytes, cancellationToken);
+                        Write(part, content, cancellationToken);
                     }
-                    Write(index, indexXml);
+                    Write(index, indexXml, cancellationToken);
                 }
                 XElement? properties = converted.Element(Modern + "DocumentProperties");
                 package.PackageProperties.Title = (string?)properties?.Element(Modern + "Title");
                 package.PackageProperties.Creator = (string?)properties?.Element(Modern + "Creator");
-                Write(document, converted);
+                Write(document, converted, cancellationToken);
             }
+            cancellationToken.ThrowIfCancellationRequested();
             result.Position = 0; return result;
         } catch { result.Dispose(); throw; }
     }
@@ -133,10 +141,12 @@ internal static partial class VisioLegacyXmlCodec {
         return new XDocument(new XDeclaration("1.0", "utf-8", null), root);
     }
 
-    private static void ReportUnmodeledConnectors(XElement root, VisioXmlConversionReport report) {
+    private static void ReportUnmodeledConnectors(XElement root, VisioXmlConversionReport report, CancellationToken cancellationToken) {
         foreach (XElement page in root.Descendants().Where(element => element.Name == Modern + "Page" || element.Name == Modern + "Master")) {
+            cancellationToken.ThrowIfCancellationRequested();
             var connects = page.Element(Modern + "Connects")?.Elements(Modern + "Connect").ToList() ?? new List<XElement>();
             foreach (XElement shape in page.Element(Modern + "Shapes")?.Elements(Modern + "Shape") ?? Enumerable.Empty<XElement>()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!shape.Elements(Modern + "Cell").Any(cell => (string?)cell.Attribute("N") == "OneD" && (string?)cell.Attribute("V") == "1")) continue;
                 string? id = (string?)shape.Attribute("ID");
                 var endpoints = connects.Where(connect => (string?)connect.Attribute("FromSheet") == id).ToList();
@@ -156,13 +166,14 @@ internal static partial class VisioLegacyXmlCodec {
     }
 
     private static IEnumerable<XAttribute> CopyAttributes(XElement element) => element.Attributes().Where(a => !a.IsNamespaceDeclaration).Select(a => new XAttribute(a));
-    private static void ResolveLegacyPalette(XElement root, VisioXmlConversionReport report) {
+    private static void ResolveLegacyPalette(XElement root, VisioXmlConversionReport report, CancellationToken cancellationToken) {
         var colors = root.Element(Modern + "Colors")?.Elements(Modern + "ColorEntry")
             .Where(e => e.Attribute("IX") != null && e.Attribute("RGB") != null)
             .GroupBy(e => (string)e.Attribute("IX")!, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => (string)group.First().Attribute("RGB")!, StringComparer.Ordinal)
             ?? new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (XElement cell in root.Descendants(Modern + "Cell")) {
+            cancellationToken.ThrowIfCancellationRequested();
             string? name = (string?)cell.Attribute("N"), value = (string?)cell.Attribute("V");
             if (name == null || value == null) continue;
             string? section = (string?)cell.Parent?.Parent?.Attribute("N");
@@ -187,10 +198,15 @@ internal static partial class VisioLegacyXmlCodec {
         }
     }
     private static PackagePart AddPart(Package package, string path, string contentType) => package.CreatePart(new Uri(path, UriKind.Relative), contentType);
-    private static void Write(PackagePart part, XElement root) {
+    private static void Write(PackagePart part, XElement root, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         using Stream stream = part.GetStream(FileMode.Create, FileAccess.Write);
         using XmlWriter writer = XmlWriter.Create(stream, new XmlWriterSettings { Encoding = new System.Text.UTF8Encoding(false) });
-        root.Save(writer);
+        using XmlReader reader = root.CreateReader();
+        using var cancellable = new OfficeXmlLimitingReader(reader, "Visio normalized XML",
+            int.MaxValue, int.MaxValue, int.MaxValue, cancellationToken);
+        writer.WriteNode(cancellable, defattr: true);
+        cancellationToken.ThrowIfCancellationRequested();
     }
     private static XElement Read(PackagePart part) {
         using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);

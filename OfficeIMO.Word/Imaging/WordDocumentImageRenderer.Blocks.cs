@@ -158,6 +158,7 @@ namespace OfficeIMO.Word {
                 currentIndex,
                 context.ContentWidth,
                 listMarkers,
+                context.Drawing,
                 context.CancellationToken);
             if (keepHeight <= 0D || keepHeight > context.ContentHeight) {
                 return;
@@ -174,6 +175,7 @@ namespace OfficeIMO.Word {
             int currentIndex,
             double contentWidth,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken) {
             double height = 0D;
             bool hasFollower = false;
@@ -185,6 +187,7 @@ namespace OfficeIMO.Word {
                     element,
                     contentWidth,
                     listMarkers,
+                    sourceDrawing,
                     cancellationToken);
                 if (index > currentIndex) {
                     hasFollower = true;
@@ -203,8 +206,9 @@ namespace OfficeIMO.Word {
             OpenXmlElement element,
             double contentWidth,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
+            OfficeDrawing sourceDrawing,
             CancellationToken cancellationToken) {
-            var measurementDrawing = new OfficeDrawing(Math.Max(1D, contentWidth), double.MaxValue);
+            var measurementDrawing = CreateMeasurementDrawing(sourceDrawing, contentWidth);
             WordImageFlowContext measurementContext = CreateFlowContext(
                 measurementDrawing,
                 0D,
