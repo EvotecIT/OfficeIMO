@@ -10,7 +10,8 @@ namespace OfficeIMO.Excel.Utilities {
         private readonly IReadOnlyDictionary<int, X.Row> _rows;
         private readonly X.SheetData? _sheetData;
         private readonly bool _rowIndexMayBeTruncated;
-        private readonly double _defaultColumnWidth;
+        private readonly X.SheetFormatProperties? _sheetFormat;
+        private readonly double _maximumDigitWidth;
         private readonly double _defaultRowHeightPoints;
         private double[]? _overflowRowHeights;
 
@@ -19,22 +20,21 @@ namespace OfficeIMO.Excel.Utilities {
             IReadOnlyDictionary<int, X.Row> rows,
             X.SheetData? sheetData,
             bool rowIndexMayBeTruncated,
-            double defaultColumnWidth,
+            X.SheetFormatProperties? sheetFormat,
+            double maximumDigitWidth,
             double defaultRowHeightPoints) {
             _columns = columns;
             _rows = rows;
             _sheetData = sheetData;
             _rowIndexMayBeTruncated = rowIndexMayBeTruncated;
-            _defaultColumnWidth = defaultColumnWidth;
+            _sheetFormat = (X.SheetFormatProperties?)sheetFormat?.CloneNode(true);
+            _maximumDigitWidth = maximumDigitWidth;
             _defaultRowHeightPoints = defaultRowHeightPoints;
         }
 
         internal static ExcelWorksheetGeometryIndex Create(WorksheetPart? worksheetPart) {
             X.Worksheet? worksheet = worksheetPart?.Worksheet;
             X.SheetFormatProperties? format = worksheet?.GetFirstChild<X.SheetFormatProperties>();
-            double defaultColumnWidth = format?.DefaultColumnWidth?.Value > 0
-                ? format.DefaultColumnWidth.Value
-                : 8.43D;
             double defaultRowHeight = format?.DefaultRowHeight?.Value > 0
                 ? format.DefaultRowHeight.Value
                 : 15D;
@@ -89,33 +89,17 @@ namespace OfficeIMO.Excel.Utilities {
                 rows,
                 sheetData,
                 rowIndexMayBeTruncated,
-                defaultColumnWidth,
+                format,
+                ExcelColumnGeometry.GetMaximumDigitWidth(worksheetPart),
                 defaultRowHeight);
         }
 
-        internal int GetSimpleColumnWidthPixels(int columnIndex) {
-            X.Column? column = columnIndex > 0 && columnIndex < _columns.Length ? _columns[columnIndex] : null;
-            if (column?.Hidden?.Value == true) {
-                return 0;
-            }
-
-            double width = column?.Width?.Value > 0 && column.CustomWidth?.Value == true
-                ? column.Width.Value
-                : _defaultColumnWidth;
-            return Math.Max(1, (int)Math.Round(Math.Round((width * 7D) + 5D, 2)));
-        }
+        internal int GetSimpleColumnWidthPixels(int columnIndex) =>
+            GetColumnWidthPixels(columnIndex, _maximumDigitWidth);
 
         internal int GetColumnWidthPixels(int columnIndex, double maximumDigitWidth) {
             X.Column? column = columnIndex > 0 && columnIndex < _columns.Length ? _columns[columnIndex] : null;
-            if (column?.Hidden?.Value == true) {
-                return 0;
-            }
-
-            double width = column?.Width?.Value > 0 && column.CustomWidth?.Value == true
-                ? column.Width.Value
-                : _defaultColumnWidth;
-            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / maximumDigitWidth)) / 256D * maximumDigitWidth);
-            return Math.Max(1, (int)Math.Round(pixels));
+            return ExcelColumnGeometry.GetWidthPixels(column, _sheetFormat, maximumDigitWidth);
         }
 
         internal int GetRowHeightPixels(int rowIndex) {
