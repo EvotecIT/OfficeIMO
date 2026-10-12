@@ -164,8 +164,10 @@ internal static partial class OneNotePackageStoreReader {
             if (osids.ExtendedStreamsPresent) contexts = ReadCompactStream(propertyData, ref position, options, offset);
         }
 
-        OneNoteExtendedGuid[] osidReferences = cellReferences.Where(cell => cell.First.Equals(currentCell.First)).Select(cell => cell.Second).ToArray();
-        OneNoteExtendedGuid[] contextReferences = cellReferences.Where(cell => !cell.First.Equals(currentCell.First)).Select(cell => cell.First).ToArray();
+        // The cell references list the OSIDs' cells first, then the ContextIDs' cells, in stream order.
+        int osidCount = Math.Min(osids.CompactIds.Count, cellReferences.Count);
+        OneNoteExtendedGuid[] osidReferences = cellReferences.Take(osidCount).Select(cell => cell.Second).ToArray();
+        OneNoteExtendedGuid[] contextReferences = cellReferences.Skip(osidCount).Select(cell => cell.First).ToArray();
         var mappings = new Dictionary<uint, Guid>();
         AddMappings(mappings, oids.CompactIds, objectReferences, offset, "object");
         AddMappings(mappings, osids.CompactIds, osidReferences, offset, "object-space");
@@ -195,6 +197,8 @@ internal static partial class OneNotePackageStoreReader {
         IReadOnlyList<OneNoteExtendedGuid> extendedIds,
         long offset,
         string kind) {
+        // A null reference (CompactID 0) may be written without an extended-GUID entry.
+        if (compactIds.Count != extendedIds.Count) compactIds = compactIds.Where(compact => compact != 0).ToArray();
         if (compactIds.Count != extendedIds.Count) {
             throw new OneNoteFormatException("ONENOTE_PACKAGE_MAPPING_COUNT", "The " + kind + " CompactID and extended-GUID arrays have different counts.", offset);
         }
