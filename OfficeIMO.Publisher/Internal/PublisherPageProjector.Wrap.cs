@@ -11,7 +11,7 @@ internal sealed partial class PublisherPageProjector {
             .Then(OfficeTransform.Translate(-bounds.X, -bounds.Y));
         foreach (uint id in frame.WrapObjects) {
             _context.Record();
-            if (!artwork.TryGetValue(id, out PublisherEscherShape? obstacle) || !obstacle.Bounds.HasValue
+            if (!artwork.TryGetValue(id, out PublisherEscherShape? obstacle) || !obstacle.Bounds.HasValue || !obstacle.LayoutTransform.TryInvert(out _) || !obstacle.GroupTransform.TryInvert(out _)
                 || Owner(id, 0) != Owner(frame.Chunk.Id, 0)) {
                 _context.Add("PUB_TEXT_WRAP_REFERENCE_UNRESOLVED", "A native text-wrap object has no resolved anchor on the frame's page. Its exclusion could not be applied.",
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
@@ -42,6 +42,9 @@ internal sealed partial class PublisherPageProjector {
     }
 
     private OfficeTransform PageTransform(PublisherEscherShape shape, FrameRectangle bounds) {
+        // Collapsed layouts have no inverse frame basis. Their artwork is
+        // omitted by the geometry guard; retained model positions stay finite.
+        if (!shape.LayoutTransform.TryInvert(out _)) return OfficeTransform.Identity;
         double x = bounds.X + bounds.Width / 2, y = bounds.Y + bounds.Height / 2;
         double sx = shape.LayoutTransform.M11, sy = shape.LayoutTransform.M22;
         // Layout is already expressed in physical units. Conjugate the child's

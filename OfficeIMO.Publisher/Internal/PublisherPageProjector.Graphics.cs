@@ -21,9 +21,12 @@ internal sealed partial class PublisherPageProjector {
                 (style.ShadowOffsetXEmus ?? 0) / 12700D, (style.ShadowOffsetYEmus ?? 0) / 12700D, Math.Max(0, (style.ShadowSoftnessEmus ?? 0) / 12700D));
         }
         OfficeArtProperty? pictureReference = source.Properties.LastOrDefault(property => property.PropertyId == 0x0104);
-        if (pictureReference == null || pictureReference.Value == 0 || pictureReference.IsComplex) {
+        if (pictureReference == null || pictureReference.Value == 0 || pictureReference.IsComplex || !pictureReference.IsBlipId) {
             if (pictureReference?.IsComplex == true && pictureReference.Value != 0)
                 _context.Add("PUB_IMAGE_DATA_UNSUPPORTED", "A native picture carries inline image data that is retained without artwork projection.",
+                    OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id));
+            if (pictureReference is { IsComplex: false, IsBlipId: false, Value: not 0 })
+                _context.Add("PUB_IMAGE_REFERENCE_INVALID", "A native picture reference lacks the required BLIP identifier flag; its image is retained without artwork projection.",
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(source.Id));
             if (HasFill(shape) || shape.StrokeColor.HasValue || shape.Shadow != null) drawing.AddShape(shape, 0, 0);
             return;

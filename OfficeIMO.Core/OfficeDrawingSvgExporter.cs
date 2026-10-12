@@ -516,35 +516,6 @@ public static partial class OfficeDrawingSvgExporter {
     private static string BuildClipRuleAttribute(OfficeFillRule fillRule) =>
         fillRule == OfficeFillRule.EvenOdd ? " clip-rule=\"evenodd\"" : string.Empty;
 
-    private static void AppendPathMarkers(StringBuilder sb, OfficeShape shape, double originX, double originY, string transform, string? strokeGradientId) {
-        if (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null) {
-            return;
-        }
-
-        OfficeFlattenedPathContour? firstOpen = null;
-        OfficeFlattenedPathContour? lastOpen = null;
-        IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, originX, originY, 1D);
-        for (int i = 0; i < contours.Count; i++) {
-            if (!contours[i].Closed && contours[i].Points.Count >= 2) {
-                firstOpen ??= contours[i];
-                lastOpen = contours[i];
-            }
-        }
-
-        if (firstOpen != null) {
-            OfficePoint start = firstOpen.Points[0];
-            OfficePoint next = firstOpen.Points[1];
-            AppendLineMarker(sb, shape.StrokeStartMarker, start, new OfficePoint(start.X - next.X, start.Y - next.Y), shape, transform, strokeGradientId);
-        }
-
-        if (lastOpen != null) {
-            IReadOnlyList<OfficePoint> points = lastOpen.Points;
-            OfficePoint end = points[points.Count - 1];
-            OfficePoint previous = points[points.Count - 2];
-            AppendLineMarker(sb, shape.StrokeEndMarker, end, new OfficePoint(end.X - previous.X, end.Y - previous.Y), shape, transform, strokeGradientId);
-        }
-    }
-
     private static void AppendRichTextFrameGroupStart(StringBuilder sb, OfficeDrawingRichText text) {
         string? transform = OfficeSvgFormatting.FormatImageFrameTransform(text.CreateFrameTransform());
         if (string.IsNullOrWhiteSpace(transform)) {

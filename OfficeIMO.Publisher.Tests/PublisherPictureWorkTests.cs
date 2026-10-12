@@ -11,7 +11,7 @@ public sealed class PublisherPictureWorkTests {
         byte[] input = PublisherPictureWorkFixture.WithImage(PublisherPictureEffectTests.PictureInput(
             new Dictionary<ushort, uint> { [0x013F] = 0x00040004 }), png);
         input = PublisherDrawingFixture.Mutate(input, new Dictionary<ushort, uint> {
-            [0x0104] = 1, [0x013F] = 0x00040004
+            [0x4104] = 1, [0x013F] = 0x00040004
         }, 1, objectId: 367);
         var exception = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
             new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxInputBytes = input.Length } }));
@@ -31,7 +31,7 @@ public sealed class PublisherPictureWorkTests {
         Assert.Equal(OfficeColor.White, PublisherPictureEffectTests.ProjectedRaster(document, 362).GetPixel(0, 0));
         Assert.Contains(document.ReadReport.FidelityDiagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected);
         input = PublisherDrawingFixture.Mutate(input, new Dictionary<ushort, uint> {
-            [0x0104] = 1, [0x013F] = 0x00040004
+            [0x4104] = 1, [0x013F] = 0x00040004
         }, 1, objectId: 367);
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
             new PublisherReadOptions { MaximumImageProcessingPixels = 7 }));
