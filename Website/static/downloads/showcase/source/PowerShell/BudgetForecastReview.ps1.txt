@@ -6,7 +6,7 @@ The checked-in CSV is synthetic annual spending in USD. Positive forecast varian
 overspend. Workbook formulas retain the calculation; the Word/PDF review records the same
 input snapshot. Regenerate the review after editing the workbook or changing the CSV.
 .EXAMPLE
-pwsh -NoProfile -File ./BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8
+pwsh -NoProfile -File ./BudgetForecastReview.ps1 -InputPath ./BudgetForecast.csv -OutputDirectory ./out
 .EXAMPLE
 ./BudgetForecastReview.ps1 -InputPath ./Finance.csv -AsOfDate 2026-09-30 -OutputDirectory ./out
 #>
@@ -15,14 +15,18 @@ param(
     [Parameter(Mandatory)][string] $OutputDirectory,
     [string] $InputPath = '',
     [datetime] $AsOfDate = '2026-09-30',
-    [string] $ModuleVersion = '3.0.8'
+    [string] $ModuleVersion
 )
 
 $ErrorActionPreference = 'Stop'
 $usingSampleInput = -not $InputPath
 if (-not $InputPath) { $InputPath = Join-Path $PSScriptRoot 'Data/BudgetForecast.csv' }
 $inputLabel = if ($usingSampleInput) { 'Synthetic USD sample' } else { 'USD forecast snapshot' }
-Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
+if ($ModuleVersion) {
+    Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
+} else {
+    Import-Module PSWriteOffice -ErrorAction Stop
+}
 $culture = [Globalization.CultureInfo]::InvariantCulture
 $money = [Globalization.CultureInfo]::GetCultureInfo('en-US')
 $inputRows = @(Import-Csv -LiteralPath $InputPath -Encoding UTF8)
