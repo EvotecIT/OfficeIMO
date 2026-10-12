@@ -826,16 +826,19 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
-    public async Task TaggedPdfAllowsRotationAndReportsPageTreeChangesAsUnavailable() {
+    public async Task TaggedPdfAllowsRotationAndCatalogPreservingOrganization() {
         string fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
         using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(fixture, CancellationToken.None);
 
-        Assert.False(workspace.CanMutatePages);
+        Assert.True(workspace.CanMutatePages);
         Assert.True(workspace.CanRotatePages);
-        Assert.False(workspace.CanExtractPages);
-        Assert.False(workspace.CanImportPages);
-        Assert.NotNull(workspace.SecurityWarning);
-        Assert.Contains("tagged", workspace.SecurityWarning, StringComparison.OrdinalIgnoreCase);
+        Assert.True(workspace.CanExtractPages);
+        Assert.True(workspace.CanImportPages);
+        Assert.False(workspace.CanResizePages);
+        await workspace.DuplicateAsync([1], CancellationToken.None);
+        Assert.Equal(2, workspace.Pages.Count);
+        await workspace.DeleteAsync([1], CancellationToken.None);
+        Assert.Single(workspace.Pages);
     }
 
     [Fact]

@@ -298,7 +298,10 @@ internal static partial class PdfIncrementalUpdater {
         formBlockers.AddRange(commonBlockers);
         signaturePreparationBlockers.AddRange(commonBlockers);
         longTermValidationBlockers.AddRange(commonBlockers);
-        pageAttributeBlockers.AddRange(commonBlockers);
+        pageAttributeBlockers.AddRange(commonBlockers.Where(static blocker => blocker != "Encrypted"));
+        if (security.HasEncryption && !security.HasOwnerAuthorization && security.AllowsDocumentAssembly != true) {
+            pageAttributeBlockers.Add("PageAssemblyPermission");
+        }
         annotationBlockers.AddRange(commonBlockers.Where(static blocker => blocker != "Encrypted"));
         if (security.HasEncryption &&
             !security.HasOwnerAuthorization &&

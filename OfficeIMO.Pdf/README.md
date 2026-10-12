@@ -1357,14 +1357,36 @@ signatures. Signature trust and later-change policy remain separate validation
 results. Certification/DocMDP restrictions forbid rotation and page-box changes
 at every permission level; password permissions and usage rights also apply.
 Deleting, reordering, inserting, and duplicating pages use their own preservation
-checks. Tagged page-tree changes remain unsupported. Page attributes preserve
-existing tags, but changing page geometry does not by itself establish PDF/A or
+checks. Page attributes preserve existing tags, but changing page geometry does not by itself establish PDF/A or
 PDF/UA conformance; validate the saved artifact against the required profile.
 
 Deletion, reordering, and duplication can normalize cross-reference and object
 streams through a full rewrite when the remaining document structures can be
 preserved. The plan reports `Input.CrossReferenceAndObjectStreamsWillBeNormalized`.
 These operations do not use the page-attribute append-only route.
+
+Tagged page organization uses a catalog-preserving full rewrite. `Delete`,
+`Reorder`, `Move`, `Duplicate`, `Extract`, and `Split` retain surviving structure
+elements and update page ownership, parent-tree entries, IDs, fields and navigation.
+Copies receive separate page objects, structure elements, parent-tree keys and IDs.
+`ReorderWithMapping` returns mappings for surviving original objects, including
+annotations used by a host's selection state. The operation plan reports
+`OrganizePages` and the required structure, form and annotation readback proofs.
+
+`Insert`, `Append` and `Prepend` use `ImportPages` when combining tagged page
+graphs. The target catalog and metadata remain, imported structure keys and IDs
+are made distinct, and role/class mappings are namespaced. Incoming form fields,
+layers, document name trees other than destinations, and unknown structure-root
+extensions need explicit collision policies and currently fail with a specific
+error. XFA, ambiguous ownership and unsupported surviving references to deleted
+pages also fail before an output is adopted. Untagged content cannot be inserted
+into a declared PDF/UA document without accessible tagging. These operations do
+not infer a new semantic reading order for structure groups spanning several
+pages. Import retains the target's metadata and color policy; it does not embed
+missing fonts or reconcile conformance requirements for arbitrary incoming pages.
+Validate accessibility and the declared conformance profile on the saved
+artifact. The broad `ModifyPageTree` gate remains for other writers, including
+content-changing crop and resize operations.
 
 Use `Pages.NormalizeRotation()` to remove saved quarter-turn rotation while
 keeping the pages' displayed appearance. Pass `PdfPageSelection.From(1, 3)` to

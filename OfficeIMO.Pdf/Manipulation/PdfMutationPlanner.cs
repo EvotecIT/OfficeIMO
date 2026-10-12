@@ -109,7 +109,7 @@ internal static class PdfMutationPlanner {
         Func<PdfReadDocument> sharedDocumentFactory =
             () => document ??= documentFactory?.Invoke() ?? PdfReadDocument.Open(pdf, effectiveOptions, cancellationToken);
         bool transfersUnchangedPages = operation == PdfMutationOperation.ExtractPages ||
-            operation == PdfMutationOperation.MergeDocuments;
+            operation == PdfMutationOperation.MergeDocuments || operation == PdfMutationOperation.OrganizePages || operation == PdfMutationOperation.ImportPages;
         PdfDocumentPreflight preflight = transfersUnchangedPages
             ? PdfInspector.PreflightPageTransfer(
                 pdf,
@@ -263,7 +263,7 @@ internal static class PdfMutationPlanner {
         bool unsignedSignatureFieldRewrite = operation == PdfMutationOperation.ModifyAcroForm && CanFullRewriteUnsignedSignatureFields(security);
         bool normalizedObjectGraphRewrite = (operation == PdfMutationOperation.MergeDocuments ||
             operation == PdfMutationOperation.Optimize || operation == PdfMutationOperation.ModifyPageTree ||
-            operation == PdfMutationOperation.NormalizePageRotation) &&
+            operation == PdfMutationOperation.NormalizePageRotation || operation == PdfMutationOperation.OrganizePages || operation == PdfMutationOperation.ImportPages) &&
             CanNormalizeObjectGraphSource(preflight, operation);
         bool authorizedEncryptedRewrite = security.HasEncryption && CanUseAuthenticatedEncryptedRewrite(preflight, operation);
         bool certificationRequiresFirstSignature =
@@ -396,6 +396,11 @@ internal static class PdfMutationPlanner {
                     blocker.Kind == PdfRewriteBlockerKind.Signatures && HasOnlyUnsignedSignatureFields(preflight.Probe.Security) ||
                     blocker.Kind == PdfRewriteBlockerKind.Encryption && CanUseAuthenticatedEncryptedRewrite(preflight, operation) ||
                     !IsFullRewriteBlockerForOperation(blocker.Kind, operation));
+            case PdfMutationOperation.OrganizePages:
+            case PdfMutationOperation.ImportPages:
+                return CanReadForPageTransfer(preflight) && CanNormalizeObjectGraphSource(preflight, operation) && preflight.RewriteBlockers.All(blocker =>
+                    blocker.Kind == PdfRewriteBlockerKind.Encryption && CanUseAuthenticatedEncryptedRewrite(preflight, operation) ||
+                    !IsFullRewriteBlockerForOperation(blocker.Kind, operation));
             case PdfMutationOperation.Optimize:
                 return CanOptimize(preflight);
             case PdfMutationOperation.Redact:
@@ -495,6 +500,10 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.Navigation, PdfMutationStructure.Catalog);
+            case PdfMutationOperation.OrganizePages:
+            case PdfMutationOperation.ImportPages:
+                return ReadOnly(PdfMutationStructure.PageTree, PdfMutationStructure.PageResources, PdfMutationStructure.TaggedContent,
+                    PdfMutationStructure.Navigation, PdfMutationStructure.Catalog, PdfMutationStructure.AcroForm, PdfMutationStructure.Annotations);
             case PdfMutationOperation.ModifyPageAttributes:
                 return ReadOnly(PdfMutationStructure.PageAttributes);
             case PdfMutationOperation.NormalizePageRotation:
@@ -540,11 +549,13 @@ internal static class PdfMutationPlanner {
                 break;
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ModifyPageAttributes:
+            case PdfMutationOperation.OrganizePages:
                 Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
                 break;
             case PdfMutationOperation.ExtractPages:
             case PdfMutationOperation.MergeDocuments:
+            case PdfMutationOperation.ImportPages:
                 Add(permissions, PdfMutationPermissionCheck.CopyContents);
                 Add(permissions, PdfMutationPermissionCheck.AssembleDocument);
                 Add(permissions, PdfMutationPermissionCheck.DocMdp);
@@ -633,6 +644,13 @@ internal static class PdfMutationPlanner {
             case PdfMutationOperation.ModifyPageTree:
             case PdfMutationOperation.ExtractPages:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
+                break;
+            case PdfMutationOperation.OrganizePages:
+            case PdfMutationOperation.ImportPages:
+                Add(proofs, PdfMutationProof.PageStructureReadback);
+                Add(proofs, PdfMutationProof.TaggedStructureReadback);
+                Add(proofs, PdfMutationProof.FormFieldReadback);
+                Add(proofs, PdfMutationProof.AnnotationReadback);
                 break;
             case PdfMutationOperation.ModifyPageAttributes:
                 Add(proofs, PdfMutationProof.PageStructureReadback);
@@ -815,6 +833,10 @@ internal static class PdfMutationPlanner {
         var diagnostics = new List<string>();
         if (mode == PdfMutationExecutionMode.FullRewrite) {
             Add(diagnostics, operation + " can use a full rewrite for this PDF; rewrite-preservation proof is required.");
+            if (operation == PdfMutationOperation.OrganizePages || operation == PdfMutationOperation.ImportPages)
+                Add(diagnostics, "The catalog-preserving writer updates page membership and tagged structure ownership; source collisions and unsupported ownership still require writer validation.");
+            if (operation == PdfMutationOperation.ImportPages)
+                Add(diagnostics, "Import preserves the target's document metadata and color policy. It does not establish PDF/A or PDF/UA conformance or supply missing font embedding; validate the combined artifact against its required profile.");
         } else if (mode == PdfMutationExecutionMode.AppendOnly) {
             if (operation == PdfMutationOperation.FinalizeExternalSignature) {
                 Add(diagnostics, operation + " will fill the prepared signature contents reservation without changing file length or signed byte ranges.");
@@ -894,9 +916,13 @@ internal static class PdfMutationPlanner {
         if (operation != PdfMutationOperation.ExtractPages || !CanReadForPageTransfer(preflight)) {
             return false;
         }
+        if (preflight.RewriteBlockers.Any(blocker => blocker.Kind == PdfRewriteBlockerKind.TaggedContent))
+            return CanFullRewrite(preflight, PdfMutationOperation.OrganizePages) &&
+                PdfPermissionAuthorization.CanMutate(preflight.Probe.Security, preflight.PermissionPolicy, operation);
 
         for (int i = 0; i < preflight.RewriteBlockers.Count; i++) {
-            if (preflight.RewriteBlockers[i].Kind != PdfRewriteBlockerKind.Encryption) {
+            PdfRewriteBlockerKind blocker = preflight.RewriteBlockers[i].Kind;
+            if (blocker != PdfRewriteBlockerKind.Encryption && blocker != PdfRewriteBlockerKind.TaggedContent) {
                 return false;
             }
         }
@@ -1029,6 +1055,8 @@ internal static class PdfMutationPlanner {
             operation != PdfMutationOperation.ModifyPageTree &&
             operation != PdfMutationOperation.ModifyPageAttributes &&
             operation != PdfMutationOperation.NormalizePageRotation &&
+            operation != PdfMutationOperation.OrganizePages &&
+            operation != PdfMutationOperation.ImportPages &&
             operation != PdfMutationOperation.UpdateMetadata &&
             operation != PdfMutationOperation.SynchronizeMetadata &&
             operation != PdfMutationOperation.Sanitize &&
@@ -1090,8 +1118,8 @@ internal static class PdfMutationPlanner {
     }
 
     internal static bool IsFullRewriteBlockerForOperation(PdfRewriteBlockerKind blocker, PdfMutationOperation operation) {
-        // Rotation normalization retains the catalog-rooted graph and only transforms page geometry.
-        if (operation == PdfMutationOperation.NormalizePageRotation) {
+        // These writers retain the catalog-rooted graph and maintain their affected owners explicitly.
+        if (operation == PdfMutationOperation.NormalizePageRotation || operation == PdfMutationOperation.OrganizePages || operation == PdfMutationOperation.ImportPages) {
             return blocker == PdfRewriteBlockerKind.Signatures || blocker == PdfRewriteBlockerKind.Encryption ||
                 blocker == PdfRewriteBlockerKind.InvalidObjectReferences || blocker == PdfRewriteBlockerKind.IncompleteObjectGraph;
         }
@@ -1273,7 +1301,7 @@ internal static class PdfMutationPlanner {
 
     private static void ValidateOperation(PdfMutationOperation operation) {
         int value = (int)operation;
-        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.NormalizePageRotation) {
+        if (value < (int)PdfMutationOperation.UpdateMetadata || value > (int)PdfMutationOperation.ImportPages) {
             throw new ArgumentOutOfRangeException(nameof(operation), operation, "Unsupported PDF mutation operation.");
         }
     }

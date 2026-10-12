@@ -397,14 +397,14 @@ public sealed partial class PdfDocumentPages {
     }
 
     private PdfDocument Delete(PdfPageSelection selection, PdfLoadOptions? readOptions) =>
-        _document.ApplyMutation(input => PdfPageEditor.DeletePagesWithReadOptions(input, readOptions, selection.ToPageNumbers(_document.Inspect(readOptions).PageCount, nameof(selection))), readOptions);
+        _document.ApplyMutation(input => PdfPageEditor.DeletePagesWithReadOptions(input, readOptions, selection.ToPageNumbers(GetSelectionPageCount(readOptions), nameof(selection))), readOptions);
 
     /// <summary>
     /// Attempts to create a new PDF with selected pages deleted, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> DeleteResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Delete(selection, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Delete(selection, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -418,7 +418,7 @@ public sealed partial class PdfDocumentPages {
     /// Attempts to create a new PDF with pages described by page ranges deleted, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> DeleteResult(string pageRanges, PdfLoadOptions? options = null) {
-        return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Delete(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Delete pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Delete(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -444,21 +444,21 @@ public sealed partial class PdfDocumentPages {
     }
 
     private PdfDocument Reorder(PdfPageSelection selection, PdfLoadOptions? readOptions) =>
-        _document.ApplyMutation(input => PdfPageEditor.ReorderPagesWithReadOptions(input, readOptions, selection.ToPageNumbers(_document.Inspect(readOptions).PageCount, nameof(selection))), readOptions);
+        _document.ApplyMutation(input => PdfPageEditor.ReorderPagesWithReadOptions(input, readOptions, selection.ToPageNumbers(GetSelectionPageCount(readOptions), nameof(selection))), readOptions);
 
     /// <summary>
     /// Attempts to create a new PDF with every page copied in the selected one-based order, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> ReorderResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Reorder(selection, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Reorder(selection, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
     /// Attempts to create a new PDF with pages copied in parsed page-range order, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> ReorderResult(string pageRanges, PdfLoadOptions? options = null) {
-        return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Reorder(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Reorder(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -484,14 +484,14 @@ public sealed partial class PdfDocumentPages {
     }
 
     private PdfDocument Duplicate(PdfPageSelection selection, PdfLoadOptions? readOptions) =>
-        _document.ApplyMutation(input => PdfPageEditor.DuplicatePagesWithReadOptions(input, readOptions, selection.ToPageNumbers(_document.Inspect(readOptions).PageCount, nameof(selection))), readOptions);
+        _document.ApplyMutation(input => PdfPageEditor.DuplicatePagesWithReadOptions(input, readOptions, selection.ToPageNumbers(GetSelectionPageCount(readOptions), nameof(selection))), readOptions);
 
     /// <summary>
     /// Attempts to create a new PDF with selected pages duplicated, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> DuplicateResult(PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Duplicate(selection, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Duplicate(selection, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -505,7 +505,7 @@ public sealed partial class PdfDocumentPages {
     /// Attempts to create a new PDF with parsed page ranges duplicated, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> DuplicateResult(string pageRanges, PdfLoadOptions? options = null) {
-        return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Duplicate(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Duplicate(PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -534,14 +534,14 @@ public sealed partial class PdfDocumentPages {
     }
 
     private PdfDocument Move(int insertBeforePageNumber, PdfPageSelection selection, PdfLoadOptions? readOptions) =>
-        _document.ApplyMutation(input => PdfPageEditor.MovePagesWithReadOptions(input, insertBeforePageNumber, readOptions, selection.ToPageNumbers(_document.Inspect(readOptions).PageCount, nameof(selection))), readOptions);
+        _document.ApplyMutation(input => PdfPageEditor.MovePagesWithReadOptions(input, insertBeforePageNumber, readOptions, selection.ToPageNumbers(GetSelectionPageCount(readOptions), nameof(selection))), readOptions);
 
     /// <summary>
     /// Attempts to create a new PDF with selected pages moved before the supplied one-based page number, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, PdfPageSelection selection, PdfLoadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
-        return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Move(insertBeforePageNumber, selection, options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Move(insertBeforePageNumber, selection, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -556,7 +556,7 @@ public sealed partial class PdfDocumentPages {
     /// Attempts to create a new PDF with parsed page ranges moved before the supplied one-based page number, returning diagnostics when blocked or failed.
     /// </summary>
     public PdfOperationResult<PdfDocument> MoveResult(int insertBeforePageNumber, string pageRanges, PdfLoadOptions? options = null) {
-        return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageTree, () => Move(insertBeforePageNumber, PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
+        return _document.TryMutationOperation("Move pages", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.OrganizePages, () => Move(insertBeforePageNumber, PdfPageSelection.Parse(pageRanges), options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
@@ -582,7 +582,7 @@ public sealed partial class PdfDocumentPages {
     }
 
     private PdfDocument Rotate(int rotationDegrees, PdfPageSelection selection, PdfLoadOptions? readOptions) =>
-        _document.ApplyMutation(input => PdfPageEditor.RotatePagesWithReadOptions(input, rotationDegrees, readOptions, selection.ToPageNumbers(_document.Inspect(readOptions).PageCount, nameof(selection))), readOptions);
+        _document.ApplyMutation(input => PdfPageEditor.RotatePagesWithReadOptions(input, rotationDegrees, readOptions, selection.ToPageNumbers(GetSelectionPageCount(readOptions), nameof(selection))), readOptions);
 
     /// <summary>
     /// Attempts to create a new PDF with selected pages rotated, returning diagnostics when blocked or failed.

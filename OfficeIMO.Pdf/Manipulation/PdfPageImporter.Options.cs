@@ -46,6 +46,8 @@ internal static partial class PdfPageImporter {
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
         byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
         PdfLoadOptions preparedSourceReadOptions = PdfLoadOptions.WithMinimumInputBytes(sourceReadOptions, preparedSource.LongLength);
+        if (TryImportTagged(targetPdf, preparedSource, insertBeforePageNumber, sourcePageNumbers, targetReadOptions, preparedSourceReadOptions, out var taggedOutput))
+            return taggedOutput;
         if (insertBeforePageNumber == targetPageCount + 1) {
             return ImportPreparedPages(targetPdf, preparedSource, append: true, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers, targetDocument);
         }
@@ -67,7 +69,18 @@ internal static partial class PdfPageImporter {
         PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
         byte[] preparedSource = PrepareImportSource(sourcePdf, options, sourceReadOptions);
         PdfLoadOptions preparedSourceReadOptions = PdfLoadOptions.WithMinimumInputBytes(sourceReadOptions, preparedSource.LongLength);
+        var target = PdfReadDocument.Open(targetPdf, targetReadOptions);
+        if (TryImportTagged(targetPdf, preparedSource, append ? target.Pages.Count + 1 : 1, sourcePageNumbers!, targetReadOptions, preparedSourceReadOptions, out var taggedOutput))
+            return taggedOutput;
         return ImportPreparedPages(targetPdf, preparedSource, append, targetReadOptions, preparedSourceReadOptions, sourcePageNumbers!);
+    }
+
+    private static bool TryImportTagged(byte[] targetPdf, byte[] sourcePdf, int insertBeforePageNumber, int[] sourcePageNumbers,
+        PdfLoadOptions? targetOptions, PdfLoadOptions? sourceOptions, out byte[] output) {
+        var target = PdfReadDocument.Open(targetPdf, targetOptions); var source = PdfReadDocument.Open(sourcePdf, sourceOptions);
+        if (!PdfTaggedPageOrganizer.IsTagged(target) && !PdfTaggedPageOrganizer.IsTagged(source)) { output = Array.Empty<byte>(); return false; }
+        output = PdfTaggedPageOrganizer.Import(targetPdf, sourcePdf, insertBeforePageNumber, sourcePageNumbers, targetOptions, sourceOptions);
+        return true;
     }
 
     private static byte[] ImportPreparedPages(

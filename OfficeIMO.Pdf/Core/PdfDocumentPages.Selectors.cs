@@ -24,7 +24,7 @@ public sealed partial class PdfDocumentPages {
         return _document.TryMutationOperation(
             "Delete pages",
             PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageTree,
+            PdfMutationOperation.OrganizePages,
             () => Delete(ResolveSelector(selector, effectiveOptions), effectiveOptions),
             options);
     }
@@ -41,7 +41,7 @@ public sealed partial class PdfDocumentPages {
         return _document.TryMutationOperation(
             "Reorder pages",
             PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageTree,
+            PdfMutationOperation.OrganizePages,
             () => Reorder(ResolveSelector(selector, effectiveOptions), effectiveOptions),
             options);
     }
@@ -58,7 +58,7 @@ public sealed partial class PdfDocumentPages {
         return _document.TryMutationOperation(
             "Duplicate pages",
             PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageTree,
+            PdfMutationOperation.OrganizePages,
             () => Duplicate(ResolveSelector(selector, effectiveOptions), effectiveOptions),
             options);
     }
@@ -75,7 +75,7 @@ public sealed partial class PdfDocumentPages {
         return _document.TryMutationOperation(
             "Move pages",
             PdfPreflightCapability.ManipulatePages,
-            PdfMutationOperation.ModifyPageTree,
+            PdfMutationOperation.OrganizePages,
             () => Move(insertBeforePageNumber, ResolveSelector(selector, effectiveOptions), effectiveOptions),
             options);
     }
@@ -99,11 +99,16 @@ public sealed partial class PdfDocumentPages {
 
     private PdfPageSelection ResolveSelector(PdfPageSelector selector, PdfLoadOptions? options) {
         Guard.NotNull(selector, nameof(selector));
-        int pageCount = _document.Inspect(options).PageCount;
+        int pageCount = GetSelectionPageCount(options);
         if (pageCount < 1) {
             throw new InvalidOperationException("PDF does not contain any readable pages.");
         }
 
         return selector.ResolveSelection(pageCount);
     }
+
+    // Selection resolution needs page geometry, not permission to extract logical content.
+    private int GetSelectionPageCount(PdfLoadOptions? options) =>
+        (_document.GetOpenedReadDocumentFactory(options)?.Invoke() ??
+            PdfReadDocument.Open(_document.GetBytesForOperation(), options)).Pages.Count;
 }

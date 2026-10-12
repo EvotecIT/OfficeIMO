@@ -1075,7 +1075,7 @@
                     <ComboBox.ItemTemplate><DataTemplate x:DataType="shell:ResizeModeChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
                   </ComboBox>
                 </Grid>
-                <Button Classes="tool" Command="{Binding ResizeSelectedPagesCommand}" IsEnabled="{Binding CanMutateSelection}" Content="{loc:Loc Resize.Apply}" AutomationProperties.Name="{loc:Loc Resize.Apply}" />
+                <Button Classes="tool" Command="{Binding ResizeSelectedPagesCommand}" IsEnabled="{Binding CanResizeSelection}" Content="{loc:Loc Resize.Apply}" AutomationProperties.Name="{loc:Loc Resize.Apply}" />
                 <TextBlock Text="{loc:Loc DocumentWorkspace.PagesPerSplitFile}" Classes="groupLabel" Margin="0,6,0,0" /><NumericUpDown Minimum="1" Maximum="9999" Value="{Binding SplitPagesPerDocument}" />
                 <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.SplitToFolder}" Content="{loc:Loc DocumentWorkspace.SplitToFolder}" Command="{Binding SplitCommand}" IsEnabled="{Binding CanExtractPages}" />
                 <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="8" Padding="12,8" Margin="0,6,0,0">

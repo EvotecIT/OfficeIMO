@@ -69,5 +69,11 @@ public enum PdfMutationOperation {
     ModifyPageAttributes,
 
     /// <summary>Preserve page appearance while baking quarter-turn rotation into content, boxes, annotations and destinations.</summary>
-    NormalizePageRotation
+    NormalizePageRotation,
+
+    /// <summary>Change page order or membership through the catalog-preserving organizer with structure ownership updates.</summary>
+    OrganizePages,
+
+    /// <summary>Insert source page graphs while preserving the primary catalog and combining tagged structure ownership.</summary>
+    ImportPages
 }

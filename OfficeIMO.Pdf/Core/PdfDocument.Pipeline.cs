@@ -63,12 +63,14 @@ public sealed partial class PdfDocument {
             case "Insert":
             case "Import":
             case "ImportPages":
+                return PdfMutationOperation.ImportPages;
             case "MergeWith":
                 return PdfMutationOperation.MergeDocuments;
             case "Delete":
             case "Reorder":
             case "Duplicate":
             case "Move":
+                return PdfMutationOperation.OrganizePages;
             case "Crop":
             case "Resize":
             case "CropAndTranslate":

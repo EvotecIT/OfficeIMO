@@ -94,15 +94,17 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal string? RecoveryPath { get; private set; }
 
-    internal bool CanMutatePages => CanPlan(PdfMutationOperation.ModifyPageTree);
+    internal bool CanMutatePages => CanPlan(PdfMutationOperation.OrganizePages);
 
     internal bool CanRotatePages => CanPlan(PdfMutationOperation.ModifyPageAttributes);
 
     internal bool CanCropPages => CanPlan(PdfMutationOperation.ModifyPageAttributes);
 
+    internal bool CanResizePages => CanPlan(PdfMutationOperation.ModifyPageTree);
+
     internal bool CanExtractPages => CanPlan(PdfMutationOperation.ExtractPages);
 
-    internal bool CanImportPages => CanPlan(PdfMutationOperation.MergeDocuments);
+    internal bool CanImportPages => CanPlan(PdfMutationOperation.ImportPages);
 
     internal bool CanEditAnnotations => CanPlan(PdfMutationOperation.ModifyAnnotations);
 

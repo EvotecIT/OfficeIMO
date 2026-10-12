@@ -79,7 +79,7 @@ public sealed partial class PdfDocumentPages {
             "Set page box", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.ModifyPageAttributes,
             () => _document.ApplyMutation(input => PdfPageEditor.SetPageBoxWithReadOptions(
                 input, box, left, bottom, right, top, effectiveOptions,
-                selection.ToPageNumbers(_document.Inspect(effectiveOptions).PageCount, nameof(selection))), effectiveOptions,
+                selection.ToPageNumbers(GetSelectionPageCount(effectiveOptions), nameof(selection))), effectiveOptions,
                 operationName: nameof(SetPageBox)),
             options: effectiveOptions);
     }

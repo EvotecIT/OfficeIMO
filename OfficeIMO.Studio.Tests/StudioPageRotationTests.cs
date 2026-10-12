@@ -36,12 +36,13 @@ public sealed class StudioPageRotationTests {
                 await model.Commands["ResetViewRotation"].ExecuteAsync();
                 Assert.Equal(0, model.ViewRotationDegrees);
                 model.ShowPagesModeCommand.Execute(null);
-                Assert.False(model.CanMutatePages);
+                Assert.True(model.CanMutatePages);
                 Assert.True(model.CanRotatePages);
                 Assert.False(model.Commands["RotatePagesRight"].IsAvailable);
                 model.SetOrganizerSelection([model.OrganizerPages[0]]);
                 Assert.True(model.Commands["RotatePagesRight"].IsAvailable);
-                Assert.False(model.Commands["DuplicatePages"].IsAvailable);
+                Assert.True(model.Commands["DuplicatePages"].IsAvailable);
+                Assert.False(model.CanResizeSelection);
                 Layout(window, width);
                 Button rotate = Assert.Single(window.GetVisualDescendants().OfType<Button>(),
                     button => ReferenceEquals(button.Command, model.Commands["RotatePagesRight"]));
@@ -107,6 +108,15 @@ public sealed class StudioPageRotationTests {
                 Layout(window, width);
                 await TextEditingReviewTests.WaitUntilAsync(() => model.OrganizerPages[0].Scene is not null);
                 Capture(window, width, "normalized");
+                model.SetOrganizerSelection([model.OrganizerPages[0]]);
+                await model.Commands["DuplicatePages"].ExecuteAsync();
+                Assert.False(model.HasError, model.ErrorMessage);
+                Assert.Equal(2, model.OrganizerPages.Count);
+                Layout(window, width);
+                await TextEditingReviewTests.WaitUntilAsync(() => model.OrganizerPages.All(page => page.Scene is not null));
+                Capture(window, width, "duplicated");
+                await model.Commands["Undo"].ExecuteAsync();
+                Assert.Single(model.OrganizerPages);
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);
