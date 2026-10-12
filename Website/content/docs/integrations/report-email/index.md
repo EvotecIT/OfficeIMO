@@ -29,4 +29,4 @@ Open `ReportReview.eml` in a mail client to review it. The default command saves
 
 The recipe's `-Send` switch is an explicit delivery operation. Set real `-From` and `-To` recipients, supply `-SmtpServer` and use `-Credential` when required. Port 587 and StartTLS are the recipe defaults. Choose settings appropriate to your server; the example does not configure it or authenticate an account for you.
 
-Create the source reports with the [supplier review](../supplier-review/) or [event brief](../event-brief/) and keep their editable workbooks alongside the PDF review copies.
+Create the source reports with the [supplier review](/docs/integrations/supplier-review/) or [event brief](/docs/integrations/event-brief/) and keep their editable workbooks alongside the PDF review copies.

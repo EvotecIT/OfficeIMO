@@ -8,9 +8,9 @@ Start with the input you already have. These examples pass ordinary objects and 
 
 | Input | Worked example | Output |
 | --- | --- | --- |
-| An HTML supplier table | [Supplier offer review](./supplier-review/) | Word, PDF and numeric Excel |
-| A bounded Windows event snapshot | [Event incident brief](./event-brief/) | Word/PDF handoff and full Excel register |
-| Existing report attachments | [Local email review package](./report-email/) | EML with embedded attachments |
+| An HTML supplier table | [Supplier offer review](/docs/integrations/supplier-review/) | Word, PDF and numeric Excel |
+| A bounded Windows event snapshot | [Event incident brief](/docs/integrations/event-brief/) | Word/PDF handoff and full Excel register |
+| Existing report attachments | [Local email review package](/docs/integrations/report-email/) | EML with embedded attachments |
 
 Each page includes real generated files and the complete source that produced them. The downloads contain synthetic data. The recipes run with published modules and add no required dependencies to PSWriteOffice.
 

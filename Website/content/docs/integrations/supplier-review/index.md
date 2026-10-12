@@ -29,4 +29,4 @@ Keep table `id="offers"` and the `Item`, `Supplier`, `UnitPriceUsd` and `LeadDay
 
 Word uses semantic paragraph spacing and cell padding to separate the heading, offer table and decision steps. Excel retains editable numbers for sorting, filtering and calculations. PDF pagination is produced by OfficeIMO and can differ from Microsoft Word.
 
-Continue with the [email review package](../report-email/) to attach the PDF and XLSX without sending them.
+Continue with the [email review package](/docs/integrations/report-email/) to attach the PDF and XLSX without sending them.
