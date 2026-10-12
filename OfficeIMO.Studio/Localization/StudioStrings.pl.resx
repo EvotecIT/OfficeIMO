@@ -5690,4 +5690,6 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Obróć widok czytnika w prawo bez zmieniania pliku PDF.</value></data>
   <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Przywróć obrót widoku</value></data>
   <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Przywróć widok czytnika do orientacji zapisanej w pliku PDF.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Utrwal obrót w zawartości</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Zachowaj wygląd wybranych stron, przenosząc zapisany obrót do zawartości i geometrii strony.</value></data>
 </root>

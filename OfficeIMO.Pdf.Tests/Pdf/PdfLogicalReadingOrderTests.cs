@@ -123,7 +123,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "BT /F1 12 Tf\n" +
             "1 0 0 1 30 180 Tm (Raw left) Tj\n" +
             "1 0 0 1 230 180 Tm (Raw right) Tj ET");
-        byte[] rotated = PdfDocument.Load(source).Pages.Rotate(90, "1").ToBytes();
+        byte[] rotated = PdfDocument.Load(source).Pages.Rotate(270, "1").ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(rotated);
         PdfLogicalPage page = Assert.Single(logical.Pages);
 

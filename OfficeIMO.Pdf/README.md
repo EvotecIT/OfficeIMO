@@ -1366,6 +1366,26 @@ streams through a full rewrite when the remaining document structures can be
 preserved. The plan reports `Input.CrossReferenceAndObjectStreamsWillBeNormalized`.
 These operations do not use the page-attribute append-only route.
 
+Use `Pages.NormalizeRotation()` to remove saved quarter-turn rotation while
+keeping the pages' displayed appearance. Pass `PdfPageSelection.From(1, 3)` to
+normalize selected pages, or use `NormalizeRotationResult` for the execution
+plan. Normalization performs a full rewrite of the catalog-rooted graph: it
+transforms content, boundary boxes, page pattern matrices, annotation appearances,
+destinations, and page-associated tag layout bounds, then sets each selected page's `/Rotate` to
+zero. Text and vector content remain editable, and cropped content remains in
+the file. `/UserUnit`, tagged content, metadata, and standard AcroForm fields
+are retained. Signed, certified, and usage-rights documents keep their rewrite
+restrictions. Unsigned signature placeholders are retained, including invisible
+widgets. Destination coordinates and fit axes follow the transformed default
+page coordinate system; nullable coordinates and zoom values remain nullable.
+Visible annotations require readable appearances; unassociated
+tag layout bounds and shared page annotations produce explicit errors.
+
+PDF page rotation is clockwise. Rendering, search results, interaction regions,
+and visual-coordinate APIs use the same crop-, rotation-, and `/UserUnit`-aware
+mapping. View-only rotation in Studio changes presentation and does not change
+the saved `/Rotate` value.
+
 ### Split and extract pages
 
 ```csharp

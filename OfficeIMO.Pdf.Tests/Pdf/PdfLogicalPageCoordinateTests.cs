@@ -39,10 +39,10 @@ public sealed class PdfLogicalPageCoordinateTests {
 
         PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(40D, 50D, 180D, 100D);
 
-        Assert.Equal(500D, rectangle.Left);
-        Assert.Equal(620D, rectangle.Bottom);
-        Assert.Equal(550D, rectangle.Right);
-        Assert.Equal(760D, rectangle.Top);
+        Assert.Equal(50D, rectangle.Left);
+        Assert.Equal(40D, rectangle.Bottom);
+        Assert.Equal(100D, rectangle.Right);
+        Assert.Equal(180D, rectangle.Top);
     }
 
     [Fact]
@@ -53,8 +53,8 @@ public sealed class PdfLogicalPageCoordinateTests {
 
         PdfPagePoint point = page.MapVisualPointToUserSpace(40D, 50D);
 
-        Assert.Equal(550D, point.X);
-        Assert.Equal(760D, point.Y);
+        Assert.Equal(50D, point.X);
+        Assert.Equal(40D, point.Y);
     }
 
     [Fact]

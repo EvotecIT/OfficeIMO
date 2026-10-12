@@ -97,6 +97,16 @@ public sealed class StudioPageRotationTests {
                 Layout(window, width);
                 await TextEditingReviewTests.WaitUntilAsync(() => model.OrganizerPages[0].Scene is not null);
                 Capture(window, width, "crop-reset");
+                await model.Commands["RotatePagesRight"].ExecuteAsync();
+                double turnedWidth = model.Pages[0].DisplayWidth, turnedHeight = model.Pages[0].DisplayHeight;
+                Assert.True(model.Commands["NormalizePageRotation"].IsAvailable);
+                await model.Commands["NormalizePageRotation"].ExecuteAsync();
+                Assert.False(model.HasError, model.ErrorMessage);
+                Assert.Equal(turnedWidth, model.Pages[0].DisplayWidth, 2);
+                Assert.Equal(turnedHeight, model.Pages[0].DisplayHeight, 2);
+                Layout(window, width);
+                await TextEditingReviewTests.WaitUntilAsync(() => model.OrganizerPages[0].Scene is not null);
+                Capture(window, width, "normalized");
             } finally { window.Close(); }
             return true;
         }, CancellationToken.None);

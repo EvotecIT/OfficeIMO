@@ -22,9 +22,9 @@ public partial class PdfTextEditorTests {
             var original = baseline[i]; var match = matches[i];
             double x = original.X - 20, y = original.Y - 30, w = original.Width, h = original.Height;
             var expected = rotation switch {
-                270 => (Left: y, Top: x, Width: h, Height: w),
+                90 => (Left: y, Top: x, Width: h, Height: w),
                 180 => (Left: 560 - x - w, Top: y, Width: w, Height: h),
-                90 => (Left: 750 - y - h, Top: 560 - x - w, Width: h, Height: w),
+                270 => (Left: 750 - y - h, Top: 560 - x - w, Width: h, Height: w),
                 _ => (Left: x, Top: 750 - y - h, Width: w, Height: h)
             };
             Assert.Equal(expected.Left * 2, match.VisualBounds.Left, 5);

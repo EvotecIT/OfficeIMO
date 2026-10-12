@@ -2218,4 +2218,6 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Tourner la vue de lecture à droite sans modifier le PDF.</value></data>
   <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Réinitialiser la rotation de la vue</value></data>
   <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Rétablir l'orientation de page enregistrée dans le PDF.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Normaliser la rotation enregistrée</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Conserver l’apparence des pages sélectionnées en intégrant la rotation enregistrée au contenu et à la géométrie.</value></data>
 </root>

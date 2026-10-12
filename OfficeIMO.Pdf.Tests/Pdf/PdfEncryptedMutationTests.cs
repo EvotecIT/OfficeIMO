@@ -36,11 +36,15 @@ public class PdfEncryptedMutationTests {
         var afterPage = Assert.IsType<PdfDictionary>(afterObjects[pageNumber].Value);
         Assert.Equal("Retained page label", Assert.IsType<PdfStringObj>(afterPage.Items["PrivateLabel"]).Value);
         Assert.Equal(payload, Assert.IsType<PdfStringObj>(Assert.IsType<PdfDictionary>(afterPage.Items["PrivateData"]).Items["Payload"]).RawBytes);
+        PdfDocument normalized = rotation.RequireValue().Pages.NormalizeRotation();
+        AssertProtected(source, normalized.ToBytes());
+        Assert.Equal(0, PdfReadDocument.Open(normalized.ToBytes(), ownerOptions).Pages[0].GetRotationDegrees());
 
         PdfDocument user = PdfDocument.Load(source, new PdfLoadOptions { Password = "open" });
         Assert.False(user.PlanMutation(PdfMutationOperation.ModifyPageAttributes).CanExecute);
         Assert.Throws<PdfMutationBlockedException>(() => user.Pages.Rotate(90, 1));
         Assert.Throws<PdfMutationBlockedException>(() => user.Pages.SetCropBox(10, 20, 200, 300, 1));
+        Assert.Throws<PdfMutationBlockedException>(() => user.Pages.NormalizeRotation());
     }
 
     [Theory]

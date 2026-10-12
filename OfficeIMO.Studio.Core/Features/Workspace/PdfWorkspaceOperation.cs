@@ -29,7 +29,8 @@ internal enum PdfWorkspaceOperationKind {
     RecoveryRestore,
     Undo,
     Redo,
-    CropBox
+    CropBox,
+    NormalizeRotation
 }
 
 internal sealed record PdfWorkspaceOperation(

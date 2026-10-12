@@ -3038,4 +3038,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Turn the reader view right without changing the PDF.</value></data>
   <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Reset view rotation</value></data>
   <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Return the reader to the PDF's saved page orientation.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Normalize saved rotation</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Keep the selected pages' appearance while baking saved rotation into content and page geometry.</value></data>
 </root>

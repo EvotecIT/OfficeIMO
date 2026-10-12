@@ -5690,4 +5690,6 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Die Leseansicht nach rechts drehen, ohne die PDF zu ändern.</value></data>
   <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Ansichtsdrehung zurücksetzen</value></data>
   <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Die Leseansicht auf die in der PDF gespeicherte Ausrichtung zurücksetzen.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Gespeicherte Drehung normalisieren</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Das Aussehen ausgewählter Seiten beibehalten und die gespeicherte Drehung in Inhalt und Seitengeometrie übernehmen.</value></data>
 </root>

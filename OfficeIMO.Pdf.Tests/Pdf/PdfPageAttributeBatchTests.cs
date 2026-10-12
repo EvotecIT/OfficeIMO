@@ -7,9 +7,9 @@ namespace OfficeIMO.Pdf.Tests;
 public sealed class PdfPageAttributeBatchTests {
     [Theory]
     [InlineData(0, -40, 260, 420, 920)]
-    [InlineData(90, -30, 270, 410, 950)]
+    [InlineData(90, -10, 250, 430, 930)]
     [InlineData(180, -20, 280, 440, 940)]
-    [InlineData(270, -10, 250, 430, 930)]
+    [InlineData(270, -30, 270, 410, 950)]
     public void DisplayMarginsResolveInheritedRotationOriginAndUserUnit(int rotation,
         double left, double bottom, double right, double top) {
         byte[] source = GeometrySource(rotation);

@@ -66,5 +66,8 @@ public enum PdfMutationOperation {
     ModifyJavaScript,
 
     /// <summary>Set absolute page rotation or boundary boxes without changing page membership, content, or resources.</summary>
-    ModifyPageAttributes
+    ModifyPageAttributes,
+
+    /// <summary>Preserve page appearance while baking quarter-turn rotation into content, boxes, annotations and destinations.</summary>
+    NormalizePageRotation
 }

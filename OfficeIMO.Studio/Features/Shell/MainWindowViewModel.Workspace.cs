@@ -114,6 +114,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanMutateSelection));
         OnPropertyChanged(nameof(CanRotateSelection));
+        OnPropertyChanged(nameof(CanNormalizePageRotation));
         OnPropertyChanged(nameof(CanCropSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
@@ -452,6 +453,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasRecovery));
         OnPropertyChanged(nameof(CanMutatePages));
         OnPropertyChanged(nameof(CanRotatePages));
+        OnPropertyChanged(nameof(CanNormalizePageRotation));
         OnPropertyChanged(nameof(CanCropPages));
         OnPropertyChanged(nameof(CanExtractPages));
         OnPropertyChanged(nameof(CanImportPages));

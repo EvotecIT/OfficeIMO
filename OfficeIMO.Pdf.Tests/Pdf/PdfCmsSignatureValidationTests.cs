@@ -16,6 +16,8 @@ public class PdfCmsSignatureValidationTests {
     public void PageAttributes_PreserveApprovalSignatureCryptographyAcrossRevisions(int fieldLayout) {
         using X509Certificate2 certificate = CreateSigningCertificate();
         byte[] signed = CreateSignedPdf(certificate, fieldLayout);
+        Assert.False(PdfDocument.Load(signed).PlanMutation(PdfMutationOperation.NormalizePageRotation).CanExecute);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(signed).Pages.NormalizeRotation());
         byte[] rotated = PdfDocument.Load(signed).Pages.Rotate(90, 1).ToBytes();
         byte[] cropped = PdfDocument.Load(rotated).Pages.SetCropBox(10, 10, 200, 300, 1).ToBytes();
         foreach (byte[] output in new[] { signed, rotated, cropped }) {

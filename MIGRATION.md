@@ -1,5 +1,14 @@
 # Upgrading OfficeIMO
 
+## PDF clockwise visual coordinates
+
+Page rendering and visual-coordinate APIs interpret `/Rotate 90` as clockwise,
+as required by PDF. Earlier versions mapped 90 and 270 degrees in the opposite
+direction. Remove application-level compensations that swap those angles when
+using search bounds, annotation or image placement, crop margins, or
+`MapVisualPointToUserSpace` / `MapVisualRectangleToUserSpace`. Saved `/Rotate`
+values are unchanged; existing PDFs display according to their stored rotation.
+
 ## Excel worksheet page-fit inspection
 
 `ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,

@@ -5,6 +5,29 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed partial class PdfWorkspaceTests {
     [Fact]
+    public async Task NormalizeRotationRetainsAppearanceSizeAndCanBeUndone() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-normalize-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
+            PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)
+                .Content(content => content.Text("Rotation normalization")))).Pages.RotateBy(90).Save(source);
+            using var workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None,
+                new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")));
+            Assert.True(workspace.CanNormalizePageRotation);
+            await workspace.NormalizePageRotationAsync([1], CancellationToken.None);
+            Assert.Equal(PdfWorkspaceOperationKind.NormalizeRotation, Assert.Single(workspace.Journal).Kind);
+            Assert.Equal(0, workspace.Pages[0].RotationDegrees);
+            await workspace.SaveAsync(output, CancellationToken.None);
+            Assert.Equal(400D, PdfDocument.Load(output).GetPageLayouts()[0].VisualWidth);
+            await workspace.UndoAsync(CancellationToken.None);
+            Assert.Equal(90, workspace.Pages[0].RotationDegrees);
+            await workspace.RedoAsync(CancellationToken.None);
+            Assert.Equal(0, workspace.Pages[0].RotationDegrees);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task TaggedCropRetainsTheSourceAndResetRevealsTheFullPage() {
         string source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
         string root = Path.Combine(Path.GetTempPath(), "officeimo-crop-" + Guid.NewGuid().ToString("N"));
