@@ -22,8 +22,13 @@ foreach ($card in $catalog.cards) {
     if ($card.source_language -cne $expectedLanguage -or $card.source_language -cnotin @($catalog.source_languages.id)) {
         throw "Source language must match the generating file on '$($card.id)'."
     }
-    if ($expectedLanguage -eq 'powershell' -and $card.run_command -notmatch '(?:^|\s)-ModuleVersion\s+\{moduleVersion\}(?:\s|$)') {
-        throw "PowerShell run command must select the imported module version with {moduleVersion} on '$($card.id)'."
+    if ($expectedLanguage -eq 'powershell') {
+        $scriptFileName = [IO.Path]::GetFileName($card.source_path)
+        $scriptDownload = @($card.downloads | Where-Object { $_.url -ceq $card.source_url -and $_.file_name -ceq $scriptFileName })
+        if ($card.source_download_name -cne $scriptFileName -or $scriptDownload.Count -ne 1 -or
+            -not $card.run_command.StartsWith("pwsh -NoProfile -File ./$scriptFileName ", [StringComparison]::Ordinal)) {
+            throw "PowerShell example '$($card.id)' needs its script download and a command that runs the saved file."
+        }
     }
 }
 

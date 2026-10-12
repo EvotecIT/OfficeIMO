@@ -1932,8 +1932,13 @@
         "convert"
       ],
       "source_path": "OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1",
-      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "run_command": "pwsh -NoProfile -File ./PatchComplianceReport.ps1 -OutputDirectory ./out",
       "downloads": [
+        {
+          "label": "PowerShell script",
+          "url": "/downloads/showcase/source/PowerShell/PatchComplianceReport.ps1.txt",
+          "file_name": "PatchComplianceReport.ps1"
+        },
         {
           "label": "DOCX",
           "url": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
@@ -1981,7 +1986,8 @@
           "width": 868,
           "height": 1123
         }
-      ]
+      ],
+      "source_download_name": "PatchComplianceReport.ps1"
     },
     {
       "id": "pswriteoffice-project-delivery",
@@ -2015,8 +2021,13 @@
         "convert"
       ],
       "source_path": "OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1",
-      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "run_command": "pwsh -NoProfile -File ./ProjectDeliveryPack.ps1 -InputPath ./ProjectMilestones.csv -OutputDirectory ./out",
       "downloads": [
+        {
+          "label": "PowerShell script",
+          "url": "/downloads/showcase/source/PowerShell/ProjectDeliveryPack.ps1.txt",
+          "file_name": "ProjectDeliveryPack.ps1"
+        },
         {
           "label": "XLSX",
           "url": "/downloads/showcase/pswriteoffice/project-delivery-pack.xlsx"
@@ -2035,7 +2046,8 @@
         },
         {
           "label": "CSV input",
-          "url": "/downloads/showcase/source/PowerShell/Data/ProjectMilestones.csv"
+          "url": "/downloads/showcase/source/PowerShell/Data/ProjectMilestones.csv",
+          "file_name": "ProjectMilestones.csv"
         }
       ],
       "operation_tags": "create convert",
@@ -2056,7 +2068,7 @@
           },
           {
             "title": "Review the distribution copy",
-            "body": "Inspect the generated PDF and use the Word copy for review notes. The source checkout includes the companion CSV. If downloading the script separately, save it as a .ps1 file and pass the downloaded CSV with -InputPath."
+            "body": "Download the script and CSV input into one folder, then run the commands below. Inspect the generated PDF and use the editable Word copy for review notes."
           }
         ],
         "adapt": "Replace the milestones and owners, set the review date with -AsOfDate, and record the decision in the Word copy. Due today remains on track. Updating the workbook does not refresh an already generated Word/PDF snapshot; update the CSV and regenerate it.",
@@ -2072,7 +2084,8 @@
           "width": 868,
           "height": 1123
         }
-      ]
+      ],
+      "source_download_name": "ProjectDeliveryPack.ps1"
     },
     {
       "id": "pswriteoffice-budget-review",
@@ -2106,8 +2119,13 @@
         "convert"
       ],
       "source_path": "OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1",
-      "run_command": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/BudgetForecastReview.ps1 -OutputDirectory ./out -ModuleVersion {moduleVersion}",
+      "run_command": "pwsh -NoProfile -File ./BudgetForecastReview.ps1 -InputPath ./BudgetForecast.csv -OutputDirectory ./out",
       "downloads": [
+        {
+          "label": "PowerShell script",
+          "url": "/downloads/showcase/source/PowerShell/BudgetForecastReview.ps1.txt",
+          "file_name": "BudgetForecastReview.ps1"
+        },
         {
           "label": "XLSX",
           "url": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
@@ -2126,7 +2144,8 @@
         },
         {
           "label": "CSV input",
-          "url": "/downloads/showcase/source/PowerShell/Data/BudgetForecast.csv"
+          "url": "/downloads/showcase/source/PowerShell/Data/BudgetForecast.csv",
+          "file_name": "BudgetForecast.csv"
         }
       ],
       "operation_tags": "create convert",
@@ -2147,7 +2166,7 @@
           },
           {
             "title": "Review the distribution copy",
-            "body": "Inspect the generated PDF and use the Word copy for review notes. The source checkout includes the companion CSV. If downloading the script separately, save it as a .ps1 file and pass the downloaded CSV with -InputPath."
+            "body": "Download the script and CSV input into one folder, then run the commands below. Inspect the generated PDF and use the editable Word copy for review notes."
           }
         ],
         "adapt": "Replace the synthetic departments and actions with an approved forecast. Keep the currency explicit. Positive variance means overspend; a zero-budget pilot remains a visible exception. Edit the CSV and regenerate the review for distribution.",
@@ -2163,7 +2182,8 @@
           "width": 868,
           "height": 1123
         }
-      ]
+      ],
+      "source_download_name": "BudgetForecastReview.ps1"
     },
     {
       "id": "executive-pdf-dashboard",

@@ -6,7 +6,7 @@ Status follows progress and due date: completed milestones are Done; incomplete 
 before the snapshot date are Overdue. Workbook status formulas recalculate after edits.
 Word and PDF are dated snapshots; regenerate them after changing the input.
 .EXAMPLE
-./ProjectDeliveryPack.ps1 -OutputDirectory ./out -ModuleVersion 3.0.8
+./ProjectDeliveryPack.ps1 -InputPath ./ProjectMilestones.csv -OutputDirectory ./out
 .EXAMPLE
 ./ProjectDeliveryPack.ps1 -InputPath ./Milestones.csv -AsOfDate 2026-10-02 -OutputDirectory ./out
 #>
@@ -15,7 +15,7 @@ param(
     [Parameter(Mandatory)][string] $OutputDirectory,
     [string] $InputPath = '',
     [datetime] $AsOfDate = '2026-09-30',
-    [string] $ModuleVersion = '3.0.8'
+    [string] $ModuleVersion
 )
 
 $ErrorActionPreference = 'Stop'
@@ -23,7 +23,11 @@ $usingSampleInput = -not $InputPath
 if (-not $InputPath) { $InputPath = Join-Path $PSScriptRoot 'Data/ProjectMilestones.csv' }
 $reviewContext = if ($usingSampleInput) { 'Service rollout' } else { 'Milestone snapshot' }
 $sampleNotice = if ($usingSampleInput) { 'Synthetic sample. ' } else { '' }
-Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
+if ($ModuleVersion) {
+    Import-Module PSWriteOffice -RequiredVersion $ModuleVersion -ErrorAction Stop
+} else {
+    Import-Module PSWriteOffice -ErrorAction Stop
+}
 $culture = [Globalization.CultureInfo]::InvariantCulture
 $snapshotDate = $AsOfDate.Date
 $inputRows = @(Import-Csv -LiteralPath $InputPath -Encoding UTF8)

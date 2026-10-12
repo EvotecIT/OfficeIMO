@@ -88,7 +88,7 @@
               <summary>Explore example<span class="imo-visually-hidden">: {{ card.title }}</span></summary>
               <div class="imo-example__detail-content">
                 <nav class="imo-example__downloads" aria-label="{{ card.title | html.escape }} downloads">
-                  {{ for download in card.downloads }}<a href="{{ download.url }}" aria-label="{{ download.label | html.escape }}: {{ card.title | html.escape }}" target="_blank" rel="noopener">{{ download.label }}</a>{{ end }}
+                  {{ for download in card.downloads }}<a href="{{ download.url }}" aria-label="{{ download.label | html.escape }}: {{ card.title | html.escape }}"{{ if download.file_name }} download="{{ download.file_name | html.escape }}"{{ else }} target="_blank" rel="noopener"{{ end }}>{{ download.label }}</a>{{ end }}
                 </nav>
                 <dl><div><dt>Input</dt><dd>{{ card.input }}</dd></div><div><dt>Output</dt><dd>{{ card.output }}</dd></div></dl>
                 <h4>What to check</h4><p>{{ card.proof }}</p>
@@ -98,7 +98,7 @@
                   <a href="{{ card.guide_url }}" aria-label="Read guide: {{ card.title | html.escape }}">Read guide</a><a href="{{ card.api_url }}" aria-label="API reference: {{ card.title | html.escape }}">API reference</a>
                 </nav>
                 {{ include "showcase-run-command" }}
-                <details class="imo-example__run"><summary>Run from a source checkout</summary><pre><code>{{ run_command | html.escape }}</code></pre></details>
+                <details class="imo-example__run"><summary>{{ if source_language == "powershell" }}Run downloaded script{{ else }}Reproduce from source{{ end }}</summary>{{ if source_language == "powershell" }}<p>Save the script{{ for download in card.downloads }}{{ if download.file_name && download.file_name != card.source_download_name }} and <a href="{{ download.url }}" download="{{ download.file_name | html.escape }}">{{ download.label }}</a>{{ end }}{{ end }} in one folder, then run these commands there. Skip installation if PSWriteOffice is already installed.</p>{{ end }}<pre tabindex="0"><code>{{ run_command | html.escape }}</code></pre>{{ if source_language == "powershell" }}<button type="button" data-copy="{{ run_command | html.escape }}" aria-label="Copy run command: {{ card.title | html.escape }}">Copy</button>{{ end }}</details>
               </div>
             </details>
           </div>
