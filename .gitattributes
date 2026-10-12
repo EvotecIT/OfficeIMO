@@ -3,6 +3,11 @@
 ###############################################################################
 * text=auto
 
+# Published integration downloads are bound to raw-byte hashes, including EML,
+# executable source copies and ASCII PDF stream/xref offsets.
+Website/static/downloads/integrations/** -text -whitespace
+Website/static/downloads/integrations/**/*.pdf -diff
+
 # Imported PowerShell API components are bound to release fingerprints.
 Website/data/apidocs/powershell/PSWriteOffice.psd1 -text -diff
 Website/data/apidocs/powershell/PSWriteOffice-Help.xml -text -diff

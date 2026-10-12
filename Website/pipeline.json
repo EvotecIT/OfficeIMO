@@ -155,9 +155,24 @@
     },
     {
       "task": "exec",
-      "id": "test-api-cross-links",
+      "id": "test-integration-artifacts",
       "dependsOn": [
         "test-showcase-walkthroughs"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-IntegrationArtifacts.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
+      "id": "test-api-cross-links",
+      "dependsOn": [
+        "test-integration-artifacts"
       ],
       "command": "pwsh",
       "argsList": [
@@ -3994,6 +4009,7 @@
       "noDefaultExclude": false,
       "excludePatterns": [
         "downloads/showcase/**",
+        "downloads/integrations/**",
         "**/api-fragments/**",
         "**/*.scripts.html",
         "**/*.head.html"
@@ -4059,13 +4075,15 @@
       "cssStrategy": "blocking",
       "minifyHtml": true,
       "htmlExclude": [
-        "downloads/showcase/**"
+        "downloads/showcase/**",
+        "downloads/integrations/**"
       ],
       "minifyCss": true,
       "minifyJs": true,
       "optimizeImages": true,
       "imageExclude": [
-        "downloads/showcase/**"
+        "downloads/showcase/**",
+        "downloads/integrations/**"
       ],
       "hashAssets": true,
       "hashExtensions": [
@@ -4074,6 +4092,7 @@
       ],
       "hashExclude": [
         "downloads/showcase/**",
+        "downloads/integrations/**",
         "**/apps/officeimo-converter/**",
         "**/assets/prism/components/**",
         "**/css/prism-theme.css"
@@ -4197,7 +4216,7 @@
       "requireCanonical": true,
       "requireHreflang": true,
       "requireHreflangXDefault": true,
-      "exclude": "downloads/showcase/**",
+      "exclude": "downloads/showcase/**,downloads/integrations/**",
       "reportPath": "./_reports/seo-doctor.json",
       "summaryPath": "./_reports/seo-doctor.md",
       "backlogSummaryPath": "./_reports/seo-backlog-summary.json",
@@ -4239,7 +4258,7 @@
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
-      "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html,downloads/showcase/**",
+      "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html,downloads/showcase/**,downloads/integrations/**",
       "requiredRoutes": "/,/docs/,/404.html,/licensing/,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/html-rtf/,/api/mhtml/,/api/email-image/,/api/mhtml-pdf/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/compatibility/,/convert/,/convert/guides/,/convert/doc-docx/,/convert/xls-xlsx/,/convert/ppt-pptx/,/solutions/,/solutions/legacy-office-modernization/,/solutions/document-publishing/,/solutions/template-driven-document-generation/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/comparisons/officeimo-vs-syncfusion/,/comparisons/officeimo-vs-gembox/,/comparisons/officeimo-vs-iron-software/,/comparisons/officeimo-vs-office-interop/,/comparisons/officeimo-vs-libreoffice/,/comparisons/officeimo-email-vs-mimekit/,/comparisons/officeimo-onenote-vs-microsoft-graph/,/comparisons/officeimo-reader-vs-document-ingestion-tools/,/products/word/,/products/excel/,/products/powerpoint/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
     },
     {
@@ -4257,7 +4276,7 @@
       "navSelector": "header nav",
       "navCanonicalPath": "index.html",
       "navCanonicalRequired": true,
-      "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html,downloads/showcase/**",
+      "ignoreNav": "apps/officeimo-converter/**,sitemap/index.html,downloads/showcase/**,downloads/integrations/**",
       "requiredRoutes": "/,/docs/,/404.html,/licensing/,/api/,/api/powershell/,/api/powerpoint/,/api/csv/,/api/visio/,/api/pdf/,/api/html/,/api/html-rtf/,/api/mhtml/,/api/email-image/,/api/mhtml-pdf/,/api/email/,/api/onenote/,/api/open-document/,/api/reader/,/api/google-workspace/,/api/google-workspace-drive/,/api/google-workspace-auth/,/api/google-workspace-sync/,/blog/,/showcase/,/convert/,/convert/guides/,/solutions/template-driven-document-generation/,/solutions/outlook-mailbox-migration/,/solutions/offline-onenote-automation/,/solutions/mixed-document-search-rag/,/comparisons/,/comparisons/officeimo-vs-open-xml-sdk/,/comparisons/officeimo-vs-closedxml-epplus/,/comparisons/officeimo-vs-questpdf/,/comparisons/officeimo-vs-syncfusion/,/comparisons/officeimo-vs-gembox/,/comparisons/officeimo-vs-iron-software/,/comparisons/officeimo-vs-office-interop/,/comparisons/officeimo-vs-libreoffice/,/comparisons/officeimo-email-vs-mimekit/,/comparisons/officeimo-onenote-vs-microsoft-graph/,/comparisons/officeimo-reader-vs-document-ingestion-tools/,/products/word/,/products/pdf/,/products/email/,/products/onenote/,/products/open-document/,/products/google-workspace/,/products/html/"
     }
   ]

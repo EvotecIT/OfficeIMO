@@ -32,10 +32,7 @@
           {{ if page.description }}
           <p class="imo-blog-post__description">{{ page.description }}</p>
           {{ end }}
-          <div class="imo-blog-post__meta">
-            {{ if page.date }}<span>{{ page.date }}</span>{{ end }}
-            {{ if page.author }}<span>By {{ page.author }}</span>{{ end }}
-          </div>
+          {{ include "article-meta" }}
         </div>
       </header>
       <div class="imo-container imo-blog-post__body">
