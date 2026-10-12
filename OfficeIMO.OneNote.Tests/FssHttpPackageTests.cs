@@ -79,7 +79,8 @@ public sealed class FssHttpPackageTests {
         graph.ObjectSpaces.Add(new OneNoteWriteObjectSpace(rootSpaceId, Id()));
         var space = new OneNoteWriteObjectSpace(Id(), Id(), contextId: Id());
         space.Objects.Add(new OneNoteWriteObject(objectId, OneNoteSchema.JcidPropertyContainer, new[] {
-            new OneNoteWriteProperty(ObjectSpaceReferenceProperty, references: new[] { rootSpaceId }, referenceKind: OneNoteWriteReferenceKind.ObjectSpace)
+            new OneNoteWriteProperty(ObjectSpaceReferenceProperty, references: new[] { rootSpaceId }, referenceKind: OneNoteWriteReferenceKind.ObjectSpace),
+            new OneNoteWriteProperty(ContextReferenceProperty, references: new[] { DefaultContext }, referenceKind: OneNoteWriteReferenceKind.Context)
         }));
         graph.ObjectSpaces.Add(space);
 
@@ -92,6 +93,7 @@ public sealed class FssHttpPackageTests {
         OneNotePropertyValue? property = record.PropertySet?.Find(ObjectSpaceReferenceProperty);
         Assert.NotNull(property);
         Assert.Equal(rootSpaceId, Assert.Single(property!.ReferencedIds));
+        Assert.Equal(DefaultContext, Assert.Single(record.PropertySet!.Find(ContextReferenceProperty)!.ReferencedIds));
     }
 
     [Fact]
@@ -108,6 +110,139 @@ public sealed class FssHttpPackageTests {
         Assert.NotNull(property);
         Assert.Equal(2, property!.ReferencedIds.Count);
         Assert.Equal(targetId, property.ReferencedIds[0]);
+        Assert.Equal(Guid.Empty, property.ReferencedIds[1].Identifier);
+        Assert.Equal(0U, property.ReferencedIds[1].Value);
+    }
+
+    [Fact]
+    public void ExplicitNullObjectReferencesArePreserved() {
+        OneNoteExtendedGuid targetId = Id();
+        OneNoteExtendedGuid objectId = Id();
+        byte[] data = WriteObjectWithTrailingNullReference(targetId, objectId);
+
+        OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
+
+        OneNotePropertyValue property = Assert.Single(store.Objects, item => item.Id.Equals(objectId)).PropertySet!.Find(ObjectReferencesProperty)!;
+        Assert.Equal(targetId, property.ReferencedIds[0]);
+        Assert.Equal(Guid.Empty, property.ReferencedIds[1].Identifier);
+        Assert.Equal(0U, property.ReferencedIds[1].Value);
+    }
+
+    [Theory]
+    [InlineData(256U, 1U)]
+    [InlineData(uint.MaxValue, 0xFFFFFFFEU)]
+    public void PackageMappingsPreserveTheFullExtendedGuidValue(uint value, uint compact) {
+        OneNoteExtendedGuid targetId = Id();
+        OneNoteExtendedGuid objectId = Id();
+        var properties = new[] {
+            new OneNoteWriteProperty(ObjectReferencesProperty, references: new[] { targetId })
+        };
+        OneNoteEncodedPropertySet encoded = OneNotePropertySetWriter.Write(properties, Id(), DefaultContext);
+        using var compactBytes = new MemoryStream();
+        FssHttpStreamObjectWriter.WriteUInt32(compactBytes, compact);
+        Buffer.BlockCopy(compactBytes.ToArray(), 0, encoded.Data, 4, 4);
+        var mappedId = new OneNoteExtendedGuid(targetId.Identifier, value, 21);
+        byte[] data = ReplacePropertySet(WriteObjectWithTrailingNullReference(targetId, objectId), objectId,
+            new OneNoteEncodedPropertySet(encoded.Data, new[] { mappedId }, encoded.CellReferences));
+
+        OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
+
+        OneNotePropertyValue property = Assert.Single(store.Objects, item => item.Id.Equals(objectId)).PropertySet!.Find(ObjectReferencesProperty)!;
+        Assert.Equal(mappedId, Assert.Single(property.ReferencedIds));
+    }
+
+    [Fact]
+    public void ConflictingValuesForTheSamePackageCompactIdAreRejected() {
+        OneNoteExtendedGuid targetId = Id();
+        OneNoteExtendedGuid objectId = Id();
+        var properties = new[] {
+            new OneNoteWriteProperty(ObjectReferencesProperty, references: new[] { targetId, targetId })
+        };
+        OneNoteEncodedPropertySet encoded = OneNotePropertySetWriter.Write(properties, Id(), DefaultContext);
+        Buffer.BlockCopy(encoded.Data, 4, encoded.Data, 8, 4);
+        byte[] data = ReplacePropertySet(WriteObjectWithTrailingNullReference(targetId, objectId), objectId,
+            new OneNoteEncodedPropertySet(encoded.Data,
+                new[] { targetId, new OneNoteExtendedGuid(targetId.Identifier, targetId.Value + 1, 17) }, encoded.CellReferences));
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() => OneNoteRevisionStoreReader.Read(new MemoryStream(data)));
+
+        Assert.Equal("ONENOTE_PACKAGE_MAPPING", exception.Code);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NullOnlyObjectReferencesDoNotRequireGlobalMappings(bool omitExtendedGuid) {
+        OneNoteExtendedGuid objectId = Id();
+        OneNoteExtendedGuid rootSpaceId = Id();
+        var properties = new[] {
+            new OneNoteWriteProperty(ObjectReferencesProperty, references: new[] { new OneNoteExtendedGuid(Guid.Empty, 0, 1) })
+        };
+        var graph = new OneNoteWriteGraph(Guid.NewGuid(), OneNoteFileKind.Section, rootSpaceId, Guid.Empty, 0);
+        var space = new OneNoteWriteObjectSpace(rootSpaceId, Id());
+        space.Objects.Add(new OneNoteWriteObject(objectId, OneNoteSchema.JcidPropertyContainer, properties));
+        graph.ObjectSpaces.Add(space);
+        byte[] data = OneNotePackageStoreWriter.Write(graph);
+        if (omitExtendedGuid) {
+            OneNoteEncodedPropertySet encoded = OneNotePropertySetWriter.Write(properties, rootSpaceId, DefaultContext);
+            data = ReplacePropertySet(data, objectId, new OneNoteEncodedPropertySet(encoded.Data,
+                Array.Empty<OneNoteExtendedGuid>(), encoded.CellReferences));
+        }
+
+        OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
+
+        OneNoteExtendedGuid reference = Assert.Single(Assert.Single(store.Objects, item => item.Id.Equals(objectId))
+            .PropertySet!.Find(ObjectReferencesProperty)!.ReferencedIds);
+        Assert.Equal(Guid.Empty, reference.Identifier);
+        Assert.Equal(0U, reference.Value);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void OmittedNullReferencesDoNotShiftOtherReferenceStreams(int nullKind) {
+        OneNoteExtendedGuid rootSpaceId = Id();
+        OneNoteExtendedGuid objectId = Id();
+        OneNoteExtendedGuid targetId = Id();
+        OneNoteExtendedGuid contextId = Id();
+        OneNoteExtendedGuid nullId = new OneNoteExtendedGuid(Guid.Empty, 0, 1);
+        OneNoteExtendedGuid[][] references = {
+            new[] { targetId }, new[] { rootSpaceId }, new[] { contextId }
+        };
+        references[nullKind] = new[] { references[nullKind][0], nullId };
+        uint[] propertyIds = {
+            ObjectReferencesProperty,
+            ((uint)OneNotePropertyType.ObjectSpaceIdArray << 26) | 0x1002,
+            ((uint)OneNotePropertyType.ContextIdArray << 26) | 0x1003
+        };
+        OneNoteWriteProperty[] properties = Enumerable.Range(0, 3).Select(index =>
+            new OneNoteWriteProperty(propertyIds[index], references: references[index], referenceKind: (OneNoteWriteReferenceKind)index)).ToArray();
+        var graph = new OneNoteWriteGraph(Guid.NewGuid(), OneNoteFileKind.Section, rootSpaceId, Guid.Empty, 0);
+        var space = new OneNoteWriteObjectSpace(rootSpaceId, Id());
+        space.Objects.Add(new OneNoteWriteObject(objectId, OneNoteSchema.JcidPropertyContainer, properties));
+        graph.ObjectSpaces.Add(space);
+        OneNoteEncodedPropertySet encoded = OneNotePropertySetWriter.Write(properties, rootSpaceId, DefaultContext);
+        byte[] propertyData = (byte[])encoded.Data.Clone();
+        int position = 0;
+        for (int kind = 0; kind < 3; kind++) {
+            position += 4; // Stream header.
+            for (int index = 0; index < references[kind].Length; index++, position += 4) {
+                if (references[kind][index].Identifier == Guid.Empty) Array.Clear(propertyData, position, 4);
+            }
+        }
+        var replacement = new OneNoteEncodedPropertySet(propertyData,
+            encoded.ObjectReferences.Where(id => id.Identifier != Guid.Empty).ToArray(),
+            encoded.CellReferences.Where(cell => cell.First.Identifier != Guid.Empty && cell.Second.Identifier != Guid.Empty).ToArray());
+        byte[] data = ReplacePropertySet(OneNotePackageStoreWriter.Write(graph), objectId, replacement);
+
+        OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
+
+        OneNotePropertySet result = Assert.Single(store.Objects, item => item.Id.Equals(objectId)).PropertySet!;
+        for (int kind = 0; kind < 3; kind++) {
+            OneNotePropertyValue property = result.Find(propertyIds[kind])!;
+            Assert.Equal(references[kind], property.ReferencedIds);
+        }
     }
 
     [Fact]
@@ -124,6 +259,7 @@ public sealed class FssHttpPackageTests {
 
     private const uint ObjectReferencesProperty = ((uint)OneNotePropertyType.ObjectIdArray << 26) | 0x1001;
     private const uint ObjectSpaceReferenceProperty = ((uint)OneNotePropertyType.ObjectSpaceId << 26) | 0x1002;
+    private const uint ContextReferenceProperty = ((uint)OneNotePropertyType.ContextId << 26) | 0x1003;
     private static readonly OneNoteExtendedGuid DefaultContext = new OneNoteExtendedGuid(new Guid("84DEFAB9-AAA3-4A0D-A3A8-520C77AC7073"), 1, 17);
 
     private static string FixturePath(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName);
@@ -213,7 +349,7 @@ public sealed class FssHttpPackageTests {
         byte[] prefix = FssHttpStreamObjectReader.ReadData(stream, objectData, 4096, "object data");
         var cursor = new FssHttpDataCursor(prefix, objectData.DataOffset);
         Assert.Equal(0UL, cursor.ReadCompactUInt64());
-        Assert.Equal(1UL, cursor.ReadCompactUInt64());
+        Assert.Equal(2UL, cursor.ReadCompactUInt64());
         int first = cursor.Position;
         Assert.NotEqual(contextId, cursor.ReadExtendedGuid());
 
@@ -244,6 +380,38 @@ public sealed class FssHttpPackageTests {
             }
         }
         throw new InvalidOperationException("The property-set object was not written.");
+    }
+
+    private static byte[] ReplacePropertySet(byte[] data, OneNoteExtendedGuid objectId, OneNoteEncodedPropertySet replacement) {
+        FssHttpStreamObject objectData = FindPropertySetObject(data, objectId, out FssHttpStreamObject declaration);
+        using var source = new MemoryStream(data);
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(source, new OneNoteReaderOptions());
+        using var declarationData = new MemoryStream();
+        FssHttpStreamObjectWriter.WriteExtendedGuid(declarationData, objectId);
+        FssHttpStreamObjectWriter.WriteCompactUInt64(declarationData, 1);
+        FssHttpStreamObjectWriter.WriteCompactUInt64(declarationData, (ulong)replacement.Data.Length);
+        FssHttpStreamObjectWriter.WriteCompactUInt64(declarationData, (ulong)replacement.ObjectReferences.Count);
+        FssHttpStreamObjectWriter.WriteCompactUInt64(declarationData, (ulong)replacement.CellReferences.Count);
+        using var payload = new MemoryStream();
+        FssHttpStreamObjectWriter.WriteCompactUInt64(payload, (ulong)replacement.ObjectReferences.Count);
+        foreach (OneNoteExtendedGuid id in replacement.ObjectReferences) FssHttpStreamObjectWriter.WriteExtendedGuid(payload, id);
+        FssHttpStreamObjectWriter.WriteCompactUInt64(payload, (ulong)replacement.CellReferences.Count);
+        foreach (FssHttpCellId cell in replacement.CellReferences) {
+            FssHttpStreamObjectWriter.WriteExtendedGuid(payload, cell.First);
+            FssHttpStreamObjectWriter.WriteExtendedGuid(payload, cell.Second);
+        }
+        FssHttpStreamObjectWriter.WriteCompactUInt64(payload, (ulong)replacement.Data.Length);
+        payload.Write(replacement.Data, 0, replacement.Data.Length);
+        FssHttpWriteObject Rewrite(FssHttpStreamObject node) {
+            byte[] bytes = node.HeaderOffset == declaration.HeaderOffset ? declarationData.ToArray()
+                : node.HeaderOffset == objectData.HeaderOffset ? payload.ToArray()
+                : FssHttpStreamObjectReader.ReadData(source, node, int.MaxValue, "test package node");
+            return new FssHttpWriteObject(node.Type, bytes, node.Children.Select(Rewrite));
+        }
+        using var output = new MemoryStream();
+        output.Write(data, 0, checked((int)packaging.HeaderOffset));
+        FssHttpStreamObjectWriter.WriteObject(output, Rewrite(packaging));
+        return output.ToArray();
     }
 
     private static ulong DataElementType(Stream stream, FssHttpStreamObject element) {

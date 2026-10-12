@@ -5,8 +5,16 @@ internal static class OneNotePropertySetReader {
         byte[] data,
         Dictionary<uint, Guid> globalIds,
         OneNoteReaderOptions options,
-        ulong absoluteOffset) {
-        var cursor = new Cursor(data, globalIds, options, absoluteOffset);
+        ulong absoluteOffset) => Read(new Cursor(data, globalIds, null, options, absoluteOffset));
+
+    // Package CompactIDs are opaque mapping keys; the mapped value can exceed one byte.
+    internal static OneNotePropertySet Read(
+        byte[] data,
+        Dictionary<uint, OneNoteExtendedGuid> compactIds,
+        OneNoteReaderOptions options,
+        ulong absoluteOffset) => Read(new Cursor(data, null, compactIds, options, absoluteOffset));
+
+    private static OneNotePropertySet Read(Cursor cursor) {
         ReferenceStream oids = cursor.ReadReferenceStream();
         ReferenceStream osids = ReferenceStream.Empty;
         ReferenceStream contexts = ReferenceStream.Empty;
@@ -20,15 +28,17 @@ internal static class OneNotePropertySetReader {
 
     private sealed class Cursor {
         private readonly byte[] _data;
-        private readonly Dictionary<uint, Guid> _globalIds;
+        private readonly Dictionary<uint, Guid>? _globalIds;
+        private readonly Dictionary<uint, OneNoteExtendedGuid>? _compactIds;
         private readonly OneNoteReaderOptions _options;
         private readonly ulong _absoluteOffset;
         private int _position;
         private int _totalProperties;
 
-        public Cursor(byte[] data, Dictionary<uint, Guid> globalIds, OneNoteReaderOptions options, ulong absoluteOffset) {
+        public Cursor(byte[] data, Dictionary<uint, Guid>? globalIds, Dictionary<uint, OneNoteExtendedGuid>? compactIds, OneNoteReaderOptions options, ulong absoluteOffset) {
             _data = data;
             _globalIds = globalIds;
+            _compactIds = compactIds;
             _options = options;
             _absoluteOffset = absoluteOffset;
         }
@@ -157,9 +167,16 @@ internal static class OneNotePropertySetReader {
 
         private OneNoteExtendedGuid ReadCompactId() {
             uint compact = ReadUInt32();
+            if (_compactIds != null) {
+                if (_compactIds.TryGetValue(compact, out OneNoteExtendedGuid? mapped)) {
+                    return new OneNoteExtendedGuid(mapped.Identifier, mapped.Value, 4);
+                }
+                if (compact == 0) return new OneNoteExtendedGuid(Guid.Empty, 0, 4);
+                throw Error("ONENOTE_COMPACT_ID", "A property reference uses a missing package mapping entry.");
+            }
             byte value = (byte)(compact & 0xFFU);
             uint index = compact >> 8;
-            if (!_globalIds.TryGetValue(index, out Guid identifier)) {
+            if (!_globalIds!.TryGetValue(index, out Guid identifier)) {
                 throw Error("ONENOTE_COMPACT_ID", "A property reference uses a missing global-identification table entry.");
             }
             return new OneNoteExtendedGuid(identifier, value, 4);

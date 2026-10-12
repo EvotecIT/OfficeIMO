@@ -82,11 +82,10 @@ internal static partial class OneNotePackageStoreReader {
                 if (!revision.CellId.HasValue) {
                     throw new OneNoteFormatException("ONENOTE_PACKAGE_OBJECT_SPACE", "A property-set object is not associated with a storage cell.", accumulator.Offset);
                 }
-                Dictionary<uint, Guid> mappings = BuildGlobalIdMappings(
+                Dictionary<uint, OneNoteExtendedGuid> mappings = BuildCompactIdMappings(
                     accumulator.PropertyData,
                     accumulator.ObjectReferences,
                     accumulator.CellReferences,
-                    revision.CellId.Value,
                     options,
                     accumulator.Offset);
                 record.RawPropertyData = OneNoteBinaryPayload.FromOwnedBytes(accumulator.PropertyData);
@@ -148,11 +147,10 @@ internal static partial class OneNotePackageStoreReader {
         return new PackageObjectData(objectReferences, cellReferences, null, blobId);
     }
 
-    private static Dictionary<uint, Guid> BuildGlobalIdMappings(
+    private static Dictionary<uint, OneNoteExtendedGuid> BuildCompactIdMappings(
         byte[] propertyData,
         IReadOnlyList<OneNoteExtendedGuid> objectReferences,
         IReadOnlyList<FssHttpCellId> cellReferences,
-        FssHttpCellId currentCell,
         OneNoteReaderOptions options,
         long offset) {
         int position = 0;
@@ -165,13 +163,20 @@ internal static partial class OneNotePackageStoreReader {
         }
 
         // The cell references list the OSIDs' cells first, then the ContextIDs' cells, in stream order.
-        int osidCount = Math.Min(osids.CompactIds.Count, cellReferences.Count);
+        IReadOnlyList<uint> osidIds = osids.CompactIds;
+        IReadOnlyList<uint> contextIds = contexts.CompactIds;
+        // Omitted null cells must be removed before locating the boundary between the two streams.
+        if (cellReferences.Count != osidIds.Count + contextIds.Count) {
+            osidIds = osidIds.Where(compact => compact != 0).ToArray();
+            contextIds = contextIds.Where(compact => compact != 0).ToArray();
+        }
+        int osidCount = Math.Min(osidIds.Count, cellReferences.Count);
         OneNoteExtendedGuid[] osidReferences = cellReferences.Take(osidCount).Select(cell => cell.Second).ToArray();
         OneNoteExtendedGuid[] contextReferences = cellReferences.Skip(osidCount).Select(cell => cell.First).ToArray();
-        var mappings = new Dictionary<uint, Guid>();
+        var mappings = new Dictionary<uint, OneNoteExtendedGuid>();
         AddMappings(mappings, oids.CompactIds, objectReferences, offset, "object");
-        AddMappings(mappings, osids.CompactIds, osidReferences, offset, "object-space");
-        AddMappings(mappings, contexts.CompactIds, contextReferences, offset, "context");
+        AddMappings(mappings, osidIds, osidReferences, offset, "object-space");
+        AddMappings(mappings, contextIds, contextReferences, offset, "context");
         return mappings;
     }
 
@@ -192,7 +197,7 @@ internal static partial class OneNotePackageStoreReader {
     }
 
     private static void AddMappings(
-        Dictionary<uint, Guid> mappings,
+        Dictionary<uint, OneNoteExtendedGuid> mappings,
         IReadOnlyList<uint> compactIds,
         IReadOnlyList<OneNoteExtendedGuid> extendedIds,
         long offset,
@@ -205,16 +210,14 @@ internal static partial class OneNotePackageStoreReader {
         for (int index = 0; index < compactIds.Count; index++) {
             uint compact = compactIds[index];
             OneNoteExtendedGuid extended = extendedIds[index];
-            if (compact == 0 && IsNull(extended)) continue;
-            uint globalIndex = compact >> 8;
-            uint value = compact & 0xFFU;
-            if (globalIndex >= 0xFFFFFFU || extended.Identifier == Guid.Empty || extended.Value != value) {
-                throw new OneNoteFormatException("ONENOTE_PACKAGE_MAPPING", "A " + kind + " mapping contains incompatible CompactID and extended-GUID values.", offset);
+            if (extended.Identifier == Guid.Empty && !IsNull(extended)) {
+                throw new OneNoteFormatException("ONENOTE_PACKAGE_MAPPING", "A " + kind + " mapping contains an invalid extended GUID.", offset);
             }
-            if (mappings.TryGetValue(globalIndex, out Guid existing) && existing != extended.Identifier) {
-                throw new OneNoteFormatException("ONENOTE_PACKAGE_MAPPING", "A CompactID global index maps to multiple GUIDs.", offset);
+            if (mappings.TryGetValue(compact, out OneNoteExtendedGuid? existing) && !existing.Equals(extended)) {
+                throw new OneNoteFormatException("ONENOTE_PACKAGE_MAPPING", "A CompactID maps to multiple extended GUIDs.", offset);
             }
-            mappings[globalIndex] = extended.Identifier;
+            // Package mappings are keyed by the complete CompactID, unlike desktop global-ID tables.
+            mappings[compact] = extended;
         }
     }
 
