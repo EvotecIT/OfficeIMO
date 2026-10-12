@@ -20,8 +20,10 @@ namespace OfficeIMO.Tests {
                 int record = 12 + index * 16;
                 string tag = Encoding.ASCII.GetString(data, record, 4);
                 int offset = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(record + 8));
-                if (tag == "hmtx" && corruption == "truncated")
+                if (tag == "hmtx" && corruption == "truncated") {
+                    BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(record + 8), (uint)data.Length - 2);
                     BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(record + 12), 2U);
+                }
                 if (tag == "hhea" && corruption != "truncated")
                     BinaryPrimitives.WriteUInt16BigEndian(data.AsSpan(offset + 34), corruption == "zero" ? (ushort)0 : ushort.MaxValue);
             }
