@@ -152,7 +152,9 @@ public static partial class WordPdfConverterExtensions {
     }
 
     private static bool UsesNativeRunningVariant(WordSection section, WordToPdfOptions? options, bool isFooter, WordHeaderFooter? story) =>
-        story != null && UsesNativeRunningStories(section, options, isFooter, story);
+        // An implicit default paragraph owns blank geometry independently of
+        // presentation overrides on its visible siblings.
+        story != null && (!story.ChildElements.Any() || UsesNativeRunningStories(section, options, isFooter, story));
 
     private static Func<PdfCore.PdfRunningContentContext, Action<PdfCore.PdfContentBuilder>> CreateNativeRunningStory(
         WordHeaderFooter? story, WordSection section, WordToPdfOptions? options, NativeFontMap fontMap,

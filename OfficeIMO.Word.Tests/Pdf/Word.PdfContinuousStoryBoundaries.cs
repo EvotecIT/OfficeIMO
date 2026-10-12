@@ -8,6 +8,38 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 0)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public void SaveAsPdf_RequiredSiblingPreservesImplicitVariantFrame(bool footer, int emptyVariant) {
+        using WordDocument document = CreateEmptyRunningStoryDocument("absent", footer);
+        WordHeaderFooter[] stories = footer
+            ? new WordHeaderFooter[] { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate }
+            : new WordHeaderFooter[] { document.HeaderFirstOrCreate, document.HeaderEvenOrCreate, document.HeaderDefaultOrCreate };
+        foreach (var child in stories[emptyVariant].ChildElements.ToArray()) child.Remove();
+        for (int index = 0; index < stories.Length; index++) {
+            if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
+            WordParagraph body = document.AddParagraph(index == emptyVariant
+                ? string.Join("\n", Enumerable.Repeat("A", 60)) : "A");
+            SetInheritedRunningControlStyle(body);
+            if (index < 2) body.AddBreak(WordBreakType.Page);
+        }
+        WordToPdfOptions options = EmptyRunningOptions();
+        options.PdfOptions = new OfficeIMO.Pdf.PdfOptions();
+        if (footer) options.PdfOptions.FooterOffsetY = 24D;
+        else options.PdfOptions.HeaderOffsetY = 24D;
+        using var ordinary = PdfPigDocument.Open(document.ToPdfBytes(options));
+        for (int index = 0; index < stories.Length; index++)
+            if (index != emptyVariant) stories[index].Paragraphs.Last().AddText(" ").AddField(WordFieldType.SectionPages);
+        using var required = PdfPigDocument.Open(document.ToPdfBytes(options));
+        Assert.Equal(ordinary.GetPage(emptyVariant + 1).Letters.Where(letter => letter.Value == "A").Select(letter => letter.StartBaseLine),
+            required.GetPage(emptyVariant + 1).Letters.Where(letter => letter.Value == "A").Select(letter => letter.StartBaseLine));
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]
     [InlineData(false, true)]
