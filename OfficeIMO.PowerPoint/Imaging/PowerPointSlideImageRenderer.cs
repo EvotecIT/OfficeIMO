@@ -358,7 +358,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme, bool suppressFrame = false, Func<string?, double, string?, OfficeFontStyle, double>? measure = null, string? defaultFontFamily = null) {
-            ReportCharacterSpacing(textBox, diagnostics);
             string text = ResolvePowerPointDisplayText(textBox);
             bool hasVisibleFrame = HasVisibleFrame(textBox, colorScheme);
             if (string.IsNullOrEmpty(text) && !hasVisibleFrame) {
@@ -380,6 +379,7 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            ReportCharacterSpacing(textBox, diagnostics);
             AddSmallCapsApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
             AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);

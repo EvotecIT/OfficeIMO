@@ -1,10 +1,29 @@
 using OfficeIMO.Reader;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace OfficeIMO.Tool.Commands.Reader;
 
 internal static class ReaderToolOutput {
     private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+    // Match WriteFileAsync without allocating another complete encoded document.
+    internal static (long LengthBytes, string Sha256) FingerprintText(string content, CancellationToken token) {
+        using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Encoder encoder = Utf8WithoutBom.GetEncoder();
+        ReadOnlySpan<char> remaining = content.AsSpan();
+        Span<byte> buffer = stackalloc byte[4096];
+        long length = 0;
+        bool completed;
+        do {
+            token.ThrowIfCancellationRequested();
+            encoder.Convert(remaining, buffer, flush: true, out int charsUsed, out int bytesUsed, out completed);
+            hash.AppendData(buffer.Slice(0, bytesUsed));
+            length = checked(length + bytesUsed);
+            remaining = remaining.Slice(charsUsed);
+        } while (!completed);
+        return (length, System.Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant());
+    }
 
     internal static string FormatDocument(OfficeDocumentReadResult document, ReaderToolOutputFormat format) {
         if (format == ReaderToolOutputFormat.Json) {

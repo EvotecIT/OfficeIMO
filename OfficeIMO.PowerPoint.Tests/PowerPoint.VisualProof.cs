@@ -217,17 +217,7 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static string GetRepositoryRoot() {
-            DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory != null) {
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.sln")) ||
-                    Directory.Exists(Path.Combine(directory.FullName, "Assets", "PowerPointTemplates"))) {
-                    return directory.FullName;
-                }
-                directory = directory.Parent;
-            }
-            throw new DirectoryNotFoundException("Could not locate the OfficeIMO repository root.");
-        }
+        private static string GetRepositoryRoot() => RepositoryTestPaths.Find();
 
     }
 }

@@ -26,6 +26,17 @@ public sealed class PowerPointPdfTextFormattingTests {
             diagnostic => diagnostic.Code == "relative-hyperlink" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EmptyRunsDoNotReportCharacterSpacingLoss(bool visibleText) {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints(visibleText ? "Visible" : string.Empty, 10, 10, 200, 40);
+        box.Paragraphs[0].AddText(string.Empty, empty => empty.CharacterSpacingPoints = 1.25);
+        Assert.DoesNotContain(presentation.ToPdfDocumentResult().Report.FidelityDiagnostics,
+            diagnostic => diagnostic.Code == "POWERPOINT_CHARACTER_SPACING_APPROXIMATED");
+    }
+
     [Fact]
     public void FieldOnlyTextInheritsTrackingAndHonorsAZeroReset() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
