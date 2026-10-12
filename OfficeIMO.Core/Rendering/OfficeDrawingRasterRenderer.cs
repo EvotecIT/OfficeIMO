@@ -299,7 +299,8 @@ public static partial class OfficeDrawingRasterRenderer {
 
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateClipContours(drawingShape, clipPath, scale);
         if (contours.Count == 0) {
-            return null;
+            return clipPath.Kind is OfficeClipPathKind.Path or OfficeClipPathKind.Empty
+                ? canvas.PushClipRectangle(0, 0, 0, 0) : null;
         }
 
         return contours.Count == 1 && clipPath.Kind != OfficeClipPathKind.Path

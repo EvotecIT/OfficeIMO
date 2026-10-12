@@ -18,6 +18,17 @@ public partial class DrawingTests {
     }
 
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ClipPath_ZeroAreaShapeClipDoesNotRevealItsRectangle(bool transformed) {
+        var shape = OfficeShape.Rectangle(20, 20); shape.FillColor = OfficeColor.Red;
+        shape.ClipPath = OfficeClipPath.Path(20, 20, new[] { OfficePathCommand.MoveTo(5, 5), OfficePathCommand.LineTo(15, 5) });
+        if (transformed) shape.Transform = OfficeTransform.RotateDegrees(30, 10, 10);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(new OfficeDrawing(40, 40).AddShape(shape, 10, 10));
+        Assert.All(Enumerable.Range(0, 40), y => Assert.All(Enumerable.Range(0, 40), x => Assert.Equal(0, raster.GetPixel(x, y).A)));
+    }
+
     [Fact]
     public void ClipPath_DeclaredCanvasKeepsInsetCoordinatesAndLegacyOverloadKeepsContentBounds() {
         var commands = new[] { OfficePathCommand.MoveTo(25, 10), OfficePathCommand.LineTo(75, 10),
