@@ -23,7 +23,7 @@
         ] },
         { "id": "overlay", "type": "flag", "label": "Also create a layout check image of page 1", "hint": "Outlines words, lines and reading order. Useful when reporting a layout problem.", "advanced": true }
       ],
-      "engine": { "kind": "convert", "target": "docx-pdf", "action": "convert", "assemblies": ["OfficeIMO.Word.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Word.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "docx-pdf", "action": "convert", "assemblies": ["OfficeIMO.Word.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Word.Pdf.wasm"] },
       "run": { "label": "Convert to PDF", "busy": ["Reading the document", "Laying out pages", "Writing the PDF"] },
       "expect": "Text, tables, images, headers, footers, lists and page settings come across. Complex floating layout, SmartArt, fields and exact Word page breaks can differ.",
       "next": ["compress-pdf", "protect-pdf", "inspect-pdf"],
@@ -49,7 +49,7 @@
           { "value": "portable", "label": "Reproducible", "hint": "The same file every time.", "advanced": true }
         ] }
       ],
-      "engine": { "kind": "convert", "target": "xlsx-pdf", "action": "convert", "assemblies": ["OfficeIMO.Excel.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Excel.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "xlsx-pdf", "action": "convert", "assemblies": ["OfficeIMO.Excel.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Excel.Pdf.wasm"] },
       "run": { "label": "Convert to PDF", "busy": ["Reading the workbook", "Laying out sheets", "Writing the PDF"] },
       "expect": "Very large or image-heavy workbooks are better converted with Quick preview here, or with the .NET library on a server.",
       "next": ["compress-pdf", "protect-pdf", "inspect-pdf"],
@@ -71,7 +71,7 @@
           { "value": "portable", "label": "Reproducible", "hint": "The same file every time.", "advanced": true }
         ] }
       ],
-      "engine": { "kind": "convert", "target": "pptx-pdf", "action": "convert", "assemblies": ["OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.PowerPoint.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "pptx-pdf", "action": "convert", "assemblies": ["OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.PowerPoint.Pdf.wasm"] },
       "run": { "label": "Convert to PDF", "busy": ["Reading the slides", "Drawing each slide", "Writing the PDF"] },
       "expect": "Animations, transitions and video don't exist in a PDF. Some advanced shape effects are simplified.",
       "next": ["compress-pdf", "protect-pdf", "inspect-pdf"],
@@ -156,7 +156,7 @@
       "seoDescription": "Convert a PDF to an editable Word document in your browser. Review the conversion report and download the DOCX without uploading the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
-      "engine": { "kind": "convert", "target": "pdf-docx", "action": "convert", "assemblies": ["OfficeIMO.Word.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Word.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "pdf-docx", "action": "convert", "assemblies": ["OfficeIMO.Word.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Word.Pdf.wasm"] },
       "run": { "label": "Convert to Word", "busy": ["Reading the PDF", "Rebuilding paragraphs and tables", "Writing the document"] },
       "expect": "A PDF stores where things sit on a page, not the original document. Columns, fonts and complex graphics can come out differently. Scanned pages need OCR, which this tool doesn't do.",
       "next": [],
@@ -171,7 +171,7 @@
       "seoDescription": "Extract tables from a PDF into an Excel workbook in your browser. Review the detected rows and columns, then download the workbook without uploads.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
-      "engine": { "kind": "convert", "target": "pdf-xlsx", "action": "convert", "assemblies": ["OfficeIMO.Excel.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Excel.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "pdf-xlsx", "action": "convert", "assemblies": ["OfficeIMO.Excel.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.Excel.Pdf.wasm"] },
       "run": { "label": "Find tables", "busy": ["Reading the PDF", "Detecting tables", "Writing the workbook"] },
       "expect": "Only detected tables are copied, not the rest of the page. Scanned pages need OCR.",
       "next": [],
@@ -193,7 +193,7 @@
           { "value": "tables", "label": "Tables only", "hint": "Just the detected tables, one per slide." }
         ] }
       ],
-      "engine": { "kind": "convert", "target": "pdf-pptx", "action": "convert", "assemblies": ["OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.PowerPoint.Pdf.wasm"] },
+      "engine": { "kind": "convert", "target": "pdf-pptx", "action": "convert", "assemblies": ["OfficeIMO.PowerPoint.wasm", "DocumentFormat.OpenXml.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm", "OfficeIMO.PowerPoint.Pdf.wasm"] },
       "run": { "label": "Convert to PowerPoint", "busy": ["Reading the PDF", "Building slides", "Writing the presentation"] },
       "expect": "A PDF doesn't contain the original slides, animations or transitions.",
       "next": [],
@@ -223,7 +223,7 @@
       "seoDescription": "Convert each PDF page to a PNG image in your browser. Review the page previews and download a single image or a ZIP containing all generated pages.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf" },
       "options": [],
-      "engine": { "kind": "convert", "target": "pdf-png", "action": "convert", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"] },
+      "engine": { "kind": "convert", "target": "pdf-png", "action": "convert", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Web.Fonts.Fallback.wasm"] },
       "run": { "label": "Create images", "busy": ["Reading the PDF", "Drawing pages"] },
       "expect": "Images can't be searched or edited as text. Very large PDFs may hit the browser's memory limit.",
       "next": [],
@@ -238,7 +238,7 @@
       "seoDescription": "Inspect PDF pages, passwords, forms, signatures and scripts in your browser. Read the document report without changing or uploading the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/showcase-dashboard.pdf", "sampleName": "OfficeIMO-Showcase.pdf", "auto": true },
       "options": [],
-      "engine": { "kind": "pdf", "target": "inspect", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "inspect", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Inspect again", "busy": ["Reading the PDF"] },
       "expect": "This reads the file only. It doesn't check who signed it or remove passwords.",
       "next": ["compress-pdf", "unlock-pdf", "extract-pages"],
@@ -253,7 +253,7 @@
       "seoDescription": "Compare two PDFs side by side in your browser. Review page images, visual differences and structural findings without uploading either document.",
       "input": { "kind": "pair", "accept": ".pdf", "label": "PDF", "slots": ["Original", "Changed version"], "sample": "samples/page-tools-sample.pdf", "sampleName": "Report-original.pdf", "sampleSecond": "samples/page-tools-sample-changed.pdf", "sampleSecondName": "Report-changed.pdf", "auto": true },
       "options": [],
-      "engine": { "kind": "pdf", "target": "compare", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "compare", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Compare again", "busy": ["Drawing both PDFs", "Comparing pages"] },
       "expect": "Up to 25 pages are compared pixel by pixel. A difference tells you where to look, not which version is right.",
       "next": [],
@@ -268,7 +268,7 @@
       "seoDescription": "Merge two to ten PDFs in your browser, in the order you choose. Review the combined document and download a new PDF while keeping the original files.",
       "input": { "kind": "files", "accept": ".pdf", "label": "PDFs", "min": 2, "max": 10, "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf", "sampleSecond": "samples/showcase-dashboard.pdf", "sampleSecondName": "OfficeIMO-Showcase.pdf" },
       "options": [],
-      "engine": { "kind": "pdf", "target": "merge", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "merge", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Merge PDFs", "busy": ["Reading the PDFs", "Joining pages", "Writing the PDF"] },
       "expect": "Bookmarks, forms and signatures from separate files may not carry over cleanly into one document.",
       "next": ["compress-pdf", "protect-pdf", "reorder-pages"],
@@ -285,7 +285,7 @@
       "options": [
         { "id": "perFile", "type": "number", "label": "Pages in each new PDF", "default": "1", "min": 1, "max": 500 }
       ],
-      "engine": { "kind": "pdf", "target": "split", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "split", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Split PDF", "busy": ["Reading the PDF", "Writing the parts"] },
       "expect": "The parts come as one ZIP file, up to 100 parts.",
       "next": [],
@@ -300,7 +300,7 @@
       "seoDescription": "Extract selected pages from a PDF in your browser. Choose page numbers or ranges, review the new document and download a copy containing those pages.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [ { "id": "pages", "type": "pages", "mode": "keep", "label": "Pages to keep" } ],
-      "engine": { "kind": "pdf", "target": "extract", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "extract", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Save selected pages", "busy": ["Copying pages", "Writing the PDF"] },
       "expect": "Pages keep their content exactly; only the page list changes.",
       "next": ["compress-pdf", "rotate-pages"],
@@ -315,7 +315,7 @@
       "seoDescription": "Delete selected pages from a PDF in your browser. Review the remaining pages and download a new copy while keeping your original document unchanged.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [ { "id": "pages", "type": "pages", "mode": "remove", "label": "Pages to delete" } ],
-      "engine": { "kind": "pdf", "target": "delete", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"], "confirm": true },
+      "engine": { "kind": "pdf", "target": "delete", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"], "confirm": true },
       "run": { "label": "Delete selected pages", "busy": ["Removing pages", "Writing the PDF"] },
       "expect": "Only the copy changes. To keep a few pages instead, use Extract pages.",
       "next": ["compress-pdf"],
@@ -330,7 +330,7 @@
       "seoDescription": "Reorder PDF pages in your browser by entering the page sequence you want. Review the new order and download a copy while keeping the original file.",
       "input": { "kind": "file", "accept": ".pdf", "label": "PDF", "sample": "samples/page-tools-sample.pdf", "sampleName": "OfficeIMO-Six-Pages.pdf" },
       "options": [ { "id": "pages", "type": "pages", "mode": "order", "label": "Page order" } ],
-      "engine": { "kind": "pdf", "target": "reorder", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "reorder", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Save in this order", "busy": ["Reordering pages", "Writing the PDF"] },
       "expect": "Every page is kept exactly once.",
       "next": ["compress-pdf"],
@@ -352,7 +352,7 @@
           { "value": "180", "label": "Upside down", "hint": "180°" }
         ] }
       ],
-      "engine": { "kind": "pdf", "target": "rotate", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "rotate", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Save rotated PDF", "busy": ["Rotating pages", "Writing the PDF"] },
       "expect": "This turns whole pages. It doesn't straighten a slightly tilted scan.",
       "next": ["compress-pdf"],
@@ -374,7 +374,7 @@
           { "value": "Archival", "label": "Careful", "hint": "Only the most conservative changes, for archives." }
         ] }
       ],
-      "engine": { "kind": "pdf", "target": "optimize", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "optimize", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Compress PDF", "busy": ["Reading the PDF", "Removing duplicates", "Writing the smaller copy"] },
       "expect": "Images aren't recompressed and pages aren't turned into pictures, so already-compact PDFs may not get smaller.",
       "next": ["protect-pdf"],
@@ -392,7 +392,7 @@
         { "id": "userPassword", "type": "password", "label": "Password to open the PDF", "confirm": true, "required": true },
         { "id": "ownerPassword", "type": "password", "label": "Separate password for changing permissions", "hint": "Leave empty to use the same password.", "advanced": true }
       ],
-      "engine": { "kind": "pdf", "target": "protect", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "protect", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Add password", "busy": ["Encrypting", "Checking the protected copy"] },
       "expect": "Write the password down. Nobody, including OfficeIMO, can recover it. A password isn't a digital signature.",
       "next": [],
@@ -409,7 +409,7 @@
       "options": [
         { "id": "ownerPassword", "type": "password", "label": "PDF password", "hint": "If the PDF has separate open and permissions passwords, use the permissions password.", "required": true }
       ],
-      "engine": { "kind": "pdf", "target": "unlock", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
+      "engine": { "kind": "pdf", "target": "unlock", "action": "run", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"] },
       "run": { "label": "Remove password", "busy": ["Decrypting", "Writing the copy"] },
       "expect": "You need the real password; this doesn't break or bypass protection. Certificate-based protection isn't supported.",
       "next": ["inspect-pdf", "compress-pdf"],
@@ -426,7 +426,7 @@
       "options": [
         { "id": "text", "type": "text", "label": "Text to remove", "placeholder": "For example a name or account number", "required": true }
       ],
-      "engine": { "kind": "pdf", "target": "redact", "action": "run", "find": "find", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"], "confirm": true },
+      "engine": { "kind": "pdf", "target": "redact", "action": "run", "find": "find", "assemblies": ["OfficeIMO.Pdf.wasm", "OfficeIMO.Html.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm"], "confirm": true },
       "run": { "label": "Find matches", "confirmLabel": "Remove matches and save a copy", "busy": ["Removing text", "Checking nothing is left"] },
       "expect": "Matching ignores upper and lower case. Text inside images, and scanned pages, can't be found.",
       "next": ["inspect-pdf"],
