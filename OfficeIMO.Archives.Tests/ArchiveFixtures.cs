@@ -49,7 +49,7 @@ internal sealed partial class ArchiveFixtures : IDisposable {
         object?[][]? directoryRows = null, string firstDirectory = "LOCALE", string secondDirectory = "LOCALE",
         bool twoCabinets = false, bool backwardMedia = false, bool lowercaseCabinetKey = false,
         int cabinetCount = 0, bool emptyPayloads = false, bool emptySecondPayload = false, int emptySecondCompression = 0,
-        byte[]? unmappedCabinet = null) {
+        byte[]? unmappedCabinet = null, string? extraColumnTable = null, char extraColumnKind = 's') {
         const string key = "PayloadKey";
         byte[] payload = Encoding.UTF8.GetBytes("hello");
         var schemas = MsiSchemas(wideMedia);
@@ -91,6 +91,11 @@ internal sealed partial class ArchiveFixtures : IDisposable {
             if (!missingCabinet) streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("payload.cab", false), StoredCab(lowercaseCabinetKey ? key.ToLowerInvariant() : key, payload)));
             if (twoCabinets) streams.Add(new OfficeCompoundStream(MsiPackageReader.EncodeStreamName("second.cab", false),
                 emptySecondPayload ? EmptyStoredCab("PayloadTwo", emptySecondCompression) : StoredCab("PayloadTwo", Encoding.UTF8.GetBytes("world"))));
+        }
+        if (extraColumnTable != null) {
+            schemas[extraColumnTable] = schemas[extraColumnTable].Concat(new[] { ("Extra", extraColumnKind) }).ToArray();
+            object? extra = extraColumnKind == 's' ? "extra value" : extraColumnKind == 'b' ? null : 123;
+            rows[extraColumnTable] = rows[extraColumnTable].Select(row => row.Concat(new[] { extra }).ToArray()).ToArray();
         }
         return WriteMsi(schemas, rows, streams, longStrings);
     }

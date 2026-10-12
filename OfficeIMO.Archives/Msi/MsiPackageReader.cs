@@ -22,8 +22,7 @@ internal sealed partial class MsiPackageReader : IDisposable {
 
     internal MsiPackageReader(Stream source, ArchiveLimits limits, CancellationToken token) {
         _limits = limits; _token = token;
-        var compoundOptions = new OfficeCompoundReadOptions(maxDirectoryEntries: Math.Min(65536, limits.Rows),
-            maxStreamCount: Math.Min(32768, limits.Rows), maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input);
+        var compoundOptions = new OfficeCompoundReadOptions(maxStreamBytes: limits.Input, maxTotalStreamBytes: limits.Input);
         source.Position = 0;
         _compound = new OfficeCompoundFileReader.ReadSession(source, compoundOptions, leaveOpen: true, token);
         _streams = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -50,6 +49,7 @@ internal sealed partial class MsiPackageReader : IDisposable {
                     throw new InvalidDataException("MSI contains unreachable or ambiguous stream names.");
                 _streams.Add(entry.Path, entry.Path);
             }
+            _compound.ValidateAllocation();
             LoadStrings();
             LoadSchemas();
         } catch { _compound.Dispose(); throw; }

@@ -8,7 +8,7 @@ namespace OfficeIMO.Core.Internal {
     internal static partial class OfficeCompoundFileReader {
         /// <summary>Indexes one immutable seekable compound source once. Views share the source cursor;
         /// this session and its views are for sequential use by one operation, not concurrent reads.</summary>
-        internal sealed class ReadSession : IDisposable {
+        internal sealed partial class ReadSession : IDisposable {
             private readonly Stream _source;
             private readonly bool _leaveOpen;
             private readonly CancellationToken _token;
@@ -17,11 +17,14 @@ namespace OfficeIMO.Core.Internal {
             private readonly int _physicalSectorCount;
             private readonly uint _miniCutoff;
             private readonly long _rootSize;
+            private readonly uint _rootStartSector;
             private readonly List<uint> _fatSectorIds;
             private readonly Dictionary<uint, byte[]> _fatCache = new Dictionary<uint, byte[]>();
             private readonly Dictionary<string, DirectoryEntry> _streams = new Dictionary<string, DirectoryEntry>(StringComparer.Ordinal);
             private readonly uint[] _miniFat;
             private readonly List<uint> _rootChain;
+            private Dictionary<string, List<uint>>? _validatedRegularChains;
+            private Dictionary<string, List<uint>>? _validatedMiniChains;
             private bool _disposed;
 
             /// <summary>The source remains caller-owned on constructor failure. Ownership on success
@@ -67,6 +70,7 @@ namespace OfficeIMO.Core.Internal {
                     if (root.Size < 0 || root.Size > options.MaxTotalStreamBytes || root.Size > physicalBytes)
                         throw new InvalidDataException("Compound mini stream exceeds configured or physical bounds.");
                     _rootSize = root.Size;
+                    _rootStartSector = root.StartSector;
                     Entries = BuildCompoundEntries(entries, out bool hasInvalidDirectoryTree, token);
                     HasInvalidDirectoryTree = hasInvalidDirectoryTree;
                     IReadOnlyDictionary<int, string> paths = BuildCompoundEntryPaths(entries, token);
@@ -119,7 +123,10 @@ namespace OfficeIMO.Core.Internal {
                 ThrowIfDisposed(); _token.ThrowIfCancellationRequested();
                 if (!_streams.TryGetValue(path, out DirectoryEntry? entry)) throw new InvalidDataException("Required compound stream is missing: " + path);
                 List<uint>? regular = null; List<uint>? mini = null;
-                if (entry.Size >= _miniCutoff) regular = GetRegularSectorChain(_source, _basePosition, entry.StartSector,
+                if (_validatedRegularChains != null && _validatedMiniChains != null) {
+                    _validatedRegularChains.TryGetValue(path, out regular);
+                    _validatedMiniChains.TryGetValue(path, out mini);
+                } else if (entry.Size >= _miniCutoff) regular = GetRegularSectorChain(_source, _basePosition, entry.StartSector,
                     entry.Size, _sectorSize, _physicalSectorCount, _fatSectorIds, _fatCache, _token);
                 else if (entry.Size > 0) mini = GetMiniSectorChain(entry.StartSector, entry.Size, _miniFat);
                 return new CompoundEntryStream(_source, _basePosition, _sectorSize, entry.Size, regular, mini,

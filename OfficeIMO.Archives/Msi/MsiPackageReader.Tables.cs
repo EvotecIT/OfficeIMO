@@ -27,21 +27,25 @@ internal sealed partial class MsiPackageReader {
         _schemas = schemas.ToDictionary(pair => pair.Key, pair => pair.Value.OrderBy(column => column.Position).ToArray(), StringComparer.OrdinalIgnoreCase);
     }
     private object?[][] Table(string name, params string[] requiredColumns) {
-        if (!_schemas.TryGetValue(name, out MsiColumn[]? schema) || schema.Length != requiredColumns.Length)
+        if (!_schemas.TryGetValue(name, out MsiColumn[]? schema))
             throw new InvalidDataException("Required MSI table schema is absent or unsupported: " + name);
-        for (int column = 0; column < schema.Length; column++) {
-            if (schema[column].Position != column + 1 || !string.Equals(schema[column].Name, requiredColumns[column], StringComparison.Ordinal)
-                || schema[column].Kind == '?' || schema[column].Kind == 'b')
+        for (int column = 0; column < schema.Length; column++)
+            if (schema[column].Position != column + 1) throw new InvalidDataException("MSI table column positions are incomplete: " + name);
+        var projection = new int[requiredColumns.Length];
+        for (int column = 0; column < requiredColumns.Length; column++) {
+            int index = Array.FindIndex(schema, field => string.Equals(field.Name, requiredColumns[column], StringComparison.Ordinal));
+            if (index < 0 || schema[index].Kind == '?' || schema[index].Kind == 'b')
                 throw new InvalidDataException("Required MSI table column is absent or unsupported: " + name + "." + requiredColumns[column]);
             bool numeric = requiredColumns[column] == "Attributes" || requiredColumns[column] == "FileSize"
                 || requiredColumns[column] == "Sequence" || requiredColumns[column] == "DiskId" || requiredColumns[column] == "LastSequence";
-            if (numeric == (schema[column].Kind == 's')) throw new InvalidDataException("MSI column has an incompatible type: " + name + "." + requiredColumns[column]);
+            if (numeric == (schema[index].Kind == 's')) throw new InvalidDataException("MSI column has an incompatible type: " + name + "." + requiredColumns[column]);
+            projection[column] = index;
         }
-        return ReadRows(name, schema);
+        return ReadRows(name, schema).Select(row => projection.Select(index => row[index]).ToArray()).ToArray();
     }
     private object?[][] ReadRows(string name, MsiColumn[] schema) {
         byte[] bytes = ReadMetadata(name);
-        int Width(MsiColumn column) => column.Kind == 's' ? _stringWidth : column.Kind == 'i' ? 2 : column.Kind == 'I' ? 4 : throw new InvalidDataException("Unsupported MSI column encoding.");
+        int Width(MsiColumn column) => column.Kind == 's' ? _stringWidth : column.Kind == 'i' || column.Kind == 'b' ? 2 : column.Kind == 'I' ? 4 : throw new InvalidDataException("Unsupported MSI column encoding.");
         int rowSize = schema.Sum(Width);
         if (rowSize == 0 || bytes.Length % rowSize != 0) throw new InvalidDataException("MSI table contains an incomplete row: " + name);
         int count = bytes.Length / rowSize;
@@ -55,7 +59,7 @@ internal sealed partial class MsiPackageReader {
             uint value = width == 4 ? UInt32(bytes, offset) : UInt16(bytes, offset);
             if (width == 3) value |= (uint)bytes[offset + 2] << 16;
             offset += width;
-            if (value == 0) continue;
+            if (value == 0 || field.Kind == 'b') continue;
             if (field.Kind == 's') {
                 if (value >= _strings.Length) throw new InvalidDataException("MSI table references an absent string: " + name);
                 rows[row][column] = _strings[value];
