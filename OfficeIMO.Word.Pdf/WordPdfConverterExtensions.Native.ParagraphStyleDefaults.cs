@@ -142,8 +142,8 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphSpacing = paragraphSpacing.Merge(paragraphProperties);
                 if (paragraphProperties != null) {
                     W.SpacingBetweenLines? spacing = paragraphProperties.GetFirstChild<W.SpacingBetweenLines>();
+                    authoredLineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties.GetFirstChild<W.TextAlignment>()).Inherit(authoredLineSpacing);
                     if (spacing != null) {
-                        authoredLineSpacing = ReadNativeLineSpacing(spacing).Inherit(authoredLineSpacing);
                         double? styleLineHeight = GetNativeStyleParagraphLineHeight(
                             spacing,
                             fontFamily,
