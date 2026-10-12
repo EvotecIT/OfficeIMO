@@ -1500,15 +1500,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ExcelSheetPrintOptions printOptions = sheet.GetPrintOptions();
             ExcelSheet.ExcelHeaderFooterSnapshot headerFooter = sheet.GetHeaderFooter();
             Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            PageSetup? storedPageSetup = worksheet.GetFirstChild<PageSetup>();
             SheetProperties? sheetProperties = worksheet.GetFirstChild<SheetProperties>();
             OutlineProperties? outlineProperties = sheetProperties?.GetFirstChild<OutlineProperties>();
             PageSetupProperties? pageSetupProperties = sheetProperties?.GetFirstChild<PageSetupProperties>();
             HeaderFooter? headerFooterElement = worksheet.GetFirstChild<HeaderFooter>();
             PrintOptions? printOptionsElement = worksheet.GetFirstChild<PrintOptions>();
-            bool? fitToPage = pageSetupProperties?.FitToPage?.Value;
-            if (!fitToPage.HasValue && (pageSetup.FitToWidth.HasValue || pageSetup.FitToHeight.HasValue)) {
-                fitToPage = true;
-            }
+            bool fitToPage = pageSetupProperties?.FitToPage?.Value == true;
 
             return new LegacyXlsWorksheetPageSetup(
                 pageSetup.Orientation,
@@ -1518,8 +1516,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 pageSetup.Margins?.Bottom,
                 pageSetup.Margins?.Header,
                 pageSetup.Margins?.Footer,
-                pageSetup.FitToWidth,
-                pageSetup.FitToHeight,
+                // Rendering uses effective dimensions; serialization also retains
+                // cached dimensions while manual scaling is active.
+                storedPageSetup?.FitToWidth?.Value ?? pageSetup.FitToWidth,
+                storedPageSetup?.FitToHeight?.Value ?? pageSetup.FitToHeight,
                 pageSetup.Scale,
                 pageSetup.PageOrder,
                 fitToPage,
