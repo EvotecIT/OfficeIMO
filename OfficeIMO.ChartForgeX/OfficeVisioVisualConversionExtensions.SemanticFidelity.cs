@@ -1,10 +1,21 @@
 using System;
+using System.Globalization;
 using global::ChartForgeX.Topology;
 using global::ChartForgeX.VisualArtifacts;
 
 namespace OfficeIMO.ChartForgeX;
 
 public static partial class OfficeVisioVisualConversionExtensions {
+    private static void ReportStaticDecorationFidelity(
+        VisualArtifactInterchangeEnvelope envelope,
+        OfficeVisioVisualConversionReport report) {
+        if (envelope.Extensions.TryGetValue("presentation.watermarks", out string? value) &&
+            long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out long count) && count > 0) {
+            report.Warn(OfficeVisioVisualDiagnosticCode.WatermarkNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "watermark",
+                "CFX watermarks are not projected into the native editable Visio page; keep the separately rendered SVG or PNG when watermark fidelity is required.");
+        }
+    }
+
     private static void ReportArtifactAccessibilityFidelity(
         VisualArtifactInterchangeEnvelope envelope,
         OfficeVisioVisualConversionReport report) {
@@ -85,11 +96,13 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
         foreach (VisualArtifactInterchangeEdge edge in envelope.Edges) {
             VisualArtifactInterchangeTopologyEdge topology = edge.Topology!;
+            bool resolvedRoute = preserve && edge.ResolvedRoute.Count >= 2;
+            bool resolvedLabel = preserve && edge.ResolvedLabelBounds.HasValue;
             if ((!preserve && topology.Waypoints.Count > 0) || topology.DashPattern.Count > 0 || topology.SourceMarker.HasValue || topology.TargetMarker.HasValue ||
                 topology.StrokeWidth.HasValue || topology.Opacity.HasValue || topology.IsMuted || topology.RoutingPriority != 0 || topology.RouteLane.HasValue ||
-                topology.LabelOffsetX != 0D || topology.LabelOffsetY != 0D || topology.LabelAnchor != null || topology.LabelAnchorNodeId != null ||
+                (!resolvedLabel && (topology.LabelOffsetX != 0D || topology.LabelOffsetY != 0D || topology.LabelAnchor != null || topology.LabelAnchorNodeId != null)) ||
                 topology.LayoutInference != TopologyEdgeLayoutInference.None || topology.PreferredLength.HasValue || topology.MinimumRankSpan != 0 ||
-                topology.Routing is TopologyEdgeRouting.Curved or TopologyEdgeRouting.ObstacleAvoidingOrthogonal ||
+                topology.Routing == TopologyEdgeRouting.Curved || (!resolvedRoute && topology.Routing == TopologyEdgeRouting.ObstacleAvoidingOrthogonal) ||
                 topology.Emphasis != TopologyEdgeEmphasis.Normal) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.EdgePresentationNormalized, OfficeVisioVisualEntityKind.Edge, edge.Id, "edgePresentation",
                     $"Edge '{edge.Id}' advanced routing or presentation remains in the CFX envelope because the native Visio connector does not reproduce every presentation setting.");

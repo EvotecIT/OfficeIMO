@@ -291,6 +291,24 @@ public sealed class PdfDrawingLineMarkerTests {
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TransformScaledGradientCurvesRetainBoundedVectorOutput(bool radial) {
+        var commands = new List<OfficePathCommand> { OfficePathCommand.MoveTo(0, 1) };
+        for (int i = 0; i < 500; i++) commands.Add(OfficePathCommand.CubicBezierTo(i, 2, i + 1, 0, i + 1, 1));
+        var shape = OfficeShape.Path(500, 2, commands);
+        shape.Transform = OfficeTransform.Scale(1E14, 1E14); shape.StrokeWidth = 1;
+        if (radial) shape.StrokeRadialGradient = new OfficeRadialGradient(0, 0, 0, .5, .5, 1,
+            new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue));
+        else shape.StrokeGradient = new OfficeLinearGradient(0, 0, 1, 1,
+            new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue));
+        byte[] bytes = PdfDocument.Create(new PdfOptions { PageWidth = 1000, PageHeight = 1000,
+            MarginLeft = 10, MarginRight = 10 }).Shape(shape).ToBytes();
+        Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(bytes));
+        Assert.Single(PdfReadDocument.Open(bytes).Pages);
+    }
+
     [Fact]
     public void NativeCurvedMarkersDoNotRequirePhysicalResolutionFlattening() {
         var commands = new List<OfficePathCommand> { OfficePathCommand.MoveTo(0, 1) };

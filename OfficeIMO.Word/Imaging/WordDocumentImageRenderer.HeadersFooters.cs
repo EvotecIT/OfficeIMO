@@ -74,7 +74,7 @@ namespace OfficeIMO.Word {
             double headerRenderBottom = 0D;
             if (header != null) {
                 double headerDistance = ToPoints(margins.HeaderDistance, DefaultMarginPoints / 2D);
-                double headerHeight = EstimateHeaderFooterContentHeight(header, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount, cancellationToken);
+                double headerHeight = EstimateHeaderFooterContentHeight(header, drawing, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount, cancellationToken);
                 headerTop = Math.Max(0D, Math.Min(headerDistance, topMargin) - (DefaultHeaderFooterLineHeightPoints / 2D));
                 double headerContentBottom = Math.Min(drawing.Height, headerTop + headerHeight);
                 headerRenderBottom = Math.Min(drawing.Height, Math.Max(headerContentBottom, topMargin + DefaultHeaderFooterLineHeightPoints + ParagraphGapPoints));
@@ -88,7 +88,7 @@ namespace OfficeIMO.Word {
             double footerRenderBottom = drawing.Height;
             if (footer != null) {
                 double footerDistance = ToPoints(margins.FooterDistance, DefaultMarginPoints / 2D);
-                double footerHeight = EstimateHeaderFooterContentHeight(footer, drawing.Width, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount, cancellationToken);
+                double footerHeight = EstimateHeaderFooterContentHeight(footer, drawing, left, contentWidth, pageIndex, sectionIndex, sectionPageCount, pageNumberValue, pageNumberText, totalPageCount, cancellationToken);
                 double footerTopFromDistance = drawing.Height - footerDistance - footerHeight;
                 footerTop = Math.Min(Math.Max(0D, footerTopFromDistance), Math.Max(0D, drawing.Height - footerHeight));
                 footerRenderBottom = Math.Min(drawing.Height, footerTop + footerHeight + ParagraphGapPoints);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Word {
 
         private static double EstimateHeaderFooterContentHeight(
             WordHeaderFooter headerFooter,
-            double pageWidth,
+            OfficeDrawing sourceDrawing,
             double left,
             double contentWidth,
             int pageIndex,
@@ -192,7 +192,7 @@ namespace OfficeIMO.Word {
             string pageNumberText,
             int totalPageCount,
             CancellationToken cancellationToken) {
-            var measurementDrawing = new OfficeDrawing(Math.Max(1D, pageWidth), double.MaxValue);
+            var measurementDrawing = CreateMeasurementDrawing(sourceDrawing, sourceDrawing.Width);
             WordImageFlowContext measurementContext = CreateFlowContext(
                 measurementDrawing,
                 left,

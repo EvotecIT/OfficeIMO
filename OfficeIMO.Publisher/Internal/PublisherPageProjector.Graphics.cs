@@ -6,7 +6,8 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherPageProjector {
     private void ProjectGraphic(PublisherEscherShape source, OfficeDrawing drawing, double geometryWidth, double geometryHeight) {
         OfficeArtCustomPathProjection? custom = CustomPath(source, geometryWidth, geometryHeight);
-        OfficeShape shape = custom?.Shape ?? Geometry(source, geometryWidth, geometryHeight);
+        OfficeShape shape = custom?.Shape ?? Geometry(source, source.Type == 20 ? geometryWidth : drawing.Width,
+            source.Type == 20 ? geometryHeight : drawing.Height);
         OfficeArtShapeStyle style = source.Style;
         bool noFill = custom?.NoFill ?? OfficeArtCustomPathProjector.IsFillDisabled(source.Properties);
         bool noLine = custom?.NoLine ?? OfficeArtCustomPathProjector.IsLineDisabled(source.Properties);

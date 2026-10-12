@@ -6,6 +6,25 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(0x0145, 8)]
+    [InlineData(0x0146, 2)]
+    public void OfficeArtCustomPath_CompleteEmptyArraysDoNotDeclareGeometry(int id, int stride) {
+        byte[] header = new byte[] { 0, 0, 0, 0, (byte)stride, 0 };
+        var property = new OfficeArtProperty(0, (ushort)(id | 0x8000), 6, 6, complexData: header);
+        Assert.False(OfficeArtCustomPathProjector.HasPath(new[] { property }));
+    }
+
+    [Theory]
+    [InlineData(80, 0)]
+    [InlineData(0, 40)]
+    public void OfficeArtCustomPath_OneDimensionalStrokesKeepTheirCoordinates(double width, double height) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 21600) }, new ushort[] { 0x4000, 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, width, height, _ => { }, default, out var path, out _));
+        Assert.Equal(new OfficePoint(width, height), path!.Shape.PathCommands[1].Point);
+        Assert.True(path.Shape.Width > 0 && path.Shape.Height > 0);
+    }
+
     [Fact]
     public void OfficeArtCustomPath_MalformedEffectiveCanvasDoesNotReviveAnOlderExtent() {
         var properties = CustomPath(new[] { (0, 0), (21600, 21600) });

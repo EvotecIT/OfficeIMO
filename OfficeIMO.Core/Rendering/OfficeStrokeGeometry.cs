@@ -19,8 +19,10 @@ internal static partial class OfficeStrokeGeometry {
         return double.IsInfinity(density) ? double.MaxValue : density;
     }
 
-    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit) {
-        if (shape.Kind == OfficeShapeKind.Path) return OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit, bool boundCurveExpansion = false) {
+        if (shape.Kind == OfficeShapeKind.Path) return boundCurveExpansion
+            ? OfficePathFlattener.FlattenStrokeProjection(shape.PathCommands, pixelsPerUnit)
+            : OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
         IReadOnlyList<OfficePoint> points;
         bool closed = shape.Kind != OfficeShapeKind.Line;
         switch (shape.Kind) {

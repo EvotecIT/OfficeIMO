@@ -28,6 +28,16 @@ internal sealed partial class PublisherPageProjector {
                 pageShapes.Add(owner.Value, shapes = new List<PublisherEscherShape>());
             shapes.Add(shape);
         }
+        var tableShapes = _escher.Shapes.Where(shape => _source.Shapes.TryGetValue(shape.Id, out PublisherSourceShape? native)
+            && native.Table != null).ToDictionary(shape => shape.Id);
+        foreach (PublisherSourceShape native in _source.Shapes.Values.Where(native => native.Table != null)) {
+            _context.Token.ThrowIfCancellationRequested();
+            uint? owner = Owner(native.Chunk.Id, 0);
+            if (!owner.HasValue) continue;
+            tableShapes.TryGetValue(native.Chunk.Id, out PublisherEscherShape? shape);
+            ProjectTable(native, native.Value(0x27), shape,
+                shape?.Bounds.HasValue == true ? FrameBounds(shape, _source.Width, _source.Height) : default, owner.Value, null);
+        }
         PrepareTextFrames();
         var pageFrames = new Dictionary<uint, List<PublisherTextFrame>>();
         foreach (PreparedTextFrame frame in _textFrames.Values) {
@@ -103,7 +113,7 @@ internal sealed partial class PublisherPageProjector {
             return;
         }
         if (shape.IsGroup) { _projected.Add(shape.Id); return; }
-        if (shape.Hidden && native.Chunk.Kind != 0x10) { _projected.Add(shape.Id); return; }
+        if (shape.Hidden) { _projected.Add(shape.Id); return; }
         if (!shape.Bounds.HasValue) {
             _context.Add("PUB_OBJECT_ANCHOR_UNRESOLVED", "A publication object has no resolved native anchor.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
@@ -114,17 +124,11 @@ internal sealed partial class PublisherPageProjector {
         if (!shape.LayoutTransform.TryInvert(out _) || !shape.GroupTransform.TryInvert(out _)) {
             _context.Add("PUB_DEGENERATE_OBJECT_OMITTED", "An object in a collapsed group was omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
-        if (shape.Type == 20 && (width > 0 || height > 0)) { width = Math.Max(width, 0.01); height = Math.Max(height, 0.01); }
+        if ((shape.Type == 20 || OfficeArtCustomPathProjector.HasPath(shape.Properties)) && (width > 0 || height > 0)) { width = Math.Max(width, 0.01); height = Math.Max(height, 0.01); }
         if (width <= 0 || height <= 0) {
             _context.Add("PUB_DEGENERATE_OBJECT_OMITTED", "A zero-sized drawing object was omitted.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
         if (!FiniteRectangle(x, y, width, height)) throw new InvalidDataException("Publisher group projection produced invalid geometry.");
-        if (shape.Hidden) {
-            // Recover native data independently of whether its artwork paints.
-            ProjectTable(native, native.Value(0x27), shape, bounds, pageId, null);
-            _projected.Add(shape.Id);
-            return;
-        }
         var printableBounds = PageTransform(shape, bounds).TransformRectangleBounds(x, y, width, height);
         if (printableBounds.Left < 0 || printableBounds.Top < 0 || printableBounds.Right > page.Width || printableBounds.Bottom > page.Height)
             _context.Add("PUB_PAGE_BLEED_CLIPPED", "Artwork outside the publication page remains in the scene but is clipped to the printable page in exports.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(shape.Id));
