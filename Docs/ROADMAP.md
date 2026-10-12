@@ -145,20 +145,14 @@ The next product target is a dependable desktop document workspace: a person can
 
 | Phase | Product outcome | Main owner | Dependency and completion evidence |
 | --- | --- | --- | --- |
-| 1. Consistent workspace | Commands, panes, inspectors, and notices behave consistently | Studio presentation and command layer | Builds on the adaptive shell; complete representative tasks at compact and wide sizes, with keyboard and expanded text |
 | 2. Safe sessions and jobs | Users can interrupt, resume, recover, and publish work predictably | Studio host plus shared workflow/output owners | Define source identity and publication behavior before persistent queues; prove failure and recovery scenarios |
-| 3. Everyday document work | Editing, page organization, comments, forms, OCR, and conversion form complete user journeys | Studio over PDF, Workflows, and Reader.Ocr | Uses phases 1-2; save, reopen, and independently inspect representative outputs |
+| 3. Everyday document work | Editing, page organization, comments, forms, OCR, and conversion form complete user journeys | Studio over PDF, Workflows, and Reader.Ocr | Uses phase 2 and the consistent workspace; save, reopen, and independently inspect representative outputs |
 | 4. Advanced review and production | Redaction, comparison, accessibility repair, preflight, and recipes expose reviewable results | PDF and Workflows first; Studio second | Admit each surface only when the corresponding engine contract and fixtures exist |
 | 5. Desktop acceptance and distribution | Supported desktop builds are usable, accessible, installable, and upgradable | Studio platform adapters and PowerForge | Start native smoke tests early; finish the complete claimed OS and artifact matrix before distribution |
 | 6. Optional desktop integrations | Native printing, scanning, and browser intake fit the same document workflow | Optional host adapters and shared owners | Requires source/output safety and a proven desktop package channel; each integration has its own acceptance gate |
 | 7. iPad, then iPhone | A smaller touch-oriented product shares the document engines | Separate mobile host over shared presentation and engines | Requires a physical-device feasibility gate before a broader mobile commitment |
 
-Phases 1-3 are the first desktop usability scope. Phase 5 supplies its platform and distribution acceptance; it is not postponed until every advanced feature exists. Phase 4 can deliver one independent capability at a time. Phases 6-7 do not block a useful desktop release. Calendar estimates should follow the first scoped implementation slices and reference-machine measurements; these dependencies are the planning baseline, not a delivery-date promise.
-
-### Phase 1: consistent workspace
-
-
-Completion evidence: open a document, find text, switch modes, edit a supported object, undo, and save without losing context. Inspect Home, Tools, document, OCR, conversion, output, and health surfaces at 960 x 620, 1280 x 800, and wide sizes, including long labels, empty states, busy states, and errors. Controls must remain reachable without overlap; headless bounds tests supplement rendered inspection.
+The consistent workspace (commands, panes, inspectors, notices, and spacing) is delivered; phases 2-3 complete the first desktop usability scope. Phase 5 supplies its platform and distribution acceptance; it is not postponed until every advanced feature exists. Phase 4 can deliver one independent capability at a time. Phases 6-7 do not block a useful desktop release. Calendar estimates should follow the first scoped implementation slices and reference-machine measurements; these dependencies are the planning baseline, not a delivery-date promise.
 
 ### Phase 2: safe sessions and jobs
 
