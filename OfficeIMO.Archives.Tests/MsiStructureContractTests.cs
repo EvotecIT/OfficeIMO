@@ -133,6 +133,54 @@ public sealed class MsiStructureContractTests {
         }
     }
 
+    [Theory]
+    [InlineData(false, 0, true)]
+    [InlineData(false, 1, false)]
+    [InlineData(true, 1, true)]
+    [InlineData(true, 0, false)]
+    [InlineData(true, 2, false)]
+    public void DirectorySectorCountIsValidatedOnlyForStrictMsi(bool version4, uint count, bool accepted) {
+        byte[] package = version4 ? Version4Msi() : ArchiveFixtures.Msi();
+        Buffer.BlockCopy(BitConverter.GetBytes(count), 0, package, 40, 4);
+        Assert.True(OfficeCompoundFileReader.TryRead(package, out Dictionary<string, byte[]> streams, out string? error), error);
+        Assert.Contains(MsiPackageReader.EncodeStreamName("payload.cab", false), streams.Keys);
+        if (accepted) {
+            using var fixture = new ArchiveFixtures();
+            Assert.Single(ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination).Files);
+        } else AssertInvalid(package);
+    }
+
+    private static byte[] Version4Msi() {
+        byte[] old = ArchiveFixtures.Msi();
+        int fat = checked(((int)BitConverter.ToUInt32(old, 76) + 1) * 512);
+        byte[] Chain(uint start) {
+            using var stream = new MemoryStream();
+            for (uint sector = start; sector != 0xfffffffeU; sector = BitConverter.ToUInt32(old, fat + (int)sector * 4))
+                stream.Write(old, checked(((int)sector + 1) * 512), 512);
+            return stream.ToArray();
+        }
+        byte[] directory = Chain(BitConverter.ToUInt32(old, 48));
+        byte[] root = Chain(BitConverter.ToUInt32(directory, 116));
+        byte[] miniFat = Chain(BitConverter.ToUInt32(old, 60));
+        Assert.True(directory.Length <= 4096 && root.Length <= 4096 && miniFat.Length <= 4096);
+        // One 4096-byte sector each for directory, root mini stream, mini-FAT and FAT.
+        var output = new byte[5 * 4096];
+        Buffer.BlockCopy(old, 0, output, 0, 512);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)4), 0, output, 26, 2);
+        Buffer.BlockCopy(BitConverter.GetBytes((ushort)12), 0, output, 30, 2);
+        void UInt32(int offset, uint value) => Buffer.BlockCopy(BitConverter.GetBytes(value), 0, output, offset, 4);
+        UInt32(40, 1); UInt32(44, 1); UInt32(48, 0); UInt32(60, 2); UInt32(64, 1);
+        UInt32(68, 0xfffffffeU); UInt32(72, 0); UInt32(76, 3);
+        Buffer.BlockCopy(directory, 0, output, 4096, directory.Length);
+        UInt32(4096 + 116, 1);
+        Buffer.BlockCopy(root, 0, output, 2 * 4096, root.Length);
+        for (int offset = 3 * 4096; offset < output.Length; offset += 4) UInt32(offset, uint.MaxValue);
+        Buffer.BlockCopy(miniFat, 0, output, 3 * 4096, miniFat.Length);
+        UInt32(4 * 4096, 0xfffffffeU); UInt32(4 * 4096 + 4, 0xfffffffeU);
+        UInt32(4 * 4096 + 8, 0xfffffffeU); UInt32(4 * 4096 + 12, 0xfffffffdU);
+        return output;
+    }
+
     private static void AssertInvalid(byte[] package) {
         using var fixture = new ArchiveFixtures();
         Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(package), fixture.Destination));

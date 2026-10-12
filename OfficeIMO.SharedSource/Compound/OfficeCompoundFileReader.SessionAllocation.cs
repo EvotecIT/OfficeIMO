@@ -54,7 +54,10 @@ namespace OfficeIMO.Core.Internal {
                         difat = ReadUInt32(data, _sectorSize - 4);
                     }
                     if (difat != EndOfChain) throw new InvalidDataException("Compound DIFAT chain does not terminate at its declared count.");
-                    Walk(ReadUInt32(header, 48), 0, directory: true);
+                    List<uint> directory = Walk(ReadUInt32(header, 48), 0, directory: true);
+                    uint declaredDirectorySectors = ReadUInt32(header, 40);
+                    if (ReadUInt16(header, 26) == 3 ? declaredDirectorySectors != 0 : declaredDirectorySectors != directory.Count)
+                        throw new InvalidDataException("Compound directory sector count is inconsistent with its format version or chain.");
                     Walk(ReadUInt32(header, 60), checked((long)ReadUInt32(header, 64) * _sectorSize));
                     // RootEntry identifies the same physical root used by the session's mini stream.
                     List<uint> root = Walk(_rootStartSector, _rootSize);
