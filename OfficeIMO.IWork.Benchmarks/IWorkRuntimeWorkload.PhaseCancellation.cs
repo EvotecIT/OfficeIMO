@@ -83,7 +83,7 @@ public sealed partial class IWorkRuntimeWorkload {
         if (!recovered.HasEditableContent) throw new InvalidDataException("The source did not recover after cancellation.");
         VerifiedUnits = 0;
         if (_nativeKeynoteScale) ValidateNativeKeynote(recovered);
-        else ValidateText(recovered.Slides.Select(slide => slide.TextBoxes.Single().Content.PlainText), nativeParagraphTerminator: true);
+        else ValidateText(recovered.Slides.Select(slide => slide.TextBoxes.Single().Content.PlainText), paragraphTerminator: "\n");
         if (VerifiedUnits != _units) throw new InvalidDataException("The cancelled source did not recover every expected slide.");
         CancellationRecoveryUnits = VerifiedUnits;
         VerifiedUnits = 1; // One observed boundary; recovery units remain a separate complete-content count.
