@@ -115,6 +115,23 @@ function Assert-DocumentationCatalogSnapshot {
     throw 'The checked-in PSWriteOffice documentation catalog does not match its pinned source/derived evidence.'
 }
 
+function Test-CompleteSourceDocumentation {
+    param(
+        [Parameter(Mandatory)][string] $RepositoryRoot,
+        [Parameter(Mandatory)][string] $SourceCommit
+    )
+
+    # A clean sparse checkout can omit tracked pages without appearing dirty.
+    $trackedFiles = @(& git -C $RepositoryRoot ls-tree -r --name-only $SourceCommit -- 'Website/content/project-docs/docs')
+    if ($LASTEXITCODE -ne 0) { return $false }
+    $trackedPages = @($trackedFiles | Where-Object { $_ -cmatch '\.md$' })
+    if ($trackedPages.Count -eq 0) { return $false }
+    foreach ($page in $trackedPages) {
+        if (-not (Test-Path -LiteralPath (Join-Path $RepositoryRoot $page) -PathType Leaf)) { return $false }
+    }
+    return $true
+}
+
 function New-DocumentationCatalogSnapshot {
     param(
         [Parameter(Mandatory)][string] $RepositoryRoot,

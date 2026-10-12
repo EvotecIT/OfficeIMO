@@ -65,6 +65,37 @@ try {
         if (-not $rejected) { throw "Invalid '$case' evidence was accepted." }
         $cases.Add($case)
     }
-} finally { Remove-Item -LiteralPath $temporaryRoot -Recurse }
+
+    # Completeness follows the pinned Git inventory, including sparse checkouts.
+    $sourceFixture = Join-Path $temporaryRoot 'source'
+    $sourceDocs = Join-Path $sourceFixture 'Website/content/project-docs/docs'
+    New-Item -ItemType Directory -Path $sourceDocs -Force | Out-Null
+    foreach ($page in '_index.md', 'word.md') {
+        Set-Content -LiteralPath (Join-Path $sourceDocs $page) -Value '# Documentation fixture'
+    }
+    & git -C $sourceFixture init --quiet
+    & git -C $sourceFixture add -- 'Website/content/project-docs/docs'
+    & git -C $sourceFixture -c user.name='Documentation test' -c user.email='docs@example.invalid' commit --quiet -m 'Documentation fixture'
+    if ($LASTEXITCODE -ne 0) { throw 'Could not commit the documentation fixture.' }
+    $sourceCommit = & git -C $sourceFixture rev-parse HEAD
+    if (-not (Test-CompleteSourceDocumentation -RepositoryRoot $sourceFixture -SourceCommit $sourceCommit)) {
+        throw 'The complete tracked documentation fixture was rejected.'
+    }
+    & git -C $sourceFixture sparse-checkout set --no-cone '/Website/content/project-docs/docs/_index.md'
+    if ($LASTEXITCODE -ne 0 -or @(git -C $sourceFixture status --porcelain).Count -ne 0) {
+        throw 'The partial documentation fixture must be a clean sparse checkout.'
+    }
+    if (Test-CompleteSourceDocumentation -RepositoryRoot $sourceFixture -SourceCommit $sourceCommit) {
+        throw 'An incomplete sparse documentation checkout was accepted.'
+    }
+    $cases.Add('tracked-documentation-completeness')
+} finally {
+    # Git creates hidden metadata and read-only loose objects on Windows.
+    # This unique test directory contains only the fixture created above.
+    foreach ($item in Get-ChildItem -LiteralPath $temporaryRoot -Force -Recurse) {
+        $item.Attributes = $item.Attributes -band (-bnot ([IO.FileAttributes]::Hidden -bor [IO.FileAttributes]::ReadOnly))
+    }
+    Remove-Item -LiteralPath $temporaryRoot -Recurse
+}
 
 [PSCustomObject]@{ Status = 'passed'; CatalogCases = @($cases); CommandCount = $expected.ExpectedCommandCount }

@@ -486,7 +486,7 @@ $summary.expectedCommandCount = $expectedCommands.Count
 if (-not $SkipDocumentation) {
     $sourceDocumentationPath = Join-Path $resolvedRepoRoot 'Website/content/project-docs/docs'
     $targetDocumentationPath = Join-Path $resolvedSiteRoot 'content/docs/pswriteoffice'
-    $sourceDocumentationAvailable = Test-Path -LiteralPath $sourceDocumentationPath -PathType Container
+    $sourceDocumentationAvailable = Test-CompleteSourceDocumentation -RepositoryRoot $resolvedRepoRoot -SourceCommit $sourceHead
     if ($sourceDocumentationAvailable) {
         $generatedCatalog = New-DocumentationCatalogSnapshot -RepositoryRoot $resolvedRepoRoot -SourceCommit $sourceHead `
             -SourceRef $powerShellSource[0].Ref -ExpectedVersion $expectedVersion -ExpectedCommandCount $expectedCommands.Count
@@ -568,7 +568,7 @@ if (-not $SkipDocumentation) {
         $summary.documentationCatalogSource = Join-Path $resolvedRepoRoot 'Build/Export-WebsiteDocumentationCatalog.ps1'
         $summary.documentationCatalogUpdated = $true
     } else {
-        Write-Host 'PSWriteOffice source documentation is unavailable. Keeping the verified checked-in documentation snapshot.' -ForegroundColor Yellow
+        Write-Host 'PSWriteOffice source documentation is unavailable or incomplete. Keeping the verified checked-in documentation snapshot.' -ForegroundColor Yellow
         $summary.documentationSource = $targetDocumentationPath
         $summary.documentationCatalogSource = $targetCatalogPath
     }
