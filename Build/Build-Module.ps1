@@ -2,10 +2,16 @@ param(
     [ValidateSet('Manifest', 'Build', 'Publish')]
     [string] $RunMode = 'Build',
 
-    [bool] $SignModule = $true
+    [bool] $SignModule = $true,
+
+    [string] $StagingPath,
+
+    [switch] $SkipInstall,
+
+    [switch] $PassThru
 )
 
-Import-Module PSPublishModule -Force -ErrorAction Stop
+Import-Module PSPublishModule -MinimumVersion 3.0.168 -Force -ErrorAction Stop
 
 Build-Module -ModuleName 'PSWriteOffice' -RunMode $RunMode {
     # Usual defaults as per standard module
@@ -111,4 +117,4 @@ Build-Module -ModuleName 'PSWriteOffice' -RunMode $RunMode {
     # global options for publishing to github/psgallery
     New-ConfigurationPublish -Type PowerShellGallery -FilePath 'C:\Support\Important\PowerShellGalleryAPI.txt' -Enabled:$true
     New-ConfigurationPublish -Type GitHub -FilePath 'C:\Support\Important\GitHubAPI.txt' -UserName 'EvotecIT' -Enabled:$true -GenerateReleaseNotes
-} -ExitCode
+} -StagingPath $StagingPath -SkipInstall:$SkipInstall -PassThru:$PassThru -ExitCode:(-not $PassThru)
