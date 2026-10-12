@@ -648,22 +648,7 @@ namespace OfficeIMO.Excel {
 
         private OfficeFontInfo? GetWorkbookDefaultFontInfo() {
             try {
-                var workbookPart = WorkbookPartRoot;
-                var stylesPart = workbookPart?.WorkbookStylesPart;
-                var stylesheet = stylesPart?.Stylesheet;
-                var fonts = stylesheet?.Fonts;
-                var firstFont = fonts?.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().FirstOrDefault();
-                if (firstFont == null) return null;
-
-                var fontName = firstFont.GetFirstChild<FontName>()?.Val?.Value;
-                var fontSize = firstFont.GetFirstChild<FontSize>()?.Val?.Value ?? 11.0;
-                bool bold = ExcelOpenXmlFontProperty.IsEnabled(firstFont.GetFirstChild<Bold>());
-                bool italic = ExcelOpenXmlFontProperty.IsEnabled(firstFont.GetFirstChild<Italic>());
-                bool underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(firstFont.GetFirstChild<Underline>());
-
-                if (!string.IsNullOrEmpty(fontName)) {
-                    return new OfficeFontInfo(fontName, fontSize, GetOfficeFontStyle(bold, italic, underline));
-                }
+                return _excelDocument.GetNormalStyleFontInfo();
             } catch {
                 // ignore
             }
