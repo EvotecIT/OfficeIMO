@@ -21,7 +21,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PowerPointToPdfOptions options) {
         IReadOnlyList<A.TextCharacterPropertiesType> sources = ResolveTableTextPropertySources(cell, paragraph, directProperties);
         int? characterSpacing = sources.Select(source => source.Spacing?.Value).FirstOrDefault(value => value.HasValue);
-        if (characterSpacing.GetValueOrDefault() != 0)
+        if (!string.IsNullOrEmpty(text) && characterSpacing.GetValueOrDefault() != 0)
             AddWarning(options, slideNumber, "character-spacing-approximation",
                 "PDF table text uses default character spacing; explicit spacing is retained in the presentation.");
         string? fontFamily = ReadRunFontName(cell, sources) ?? cell.FontName ?? fallbackFontFamily;
