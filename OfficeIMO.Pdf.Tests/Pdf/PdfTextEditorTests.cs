@@ -370,6 +370,19 @@ public partial class PdfTextEditorTests {
     }
 
     [Fact]
+    public void SearchFindsTextInsideAClipThatContainsItButNotTextAClipCuts() {
+        // Word and other producers set a page-sized clip before drawing; it hides nothing.
+        byte[] pageClip = BuildRawTextPdf("q 0 0 600 800 re W n BT /F1 12 Tf 50 700 Td (page clip needle) Tj ET Q\n");
+        byte[] cutClip = BuildRawTextPdf("q 0 0 600 800 re W n q 50 690 30 30 re W n BT /F1 12 Tf 50 700 Td (cut needle) Tj ET Q Q\n");
+
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(pageClip).Text.Find("needle"));
+        Assert.Equal(1, match.PageNumber);
+        Assert.Empty(PdfDocument.Load(cutClip).Text.Find("needle"));
+        // Editing keeps refusing text under a clip, whose state it cannot recreate.
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(pageClip).Text.Replace(match, "pin"));
+    }
+
+    [Fact]
     public void RenderingMode3SearchAndReplacementRequireExplicitOptInsAndRemainInvisible() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 3 Tr 50 700 Td (searchable scan text) Tj ET\n");
         var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
