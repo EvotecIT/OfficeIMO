@@ -314,6 +314,7 @@ namespace OfficeIMO.Visio {
                    string.Equals(cellName, "LineWeight", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "LinePattern", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "LineColor", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(cellName, "LineColorTrans", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "FillPattern", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "FillForegnd", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(cellName, "OneD", StringComparison.OrdinalIgnoreCase) ||

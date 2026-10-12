@@ -17,12 +17,14 @@ namespace OfficeIMO.Excel {
         public ExcelSheetPageMargins? Margins { get; internal set; }
 
         /// <summary>
-        /// Number of pages to fit horizontally, when configured.
+        /// Number of pages to fit horizontally when fit-to-page mode is enabled.
+        /// An omitted dimension defaults to one; zero leaves this axis unlimited.
         /// </summary>
         public uint? FitToWidth { get; internal set; }
 
         /// <summary>
-        /// Number of pages to fit vertically, when configured.
+        /// Number of pages to fit vertically when fit-to-page mode is enabled.
+        /// An omitted dimension defaults to one; zero leaves this axis unlimited.
         /// </summary>
         public uint? FitToHeight { get; internal set; }
 
@@ -107,6 +109,12 @@ namespace OfficeIMO.Excel {
         public ExcelSheetPageSetup GetPageSetup() {
             var result = new ExcelSheetPageSetup();
             PageSetup? pageSetup = WorksheetRoot.GetFirstChild<PageSetup>();
+            bool fitToPage = WorksheetRoot.GetFirstChild<SheetProperties>()?
+                .GetFirstChild<PageSetupProperties>()?.FitToPage?.Value == true;
+            if (fitToPage) {
+                result.FitToWidth = pageSetup?.FitToWidth?.Value ?? 1U;
+                result.FitToHeight = pageSetup?.FitToHeight?.Value ?? 1U;
+            }
             if (pageSetup?.Orientation?.Value == OrientationValues.Landscape) {
                 result.Orientation = OfficePageOrientation.Landscape;
             } else if (pageSetup?.Orientation?.Value == OrientationValues.Portrait) {
@@ -114,8 +122,6 @@ namespace OfficeIMO.Excel {
             }
 
             if (pageSetup != null) {
-                result.FitToWidth = pageSetup.FitToWidth?.Value;
-                result.FitToHeight = pageSetup.FitToHeight?.Value;
                 result.Scale = pageSetup.Scale?.Value;
                 result.PaperSizeCode = pageSetup.PaperSize?.Value;
                 if (pageSetup.PaperSize?.Value is uint paperSizeCode && Enum.IsDefined(typeof(ExcelPaperSize), paperSizeCode)) {

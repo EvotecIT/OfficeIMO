@@ -1,3 +1,4 @@
+using OfficeIMO;
 using OfficeIMO.Adf;
 using DBAClientX.Dbf;
 using OfficeIMO.AsciiDoc;
@@ -27,6 +28,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.PowerPoint.GoogleSlides;
+using OfficeIMO.Publisher;
 using OfficeIMO.Rtf;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
@@ -62,6 +64,7 @@ internal static class ConversionApiCompileContract {
         OdgDocument odg,
         PdfDocument pdf,
         PowerPointPresentation powerPoint,
+        PublisherDocument publisher,
         RtfDocument rtf,
         RtfReadResult rtfRead,
         VisioDocument visio,
@@ -158,7 +161,22 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(pdf);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdfDocumentResult(odp);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdpPresentationResult(pdf);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryVisio = VisioDocument.LoadLegacyBinary(stream);
+        OfficeLegacyImportReport binaryImportReport = binaryVisio.Report;
+        binaryVisio.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryStencil = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil);
+        OfficeLegacyImportReport stencilImportReport = binaryStencil.Report;
+        binaryStencil.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryTemplate = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template);
+        OfficeLegacyImportReport templateImportReport = binaryTemplate.Report;
+        binaryTemplate.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryPageSource = VisioDocument.LoadLegacyBinary(source);
+        OfficeLegacyImportReport pageSourceImportReport = binaryPageSource.Report;
+        string binarySvg = binaryPageSource.Value.Pages[0].ToSvg();
+        PdfDocumentConversionResult binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(binaryPageSource.Value,
+            new OfficeIMO.Visio.Pdf.VisioToPdfOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages });
         _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
+        _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocumentResult(publisher);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
         _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");
         _ = ExcelGoogleSheetsExtensions.ExportToGoogleSheetsAsync(excel, session);
