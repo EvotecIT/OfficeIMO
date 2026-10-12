@@ -62,6 +62,8 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
     [InlineData(true, "text")]
     [InlineData(false, "paragraphs")]
     [InlineData(true, "paragraphs")]
+    [InlineData(false, "markdown")]
+    [InlineData(true, "markdown")]
     public void RemovingInheritedTextReleasesItsLastSound(bool master, string operation) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
         bool table = operation is "row" or "column" or "merge";
@@ -75,6 +77,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
             case "clear": ((PowerPointTextBox)inherited).Clear(); break;
             case "text": ((PowerPointTextBox)inherited).Text = "Replacement"; break;
             case "paragraphs": ((PowerPointTextBox)inherited).SetParagraphs(["Replacement"]); break;
+            case "markdown": ((PowerPointTextBox)inherited).SetMarkdown("**Replacement**"); break;
         }
         Assert.Empty(Owner(presentation.Slides[0], master).DataPartReferenceRelationships.OfType<AudioReferenceRelationship>());
         Assert.Empty(presentation.OpenXmlDocument.DataParts);
