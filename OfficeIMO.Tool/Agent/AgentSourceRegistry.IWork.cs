@@ -4,13 +4,15 @@ using OfficeIMO.Tool.Commands.Reader;
 namespace OfficeIMO.Tool.Agent;
 
 internal sealed partial class AgentSourceRegistry {
-    internal AgentSourceRegistration RegisterIWorkFile(string path, long maximumPackageBytes, CancellationToken token) {
+    // Preparing an identity does not replace an admitted registration. Commit
+    // only after the workflow supplies evidence of a captured native package.
+    internal AgentSourceRegistration PrepareIWorkFile(string path, long maximumPackageBytes, CancellationToken token) {
         if (!IsIWorkPackagePath(path)) throw new ArgumentException("An iWork package path is required.", nameof(path));
         if (maximumPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPackageBytes));
-        var source = Create(path, token, iworkMaximumPackageBytes: maximumPackageBytes);
-        _sources[source.SourceId] = source;
-        return source;
+        return Create(path, token, iworkMaximumPackageBytes: maximumPackageBytes);
     }
+
+    internal void RegisterIWorkFileSnapshot(AgentSourceRegistration source) => _sources[source.SourceId] = source;
 
     internal long? GetRegisteredIWorkMaximumPackageBytes(string sourceId) =>
         !string.IsNullOrWhiteSpace(sourceId) && _sources.TryGetValue(sourceId, out var source)

@@ -9,9 +9,11 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed partial class AgentIWorkConversionTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Conversion_source_ids_retain_the_admitted_package_limit(bool directoryPackage) {
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Conversion_source_ids_retain_the_admitted_package_limit(bool directoryPackage, bool failedConversion) {
         using var files = new Files(true);
         string input = directoryPackage ? files.Input : Path.Combine(files.Root, "transport.pages");
         if (!directoryPackage) ZipFile.CreateFromDirectory(files.Input, input, CompressionLevel.NoCompression, false);
@@ -29,6 +31,18 @@ public sealed partial class AgentIWorkConversionTests {
         Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id)));
         Assert.Equal(result.SourceId, registry.Resolve(result.SourceId).SourceId);
         Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id, sourcePath: input)));
+        if (failedConversion) {
+            var rejected = await service.ConvertAsync(input, files.Output("docx"), "docx", overwrite: true, maximumInputBytes: 32);
+            Assert.False(rejected.Workflow!.Succeeded);
+            Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id)));
+        } else {
+            await RejectDefaultRead(() => service.InspectAsync(input));
+            Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id)));
+            await RejectDefaultRead(() => service.SearchAsync(input, "hello"));
+            Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id)));
+            await RejectDefaultRead(() => service.ConvertAsync(input, files.Output("md"), "markdown"));
+            Assert.Contains("hello pages", AgentJson.Serialize(await service.FetchAsync(result.SourceId, hit.Id)));
+        }
         using (var padding = File.OpenWrite(member)) padding.SetLength(maximum + 1);
         RefreshTransport();
         if (directoryPackage)
@@ -43,6 +57,11 @@ public sealed partial class AgentIWorkConversionTests {
             if (directoryPackage) return;
             File.Delete(input);
             ZipFile.CreateFromDirectory(files.Input, input, CompressionLevel.NoCompression, false);
+        }
+
+        async Task RejectDefaultRead(Func<Task> read) {
+            if (directoryPackage) await Assert.ThrowsAsync<InvalidDataException>(read);
+            else await Assert.ThrowsAsync<IOException>(read);
         }
     }
 

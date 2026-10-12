@@ -17,7 +17,10 @@ internal sealed partial class AgentSourceRegistry {
         string path,
         CancellationToken cancellationToken = default) {
         AgentSourceRegistration registration = Create(path, cancellationToken);
-        _sources[registration.SourceId] = registration;
+        // A default-bounded request must not discard an earlier confirmed iWork
+        // admission if its own read later fails. The caller still uses its default.
+        _sources.AddOrUpdate(registration.SourceId, registration, (_, existing) =>
+            registration with { IWorkMaximumPackageBytes = existing.IWorkMaximumPackageBytes });
         return registration;
     }
 

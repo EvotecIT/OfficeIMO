@@ -25,7 +25,7 @@ internal sealed partial class OfficeImoAgentService {
             ?? throw new AgentUsageException("Choose a Pages-to-DOCX, Numbers-to-XLSX, Keynote-to-PPTX, or iWork-to-PDF conversion.");
         var settings = new IWorkWorkflowSettings { ConversionOptions = options ?? new() };
         long maximumPackageBytes = Math.Min(maximumInputBytes, settings.ReadOptions.MaximumPackageBytes);
-        AgentSourceRegistration? source = directoryPackage ? null : _registry.RegisterIWorkFile(input, maximumPackageBytes, token);
+        AgentSourceRegistration? source = directoryPackage ? null : _registry.PrepareIWorkFile(input, maximumPackageBytes, token);
         var request = new OfficeWorkflowRequest {
             InputPath = input, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route,
@@ -35,11 +35,17 @@ internal sealed partial class OfficeImoAgentService {
             PublicationGuard = new AgentConversionPublicationGuard(_pathPolicy, input)
         };
         OfficeWorkflowResult workflow = await runner.RunAsync(request, cancellationToken: token).ConfigureAwait(false);
-        if (directoryPackage && workflow.ConversionEvidence?.Facts.GetValueOrDefault("packageContentSha256") is string contentHash)
+        if (workflow.ConversionEvidence?.Facts.GetValueOrDefault("packageContentSha256") is string contentHash) {
             // Result construction binds already captured evidence, including cancellation.
             // It performs no filesystem read and must not discard the workflow's result.
-            source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, CancellationToken.None,
-                maximumPackageBytes);
+            if (directoryPackage)
+                source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, CancellationToken.None,
+                    maximumPackageBytes);
+            else
+                _registry.RegisterIWorkFileSnapshot(source!);
+        } else {
+            source = null;
+        }
         return new AgentConvertResult {
             SourceId = source?.SourceId ?? string.Empty, SourcePath = input, OutputPath = workflow.OutputPath ?? string.Empty,
             Format = format.ToLowerInvariant(), LengthBytes = workflow.OutputBytes, Sha256 = workflow.OutputSha256 ?? string.Empty,
