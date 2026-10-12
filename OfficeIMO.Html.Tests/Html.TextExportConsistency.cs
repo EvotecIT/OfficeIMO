@@ -24,8 +24,9 @@ public class HtmlTextExportConsistencyTests {
             Assert.Contains(converted.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined);
             return OfficeDrawingRasterRenderer.Render(OfficeIMO.Pdf.PdfDocument.Load(converted.ToBytes()).Render.Drawing(1), 4D, OfficeColor.White);
         }
-        OfficeRasterImage reference = Render("<span>H</span>", 24D * 0.65D);
-        OfficeRasterImage scripted = Render("<" + script + "><span>H</span></" + script + ">", 24D);
+        // Match the glyph sizes so default script sizing does not affect the geometry comparison.
+        OfficeRasterImage reference = Render("<span>H</span>", 15.6D);
+        OfficeRasterImage scripted = Render("<" + script + " style='font-size:15.6px'><span>H</span></" + script + ">", 24D);
         static int LeftBlue(OfficeRasterImage image) {
             for (int x = 0; x < image.Width; x++)
                 for (int y = 0; y < image.Height; y++) {
