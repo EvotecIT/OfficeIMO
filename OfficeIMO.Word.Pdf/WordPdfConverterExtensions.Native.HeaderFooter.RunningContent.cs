@@ -168,7 +168,9 @@ public static partial class WordPdfConverterExtensions {
         // variants have no native story and must not acquire an exclusion.
         bool addPageNumber = includeGeneratedPageNumber && isFooter && options?.IncludePageNumbers == true &&
             GetNativeHeaderFooterText(story, listMarkers, fontMap) is { HasPageTokens: false };
+        WordHeaderFooterResolutionSnapshot? resolutionSnapshot = WordHeaderFooterResolutionSnapshot.Current(section._document);
         return context => content => {
+            using IDisposable? resolutionScope = resolutionSnapshot?.Use();
             options?.CancellationToken.ThrowIfCancellationRequested();
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
                 new PdfCore.PageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);
