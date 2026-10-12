@@ -119,6 +119,50 @@ public sealed class XlsbUtf8TextTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void BorrowedXlsbText_MultipleRowsResizeFieldsWithoutChangingOtherBorrowedText(bool sharedStrings) {
+        const int columns = 72;
+        string[][] values = Enumerable.Range(0, 3).Select(row => Enumerable.Range(0, columns)
+            .Select(column => $"row-{row}-column-{column} Żółw 🐢").ToArray()).ToArray();
+        values[0][1] = values[2][1] = string.Empty;
+        values[1][0] = new string('λ', 3000) + " 🐢";
+        values[1][1] = new string('Ż', 5000) + " 🐢";
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Data");
+        for (int column = 0; column < columns; column++) {
+            sheet.CellValue(1, column + 1, "Column" + column);
+            for (int row = 0; row < values.Length; row++) sheet.CellValue(row + 2, column + 1, values[row][column]);
+        }
+        // Distinct headers and row text produce more than 256 shared-string items.
+        var retainedStrings = new string[values.Length];
+        var retainedCopies = new byte[values.Length][];
+        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(Save(document, sharedStrings))) {
+            Assert.Equal(columns, reader.FieldCount);
+            for (int row = 0; row < values.Length; row++) {
+                Assert.True(reader.Read());
+                Assert.True(reader.TryGetUtf8Text(columns - 1, out ReadOnlySpan<byte> last));
+                Assert.True(reader.TryGetUtf8Text(0, out ReadOnlySpan<byte> first));
+                Assert.True(reader.TryGetUtf8Text(1, out ReadOnlySpan<byte> second));
+                AssertBorrowed(reader, 0, values[row][0]);
+                AssertBorrowed(reader, 1, values[row][1]);
+                AssertBorrowed(reader, columns - 1, values[row][columns - 1]);
+                Assert.Equal(values[row][columns - 1], Encoding.UTF8.GetString(last));
+                Assert.Equal(values[row][0], Encoding.UTF8.GetString(first));
+                Assert.Equal(values[row][1], Encoding.UTF8.GetString(second));
+                Assert.False(reader.IsDBNull(1));
+                retainedStrings[row] = reader.GetString(0);
+                retainedCopies[row] = first.ToArray();
+            }
+            Assert.False(reader.Read());
+        }
+        for (int row = 0; row < values.Length; row++) {
+            Assert.Equal(values[row][0], retainedStrings[row]);
+            Assert.Equal(Encoding.UTF8.GetBytes(values[row][0]), retainedCopies[row]);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void BorrowedXlsbText_ClearsEligibilityAcrossFormulaMissingAndTextRows(bool sharedStrings) {
         using var data = new DataSet();
         var table = data.Tables.Add("Data");

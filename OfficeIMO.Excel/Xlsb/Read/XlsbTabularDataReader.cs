@@ -284,6 +284,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private bool ReadSourceRow() {
+            ResetUtf8TextState();
             if (!_hasPendingRow) {
                 if (_reachedEndSheetData) {
                     return false;
@@ -295,7 +296,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             Array.Clear(_kinds, 0, _kinds.Length);
             Array.Clear(_strings, 0, _strings.Length);
-            ResetUtf8TextState();
             if (_options.CellValueConverter != null) {
                 Array.Clear(_customValues, 0, _customValues.Length);
             }
