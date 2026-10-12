@@ -7,6 +7,20 @@ namespace OfficeIMO.Publisher.Tests;
 
 public sealed class PublisherCustomPathTests {
     [Theory]
+    [InlineData(12)]
+    [InlineData(13)]
+    public void Native_editing_escape_vertices_do_not_replace_later_artwork_coordinates(int escape) {
+        PublisherDocument publication = Load(1, new[] { (10, -20), (35, 80), (85, 80), (110, -20) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 2), 0x0001, 0x8000 });
+        OfficeShape shape = Artwork(publication);
+        Assert.Equal(OfficeShapeKind.Path, shape.Kind);
+        Assert.Equal(2, shape.PathCommands.Count);
+        Assert.Equal(new OfficePoint(shape.Width, 0), shape.PathCommands[1].Point);
+        Assert.DoesNotContain(publication.ReadReport.FidelityDiagnostics,
+            item => item.Code == "PUB_SHAPE_GEOMETRY_APPROXIMATED" || item.Code == "PUB_CUSTOM_PATH_INVALID");
+    }
+
+    [Theory]
     [InlineData(0x02000000U)]
     [InlineData(0x00400000U)]
     [InlineData(0x02400000U)]
