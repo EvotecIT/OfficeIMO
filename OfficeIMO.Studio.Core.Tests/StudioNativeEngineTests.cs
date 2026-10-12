@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Scan;
 using OfficeIMO.Studio.Native;
 
 namespace OfficeIMO.Studio.Core.Tests;
@@ -314,6 +315,50 @@ public sealed class StudioNativeEngineTests : IDisposable {
             Assert.InRange(rotated.Boxes[index * 4 + 1], 0D, 400D);
         }
         Assert.True(rotated.Revision > text.Revision);
+    }
+
+    // A blank page image, as a camera would give, rendered by the engine itself.
+    private async Task<string> CreateScanImageAsync(string name, double width, double height) {
+        string pdf = Path.Combine(_root, name + ".pdf");
+        PdfDocument.Create(document => document.Page(page => page.Size(width, height))).Save(pdf);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(pdf, null, default);
+        string image = Path.Combine(_root, name + ".png");
+        File.WriteAllBytes(image, (await document.RenderPageAsync(1, 2D, default)).Bytes);
+        return image;
+    }
+
+    [Fact]
+    public async Task A_scan_becomes_one_page_per_image_with_its_recognized_words_searchable() {
+        string first = await CreateScanImageAsync("receipt", 300, 400);
+        string second = await CreateScanImageAsync("wide", 400, 300);
+        string output = Path.Combine(_root, "scan.pdf");
+
+        PdfScanResult result = await PdfScanComposer.ComposeAsync([
+            new PdfScanPage(first, [new PdfScanWord("Invoice", 0.1, 0.1, 0.3, 0.05, 0.98), new PdfScanWord("4711", 0.5, 0.1, 0.2, 0.05)]),
+            new PdfScanPage(second, [])
+        ], output, default);
+
+        Assert.Equal((2, 1, 2), (result.Pages, result.SearchablePages, result.Words));
+        using StudioNativeDocument scan = await StudioNativeDocument.OpenAsync(output, null, default);
+        StudioNativeDocumentInfo info = await scan.GetInfoAsync(default);
+        Assert.Equal(2, info.Pages.Count);
+        Assert.True(info.Pages[0].Height > info.Pages[0].Width && info.Pages[1].Width > info.Pages[1].Height);
+        StudioNativeSearchHit hit = Assert.Single((await scan.SearchAsync("invoice", default)).Hits);
+        Assert.Equal(1, hit.Page);
+        // The word sits where the recognizer found it, a tenth of the way in from the top left.
+        Assert.InRange(hit.Bounds.X / info.Pages[0].Width, 0.08, 0.14);
+        Assert.InRange(hit.Bounds.Y / info.Pages[0].Height, 0.07, 0.14);
+        Assert.Contains("4711", string.Concat((await scan.GetPageTextAsync(1, default)).Texts));
+    }
+
+    [Fact]
+    public async Task A_scan_refuses_what_it_cannot_make() {
+        string image = await CreateScanImageAsync("page", 300, 400);
+        await Assert.ThrowsAsync<ArgumentException>(() => PdfScanComposer.ComposeAsync([], Path.Combine(_root, "none.pdf"), default));
+        await Assert.ThrowsAsync<ArgumentException>(() => PdfScanComposer.ComposeAsync([new PdfScanPage(image, [])], "relative.pdf", default));
+        await Assert.ThrowsAnyAsync<IOException>(() => PdfScanComposer.ComposeAsync([new PdfScanPage(Path.Combine(_root, "missing.png"), [])],
+            Path.Combine(_root, "missing.pdf"), default));
+        Assert.False(File.Exists(Path.Combine(_root, "missing.pdf")));
     }
 
     private static async Task<byte[]> SavedBytesAsync(StudioNativeDocument document) {

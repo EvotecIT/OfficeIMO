@@ -61,4 +61,14 @@ internal static class StudioNativeAbi {
 [JsonSerializable(typeof(StudioNativeAnnotationList))]
 [JsonSerializable(typeof(StudioNativeAnnotationUpdate))]
 [JsonSerializable(typeof(StudioNativePageText))]
+[JsonSerializable(typeof(StudioNativeScanRequest))]
+[JsonSerializable(typeof(StudioNativeScanResult))]
 internal sealed partial class StudioNativeJson : JsonSerializerContext;
+
+internal sealed record StudioNativeScanWord(string? Text, double X, double Y, double Width, double Height, double? Confidence = null);
+
+internal sealed record StudioNativeScanPage(string? Image, IReadOnlyList<StudioNativeScanWord>? Words = null);
+
+internal sealed record StudioNativeScanRequest(IReadOnlyList<StudioNativeScanPage>? Pages);
+
+internal sealed record StudioNativeScanResult(int AbiVersion, int Pages, int SearchablePages, int Words);

@@ -49,6 +49,18 @@ void officeimo_free(void *memory);
 /* Names the absolute, app-owned folder (inside the app container) for recovery copies. Call once before opening documents. */
 int32_t officeimo_initialize(const char *data_directory, char **error);
 
+/*
+ * Makes a PDF at output_path from scanned page images, one page per image at its size, as JSON:
+ * { "pages": [ { "image": "<absolute path of a JPEG or PNG>", "words": [ { "text", "x", "y", "width", "height",
+ *   "confidence" } ] } ] }
+ * Words are what the host's recognizer found, each box from the image's top-left corner in fractions of the image's
+ * width and height; they become invisible text over the image, so the scan can be searched, selected and copied. A page
+ * without words is the image alone. The file is written beside output_path and replaces it only when complete. The
+ * summary is JSON: { "abiVersion", "pages", "searchablePages", "words" }. No document needs to be open.
+ */
+int32_t officeimo_create_pdf_from_scan_json(const char *request, const char *output_path, officeimo_cancellation cancellation,
+                                            char **json, char **error);
+
 /* Cancellation: pass a token to any call; officeimo_cancellation_cancel may be called from any thread while it runs. */
 officeimo_cancellation officeimo_cancellation_create(void);
 void officeimo_cancellation_cancel(officeimo_cancellation cancellation);

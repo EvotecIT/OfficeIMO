@@ -1,6 +1,6 @@
 /*
  * The engine's document journey from a native host: open, read facts, render, rotate, undo, redo, organize pages,
- * extract, search and mark up, save a copy and reopen it. A .NET process cannot host the library on macOS or Linux, because its runtime and the library's handle
+ * extract, search and mark up, save a copy and reopen it, then make a searchable PDF from a scanned page image. A .NET process cannot host the library on macOS or Linux, because its runtime and the library's handle
  * the same thread-suspension signal, so the journey runs from C like the native apps do.
  *
  * Usage: officeimo_journey <library> <pdf> <work-directory>
@@ -46,7 +46,7 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_duplicate_pages) X(officeimo_document_reorder_pages) X(officeimo_document_insert_blank_page) \
     X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
     X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation) \
-    X(officeimo_document_page_text_json)
+    X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -282,6 +282,26 @@ int main(int argc, char **argv) {
         engine_officeimo_free(json);
         engine_officeimo_document_close(reopened);
     }
+
+    /* A scan: the rendered page image becomes a PDF page with a recognized word as searchable text. */
+    char scan[1024], scan_request[2048];
+    path_in(scan, sizeof scan, work, "scan.pdf");
+    snprintf(scan_request, sizeof scan_request,
+             "{\"pages\":[{\"image\":\"%s\",\"words\":[{\"text\":\"Journey\",\"x\":0.1,\"y\":0.1,\"width\":0.3,\"height\":0.1}]}]}",
+             page_png);
+    CHECK("scan to pdf", engine_officeimo_create_pdf_from_scan_json(scan_request, scan, 0, &json, &error), OFFICEIMO_OK);
+    expect(has(json, "searchablePages", "1"), "the scan is not searchable", json);
+    engine_officeimo_free(json);
+    officeimo_document scanned = 0;
+    CHECK("open scan", engine_officeimo_document_open(scan, NULL, 0, &scanned, &error), OFFICEIMO_OK);
+    if (scanned) {
+        CHECK("search scan", engine_officeimo_document_search_json(scanned, "journey", 0, &json, &error), OFFICEIMO_OK);
+        expect(has(json, "page", "1"), "the scan's word is not found", json);
+        engine_officeimo_free(json);
+        engine_officeimo_document_close(scanned);
+    }
+    CHECK("scan without pages", engine_officeimo_create_pdf_from_scan_json("{\"pages\":[]}", scan, 0, &json, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
 
     if (failures) {
         printf("%d step(s) failed.\n", failures);
