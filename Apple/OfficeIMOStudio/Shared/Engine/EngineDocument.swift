@@ -40,6 +40,8 @@ struct DocumentFacts: Decodable, Sendable {
     let canPrint: Bool?
     /// Whether pages from other PDFs can be inserted.
     let canImportPages: Bool?
+    /// Whether recognized text can be added to the pages.
+    let canMakeSearchable: Bool?
 
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
@@ -275,6 +277,21 @@ actor EngineDocument {
                 }
             }
             try check(status, error)
+        }
+    }
+
+    /// Recognizes each page's text with Vision and adds it as invisible text, as one undoable change. Progress reports
+    /// the page being read and the page count, from the engine's thread.
+    func makeSearchable(progress: @escaping @Sendable (_ page: Int, _ pageCount: Int) -> Void) async throws -> SearchableSummary {
+        let recognizer = Unmanaged.passRetained(PageRecognizer(progress: progress))
+        defer { recognizer.release() }
+        return try await withEngineCancellation { cancellation in
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            let status = officeimo_document_make_searchable_json(handle, PageRecognizer.callback, recognizer.toOpaque(), cancellation, &json, &error)
+            let result = takeString(json)
+            try check(status, error)
+            return try JSONDecoder().decode(SearchableSummary.self, from: Data((result ?? "{}").utf8))
         }
     }
 

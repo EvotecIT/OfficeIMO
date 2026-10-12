@@ -85,6 +85,27 @@ struct GetPDFTextIntent: AppIntent {
     }
 }
 
+struct MakePDFSearchableIntent: AppIntent {
+    static let title: LocalizedStringResource = "Make PDF Searchable"
+    static let description = IntentDescription(
+        "Reads the text of a PDF’s scanned pages on this device and adds it, so the PDF can be searched and its text selected. Pages that already have text keep it.")
+
+    @Parameter(title: "PDF", supportedContentTypes: [.pdf])
+    var file: IntentFile
+
+    static var parameterSummary: some ParameterSummary {
+        Summary("Make \(\.$file) searchable")
+    }
+
+    func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> {
+        let work = try await ActionFolder.prepare()
+        let base = (file.filename as NSString).deletingPathExtension
+        let output = try await DocumentActions.makeSearchable(try work.copy(file, as: "source.pdf"), named: file.filename,
+                                                              into: work.output(named: base))
+        return .result(value: IntentFile(fileURL: output, filename: output.lastPathComponent, type: .pdf))
+    }
+}
+
 /// The phrases Siri and Spotlight offer for the actions.
 struct StudioShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
@@ -94,6 +115,8 @@ struct StudioShortcuts: AppShortcutsProvider {
                     shortTitle: "PDF from Images", systemImageName: "doc.viewfinder")
         AppShortcut(intent: ExtractPagesIntent(), phrases: ["Extract PDF pages with \(.applicationName)"],
                     shortTitle: "Extract Pages", systemImageName: "doc.badge.arrow.up")
+        AppShortcut(intent: MakePDFSearchableIntent(), phrases: ["Make a PDF searchable with \(.applicationName)"],
+                    shortTitle: "Make Searchable", systemImageName: "text.viewfinder")
         AppShortcut(intent: GetPDFTextIntent(), phrases: ["Get text from a PDF with \(.applicationName)"],
                     shortTitle: "Get Text", systemImageName: "text.page")
     }
@@ -154,6 +177,17 @@ enum DocumentActions {
             throw IntentProblem.message(String(localized: "“\(pages)” isn’t a list of pages between 1 and \(count)."))
         }
         try await document.extractPages(numbers, to: output)
+        return output
+    }
+
+    /// A copy at output with the text of its scanned pages recognized and added; unchanged when there was none to add.
+    static func makeSearchable(_ input: URL, named name: String, into output: URL) async throws -> URL {
+        let document = try await open(input, named: name)
+        guard try await document.facts().canMakeSearchable != false else {
+            throw IntentProblem.message(String(localized: "Text can’t be added to “\(name)”."))
+        }
+        _ = try await document.makeSearchable { _, _ in }
+        try await document.save(to: output)
         return output
     }
 

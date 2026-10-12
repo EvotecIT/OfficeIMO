@@ -95,6 +95,10 @@ final class DocumentSession {
     var isChoosingPagesToImport = false
     /// An import waiting for the password of one of its PDFs.
     var pendingImport: PendingImport?
+    /// The page being read while Make Searchable runs.
+    private(set) var recognitionProgress: RecognitionProgress?
+    /// The outcome of a change that turned out to change nothing, to tell the user.
+    var notice: String?
 
     // Markup
     /// Whether drawing not yet added to the document is on the page.
@@ -176,6 +180,7 @@ final class DocumentSession {
     var canEditAnnotations: Bool { isReady && facts?.canEditAnnotations != false }
     var canExtractPages: Bool { isReady && facts?.canExtractPages != false }
     var canImportPages: Bool { isReady && facts?.canImportPages != false }
+    var canMakeSearchable: Bool { isReady && !isWorking && facts?.canMakeSearchable != false }
 
     /// The pages a page command applies to: the selection in the Pages task, otherwise the current page.
     var targetPages: [Int] {
@@ -263,6 +268,31 @@ final class DocumentSession {
         } passwordNeeded: { [weak self] needed in
             self?.pendingImport = PendingImport(sources: sources, before: page, needed: needed)
         }
+    }
+
+    /// Reads the pages' text with Vision and adds it to the document, so scanned pages can be searched, selected and
+    /// copied; one undoable change. Pages that already have text keep it.
+    func makeSearchable() {
+        guard canMakeSearchable else { return }
+        recognitionProgress = RecognitionProgress(page: 0, pageCount: pageCount)
+        let progress: @Sendable (Int, Int) -> Void = { [weak self] page, count in
+            Task { @MainActor in self?.recognitionProgress = RecognitionProgress(page: page, pageCount: count) }
+        }
+        edit(String(localized: "Make Searchable")) { engine in
+            let summary = try await engine.makeSearchable(progress: progress)
+            if summary.pages == 0 {
+                throw NoChange(message: String(localized: "No text was found that the document doesn’t already have."))
+            }
+        } then: { session in
+            session.recognitionProgress = nil
+        } failed: { [weak self] in
+            self?.recognitionProgress = nil
+        }
+    }
+
+    /// Stops the change in progress, such as Make Searchable; the document stays as it was.
+    func cancelEdit() {
+        edits?.cancel()
     }
 
     /// Writes pages to a new PDF, then asks where to save it.
@@ -476,6 +506,12 @@ final class DocumentSession {
             } catch let needed as ImportPasswordNeeded where passwordNeeded != nil {
                 // Nothing changed: the app asks for the password and tries again.
                 passwordNeeded?(needed)
+            } catch let unchanged as NoChange {
+                failed?()
+                notice = unchanged.message
+            } catch where Task.isCancelled || (error as? EngineError)?.status == .cancelled {
+                // Cancelled by the user: the document is as it was.
+                failed?()
             } catch {
                 if failureClearsHistory { undoManager?.removeAllActions(withTarget: self) }
                 facts = try? await engine.facts()
@@ -628,4 +664,15 @@ struct PendingImport: Identifiable {
     var sources: [ImportSource]
     let before: Int
     let needed: ImportPasswordNeeded
+}
+
+/// Which page Make Searchable is reading, from 1; 0 before the first.
+struct RecognitionProgress: Equatable {
+    let page: Int
+    let pageCount: Int
+}
+
+/// A change that completed without changing the document, with the reason to tell the user.
+struct NoChange: Error {
+    let message: String
 }

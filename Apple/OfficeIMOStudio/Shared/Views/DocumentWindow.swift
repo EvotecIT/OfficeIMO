@@ -91,11 +91,25 @@ struct DocumentWindow: View {
                     Text("Enter its password to insert its pages.")
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let progress = session.recognitionProgress {
+                    RecognitionProgressBar(progress: progress) { session.cancelEdit() }
+                }
+            }
+            .alert("No Text Added", isPresented: noticeShown) {
+                Button("OK") { session.notice = nil }
+            } message: {
+                Text(session.notice ?? "")
+            }
             .alert("The Change Couldn’t Be Made", isPresented: errorShown) {
                 Button("OK") { session.errorMessage = nil }
             } message: {
                 Text(session.errorMessage ?? "")
             }
+    }
+
+    private var noticeShown: Binding<Bool> {
+        Binding { session.notice != nil } set: { if !$0 { session.notice = nil } }
     }
 
     private var importPasswordShown: Binding<Bool> {

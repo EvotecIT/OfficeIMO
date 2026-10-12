@@ -147,6 +147,9 @@ struct StudioCommands: Commands {
             Divider()
             Button("Extract Pages…") { session.map { $0.extract($0.targetPages) } }
                 .disabled(session?.canExtractPages != true || (session?.task == .pages && session?.selection.isEmpty == true))
+            Divider()
+            Button("Make Searchable") { session?.makeSearchable() }
+                .disabled(session?.canMakeSearchable != true)
         }
     }
 

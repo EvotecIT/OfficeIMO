@@ -123,6 +123,12 @@ final class JourneyModel {
         let (text, textTime) = try await measure { try await DocumentActions.text(of: first, named: "first.pdf") }
         record("get text", textTime, true, "\(text.count) character(s)")
 
+        let searchable = folders.journey.appending(path: "searchable.pdf")
+        try? FileManager.default.removeItem(at: searchable)
+        let (_, searchableTime) = try await measure { try await DocumentActions.makeSearchable(second, named: "second.pdf", into: searchable) }
+        let searchableText = try await DocumentActions.text(of: searchable, named: "searchable.pdf")
+        record("make searchable", searchableTime, FileManager.default.fileExists(atPath: searchable.path), "\(searchableText.count) character(s) of text")
+
         let image = try await document.renderPage(1, scale: 1)
         let (scan, scanTime) = try await measure { try await DocumentActions.pdf(fromImages: [image.png]) }
         let scanPages = try await EngineDocument.open(scan).facts().pages.count
