@@ -3,10 +3,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPageProjector {
-    private void ProjectTable(PublisherSourceShape native, uint? storyId, PublisherEscherShape shape,
+    private void ProjectTable(PublisherSourceShape native, uint? storyId, PublisherEscherShape? shape,
         FrameRectangle bounds, uint pageId, OfficeDrawing? drawing) {
-        if (_tables.TryGetValue(shape.Id, out PublisherTable? recovered)) {
-            if (drawing != null && recovered.HasTextMapping) {
+        uint id = native.Chunk.Id;
+        if (_tables.TryGetValue(id, out PublisherTable? recovered)) {
+            if (drawing != null && shape != null && recovered.HasTextMapping && recovered.HasPlacement) {
                 foreach (PublisherTableCell cell in recovered.Cells)
                     if (cell.Paragraphs.Count != 0) ProjectText(cell.Paragraphs, drawing, shape, cell.X, cell.Y, cell.Width, cell.Height);
                 _usedStories.Add(storyId!.Value);
@@ -22,10 +23,10 @@ internal sealed partial class PublisherPageProjector {
         bool mapped = hasStory && _text.CellParagraphs.TryGetValue(storyId!.Value, out paragraphs) && paragraphs.Count == table.Cells.Count;
         if (!hasStory) {
             _context.Add("PUB_TEXT_REFERENCE_UNRESOLVED", "A native table has no available text story. Its grid is retained without cell text.",
-                OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
+                OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(id));
         } else if (!mapped) {
             _context.Add("PUB_TABLE_TEXT_MAPPING_UNRESOLVED", "Recovered table text remains available in TextStories, but cannot be assigned to native cells.",
-                OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
+                OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(id));
         }
         _context.AccountTableModel(checked(1 + table.Columns.Length + table.Rows.Length + table.Cells.Count));
         double[] xs = TrackOffsets(table.Columns), ys = TrackOffsets(table.Rows);
@@ -47,17 +48,17 @@ internal sealed partial class PublisherPageProjector {
             cells.Add(new PublisherTableCell(cell.FirstRow, cell.FirstColumn,
                 cell.LastRow - cell.FirstRow + 1, cell.LastColumn - cell.FirstColumn + 1, x, y, width, height, text));
         }
-        bool hasPlacement = shape.Bounds.HasValue && bounds.Width > 0 && bounds.Height > 0
+        bool hasPlacement = shape?.Bounds.HasValue == true && bounds.Width > 0 && bounds.Height > 0
             && FiniteRectangle(bounds.X, bounds.Y, bounds.Width, bounds.Height)
             && shape.LayoutTransform.TryInvert(out _) && shape.GroupTransform.TryInvert(out _);
         if (!hasPlacement)
             _context.Add("PUB_TABLE_PLACEMENT_UNRESOLVED", "The native table grid and mapped cell text are retained without available page placement.",
-                OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id));
-        _tables.Add(shape.Id, new PublisherTable(shape.Id, storyId, pageId, bounds.X, bounds.Y, bounds.Width, bounds.Height,
-            hasPlacement ? OfficeTransform.Translate(bounds.X, bounds.Y).Then(PageTransform(shape, bounds)) : OfficeTransform.Identity,
+                OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(id));
+        _tables.Add(id, new PublisherTable(id, storyId, pageId, bounds.X, bounds.Y, bounds.Width, bounds.Height,
+            hasPlacement ? OfficeTransform.Translate(bounds.X, bounds.Y).Then(PageTransform(shape!, bounds)) : OfficeTransform.Identity,
             table.Columns, table.Rows, cells, mapped, hasPlacement));
         _context.Add("PUB_TABLE_CELL_STYLE_UNASSESSED", "Native cell fills, individual borders, and cell-specific padding require additional qualification. The table model retains the native grid and any mapped styled cell text.",
-            OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(shape.Id));
+            OfficeConversionLossKind.Unassessed, PublisherEscherReader.ShapeLocation(id));
 
     }
     private static double[] TrackOffsets(double[] sizes) {

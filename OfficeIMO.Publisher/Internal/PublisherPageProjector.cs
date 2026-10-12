@@ -28,6 +28,16 @@ internal sealed partial class PublisherPageProjector {
                 pageShapes.Add(owner.Value, shapes = new List<PublisherEscherShape>());
             shapes.Add(shape);
         }
+        var tableShapes = _escher.Shapes.Where(shape => _source.Shapes.TryGetValue(shape.Id, out PublisherSourceShape? native)
+            && native.Table != null).ToDictionary(shape => shape.Id);
+        foreach (PublisherSourceShape native in _source.Shapes.Values.Where(native => native.Table != null)) {
+            _context.Token.ThrowIfCancellationRequested();
+            uint? owner = Owner(native.Chunk.Id, 0);
+            if (!owner.HasValue) continue;
+            tableShapes.TryGetValue(native.Chunk.Id, out PublisherEscherShape? shape);
+            ProjectTable(native, native.Value(0x27), shape,
+                shape?.Bounds.HasValue == true ? FrameBounds(shape, _source.Width, _source.Height) : default, owner.Value, null);
+        }
         PrepareTextFrames();
         var pageFrames = new Dictionary<uint, List<PublisherTextFrame>>();
         foreach (PreparedTextFrame frame in _textFrames.Values) {
@@ -103,9 +113,6 @@ internal sealed partial class PublisherPageProjector {
             return;
         }
         if (shape.IsGroup) { _projected.Add(shape.Id); return; }
-        if (native.Chunk.Kind == 0x10)
-            ProjectTable(native, native.Value(0x27), shape,
-                shape.Bounds.HasValue ? FrameBounds(shape, page.Width, page.Height) : default, pageId, null);
         if (shape.Hidden) { _projected.Add(shape.Id); return; }
         if (!shape.Bounds.HasValue) {
             _context.Add("PUB_OBJECT_ANCHOR_UNRESOLVED", "A publication object has no resolved native anchor.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;

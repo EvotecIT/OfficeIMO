@@ -12,6 +12,9 @@ public sealed class PublisherTablePlacementTests {
     [InlineData(false, 0)]
     [InlineData(false, 1)]
     [InlineData(false, 2)]
+    [InlineData(true, 3)]
+    [InlineData(false, 3)]
+    [InlineData(false, 4)]
     public void Native_table_data_survives_unavailable_placement(bool hidden, int geometry) {
         var source = new PublisherContents(100, 100, new Dictionary<uint, PublisherContentChunk>());
         source.Pages.Add(new PublisherSourcePage(1, "", null, null));
@@ -24,12 +27,17 @@ public sealed class PublisherTablePlacementTests {
         var paragraphs = new[] { new OfficeRichTextParagraph(new[] { new OfficeRichTextRun("retained", 10, OfficeColor.Black) }) };
         text.Stories.Add(3, new PublisherTextStory(3, "retained", paragraphs));
         text.CellParagraphs.Add(3, new List<IReadOnlyList<OfficeRichTextParagraph>> { paragraphs });
-        var shape = new PublisherEscherShape(2, 1, 0, hidden ? new[] { new OfficeArtProperty(0, 0x03BF, 0x40004000) } : Array.Empty<OfficeArtProperty>()) {
-            Bounds = geometry == 0 ? null : new PublisherNativeRectangle(0, 0, geometry == 2 ? 0 : 127000, 127000),
+        byte[] vertices = PublisherCustomPathTests.Vertices(new[] { (0, 0), (21600, 21600) });
+        byte[] segments = PublisherCustomPathTests.Segments(new ushort[] { 0x4000, 0x0001, 0x8000 });
+        var shape = new PublisherEscherShape(2, 1, 0, geometry == 4 ? new[] {
+            new OfficeArtProperty(0, 0x8145, (uint)vertices.Length, vertices.Length, complexData: vertices),
+            new OfficeArtProperty(1, 0x8146, (uint)segments.Length, segments.Length, complexData: segments)
+        } : hidden ? new[] { new OfficeArtProperty(0, 0x03BF, 0x40004000) } : Array.Empty<OfficeArtProperty>()) {
+            Bounds = geometry == 0 ? null : new PublisherNativeRectangle(0, 0, geometry is 2 or 4 ? 0 : 127000, 127000),
             GroupTransform = geometry == 1 ? OfficeTransform.Scale(0, 1) : OfficeTransform.Identity,
             LayoutTransform = geometry == 1 ? OfficeTransform.Scale(0, 1) : OfficeTransform.Identity
         };
-        var escher = new PublisherEscherData(); escher.Shapes.Add(shape);
+        var escher = new PublisherEscherData(); if (geometry != 3) escher.Shapes.Add(shape);
         PublisherDocument document = new PublisherPageProjector(source, text, escher,
             new PublisherParseContext(new PublisherReadOptions(), default)).Project();
         PublisherTable table = Assert.Single(document.Pages[0].Tables);
