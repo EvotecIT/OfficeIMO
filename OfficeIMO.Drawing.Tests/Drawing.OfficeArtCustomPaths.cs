@@ -7,6 +7,40 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Theory]
+    [InlineData(12, false)]
+    [InlineData(14, false)]
+    [InlineData(13, true)]
+    [InlineData(15, true)]
+    [InlineData(19, true)]
+    public void OfficeArtCustomPath_EditingEscapesRetainTheirLineOrCubicRuns(int escape, bool curve) {
+        var properties = CustomPath(new[] { (0, 0), (5400, 0), (10800, 21600), (21600, 21600), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | (curve ? 1 : 3)), 0x0001, 0x8000 });
+        Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Equal(curve ? 3 : 5, result!.Shape.PathCommands.Count);
+        Assert.Equal(new OfficePoint(80, 0), result.Shape.PathCommands.Last().Point);
+        if (curve) {
+            OfficePathCommand command = result.Shape.PathCommands[1];
+            Assert.Equal(OfficePathCommandKind.CubicBezierTo, command.Kind);
+            Assert.Equal(new OfficePoint(20, 0), command.ControlPoint1);
+            Assert.Equal(new OfficePoint(40, 40), command.ControlPoint2);
+            Assert.Equal(new OfficePoint(80, 40), command.Point);
+        } else {
+            Assert.Equal(new[] { new OfficePoint(20, 0), new OfficePoint(40, 40), new OfficePoint(80, 40) },
+                result.Shape.PathCommands.Skip(1).Take(3).Select(command => command.Point));
+        }
+    }
+
+    [Theory]
+    [InlineData(12)]
+    [InlineData(19)]
+    public void OfficeArtCustomPath_EditingEscapesRejectUnavailableRunVertices(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 255), 0x0001, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+        Assert.Null(result);
+    }
+
+    [Theory]
     [InlineData(12)]
     [InlineData(13)]
     [InlineData(14)]
@@ -16,23 +50,25 @@ public partial class DrawingTests {
     [InlineData(18)]
     [InlineData(19)]
     [InlineData(20)]
-    public void OfficeArtCustomPath_EditingEscapesConsumeOnlyTheirDeclaredMetadataVertices(int escape) {
-        var properties = CustomPath(new[] { (0, 0), (5400, 21600), (10800, 21600), (21600, 0) },
-            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 2), 0x0001, 0x8000 });
+    public void OfficeArtCustomPath_ZeroCountEditingMarkersRemainInertBeforeTheFirstMove(int escape) {
+        var properties = CustomPath(new[] { (0, 0), (21600, 0) },
+            new ushort[] { (ushort)(0xA000 | escape << 8), 0x4000, 0x0001, 0x8000 });
         Assert.True(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
         Assert.Equal(2, result!.Shape.PathCommands.Count);
-        Assert.Equal(OfficePathCommandKind.LineTo, result.Shape.PathCommands[1].Kind);
         Assert.Equal(new OfficePoint(80, 0), result.Shape.PathCommands[1].Point);
     }
 
     [Theory]
-    [InlineData(12)]
+    [InlineData(16)]
+    [InlineData(17)]
+    [InlineData(18)]
     [InlineData(20)]
-    public void OfficeArtCustomPath_EditingEscapesRejectUnavailableMetadataVertices(int escape) {
+    public void OfficeArtCustomPath_UnqualifiedNonzeroEditingRunsReportUnsupportedCommands(int escape) {
         var properties = CustomPath(new[] { (0, 0), (21600, 0) },
-            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 255), 0x0001, 0x8000 });
-        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out _));
+            new ushort[] { 0x4000, (ushort)(0xA000 | escape << 8 | 1), 0x0001, 0x8000 });
+        Assert.False(OfficeArtCustomPathProjector.TryProject(properties, 80, 40, _ => { }, default, out var result, out var failure));
         Assert.Null(result);
+        Assert.Equal(OfficeArtCustomPathFailure.Command, failure);
     }
 
     [Theory]

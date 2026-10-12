@@ -118,6 +118,10 @@ outlines and other markers as filled geometry. Marker dimensions and native dash
 rendering remain unqualified against Publisher-produced output.
 Custom-path record mutations check coordinate offsets, compact vertices,
 line/cubic command consumption, subpaths, paint controls, malformed arrays,
+and counted AutoLine, CornerLine, AutoCurve, CornerCurve and SymmetricCurve
+editing runs. Zero-count joint markers remain inert. Nonzero SmoothLine,
+SmoothCurve, SymmetricLine and Freeform runs retain an unsupported-command
+fallback; their drawing semantics remain unqualified. These record checks cover
 guide/command fallback reports and inset picture masks. High-coordinate
 shape/mask checks retain the full unsigned compact range;
 eight-byte coordinates retain signed negative values. Shared array decoding
