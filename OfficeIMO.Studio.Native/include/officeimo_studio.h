@@ -57,7 +57,10 @@ void officeimo_cancellation_free(officeimo_cancellation cancellation);
 /* Opens a PDF. password may be NULL; OFFICEIMO_PASSWORD_REQUIRED or OFFICEIMO_INVALID_PASSWORD asks the host to prompt. */
 int32_t officeimo_document_open(const char *path, const char *password, officeimo_cancellation cancellation,
                                 officeimo_document *document, char **error);
-/* Releases the document. Unsaved changes are discarded; the host asks the user first. */
+/*
+ * Releases the document. Unsaved changes are discarded with their recovery copy; the host asks the user first. A host
+ * that ends without closing keeps the recovery copy, which the next open reports as hasRecovery.
+ */
 void officeimo_document_close(officeimo_document document);
 
 /*
@@ -67,7 +70,8 @@ void officeimo_document_close(officeimo_document document);
  *   "maxRenderPixels" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces.
- * Width and height are in PDF points before rotation. The revision changes with every edit, undo and redo.
+ * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
+ * render scales apply to. The revision changes with every edit, undo and redo.
  */
 int32_t officeimo_document_info_json(officeimo_document document, char **json, char **error);
 

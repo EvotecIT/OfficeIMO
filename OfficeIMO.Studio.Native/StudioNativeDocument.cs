@@ -35,7 +35,10 @@ internal sealed class StudioNativeDocument : IDisposable {
             return new StudioNativeDocumentInfo(
                 StudioNativeAbi.Version, _workspace.FileName, _workspace.Path, _workspace.FileSize, _workspace.Revision,
                 _workspace.IsDirty, _workspace.CanUndo, _workspace.CanRedo, _workspace.RecoveryPath is not null, view.CanExtractText, view.CanExtractContent,
-                _workspace.Pages.Select(page => new StudioNativePageInfo(page.PageNumber, page.Width, page.Height, page.RotationDegrees)).ToArray(),
+                _workspace.Pages.Select(page => {
+                    (double width, double height) = PdfDocumentSession.GetPhysicalSize(page);
+                    return new StudioNativePageInfo(page.PageNumber, width, height, page.RotationDegrees);
+                }).ToArray(),
                 StudioPdfSecurityPolicy.MaximumRasterPixels);
         } finally { _gate.Release(); }
     }
@@ -93,6 +96,12 @@ internal sealed class StudioNativeDocument : IDisposable {
         _gate.Wait();
         try {
             _disposed = true;
+            // Closing discards unsaved changes, so their recovery copy goes too. A host that ends without closing keeps
+            // it for the next launch, and so does a failed deletion, which close cannot report.
+            if (_workspace.IsDirty) {
+                try { _workspace.DiscardRecoveryAsync().GetAwaiter().GetResult(); }
+                catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }
+            }
             _workspace.Dispose();
         } finally { _gate.Release(); }
     }

@@ -159,11 +159,14 @@ internal sealed class PdfDocumentSession {
     /// <summary>The page as displayed, in points: its effective box at the page's user unit, rotated.</summary>
     internal (double Width, double Height) GetDisplaySize(int pageNumber) {
         PdfPageInfo info = Pages[pageNumber - 1];
-        bool rotated = Math.Abs(info.RotationDegrees) % 180 == 90;
-        double width = (info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D);
-        double height = (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D);
-        return rotated ? (height, width) : (width, height);
+        (double width, double height) = GetPhysicalSize(info);
+        return Math.Abs(info.RotationDegrees) % 180 == 90 ? (height, width) : (width, height);
     }
+
+    /// <summary>The page's size in points (1/72 inch) before rotation: its effective box at the page's user unit.</summary>
+    internal static (double Width, double Height) GetPhysicalSize(PdfPageInfo info) =>
+        ((info.Geometry.EffectiveBox?.Width ?? info.Width) * (info.UserUnit ?? 1D),
+         (info.Geometry.EffectiveBox?.Height ?? info.Height) * (info.UserUnit ?? 1D));
 
     /// <summary>
     /// Renders a page as PNG. The page image stays within <see cref="StudioPdfSecurityPolicy.MaximumRasterPixels"/>;

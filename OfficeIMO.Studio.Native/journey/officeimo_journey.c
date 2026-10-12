@@ -64,6 +64,10 @@ static void check(const char *step, int32_t status, char *error, int32_t expecte
     }
 }
 
+/* Runs a call, then checks its status and message. The call completes before error is read, and error is reset. */
+#define CHECK(step, call, expected) \
+    do { int32_t status_ = (call); check(step, status_, error, expected); error = NULL; } while (0)
+
 static void expect(int condition, const char *description, const char *json) {
     if (!condition) {
         printf("FAILED: %s: %s\n", description, json ? json : "(no facts)");
@@ -74,7 +78,7 @@ static void expect(int condition, const char *description, const char *json) {
 /* Reads the document facts. The caller releases the JSON with officeimo_free. */
 static char *facts(officeimo_document document) {
     char *json = NULL, *error = NULL;
-    check("info", engine_officeimo_document_info_json(document, &json, &error), error, OFFICEIMO_OK);
+    CHECK("info", engine_officeimo_document_info_json(document, &json, &error), OFFICEIMO_OK);
     return json;
 }
 
@@ -118,12 +122,12 @@ int main(int argc, char **argv) {
 
     char *error = NULL;
     officeimo_document document = 0;
-    check("open before initialize", engine_officeimo_document_open(source, NULL, 0, &document, &error), error,
+    CHECK("open before initialize", engine_officeimo_document_open(source, NULL, 0, &document, &error),
           OFFICEIMO_NOT_INITIALIZED);
-    check("initialize", engine_officeimo_initialize(data, &error), error, OFFICEIMO_OK);
+    CHECK("initialize", engine_officeimo_initialize(data, &error), OFFICEIMO_OK);
 
     double started = milliseconds();
-    check("open", engine_officeimo_document_open(source, NULL, 0, &document, &error), error, OFFICEIMO_OK);
+    CHECK("open", engine_officeimo_document_open(source, NULL, 0, &document, &error), OFFICEIMO_OK);
     printf("  opened in %.0f ms\n", milliseconds() - started);
     if (!document) {
         printf("FAILED: no document handle\n");
@@ -138,8 +142,8 @@ int main(int argc, char **argv) {
     size_t length = 0;
     int32_t width = 0, height = 0;
     started = milliseconds();
-    check("render page 1", engine_officeimo_document_render_page(document, 1, 1.5, 0, &png, &length, &width, &height,
-          &error), error, OFFICEIMO_OK);
+    CHECK("render page 1", engine_officeimo_document_render_page(document, 1, 1.5, 0, &png, &length, &width, &height,
+          &error), OFFICEIMO_OK);
     printf("  %d x %d px, %zu bytes in %.0f ms\n", width, height, length, milliseconds() - started);
     expect(png && length > 8 && memcmp(png, "\x89PNG", 4) == 0, "the page is not a PNG", NULL);
     if (png) {
@@ -150,38 +154,38 @@ int main(int argc, char **argv) {
         }
         engine_officeimo_free(png);
     }
-    check("render missing page", engine_officeimo_document_render_page(document, 9999, 1.0, 0, &png, &length, NULL,
-          NULL, &error), error, OFFICEIMO_INVALID_ARGUMENT);
+    CHECK("render missing page", engine_officeimo_document_render_page(document, 9999, 1.0, 0, &png, &length, NULL,
+          NULL, &error), OFFICEIMO_INVALID_ARGUMENT);
 
     officeimo_cancellation cancellation = engine_officeimo_cancellation_create();
     engine_officeimo_cancellation_cancel(cancellation);
-    check("cancelled render", engine_officeimo_document_render_page(document, 1, 1.0, cancellation, &png, &length,
-          NULL, NULL, &error), error, OFFICEIMO_CANCELLED);
+    CHECK("cancelled render", engine_officeimo_document_render_page(document, 1, 1.0, cancellation, &png, &length,
+          NULL, NULL, &error), OFFICEIMO_CANCELLED);
     engine_officeimo_cancellation_free(cancellation);
 
     const int32_t first_page[] = { 1 };
-    check("rotate page 1", engine_officeimo_document_rotate_pages(document, first_page, 1, 90, 0, &error), error,
+    CHECK("rotate page 1", engine_officeimo_document_rotate_pages(document, first_page, 1, 90, 0, &error),
           OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "90") && has(json, "isDirty", "true") && has(json, "canUndo", "true"),
            "rotation not recorded", json);
     engine_officeimo_free(json);
 
-    check("undo", engine_officeimo_document_undo(document, 0, &error), error, OFFICEIMO_OK);
+    CHECK("undo", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "0") && has(json, "canRedo", "true"), "undo not applied", json);
     engine_officeimo_free(json);
 
-    check("redo", engine_officeimo_document_redo(document, 0, &error), error, OFFICEIMO_OK);
+    CHECK("redo", engine_officeimo_document_redo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "90"), "redo not applied", json);
     engine_officeimo_free(json);
 
-    check("save copy", engine_officeimo_document_save(document, copy, 0, &error), error, OFFICEIMO_OK);
+    CHECK("save copy", engine_officeimo_document_save(document, copy, 0, &error), OFFICEIMO_OK);
     engine_officeimo_document_close(document);
 
     officeimo_document reopened = 0;
-    check("reopen copy", engine_officeimo_document_open(copy, NULL, 0, &reopened, &error), error, OFFICEIMO_OK);
+    CHECK("reopen copy", engine_officeimo_document_open(copy, NULL, 0, &reopened, &error), OFFICEIMO_OK);
     if (reopened) {
         json = facts(reopened);
         expect(has(json, "rotation", "90") && has(json, "isDirty", "false"), "the saved copy is not rotated", json);

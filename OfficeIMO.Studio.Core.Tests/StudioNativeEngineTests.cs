@@ -61,6 +61,39 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task Page_sizes_are_the_rendered_size_at_the_page_user_unit() {
+        string path = Path.Combine(_root, "user-unit.pdf");
+        File.WriteAllBytes(path, Encoding.ASCII.GetBytes("""
+            %PDF-1.7
+            1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+            2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj
+            3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] /CropBox [0 0 200 300] /UserUnit 2 /Resources << >> >> endobj
+            trailer << /Root 1 0 R /Size 4 >>
+            %%EOF
+            """));
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+
+        StudioNativePageInfo page = (await document.GetInfoAsync(default)).Pages[0];
+
+        Assert.Equal((400D, 600D), (page.Width, page.Height));
+        Assert.Equal(400, (await document.RenderPageAsync(1, 1D, default)).PixelWidth);
+    }
+
+    [Fact]
+    public async Task Closing_discards_the_recovery_copy_of_unsaved_edits() {
+        string source = CreatePdf();
+        StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default);
+        await document.RotatePagesAsync([1], 90, default);
+        Assert.NotEmpty(Directory.EnumerateFiles(Path.Combine(_root, "data", "Recovery")));
+
+        document.Dispose();
+
+        Assert.Empty(Directory.EnumerateFiles(Path.Combine(_root, "data", "Recovery"), "*.pdf"));
+        using StudioNativeDocument reopened = await StudioNativeDocument.OpenAsync(source, null, default);
+        Assert.False((await reopened.GetInfoAsync(default)).HasRecovery);
+    }
+
+    [Fact]
     public unsafe void The_C_interface_reports_failures_as_status_and_message_without_throwing() {
         string source = CreatePdf(1);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
