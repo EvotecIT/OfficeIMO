@@ -2193,4 +2193,14 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Mobile.FileName" xml:space="preserve"><value>Nom du fichier</value></data>
   <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Choisissez ensuite un dossier dans Fichiers. Le document est écrit une fois la vérification terminée.</value></data>
   <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Les annotations ne sont pas disponibles pour ce document.</value></data>
+  <data name="Apple.Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Apple.ToolsMenu" xml:space="preserve"><value>Outils</value></data>
+  <data name="Apple.Help" xml:space="preserve"><value>Aide</value></data>
+  <data name="Apple.OpenRecent" xml:space="preserve"><value>Ouvrir l&apos;élément récent</value></data>
+  <data name="Apple.ClearRecent" xml:space="preserve"><value>Effacer le menu</value></data>
+  <data name="Apple.CloseTab" xml:space="preserve"><value>Fermer l&apos;onglet</value></data>
+  <data name="Apple.KeyboardShortcuts" xml:space="preserve"><value>Commandes et raccourcis clavier</value></data>
+  <data name="Apple.Documentation" xml:space="preserve"><value>Documentation d&apos;OfficeIMO Studio</value></data>
+  <data name="Apple.ReportProblem" xml:space="preserve"><value>Signaler un problème</value></data>
+  <data name="Apple.About" xml:space="preserve"><value>À propos d&apos;OfficeIMO Studio</value></data>
 </root>

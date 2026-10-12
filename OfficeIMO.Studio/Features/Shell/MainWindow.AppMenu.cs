@@ -8,9 +8,8 @@ using OfficeIMO.Studio.Infrastructure.Preferences;
 namespace OfficeIMO.Studio.Features.Shell;
 
 /// <summary>
-/// The Windows and Linux application menu behind the title-bar logo. It is built from the shared command
-/// catalog each time it opens, so labels, shortcuts, availability and unavailable reasons match the palette.
-/// macOS uses the native menu bar instead.
+/// The Windows and Linux application menu behind the title-bar logo. It is built from the shared menu definition each
+/// time it opens, so labels, shortcuts, availability and unavailable reasons match the palette and the macOS menu bar.
 /// </summary>
 public sealed partial class MainWindow {
     internal const string DocumentationUri = "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio";
@@ -56,123 +55,116 @@ public sealed partial class MainWindow {
         foreach (MenuItem menu in BuildAppMenu()) _appMenu.Items.Add(menu);
     }
 
+    /// <summary>Renders the shared menu definition as the in-window menu, with an access key on each top-level menu.</summary>
     internal IReadOnlyList<MenuItem> BuildAppMenu() {
+        IReadOnlyDictionary<string, (char? Key, string Header)> keys = AccessKeys();
+        return BuildMenuModel(nativeMac: false).Select(group => (MenuItem)StudioMenuRenderer.ToMenuItem(group, keys[group.Id].Header)).ToArray();
+    }
+
+    /// <summary>
+    /// The one menu definition. The macOS form follows the platform's conventions: About, Settings and Quit live in the
+    /// application menu, Edit also drives text fields, and titles use the platform's wording.
+    /// </summary>
+    internal IReadOnlyList<StudioMenuGroup> BuildMenuModel(bool nativeMac) {
         StudioCommandCatalog commands = ViewModel.Commands;
-        string Text(string key) => _services.Localizer.Get("Menu." + key);
+        string Text(string key) => _services.Localizer.Get((nativeMac ? "Apple." : "Menu.") + key);
+        StudioMenuSeparator separator = StudioMenuSeparator.Instance;
 
-        MenuItem Top(string id, params object[] items) {
-            var menu = new MenuItem { Header = AccessKeys()[id].Header, Tag = id };
-            foreach (object item in items) menu.Items.Add(item);
-            return menu;
-        }
+        StudioMenuGroup Group(string id, params StudioMenuEntry[] items) => new(id, Text(id), items);
 
-        MenuItem Command(string id) {
+        StudioMenuCommand Command(string id) {
             StudioCommandItem command = commands[id];
-            var item = new MenuItem { Header = command.Title, Command = command, Tag = id, InputGesture = command.Gesture };
-            if (command.UnavailableReason is { Length: > 0 } reason) {
-                ToolTip.SetTip(item, reason);
-                ToolTip.SetShowOnDisabled(item, true);
-            }
-            return item;
+            // The macOS menu names commands that ask for more input with an ellipsis.
+            string title = nativeMac && id is "Open" or "SaveAs" or "Settings" ? Text(id) : command.Title;
+            return new StudioMenuCommand(id, title, command, command.Gesture) { ToolTip = command.UnavailableReason };
         }
 
-        MenuItem Action(string key, Action action, KeyGesture? gesture = null, bool enabled = true) => new() {
-            Header = Text(key), Tag = key, Command = new RelayCommand(action, () => enabled), InputGesture = gesture
+        // Guards are evaluated when asked, so a menu kept open by the platform never acts on a stale state.
+        StudioMenuCommand Action(string key, Action action, KeyGesture? gesture = null, Func<bool>? canExecute = null) =>
+            new(key, Text(key), canExecute is null ? new RelayCommand(action) : new RelayCommand(action, canExecute), gesture);
+
+        StudioMenuCommand AsyncAction(string key, Func<Task> action, KeyGesture? gesture = null, Func<bool>? canExecute = null) =>
+            new(key, Text(key), canExecute is null ? new AsyncRelayCommand(action) : new AsyncRelayCommand(action, canExecute), gesture);
+
+        var recentItems = new List<StudioMenuEntry>();
+        foreach (RecentDocumentViewModel recentDocument in ViewModel.RecentDocuments.Take(10))
+            recentItems.Add(new StudioMenuCommand("Recent", recentDocument.FileName, ViewModel.OpenRecentCommand) { Parameter = recentDocument, ToolTip = recentDocument.Path });
+        if (recentItems.Count > 0) recentItems.AddRange([separator, new StudioMenuCommand("ClearRecent", Text("ClearRecent"), ViewModel.ClearRecentDocumentsCommand)]);
+
+        var file = new List<StudioMenuEntry> {
+            Command("Open"), new StudioMenuGroup("OpenRecent", Text("OpenRecent"), recentItems), separator,
+            Command("Save"), Command("SaveAs"), separator,
+            Command("Print"), separator,
+            AsyncAction("CloseTab", CloseSelectedDocumentTabAsync, StudioShortcuts.CloseTab, () => TabHost.HasTabs),
+            AsyncAction("ReopenTab", TabHost.ReopenClosedTabAsync, StudioShortcuts.ReopenTab, () => TabHost.CanReopenClosedTab)
         };
+        if (!nativeMac) file.AddRange([separator, Command("Settings"), separator, Action("Exit", Close, StudioShortcuts.Quit)]);
 
-        MenuItem AsyncAction(string key, Func<Task> action, KeyGesture? gesture = null, bool enabled = true) => new() {
-            Header = Text(key), Tag = key, Command = new AsyncRelayCommand(action, () => enabled), InputGesture = gesture
-        };
+        StudioMenuEntry[] edit = nativeMac
+            ? [.. TextAwareEditEntries(), separator, Action("Find", FocusDocumentSearch, StudioShortcuts.Find), AsyncAction("Commands", ShowCommandPaletteAsync, StudioShortcuts.CommandSearch)]
+            : [Command("Undo"), Command("Redo"), separator,
+                Action("Find", FocusDocumentSearch, StudioShortcuts.Find, () => ViewModel.HasDocument),
+                AsyncAction("Commands", ShowCommandPaletteAsync, StudioShortcuts.CommandSearch)];
 
-        MenuItem recent = new() { Header = Text("OpenRecent"), Tag = "OpenRecent" };
-        foreach (RecentDocumentViewModel recentDocument in ViewModel.RecentDocuments.Take(10)) {
-            var entry = new MenuItem { Header = recentDocument.FileName, Command = ViewModel.OpenRecentCommand, CommandParameter = recentDocument };
-            ToolTip.SetTip(entry, recentDocument.Path);
-            recent.Items.Add(entry);
-        }
-        if (recent.Items.Count > 0) {
-            recent.Items.Add(new Separator());
-            recent.Items.Add(new MenuItem { Header = Text("ClearRecent"), Command = ViewModel.ClearRecentDocumentsCommand });
-        }
-        recent.IsEnabled = recent.Items.Count > 0;
-
-        MenuItem file = Top("File",
-            Command("Open"), recent, new Separator(),
-            Command("Save"), Command("SaveAs"), new Separator(),
-            Command("Print"), new Separator(),
-            AsyncAction("CloseTab", CloseSelectedDocumentTabAsync, StudioShortcuts.CloseTab, TabHost.HasTabs),
-            AsyncAction("ReopenTab", TabHost.ReopenClosedTabAsync, StudioShortcuts.ReopenTab, TabHost.CanReopenClosedTab),
-            new Separator(), Command("Settings"), new Separator(),
-            Action("Exit", Close, StudioShortcuts.Quit));
-
-        MenuItem edit = Top("Edit",
-            Command("Undo"), Command("Redo"), new Separator(),
-            Action("Find", FocusDocumentSearch, StudioShortcuts.Find, ViewModel.HasDocument),
-            AsyncAction("Commands", ShowCommandPaletteAsync, StudioShortcuts.CommandSearch));
-
-        MenuItem view = Top("View",
-            Command("Home"), Command("Tools"), Command("Jobs"), new Separator(),
+        StudioMenuGroup view = Group("View",
+            Command("Home"), Command("Tools"), Command("Jobs"), separator,
             Command("ZoomIn"), Command("ZoomOut"),
-            Command("ActualSize"), Command("FitPage"), Command("FitWidth"), new Separator(),
+            Command("ActualSize"), Command("FitPage"), Command("FitWidth"), separator,
             Command("FocusReading"), Command("PageNightMode"), Command("CompareSideBySide"), Command("Assistant"),
-            Action("ToggleSidebar", () => OnSidebarToggleClick(null, new()), enabled: ViewModel.HasDocument),
+            Action("ToggleSidebar", () => OnSidebarToggleClick(null, new()), StudioShortcuts.ToggleSidebar, () => ViewModel.HasDocument),
             Action(WindowState == WindowState.FullScreen ? "LeaveFullScreen" : "FullScreen", ToggleFullScreen, StudioShortcuts.FullScreen),
-            new Separator(), AppearanceMenu());
+            separator, AppearanceMenu());
 
-        MenuItem document = Top("Document",
+        StudioMenuGroup document = Group("Document",
             Command("Read"), Command("Comment"), Command("Edit"), Command("Pages"), Command("Forms"), Command("Protect"),
-            new Separator(), Command("Watermark"), Command("PageNumbers"), Command("FlattenAnnotations"),
-            new Separator(), Command("Split"),
-            new Separator(), Command("Redact"), Command("ValidateSignatures"),
-            new Separator(), Command("PreviousFormField"), Command("NextFormField"));
+            separator, Command("Watermark"), Command("PageNumbers"), Command("FlattenAnnotations"),
+            separator, Command("Split"),
+            separator, Command("Redact"), Command("ValidateSignatures"),
+            separator, Command("PreviousFormField"), Command("NextFormField"));
 
         // Tools follow the catalog's categories so the menu and the Tools page group them the same way.
-        var tools = Top("ToolsMenu");
-        foreach (StudioCommandGroup group in commands.GroupTools(null)) {
-            var category = new MenuItem { Header = group.Title };
-            foreach (StudioCommandItem tool in group.Items) category.Items.Add(Command(tool.Id));
-            tools.Items.Add(category);
-        }
+        StudioMenuGroup tools = Group("ToolsMenu", commands.GroupTools(null)
+            .Select(group => (StudioMenuEntry)new StudioMenuGroup(group.Title, group.Title, group.Items.Select(tool => (StudioMenuEntry)Command(tool.Id)).ToArray()))
+            .ToArray());
 
-        MenuItem window = Top("Window",
-            Action("NextTab", () => TabHost.SelectRelativeTab(false), StudioShortcuts.NextTab, TabHost.Tabs.Count > 1),
-            Action("PreviousTab", () => TabHost.SelectRelativeTab(true), StudioShortcuts.PreviousTab, TabHost.Tabs.Count > 1),
-            Action("Minimize", () => WindowState = WindowState.Minimized));
+        var window = new List<StudioMenuEntry> {
+            Action("Minimize", () => WindowState = WindowState.Minimized, StudioShortcuts.Minimize),
+            Action("NextTab", () => TabHost.SelectRelativeTab(false), StudioShortcuts.NextTab, () => TabHost.Tabs.Count > 1),
+            Action("PreviousTab", () => TabHost.SelectRelativeTab(true), StudioShortcuts.PreviousTab, () => TabHost.Tabs.Count > 1)
+        };
         if (TabHost.HasTabs) {
-            window.Items.Add(new Separator());
+            window.Add(separator);
             foreach (StudioDocumentTabViewModel tab in TabHost.Tabs) {
-                window.Items.Add(new MenuItem {
-                    Header = tab.DisplayTitle, ToggleType = MenuItemToggleType.Radio,
-                    IsChecked = ReferenceEquals(tab, TabHost.SelectedTab),
-                    Command = new RelayCommand(() => { if (TabHost.Tabs.Contains(tab)) TabHost.SelectedTab = tab; })
+                window.Add(new StudioMenuCommand("Tab", tab.DisplayTitle, new RelayCommand(() => { if (TabHost.Tabs.Contains(tab)) TabHost.SelectedTab = tab; })) {
+                    IsChecked = ReferenceEquals(tab, TabHost.SelectedTab)
                 });
             }
         }
 
-        MenuItem help = Top("Help",
+        var help = new List<StudioMenuEntry> {
             AsyncAction("KeyboardShortcuts", ShowCommandPaletteAsync),
             AsyncAction("Documentation", () => OpenUriAsync(new Uri(DocumentationUri))),
-            AsyncAction("ReportProblem", () => OpenUriAsync(new Uri(ReportProblemUri))),
-            new Separator(), Action("About", () => ViewModel.ShowSettingsSection(Settings.StudioSettingsViewModel.AboutSection)));
+            AsyncAction("ReportProblem", () => OpenUriAsync(new Uri(ReportProblemUri)))
+        };
+        if (!nativeMac) help.AddRange([separator, Action("About", ShowAbout)]);
 
-        return [file, edit, view, document, tools, window, help];
+        return [Group("File", [.. file]), Group("Edit", edit), view, document, tools, Group("Window", [.. window]), Group("Help", [.. help])];
     }
 
-    private MenuItem AppearanceMenu() {
+    // About opens Settings at the version and update details rather than wherever Settings was left.
+    internal void ShowAbout() => ViewModel.ShowSettingsSection(Settings.StudioSettingsViewModel.AboutSection);
+
+    private StudioMenuGroup AppearanceMenu() {
         string Text(string key) => _services.Localizer.Get("Settings.Theme" + key);
         StudioThemePreference current = _services.Preferences.Current.Theme;
-        var menu = new MenuItem { Header = _services.Localizer.Get("Settings.Appearance"), Tag = "Appearance" };
-        foreach ((StudioThemePreference preference, string key) in new[] {
-                     (StudioThemePreference.System, "System"), (StudioThemePreference.Light, "Light"),
-                     (StudioThemePreference.Dark, "Dark"), (StudioThemePreference.HighContrast, "HighContrast") }) {
-            menu.Items.Add(new MenuItem {
-                Header = Text(key), ToggleType = MenuItemToggleType.Radio, IsChecked = current == preference,
-                Command = new RelayCommand(() => _services.Preferences.UpdatePresentation(value => value with { Theme = preference }))
-            });
-        }
-        return menu;
+        return new StudioMenuGroup("Appearance", _services.Localizer.Get("Settings.Appearance"), new[] {
+                (StudioThemePreference.System, "System"), (StudioThemePreference.Light, "Light"),
+                (StudioThemePreference.Dark, "Dark"), (StudioThemePreference.HighContrast, "HighContrast") }
+            .Select(pair => (StudioMenuEntry)new StudioMenuCommand("Theme" + pair.Item2, Text(pair.Item2),
+                new RelayCommand(() => _services.Preferences.UpdatePresentation(value => value with { Theme = pair.Item1 }))) {
+                IsChecked = current == pair.Item1
+            }).ToArray());
     }
-
     private WindowState _stateBeforeFullScreen = WindowState.Normal;
 
     // Leaving full screen returns to the state it was entered from, so a maximized window stays maximized.

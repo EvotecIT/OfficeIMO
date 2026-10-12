@@ -7,48 +7,46 @@ using OfficeIMO.Studio.Features.Reader;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindow {
-    /// <summary>Rebinds native menus when the selected document changes; command guards remain in the catalog.</summary>
+    /// <summary>
+    /// Renders the shared menu definition as the macOS menu bar. Each menu rebuilds its items from the definition when
+    /// AppKit asks for an update, so recent documents, open tabs and availability are current whenever it opens.
+    /// </summary>
     private void RefreshNativeMenus() {
         if (!OperatingSystem.IsMacOS()) return;
-        string Text(string id) => _services.Localizer.Get("Apple." + id);
-        NativeMenuItem Item(string id, string? gesture = null) => new() {
-            Header = ViewModel.Commands[id].Title,
-            Command = ViewModel.Commands[id],
-            Gesture = gesture is null ? ViewModel.Commands[id].Gesture : KeyGesture.Parse(gesture)
-        };
-        NativeMenuItem Action(string title, Action action, string? gesture = null) => new() {
-            Header = Text(title), Command = new RelayCommand(action),
-            Gesture = gesture is null ? null : KeyGesture.Parse(gesture)
-        };
-        NativeMenuItem Group(string name, params NativeMenuItemBase[] items) {
-            var menu = new NativeMenu();
-            foreach (var item in items) menu.Items.Add(item);
-            return new NativeMenuItem(Text(name)) { Menu = menu };
+        // AppKit's exporter keeps the attached root menu identity across document switches.
+        var menus = NativeMenu.GetMenu(this);
+        bool attach = menus is null;
+        menus ??= new NativeMenu();
+        menus.Items.Clear();
+        foreach (StudioMenuGroup group in BuildMenuModel(nativeMac: true)) {
+            var item = (NativeMenuItem)StudioMenuRenderer.ToNative(group);
+            string id = group.Id;
+            item.Menu!.NeedsUpdate += (_, _) => {
+                StudioMenuGroup current = BuildMenuModel(nativeMac: true).Single(candidate => candidate.Id == id);
+                item.Menu.Items.Clear();
+                foreach (StudioMenuEntry entry in current.Items) item.Menu.Items.Add(StudioMenuRenderer.ToNative(entry));
+            };
+            menus.Items.Add(item);
         }
+        if (attach) NativeMenu.SetMenu(this, menus);
+    }
 
-        var close = new AsyncRelayCommand(CloseSelectedDocumentTabAsync, () => TabHost.HasTabs);
-        var reopen = new AsyncRelayCommand(TabHost.ReopenClosedTabAsync, () => TabHost.CanReopenClosedTab);
-        var open = Item("Open"); open.Header = Text("Open");
-        var saveAs = Item("SaveAs"); saveAs.Header = Text("SaveAs");
-        var file = Group("File", open, new NativeMenuItemSeparator(), Item("Save"), saveAs,
-            new NativeMenuItemSeparator(), Item("Print"), new NativeMenuItemSeparator(),
-            new NativeMenuItem(Text("CloseDocument")) { Command = close, Gesture = KeyGesture.Parse("Meta+W") });
-        file.Menu!.NeedsUpdate += (_, _) => close.NotifyCanExecuteChanged();
-
-        // Native menus retain the text field's editing target. Document undo must never consume text undo.
+    /// <summary>
+    /// The macOS Edit commands. Native menus keep the text field as their editing target, so a focused field gets its own
+    /// undo and clipboard actions; document undo must never consume text undo.
+    /// </summary>
+    private IEnumerable<StudioMenuEntry> TextAwareEditEntries() {
+        string Text(string id) => _services.Localizer.Get("Apple." + id);
         TextBox? FocusedText() => FocusManager?.GetFocusedElement() as TextBox;
-        var editing = new List<IRelayCommand>();
-        NativeMenuItem EditItem(string label, string gesture, Action<TextBox> textAction,
-            Func<TextBox, bool> textCanExecute, string? documentCommand = null) {
+        StudioMenuCommand EditItem(string label, Key key, Action<TextBox> textAction, Func<TextBox, bool> textCanExecute,
+            string? documentCommand = null, KeyModifiers extra = KeyModifiers.None) {
             var command = new RelayCommand(() => {
                 if (FocusedText() is { } text) textAction(text);
                 else if (documentCommand is not null) ViewModel.Commands[documentCommand].Execute(null);
             }, () => FocusedText() is { } text ? textCanExecute(text)
                 : documentCommand is not null && ViewModel.Commands[documentCommand].IsAvailable);
-            editing.Add(command);
-            return new NativeMenuItem(documentCommand is null ? Text(label) : ViewModel.Commands[documentCommand].Title) {
-                Command = command, Gesture = KeyGesture.Parse(gesture)
-            };
+            return new StudioMenuCommand(label, documentCommand is null ? Text(label) : ViewModel.Commands[documentCommand].Title,
+                command, StudioShortcuts.Primary(key, extra));
         }
         var copy = new AsyncRelayCommand(async () => {
             if (FocusedText() is { } text) text.Copy();
@@ -58,52 +56,14 @@ public sealed partial class MainWindow {
             if (FocusedText() is { } text) text.SelectAll();
             else if (FocusManager?.GetFocusedElement() is PdfPageCanvas page) page.SelectAllPageText();
         }, () => FocusedText() is { } text ? !string.IsNullOrEmpty(text.Text) : FocusManager?.GetFocusedElement() is PdfPageCanvas);
-        editing.Add(copy);
-        editing.Add(selectAll);
-        var edit = Group("Edit",
-            EditItem("Undo", "Meta+Z", box => box.Undo(), box => box.CanUndo, "Undo"),
-            EditItem("Redo", "Meta+Shift+Z", box => box.Redo(), box => box.CanRedo, "Redo"),
-            new NativeMenuItemSeparator(),
-            EditItem("Cut", "Meta+X", box => box.Cut(), box => box.CanCut),
-            new NativeMenuItem(Text("Copy")) { Command = copy, Gesture = KeyGesture.Parse("Meta+C") },
-            EditItem("Paste", "Meta+V", box => box.Paste(), box => box.CanPaste),
-            new NativeMenuItem(Text("SelectAll")) { Command = selectAll, Gesture = KeyGesture.Parse("Meta+A") },
-            new NativeMenuItemSeparator(), Action("Find", FocusDocumentSearch, "Meta+F"));
-        edit.Menu!.NeedsUpdate += (_, _) => { foreach (var command in editing) command.NotifyCanExecuteChanged(); };
-
-        var view = Group("View", Action("ToggleSidebar", () => OnSidebarToggleClick(null, new()), "Meta+Alt+S"),
-            new NativeMenuItem(Text("Commands")) { Command = new AsyncRelayCommand(ShowCommandPaletteAsync), Gesture = KeyGesture.Parse("Meta+K") },
-            new NativeMenuItemSeparator(), Item("Home"), Item("Tools"), Item("Jobs"),
-            new NativeMenuItemSeparator(), Item("ZoomIn"), Item("ZoomOut"),
-            Item("ActualSize"), Item("FitPage"), Item("FitWidth"), Item("FocusReading"));
-        var fullscreen = Action("FullScreen", ToggleFullScreen, "Meta+Control+F");
-        var window = Group("Window", Action("Minimize", () => WindowState = WindowState.Minimized, "Meta+M"), fullscreen,
-            new NativeMenuItemSeparator(), Action("NextTab", () => TabHost.SelectRelativeTab(false), "Control+Tab"),
-            Action("PreviousTab", () => TabHost.SelectRelativeTab(true), "Control+Shift+Tab"),
-            new NativeMenuItem(Text("ReopenTab")) { Command = reopen, Gesture = KeyGesture.Parse("Meta+Shift+T") });
-        int windowActions = window.Menu!.Items.Count;
-        window.Menu.NeedsUpdate += (_, _) => {
-            fullscreen.Header = Text(WindowState == WindowState.FullScreen ? "LeaveFullScreen" : "FullScreen");
-            reopen.NotifyCanExecuteChanged();
-            while (window.Menu.Items.Count > windowActions) window.Menu.Items.RemoveAt(windowActions);
-            if (!TabHost.HasTabs) return;
-            window.Menu.Items.Add(new NativeMenuItemSeparator());
-            foreach (var tab in TabHost.Tabs) {
-                window.Menu.Items.Add(new NativeMenuItem(tab.Title) {
-                    ToggleType = MenuItemToggleType.Radio,
-                    IsChecked = ReferenceEquals(tab, TabHost.SelectedTab),
-                    Command = new RelayCommand(() => {
-                        if (TabHost.Tabs.Contains(tab)) TabHost.SelectedTab = tab;
-                    })
-                });
-            }
-        };
-        // AppKit's exporter keeps the attached root menu identity across document switches.
-        var menus = NativeMenu.GetMenu(this);
-        bool attach = menus is null;
-        menus ??= new NativeMenu();
-        menus.Items.Clear();
-        foreach (var menu in new[] { file, edit, view, window }) menus.Items.Add(menu);
-        if (attach) NativeMenu.SetMenu(this, menus);
+        return [
+            EditItem("Undo", Key.Z, box => box.Undo(), box => box.CanUndo, "Undo"),
+            EditItem("Redo", Key.Z, box => box.Redo(), box => box.CanRedo, "Redo", KeyModifiers.Shift),
+            StudioMenuSeparator.Instance,
+            EditItem("Cut", Key.X, box => box.Cut(), box => box.CanCut),
+            new StudioMenuCommand("Copy", Text("Copy"), copy, StudioShortcuts.Primary(Key.C)),
+            EditItem("Paste", Key.V, box => box.Paste(), box => box.CanPaste),
+            new StudioMenuCommand("SelectAll", Text("SelectAll"), selectAll, StudioShortcuts.Primary(Key.A))
+        ];
     }
 }

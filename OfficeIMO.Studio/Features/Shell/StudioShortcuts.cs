@@ -27,6 +27,9 @@ internal static class StudioShortcuts {
     internal static KeyGesture FullScreen => UsesCommandKey ? new(Key.F, KeyModifiers.Meta | KeyModifiers.Control) : Plain(Key.F11);
     internal static KeyGesture Quit => UsesCommandKey ? Primary(Key.Q) : OperatingSystem.IsWindows() ? new(Key.F4, KeyModifiers.Alt) : Primary(Key.Q);
     internal static KeyGesture ApplicationMenu => Plain(Key.F10);
+    // macOS conventions with no Windows or Linux counterpart.
+    internal static KeyGesture? ToggleSidebar => UsesCommandKey ? new(Key.S, KeyModifiers.Meta | KeyModifiers.Alt) : null;
+    internal static KeyGesture? Minimize => UsesCommandKey ? Primary(Key.M) : null;
 
     internal static bool Matches(KeyGesture gesture, Key key, KeyModifiers modifiers) =>
         gesture.Key == key && gesture.KeyModifiers == modifiers;

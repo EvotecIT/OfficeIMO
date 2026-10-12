@@ -58,6 +58,41 @@ public sealed class StudioApplicationMenuTests {
     }
 
     [Fact]
+    public async Task MacOS_menu_bar_uses_the_same_definition_with_platform_conventions() {
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(() => {
+            var services = TestAppBuilder.CreateTestServices();
+            var window = new MainWindow(services) { Width = 1280, Height = 800 };
+            try {
+                window.Show();
+                IReadOnlyList<StudioMenuGroup> desktop = window.BuildMenuModel(nativeMac: false);
+                IReadOnlyList<StudioMenuGroup> mac = window.BuildMenuModel(nativeMac: true);
+                static string[] Ids(IReadOnlyList<StudioMenuGroup> menus, string id) =>
+                    menus.Single(menu => menu.Id == id).Items.OfType<StudioMenuCommand>().Select(item => item.Id).ToArray();
+
+                Assert.Equal(desktop.Select(menu => menu.Id), mac.Select(menu => menu.Id));
+                Assert.Equal(Ids(desktop, "Document"), Ids(mac, "Document"));
+                Assert.Equal(Ids(desktop, "View"), Ids(mac, "View"));
+                Assert.Equal(desktop.Single(menu => menu.Id == "ToolsMenu").Items.Count, mac.Single(menu => menu.Id == "ToolsMenu").Items.Count);
+
+                // About, Settings and Quit belong to the macOS application menu; Edit also drives text fields there.
+                Assert.Contains("Exit", Ids(desktop, "File"));
+                Assert.DoesNotContain("Exit", Ids(mac, "File"));
+                Assert.DoesNotContain("Settings", Ids(mac, "File"));
+                Assert.DoesNotContain("About", Ids(mac, "Help"));
+                Assert.Superset(new HashSet<string> { "Undo", "Redo", "Cut", "Copy", "Paste", "SelectAll", "Find" }, Ids(mac, "Edit").ToHashSet());
+
+                // The native rendering keeps every entry, including Open Recent.
+                StudioMenuGroup file = mac.Single(menu => menu.Id == "File");
+                var native = (NativeMenuItem)StudioMenuRenderer.ToNative(file);
+                Assert.Equal(file.Items.Count, native.Menu!.Items.Count);
+                Assert.Contains(file.Items, item => item is StudioMenuGroup { Id: "OpenRecent" });
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task F10_and_access_keys_open_the_application_menu() {
         if (OperatingSystem.IsMacOS()) return;
         using var app = TestAppBuilder.StartSession();

@@ -5665,4 +5665,14 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Mobile.FileName" xml:space="preserve"><value>Dateiname</value></data>
   <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Wählen Sie als Nächstes einen Ordner in der Dateien-App. Das Dokument wird nach Abschluss der Prüfung geschrieben.</value></data>
   <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Anmerkungen sind für dieses Dokument nicht verfügbar.</value></data>
+  <data name="Apple.Document" xml:space="preserve"><value>Dokument</value></data>
+  <data name="Apple.ToolsMenu" xml:space="preserve"><value>Werkzeuge</value></data>
+  <data name="Apple.Help" xml:space="preserve"><value>Hilfe</value></data>
+  <data name="Apple.OpenRecent" xml:space="preserve"><value>Zuletzt verwendet öffnen</value></data>
+  <data name="Apple.ClearRecent" xml:space="preserve"><value>Menü leeren</value></data>
+  <data name="Apple.CloseTab" xml:space="preserve"><value>Tab schließen</value></data>
+  <data name="Apple.KeyboardShortcuts" xml:space="preserve"><value>Befehle und Tastenkombinationen</value></data>
+  <data name="Apple.Documentation" xml:space="preserve"><value>OfficeIMO Studio-Dokumentation</value></data>
+  <data name="Apple.ReportProblem" xml:space="preserve"><value>Problem melden</value></data>
+  <data name="Apple.About" xml:space="preserve"><value>Über OfficeIMO Studio</value></data>
 </root>

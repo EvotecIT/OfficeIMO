@@ -3013,4 +3013,14 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Mobile.FileName" xml:space="preserve"><value>File name</value></data>
   <data name="Mobile.ChooseFolderNext" xml:space="preserve"><value>Choose a folder in Files next. Your document is written after you finish the review.</value></data>
   <data name="Mobile.AnnotationsUnavailable" xml:space="preserve"><value>Annotations are unavailable for this document.</value></data>
+  <data name="Apple.Document" xml:space="preserve"><value>Document</value></data>
+  <data name="Apple.ToolsMenu" xml:space="preserve"><value>Tools</value></data>
+  <data name="Apple.Help" xml:space="preserve"><value>Help</value></data>
+  <data name="Apple.OpenRecent" xml:space="preserve"><value>Open Recent</value></data>
+  <data name="Apple.ClearRecent" xml:space="preserve"><value>Clear Menu</value></data>
+  <data name="Apple.CloseTab" xml:space="preserve"><value>Close Tab</value></data>
+  <data name="Apple.KeyboardShortcuts" xml:space="preserve"><value>Commands and Keyboard Shortcuts</value></data>
+  <data name="Apple.Documentation" xml:space="preserve"><value>OfficeIMO Studio Documentation</value></data>
+  <data name="Apple.ReportProblem" xml:space="preserve"><value>Report a Problem</value></data>
+  <data name="Apple.About" xml:space="preserve"><value>About OfficeIMO Studio</value></data>
 </root>
