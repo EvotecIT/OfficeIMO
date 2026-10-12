@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Bounded reuse of successful default ASCII plans within one document font.
+/// Bounded reuse of successful default ASCII plans for one immutable font.
 /// Results never include custom providers, diagnostic runs, or explicit features.
 /// Callers replay usage and coverage callbacks outside the cache lock.
 /// </summary>

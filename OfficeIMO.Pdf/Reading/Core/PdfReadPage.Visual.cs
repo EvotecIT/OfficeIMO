@@ -2439,6 +2439,7 @@ public sealed partial class PdfReadPage {
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name),
+            operatorVisitor: names.ObserveOperator,
             operationCheck: operationCheck);
         return names;
     }
@@ -2523,7 +2524,20 @@ public sealed partial class PdfReadPage {
 
     private sealed class PdfPageInvokedResourceNames {
         internal HashSet<string> ColorSpaces { get; } = new HashSet<string>(StringComparer.Ordinal);
+        internal bool HasObjectPaint { get; private set; }
+        internal bool HasVectorPaint { get; private set; }
+
+        internal void ObserveOperator(string op) {
+            if (op is "Do" or "BI") HasObjectPaint = true;
+            if (op is "S" or "s" or "f" or "F" or "f*" or "B" or "B*" or "b" or "b*" or "sh") HasVectorPaint = true;
+        }
     }
+
+    // Type 3 charprocs, patterns and graphics-state masks can paint nested
+    // content even when the page has no direct image or path paint operator.
+    private bool HasIndirectPaintResources(PdfDictionary? resources) =>
+        resources != null && (resources.Items.ContainsKey("Pattern") || resources.Items.ContainsKey("ExtGState") ||
+        _fontResourceCache.GetFonts(resources, _objects).Values.Any(static font => font.FontSubtype == "Type3"));
 
     private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) =>
         TryReadColorSpaceResource(value, evaluationBudget: null, functionResolutionContext: null, out colorSpace);
