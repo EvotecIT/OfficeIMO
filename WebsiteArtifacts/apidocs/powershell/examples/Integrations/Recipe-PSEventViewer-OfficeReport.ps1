@@ -15,7 +15,7 @@ $events = @(Get-EVXEvent -LogName System -Level 2,3 -TimePeriod Last24Hours -Max
 #>
 [CmdletBinding()]
 param(
-    [string] $OutputDirectory = (Join-Path $PSScriptRoot 'Output/EventBrief'),
+    [string] $OutputDirectory,
     [object[]] $Event,
     [switch] $CollectLive,
     [ValidateNotNullOrEmpty()][string] $LogName = 'System',
@@ -23,6 +23,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not $OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot 'Output/EventBrief' }
 Import-Module PSWriteOffice -MinimumVersion 3.0.8 -ErrorAction Stop
 if ($CollectLive -and $PSBoundParameters.ContainsKey('Event')) { throw 'Choose -Event or -CollectLive.' }
 if ($CollectLive) {
@@ -64,6 +65,7 @@ $providerSummary = @($records | Group-Object Provider | Sort-Object Count -Desce
     [pscustomobject]@{ Provider = $_.Name; Records = $_.Count; Critical = @($_.Group | Where-Object Level -EQ 1).Count; Errors = @($_.Group | Where-Object Level -EQ 2).Count; Warnings = @($_.Group | Where-Object Level -EQ 3).Count }
 })
 $null = New-Item -ItemType Directory -Path $OutputDirectory -Force
+$OutputDirectory = (Get-Item -LiteralPath $OutputDirectory).FullName
 $docx = Join-Path $OutputDirectory 'EventIncidentBrief.docx'
 $pdf = Join-Path $OutputDirectory 'EventIncidentBrief.pdf'
 $xlsx = Join-Path $OutputDirectory 'EventRegister.xlsx'

@@ -21,18 +21,18 @@ Install-Module PSWriteOffice, Mailozaurr -Scope CurrentUser
 
 If you already have older copies, use `Update-Module` for those modules before starting a fresh PowerShell session. The examples require PSWriteOffice 3.0.8, PSParseHTML 3.0.3, PSEventViewer 4.0.1 for live collection, and Mailozaurr 3.0.2 or later. The event module's source repository is [EventViewerX](https://github.com/EvotecIT/EventViewerX).
 
-From the PSWriteOffice repository root:
+Read the complete examples and download their scripts and sample inputs from the [OfficeIMO reporting workflows](https://officeimo.com/docs/integrations/). Save the files in an ordinary folder, preserving the supplier example's `Input` directory, then open that folder in PowerShell. Run the downloaded recipe:
 
 ```powershell
-./Examples/Integrations/Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
+./Recipe-HtmlSupplierReview.ps1 -OutputDirectory ./Output/SupplierReview
 
-./Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1 -OutputDirectory ./Output/EventBrief
+./Recipe-PSEventViewer-OfficeReport.ps1 -OutputDirectory ./Output/EventBrief
 
 $attachments = @(
     './Output/SupplierReview/SupplierReview.pdf'
     './Output/SupplierReview/SupplierOffers.xlsx'
 )
-./Examples/Integrations/Recipe-Mailozaurr-PdfDelivery.ps1 -AttachmentPath $attachments -OutputDirectory ./Output/Mail
+./Recipe-Mailozaurr-PdfDelivery.ps1 -AttachmentPath $attachments -OutputDirectory ./Output/Mail
 ```
 
 The supplier and event defaults use synthetic inputs. The mail command saves `ReportReview.eml` with a unique `example.invalid` message identity and sends nothing. Open that file to review its recipients, text and attachments.
@@ -44,7 +44,7 @@ For supplier offers, copy [SupplierOffers.html](Input/SupplierOffers.html) and k
 For events, use `-CollectLive` on Windows to query the selected local log for critical events, warnings and errors from the last 24 hours:
 
 ```powershell
-./Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1 -CollectLive -LogName Application -MaxEvents 100 -OutputDirectory ./Output/LiveBrief
+./Recipe-PSEventViewer-OfficeReport.ps1 -CollectLive -LogName Application -MaxEvents 100 -OutputDirectory ./Output/LiveBrief
 ```
 
 Or query once yourself and pass raw or typed `Get-EVXEvent` results with `-Event`. Typed results use their `SourceEvent` snapshot. The script retains at most `MaxEvents` records, shows the top eight providers in Word, and keeps all retained records in Excel, including the source computer and log where supplied. The register displays seconds and milliseconds to distinguish events within the same minute. An empty snapshot produces an explicit empty report. A count of returned events is not the total size of the log or a root-cause conclusion. Review full messages before sharing the workbook.

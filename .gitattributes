@@ -13,6 +13,10 @@
 *.ps1xml text eol=crlf
 *.pssc text eol=crlf
 *.psrc text eol=crlf
+
+# Downloaded integration recipes retain the same bytes as their website copies.
+Examples/Integrations/*.ps1 text eol=lf
+WebsiteArtifacts/apidocs/powershell/examples/Integrations/*.ps1 text eol=lf
 *.bat text eol=crlf
 *.cmd text eol=crlf
 

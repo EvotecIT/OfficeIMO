@@ -134,14 +134,14 @@ $sheetsBatch = Export-OfficeExcelGoogleSpreadsheet -Path .\Data.xlsx -AsBatch
 
 PSWriteOffice owns the document-workflow side of email: reading or writing standalone message and mailbox artifacts, and searching supported mail sources through the normalized `OfficeIMO.Reader` model. [Mailozaurr](https://github.com/EvotecIT/Mailozaurr) owns operational email and mailbox management, including transport, authentication, mailbox/store lifecycle, PST/OST import and conversion, querying, export, and delivery. Use PSWriteOffice when mail is an input to a report or mixed-document search; use Mailozaurr to acquire, manage, convert, or send the mail, then pass ordinary paths and attachments between the modules.
 
-The integration recipes make those boundaries executable:
+The [OfficeIMO integration guides](https://officeimo.com/docs/integrations/) walk through reviewing supplier offers, investigating an event snapshot and preparing a report for email. They explain the input data, show the PowerShell code and describe the resulting documents. Use the modules by name in your own reporting scripts:
 
 ```powershell
-.\Examples\Integrations\Recipe-Mailozaurr-PdfDelivery.ps1 -SmtpServer smtp.example.com
-.\Examples\Integrations\Recipe-PSEventViewer-OfficeReport.ps1 -LogName System -MaxEvents 200
+Import-Module PSWriteOffice
+Import-Module Mailozaurr
 ```
 
-The Mailozaurr recipe generates a real PDF but keeps delivery under `-WhatIf` until `-Send` is supplied. The PSEventViewer recipe queries events once and turns the projected results into Word and Excel reports.
+The mail example saves a local EML with a PDF attachment. Its `-Send` switch enables a send attempt when `-SmtpServer` is set; set `-To` to real recipients before using `-Send`. The event example uses a synthetic snapshot by default; use `-CollectLive` with PSEventViewer on Windows for a bounded local query. Both create documents from ordinary objects and paths.
 
 Confluence writes can be reviewed before a session or tenant is involved:
 
