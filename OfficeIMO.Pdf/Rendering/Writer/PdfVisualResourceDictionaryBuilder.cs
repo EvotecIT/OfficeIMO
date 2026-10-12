@@ -271,7 +271,8 @@ internal static class PdfVisualResourceDictionaryBuilder {
         return false;
     }
 
-    private static List<OfficeGradientStop> NormalizeGradientStops(IReadOnlyList<OfficeGradientStop> stops) {
+    /// <summary>Resolves repeated endpoint and interior stops to the field emitted by native PDF shading.</summary>
+    internal static List<OfficeGradientStop> NormalizeGradientStops(IReadOnlyList<OfficeGradientStop> stops) {
         var normalized = new List<OfficeGradientStop>(stops.Count);
         int index = 0;
         while (index < stops.Count) {

@@ -83,14 +83,13 @@ internal static partial class PdfWriter {
                 double? footerOverlapHeight;
                 double firstBodyHeight;
                 if (runningFirstBodyHeight is double continuationHeight) {
-                    // Paragraph flow already wrapped and measured this actual
-                    // continuation line, including its container reservation.
+                    // Paragraph flow already measured this actual continuation
+                    // line, including its active-container reservation.
                     firstBodyHeight = continuationHeight;
                     footerOverlapHeight = runningFirstBodyAllowsFooterOverlap ? continuationHeight : null;
                 } else firstBodyHeight = MeasureRunningContentFirstBodyHeight(source, out footerOverlapHeight);
-                // A supported imported paragraph can retain its header and put
-                // its first line beside the footer. Admission must use the same
-                // physical bottom bound as paragraph flow before dropping it.
+                // Imported paragraphs may place their first line beside a tall
+                // footer while retaining the header and physical body margins.
                 bool fitsBesideFooter = footerOverlapHeight.HasValue && bottom > source.MarginBottom + .001D &&
                     footerOverlapHeight.Value <= source.PageHeight - top - source.MarginBottom + .001D;
                 if (!fitsBesideFooter && firstBodyHeight <= source.PageHeight - source.MarginTop - source.MarginBottom + .001D &&

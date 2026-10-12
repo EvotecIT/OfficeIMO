@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
             CancellationToken ct,
             out IReadOnlyList<ExcelDataSetImportResult> results) {
             results = Array.Empty<ExcelDataSetImportResult>();
-            if (!TryBeginDeferredDirectSaveCandidateRegistration()) {
+            if (!TryBeginDeferredDirectSaveCandidateRegistration(cancellationToken: ct)) {
                 return false;
             }
 

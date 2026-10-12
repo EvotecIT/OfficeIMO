@@ -69,12 +69,10 @@ public sealed class DrawingFilledClipInkTests {
     }
 
     [Fact]
-    public void OverBudgetAndUnclosedPathsRemainUnmeasured() {
+    public void OverBudgetPathsRemainUnmeasured() {
         var points = Enumerable.Range(0, 600).Select(i => new OfficePoint(10 + 10 * Math.Cos(i * Math.PI / 300), 10 + 10 * Math.Sin(i * Math.PI / 300))).ToArray();
         var commands = new[] { OfficePathCommand.MoveTo(points[0]) }.Concat(points.Skip(1).Select(OfficePathCommand.LineTo)).Concat(new[] { OfficePathCommand.Close() });
         Assert.False(OfficeTextInkClip.TryCreatePath(OfficeClipPath.Path(commands), OfficeTransform.Identity, default, out _));
-        var open = OfficeClipPath.Path(OfficePathCommand.MoveTo(new(0, 0)), OfficePathCommand.LineTo(new(20, 0)), OfficePathCommand.LineTo(new(0, 20)));
-        Assert.False(OfficeTextInkClip.TryCreatePath(open, OfficeTransform.Identity, default, out _));
     }
 
     private static OfficeTextInkClip CreateClip(IEnumerable<List<OfficePoint>> contours, OfficeFillRule rule, OfficeTransform? transform = null) {

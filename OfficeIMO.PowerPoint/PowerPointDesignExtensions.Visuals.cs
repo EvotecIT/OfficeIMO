@@ -27,6 +27,9 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointMetric metric = metrics[i];
                 PowerPointLayoutBox box = boxes[i];
                 int resolvedValueFontSize = ResolveMetricValueFontSize(metric.Value, box.WidthCm, valueFontSize);
+                // A short value can fit the column width and still exceed the compact
+                // metric band's height. Leave room for the font's line box as well.
+                resolvedValueFontSize = FitSingleLineFontToHeight(resolvedValueFontSize, valueHeight);
                 PowerPointTextBox value = AddText(slide, metric.Value, box.LeftCm, box.TopCm, box.WidthCm, valueHeight,
                     resolvedValueFontSize,
                     resolvedTextColor, theme.HeadingFontName, bold: true);

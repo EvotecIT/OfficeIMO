@@ -12,6 +12,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.
 - [Microsoft Access milestones](ROADMAP.md#microsoft-access-document-library) — native MDB/ACCDB lifecycle, application objects, VBA, integrations, and independent acceptance evidence.
 - [Access native API](../OfficeIMO.Access/README.md) and [support contract](../OfficeIMO.Access/SUPPORT.md) — MDB/ACCDB catalogs and typed rows, application/VBA inspection, unchanged preservation and seed-free creation.
+- [Publisher recovery API](../OfficeIMO.Publisher/README.md), [support contract](../OfficeIMO.Publisher/SUPPORT.md), [PDF conversion](../OfficeIMO.Publisher.Pdf/README.md), and [Reader adapter](../OfficeIMO.Reader.Publisher/README.md) — positioned publication pages, complete source stories, embedded assets and explicit fidelity reports.
 - [Project document API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent XML, native MPP/MPT, MPX, advanced calculation, portable reports, mapped data exchange, and producer-specific limits.
 - [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases) — release notes, version history, and downloadable artifacts.
 - [Website guide](officeimo.website.md) — local build and publication workflow.

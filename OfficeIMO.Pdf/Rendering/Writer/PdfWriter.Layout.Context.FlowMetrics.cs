@@ -135,7 +135,7 @@ internal static partial class PdfWriter {
 
             int linesToReserve = 1;
             PdfKeepTogetherOverflowBehavior overflow = ResolveParagraphConstraintOverflow(paragraphStyle, wrap.Lines, wrap.LineHeights, leading);
-            bool keepAllLines = paragraphStyle?.KeepTogether == true && overflow == PdfKeepTogetherOverflowBehavior.Reject;
+            bool keepAllLines = !reserveSingleLine && paragraphStyle?.KeepTogether == true && overflow == PdfKeepTogetherOverflowBehavior.Reject;
             if (keepAllLines) {
                 linesToReserve = wrap.LineHeights.Count;
             } else if (paragraphStyle != null && !reserveSingleLine) {
@@ -271,7 +271,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is DrawingBlock drawing) {
-                return MeasureDrawingBlockHeight(drawing);
+                return MeasureDrawingBlockHeight(drawing, frameWidth);
             }
 
 
@@ -498,7 +498,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is DrawingBlock drawing) {
-                return MeasureDrawingBlockHeight(drawing);
+                return MeasureDrawingBlockHeight(drawing, frameWidth);
             }
 
             if (block is RowBlock row) {
@@ -550,9 +550,10 @@ internal static partial class PdfWriter {
             return ResolveTopLevelSpacingBefore(style.SpacingBefore) + shape.Shape.Height + style.SpacingAfter;
         }
 
-        private double MeasureDrawingBlockHeight(DrawingBlock drawing) {
+        private double MeasureDrawingBlockHeight(DrawingBlock drawing, double frameWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(drawing, currentOpts);
-            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + drawing.Drawing.Height + style.SpacingAfter;
+            var box = ResolveDrawingFlowBox(drawing, style, frameWidth);
+            return ResolveTopLevelSpacingBefore(style.SpacingBefore) + box.Height + style.SpacingAfter;
         }
 
 

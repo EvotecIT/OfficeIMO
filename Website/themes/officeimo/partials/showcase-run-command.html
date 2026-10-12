@@ -1,0 +1,5 @@
+{{ run_command = card.run_command }}
+{{ if source_language == "powershell" }}
+  {{ run_command = 'Install-Module PSWriteOffice -Scope CurrentUser\n' + run_command }}
+  {{ desktop_run_command = run_command | string.replace 'pwsh -NoProfile' 'powershell -NoProfile' }}
+{{ end }}

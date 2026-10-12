@@ -64,7 +64,9 @@ namespace OfficeIMO.Visio {
             WriteConnectorTransform(writer, ns, connector);
             WriteXForm1D(writer, ns, startX, startY, endX, endY);
             WriteModeledConnectorCells(writer, ns, connector, startX, startY, endX, endY, layerIndexes);
-            WritePreservedConnectorCells(writer, connector.PreservedCellElements.Where(cell => !VisioConnectorGeometry.IsTransformCell((string?)cell.Attribute("N"))));
+            WritePreservedConnectorCells(writer, connector.PreservedCellElements.Where(cell =>
+                !VisioConnectorGeometry.IsTransformCell((string?)cell.Attribute("N")) &&
+                !string.Equals((string?)cell.Attribute("N"), "LineColorTrans", StringComparison.OrdinalIgnoreCase)));
             WritePreservedConnectorSections(writer, connector.PreservedNonGeometrySections);
             WriteTextStyleSections(writer, ns, connector.TextStyle, connector.CharacterSectionSource, connector.ParagraphSectionSource, connector.PreservedNonGeometrySections);
             WriteHyperlinkSection(writer, ns, connector.Hyperlinks, VisioHyperlinkRowNames.Inherited(connector, this));
@@ -75,6 +77,16 @@ namespace OfficeIMO.Visio {
 
         private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
             VisioConnectorEndpoints.Resolve(connector, out startX, out startY, out endX, out endY);
+        }
+
+        private static void WriteConnectorLineTransparency(XmlWriter writer, string ns, VisioConnector connector) {
+            XElement? original = connector.PreservedCellElements.FirstOrDefault(cell =>
+                string.Equals((string?)cell.Attribute("N"), "LineColorTrans", StringComparison.OrdinalIgnoreCase));
+            // Retain the exact native cache/formula when the modeled alpha has not changed.
+            if (original != null && VisioShapeGeometry.TryParseLiteralWithoutShape((string?)original.Attribute("V"), out double transparency) &&
+                transparency >= 0 && transparency <= 1 && (byte)Math.Round(255 * (1 - transparency)) == connector.LineColor.A) {
+                original.WriteTo(writer);
+            } else WriteCell(writer, ns, "LineColorTrans", 1 - connector.LineColor.A / 255D);
         }
 
         private bool TryWriteConnectorShapeChildToken(
@@ -213,6 +225,9 @@ namespace OfficeIMO.Visio {
                     return true;
                 case "LineColor":
                     WriteCellValue(writer, ns, "LineColor", connector.LineColor.ToVisioHex());
+                    return true;
+                case "LineColorTrans":
+                    WriteConnectorLineTransparency(writer, ns, connector);
                     return true;
                 case "FillPattern":
                     WriteCell(writer, ns, "FillPattern", 0);

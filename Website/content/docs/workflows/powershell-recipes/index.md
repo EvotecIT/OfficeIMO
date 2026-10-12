@@ -82,6 +82,6 @@ Use the normalized Reader commands for indexing, migration, classification, sear
 
 ## Create and review a presentation
 
-Start with the {{< pswriteoffice-source kind="blob" path="Examples/Showcase/Showcase-PowerPoint-ServiceBrief.ps1" label="PowerPoint service brief" >}} for a complete deck, or the {{< pswriteoffice-source kind="tree" path="Examples/PowerPoint" label="PowerPoint examples" >}} for focused charts, layouts, themes, transitions, imported slides, and HTML review.
+Start with the [CSV-driven service brief](https://github.com/EvotecIT/PSWriteOffice/blob/f28d09d2ff157925598d9396bf0f2c8ef19a2b25/Examples/Showcase/ServiceBrief.md) to review quarterly ticket demand, identify a location for follow-up and prepare dated actions in an editable eight-slide deck. The guide includes the sample CSV, input constraints and rerun instructions. See the {{< pswriteoffice-source kind="tree" path="Examples/PowerPoint" label="PowerPoint examples" >}} for focused charts, layouts, themes, transitions, imported slides, and HTML review.
 
 See the [PSWriteOffice command families](/docs/pswriteoffice/command-families/) for the current supported surface and use the package-specific examples below for concrete workflows.
