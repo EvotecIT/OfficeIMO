@@ -82,20 +82,25 @@ internal static partial class PdfWriter {
                 spacingAfter, topGaps?[last] ?? 0D);
         }
 
-        private double GetClosingColumnGroupPadding(List<ColItem> items, int itemIndex, double rowSpacingAfter = 0D) {
+        private ContainerClosingSpace GetClosingColumnGroupSpace(List<ColItem> items, int itemIndex, double rowSpacingAfter = 0D) {
             double padding = 0D;
             double trailingSpacing = 0D;
+            bool requiresFullAdvance = false;
             for (int next = itemIndex + 1; next < items.Count; next++) {
                 if (items[next] is ColGroupEnd end) {
                     double closing = GetUnreservedClosingPadding(end.Group.Style);
-                    if (closing > 0D) { padding += closing + trailingSpacing; trailingSpacing = 0D; }
+                    if (RequiresFullContainerClosingAdvance(end.Group.Style)) {
+                        padding += closing + trailingSpacing;
+                        trailingSpacing = 0D;
+                        requiresFullAdvance = true;
+                    }
                     trailingSpacing += end.Group.Style?.SpacingAfter ?? 0D;
                 }
-                else if (items[next] is not ColBookmark) return padding;
+                else if (items[next] is not ColBookmark) return new(padding, requiresFullAdvance);
             }
             ContainerClosingSpace outerClosing = GetClosingContainerSpace();
-            return padding + outerClosing.Padding + (outerClosing.Padding > 0D ? trailingSpacing : 0D) +
-                (outerClosing.RequiresFullAdvance ? rowSpacingAfter : 0D);
+            return new(padding + outerClosing.Padding + (outerClosing.RequiresFullAdvance ? trailingSpacing : 0D) +
+                (outerClosing.RequiresFullAdvance ? rowSpacingAfter : 0D), requiresFullAdvance || outerClosing.RequiresFullAdvance);
         }
 
         private double GetClosingTextPadding(double spacingAfter) {

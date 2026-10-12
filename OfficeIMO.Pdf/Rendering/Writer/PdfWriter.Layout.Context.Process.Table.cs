@@ -271,7 +271,8 @@ internal static partial class PdfWriter {
                     MaximumContinuationHeight() > maxContentHeight + 0.001D) advance();
             }
             if (style.KeepTogether) {
-                double KeepHeight() => tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
+                double KeepHeight() => tableSpacingBefore + tableContentHeight +
+                    (style.Position == null ? style.SpacingAfter + GetClosingContainerPadding() : 0D);
                 MovePastShortTableFrames(KeepHeight, () => { NewInitialTablePage(); tableSpacingBefore = 0D; });
                 double keepHeight = KeepHeight();
                 if (keepHeight > maxContentHeight + 0.001) {
@@ -488,11 +489,13 @@ internal static partial class PdfWriter {
                         MaximumContinuationHeight() > maxContentHeight + 0.001D, requireDefaultFirstFragment);
                 double closingPadding = rowIndex == tb.Rows.Count - 1 && startLine + take == rowLineCounts[rowIndex]
                     ? GetClosingTextPadding(style.SpacingAfter) : 0D;
-                if (closingPadding > 0D)
+                if (closingPadding > 0D &&
+                    MeasureTableRowSegmentHeight(rowIndex, startLine, take, suppressCellObjects: false) + closingPadding > available + .001D)
                     take = GetPreparedTableRowSegmentLineCountThatFits(tb, style, preparedRows, cols, colPixel, colGapPx,
-                        rowIndex, startLine, available - closingPadding, MaximumContinuationHeight(),
+                        rowIndex, startLine, available, MaximumContinuationHeight(),
                         (canMoveToNextFrame ?? y < GetCurrentFramePageStartY() - .001D) ||
-                            MaximumContinuationHeight() > maxContentHeight + .001D, requireDefaultFirstFragment);
+                            MaximumContinuationHeight() > maxContentHeight + .001D, requireDefaultFirstFragment,
+                        maximumLineCount: rowLineCounts[rowIndex] - startLine - 1);
                 return take;
             }
 

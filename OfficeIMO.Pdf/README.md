@@ -346,6 +346,9 @@ Continuous panels reserve final text's full line advance and closing padding.
 They also reserve terminal table and row spacing. Lists and tables that must stay
 together are measured before the panel's decoration opens. Content that fits a
 fresh page or column moves there as needed.
+Kept paragraphs, lists, tables and rows include closing padding after earlier
+content and inside row columns. Terminal column tables retain their trailing
+spacing even when the panel has zero padding.
 Intermediate fragments keep their normal capacity. Content that cannot leave
 closing space even in a fresh frame is rejected.
 

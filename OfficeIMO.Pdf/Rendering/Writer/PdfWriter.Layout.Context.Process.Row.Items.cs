@@ -98,6 +98,7 @@ internal static partial class PdfWriter {
                             foreach (ColListItem listItem in listItems) {
                                 listItem.KeepTogether = true;
                                 listItem.KeepGroupHeight = listGroupHeight;
+                                listItem.KeepGroupItemCount = listItems.Count;
                             }
                         }
 

@@ -29,10 +29,11 @@ internal static partial class PdfWriter {
                 overflow = listStyle.KeepTogetherOverflow;
             }
 
-            if (listStyle?.LineSpacing?.FontLineBoxMultiplier != null && listStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
+            if (closingSpace.RequiresFullAdvance ||
+                listStyle?.LineSpacing?.FontLineBoxMultiplier != null && listStyle.LineSpacing.Rule == PdfLineSpacingRule.Multiple) {
                 prepared ??= PrepareListLayout(list, frameWidth, fontSize, topLevelSpacing: true);
                 TableCellTextLayout first = prepared.Items[0].TextLayout;
-                double height = listStyle.SpacingBefore + (first.LineCount == 0 ? 0D :
+                double height = (listStyle?.SpacingBefore ?? 0D) + (first.LineCount == 0 ? 0D :
                     (prepared.Items.Count == 1 && first.LineCount == 1 ? closingSpace : default).GetTextHeight(
                         first.Lines[0], GetRichLineHeight(first.LineHeights, 0, leading), prepared.SpacingAfter));
                 return (height, overflow);

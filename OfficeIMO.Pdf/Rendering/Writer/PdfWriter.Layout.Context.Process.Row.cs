@@ -85,7 +85,7 @@ internal static partial class PdfWriter {
 
             if (rowStyle?.KeepTogether == true) {
                 double rowContentHeight = GetRowContentHeight();
-                double rowKeepHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter;
+                double rowKeepHeight = rowSpacingBefore + rowContentHeight + rowSpacingAfter + GetClosingContainerPadding();
                 double availableHeight = GetFullPageContentHeight();
                 if (rowKeepHeight > availableHeight + 0.001) {
                     throw new ArgumentException("Row height exceeds the available page content height.");
@@ -151,7 +151,8 @@ internal static partial class PdfWriter {
                     ResumeColumnGroups(activeGroups, colXs[ci], ref yCol, ref remain, ref consumed);
                     while (idx < items.Count && (remain > 0.1 || items[idx] is ColGroupEnd)) {
                         var it = items[idx];
-                        double closingPadding = GetClosingColumnGroupPadding(items, idx, rowSpacingAfter);
+                        ContainerClosingSpace closingSpace = GetClosingColumnGroupSpace(items, idx, rowSpacingAfter);
+                        double closingPadding = closingSpace.Padding;
                         double remainingForFinalItem = remain - closingPadding;
                         xCol = colXs[ci] + it.ColumnXOffset;
                         wCol = it.ColumnWidth;
@@ -201,7 +202,7 @@ internal static partial class PdfWriter {
                             }
 
                             if (paragraphStyle?.KeepTogether == true && line == 0) {
-                                double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter;
+                                double paragraphHeight = spacingBefore + heights.Sum() + spacingAfter + closingPadding;
                                 double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (paragraphHeight > availableHeight + 0.001) {
                                     throw new ArgumentException("Paragraph height exceeds the available page content height.");
@@ -322,7 +323,8 @@ internal static partial class PdfWriter {
                             double leading = listItem.Leading;
                             double spacingBefore = line == 0 ? ResolveColumnSpacingBefore(listItem.SpacingBefore, consumed) : 0D;
                             if (line == 0 && listItem.KeepTogether && listItem.IsFirstInKeepGroup) {
-                                double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore;
+                                double keepGroupHeight = listItem.KeepGroupHeight - listItem.SpacingBefore + spacingBefore +
+                                    GetClosingColumnGroupSpace(items, idx + listItem.KeepGroupItemCount - 1, rowSpacingAfter).Padding;
                                 double availableHeight = GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D));
                                 if (keepGroupHeight > availableHeight + 0.001) {
                                     throw new ArgumentException("List height exceeds the available page content height.");
@@ -444,7 +446,7 @@ internal static partial class PdfWriter {
                             var state = new ColumnTableCursor { Index = idx, Line = line, Subline = subline, Y = yCol, Remaining = remain, Consumed = consumed };
                             bool completed = RenderColumnTable(table, items, state, xCol, wCol,
                                 GetFullPageContentHeight() - activeGroups.Sum(group => (group.Style?.FullFragmentPaddingReservation ?? 0D)),
-                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingPadding);
+                                GetCurrentFramePageStartY() - activeGroups.Sum(group => group.Style?.GetFragmentTopPadding(group.Decoration?.IsContinuation == true) ?? 0D), closingSpace);
                             // A merged-cell tail can advance within the same physical row and line cursor.
                             if (state.Consumed > consumed + .001D) anyColumnAdvanced = true;
                             (idx, line, subline) = (state.Index, state.Line, state.Subline);
