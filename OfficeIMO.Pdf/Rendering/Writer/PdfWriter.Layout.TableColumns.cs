@@ -35,7 +35,7 @@ internal static partial class PdfWriter {
                 throw new ArgumentException("Table max width must be a positive finite value.");
             }
 
-            return Math.Min(frameWidth, maxWidth);
+            return style.AllowWidthBeyondFrame && !style.AutoFitColumns ? maxWidth : Math.Min(frameWidth, maxWidth);
         }
 
         return frameWidth;
@@ -49,16 +49,33 @@ internal static partial class PdfWriter {
         int columnCount,
         double columnGap) {
         double availableWidth = ResolveTableAvailableWidth(style, containerWidth);
+        if (TryResolveImportedPercentageFrameWidth(style, autoFitPreferredWidths, autoFitMinimumWidths,
+            columnCount, columnGap, availableWidth, out double importedWidth))
+            return style.AllowWidthBeyondFrame
+                ? style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value, importedWidth) : importedWidth
+                : Math.Min(availableWidth, importedWidth);
         if (!style.PreferredWidth.HasValue && !style.AutoFitUnspecifiedWidthToContent) {
             return availableWidth;
         }
 
-        // An imported automatic grid with no authored width grows from its
-        // content minimum. Generic PDF tables retain their page-width default.
-        double preferredWidth = style.PreferredWidth.HasValue ? Math.Min(availableWidth, style.PreferredWidth.Value) : 0D;
+        // Imported automatic tables grow from their measured content. Generic
+        // PDF tables retain their page-width default.
+        double preferredWidth = style.PreferredWidth.HasValue
+            ? style.AllowWidthBeyondFrame ? style.PreferredWidth.Value : Math.Min(availableWidth, style.PreferredWidth.Value)
+            : 0D;
         double measuredContentWidth = 0D;
-        if (!style.AutoFitWidthUsesContentMinimum && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
-            measuredContentWidth = Math.Max(measuredContentWidth, autoFitPreferredWidths.Sum());
+        // A content-sized imported table without an authored frame uses its
+        // unwrapped content preferences. Cached grid columns do not constrain it.
+        bool useContentPreferences = !style.AutoFitWidthUsesContentMinimum ||
+            (style.AutoFitUnspecifiedWidthToContent && !style.PreferredWidth.HasValue);
+        if (useContentPreferences && autoFitPreferredWidths != null && autoFitPreferredWidths.Length > 0) {
+            // Reserve each column's larger minimum before allocation. A wide
+            // unbreakable word must not borrow from its neighbor's preferred line.
+            for (int column = 0; column < autoFitPreferredWidths.Length; column++) {
+                double minimum = autoFitMinimumWidths != null && column < autoFitMinimumWidths.Length
+                    ? autoFitMinimumWidths[column] : 0D;
+                measuredContentWidth += Math.Max(autoFitPreferredWidths[column], minimum);
+            }
         }
 
         if (autoFitMinimumWidths != null && autoFitMinimumWidths.Length > 0) {
@@ -66,10 +83,14 @@ internal static partial class PdfWriter {
         }
 
         measuredContentWidth += Math.Max(0, columnCount - 1) * columnGap;
-        return Math.Min(availableWidth, Math.Max(preferredWidth, measuredContentWidth));
+        double desiredWidth = Math.Max(preferredWidth, measuredContentWidth);
+        if (style.AllowWidthBeyondFrame) {
+            return style.MaxWidth.HasValue ? Math.Min(style.MaxWidth.Value, desiredWidth) : desiredWidth;
+        }
+        return Math.Min(availableWidth, desiredWidth);
     }
 
-    private static double FitFixedTableColumnsToAvailableWidth(double[] columnWidths, bool[] fixedColumns, double?[] minWidths, double fixedWidthTotal, double availableWidth) {
+    private static double FitFixedTableColumnsToAvailableWidth(double[] columnWidths, bool[] fixedColumns, double?[] minWidths, double fixedWidthTotal, double availableWidth, bool preserveMinimums = false) {
         if (fixedWidthTotal <= availableWidth + 0.001D) {
             return fixedWidthTotal;
         }
@@ -83,6 +104,17 @@ internal static partial class PdfWriter {
 
         if (requiredMinimumWidth > availableWidth + 0.001D) {
             throw new ArgumentException("Table fixed column widths cannot fit inside the available table width after applying minimum widths.");
+        }
+
+        if (preserveMinimums && fixedColumns.All(value => value) && fixedWidthTotal > requiredMinimumWidth) {
+            // Imported separate-border cells retain their physical text/padding
+            // minimum while the remaining preferred width is compressed.
+            double scale = (availableWidth - requiredMinimumWidth) / (fixedWidthTotal - requiredMinimumWidth);
+            for (int column = 0; column < columnWidths.Length; column++) {
+                double minimum = minWidths[column] ?? 0D;
+                columnWidths[column] = minimum + (columnWidths[column] - minimum) * scale;
+            }
+            return availableWidth;
         }
 
         double[] originalWidths = new double[columnWidths.Length];
@@ -269,7 +301,8 @@ internal static partial class PdfWriter {
             totalWeight += weight;
         }
 
-        fixedWidthTotal = FitFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, minWidths, fixedWidthTotal, tableInnerWidth);
+        fixedWidthTotal = FitFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, minWidths, fixedWidthTotal, tableInnerWidth,
+            preserveMinimums: style.CompressFixedColumnsAboveMinimums);
         if (style.PreserveWidth && totalWeight <= 0D) {
             fixedWidthTotal = ExpandFixedTableColumnsToAvailableWidth(columnWidths, fixedColumns, maxWidths, fixedWidthTotal, tableInnerWidth);
         }
@@ -279,7 +312,11 @@ internal static partial class PdfWriter {
             remainingWidth = 0D;
         }
 
-        DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
+        if (!TryDistributeImportedPercentageColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
+                autoFitWeights, autoFit?.PaddingWidths, tableInnerWidth) &&
+            !TryDistributeImportedPreferredColumns(style, columnWidths, fixedColumns, minWidths, maxWidths,
+            autoFitWeights, autoFit?.PaddingWidths, remainingWidth))
+            DistributeFlexibleColumns(columnWidths, columnWeights, fixedColumns, minWidths, maxWidths, remainingWidth);
         if (!style.PreserveWidth) {
             tableWidth = Math.Min(tableWidth, columnWidths.Sum() + (columns - 1) * columnGap);
         }
@@ -294,12 +331,14 @@ internal static partial class PdfWriter {
     private static double ResolveTableX(PdfAlign align, PdfTableStyle style, double containerLeft, double containerWidth, double tableWidth) {
         double frameLeft = containerLeft + style.LeftIndent + style.HorizontalOffset;
         double frameWidth = ResolveTableFrameWidth(style, containerWidth);
+        double alignmentSpace = frameWidth - tableWidth;
+        if (!style.AllowWidthBeyondFrame) alignmentSpace = Math.Max(0D, alignmentSpace);
         if (align == PdfAlign.Center) {
-            return frameLeft + Math.Max(0, (frameWidth - tableWidth) / 2);
+            return frameLeft + alignmentSpace / 2D;
         }
 
         if (align == PdfAlign.Right) {
-            return frameLeft + Math.Max(0, frameWidth - tableWidth);
+            return frameLeft + alignmentSpace;
         }
 
         return frameLeft;
@@ -359,6 +398,18 @@ internal static partial class PdfWriter {
                 }
             }
 
+            // Bounds may push the common weighted allocation in opposite
+            // directions. Only fix bounds that remain binding in the direction
+            // needed to fill the frame; the opposite bounds may cease to bind.
+            double boundedTotal = 0D;
+            for (int i = 0; i < widths.Length; i++) {
+                if (!active[i]) continue;
+                double proposed = weightSum > 0D ? remaining * (weights[i] / weightSum) : remaining / activeCount;
+                double bounded = minWidths[i].HasValue ? Math.Max(proposed, minWidths[i]!.Value) : proposed;
+                boundedTotal += maxWidths[i].HasValue ? Math.Min(bounded, maxWidths[i]!.Value) : bounded;
+            }
+            bool needsGrowth = boundedTotal < remaining - 0.0000001D;
+            bool needsReduction = boundedTotal > remaining + 0.0000001D;
             bool constrained = false;
             for (int i = 0; i < widths.Length; i++) {
                 if (!active[i]) {
@@ -366,18 +417,22 @@ internal static partial class PdfWriter {
                 }
 
                 double proposed = weightSum > 0 ? remaining * (weights[i] / weightSum) : remaining / activeCount;
-                if (minWidths[i].HasValue && proposed < minWidths[i]!.Value) {
+                if (!needsGrowth && minWidths[i].HasValue && proposed < minWidths[i]!.Value) {
                     widths[i] = minWidths[i]!.Value;
                     remaining -= widths[i];
                     active[i] = false;
                     activeCount--;
                     constrained = true;
-                } else if (maxWidths[i].HasValue && proposed > maxWidths[i]!.Value) {
+                    // Recompute the active weight sum before constraining a
+                    // neighbor against the reduced remaining width.
+                    break;
+                } else if (!needsReduction && maxWidths[i].HasValue && proposed > maxWidths[i]!.Value) {
                     widths[i] = maxWidths[i]!.Value;
                     remaining -= widths[i];
                     active[i] = false;
                     activeCount--;
                     constrained = true;
+                    break;
                 }
             }
 

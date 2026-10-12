@@ -105,13 +105,20 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(18, 80D)]
-    [InlineData(24, 94D)]
-    public void SaveAsPdf_AutomaticUnequalGridGrowsOnlyByItsSpanningCellDeficit(int characters, double expectedGap) {
+    [InlineData(18, false, 80D)]
+    [InlineData(24, false, 107.15D)]
+    [InlineData(18, true, 65.9D)]
+    [InlineData(24, true, 86.75D)]
+    public void SaveAsPdf_AutomaticUnequalGridDistributesItsSpanningCellConstraint(
+        int characters, bool automaticLeft, double expectedGap) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutomaticWidthControl(document, 1600, 3200);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Span0";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "Span1";
+        if (automaticLeft) {
+            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Auto;
+            table.Rows[0].Cells[0].Width = 0;
+        }
         WordTableRow row = table.AddRow();
         row.Cells[0].MergeHorizontally(1);
         WordTableCell cell = row.Cells[0];
@@ -124,7 +131,7 @@ public partial class Word {
         var words = pdf.GetPage(1).GetWords().ToList();
         double gap = Assert.Single(words, word => word.Text == "Span1").BoundingBox.Left -
             Assert.Single(words, word => word.Text == "Span0").BoundingBox.Left;
-        Assert.InRange(gap, expectedGap, expectedGap + 1D);
+        Assert.InRange(gap, expectedGap - .25D, expectedGap + .25D);
         Assert.Contains(words, word => word.Text == new string('W', characters));
     }
 

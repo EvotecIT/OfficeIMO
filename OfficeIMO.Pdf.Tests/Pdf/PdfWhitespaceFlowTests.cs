@@ -8,6 +8,29 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfWhitespaceFlowTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void SeparatorAfterAFullLineDoesNotIndentTheNextLine(bool table, bool splitRuns) {
+        var options = Options(PdfTextWhitespaceMode.Preserve);
+        options.PageWidth = 76D;
+        options.DefaultFont = PdfStandardFont.Courier;
+        var runs = splitRuns ? new[] { PdfTextRun.Normal("ALPHA"), PdfTextRun.Normal(" BETA") }
+            : new[] { PdfTextRun.Normal("ALPHA BETA") };
+        var document = PdfDocument.Create(options);
+        if (table) document.Table(new[] { new[] { PdfTableCell.RichTextCell(runs) } },
+            style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = 0, CellPaddingY = 0, FontSize = 12D });
+        else document.Paragraph(paragraph => paragraph.Runs(runs));
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        Assert.Equal("ALPHABETA", string.Concat(letters.Select(letter => letter.Value)));
+        Assert.Equal(20D, letters[5].StartBaseLine.X, 3);
+        Assert.Equal(2, letters.Select(letter => Math.Round(letter.StartBaseLine.Y, 3)).Distinct().Count());
+        Assert.True(letters[5].StartBaseLine.Y < letters[0].StartBaseLine.Y);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void PreservedFlowKeepsLeadingAndRepeatedSpaceAdvances(bool table) {

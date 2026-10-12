@@ -17,18 +17,23 @@ internal static partial class PdfWriter {
             scope.TargetHeight < scope.Top - scope.ParentOptions.MarginBottom - .001D;
 
         /// <summary>Distinguishes an actual partial physical page from a shortened balance target.</summary>
-        private bool IsPartialPhysicalColumnFrame() => activeColumnFlow is { } scope &&
-            GetCurrentFramePageStartY() - scope.ParentOptions.MarginBottom < GetMeasuredContinuationFrameHeight() - .001D;
+        private bool IsPartialPhysicalColumnFrame() {
+            if (activeColumnFlow is not { } scope) return false;
+            double fullPageTop = scope.ParentYStart;
+            for (int index = 0; index < scope.ContainerDepth; index++)
+                fullPageTop -= activeContainerScopes[index].Style.GetFragmentTopPadding(isContinuation: true);
+            return scope.Top < fullPageTop - .001D;
+        }
 
         private bool ReservesWholeKeepGroup() => !IsBalancedColumnFrame() || IsPartialPhysicalColumnFrame();
 
         /// <summary>Preserves the unrendered block and its ancestor siblings when a block starts on a later page.</summary>
-        private void NewBlockFrame() {
+        private void NewBlockFrame(bool forcePhysicalPage = false) {
             if (activeBlockSequences.Count > 0) {
                 BlockSequenceScope sequence = activeBlockSequences[activeBlockSequences.Count - 1];
                 QueueColumnBalanceRemainder(sequence.Blocks[sequence.Index], sequence.Blocks, sequence.Index);
             }
-            NewPage();
+            NewPage(forcePhysicalPage: forcePhysicalPage);
         }
     }
 }

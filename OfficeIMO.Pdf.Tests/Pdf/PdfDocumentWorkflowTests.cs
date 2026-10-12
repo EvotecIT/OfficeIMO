@@ -246,8 +246,7 @@ public class PdfDocumentWorkflowTests {
             .Replace(" ", string.Empty);
 
         Assert.Contains(prefix + largeValue, compactText, StringComparison.Ordinal);
-        Assert.Contains(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && Math.Abs(block.FontSize - 8D) < 0.001D);
-        Assert.DoesNotContain(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && block.FontSize > 8.001D);
+        Assert.All(blocks, block => Assert.Equal(8D, block.FontSize, 3));
     }
 
     [Fact]

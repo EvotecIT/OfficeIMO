@@ -170,6 +170,14 @@ public sealed partial class PdfOptions {
         out PdfStandardFont fontFamily) {
         Guard.NotNull(registeredFontSlots, nameof(registeredFontSlots));
         fontFamily = PdfStandardFont.Helvetica;
+        // An embedded family can occupy a different slot from its usual alias
+        // when another document family already owns that slot.
+        foreach (PdfStandardFont slot in EmbeddedFonts.Keys) {
+            if (!EmbeddedFontFamilySlotMatches(slot, familyName)) continue;
+            fontFamily = PdfStandardFontMapper.GetFontFamily(slot);
+            registeredFontSlots.Add(fontFamily);
+            return true;
+        }
         if (!PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfStandardFont standardFont)) {
             return false;
         }

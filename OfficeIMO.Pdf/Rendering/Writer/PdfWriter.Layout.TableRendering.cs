@@ -187,7 +187,7 @@ internal static partial class PdfWriter {
         var stripped = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>(lines.Count);
         foreach (System.Collections.Generic.List<RichSeg> line in lines) {
             System.Collections.Generic.List<RichSeg> strippedLine = line is RichLine rich
-                ? new RichLine { BaselineOffset = rich.BaselineOffset }
+                ? new RichLine { BaselineOffset = rich.BaselineOffset, FrameFitHeight = rich.FrameFitHeight }
                 : new System.Collections.Generic.List<RichSeg>(line.Count);
             foreach (RichSeg segment in line) {
                 strippedLine.Add(segment.WithoutLink());

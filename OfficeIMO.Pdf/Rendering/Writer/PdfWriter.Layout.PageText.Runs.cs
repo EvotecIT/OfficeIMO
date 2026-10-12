@@ -90,13 +90,12 @@ internal static partial class PdfWriter {
     }
 
     private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
+        RichSeg[] segments = BuildPageTextSegments(runs, baseFont, fontSize, opts);
         double width = 0D;
-        foreach (PdfTextRun run in runs) {
+        for (int index = 0; index < runs.Count; index++) {
+            PdfTextRun run = runs[index];
             width += run.HorizontalOffset;
-            PdfNamedFontFace? namedFont = opts.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
-                ? resolvedNamedFont
-                : null;
-            width += run.InlineElement?.Width ?? MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), namedFont, run.FontSize ?? fontSize, run.Baseline, opts, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
+            width += GetRichSegmentWidth(segments[index]);
         }
 
         return width;
@@ -189,7 +188,10 @@ internal static partial class PdfWriter {
                 currentTextRise = 0D;
             }
             double cursorX = x + dx;
-            foreach (PdfTextRun run in line) {
+            RichSeg[] segments = BuildPageTextSegments(line, baseFont, fontSize, opts);
+            for (int runIndex = 0; runIndex < line.Count; runIndex++) {
+                PdfTextRun run = line[runIndex];
+                RichSeg segment = segments[runIndex];
                 string text = run.Text ?? string.Empty;
                 if (text.Length == 0) {
                     continue;
@@ -214,9 +216,9 @@ internal static partial class PdfWriter {
                 content
                     .TextMatrix(cursorX, baselines[lineIndex])
                     .FillColor(ResolvePageTextColor(run.Color ?? color, opts))
-                    .ShowText(EncodeTextShowCommand(text, runFont, namedFont, opts, run.FeatureSettings, run.TextDirection), runFontSize);
+                    .ShowText(segment.KerningCommand ?? EncodeTextShowCommand(text, runFont, namedFont, opts, run.FeatureSettings, run.TextDirection), runFontSize, textRise);
                 ResetRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
-                cursorX += MeasureRichText(text, runFont, namedFont, requestedFontSize, run.Baseline, opts, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
+                cursorX += GetRichSegmentWidth(segment);
             }
         }
 
