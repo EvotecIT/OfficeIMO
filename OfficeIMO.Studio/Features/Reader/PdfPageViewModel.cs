@@ -313,8 +313,11 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     }
 
     private void UpdateDisplaySize() {
-        DisplayWidth = Math.Round(_pageWidth * _zoom, 2);
-        DisplayHeight = Math.Round(_pageHeight * _zoom, 2);
+        bool swapsAxes = _viewRotationDegrees % 180 == 90;
+        OnPropertyChanged(nameof(ContentDisplayWidth));
+        OnPropertyChanged(nameof(ContentDisplayHeight));
+        DisplayWidth = Math.Round((swapsAxes ? _pageHeight : _pageWidth) * _zoom, 2);
+        DisplayHeight = Math.Round((swapsAxes ? _pageWidth : _pageHeight) * _zoom, 2);
     }
 
     private double GetRenderScale() => GetRenderScale(Scene, _zoom, _renderScaling);

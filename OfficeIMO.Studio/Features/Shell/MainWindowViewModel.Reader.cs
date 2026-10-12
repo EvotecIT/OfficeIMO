@@ -181,6 +181,7 @@ public sealed partial class MainWindowViewModel {
                     SelectionMode = PdfEditorSelectionMode.None,
                     IsNightMode = IsPageNightMode
                 };
+                viewModel.SetViewRotation(_viewRotationDegrees);
                 viewModel.LinkActivated += OnComparisonPageLinkActivated;
                 return viewModel;
             }).ToArray();

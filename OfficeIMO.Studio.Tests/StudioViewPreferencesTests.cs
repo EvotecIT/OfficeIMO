@@ -30,6 +30,7 @@ public sealed class StudioViewPreferencesTests {
                 model.ActualSizeCommand.Execute(null);
                 model.ZoomInCommand.Execute(null);
                 model.ZoomInCommand.Execute(null);
+                model.RotateViewRightCommand.Execute(null);
                 model.SetOrganizerSelection([Assert.Single(model.OrganizerPages)]);
                 await model.DuplicateSelectedCommand.ExecuteAsync(null);
                 Assert.Equal(1.5, model.Zoom);
@@ -45,7 +46,9 @@ public sealed class StudioViewPreferencesTests {
                 window.Measure(new Size(width, height));
                 window.Arrange(new Rect(0, 0, width, height));
                 window.UpdateLayout();
-                Assert.Equal(900, model.Pages[0].DisplayWidth);
+                Assert.Equal(1200, model.Pages[0].DisplayWidth);
+                Assert.Equal(90, model.Pages[0].ViewRotationDegrees);
+                Assert.All(PdfDocument.Load(source).Inspect().Pages, page => Assert.Equal(0, page.RotationDegrees));
                 using var frame = window.CaptureRenderedFrame();
                 Assert.NotNull(frame);
                 string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
@@ -66,7 +69,7 @@ public sealed class StudioViewPreferencesTests {
             var store = new StudioDocumentViewStore(file);
             string document = Path.Combine(root, "private-source.pdf");
             store.Put(document, new StudioDocumentViewState {
-                NavigationWidth = double.NaN, InspectorWidth = 9000, PageNumber = -20, Zoom = 20,
+                NavigationWidth = double.NaN, InspectorWidth = 9000, PageNumber = -20, Zoom = 20, ViewRotationDegrees = -90,
                 Panes = new() { [StudioDocumentMode.View] = new(false, false), [(StudioDocumentMode)99] = new(true, true) }
             });
             var loaded = new StudioDocumentViewStore(file).Get(document);
@@ -74,6 +77,7 @@ public sealed class StudioViewPreferencesTests {
             Assert.Equal(380, loaded.InspectorWidth);
             Assert.Equal(1, loaded.PageNumber);
             Assert.Equal(3, loaded.Zoom);
+            Assert.Equal(270, loaded.ViewRotationDegrees);
             Assert.Single(loaded.Panes);
             Assert.DoesNotContain("private-source", File.ReadAllText(file));
             for (int i = 0; i < 65; i++) store.Put(Path.Combine(root, i + ".pdf"), new() { PageNumber = 2 });
@@ -98,6 +102,7 @@ public sealed class StudioViewPreferencesTests {
                 model.ActualSizeCommand.Execute(null);
                 model.ZoomInCommand.Execute(null);
                 model.UpdatePanePreferences(310, 370, new(false, true));
+                model.RotateViewRightCommand.Execute(null);
                 model.ToggleFocusReadingCommand.Execute(null);
             }
             using var reopened = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: StudioApplicationServices.Create(paths));
@@ -108,6 +113,10 @@ public sealed class StudioViewPreferencesTests {
             Assert.Equal(370, reopened.DocumentViewState.InspectorWidth);
             Assert.Equal(new StudioPanePreference(false, true), reopened.DocumentViewState.Panes[StudioDocumentMode.View]);
             Assert.True(reopened.IsFocusReading);
+            Assert.Equal(90, reopened.ViewRotationDegrees);
+            Assert.All(reopened.Pages, page => Assert.Equal(90, page.ViewRotationDegrees));
+            Assert.False(reopened.IsDirty);
+            Assert.All(PdfDocument.Load(source).Inspect().Pages, page => Assert.Equal(0, page.RotationDegrees));
         } finally { Directory.Delete(root, recursive: true); }
     }
 

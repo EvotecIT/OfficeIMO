@@ -2212,4 +2212,10 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Échec</value></data>
   <data name="Crop.Reset" xml:space="preserve"><value>Réinitialiser le recadrage</value></data>
   <data name="Crop.VisibilityHint" xml:space="preserve"><value>Le recadrage masque les marges et conserve le contenu. Réinitialiser le recadrage affiche de nouveau la page entière.</value></data>
+  <data name="Commands.RotateViewLeft.Title" xml:space="preserve"><value>Tourner la vue à gauche</value></data>
+  <data name="Commands.RotateViewLeft.Description" xml:space="preserve"><value>Tourner la vue de lecture à gauche sans modifier le PDF.</value></data>
+  <data name="Commands.RotateViewRight.Title" xml:space="preserve"><value>Tourner la vue à droite</value></data>
+  <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Tourner la vue de lecture à droite sans modifier le PDF.</value></data>
+  <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Réinitialiser la rotation de la vue</value></data>
+  <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Rétablir l'orientation de page enregistrée dans le PDF.</value></data>
 </root>

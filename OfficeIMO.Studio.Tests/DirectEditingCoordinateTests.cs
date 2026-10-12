@@ -15,8 +15,9 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class DirectEditingCoordinateTests {
     [Theory]
-    [InlineData(0)] [InlineData(90)] [InlineData(270)]
-    public async Task InlineEditorAndPreviewFollowScaledCroppedRotatedCanvas(int rotation) {
+    [InlineData(0, 0)] [InlineData(90, 0)] [InlineData(270, 0)]
+    [InlineData(0, 90)] [InlineData(0, 180)] [InlineData(0, 270)]
+    public async Task InlineEditorAndPreviewFollowScaledCroppedRotatedCanvas(int rotation, int viewRotation) {
         using var files = new TextEditingReviewTests.Files();
         byte[] source = Source(rotation);
         File.WriteAllBytes(files.Source, source);
@@ -34,6 +35,10 @@ public sealed class DirectEditingCoordinateTests {
                 model.ActualSizeCommand.Execute(null);
                 Assert.Equal(rotation is 90 or 270 ? 1080D : 920D, model.Pages[0].DisplayWidth);
                 Assert.Equal(rotation is 90 or 270 ? 920D : 1080D, model.Pages[0].DisplayHeight);
+                for (int turn = 0; turn < viewRotation / 90; turn++) model.RotateViewRightCommand.Execute(null);
+                Assert.Equal(viewRotation, model.ViewRotationDegrees);
+                Assert.False(model.IsDirty);
+                Assert.False(model.CanUndo);
                 model.FitPageCommand.Execute(null);
                 window.UpdateLayout();
                 await TextEditingReviewTests.WaitUntilAsync(() => model.Pages[0].Scene != null);
@@ -53,11 +58,11 @@ public sealed class DirectEditingCoordinateTests {
                 Assert.Equal(Math.Clamp(selected.Bounds.Left * scaleX, 0, Math.Max(0, canvas.Bounds.Width - page.InlineEditorWidth - 4)), page.InlineEditorLeft, 5);
                 Assert.Equal(Math.Clamp(selected.Bounds.Top * scaleY, 0, Math.Max(0, canvas.Bounds.Height - 160)), page.InlineEditorTop, 5);
                 var editor = Assert.Single(window.GetVisualDescendants().OfType<InlineTextEditorView>(), c => c.IsEffectivelyVisible);
-                Point origin = canvas.TranslatePoint(default, window)!.Value;
+                Point origin = canvas.TranslatePoint(new Point(page.InlineEditorLeft, page.InlineEditorTop), window)!.Value;
                 Point editorOrigin = editor.TranslatePoint(default, window)!.Value;
-                Assert.InRange(Math.Abs(editorOrigin.X - origin.X - page.InlineEditorLeft), 0, 1.1);
-                Assert.InRange(Math.Abs(editorOrigin.Y - origin.Y - page.InlineEditorTop), 0, 1.1);
-                Capture(window, rotation);
+                Assert.InRange(Math.Abs(editorOrigin.X - origin.X), 0, 1.1);
+                Assert.InRange(Math.Abs(editorOrigin.Y - origin.Y), 0, 1.1);
+                Capture(window, rotation, viewRotation);
                 model.SelectedObjectText = "Record";
                 await model.PreviewTextEditCommand.ExecuteAsync(null);
                 Assert.True(model.HasTextPreview, model.ErrorMessage);
@@ -109,11 +114,11 @@ public sealed class DirectEditingCoordinateTests {
         }));
     }
 
-    private static void Capture(Window window, int rotation) {
+    private static void Capture(Window window, int rotation, int viewRotation) {
         using var frame = window.CaptureRenderedFrame(); Assert.NotNull(frame);
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
         if (string.IsNullOrWhiteSpace(output)) return;
         Directory.CreateDirectory(output);
-        frame.Save(Path.Combine(output, $"inline-userunit-rotation-{rotation}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+        frame.Save(Path.Combine(output, $"inline-userunit-rotation-{rotation}-view-{viewRotation}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
     }
 }

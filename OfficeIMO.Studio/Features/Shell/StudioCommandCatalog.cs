@@ -99,6 +99,9 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("CompareSideBySide", "Compare side by side", "Open another PDF next to this one with synchronized scrolling.", "Review", document.OpenComparisonCommand, Loaded);
         Add("ValidateSignatures", "Validate signatures", "Check the digital signatures in this document and report their status.", "Security", document.ValidateSignaturesCommand, Loaded);
         Add("PageNightMode", "Page night mode", "Show pages with dark backgrounds for low-light reading; the document is unchanged.", "Read", document.TogglePageNightModeCommand, Loaded);
+        Add("RotateViewLeft", "Rotate view left", "Turn the reader view left without changing the PDF.", "Read", document.RotateViewLeftCommand, Loaded);
+        Add("RotateViewRight", "Rotate view right", "Turn the reader view right without changing the PDF.", "Read", document.RotateViewRightCommand, Loaded);
+        Add("ResetViewRotation", "Reset view rotation", "Return the reader to the PDF's saved page orientation.", "Read", document.ResetViewRotationCommand, Loaded);
         Add("Assistant", "Document assistant", "Show or hide the assistant that answers questions about this document.", "Navigate", document.ToggleAssistantCommand);        // Fill and sign: these open the Forms task so the placement hint and the page are where the user expects.
         CommunityToolkit.Mvvm.Input.RelayCommand InForms(System.Windows.Input.ICommand operation, string? parameter = null) => new(() => {
             document.ShowFormsModeCommand.Execute(null);

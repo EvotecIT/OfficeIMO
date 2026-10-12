@@ -364,6 +364,10 @@
               </StackPanel>
               <Button.Flyout>
                 <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                  <MenuItem Header="{loc:Loc Commands.RotateViewLeft.Title}" Command="{Binding Commands[RotateViewLeft]}" />
+                  <MenuItem Header="{loc:Loc Commands.RotateViewRight.Title}" Command="{Binding Commands[RotateViewRight]}" />
+                  <MenuItem Header="{loc:Loc Commands.ResetViewRotation.Title}" Command="{Binding Commands[ResetViewRotation]}" />
+                  <Separator />
                   <MenuItem Header="{loc:Loc DocumentWorkspace.PageNightMode}" ToggleType="CheckBox" IsChecked="{Binding IsPageNightMode, Mode=TwoWay}">
                     <MenuItem.Icon><PathIcon Data="{StaticResource IconNight}" Width="14" Height="14" /></MenuItem.Icon>
                   </MenuItem>
@@ -720,7 +724,9 @@
 
         <Panel Grid.Row="1" Grid.Column="2" IsVisible="{Binding IsComparisonOpen}" Background="{DynamicResource StudioCanvasBrush}">
           <ScrollViewer IsVisible="{Binding ShowComparisonDifferenceImage}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" Margin="12" HorizontalAlignment="Center" VerticalAlignment="Top" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
+            <LayoutTransformControl LayoutTransform="{Binding ViewRotationTransform}" Margin="12" HorizontalAlignment="Center" VerticalAlignment="Top">
+              <Image Source="{Binding ComparisonDifferenceImage}" Width="{Binding ComparisonDifferenceWidth}" Height="{Binding ComparisonDifferenceHeight}" Stretch="Uniform" AutomationProperties.Name="{loc:Loc Comparison.Highlight}" />
+            </LayoutTransformControl>
           </ScrollViewer>
           <ListBox ItemsSource="{Binding ComparisonReaderPages}"
                    ItemContainerTheme="{StaticResource ReaderPageContainerTheme}"

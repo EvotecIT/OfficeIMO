@@ -14,6 +14,7 @@ internal sealed record StudioDocumentViewState {
     public ViewerZoomMode ZoomMode { get; set; } = ViewerZoomMode.FitWidth;
     public ReaderLayoutMode ReaderLayout { get; set; } = ReaderLayoutMode.Continuous;
     public bool FocusReading { get; set; }
+    public int ViewRotationDegrees { get; set; }
     public Dictionary<StudioDocumentMode, StudioPanePreference> Panes { get; set; } = new();
 
     internal StudioDocumentViewState Normalize() => this with {
@@ -23,6 +24,7 @@ internal sealed record StudioDocumentViewState {
         Zoom = double.IsFinite(Zoom) ? Math.Clamp(Zoom, 0.25D, 3D) : 1D,
         ZoomMode = Enum.IsDefined(ZoomMode) ? ZoomMode : ViewerZoomMode.FitWidth,
         ReaderLayout = Enum.IsDefined(ReaderLayout) ? ReaderLayout : ReaderLayoutMode.Continuous,
+        ViewRotationDegrees = ViewRotationDegrees % 90 == 0 ? ((ViewRotationDegrees % 360) + 360) % 360 : 0,
         Panes = (Panes ?? new()).Where(pair => Enum.IsDefined(pair.Key) && pair.Value is not null)
             .ToDictionary(pair => pair.Key, pair => pair.Value)
     };

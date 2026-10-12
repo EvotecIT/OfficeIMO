@@ -741,6 +741,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ApplyPresentationCachePolicy();
 
         if (isDocumentTransition) {
+            _viewRotationDegrees = 0;
+            OnPropertyChanged(nameof(ViewRotationDegrees));
             OrganizerPageRange = string.Empty;
             IsOrganizerRangeExpanded = false;
             OrganizerRangeError = null;
@@ -764,6 +766,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.EditorTool = ActiveEditorTool;
             page.SelectionMode = GetEditorSelectionMode();
             page.IsNightMode = IsPageNightMode;
+            page.SetViewRotation(_viewRotationDegrees);
             TrackRenderingNotices(page);
             Pages.Add(page);
         }

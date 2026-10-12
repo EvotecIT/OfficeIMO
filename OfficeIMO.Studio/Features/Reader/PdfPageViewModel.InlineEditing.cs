@@ -10,8 +10,8 @@ public sealed partial class PdfPageViewModel {
     private double _visualHeight;
     internal double VisualPageWidth => Scene?.Drawing.Width ?? _visualWidth;
     internal double VisualPageHeight => Scene?.Drawing.Height ?? _visualHeight;
-    private double CanvasWidth => Math.Max(1, _canvasWidth ?? DisplayWidth - 2);
-    private double CanvasHeight => Math.Max(1, _canvasHeight ?? DisplayHeight - 2);
+    private double CanvasWidth => Math.Max(1, _canvasWidth ?? ContentDisplayWidth);
+    private double CanvasHeight => Math.Max(1, _canvasHeight ?? ContentDisplayHeight);
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasInlineTextDraft))]
     private PdfTextDraftViewModel? _inlineTextDraft;

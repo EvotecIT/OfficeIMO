@@ -5684,4 +5684,10 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Fehlgeschlagen</value></data>
   <data name="Crop.Reset" xml:space="preserve"><value>Zuschnitt zurücksetzen</value></data>
   <data name="Crop.VisibilityHint" xml:space="preserve"><value>Zuschneiden blendet die Ränder aus und behält den Seiteninhalt. Zurücksetzen zeigt wieder die ganze Seite.</value></data>
+  <data name="Commands.RotateViewLeft.Title" xml:space="preserve"><value>Ansicht nach links drehen</value></data>
+  <data name="Commands.RotateViewLeft.Description" xml:space="preserve"><value>Die Leseansicht nach links drehen, ohne die PDF zu ändern.</value></data>
+  <data name="Commands.RotateViewRight.Title" xml:space="preserve"><value>Ansicht nach rechts drehen</value></data>
+  <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Die Leseansicht nach rechts drehen, ohne die PDF zu ändern.</value></data>
+  <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Ansichtsdrehung zurücksetzen</value></data>
+  <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Die Leseansicht auf die in der PDF gespeicherte Ausrichtung zurücksetzen.</value></data>
 </root>

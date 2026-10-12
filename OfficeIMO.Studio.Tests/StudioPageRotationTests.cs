@@ -18,6 +18,23 @@ public sealed class StudioPageRotationTests {
                 window.Show();
                 await window.TabHost.OpenDocumentAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf"));
                 var model = Assert.Single(window.TabHost.Tabs).Document;
+                model.ActualSizeCommand.Execute(null);
+                double savedWidth = model.Pages[0].DisplayWidth;
+                double savedHeight = model.Pages[0].DisplayHeight;
+                await model.Commands["RotateViewRight"].ExecuteAsync();
+                Assert.Equal(savedHeight, model.Pages[0].DisplayWidth);
+                Assert.Equal(savedWidth, model.Pages[0].DisplayHeight);
+                Assert.False(model.IsDirty);
+                Assert.False(model.CanUndo);
+                model.FitPageCommand.Execute(null);
+                Layout(window, width);
+                await model.Pages[0].EnsureRenderedAsync();
+                await TextEditingReviewTests.WaitUntilAsync(() => window.GetVisualDescendants().OfType<OfficeIMO.Studio.Features.Reader.PdfPageCanvas>()
+                    .Any(canvas => canvas.IsEffectivelyVisible && canvas.Scene is not null));
+                Layout(window, width);
+                Capture(window, width, "view-rotated");
+                await model.Commands["ResetViewRotation"].ExecuteAsync();
+                Assert.Equal(0, model.ViewRotationDegrees);
                 model.ShowPagesModeCommand.Execute(null);
                 Assert.False(model.CanMutatePages);
                 Assert.True(model.CanRotatePages);
