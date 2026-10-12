@@ -10,21 +10,26 @@ using OfficeIMO.Word;
 namespace OfficeIMO.ChartForgeX;
 
 /// <summary>Places converted ChartForgeX artifacts on OfficeIMO document surfaces.</summary>
-public static class OfficeVisualPlacementExtensions {
+public static partial class OfficeVisualPlacementExtensions {
     private const double PointsPerOfficePixel = 0.75D;
 
-    /// <summary>Renders and inserts a ChartForgeX artifact as an SVG image in a Word paragraph.</summary>
+    /// <summary>Renders and inserts a ChartForgeX artifact in a Word paragraph, returning its conversion and fidelity report.</summary>
     public static WordImage AddVisualArtifact(
         this WordParagraph paragraph,
         VisualArtifact artifact,
         out OfficeVisualConversionResult conversion,
         OfficeVisualConversionOptions? options = null,
         WordImageTextWrapping wrapping = WordImageTextWrapping.InLineWithText) {
+        if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
         conversion = artifact.ToOfficeVisual(options);
+        if (options?.WidthPoints == null && options?.HeightPoints == null) {
+            double width = paragraph.GetContentWidthPoints();
+            if (conversion.WidthPoints > width) conversion = conversion.WithSize(width);
+        }
         return paragraph.AddVisualArtifact(conversion, wrapping);
     }
 
-    /// <summary>Inserts a converted ChartForgeX artifact as an SVG image in a Word paragraph.</summary>
+    /// <summary>Inserts a converted ChartForgeX artifact using its selected SVG or PNG payload in a Word paragraph.</summary>
     public static WordImage AddVisualArtifact(
         this WordParagraph paragraph,
         OfficeVisualConversionResult conversion,
@@ -43,7 +48,7 @@ public static class OfficeVisualPlacementExtensions {
         return image;
     }
 
-    /// <summary>Renders and inserts a ChartForgeX artifact as an SVG image anchored to an Excel cell.</summary>
+    /// <summary>Renders and inserts a ChartForgeX artifact anchored to an Excel cell, returning its conversion and fidelity report.</summary>
     public static ExcelImage AddVisualArtifact(
         this ExcelSheet sheet,
         int row,
@@ -57,7 +62,7 @@ public static class OfficeVisualPlacementExtensions {
         return sheet.AddVisualArtifact(row, column, conversion, offsetXPixels, offsetYPixels);
     }
 
-    /// <summary>Inserts a converted ChartForgeX artifact as an SVG image anchored to an Excel cell.</summary>
+    /// <summary>Inserts a converted ChartForgeX artifact using its selected SVG or PNG payload anchored to an Excel cell.</summary>
     public static ExcelImage AddVisualArtifact(
         this ExcelSheet sheet,
         int row,
@@ -83,7 +88,7 @@ public static class OfficeVisualPlacementExtensions {
         return image;
     }
 
-    /// <summary>Renders and inserts a ChartForgeX artifact as an SVG image on a PowerPoint slide.</summary>
+    /// <summary>Renders and inserts a ChartForgeX artifact on a PowerPoint slide, returning its conversion and fidelity report.</summary>
     public static PowerPointPicture AddVisualArtifact(
         this PowerPointSlide slide,
         VisualArtifact artifact,
@@ -95,7 +100,7 @@ public static class OfficeVisualPlacementExtensions {
         return slide.AddVisualArtifact(conversion, leftPoints, topPoints);
     }
 
-    /// <summary>Inserts a converted ChartForgeX artifact as an SVG image on a PowerPoint slide.</summary>
+    /// <summary>Inserts a converted ChartForgeX artifact using its selected SVG or PNG payload on a PowerPoint slide.</summary>
     public static PowerPointPicture AddVisualArtifact(
         this PowerPointSlide slide,
         OfficeVisualConversionResult conversion,
@@ -207,7 +212,7 @@ public static class OfficeVisualPlacementExtensions {
         string.IsNullOrWhiteSpace(conversion.Title) ? conversion.Id : conversion.Title;
 
     private static PdfDrawingStyle ResolvePdfDrawingStyle(PdfDrawingStyle? style, string alternativeText, bool isDecorative) {
-        PdfDrawingStyle effective = style?.Clone() ?? new PdfDrawingStyle { Decorative = isDecorative };
+        PdfDrawingStyle effective = style?.Clone() ?? new PdfDrawingStyle { Decorative = isDecorative, ConstrainToContentWidth = true };
         if (isDecorative) {
             effective.Decorative = true;
             effective.AlternativeText = null;

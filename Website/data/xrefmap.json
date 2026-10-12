@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-10-12T01:22:42.1174116Z",
+  "generatedAtUtc": "2026-10-12T03:02:30.7262341Z",
   "sourceCount": 122,
-  "referenceCount": 105729,
+  "referenceCount": 105759,
   "duplicateCount": 0,
   "references": [
     {
@@ -108445,6 +108445,73 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualConversionResult.WithSize(System.Double,System.Nullable{System.Double},OfficeIMO.Drawing.OfficeImageFit)",
+      "name": "OfficeVisualConversionResult.WithSize",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualconversionresult/#method-withsize-double-nullable-system-double-officeimo-drawing-officeimagefit",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualConversionResult.WithSize",
+        "OfficeIMO.ChartForgeX.OfficeVisualConversionResult.WithSize",
+        "OfficeIMO.ChartForgeX.OfficeVisualConversionResult.WithSize(System.Double,System.Nullable{System.Double},OfficeIMO.Drawing.OfficeImageFit)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.#ctor(System.String,System.Double,System.Double,System.Double,System.Double)",
+      "name": "OfficeVisualDocumentStyle.OfficeVisualDocumentStyle",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#constructor-ctor-string-double-double-double-double",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.#ctor",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.#ctor",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.#ctor(System.String,System.Double,System.Double,System.Double,System.Double)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.CreateContext(System.Double,System.Double,ChartForgeX.Themes.VisualThemeMode,ChartForgeX.Rendering.VisualFrame,ChartForgeX.Themes.VisualTheme)",
+      "name": "OfficeVisualDocumentStyle.CreateContext",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#method-createcontext-double-double-chartforgex-themes-visualthememode-chartforgex-rendering-visualframe-chartforgex-themes-visualtheme",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.CreateContext",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.CreateContext",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.CreateContext(System.Double,System.Double,ChartForgeX.Themes.VisualThemeMode,ChartForgeX.Rendering.VisualFrame,ChartForgeX.Themes.VisualTheme)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.Equals(System.Object)",
+      "name": "OfficeVisualDocumentStyle.Equals",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.Equals",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.Equals",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.GetHashCode",
+      "name": "OfficeVisualDocumentStyle.GetHashCode",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.GetHashCode",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.GetType",
+      "name": "OfficeVisualDocumentStyle.GetType",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.GetType",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.ToString",
+      "name": "OfficeVisualDocumentStyle.ToString",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.ToString",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.ToString"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualMediaFormat.CompareTo(System.Object)",
       "name": "OfficeVisualMediaFormat.CompareTo",
       "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualmediaformat/#method-compareto-object",
@@ -108541,6 +108608,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.Int32,System.Int32,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Int32,System.Int32)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-excel-excelsheet-int32-int32-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionoptions-int32-int32",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.Int32,System.Int32,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Int32,System.Int32)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.Int32,System.Int32,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Int32,System.Int32)",
       "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
       "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-excel-excelsheet-int32-int32-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionresult-officeimo-chartforgex-officevisualconversionoptions-int32-int32",
@@ -108558,6 +108635,46 @@
         "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
         "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
         "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.Int32,System.Int32,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,System.Int32,System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.String,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-excel-excelsheet-string-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionoptions",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.String,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.String,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-excel-excelsheet-string-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionresult-officeimo-chartforgex-officevisualconversionoptions",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.String,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.String,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.Drawing.OfficeImageFit)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-excel-excelsheet-string-officeimo-chartforgex-officevisualconversionresult-officeimo-drawing-officeimagefit",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Excel.ExcelSheet,System.String,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.Drawing.OfficeImageFit)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Pdf.PdfContentBuilder,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Nullable{OfficeIMO.Pdf.PdfAlign},System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Pdf.PdfDrawingStyle,System.String,System.String)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-pdf-pdfcontentbuilder-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionoptions-nullable-officeimo-pdf-pdfalign-nullable-system-double-nullable-system-double-officeimo-pdf-pdfdrawingstyle-string-string",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Pdf.PdfContentBuilder,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Nullable{OfficeIMO.Pdf.PdfAlign},System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Pdf.PdfDrawingStyle,System.String,System.String)"
       ]
     },
     {
@@ -108581,6 +108698,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Pdf.PdfDocument,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Nullable{OfficeIMO.Pdf.PdfAlign},System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Pdf.PdfDrawingStyle,System.String,System.String)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-pdf-pdfdocument-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionoptions-nullable-officeimo-pdf-pdfalign-nullable-system-double-nullable-system-double-officeimo-pdf-pdfdrawingstyle-string-string",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Pdf.PdfDocument,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Nullable{OfficeIMO.Pdf.PdfAlign},System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Pdf.PdfDrawingStyle,System.String,System.String)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Pdf.PdfDocument,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,System.Nullable{OfficeIMO.Pdf.PdfAlign},System.Nullable{System.Double},System.Nullable{System.Double},OfficeIMO.Pdf.PdfDrawingStyle,System.String,System.String)",
       "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
       "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-pdf-pdfdocument-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionresult-officeimo-chartforgex-officevisualconversionoptions-nullable-officeimo-pdf-pdfalign-nullable-system-double-nullable-system-double-officeimo-pdf-pdfdrawingstyle-string-string",
@@ -108601,6 +108728,36 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-powerpoint-powerpointslide-chartforgex-visualartifacts-visualartifact-officeimo-powerpoint-powerpointlayoutbox-officeimo-chartforgex-officevisualconversionoptions",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-powerpoint-powerpointslide-chartforgex-visualartifacts-visualartifact-officeimo-powerpoint-powerpointlayoutbox-officeimo-chartforgex-officevisualconversionresult-officeimo-chartforgex-officevisualconversionoptions",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,ChartForgeX.VisualArtifacts.VisualArtifact,System.Double,System.Double,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-powerpoint-powerpointslide-chartforgex-visualartifacts-visualartifact-double-double-officeimo-chartforgex-officevisualconversionoptions",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,ChartForgeX.VisualArtifacts.VisualArtifact,System.Double,System.Double,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,ChartForgeX.VisualArtifacts.VisualArtifact,System.Double,System.Double,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions)",
       "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
       "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-powerpoint-powerpointslide-chartforgex-visualartifacts-visualartifact-double-double-officeimo-chartforgex-officevisualconversionresult-officeimo-chartforgex-officevisualconversionoptions",
@@ -108611,6 +108768,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.Drawing.OfficeImageFit)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-powerpoint-powerpointslide-officeimo-chartforgex-officevisualconversionresult-officeimo-powerpoint-powerpointlayoutbox-officeimo-drawing-officeimagefit",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,OfficeIMO.PowerPoint.PowerPointLayoutBox,OfficeIMO.Drawing.OfficeImageFit)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,System.Double,System.Double)",
       "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
       "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-powerpoint-powerpointslide-officeimo-chartforgex-officevisualconversionresult-double-double",
@@ -108618,6 +108785,16 @@
         "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
         "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
         "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.PowerPoint.PowerPointSlide,OfficeIMO.ChartForgeX.OfficeVisualConversionResult,System.Double,System.Double)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Word.WordParagraph,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,OfficeIMO.Word.WordImageTextWrapping)",
+      "name": "OfficeVisualPlacementExtensions.AddVisualArtifact",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualplacementextensions/#method-addvisualartifact-officeimo-word-wordparagraph-chartforgex-visualartifacts-visualartifact-officeimo-chartforgex-officevisualconversionoptions-officeimo-word-wordimagetextwrapping",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact",
+        "OfficeIMO.ChartForgeX.OfficeVisualPlacementExtensions.AddVisualArtifact(OfficeIMO.Word.WordParagraph,ChartForgeX.VisualArtifacts.VisualArtifact,OfficeIMO.ChartForgeX.OfficeVisualConversionOptions,OfficeIMO.Word.WordImageTextWrapping)"
       ]
     },
     {
@@ -207846,6 +208023,16 @@
         "global::OfficeIMO.Excel.ExcelSheet.GetRangeBounds",
         "OfficeIMO.Excel.ExcelSheet.GetRangeBounds",
         "OfficeIMO.Excel.ExcelSheet.GetRangeBounds(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelSheet.GetRangeSizePixels(System.String)",
+      "name": "ExcelSheet.GetRangeSizePixels",
+      "href": "/api/excel/officeimo-excel-excelsheet/#method-getrangesizepixels-string",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelSheet.GetRangeSizePixels",
+        "OfficeIMO.Excel.ExcelSheet.GetRangeSizePixels",
+        "OfficeIMO.Excel.ExcelSheet.GetRangeSizePixels(System.String)"
       ]
     },
     {
@@ -547396,6 +547583,15 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Word.WordParagraph.GetContentWidthPoints",
+      "name": "WordParagraph.GetContentWidthPoints",
+      "href": "/api/word/officeimo-word-wordparagraph/#method-getcontentwidthpoints",
+      "aliases": [
+        "global::OfficeIMO.Word.WordParagraph.GetContentWidthPoints",
+        "OfficeIMO.Word.WordParagraph.GetContentWidthPoints"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Word.WordParagraph.GetFormattedRuns",
       "name": "WordParagraph.GetFormattedRuns",
       "href": "/api/word/officeimo-word-wordparagraph/#method-getformattedruns",
@@ -580771,6 +580967,16 @@
         "global::OfficeIMO.ChartForgeX.OfficeVisualConversionResult",
         "OfficeVisualConversionResult",
         "T:OfficeIMO.ChartForgeX.OfficeVisualConversionResult"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle",
+      "name": "OfficeVisualDocumentStyle",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle",
+        "OfficeVisualDocumentStyle",
+        "T:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle"
       ]
     },
     {
@@ -648482,6 +648688,15 @@
       ]
     },
     {
+      "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualConversionOptions.Fit",
+      "name": "OfficeVisualConversionOptions.Fit",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualconversionoptions/#property-fit",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualConversionOptions.Fit",
+        "OfficeIMO.ChartForgeX.OfficeVisualConversionOptions.Fit"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualConversionOptions.HeightPoints",
       "name": "OfficeVisualConversionOptions.HeightPoints",
       "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualconversionoptions/#property-heightpoints",
@@ -648731,6 +648946,60 @@
       "aliases": [
         "global::OfficeIMO.ChartForgeX.OfficeVisualConversionResult.WidthPoints",
         "OfficeIMO.ChartForgeX.OfficeVisualConversionResult.WidthPoints"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.CaptionSizePoints",
+      "name": "OfficeVisualDocumentStyle.CaptionSizePoints",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#property-captionsizepoints",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.CaptionSizePoints",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.CaptionSizePoints"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.Default",
+      "name": "OfficeVisualDocumentStyle.Default",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#property-default",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.Default",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.Default"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.FontFamily",
+      "name": "OfficeVisualDocumentStyle.FontFamily",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#property-fontfamily",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.FontFamily",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.FontFamily"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.HeadingSizePoints",
+      "name": "OfficeVisualDocumentStyle.HeadingSizePoints",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#property-headingsizepoints",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.HeadingSizePoints",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.HeadingSizePoints"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.LabelSizePoints",
+      "name": "OfficeVisualDocumentStyle.LabelSizePoints",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#property-labelsizepoints",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.LabelSizePoints",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.LabelSizePoints"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.SubtitleSizePoints",
+      "name": "OfficeVisualDocumentStyle.SubtitleSizePoints",
+      "href": "/api/chart-forge-x/officeimo-chartforgex-officevisualdocumentstyle/#property-subtitlesizepoints",
+      "aliases": [
+        "global::OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.SubtitleSizePoints",
+        "OfficeIMO.ChartForgeX.OfficeVisualDocumentStyle.SubtitleSizePoints"
       ]
     },
     {
@@ -809897,6 +810166,15 @@
       ]
     },
     {
+      "uid": "P:OfficeIMO.Pdf.PdfDrawingStyle.ConstrainToContentWidth",
+      "name": "PdfDrawingStyle.ConstrainToContentWidth",
+      "href": "/api/pdf/officeimo-pdf-pdfdrawingstyle/#property-constraintocontentwidth",
+      "aliases": [
+        "global::OfficeIMO.Pdf.PdfDrawingStyle.ConstrainToContentWidth",
+        "OfficeIMO.Pdf.PdfDrawingStyle.ConstrainToContentWidth"
+      ]
+    },
+    {
       "uid": "P:OfficeIMO.Pdf.PdfDrawingStyle.Decorative",
       "name": "PdfDrawingStyle.Decorative",
       "href": "/api/pdf/officeimo-pdf-pdfdrawingstyle/#property-decorative",
@@ -904412,6 +904690,15 @@
       "aliases": [
         "global::OfficeIMO.Visio.VisioStyleTheme.Name",
         "OfficeIMO.Visio.VisioStyleTheme.Name"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.Visio.VisioStyleTheme.PageBackgroundColor",
+      "name": "VisioStyleTheme.PageBackgroundColor",
+      "href": "/api/visio/officeimo-visio-visiostyletheme/#property-pagebackgroundcolor",
+      "aliases": [
+        "global::OfficeIMO.Visio.VisioStyleTheme.PageBackgroundColor",
+        "OfficeIMO.Visio.VisioStyleTheme.PageBackgroundColor"
       ]
     },
     {
