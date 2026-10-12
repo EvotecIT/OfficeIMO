@@ -49,6 +49,22 @@ enum Engine {
         }
     }
 
+    /// Makes a PDF at url from scanned page images and the words recognized on them.
+    static func createPDFFromScan(_ request: ScanRequest, at url: URL) async throws -> ScanSummary {
+        let json = String(decoding: try JSONEncoder().encode(request), as: UTF8.self)
+        let path = url.path
+        let summary: String = try await run {
+            var result: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            let status = json.withCString { request in
+                path.withCString { officeimo_create_pdf_from_scan_json(request, $0, 0, &result, &error) }
+            }
+            try check(status, error)
+            return takeString(result) ?? "{}"
+        }
+        return try JSONDecoder().decode(ScanSummary.self, from: Data(summary.utf8))
+    }
+
     static func run<T: Sendable>(_ work: @escaping @Sendable () throws -> T) async throws -> T {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { continuation.resume(with: Result { try work() }) }

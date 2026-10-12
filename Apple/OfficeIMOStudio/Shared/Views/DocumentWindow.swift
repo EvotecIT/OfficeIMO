@@ -6,6 +6,9 @@ struct DocumentWindow: View {
     @State private var session: DocumentSession
     @State private var password = ""
     @State private var isAddingNote = false
+    #if os(macOS)
+    @Environment(\.newDocument) private var newDocument
+    #endif
     @State private var noteText = ""
     @Environment(\.undoManager) private var undoManager
     #if os(iOS)
@@ -31,6 +34,10 @@ struct DocumentWindow: View {
 
     var body: some View {
         layout
+            #if os(macOS)
+            // Continuity Camera delivers here; a scan becomes a new document rather than changing this one.
+            .importsItemProviders([.image]) { ScanSources.newDocument(from: $0, newDocument) }
+            #endif
             .focusedSceneValue(\.documentSession, session)
             .task {
                 if session.isPageListShown == nil { session.isPageListShown = !isCompact }

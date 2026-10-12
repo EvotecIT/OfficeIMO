@@ -36,6 +36,8 @@ struct DocumentFacts: Decodable, Sendable {
     let canExtractPages: Bool?
     /// Whether annotations can be added, changed and removed.
     let canEditAnnotations: Bool?
+    /// Whether the document permits printing.
+    let canPrint: Bool?
 
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
@@ -216,27 +218,15 @@ actor EngineDocument {
     /// become the image's storage without a copy and are released with it. Tiles of one page and scale join exactly.
     func renderRegion(_ number: Int, scale: Double, x: Int, y: Int, width: Int, height: Int) async throws -> CGImage {
         try await withEngineCancellation { cancellation in
-            var pixels: UnsafeMutablePointer<UInt8>?
-            var length = 0
-            var error: UnsafeMutablePointer<CChar>?
-            try check(officeimo_document_render_region(handle, Int32(number), scale, Int32(x), Int32(y), Int32(width),
-                                                        Int32(height), cancellation, &pixels, &length, &error), error)
-            guard let pixels else { throw EngineError(status: .failed, code: 1, message: "The engine returned no pixels.") }
-            // From here the provider owns the pixels and releases them when the image no longer needs them.
-            guard let provider = CGDataProvider(dataInfo: nil, data: pixels, size: length, releaseData: { _, data, _ in
-                officeimo_free(UnsafeMutableRawPointer(mutating: data))
-            }) else {
-                officeimo_free(pixels)
-                throw EngineError(status: .failed, code: 1, message: "The page pixels could not be wrapped.")
-            }
-            guard let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4,
-                                      space: CGColorSpace(name: CGColorSpace.sRGB)!,
-                                      bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
-                                      provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent) else {
-                throw EngineError(status: .failed, code: 1, message: "The page pixels could not form an image.")
-            }
-            return image
+            try regionImage(handle, number, scale, x, y, width, height, cancellation)
         }
+    }
+
+    /// Renders a whole page from a thread outside the actor, after any call already running. The system's print
+    /// renderers draw synchronously, so they wait here rather than awaiting the actor.
+    nonisolated func renderPageAndWait(_ number: Int, scale: Double, width: Int, height: Int) throws -> CGImage {
+        dispatchPrecondition(condition: .notOnQueue(queue))
+        return try queue.sync { try regionImage(handle, number, scale, 0, 0, width, height, 0) }
     }
 
     /// Rotates pages (numbered from 1) by a multiple of 90 degrees as one undoable change.
@@ -391,6 +381,31 @@ actor EngineDocument {
             try check(status, error)
         }
     }
+}
+
+/// A rendered rectangle of a page as an image over the engine's pixels, which it releases when discarded.
+private func regionImage(_ handle: officeimo_document, _ number: Int, _ scale: Double, _ x: Int, _ y: Int, _ width: Int,
+                         _ height: Int, _ cancellation: officeimo_cancellation) throws -> CGImage {
+    var pixels: UnsafeMutablePointer<UInt8>?
+    var length = 0
+    var error: UnsafeMutablePointer<CChar>?
+    try check(officeimo_document_render_region(handle, Int32(number), scale, Int32(x), Int32(y), Int32(width),
+                                                Int32(height), cancellation, &pixels, &length, &error), error)
+    guard let pixels else { throw EngineError(status: .failed, code: 1, message: "The engine returned no pixels.") }
+    // From here the provider owns the pixels and releases them when the image no longer needs them.
+    guard let provider = CGDataProvider(dataInfo: nil, data: pixels, size: length, releaseData: { _, data, _ in
+        officeimo_free(UnsafeMutableRawPointer(mutating: data))
+    }) else {
+        officeimo_free(pixels)
+        throw EngineError(status: .failed, code: 1, message: "The page pixels could not be wrapped.")
+    }
+    guard let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4,
+                              space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                              bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                              provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent) else {
+        throw EngineError(status: .failed, code: 1, message: "The page pixels could not form an image.")
+    }
+    return image
 }
 
 /// Keeps security-scoped access open for the duration of one engine call; the engine never retains it.

@@ -141,7 +141,11 @@ struct DocumentToolbar: ToolbarContent {
 
     @ViewBuilder private var share: some View {
         if let fileURL {
+            #if os(iOS)
+            DocumentShareButton(session: session, fileURL: fileURL)
+            #else
             ShareLink(item: fileURL)
+            #endif
         }
     }
 

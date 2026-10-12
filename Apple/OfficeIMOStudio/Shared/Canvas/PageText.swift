@@ -1,13 +1,25 @@
 import CoreGraphics
 import Foundation
 
-/// A page's text from officeimo_document_page_text_json: its elements in extraction order and each one's box in the
-/// displayed page's points. Selection runs along the elements, as reading does.
+/// A page's text from officeimo_document_page_text_json: its elements in extraction order, each one's box in the
+/// displayed page's points and how it follows the one before. Selection runs along the elements, as reading does; the
+/// engine decides where words and lines break, as it does for every OfficeIMO reader.
 struct PageText: Decodable, Sendable {
     let revision: Int64
     let page: Int
     let texts: [String]
     let boxes: [Double]
+    let breaks: [Break]
+
+    /// How an element follows the one before it.
+    enum Break: Int, Decodable, Sendable {
+        /// Its glyphs touch the previous element's.
+        case none = 0
+        /// It is further along the same line after a gap, as between a scan's recognized words.
+        case space = 1
+        /// It starts another line.
+        case line = 2
+    }
 
     var count: Int { texts.count }
 
@@ -32,13 +44,13 @@ struct PageText: Decodable, Sendable {
         return best.index
     }
 
-    /// The word around an element: neighbouring elements on the same line up to whitespace.
+    /// The word around an element: the touching elements around it, up to whitespace or a gap.
     func word(at index: Int) -> ClosedRange<Int> {
         guard isWordElement(index) else { return index...index }
         var first = index
         var last = index
-        while first > 0, isWordElement(first - 1), sameLine(first - 1, first) { first -= 1 }
-        while last + 1 < count, isWordElement(last + 1), sameLine(last, last + 1) { last += 1 }
+        while first > 0, isWordElement(first - 1), breaks[first] == .none { first -= 1 }
+        while last + 1 < count, isWordElement(last + 1), breaks[last + 1] == .none { last += 1 }
         return first...last
     }
 
@@ -46,33 +58,38 @@ struct PageText: Decodable, Sendable {
     func lineRects(_ range: ClosedRange<Int>) -> [CGRect] {
         var rects: [CGRect] = []
         var current: CGRect?
-        var previous: Int?
+        var newLine = false
         for index in range where index < count {
+            if index > range.lowerBound, breaks[index] == .line { newLine = true }
             let rect = box(index)
             // Spaces join the words around them but never extend a line's mark past its last word.
             guard rect.width > 0, rect.height > 0, !texts[index].allSatisfy(\.isWhitespace) else { continue }
-            if let line = current, let previous, sameLine(previous, index), rect.minX >= line.minX - 1 {
+            if let line = current, !newLine {
                 current = line.union(rect)
             } else {
                 if let line = current { rects.append(line) }
                 current = rect
             }
-            previous = index
+            newLine = false
         }
         if let line = current { rects.append(line) }
         return rects
     }
 
-    /// The text of a range, with a line break where the selection moves to another line.
+    /// The text of a range, with a space across a gap between words and a line break where the selection moves to
+    /// another line, as OfficeIMO's readers copy it.
     func string(_ range: ClosedRange<Int>) -> String {
         var result = ""
-        var previous: Int?
         for index in range where index < count {
-            if let previous, !sameLine(previous, index), let last = result.last, !last.isWhitespace {
-                result.append("\n")
+            let text = texts[index]
+            if index > range.lowerBound, let last = result.last, !last.isWhitespace, text.first?.isWhitespace != true {
+                switch breaks[index] {
+                case .space: result.append(" ")
+                case .line: result.append("\n")
+                case .none: break
+                }
             }
-            result += texts[index]
-            previous = index
+            result += text
         }
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -80,14 +97,6 @@ struct PageText: Decodable, Sendable {
     private func isWordElement(_ index: Int) -> Bool {
         let text = texts[index]
         return !text.isEmpty && !text.contains(where: \.isWhitespace) && !text.allSatisfy(\.isPunctuation)
-    }
-
-    /// Two elements share a line when their boxes overlap for most of the shorter one's height.
-    private func sameLine(_ first: Int, _ second: Int) -> Bool {
-        let a = box(first)
-        let b = box(second)
-        let overlap = min(a.maxY, b.maxY) - max(a.minY, b.minY)
-        return overlap >= min(a.height, b.height) * 0.5
     }
 }
 

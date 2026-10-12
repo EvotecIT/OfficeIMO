@@ -30,11 +30,22 @@ struct OfficeIMOStudioApp: App {
         #if os(macOS)
         .defaultSize(width: 1180, height: 860)
         #endif
-        .commands { StudioCommands() }
+        .commands {
+            StudioCommands()
+            #if os(macOS)
+            // File > Import from iPhone or iPad: Continuity Camera's Scan Documents and Take Photo.
+            ImportFromDevicesCommands()
+            #endif
+        }
 
         #if os(iOS)
         DocumentGroupLaunchScene("OfficeIMO Studio", backgroundStyle: Color.accentColor.gradient) {
             NewDocumentButton("New Blank PDF")
+            // Or from paper: the document camera where the device has one, or photos.
+            if ScanSources.isCameraAvailable {
+                NewDocumentButton("Scan Document", contentType: .pdf) { try await ScanSources.newDocumentFromCamera() }
+            }
+            NewDocumentButton("PDF from Photos", contentType: .pdf) { try await ScanSources.newDocumentFromPhotos() }
         }
         #endif
     }
@@ -43,8 +54,29 @@ struct OfficeIMOStudioApp: App {
 /// The menu bar on the Mac and the iPad, with Preview's shortcuts where Preview has the same command.
 struct StudioCommands: Commands {
     @FocusedValue(\.documentSession) private var session
+    #if os(macOS)
+    @Environment(\.newDocument) private var newDocument
+    #endif
 
     var body: some Commands {
+        #if os(macOS)
+        CommandGroup(after: .newItem) {
+            Button("New PDF from Images…") { ScanSources.newDocumentFromImageFiles(newDocument) }
+        }
+        #endif
+
+        CommandGroup(replacing: .printItem) {
+            Button("Print…") {
+                #if os(macOS)
+                session?.print(from: NSApp.keyWindow)
+                #else
+                session?.print()
+                #endif
+            }
+            .keyboardShortcut("p")
+            .disabled(session?.canPrint != true)
+        }
+
         CommandGroup(before: .toolbar) {
             Group {
                 ForEach(Array(StudioTask.allCases.enumerated()), id: \.element) { index, task in
