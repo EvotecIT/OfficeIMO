@@ -25,6 +25,6 @@
     <ProjectReference Include="$(ChartForgeXMarkupMermaidProjectPath)" />
   </ItemGroup>
   <ItemGroup Condition="'$(ChartForgeXMarkupMermaidProjectPath)' == ''">
-    <PackageReference Include="ChartForgeX.Markup.Mermaid" Version="[1.8.2,2.0.0)" />
+    <PackageReference Include="ChartForgeX.Markup.Mermaid" Version="2.0.0" />
   </ItemGroup>
 </Project>

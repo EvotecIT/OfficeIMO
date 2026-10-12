@@ -1,5 +1,18 @@
 # Upgrading OfficeIMO
 
+## Excel worksheet page-fit inspection
+
+`ExcelSheet.GetPageSetup()` returns effective print-fit settings. Previously,
+`FitToWidth` and `FitToHeight` exposed stored dimensions even when worksheet
+`fitToPage` was disabled. They now return null in that case. When fitting is
+enabled, an omitted dimension now returns the native default of `1` instead of
+null; an explicit `0` remains `0` and means no page limit for that dimension.
+
+Update inspection and export code to treat null fit dimensions as inactive and
+to use `Scale` for percentage-based printing. To enable page fitting, configure
+it through `sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U)` for one page wide
+with no height limit, instead of relying on cached dimensions in the worksheet XML.
+
 ## PDF form value assessment
 
 `PdfFormFieldValueAssessment.Assess(field, value)` includes numeric notation,
@@ -41,6 +54,16 @@ AllowSignatureRemoval = true })` to explicitly remove invalidated signatures.
 Use the typed `ReadVbaProject()` and
 `SetVbaProject(...)` workflow for explicit source changes and signature policy;
 use `RemoveMacros()` only when removing the entire project is intended.
+
+## Word native DOC font alignment
+
+Native DOC loading and saving use the format's top, center, baseline, bottom and
+automatic font-alignment values. Earlier OfficeIMO DOC saves with an explicit
+`WordParagraph.VerticalCharacterAlignmentOnLine` could encode a different
+alignment than requested; loading those files now follows the stored native value.
+For affected OfficeIMO-produced DOC files, reload the original DOCX source or
+reapply the intended `WordVerticalCharacterAlignment` value after loading, then
+save again. Use the named enum values when setting alignment.
 
 ## PDF named composite font mappings
 
@@ -1059,6 +1082,54 @@ larger than 16 MiB, matching `PdfCiiInvoiceDocument.MaximumXmlBytes`.
 File overloads reject an oversized source before buffering. Applications that
 previously attached larger XML must reduce or split the payload before using
 these methods.
+
+## ChartForgeX 2.0 adapter integration
+
+`OfficeVisualConversionOptions.SvgPolicy` defaults to `RasterizeWhenNeeded` to
+preserve appearance when vector import is incomplete. Set `PreserveVector`
+explicitly to retain the previous imported-vector behavior, or `RequireVector`
+to reject unsupported content. Inspect the existing conversion report for
+fallback, approximation and omission diagnostics.
+
+When both `WidthPoints` and `HeightPoints` are supplied, `Fit` defaults to
+`OfficeImageFit.Contain`. Set `Fit = OfficeImageFit.Stretch` for the previous exact
+width-and-height sizing. A single dimension still preserves proportions.
+
+`AddVisualArtifact(artifact)` inserts directly. Word constrains an oversized
+visual to its paragraph's authored content-width estimate when no explicit size
+is supplied. PDF constrains oversized visuals to the current flow width by
+default; a custom `PdfDrawingStyle` controls `ConstrainToContentWidth` explicitly.
+The existing conversion-result overloads retain explicit Word placement.
+Use worksheet ranges and `PowerPointLayoutBox` for bounded placement.
+`OfficeVisualConversionResult.WithSize` resizes retained content without another
+render/import; prepare again to change label layout or typography. Use
+`OfficeVisualDocumentStyle.CreateContext` to prepare at the intended point size.
+
+Native Visio graph titles measure their saved text at the configured native font.
+`Title(..., height: ...)` supplies a minimum height. Preserved ChartForgeX geometry
+keeps its node and route positions; a title that cannot fit its free header
+corridor is omitted with `TitleNotProjected` rather than covering those objects.
+
+Rebuild callers of `OfficeIMO.ChartForgeX` against ChartForgeX 2.0. The bridge keeps
+its core-only ChartForgeX dependency. Add `ChartForgeX.Visuals` to the application
+when rendering factual tables, canvases, or watermarks; optional story and motion
+producers belong to `ChartForgeX.Stories`. Pass their common static artifacts to
+the existing `ToOfficeVisual` and document-placement APIs.
+
+Replace `VisualArtifactRenderOptions.Watermarks.Add(watermark)` with
+`artifact.WithWatermarks(watermark)` before conversion. Native editable Visio
+does not project those static layers. Inspect `WatermarkNotProjected`, or reject
+it through `RejectedDiagnostics`/`RequireLossless`; the diagnostic also survives
+interchange envelope and UTF-8 JSON handoff.
+
+Use `prepared.ToArtifact(id, kind)` when placing a prepared chart or diagram.
+It retains the resolved viewport, accessible text, and producer-owned semantics.
+Complete topology projection consumes resolved connector routes and label bounds;
+unprepared envelopes retain the authored waypoint and named-port contract.
+Flow and sequence keep native editable semantics with `LayoutRecomputed` and
+reject `LayoutMode = Preserve`. Their native page does not promise the prepared
+scene's placement. The Markdown companion uses `ChartForgeX.Markup.Mermaid` 2.0
+and keeps static fence materialization and document placement in their owners.
 
 ## Native ChartForgeX topology placement
 
@@ -3268,6 +3339,12 @@ PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches.
 Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 
 Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNoteToPdfOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
+
+### Native DOC paragraph spacing and alignment inheritance
+
+Loading a binary `.doc` file uses single line spacing and zero paragraph spacing when the source omits those values. Imported built-in styles inherit omitted spacing from their source base styles. Explicit source spacing remains in effect. This changes layout for files that previously acquired DOCX authoring spacing during import; remove any compensating spacing overrides that are no longer needed.
+
+Setting `WordParagraph.ParagraphAlignment` or `VerticalCharacterAlignmentOnLine` to `null` removes that direct paragraph setting and restores style inheritance. Set `WordParagraphAlignment.Left` or `WordVerticalCharacterAlignment.Auto` explicitly when an inherited setting should be overridden.
 
 ## Upgrade checklist
 

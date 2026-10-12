@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel.Pdf {
             style.MinRowHeight = 0D;
             style.MaxWidth = null;
             style.PreserveWidth = true;
-            style.ShrinkTextToFit = true;
+            style.ShrinkTextToFit = false;
             style.MinimumShrinkFontSize = Math.Max(3D, 4D * scale);
             style.SpacingBefore = 0D;
             style.SpacingAfter = 0D;

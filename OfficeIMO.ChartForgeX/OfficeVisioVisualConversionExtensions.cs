@@ -20,13 +20,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         OfficeVisioVisualOptions? options = null,
         VisualArtifactRenderOptions? renderOptions = null) {
         if (artifact == null) throw new ArgumentNullException(nameof(artifact));
-        OfficeVisioVisualConversionResult result = CreateDocumentProjection(artifact.ToInterchangeEnvelope(renderOptions), options, enforceFidelity: false);
-        if (renderOptions != null && renderOptions.Watermarks.Count > 0) {
-            result.Report.Warn(OfficeVisioVisualDiagnosticCode.WatermarkNotProjected, OfficeVisioVisualEntityKind.Artifact, artifact.Id, "watermark",
-                "CFX render watermarks are not projected into the native editable Visio page; keep the separately rendered SVG or PNG when watermark fidelity is required.");
-        }
-        EnforceFidelity(result.Report, options ?? new OfficeVisioVisualOptions());
-        return result;
+        return artifact.ToInterchangeEnvelope(renderOptions).ToOfficeVisio(options);
     }
 
     /// <summary>Projects a validated CFX semantic envelope into a native editable Visio document.</summary>
@@ -64,6 +58,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         };
         ReportDisabledShapeDataFidelity(validated, options, report);
         ReportTitleFidelity(validated, options, report);
+        ReportStaticDecorationFidelity(validated, report);
 
         switch (validated.Family) {
             case VisualArtifactInterchangeFamily.Topology:
@@ -140,6 +135,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         if (preserve) {
             var page = document.Pages[document.Pages.Count - 1];
             RouteComputedConnectors(page, envelope, report);
+            ApplyResolvedLabelGeometry(page, envelope, options);
             ValidatePreservedLabels(page, envelope, options, report);
         }
         if (options.UseNaturalPageSize && !preserve) {

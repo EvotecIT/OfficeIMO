@@ -129,18 +129,18 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < sections.Count; i++) {
                 PowerPointLayoutBox box = columns[i];
                 PowerPointCaseStudySection section = sections[i];
-                AddText(slide, section.Heading, box.LeftCm, box.TopCm, box.WidthCm, 0.55, i == 0 ? 19 : 11,
+                AddText(slide, section.Heading, box.LeftCm, box.TopCm, box.WidthCm, i == 0 ? 0.85 : 0.55, i == 0 ? 19 : 11,
                     theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
                 if (i == 0) {
-                    PowerPointAutoShape rule = slide.AddRectangleCm(box.LeftCm, box.TopCm + 0.78, box.WidthCm, 0.025,
+                    PowerPointAutoShape rule = slide.AddRectangleCm(box.LeftCm, box.TopCm + 0.97, box.WidthCm, 0.025,
                         "Case Study Client Rule");
                     rule.FillColor = theme.PanelBorderColor;
                     rule.OutlineColor = theme.PanelBorderColor;
                 }
 
                 string body = i == 0 ? clientTitle + Environment.NewLine + section.Body : section.Body;
-                PowerPointTextBox bodyBox = AddText(slide, body, box.LeftCm, box.TopCm + 1.05, box.WidthCm, 4.5,
+                PowerPointTextBox bodyBox = AddText(slide, body, box.LeftCm, box.TopCm + (i == 0 ? 1.2 : 1.05), box.WidthCm, 4.5,
                     i == 0 ? 13 : 10, i == 0 ? theme.PrimaryTextColor : theme.SecondaryTextColor,
                     theme.BodyFontName, bold: i == 0);
                 bodyBox.TextAutoFit = PowerPointTextAutoFit.Normal;
@@ -226,11 +226,11 @@ namespace OfficeIMO.PowerPoint {
             wash.FillTransparency = 45;
             wash.OutlineColor = theme.Accent2Color;
 
-            AddText(slide, options.BrandText ?? string.Empty, 2.0, bandTop + 0.85, 4.4, 0.7, 20,
+            AddText(slide, options.BrandText ?? string.Empty, 2.0, bandTop + 0.85, 4.4, 0.9, 20,
                 theme.AccentContrastColor, theme.HeadingFontName, bold: true);
 
             if (!string.IsNullOrWhiteSpace(options.BandLabel)) {
-                AddText(slide, options.BandLabel!, 2.0, bandTop + bandHeight - 1.35, 6.8, 0.5, 17,
+                AddText(slide, options.BandLabel!, 2.0, bandTop + bandHeight - 1.35, 6.8, 0.8, 17,
                     theme.AccentLightColor, theme.HeadingFontName, bold: true);
             }
 
