@@ -329,6 +329,7 @@ internal sealed partial class OfficeImoAgentService {
         source = captured.Source;
         OfficeDocumentReadResult document = captured.Document;
         string content = ReaderToolOutput.FormatDocument(document, outputFormat);
+        var fingerprint = ReaderToolOutput.FingerprintText(content, cancellationToken);
         await ReaderToolOutput.WriteFileAsync(
             destination,
             content,
@@ -338,26 +339,13 @@ internal sealed partial class OfficeImoAgentService {
                 if (!await publicationGuard.CanPublishAsync(destination, isDirectory: false, token).ConfigureAwait(false))
                     throw new UnauthorizedAccessException("The source or output permission changed before publication.");
             }).ConfigureAwait(false);
-        string hash;
-        await using (FileStream stream = new FileStream(
-            destination,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read,
-            64 * 1024,
-            useAsync: true)) {
-            byte[] bytes = await System.Security.Cryptography.SHA256.HashDataAsync(
-                stream,
-                cancellationToken).ConfigureAwait(false);
-            hash = Convert.ToHexString(bytes).ToLowerInvariant();
-        }
         return new AgentConvertResult {
             SourceId = source.SourceId,
             SourcePath = source.Path,
             OutputPath = destination,
             Format = outputFormat == ReaderToolOutputFormat.Json ? "json" : "markdown",
-            LengthBytes = new FileInfo(destination).Length,
-            Sha256 = hash,
+            LengthBytes = fingerprint.LengthBytes,
+            Sha256 = fingerprint.Sha256,
             DiagnosticCount = document.Diagnostics.Count
         };
     }

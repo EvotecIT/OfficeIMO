@@ -64,6 +64,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         });
         var warning = Assert.Single(result.Warnings, warning => warning.Code == "text-box-overflow");
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
     }
 
@@ -135,6 +136,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         Assert.Contains("VISIBLE", string.Concat(pdf.GetPage(1).Letters.Select(letter => letter.Value)));
         var warning = Assert.Single(result.Warnings, warning => warning.Code == "text-box-overflow");
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
     }
 

@@ -479,7 +479,7 @@ public static partial class WordIWorkConverter {
         if (style.Underline.HasValue) run.Underline = style.Underline.Value ? WordUnderlineStyle.Single : null;
         if (style.Strikethrough.HasValue) run.Strike = style.Strikethrough.Value;
         if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
-        if (style.CharacterSpacingPoints is double spacing) run.Spacing = ToSignedTwips(spacing);
+        if (style.CharacterSpacingPoints is double spacing) run.Spacing = ToCharacterSpacingTwips(spacing);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
         if (style.Color != null) run.ColorHex = style.Color.RgbHex;
         if (style.BackgroundColor != null) run.RunShadingFillColorHex = style.BackgroundColor.RgbHex;
@@ -503,6 +503,13 @@ public static partial class WordIWorkConverter {
         double value = Math.Round(points * 20d, MidpointRounding.AwayFromZero);
         if (value < 0 || value > uint.MaxValue) throw new InvalidDataException("A Pages page measurement exceeds the DOCX range.");
         return (uint)value;
+    }
+
+    private static int ToCharacterSpacingTwips(double points) {
+        double value = Math.Round(points * 20d, MidpointRounding.AwayFromZero);
+        if (double.IsNaN(value) || double.IsInfinity(value) || value < int.MinValue || value > int.MaxValue)
+            throw new InvalidDataException("Pages character spacing exceeds the DOCX range.");
+        return (int)value;
     }
 
     private static int ToSignedTwips(double points) {

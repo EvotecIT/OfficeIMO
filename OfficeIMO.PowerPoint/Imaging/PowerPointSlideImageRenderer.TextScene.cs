@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
             if (clipped) diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning, "POWERPOINT_TEXT_OVERFLOW",
                 "Clipped PowerPoint text because it exceeds the available text frame.",
-                DescribeShape(textBox), OfficeConversionLossKind.Approximation));
+                DescribeShape(textBox), OfficeConversionLossKind.Omission));
         }
 
         private static string ResolveTextBoxFallbackFont(PowerPointTextBox textBox, string? defaultFontFamily) =>
@@ -56,6 +56,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ReportCharacterSpacing(PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics) {
             if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run is { } run
+                && !string.IsNullOrEmpty(run.Text)
                 && PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, textBox).GetValueOrDefault() != 0))) return;
             diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
                 "POWERPOINT_CHARACTER_SPACING_APPROXIMATED",

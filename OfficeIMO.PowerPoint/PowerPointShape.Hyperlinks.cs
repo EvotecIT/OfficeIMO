@@ -28,8 +28,8 @@ namespace OfficeIMO.PowerPoint {
                     "This shape type does not expose non-visual drawing properties.");
             }
 
-            SlidePart slidePart = OwnerSlide.SlidePart;
-            HyperlinkRelationship relationship = slidePart.AddHyperlinkRelationship(uri, true);
+            OpenXmlPart ownerPart = RelationshipOwnerPart ?? OwnerSlide.SlidePart;
+            HyperlinkRelationship relationship = ownerPart.AddHyperlinkRelationship(uri, true);
             var replacement = new A.HyperlinkOnClick { Id = relationship.Id };
             if (!string.IsNullOrWhiteSpace(tooltip)) replacement.Tooltip = tooltip;
             ReplaceShapeHyperlink(replacement);
@@ -67,11 +67,19 @@ namespace OfficeIMO.PowerPoint {
                     "targetSlide");
             }
 
-            if (!sourceSlidePart.Parts.Any(pair => ReferenceEquals(
-                    pair.OpenXmlPart, targetSlidePart))) {
-                sourceSlidePart.AddPart(targetSlidePart);
+            OpenXmlPart ownerPart = RelationshipOwnerPart ?? sourceSlidePart;
+            string relationshipId;
+            if (ownerPart is not SlidePart) {
+                Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(ownerPart, targetSlidePart);
+                HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships.FirstOrDefault(
+                    candidate => !candidate.IsExternal && candidate.Uri == targetUri)
+                    ?? ownerPart.AddHyperlinkRelationship(targetUri, false);
+                relationshipId = relationship.Id;
+            } else {
+                if (!ownerPart.Parts.Any(pair => ReferenceEquals(pair.OpenXmlPart, targetSlidePart)))
+                    ownerPart.AddPart(targetSlidePart);
+                relationshipId = ownerPart.GetIdOfPart(targetSlidePart);
             }
-            string relationshipId = sourceSlidePart.GetIdOfPart(targetSlidePart);
             var replacement = new A.HyperlinkOnClick {
                 Id = relationshipId,
                 Action = "ppaction://hlinksldjump"
@@ -116,26 +124,26 @@ namespace OfficeIMO.PowerPoint {
             if (replacement != null) properties.Append(replacement);
             if (OwnerSlide == null) return;
 
-            SlidePart slidePart = OwnerSlide.SlidePart;
+            OpenXmlPart ownerPart = RelationshipOwnerPart ?? OwnerSlide.SlidePart;
             foreach (string relationshipId in previousRelationshipIds) {
-                if (ReferencesRelationship(slidePart.Slide, relationshipId)) {
+                if (ReferencesRelationship(ownerPart.RootElement, relationshipId)) {
                     continue;
                 }
-                HyperlinkRelationship? relationship = slidePart.HyperlinkRelationships
+                HyperlinkRelationship? relationship = ownerPart.HyperlinkRelationships
                     .FirstOrDefault(candidate => string.Equals(candidate.Id, relationshipId,
                         StringComparison.Ordinal));
                 if (relationship != null) {
-                    slidePart.DeleteReferenceRelationship(relationship);
+                    ownerPart.DeleteReferenceRelationship(relationship);
                     continue;
                 }
-                if (slidePart.Parts.Any(pair => string.Equals(
+                if (ownerPart.Parts.Any(pair => string.Equals(
                         pair.RelationshipId, relationshipId,
                         StringComparison.Ordinal))) {
-                    slidePart.DeletePart(relationshipId);
+                    ownerPart.DeletePart(relationshipId);
                 }
             }
             foreach (string relationshipId in soundRelationshipIds) {
-                PowerPointEmbeddedSound.RemoveIfUnused(slidePart, relationshipId);
+                PowerPointEmbeddedSound.RemoveIfUnused(ownerPart, relationshipId);
             }
         }
 

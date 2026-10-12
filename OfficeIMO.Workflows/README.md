@@ -1934,7 +1934,7 @@ compared snapshots by SHA-256. It reports ordinal rendered appearance rather tha
 semantic or moved-page changes. Neither input is rewritten; the output must be a
 separate HTML destination.
 
-Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
+Every workflow request runs with explicit input and output limits, cancellation, staged output validation, and a caller-selected collision policy. Single-artifact `OfficeWorkflowResult.OutputBytes` and `OutputSha256`, when available, describe the captured published bytes without reopening the final destination. Passwords remain request-only values and are not copied into diagnostics or results. PDF comparison accepts a separate `ComparisonPdfPassword` when the two inputs use different credentials.
 
 `PdfPrintRenderer.Prepare(document, request)` turns an authenticated `PdfDocument` snapshot and its `PdfPrintPlanRequest` into immutable PNG sheets. Display `prepared.Sheets[i].GetPng()` for review, then pass that same `PdfPreparedPrintDocument` to `IPdfPrinterService.SubmitAsync` with `PdfPrintDeliveryOptions`. Delivery does not reopen the source. `PdfPrinterService.GetPrintersAsync` lists installed queues; Windows uses GDI and macOS/Linux use the installed CUPS `lpstat`, `lpoptions`, and `lp` tools. Copies are collated, and duplex defaults to the printer's setting.
 
@@ -2114,7 +2114,7 @@ var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
 }, engine, cancellationToken);
 ```
 
-The runner captures a bounded input snapshot, adds searchable text through `OfficeIMO.Pdf.Ocr`, and reopens the staged PDF before publication. It verifies source contents and local physical identity after recognition, then applies `PublicationGuard` and the selected conflict policy. The request also accepts `InputStream` and `OutputStream` with the same provider consent and recovery requirements described above. Inspect `Status`, `OutputPath`, and `Recovery` before opening or retrying an output. The engine remains owned by the caller.
+The runner captures a bounded input snapshot, adds searchable text through `OfficeIMO.Pdf.Ocr`, and reopens the staged PDF before publication. It verifies source contents and local physical identity after recognition, then applies `PublicationGuard` and the selected conflict policy. The request also accepts `InputStream` and `OutputStream` with the same provider consent and recovery requirements described above. Inspect `Status`, `OutputPath`, and `Recovery` before opening or retrying an output. `OutputBytes` retains the captured published size. The engine remains owned by the caller.
 
 Set `ReviewAsync` to pause before creating the text layer. The callback receives a `PdfSearchableOcrReview` and returns eligible word instances selected from that review. The shared PDF owner rejects foreign, duplicate, and policy-rejected selections. The destination remains untouched while review is pending, cancellation prevents publication, and source identity is checked again after the decision. Without a callback, the runner uses all eligible words.
 

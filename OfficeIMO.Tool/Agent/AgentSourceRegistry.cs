@@ -45,7 +45,8 @@ internal sealed partial class AgentSourceRegistry {
             throw new AgentUsageException(
                 "Unknown source id. Inspect or search the source again before fetching content.");
         }
-        AgentSourceRegistration current = Create(registered.Path, cancellationToken, registered.EmailDataOptions, registered.EmailContentSearch);
+        AgentSourceRegistration current = Create(registered.Path, cancellationToken, registered.EmailDataOptions,
+            registered.EmailContentSearch, registered.IWorkMaximumPackageBytes);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             _sources.TryRemove(sourceId, out _);
             throw new AgentUsageException(
@@ -69,7 +70,7 @@ internal sealed partial class AgentSourceRegistry {
             ? registered.EmailDataOptions : contentSearch
                 ? new EmailDataOpenOptions(store: OfficeImoAgentService.CreateEmailStoreOptions(), expectedKind: EmailDataArtifactKind.Store)
                 : sourceId.StartsWith(EmailDataPrefix, StringComparison.Ordinal) ? new EmailDataInspectionOptions().OpenOptions : null;
-        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions, contentSearch);
+        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions, contentSearch, registered?.IWorkMaximumPackageBytes);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             throw new AgentUsageException(
                 "The supplied path does not match the source id, or the source changed. Search it again.");
@@ -80,7 +81,8 @@ internal sealed partial class AgentSourceRegistry {
 
     private static AgentSourceRegistration Create(
         string path,
-        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions = null, bool emailContentSearch = false) {
+        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions = null, bool emailContentSearch = false,
+        long? iworkMaximumPackageBytes = null) {
         string fullPath = OfficeImoToolPathSafety.ResolveExistingLinks(path);
         bool isDirectory = Directory.Exists(fullPath);
         long? length = isDirectory ? null : new FileInfo(fullPath).Length;
@@ -92,13 +94,13 @@ internal sealed partial class AgentSourceRegistry {
             isDirectory,
             length,
             lastWriteUtc,
-            cancellationToken, dataOptions, null);
+            cancellationToken, dataOptions, null, iworkMaximumPackageBytes);
         return new AgentSourceRegistration(
             (emailContentSearch ? EmailStorePrefix : dataOptions == null ? "officeimo:" : EmailDataPrefix) + hash.Substring(0, 24),
             fullPath,
             isDirectory,
             length,
-            lastWriteUtc, dataOptions, emailContentSearch);
+            lastWriteUtc, dataOptions, emailContentSearch, iworkMaximumPackageBytes);
     }
 
     private static string CreateHash(
@@ -106,7 +108,8 @@ internal sealed partial class AgentSourceRegistry {
         bool isDirectory,
         long? length,
         DateTime lastWriteUtc,
-        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions, string? capturedIWorkContentHash) {
+        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions, string? capturedIWorkContentHash,
+        long? iworkMaximumPackageBytes = null) {
         using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         Append(fingerprint, fullPath);
         Append(fingerprint, isDirectory ? "directory" : "file");
@@ -132,7 +135,7 @@ internal sealed partial class AgentSourceRegistry {
                 }
             }
         } else if (iworkDirectory) {
-            Append(fingerprint, capturedIWorkContentHash ?? ComputeIWorkContentHash(fullPath, cancellationToken));
+            Append(fingerprint, capturedIWorkContentHash ?? ComputeIWorkContentHash(fullPath, iworkMaximumPackageBytes, cancellationToken));
         } else if (isDirectory) {
             using EmailStoreSession session = EmailStoreSession.Open(
                 fullPath,
@@ -156,4 +159,5 @@ internal sealed record AgentSourceRegistration(
     long? LengthBytes,
     DateTime LastWriteUtc,
     EmailDataOpenOptions? EmailDataOptions = null,
-    bool EmailContentSearch = false);
+    bool EmailContentSearch = false,
+    long? IWorkMaximumPackageBytes = null);

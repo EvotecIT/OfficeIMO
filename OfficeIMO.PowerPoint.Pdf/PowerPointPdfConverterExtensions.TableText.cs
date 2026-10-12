@@ -21,7 +21,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PowerPointToPdfOptions options) {
         IReadOnlyList<A.TextCharacterPropertiesType> sources = ResolveTableTextPropertySources(cell, paragraph, directProperties);
         int? characterSpacing = sources.Select(source => source.Spacing?.Value).FirstOrDefault(value => value.HasValue);
-        if (characterSpacing.GetValueOrDefault() != 0)
+        if (!string.IsNullOrEmpty(text) && characterSpacing.GetValueOrDefault() != 0)
             AddWarning(options, slideNumber, "character-spacing-approximation",
                 "PDF table text uses default character spacing; explicit spacing is retained in the presentation.");
         string? fontFamily = ReadRunFontName(cell, sources) ?? cell.FontName ?? fallbackFontFamily;
@@ -58,8 +58,8 @@ public static partial class PowerPointPdfConverterExtensions {
             .Select(source => source.Italic == null ? (bool?)null : source.Italic.Value)
             .FirstOrDefault(value => value.HasValue);
 
-        Uri? hyperlink = cell.SlidePart == null ? null : PptCore.PowerPointHyperlinkResolver.Resolve(
-            cell.SlidePart, cell.SlidePart, directProperties?.GetFirstChild<A.HyperlinkOnClick>());
+        Uri? hyperlink = cell.OwnerPart == null ? null : PptCore.PowerPointHyperlinkResolver.Resolve(
+            cell.OwnerPart, cell.SlidePart, directProperties?.GetFirstChild<A.HyperlinkOnClick>());
         string? destination = ResolveSlideLinkDestination(hyperlink, slideNumber, options, "table text run");
 
         return new PdfCore.PdfTextRun(
