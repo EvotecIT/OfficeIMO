@@ -257,12 +257,19 @@ public sealed partial class PdfPageInteractionMap {
         return matches.Count == 0 ? Array.Empty<PdfPageInteractionRegion>() : matches.AsReadOnly();
     }
 
-    /// <summary>Concatenates selected text elements in extraction order.</summary>
+    /// <summary>Joins selected text elements in extraction order, with a space across a gap between words and a line
+    /// break between lines where the text does not already contain one.</summary>
     public string GetSelectedText(double x1, double y1, double x2, double y2) {
         IReadOnlyList<PdfPageInteractionRegion> selected = SelectText(x1, y1, x2, y2);
         var text = new StringBuilder();
         for (int i = 0; i < selected.Count; i++) {
-            text.Append(selected[i].Text);
+            string element = selected[i].Text ?? string.Empty;
+            if (i > 0 && text.Length > 0 && !char.IsWhiteSpace(text[text.Length - 1]) && (element.Length == 0 || !char.IsWhiteSpace(element[0]))) {
+                PdfTextBreak separator = GetTextBreak(selected[i - 1], selected[i]);
+                if (separator == PdfTextBreak.Space) text.Append(' ');
+                else if (separator == PdfTextBreak.Line) text.Append(Environment.NewLine);
+            }
+            text.Append(element);
         }
 
         return text.ToString();

@@ -10,14 +10,25 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfSearchableTextRunTests {
     [Fact]
     public void OcrTextIsSelectableOnRequest() {
-        // An OCR layer: rendering mode 3 text over where a scan's words appear.
-        byte[] pdf = Encoding.ASCII.GetBytes(BuildPdf("BT /F1 12 Tf 3 Tr 50 700 Td (scanned words) Tj ET\n"));
+        // An OCR layer: rendering mode 3 text over where a scan's words appear, each word positioned on its own
+        // without space characters between them, about three and a half points apart at a large font size.
+        byte[] pdf = Encoding.ASCII.GetBytes(BuildPdf(
+            "BT /F1 28 Tf 3 Tr 50 700 Td (scanned) Tj 109.3 0 Td (words) Tj 0 -40 Td (next) Tj ET\n"));
 
         Assert.Empty(PdfPageInteractionMap.Create(pdf, 1).TextRegions);
-        PdfPageInteractionRegion[] regions = PdfPageInteractionMap.Create(pdf, 1,
-            new PdfPageInteractionOptions { IncludeTextRenderingMode3 = true }).TextRegions.ToArray();
-        Assert.Equal("scanned words", string.Concat(regions.Select(region => region.Text)));
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(pdf, 1, new PdfPageInteractionOptions { IncludeTextRenderingMode3 = true });
+        PdfPageInteractionRegion[] regions = map.TextRegions.ToArray();
+        Assert.Equal("scannedwordsnext", string.Concat(regions.Select(region => region.Text)));
         Assert.InRange(regions[0].Quad.Left, 49D, 51D);
+
+        // Gaps between words copy as spaces, line changes as line breaks, and a word selects alone.
+        Assert.Equal("scanned words" + Environment.NewLine + "next", map.GetSelectedText(0, 0, map.Width, map.Height));
+        Assert.Equal(PdfTextBreak.None, PdfPageInteractionMap.GetTextBreak(regions[0], regions[1]));
+        Assert.Equal(PdfTextBreak.Space, PdfPageInteractionMap.GetTextBreak(regions[6], regions[7]));
+        Assert.Equal(PdfTextBreak.Line, PdfPageInteractionMap.GetTextBreak(regions[11], regions[12]));
+        PdfPageInteractionRegion w = regions[7];
+        Assert.Equal("words", string.Concat(map.SelectWord((w.Quad.Left + w.Quad.Right) / 2, (w.Quad.Top + w.Quad.Bottom) / 2)
+            .Select(region => region.Text)));
     }
 
     private static string BuildPdf(string content) {

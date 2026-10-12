@@ -40,7 +40,8 @@ internal sealed class StudioNativeDocument : IDisposable {
                     (double width, double height) = PdfDocumentSession.GetPhysicalSize(page);
                     return new StudioNativePageInfo(page.PageNumber, width, height, page.RotationDegrees);
                 }).ToArray(),
-                StudioPdfSecurityPolicy.MaximumRasterPixels, _workspace.CanMutatePages, _workspace.CanExtractPages, _workspace.CanEditAnnotations);
+                StudioPdfSecurityPolicy.MaximumRasterPixels, _workspace.CanMutatePages, _workspace.CanExtractPages, _workspace.CanEditAnnotations,
+                !view.Security.HasEncryption || view.Security.HasOwnerAuthorization || view.Security.AllowsPrinting == true);
         } finally { _gate.Release(); }
     }
 
@@ -224,8 +225,9 @@ internal sealed class StudioNativeDocument : IDisposable {
     }
 
     /// <summary>
-    /// A page's text elements for selection and copying: each element's text and its box, as x, y, width and height in
-    /// points of the page as displayed, four numbers per element in the same order.
+    /// A page's text elements for selection and copying: each element's text, its box, as x, y, width and height in
+    /// points of the page as displayed, four numbers per element in the same order, and how it follows the element before
+    /// it as a <see cref="PdfTextBreak"/>, so words and lines are found as the reader finds them.
     /// </summary>
     internal async Task<StudioNativePageText> GetPageTextAsync(int pageNumber, CancellationToken cancellationToken) {
         await EnterAsync(cancellationToken).ConfigureAwait(false);
@@ -236,7 +238,9 @@ internal sealed class StudioNativeDocument : IDisposable {
                 .ConfigureAwait(false);
             var texts = new string[regions.Count];
             var boxes = new double[regions.Count * 4];
+            var breaks = new int[regions.Count];
             for (int index = 0; index < regions.Count; index++) {
+                breaks[index] = (int)(index == 0 ? PdfTextBreak.Line : PdfPageInteractionMap.GetTextBreak(regions[index - 1], regions[index]));
                 PdfSelectionQuad quad = regions[index].Quad;
                 texts[index] = regions[index].Text ?? string.Empty;
                 boxes[index * 4] = Math.Round(quad.Left, 2);
@@ -244,7 +248,7 @@ internal sealed class StudioNativeDocument : IDisposable {
                 boxes[index * 4 + 2] = Math.Round(quad.Width, 2);
                 boxes[index * 4 + 3] = Math.Round(quad.Height, 2);
             }
-            return new StudioNativePageText(StudioNativeAbi.Version, _workspace.Revision, pageNumber, texts, boxes);
+            return new StudioNativePageText(StudioNativeAbi.Version, _workspace.Revision, pageNumber, texts, boxes, breaks);
         } finally { _gate.Release(); }
     }
 
@@ -307,7 +311,7 @@ internal sealed class StudioNativeDocument : IDisposable {
 internal sealed record StudioNativeDocumentInfo(
     int AbiVersion, string FileName, string Path, long FileSize, long Revision, bool IsDirty, bool CanUndo, bool CanRedo, bool HasRecovery,
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
-    bool CanExtractPages, bool CanEditAnnotations);
+    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 
@@ -335,4 +339,5 @@ internal sealed record StudioNativeAnnotationList(int AbiVersion, long Revision,
 
 internal sealed record StudioNativeAnnotationUpdate(int ObjectNumber, string? Contents = null, string? Author = null, StudioNativeColor? Color = null);
 
-internal sealed record StudioNativePageText(int AbiVersion, long Revision, int Page, IReadOnlyList<string> Texts, IReadOnlyList<double> Boxes);
+internal sealed record StudioNativePageText(int AbiVersion, long Revision, int Page, IReadOnlyList<string> Texts, IReadOnlyList<double> Boxes,
+    IReadOnlyList<int> Breaks);

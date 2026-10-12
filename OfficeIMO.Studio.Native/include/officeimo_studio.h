@@ -79,11 +79,12 @@ void officeimo_document_close(officeimo_document document);
  * Document facts as JSON:
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
- *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations" }
+ *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
  * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
  * allows adding, changing and removing annotations, which a tagged or signed document may take as an appended revision.
+ * canPrint is false when the document's permissions forbid printing and it was not opened with its owner password.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
  * render scales apply to. The revision changes with every edit, undo and redo.
  */
@@ -184,10 +185,13 @@ int32_t officeimo_document_remove_annotation(officeimo_document document, int32_
                                              officeimo_cancellation cancellation, char **error);
 
 /*
- * A page's text for selection and copying, as JSON: { "abiVersion", "revision", "page", "texts": [ ], "boxes": [ ] }.
+ * A page's text for selection and copying, as JSON:
+ * { "abiVersion", "revision", "page", "texts": [ ], "boxes": [ ], "breaks": [ ] }.
  * texts holds the page's text elements, usually one character each, in extraction order; boxes holds four numbers per
- * element, x, y, width and height, in points of the page as displayed from its top-left corner. A document that
- * restricts text extraction fails with OFFICEIMO_UNSUPPORTED.
+ * element, x, y, width and height, in points of the page as displayed from its top-left corner. breaks holds one number
+ * per element for how it follows the previous one: 0 continues it, 1 is further along the same line after a gap, as
+ * between separately positioned words of a scan's text, and 2 starts another line. A document that restricts text
+ * extraction fails with OFFICEIMO_UNSUPPORTED.
  */
 int32_t officeimo_document_page_text_json(officeimo_document document, int32_t page, officeimo_cancellation cancellation,
                                           char **json, char **error);

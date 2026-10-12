@@ -112,6 +112,20 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.False((await document.GetInfoAsync(default)).IsDirty);
     }
 
+    [Theory]
+    [InlineData("open", false)]
+    [InlineData("owner", true)]
+    public async Task Printing_follows_the_document_permissions(string password, bool allowed) {
+        string path = Path.Combine(_root, "no-print.pdf");
+        var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.CopyContents };
+        File.WriteAllBytes(path, PdfDocument.Load(File.ReadAllBytes(CreatePagesOfWidths(300))).Security.Encrypt(encryption).Pdf);
+
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, password, default);
+        Assert.Equal(allowed, (await document.GetInfoAsync(default)).CanPrint);
+        using StudioNativeDocument open = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300), null, default);
+        Assert.True((await open.GetInfoAsync(default)).CanPrint);
+    }
+
     [Fact]
     public async Task Extracted_pages_form_a_new_document_and_leave_the_open_one_unchanged() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310, 320), null, default);
@@ -334,7 +348,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string output = Path.Combine(_root, "scan.pdf");
 
         PdfScanResult result = await PdfScanComposer.ComposeAsync([
-            new PdfScanPage(first, [new PdfScanWord("Invoice", 0.1, 0.1, 0.3, 0.05, 0.98), new PdfScanWord("4711", 0.5, 0.1, 0.2, 0.05)]),
+            new PdfScanPage(first, [new PdfScanWord("Invoice", 0.1, 0.1, 0.3, 0.05, 0.98), new PdfScanWord("4711", 0.407, 0.1, 0.15, 0.05)]),
             new PdfScanPage(second, [])
         ], output, default);
 
@@ -348,7 +362,11 @@ public sealed class StudioNativeEngineTests : IDisposable {
         // The word sits where the recognizer found it, a tenth of the way in from the top left.
         Assert.InRange(hit.Bounds.X / info.Pages[0].Width, 0.08, 0.14);
         Assert.InRange(hit.Bounds.Y / info.Pages[0].Height, 0.07, 0.14);
-        Assert.Contains("4711", string.Concat((await scan.GetPageTextAsync(1, default)).Texts));
+        // Recognized words sit a few points apart, as a recognizer's word boxes do; the gap reads as a space.
+        StudioNativePageText text = await scan.GetPageTextAsync(1, default);
+        Assert.Equal("Invoice4711", string.Concat(text.Texts));
+        Assert.Equal(text.Texts.Count, text.Breaks.Count);
+        Assert.Equal([2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0], text.Breaks);
     }
 
     [Fact]

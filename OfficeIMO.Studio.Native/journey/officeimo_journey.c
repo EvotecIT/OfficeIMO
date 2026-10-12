@@ -189,6 +189,7 @@ int main(int argc, char **argv) {
     json = facts(document);
     expect(has(json, "rotation", "90") && has(json, "isDirty", "true") && has(json, "canUndo", "true"),
            "rotation not recorded", json);
+    expect(has(json, "canPrint", "true"), "an unrestricted document cannot be printed", json);
     engine_officeimo_free(json);
 
     CHECK("undo", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
@@ -236,7 +237,8 @@ int main(int argc, char **argv) {
     engine_officeimo_free(json);
 
     CHECK("page text", engine_officeimo_document_page_text_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
-    expect(json && strstr(json, "\"texts\":[") && strstr(json, "\"boxes\":["), "the page text is missing", json);
+    expect(json && strstr(json, "\"texts\":[") && strstr(json, "\"boxes\":[") && strstr(json, "\"breaks\":["),
+           "the page text is missing", json);
     engine_officeimo_free(json);
     CHECK("page text missing page", engine_officeimo_document_page_text_json(document, 99, 0, &json, &error),
           OFFICEIMO_INVALID_ARGUMENT);
