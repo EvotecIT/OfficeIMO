@@ -1426,9 +1426,9 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="FillSign.Delete" xml:space="preserve"><value>Supprimer l'image enregistrée</value></data>
   <data name="FillSign.Privacy" xml:space="preserve"><value>Les signatures enregistrées restent sur cet ordinateur. Ce sont des signatures visuelles, pas des signatures par certificat ; utilisez Protéger pour signer avec un certificat.</value></data>
   <data name="FillSign.Date" xml:space="preserve"><value>Date</value></data>
-  <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Cliquez à l'emplacement de la signature ou faites glisser pour la dimensionner</value></data>
-  <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Cliquez à l'emplacement des initiales ou faites glisser pour les dimensionner</value></data>
-  <data name="FillSign.PlaceDate" xml:space="preserve"><value>Cliquez à l'emplacement de la date</value></data>
+  <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Cliquez à l&apos;emplacement de la signature ou faites glisser pour la dimensionner. Entrée la place au milieu de la page ; Échap annule.</value></data>
+  <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Cliquez à l&apos;emplacement des initiales ou faites glisser pour les dimensionner. Entrée les place au milieu de la page ; Échap annule.</value></data>
+  <data name="FillSign.PlaceDate" xml:space="preserve"><value>Cliquez à l&apos;emplacement de la date. Entrée la place au milieu de la page ; Échap annule.</value></data>
   <data name="FillSign.SignaturePlaced" xml:space="preserve"><value>Signature ajoutée</value></data>
   <data name="FillSign.DatePlaced" xml:space="preserve"><value>Date ajoutée</value></data>
   <data name="FillSign.SaveFailed" xml:space="preserve"><value>La signature n'a pas pu être enregistrée pour plus tard : {0}</value></data>
@@ -2173,4 +2173,9 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value></data>
   <data name="Inspector.Cancel" xml:space="preserve"><value>Annuler</value></data>
   <data name="Inspector.Advanced" xml:space="preserve"><value>Position et taille</value></data>
   <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+flèches déplacent la sélection, de dix points avec Maj. {0}+{1}+flèches la redimensionnent.</value></data>
+  <data name="Crop.PreviewHint" xml:space="preserve"><value>Le contour en pointillés sur les pages sélectionnées montre ce que le recadrage conserve.</value></data>
+  <data name="Crop.Cancel" xml:space="preserve"><value>Annuler le recadrage</value></data>
+  <data name="ObjectEdit.ScalePreviewHint" xml:space="preserve"><value>Le contour en pointillés montre la nouvelle taille. L&apos;image conserve son centre.</value></data>
+  <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Annuler le redimensionnement</value></data>
+  <data name="Forms.DiscardAll" xml:space="preserve"><value>Annuler les modifications</value></data>
 </root>

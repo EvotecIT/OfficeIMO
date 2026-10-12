@@ -10,6 +10,29 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty] private bool _placeEditedImageBehindContent;
     [ObservableProperty] private double _objectScalePercent = 100;
 
+    /// <summary>True while a changed size for the selected image is outlined on the page but not yet applied.</summary>
+    public bool HasPendingImageScale => SelectedObject is { Kind: PdfEditorSelectionKind.Image } && ObjectScalePercent > 0 && Math.Abs(ObjectScalePercent - 100D) > 0.01D;
+
+    partial void OnObjectScalePercentChanged(double value) => UpdateObjectPreview();
+
+    // The image keeps its centre when resized, so the outline shows exactly where Apply would put it.
+    private void UpdateObjectPreview() {
+        Avalonia.Rect? preview = null;
+        int? pageNumber = null;
+        if (HasPendingImageScale && SelectedObject is { } selection) {
+            double scale = ObjectScalePercent / 100D;
+            PdfEditorVisualBounds bounds = selection.Bounds;
+            double width = bounds.Width * scale, height = bounds.Height * scale;
+            preview = new Avalonia.Rect((bounds.Left + bounds.Right - width) / 2D, (bounds.Top + bounds.Bottom - height) / 2D, width, height);
+            pageNumber = selection.PageNumber;
+        }
+        foreach (PdfPageViewModel page in Pages) page.PendingObjectPreview = page.PageNumber == pageNumber ? preview : null;
+        OnPropertyChanged(nameof(HasPendingImageScale));
+    }
+
+    [RelayCommand]
+    private void CancelImageScale() => ObjectScalePercent = 100;
+
     private async void OnPageObjectTransform(PdfObjectTransformGesture gesture) {
         bool currentSelection = gesture.Selection.Kind == PdfEditorSelectionKind.Annotation
             ? Pages.Any(page => ReferenceEquals(page.SelectedObject, gesture.Selection))

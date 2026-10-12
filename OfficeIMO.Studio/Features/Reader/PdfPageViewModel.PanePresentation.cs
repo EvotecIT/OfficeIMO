@@ -11,6 +11,7 @@ public sealed partial class PdfPageViewModel {
         SelectedAnnotations = source.SelectedAnnotations;
         CommentAnchorObjectNumber = source.CommentAnchorObjectNumber;
         PendingRedactionAreas = source.PendingRedactionAreas;
+        PendingObjectPreview = source.PendingObjectPreview;
         SearchHighlights = source.SearchHighlights;
         ActiveSearchHighlight = source.ActiveSearchHighlight;
         ActiveSearchHighlights = source.ActiveSearchHighlights;

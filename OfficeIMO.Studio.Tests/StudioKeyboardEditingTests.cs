@@ -86,6 +86,32 @@ public sealed class StudioKeyboardEditingTests {
         } finally { Directory.Delete(root, true); }
     }
 
+    [Fact]
+    public async Task Escape_abandons_a_signature_or_date_waiting_to_be_placed() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var window = new Features.Shell.MainWindow();
+            try {
+                window.Show();
+                await window.TabHost.OpenDocumentAsync(Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf"));
+                window.ViewModel.ShowFormsModeCommand.Execute(null);
+                window.ViewModel.PlaceDateCommand.Execute(null);
+                Assert.True(window.ViewModel.IsPlacingFillSignItem);
+
+                // The page canvas uses Escape to clear its selection; the pending placement is abandoned first.
+                window.Width = 1280; window.Height = 820;
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                PdfPageCanvas canvas = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<PdfPageCanvas>().First();
+                canvas.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape });
+
+                Assert.False(window.ViewModel.IsPlacingFillSignItem);
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
     private static void Press(PdfPageCanvas canvas, Key key, KeyModifiers modifiers) =>
         canvas.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, KeyModifiers = modifiers });
 }

@@ -106,6 +106,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     private void NotifyOrganizerSelectionChanged() {
+        UpdateCropPreview();
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanMutateSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
@@ -233,6 +234,7 @@ public sealed partial class MainWindowViewModel {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0) return;
         await RunMutationAsync(token => _workspace.CropByMarginAsync(pages, CropMargin, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
+        EndCropPreview();
     }
 
     [RelayCommand]

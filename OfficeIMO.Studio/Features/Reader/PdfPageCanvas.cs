@@ -28,6 +28,10 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     public static readonly StyledProperty<PdfEditorSelectionMode> SelectionModeProperty =
         AvaloniaProperty.Register<PdfPageCanvas, PdfEditorSelectionMode>(nameof(SelectionMode));
 
+    /// <summary>Where a pending change would put the selected object, outlined before it is applied.</summary>
+    public static readonly StyledProperty<Rect?> PendingObjectPreviewProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, Rect?>(nameof(PendingObjectPreview));
+
     public static readonly StyledProperty<IReadOnlyList<Rect>> PendingRedactionAreasProperty =
         AvaloniaProperty.Register<PdfPageCanvas, IReadOnlyList<Rect>>(nameof(PendingRedactionAreas), Array.Empty<Rect>());
 
@@ -58,7 +62,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
             CommentAnchorObjectNumberProperty,
             FormAnchorFieldNameProperty,
             SelectionModeProperty,
-            PendingRedactionAreasProperty);
+            PendingRedactionAreasProperty,
+            PendingObjectPreviewProperty);
     }
 
     public PdfPageCanvas() {
@@ -89,6 +94,11 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     public PdfEditorSelectionMode SelectionMode {
         get => GetValue(SelectionModeProperty);
         set => SetValue(SelectionModeProperty, value);
+    }
+
+    public Rect? PendingObjectPreview {
+        get => GetValue(PendingObjectPreviewProperty);
+        set => SetValue(PendingObjectPreviewProperty, value);
     }
 
     public IReadOnlyList<Rect> PendingRedactionAreas {
@@ -189,6 +199,7 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         DrawCommentAnchor(context);
         DrawFormAnchor(context);
         DrawPendingRedaction(context);
+        DrawPendingObjectPreview(context);
         DrawEditorPreview(context);
     }
 
@@ -624,6 +635,12 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
         foreach (Point handle in handles) {
             context.DrawRectangle(fill, stroke, new Rect(handle.X - half, handle.Y - half, handleSize, handleSize));
         }
+    }
+
+    private void DrawPendingObjectPreview(DrawingContext context) {
+        if (PendingObjectPreview is not { Width: > 0D, Height: > 0D } area) return;
+        var stroke = new Pen(new SolidColorBrush(PageAccent), 1.5D, new DashStyle([4D, 3D], 0D));
+        context.DrawRectangle(null, stroke, area);
     }
 
     private void DrawPendingRedaction(DrawingContext context) {

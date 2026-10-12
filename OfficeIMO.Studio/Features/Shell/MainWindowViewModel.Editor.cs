@@ -442,6 +442,7 @@ public sealed partial class MainWindowViewModel {
 
         SelectedObjectText = selection.Text ?? string.Empty;
 
+        ObjectScalePercent = 100;
         SelectedObject = selection;
         SelectedObjectSummary = selection.Kind switch {
             PdfEditorSelectionKind.Text => UiFormat("Editor.TextSelectionSummary", selection.PageNumber, selection.Text?.Length ?? 0),
@@ -736,6 +737,7 @@ public sealed partial class MainWindowViewModel {
 
     private void ClearObjectSelection() {
         ClearTextReview();
+        ObjectScalePercent = 100;
         SelectedAnnotations = Array.Empty<PdfEditorSelection>();
         SelectedObject = null;
         SelectedObjectSummary = null;

@@ -150,7 +150,10 @@
     </Expander>
     <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.FlatteningIsExplicitAndMakesSupportedWidgetsPermanentPageContent}" TextWrapping="Wrap" />
     <TextBlock Text="{loc:Loc Forms.Unapplied}" IsVisible="{Binding HasFormDrafts}" TextWrapping="Wrap" />
-    <Button Classes="tool" Content="{loc:Loc Forms.ApplyAll}" Command="{Binding ApplyFormDraftsCommand}" IsEnabled="{Binding CanApplyFormDrafts}" IsVisible="{Binding HasFormDrafts}" />
+    <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}" IsVisible="{Binding HasFormDrafts}">
+          <Button Classes="tool" Content="{loc:Loc Forms.DiscardAll}" Command="{Binding DiscardFormDraftsCommand}" AutomationProperties.Name="{loc:Loc Forms.DiscardAll}" />
+          <Button Classes="tool" Content="{loc:Loc Forms.ApplyAll}" Command="{Binding ApplyFormDraftsCommand}" IsEnabled="{Binding CanApplyFormDrafts}" />
+        </WrapPanel>
     <ItemsControl ItemsSource="{Binding UnassignedFormDrafts}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="editor:PdfFormFieldViewModel">

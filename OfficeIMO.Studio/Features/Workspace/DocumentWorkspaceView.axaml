@@ -974,7 +974,11 @@
                   <TextBlock Text="{loc:Loc ObjectEdit.LayerHelp}" Classes="muted" TextWrapping="Wrap" />
                   <TextBlock Text="{loc:Loc ObjectEdit.Scale}" Classes="groupLabel" />
                   <NumericUpDown Value="{Binding ObjectScalePercent}" Minimum="1" Maximum="1000" />
-                  <Button Classes="tool" Content="{loc:Loc ObjectEdit.ApplyScale}" Command="{Binding ScaleSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
+                  <TextBlock Text="{loc:Loc ObjectEdit.ScalePreviewHint}" IsVisible="{Binding HasPendingImageScale}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+                  <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}">
+                    <Button Classes="tool" Content="{loc:Loc Inspector.Cancel}" IsVisible="{Binding HasPendingImageScale}" Command="{Binding CancelImageScaleCommand}" AutomationProperties.Name="{loc:Loc ObjectEdit.CancelScale}" />
+                    <Button Classes="tool" Content="{loc:Loc ObjectEdit.ApplyScale}" Command="{Binding ScaleSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
+                  </WrapPanel>
                   <TextBlock Text="{loc:Loc DocumentWorkspace.TheReplacementKeepsThisPlacementSPositionSizeAndRotation}" Classes="muted" TextWrapping="Wrap" />
                   <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.ReplaceImage}" Content="{loc:Loc DocumentWorkspace.ReplaceImage}" Command="{Binding ReplaceSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
                 </StackPanel>
@@ -1025,9 +1029,13 @@
                 <TextBlock Text="{loc:Loc DocumentWorkspace.PageActions}" Classes="paneTitle" />
                 <TextBlock Text="{Binding OrganizerSelectionLabel}" Classes="muted" TextWrapping="Wrap" />
                 <TextBlock Text="{loc:Loc DocumentWorkspace.CropMargin}" Classes="groupLabel" Margin="0,4,0,0" /><TextBox Text="{Binding CropMargin}" PlaceholderText="{loc:Loc DocumentWorkspace.Points}" />
-                <Button Classes="tool" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CropSelectedPages}">
-                  <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><PathIcon Data="{StaticResource IconCrop}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.CropSelectedPages}" /></StackPanel>
-                </Button>
+                <TextBlock Text="{loc:Loc Crop.PreviewHint}" IsVisible="{Binding HasPendingCrop}" Classes="muted" TextWrapping="Wrap" FontSize="{StaticResource StudioSecondaryFontSize}" />
+                <WrapPanel ItemSpacing="{StaticResource StudioSpaceSM}" LineSpacing="{StaticResource StudioSpaceSM}">
+                  <Button Classes="tool" Content="{loc:Loc Inspector.Cancel}" IsVisible="{Binding HasPendingCrop}" Command="{Binding CancelCropCommand}" AutomationProperties.Name="{loc:Loc Crop.Cancel}" />
+                  <Button Classes="tool" Command="{Binding CropSelectedCommand}" IsEnabled="{Binding CanMutateSelection}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CropSelectedPages}">
+                    <StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceSM}"><PathIcon Data="{StaticResource IconCrop}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.CropSelectedPages}" /></StackPanel>
+                  </Button>
+                </WrapPanel>
                 <TextBlock Text="{loc:Loc Resize.Title}" Classes="groupLabel" Margin="0,6,0,0" />
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="{StaticResource StudioSpaceSM}">
                   <ComboBox ItemsSource="{Binding PageSizeChoices}" SelectedItem="{Binding SelectedPageSize, Mode=TwoWay}" PlaceholderText="A4" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc Resize.Size}">

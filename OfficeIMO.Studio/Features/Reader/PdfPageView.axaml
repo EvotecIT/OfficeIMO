@@ -69,6 +69,7 @@
                               FormAnchorObjectNumber="{Binding FormAnchorObjectNumber}"
                               SelectionMode="{Binding SelectionMode}"
                               PendingRedactionAreas="{Binding PendingRedactionAreas}"
+                              PendingObjectPreview="{Binding PendingObjectPreview}"
                               FallbackImage="{Binding PageImage}"
                               IsVisible="{Binding HasScene}" />
 

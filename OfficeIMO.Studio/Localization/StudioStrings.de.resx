@@ -4250,15 +4250,9 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="FillSign.Date" xml:space="preserve">
     <value>Datum</value>
   </data>
-  <data name="FillSign.PlaceSignature" xml:space="preserve">
-    <value>Klicken Sie an die Position der Unterschrift oder ziehen Sie, um ihre Größe festzulegen</value>
-  </data>
-  <data name="FillSign.PlaceInitials" xml:space="preserve">
-    <value>Klicken Sie an die Position der Initialen oder ziehen Sie, um ihre Größe festzulegen</value>
-  </data>
-  <data name="FillSign.PlaceDate" xml:space="preserve">
-    <value>Klicken Sie an die Position des Datums</value>
-  </data>
+  <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Klicken Sie an die Position der Unterschrift oder ziehen Sie, um ihre Größe festzulegen. Eingabe platziert sie in der Seitenmitte; Esc bricht ab.</value></data>
+  <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Klicken Sie an die Position der Initialen oder ziehen Sie, um ihre Größe festzulegen. Eingabe platziert sie in der Seitenmitte; Esc bricht ab.</value></data>
+  <data name="FillSign.PlaceDate" xml:space="preserve"><value>Klicken Sie an die Position des Datums. Eingabe platziert es in der Seitenmitte; Esc bricht ab.</value></data>
   <data name="FillSign.SignaturePlaced" xml:space="preserve">
     <value>Signatur hinzugefügt</value>
   </data>
@@ -5651,4 +5645,9 @@ Behobene Defekte: {7:N0} · Nur erkannt: {8:N0}</value>
   <data name="Inspector.Cancel" xml:space="preserve"><value>Abbrechen</value></data>
   <data name="Inspector.Advanced" xml:space="preserve"><value>Position und Größe</value></data>
   <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+Pfeiltasten verschieben die Auswahl, mit Umschalt um zehn Punkte. {0}+{1}+Pfeiltasten ändern ihre Größe.</value></data>
+  <data name="Crop.PreviewHint" xml:space="preserve"><value>Der gestrichelte Umriss auf den ausgewählten Seiten zeigt, was beim Zuschneiden erhalten bleibt.</value></data>
+  <data name="Crop.Cancel" xml:space="preserve"><value>Zuschneiden abbrechen</value></data>
+  <data name="ObjectEdit.ScalePreviewHint" xml:space="preserve"><value>Der gestrichelte Umriss zeigt die neue Größe. Das Bild behält seinen Mittelpunkt.</value></data>
+  <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Größenänderung abbrechen</value></data>
+  <data name="Forms.DiscardAll" xml:space="preserve"><value>Änderungen verwerfen</value></data>
 </root>

@@ -61,6 +61,12 @@ public sealed partial class MainWindow : Window {
 
         SizeChanged += OnWindowSizeChanged;
         KeyDown += OnWindowKeyDown;
+        // Escape abandons a signature, initials or date waiting to be placed, before the page uses it to clear a selection.
+        AddHandler(KeyDownEvent, (_, e) => {
+            if (e.Key != Key.Escape || e.KeyModifiers != KeyModifiers.None || !ViewModel.IsPlacingFillSignItem) return;
+            ViewModel.CancelFillSignPlacementCommand.Execute(null);
+            e.Handled = true;
+        }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DragLeaveEvent, OnDragLeave);
         AddHandler(DragDrop.DropEvent, OnDrop);

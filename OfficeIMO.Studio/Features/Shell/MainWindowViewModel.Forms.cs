@@ -25,6 +25,15 @@ public sealed partial class MainWindowViewModel {
     public bool CanApplyFormDrafts => !IsWorkspaceBusy && _workspace?.CanFillForms == true && HasFormDrafts &&
         !HasUnassignedFormDrafts && FormFields.Where(entry => entry.HasDraft).All(entry => entry.CanApplyValue);
 
+    /// <summary>Puts every field back to its saved value, the Cancel of the forms inspector; applied values stay undoable.</summary>
+    [RelayCommand]
+    private void DiscardFormDrafts() {
+        foreach (PdfFormFieldViewModel field in FormFields.Where(field => field.HasDraft).ToArray()) field.ResetDraftCommand.Execute(null);
+        UnassignedFormDrafts.Clear();
+        ClearFormPreview();
+        NotifyFormDraftState();
+    }
+
     private void NotifyFormDraftState() {
         _assistant?.CheckSource();
         NotifyFormOcrState();

@@ -2242,9 +2242,9 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="FillSign.Delete" xml:space="preserve"><value>Delete saved image</value></data>
   <data name="FillSign.Privacy" xml:space="preserve"><value>Saved signatures stay on this computer. They are visual signatures, not certificate signatures; use Protect to sign with a certificate.</value></data>
   <data name="FillSign.Date" xml:space="preserve"><value>Date</value></data>
-  <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Click where the signature goes, or drag to size it</value></data>
-  <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Click where the initials go, or drag to size them</value></data>
-  <data name="FillSign.PlaceDate" xml:space="preserve"><value>Click where the date goes</value></data>
+  <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Click where the signature goes, or drag to size it. Enter places it in the middle of the page; Escape cancels.</value></data>
+  <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Click where the initials go, or drag to size them. Enter places them in the middle of the page; Escape cancels.</value></data>
+  <data name="FillSign.PlaceDate" xml:space="preserve"><value>Click where the date goes. Enter places it in the middle of the page; Escape cancels.</value></data>
   <data name="FillSign.SignaturePlaced" xml:space="preserve"><value>Signature added</value></data>
   <data name="FillSign.DatePlaced" xml:space="preserve"><value>Date added</value></data>
   <data name="FillSign.SaveFailed" xml:space="preserve"><value>The signature could not be saved for later: {0}</value></data>
@@ -2993,4 +2993,9 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Inspector.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Inspector.Advanced" xml:space="preserve"><value>Position and size</value></data>
   <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+arrow keys move the selection, ten points at a time with Shift. {0}+{1}+arrow keys resize it.</value></data>
+  <data name="Crop.PreviewHint" xml:space="preserve"><value>The dashed outline on the selected pages shows what the crop keeps.</value></data>
+  <data name="Crop.Cancel" xml:space="preserve"><value>Cancel crop</value></data>
+  <data name="ObjectEdit.ScalePreviewHint" xml:space="preserve"><value>The dashed outline shows the new size. The image keeps its centre.</value></data>
+  <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Cancel resize</value></data>
+  <data name="Forms.DiscardAll" xml:space="preserve"><value>Discard changes</value></data>
 </root>

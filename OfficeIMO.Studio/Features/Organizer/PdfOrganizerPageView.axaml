@@ -14,14 +14,15 @@
             BoxShadow="{DynamicResource StudioCardShadow}"
             Padding="5">
       <Grid>
-        <reader:PdfPageCanvas x:Name="ThumbnailCanvas"
-                              Width="{Binding ThumbnailWidth}"
-                              Height="{Binding ThumbnailHeight}"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              IsHitTestVisible="False"
-                              Scene="{Binding Scene}"
-                              FallbackImage="{Binding FallbackImage}" />
+        <Grid Width="{Binding ThumbnailWidth}" Height="{Binding ThumbnailHeight}" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <reader:PdfPageCanvas x:Name="ThumbnailCanvas"
+                                IsHitTestVisible="False"
+                                Scene="{Binding Scene}"
+                                FallbackImage="{Binding FallbackImage}" />
+          <!-- A pending crop is outlined on the selected pages before it is applied. -->
+          <Rectangle IsVisible="{Binding HasCropPreview}" Margin="{Binding CropPreviewInset}" IsHitTestVisible="False"
+                     Stroke="{DynamicResource StudioAccentBrush}" StrokeThickness="1.5" StrokeDashArray="3,2" />
+        </Grid>
         <ProgressBar IsVisible="{Binding IsLoading}"
                      Width="54"
                      IsIndeterminate="True"

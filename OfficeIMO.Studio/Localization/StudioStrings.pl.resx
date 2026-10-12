@@ -4250,15 +4250,9 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="FillSign.Date" xml:space="preserve">
     <value>Data</value>
   </data>
-  <data name="FillSign.PlaceSignature" xml:space="preserve">
-    <value>Kliknij miejsce na podpis lub przeciągnij, aby określić jego rozmiar</value>
-  </data>
-  <data name="FillSign.PlaceInitials" xml:space="preserve">
-    <value>Kliknij miejsce na inicjały lub przeciągnij, aby określić ich rozmiar</value>
-  </data>
-  <data name="FillSign.PlaceDate" xml:space="preserve">
-    <value>Kliknij miejsce na datę</value>
-  </data>
+  <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Kliknij miejsce na podpis lub przeciągnij, aby określić jego rozmiar. Enter umieszcza go na środku strony; Esc anuluje.</value></data>
+  <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Kliknij miejsce na inicjały lub przeciągnij, aby określić ich rozmiar. Enter umieszcza je na środku strony; Esc anuluje.</value></data>
+  <data name="FillSign.PlaceDate" xml:space="preserve"><value>Kliknij miejsce na datę. Enter umieszcza ją na środku strony; Esc anuluje.</value></data>
   <data name="FillSign.SignaturePlaced" xml:space="preserve">
     <value>Dodano podpis</value>
   </data>
@@ -5651,4 +5645,9 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="Inspector.Cancel" xml:space="preserve"><value>Anuluj</value></data>
   <data name="Inspector.Advanced" xml:space="preserve"><value>Położenie i rozmiar</value></data>
   <data name="Inspector.KeyboardHint" xml:space="preserve"><value>{0}+strzałki przesuwają zaznaczenie, z klawiszem Shift o dziesięć punktów. {0}+{1}+strzałki zmieniają jego rozmiar.</value></data>
+  <data name="Crop.PreviewHint" xml:space="preserve"><value>Przerywany obrys na zaznaczonych stronach pokazuje, co pozostanie po przycięciu.</value></data>
+  <data name="Crop.Cancel" xml:space="preserve"><value>Anuluj przycinanie</value></data>
+  <data name="ObjectEdit.ScalePreviewHint" xml:space="preserve"><value>Przerywany obrys pokazuje nowy rozmiar. Obraz zachowuje swój środek.</value></data>
+  <data name="ObjectEdit.CancelScale" xml:space="preserve"><value>Anuluj zmianę rozmiaru</value></data>
+  <data name="Forms.DiscardAll" xml:space="preserve"><value>Odrzuć zmiany</value></data>
 </root>

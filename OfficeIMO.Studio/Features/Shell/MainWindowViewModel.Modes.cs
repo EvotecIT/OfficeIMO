@@ -100,6 +100,7 @@ public sealed partial class MainWindowViewModel {
             SelectedEditorToolChoice = EditorTools[0];
         }
         foreach (PdfPageViewModel page in Pages) page.SelectionMode = GetEditorSelectionMode();
+        if (value != StudioDocumentMode.Pages) EndCropPreview();
         OnPropertyChanged(nameof(EditorInstruction));
         UpdateFormAnchor();
         if ((value == StudioDocumentMode.Annotate && SelectedObject?.Kind != PdfEditorSelectionKind.Annotation) ||
