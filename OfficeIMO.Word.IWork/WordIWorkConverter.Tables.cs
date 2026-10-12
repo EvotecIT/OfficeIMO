@@ -36,6 +36,7 @@ public static partial class WordIWorkConverter {
             }
             table.ColumnWidth = widths;
         }
+        bool hasBorderDeclarations = source.HasBorderDeclarations;
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (source.GetRowHeight(row) is double height) {
@@ -51,10 +52,10 @@ public static partial class WordIWorkConverter {
                 var borders = mergedBorders.TryGetValue((row, column), out var perimeter)
                     ? perimeter : source.GetBorders(row, column);
                 IWorkParagraphStyle? style = source.GetParagraphStyle(row, column);
-                if (fill == null && style == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null && !source.HasBorderDeclarations) continue;
+                if (fill == null && style == null && borders.Left == null && borders.Top == null && borders.Right == null && borders.Bottom == null && !hasBorderDeclarations) continue;
                 targetCells ??= rows[row - 1].Cells;
                 WordTableCell target = targetCells[column - 1];
-                ApplyTableBorders(target, borders, source.HasBorderDeclarations);
+                ApplyTableBorders(target, borders, hasBorderDeclarations);
                 if (fill != null) {
                     if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
                     else target.ShadingPattern = WordShadingPattern.Nil;

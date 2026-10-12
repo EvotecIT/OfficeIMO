@@ -8,7 +8,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public sealed class PowerPointInheritedLinkOwnerTests {
+public sealed partial class PowerPointInheritedLinkOwnerTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
