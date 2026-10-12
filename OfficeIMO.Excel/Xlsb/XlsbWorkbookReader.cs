@@ -870,15 +870,15 @@ namespace OfficeIMO.Excel.Xlsb {
                 throw new InvalidDataException($"The BrtWsFmtInfo record at offset {record.Offset} contains an invalid outline level.");
             }
 
-            double columnWidth = encodedColumnWidth == uint.MaxValue
-                ? fallbackColumnWidth
-                : encodedColumnWidth / 256D;
-            if (columnWidth < 0D || columnWidth > 255D) {
-                throw new InvalidDataException($"The BrtWsFmtInfo record at offset {record.Offset} contains invalid default column width {columnWidth}.");
+            bool implicitColumnWidth = encodedColumnWidth == uint.MaxValue;
+            if ((!implicitColumnWidth && encodedColumnWidth > ushort.MaxValue)
+                || (implicitColumnWidth && fallbackColumnWidth > byte.MaxValue)) {
+                throw new InvalidDataException($"The BrtWsFmtInfo record at offset {record.Offset} contains invalid default column width metadata.");
             }
 
             return new XlsbWorksheetFormatInfo(
-                columnWidth,
+                implicitColumnWidth ? (double?)null : encodedColumnWidth / 256D,
+                implicitColumnWidth ? (uint?)fallbackColumnWidth : null,
                 rowHeightTwips / 20D,
                 (flags & 0x01U) != 0,
                 (flags & 0x02U) != 0,
