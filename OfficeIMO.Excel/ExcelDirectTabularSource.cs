@@ -39,6 +39,12 @@ namespace OfficeIMO.Excel {
                     return new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Text, text, 0D, false);
                 case bool boolean:
                     return new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Boolean, null, 0D, boolean);
+                case int number:
+                    return NumberValue(number);
+                case double number when !double.IsNaN(number) && !double.IsInfinity(number):
+                    return NumberValue(number);
+                case float number when !float.IsNaN(number) && !float.IsInfinity(number):
+                    return NumberValue(number);
                 case byte number:
                     return NumberValue(number);
                 case sbyte number:
@@ -47,17 +53,11 @@ namespace OfficeIMO.Excel {
                     return NumberValue(number);
                 case ushort number:
                     return NumberValue(number);
-                case int number:
-                    return NumberValue(number);
                 case uint number:
                     return NumberValue(number);
                 case long number:
                     return NumberValue(number);
                 case ulong number:
-                    return NumberValue(number);
-                case float number when !float.IsNaN(number) && !float.IsInfinity(number):
-                    return NumberValue(number);
-                case double number when !double.IsNaN(number) && !double.IsInfinity(number):
                     return NumberValue(number);
                 case decimal number:
                     return NumberValue((double)number);
