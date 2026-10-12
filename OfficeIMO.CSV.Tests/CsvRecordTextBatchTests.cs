@@ -45,10 +45,11 @@ public class CsvRecordTextBatchTests
                 bool reachedEnd = false;
                 while (!reachedEnd)
                 {
-                    var capture = await reader.ReadRecordTextBatchAsync(193, CancellationToken.None);
-                    reachedEnd = capture.ReachedEnd;
-                    if (capture.Batch.Count == 0) capture.Batch.Dispose();
-                    else batches.Add(capture.Batch);
+                    var batch = reader.CreateRecordTextBatch(193);
+                    try { reachedEnd = await reader.ReadRecordTextBatchAsync(batch, CancellationToken.None); }
+                    catch { batch.Dispose(); throw; }
+                    if (batch.Count == 0) batch.Dispose();
+                    else batches.Add(batch);
                 }
             }
             // Workers own their text even after subsequent buffer refills and source disposal.

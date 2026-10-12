@@ -73,6 +73,7 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
     internal bool CanCaptureRawRecords => _buffered.Count == 0 && !HasStaticValues &&
         _headerCount > 0 && _records.CanCaptureRawRecords;
 
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
     internal async ValueTask<(int Count, bool ReachedEnd)> CaptureRawRecordRunAsync(
         CsvRecordTextBatch batch, CancellationToken token)
     {

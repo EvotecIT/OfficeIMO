@@ -359,6 +359,9 @@ internal static partial class CsvFile
         }
 
 #if NET8_0_OR_GREATER
+        // The reader consumes each ValueTask once; pooling keeps input-limit accounting
+        // on the same async read without allocating a wrapper for every buffer refill.
+        [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
         public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
             int read = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);

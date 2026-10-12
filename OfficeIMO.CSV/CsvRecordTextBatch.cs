@@ -47,6 +47,20 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
     internal CultureInfo Culture { get; }
     internal IReadOnlyList<string>? DateTimeFormats { get; }
 
+    /// <summary>Reuses owned storage after the prior worker and its ordered merge have completed.</summary>
+    internal void Reset()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        Array.Clear(_values, 0, Count * FieldCount);
+        // Capture initializes metadata for every visible row; only cached strings retain objects.
+        Count = 0;
+        _row = -1;
+        _textLength = 0;
+        _rawDelimiter = default;
+        _rawTrim = false;
+        _rawNullValue = null;
+    }
+
     internal void CaptureRow(CsvDataReader reader)
     {
         int offset = Count * FieldCount;

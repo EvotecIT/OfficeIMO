@@ -22,6 +22,9 @@ internal static partial class CsvParser
         /// Copies a run of complete unquoted records without splitting its fields. Any complex
         /// record stays unconsumed for the same parser's next canonical advance.
         /// </summary>
+        // Internal callers await each result once. Reuse suspended refill state instead of
+        // allocating another state-machine box for every transport read in a long scan.
+        [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
         internal async ValueTask<(int Count, bool ReachedEnd)> CaptureRawRecordRunAsync(
             CsvRecordTextBatch batch, CancellationToken token)
         {

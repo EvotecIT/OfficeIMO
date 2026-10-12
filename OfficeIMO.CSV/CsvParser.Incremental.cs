@@ -217,6 +217,7 @@ internal static partial class CsvParser
             return value;
         }
 
+        [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder<>))]
         private async ValueTask<bool> EnsureBufferAsync(bool asynchronous, CancellationToken token)
         {
             if (_offset < _length) return true;
