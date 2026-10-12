@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The OfficeIMO Studio engine as a native library with a C interface, for the native macOS, iPadOS and iOS apps.
+    Publish with NativeAOT: NativeLib=Shared for a desktop library (.dll/.so/.dylib) and NativeLib=Static for the
+    archive an Xcode project links (osx-arm64, osx-x64, ios-arm64, iossimulator-arm64).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>Latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>OfficeIMOStudioEngine</AssemblyName>
+    <RootNamespace>OfficeIMO.Studio.Native</RootNamespace>
+    <PublishAot>true</PublishAot>
+    <NativeLib Condition="'$(NativeLib)' == ''">Shared</NativeLib>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <Description>OfficeIMO Studio document engine with a C interface for native host applications.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Studio.Core/OfficeIMO.Studio.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Studio.Core.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include/officeimo_studio.h" Pack="false" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

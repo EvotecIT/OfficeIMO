@@ -1,0 +1,155 @@
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using OfficeIMO.Studio.Features.Reader;
+
+namespace OfficeIMO.Studio.Native;
+
+/// <summary>
+/// The C entry points. Each call blocks until the engine finishes, so hosts call from a background thread or task.
+/// Fallible calls return a status code and, on failure, a message through <c>error</c> (may be null if the host does
+/// not want it). Everything the library returns is released with <c>officeimo_free</c>; handles have their own release.
+/// </summary>
+internal static unsafe class StudioNativeExports {
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_abi_version")]
+    internal static int AbiVersion() => StudioNativeAbi.Version;
+
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_library_version")]
+    internal static byte* LibraryVersion() =>
+        StudioNativeAbi.ToUtf8(typeof(StudioNativeExports).Assembly.GetName().Version?.ToString() ?? "0.0.0");
+
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_free")]
+    internal static void Free(void* memory) => NativeMemory.Free(memory);
+
+    /// <summary>Names the app-owned folder for recovery copies. Required once before opening documents.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_initialize")]
+    internal static int Initialize(byte* dataDirectory, byte** error) {
+        string? directory = StudioNativeAbi.FromUtf8(dataDirectory);
+        return Run(error, 0, _ => StudioNativeEngine.Initialize(directory!));
+    }
+
+    // Cancellation -----------------------------------------------------------------------------------------------
+
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_cancellation_create")]
+    internal static nint CancellationCreate() => GCHandle.ToIntPtr(GCHandle.Alloc(new CancellationTokenSource()));
+
+    /// <summary>Requests cancellation of every call that received this token; safe from any thread, including during a call.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_cancellation_cancel")]
+    internal static void CancellationCancel(nint cancellation) {
+        if (Resolve<CancellationTokenSource>(cancellation) is { } source) source.Cancel();
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_cancellation_free")]
+    internal static void CancellationFree(nint cancellation) {
+        if (cancellation == 0) return;
+        GCHandle handle = GCHandle.FromIntPtr(cancellation);
+        (handle.Target as CancellationTokenSource)?.Dispose();
+        handle.Free();
+    }
+
+    // Documents --------------------------------------------------------------------------------------------------
+
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_open")]
+    internal static int DocumentOpen(byte* path, byte* password, nint cancellation, nint* document, byte** error) {
+        if (document is null) return Fail(error, new ArgumentNullException(nameof(document)));
+        *document = 0;
+        string? location = StudioNativeAbi.FromUtf8(path);
+        string? secret = StudioNativeAbi.FromUtf8(password);
+        return Run(error, cancellation, token => {
+            StudioNativeDocument opened = StudioNativeDocument.OpenAsync(location!, secret, token).GetAwaiter().GetResult();
+            *document = GCHandle.ToIntPtr(GCHandle.Alloc(opened));
+        });
+    }
+
+    /// <summary>Closes the document and releases its handle. Unsaved changes are discarded; the host asks first.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_close")]
+    internal static void DocumentClose(nint document) {
+        if (document == 0) return;
+        GCHandle handle = GCHandle.FromIntPtr(document);
+        (handle.Target as StudioNativeDocument)?.Dispose();
+        handle.Free();
+    }
+
+    /// <summary>Document facts as UTF-8 JSON: file name and size, revision, unsaved state, undo/redo and page sizes.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_info_json")]
+    internal static int DocumentInfoJson(nint document, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, 0, (target, token) => {
+            StudioNativeDocumentInfo info = target.GetInfoAsync(token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(info, StudioNativeJson.Default.StudioNativeDocumentInfo));
+        });
+    }
+
+    /// <summary>Renders a page (numbered from 1) as PNG at <paramref name="scale"/> pixels per point.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_render_page")]
+    internal static int DocumentRenderPage(nint document, int page, double scale, nint cancellation,
+        byte** png, nuint* length, int* pixelWidth, int* pixelHeight, byte** error) {
+        if (png is null || length is null) return Fail(error, new ArgumentNullException(png is null ? nameof(png) : nameof(length)));
+        *png = null; *length = 0;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            PdfRenderedPage rendered = target.RenderPageAsync(page, scale, token).GetAwaiter().GetResult();
+            *png = StudioNativeAbi.ToNative(rendered.Bytes);
+            *length = (nuint)rendered.Bytes.Length;
+            if (pixelWidth is not null) *pixelWidth = rendered.PixelWidth;
+            if (pixelHeight is not null) *pixelHeight = rendered.PixelHeight;
+        });
+    }
+
+    /// <summary>Rotates pages by a multiple of 90 degrees as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_rotate_pages")]
+    internal static int DocumentRotatePages(nint document, int* pages, int count, int degrees, nint cancellation, byte** error) {
+        if (pages is null || count <= 0) return Fail(error, new ArgumentException("Choose at least one page."));
+        int[] selected = new ReadOnlySpan<int>(pages, count).ToArray();
+        return WithDocument(document, error, cancellation, (target, token) => target.RotatePagesAsync(selected, degrees, token).GetAwaiter().GetResult());
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_undo")]
+    internal static int DocumentUndo(nint document, nint cancellation, byte** error) =>
+        WithDocument(document, error, cancellation, (target, token) => target.UndoAsync(token).GetAwaiter().GetResult());
+
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_redo")]
+    internal static int DocumentRedo(nint document, nint cancellation, byte** error) =>
+        WithDocument(document, error, cancellation, (target, token) => target.RedoAsync(token).GetAwaiter().GetResult());
+
+    /// <summary>
+    /// Saves to <paramref name="path"/>, or in place when it is null. The file is written beside the destination and
+    /// replaces it only when complete, so a failed save leaves the previous file intact.
+    /// </summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_save")]
+    internal static int DocumentSave(nint document, byte* path, nint cancellation, byte** error) {
+        string? destination = StudioNativeAbi.FromUtf8(path);
+        return WithDocument(document, error, cancellation, (target, token) => target.SaveAsync(destination, token).GetAwaiter().GetResult());
+    }
+
+    // Plumbing ---------------------------------------------------------------------------------------------------
+
+    private delegate void DocumentCall(StudioNativeDocument document, CancellationToken token);
+
+    private static int WithDocument(nint document, byte** error, nint cancellation, DocumentCall call) {
+        if (Resolve<StudioNativeDocument>(document) is not { } target) return Fail(error, new ArgumentException("The document handle is not valid."));
+        return Run(error, cancellation, token => call(target, token));
+    }
+
+    private static int Run(byte** error, nint cancellation, Action<CancellationToken> call) {
+        if (error is not null) *error = null;
+        try {
+            CancellationToken token = Resolve<CancellationTokenSource>(cancellation)?.Token ?? CancellationToken.None;
+            call(token);
+            return StudioNativeAbi.Ok;
+        } catch (Exception exception) {
+            return Fail(error, exception);
+        }
+    }
+
+    private static int Fail(byte** error, Exception exception) {
+        // An exception must never unwind into the host: report it as a status and message.
+        if (error is not null) *error = StudioNativeAbi.ToUtf8(exception.Message);
+        return StudioNativeAbi.StatusOf(exception);
+    }
+
+    private static T? Resolve<T>(nint handle) where T : class {
+        if (handle == 0) return null;
+        try { return GCHandle.FromIntPtr(handle).Target as T; }
+        catch (InvalidOperationException) { return null; }
+    }
+}

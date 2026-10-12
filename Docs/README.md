@@ -88,6 +88,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Access document design](officeimo.access-design.md) — proposed typed API, native codec ownership, database-provider boundary, preservation, security, and qualification. Open milestones live in the [Access roadmap](ROADMAP.md#microsoft-access-document-library).
 - [Owned HTML documents and providers](../OfficeIMO.Html/README.md#inspect-and-edit-owned-html) — current snapshot, edit, parsing and charset contracts; lightweight packages and retained runtime dependencies.
 - [Independent HTML engine design](officeimo.html-engine-design.md) — proposed shared DOM, CSS, layout, conversion and optional web-runtime boundaries, with staged dependency retirement. Open milestones live in the [roadmap](ROADMAP.md#independent-html-engine).
+- [Native Apple apps design](officeimo.studio-apple-native-design.md) — Swift apps for macOS, iPadOS and iOS over the shared C# engine: layer ownership, C interface rules, storage boundary and engine builds. Open work lives in the [Studio roadmap](ROADMAP.md#phase-7-native-apple-apps).
 - [Document assistant design](officeimo.document-assistant-design.md) — headless AI operations, Studio integration, evidence contracts and support limits. [Evidence measurements](../Build/Benchmarks/README.md) cover local preparation and snapshot reuse. Open work lives in the [roadmap](ROADMAP.md#document-assistant).
 
 ## Generated evidence
