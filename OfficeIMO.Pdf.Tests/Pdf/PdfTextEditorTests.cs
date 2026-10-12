@@ -380,6 +380,14 @@ public partial class PdfTextEditorTests {
         Assert.Empty(PdfDocument.Load(cutClip).Text.Find("needle"));
         // Editing keeps refusing text under a clip, whose state it cannot recreate.
         Assert.Throws<NotSupportedException>(() => PdfDocument.Load(pageClip).Text.Replace(match, "pin"));
+
+        // Text turned to read across a rotated page, as an OCR layer writes it, follows the same rule.
+        byte[] turnedPageClip = BuildRawTextPdf("q 0 0 600 800 re W n BT /F1 12 Tf 0 1 -1 0 300 200 Tm (turned needle) Tj ET Q\n",
+            pageEntries: "/Rotate 90");
+        byte[] turnedCutClip = BuildRawTextPdf("q 0 0 600 800 re W n q 290 190 20 20 re W n BT /F1 12 Tf 0 1 -1 0 300 200 Tm (turned needle) Tj ET Q Q\n",
+            pageEntries: "/Rotate 90");
+        Assert.Single(PdfDocument.Load(turnedPageClip).Text.Find("needle"));
+        Assert.Empty(PdfDocument.Load(turnedCutClip).Text.Find("needle"));
     }
 
     [Fact]

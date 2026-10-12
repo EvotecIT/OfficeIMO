@@ -79,13 +79,14 @@ void officeimo_document_close(officeimo_document document);
  * Document facts as JSON:
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
- *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint", "canImportPages" }
+ *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint", "canImportPages",
+ *   "canMakeSearchable" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
  * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
  * allows adding, changing and removing annotations, which a tagged or signed document may take as an appended revision.
  * canPrint is false when the document's permissions forbid printing and it was not opened with its owner password;
- * canImportPages allows officeimo_document_import_pages_json.
+ * canImportPages allows officeimo_document_import_pages_json; canMakeSearchable allows officeimo_document_make_searchable_json.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
  * render scales apply to. The revision changes with every edit, undo and redo.
  */
@@ -150,6 +151,25 @@ int32_t officeimo_document_extract_pages(officeimo_document document, const int3
  */
 int32_t officeimo_document_import_pages_json(officeimo_document document, const char *request,
                                              officeimo_cancellation cancellation, char **json, char **error);
+
+/*
+ * Recognizes a page's text for officeimo_document_make_searchable_json. It receives the context given to that call, the
+ * page number from 1, the page count and the page rendered as PNG, and sets *words_json to a JSON array allocated with
+ * malloc, which the engine frees: [ { "text", "x", "y", "width", "height", "confidence" } ], each box from the image's
+ * top-left corner in fractions of its width and height, and confidence from 0 to 1 or null. It returns OFFICEIMO_OK,
+ * OFFICEIMO_CANCELLED to stop, or another status to fail the call. It runs on the thread that made the call.
+ */
+typedef int32_t (*officeimo_text_recognizer)(void *context, int32_t page, int32_t page_count, const uint8_t *png, size_t length,
+                                             char **words_json);
+
+/*
+ * Makes the document searchable as one undoable change: each page is rendered and passed to recognizer, and the words it
+ * returns become invisible text over the page, so the document can be searched, selected and copied. Words over text a
+ * page already has are left out, so digital pages are unchanged. json receives { "abiVersion", "pages", "words",
+ * "revision" }: the pages that gained text and the words added.
+ */
+int32_t officeimo_document_make_searchable_json(officeimo_document document, officeimo_text_recognizer recognizer, void *context,
+                                                officeimo_cancellation cancellation, char **json, char **error);
 
 /*
  * Finds text, ignoring case, as JSON:

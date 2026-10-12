@@ -1,6 +1,8 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Ocr;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Scan;
 using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Native;
@@ -42,7 +44,7 @@ internal sealed class StudioNativeDocument : IDisposable {
                 }).ToArray(),
                 StudioPdfSecurityPolicy.MaximumRasterPixels, _workspace.CanMutatePages, _workspace.CanExtractPages, _workspace.CanEditAnnotations,
                 !view.Security.HasEncryption || view.Security.HasOwnerAuthorization || view.Security.AllowsPrinting == true,
-                _workspace.CanImportPages);
+                _workspace.CanImportPages, _workspace.CanEditPageContent && view.CanExtractText);
         } finally { _gate.Release(); }
     }
 
@@ -112,6 +114,30 @@ internal sealed class StudioNativeDocument : IDisposable {
         // The local path keeps the workflow runner, and the conversions it roots, out of the NativeAOT library.
         return RunAsync(() => _workspace.ExtractToLocalFileAsync(RequirePages(pageNumbers), path, cancellationToken), cancellationToken);
     }
+
+    /// <summary>
+    /// Recognizes each page's text with the host's recognizer and adds it as invisible text over the page, as one undoable
+    /// change. The engine renders each page at <see cref="SearchableDpi"/> and passes the PNG and its page number to
+    /// <paramref name="recognize"/>, which returns the words on it. Words over text a page already has are left out.
+    /// </summary>
+    internal async Task<StudioNativeSearchableResult> MakeSearchableAsync(Func<int, byte[], CancellationToken, IReadOnlyList<PdfScanWord>> recognize,
+        CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(recognize);
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            if (!_workspace.ViewInfo.CanExtractText) throw new NotSupportedException("This document doesn't allow its text to be read.");
+            var options = new PdfOcrMergeOptions { Dpi = SearchableDpi, MaxPages = _workspace.Pages.Count, ReconstructLayout = false };
+            PdfWorkspaceSearchableResult result = await _workspace.MakeSearchableAsync(HostTextRecognizer.Create(recognize), options, cancellationToken)
+                .ConfigureAwait(false);
+            return new StudioNativeSearchableResult(StudioNativeAbi.Version, result.ModifiedPages, result.Words, _workspace.Revision);
+        } finally { _gate.Release(); }
+    }
+
+    /// <summary>The number of pages in the current revision.</summary>
+    internal int PageCount => _workspace.Pages.Count;
+
+    /// <summary>The resolution pages are recognized at: enough for body text, within the render budget on a phone.</summary>
+    internal const double SearchableDpi = 200D;
 
     /// <summary>
     /// Inserts pages from other PDFs before <see cref="StudioNativeImportRequest.InsertBefore"/>, in the order given,
@@ -343,7 +369,7 @@ internal sealed class StudioNativeDocument : IDisposable {
 internal sealed record StudioNativeDocumentInfo(
     int AbiVersion, string FileName, string Path, long FileSize, long Revision, bool IsDirty, bool CanUndo, bool CanRedo, bool HasRecovery,
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
-    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages);
+    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 
@@ -370,6 +396,8 @@ internal sealed record StudioNativeAnnotation(int ObjectNumber, int Page, string
 internal sealed record StudioNativeAnnotationList(int AbiVersion, long Revision, int Page, bool CanEdit, IReadOnlyList<StudioNativeAnnotation> Annotations);
 
 internal sealed record StudioNativeAnnotationUpdate(int ObjectNumber, string? Contents = null, string? Author = null, StudioNativeColor? Color = null);
+
+internal sealed record StudioNativeSearchableResult(int AbiVersion, int Pages, int Words, long Revision);
 
 internal sealed record StudioNativePageText(int AbiVersion, long Revision, int Page, IReadOnlyList<string> Texts, IReadOnlyList<double> Boxes,
     IReadOnlyList<int> Breaks);
