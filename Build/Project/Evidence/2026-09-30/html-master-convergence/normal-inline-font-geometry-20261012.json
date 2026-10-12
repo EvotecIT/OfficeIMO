@@ -1,0 +1,427 @@
+{
+  "schema": "officeimo.html.normal-inline-font-geometry-qualification/v1",
+  "recordedUtc": "2026-10-12T19:27:00.094391+00:00",
+  "sourceCommit": "4970bdafa3694bafa49fb9a257a788a4299a1aeb",
+  "scope": "Bounded ordinary inline containing heights, same-face empty atomic baselines and inline font-box paint; zero-font first-letter restoration; resolved script sizes; declared-face missing EM spacing; retained browser font activation.",
+  "contracts": {
+    "html": "OfficeIMO.Html/README.md",
+    "fonts": "OfficeIMO.Core/README.md",
+    "roadmap": "Docs/ROADMAP.md",
+    "ownership": "Shared HTML layout/style owners and shared font owner feed existing PDF/SVG/raster/MHTML consumers.",
+    "newPublicApi": false,
+    "newProductionDependency": false
+  },
+  "runtimeSourceTrees": {
+    "OfficeIMO.Core": "76ba3e483c814bd6fc4ceeaaf1e08f83d98f10d4",
+    "OfficeIMO.Html.Core": "4dfc9a202431898a7036f0d53bf1d6d9ee424153",
+    "OfficeIMO.Html.AngleSharp": "9e3d4b1d3f14d5759af55d42e86ab4ccef9b5b16",
+    "OfficeIMO.Html": "974a493e34ef41af2dc45452d477112816d12c58",
+    "OfficeIMO.Pdf": "31191fa4bf210622446d9d3f493f7cebbde40af5",
+    "OfficeIMO.Rtf": "36722ffc652d4de3eb78ab6eb1cc528ee12c562e",
+    "OfficeIMO.Email": "7a976d6b40910e377517817ca60edd193e143165",
+    "OfficeIMO.Mhtml": "162eac0219a9e2b53a63cdca0d795b25213ab548",
+    "OfficeIMO.Html.Pdf": "dbfc691287d5034ac5f559e5ffab77aea09e136d",
+    "OfficeIMO.Mhtml.Pdf": "846942bd19fbf8f6a2e69c6f580e12091c115f48"
+  },
+  "frameworkCorrectness": {
+    "frameworks": [
+      "net8.0",
+      "net10.0"
+    ],
+    "groups": [
+      "OfficeIMO.Html.Tests",
+      "OfficeIMO.Drawing.Tests",
+      "OfficeIMO.Pdf.Tests"
+    ],
+    "aggregate": {
+      "total": 42964,
+      "passed": 42956,
+      "notExecuted": 8,
+      "failed": 0
+    },
+    "htmlPassedEachFramework": 6043,
+    "drawingPassedEachFramework": 5249,
+    "pdfPassedEachFramework": 10186,
+    "drawingNotExecutedEachFramework": 4,
+    "drawingExclusionReason": "Delayed in-flight cancellation sampling requires DrawingPerformanceEvidence=true.",
+    "ordinaryPerformanceCasesExcluded": true,
+    "receipt": {
+      "artifact": "root-framework-verification.json",
+      "bytes": 1372,
+      "sha256": "79159086cbc5d78c8a98225dec26ba0430e06c1eb1669d55baf025c0a438bc6f"
+    }
+  },
+  "freshProducer": {
+    "normalReferenceGraph": true,
+    "frozenRuntimeFiles": 26,
+    "normalRuntimeFiles": 37,
+    "runtimeOwners": 10,
+    "freeze": {
+      "artifact": "producer-freeze-receipt.json",
+      "bytes": 6139,
+      "sha256": "2e0c23d98305ea29d31375f892bd5c354b6291769bb422202d959e704c850078"
+    },
+    "actualNormalGraph": {
+      "artifact": "normal-graph-receipt.json",
+      "bytes": 20403,
+      "sha256": "0b140998c202bc6882be0be6a4e001db473a547fdb5b4a2e4d007d127ed4002a"
+    }
+  },
+  "controlledNative": {
+    "frozenCases": 110,
+    "reports": 185,
+    "coreCases": 35,
+    "actualPdfSvgPngArtifacts": 855,
+    "independentlyRasterizedPrintPdfs": 110,
+    "enumeratedDeltas": 4542,
+    "classifiedDeltas": 4542,
+    "missing": [],
+    "blocking": [],
+    "boundedAccepted": true,
+    "classification": {
+      "artifact": "root-classifications.json",
+      "bytes": 368665,
+      "sha256": "866afc117994d5aac10c18889b180283b1d16301413e98b94649c978625a05e7"
+    },
+    "visualAcceptance": {
+      "artifact": "root-visual-acceptance.json",
+      "bytes": 15605,
+      "sha256": "bb24bbb9ceaf47b6e0e4ab5670104030373095175bb4efedd9758a10e770ce79"
+    },
+    "printAndScreenPdfPairs": 90,
+    "pixelIdenticalPairs": 82,
+    "sameTextPairs": 90,
+    "visibleGeometryCorrectionPairs": 8,
+    "newSerializedRasterCasesInspected": 43,
+    "hardGeometryGuardBoundary": "Five changed ordinary height/baseline/decorated source entries contain no hard geometry guards; their acceptance uses independent rendered/source evidence.",
+    "broaderSceneAndH4Replay": {
+      "artifact": "root-delta-decision-binding.json",
+      "bytes": 233959,
+      "sha256": "d16a46d243b53f68dd35a245711c2a58440fe96806489c16e15a097bdb2c0545"
+    }
+  },
+  "browserFontProof": {
+    "cases": 19,
+    "positive": 18,
+    "typedRejection": 1,
+    "causalArms": 6,
+    "actualPdfs": 33,
+    "actualPngs": 44,
+    "boundary": "Retained 80d native browser compilation with bc68 worker and 19 source-file/runtime-owner continuity to 4970. No fresh 4970 native browser compilation is claimed.",
+    "continuity": {
+      "artifact": "root-browser-source-continuity.json",
+      "bytes": 9187,
+      "sha256": "e40945bbd7af3ea87a4559ba130e23b4908f1055e6aa4d9f56653b49ec1aadbc"
+    }
+  },
+  "frozenUnfamiliarPages": {
+    "observations": 23,
+    "successfulProfiles": 20,
+    "pages": 151,
+    "bareNistFontFailures": 3,
+    "profiles": [
+      "PrintPaged",
+      "ScreenMediaPaged",
+      "ScreenSnapshotPaged",
+      "two additional zero-margin print observations"
+    ],
+    "samePageBoxes": 151,
+    "imagePaintChanges": 0,
+    "linkTargetsAndCountsUnchanged": true,
+    "changedLinkRectangles": 20,
+    "textRunReplacements": 78,
+    "compactPageImageCellsEqual": 139,
+    "changedPagePairsInspectedAt144dpi": 12,
+    "sourceCauses": [
+      "Authored non-breaking spaces retain their logical scalars and spacing/nowrap behavior.",
+      "Script sizes resolve once before painting; WAI registered-mark size changes from 6.825pt to 8.75pt."
+    ],
+    "classification": {
+      "artifact": "root-seven-native-classification.json",
+      "bytes": 218508,
+      "sha256": "fdcee441e561e034a71b7e144174dedc650f2a74b5b59ce0196279f0a5300f2d"
+    },
+    "boundary": "Predecessor regression checks preserve broader predeclared appearance/resource losses and Chesapeake held-out role. NIST remains failed with unchanged exception classes/messages; three fewer snapshot glyph diagnostic occurrences are unexplained. No general arbitrary-page or H10 completion claim."
+  },
+  "privatePackages": {
+    "count": 19,
+    "version": "3.3.0",
+    "unsigned": true,
+    "frameworks": [
+      "netstandard2.0",
+      "net472",
+      "net8.0",
+      "net10.0"
+    ],
+    "realConsumers": 4,
+    "selectedFrameworkCopiedDllMatches": 42,
+    "sourceCommitInEachNuspec": "4970bdafa3694bafa49fb9a257a788a4299a1aeb",
+    "archiveHashes": [
+      {
+        "name": "OfficeIMO.Core.3.3.0.nupkg",
+        "sha256": "89d0c3d1fbc7d13a52b43cfd19377d4e080edaf88d8ecce43ab8ad664f7e1c40"
+      },
+      {
+        "name": "OfficeIMO.Email.3.3.0.nupkg",
+        "sha256": "28a6ca9214694abf530462e595ef4e14604ba2e6d035eb3b930268b54ab3e3e7"
+      },
+      {
+        "name": "OfficeIMO.Excel.3.3.0.nupkg",
+        "sha256": "0396473a3e35bdebe4220a38e0be56f35dbb612d873462418e0fcaddf32fdb2e"
+      },
+      {
+        "name": "OfficeIMO.Excel.Html.3.3.0.nupkg",
+        "sha256": "0e2b8820c886635fc5f4c5b1c8b19e8828773a9cb03a916c3d58955ec31f9d28"
+      },
+      {
+        "name": "OfficeIMO.Html.3.3.0.nupkg",
+        "sha256": "27eb91b934b8db31eb02b134c60e34417201ef8a89fdbc7b2369e45bdecd0438"
+      },
+      {
+        "name": "OfficeIMO.Html.AngleSharp.3.3.0.nupkg",
+        "sha256": "10b65184b2787e96696c8570de0f5c42303487754c23756504156ad6316dba72"
+      },
+      {
+        "name": "OfficeIMO.Html.Core.3.3.0.nupkg",
+        "sha256": "a89f63a85c2fc9f972bb6b22b421bba86a18d0bcb947299b0882a6b9324364da"
+      },
+      {
+        "name": "OfficeIMO.Html.Pdf.3.3.0.nupkg",
+        "sha256": "bbc52b31f79c55043fc2ca83d1aab92ad18411b5b38a7cf4662c7b414a31e54c"
+      },
+      {
+        "name": "OfficeIMO.Html.Rtf.3.3.0.nupkg",
+        "sha256": "e7a495f73a37b3c79594bf97186dd635c6b65ff690077eda22b6250ac12ea1c1"
+      },
+      {
+        "name": "OfficeIMO.Markdown.3.3.0.nupkg",
+        "sha256": "970a7059bfb32fbf3f94a7b1e29cb9296f21f1d8d8011b06124d1e67852724d1"
+      },
+      {
+        "name": "OfficeIMO.Markdown.Html.3.3.0.nupkg",
+        "sha256": "3e533cc9f6964bb5c1723775b22f320bf13c0f5996ba5b5b7c64c3fddc88b782"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.3.3.0.nupkg",
+        "sha256": "6af2b2dfe5ff669834383b9611a74f30f5d3f3a9423ec741238d19c2bc48a9ae"
+      },
+      {
+        "name": "OfficeIMO.Mhtml.Pdf.3.3.0.nupkg",
+        "sha256": "5ba5294845f823058bce06140421ffe8bb04a56e97ab8bc2662fd38b7f0a8860"
+      },
+      {
+        "name": "OfficeIMO.Pdf.3.3.0.nupkg",
+        "sha256": "649c4ec5a89f17901b07040234e190be8ad6c41554f461b5d4f0649a46842ef7"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.3.3.0.nupkg",
+        "sha256": "9c93d77142151f6e5fd4d1168f827f1dd6ae36f375c7dc2ef8e2490aad774a56"
+      },
+      {
+        "name": "OfficeIMO.PowerPoint.Html.3.3.0.nupkg",
+        "sha256": "565df2f1cfc2e35d92e843be90c7f20ae8d1e1098c431801840bb0cd78699135"
+      },
+      {
+        "name": "OfficeIMO.Rtf.3.3.0.nupkg",
+        "sha256": "dec10832f1f16b008c14c5994adf35f87783e0bb75e2030121e22605c8fe46cc"
+      },
+      {
+        "name": "OfficeIMO.Word.3.3.0.nupkg",
+        "sha256": "1c0da831b110dc09dda0d73cf90942b92d5c89627f49faf57f67c8ed7dda9a69"
+      },
+      {
+        "name": "OfficeIMO.Word.Html.3.3.0.nupkg",
+        "sha256": "bca1f34aff4f70a6edd8f8d0d6d6dd46801cb34dfcc73b0db6bab93bc7735548"
+      }
+    ],
+    "qualification": {
+      "artifact": "qualification.json",
+      "bytes": 80309,
+      "sha256": "ce0549f7a2813a772f6e8a6dd0dcc3ad284806180a31a557c800667614b16626"
+    },
+    "rootVerification": {
+      "artifact": "root-package-verification.json",
+      "bytes": 3482,
+      "sha256": "a7de97e1e203eef77a809bf8a980ae347ceca34cfdb84a60b821a73b3d3baf4d"
+    },
+    "receiptHarnessBoundary": "Original package command exited0; immutable controller then failed serializing Path entries. Private read-only resumption retained all archive/cache/DLL/restore/consumer assertions and original failure. No builds or consumer commands were repeated.",
+    "boundary": "Unsigned isolated 3.3.0 qualification on macOS. NET472 compile does not establish native .NET Framework execution; no public package publication."
+  },
+  "remainingGates": [
+    "Current source three-platform correctness/package and cold/warm resource ceilings.",
+    "Regular integration against later master changes.",
+    "Wider mixed-font, content-derived atomic/vertical baselines, table row-group/rowspan sizing and unfamiliar-page appearance/resource acceptance.",
+    "Native manual accessibility and editable-output acceptance remain separate.",
+    "Default PDF geometric reading order for raised/lowered smaller-font scripts and reader-dependent extraction at clipped snapshot row boundaries."
+  ],
+  "artifactRetention": {
+    "nativeOutputsAndClassificationRetained": true,
+    "uniqueBaselineCompilerBytesProtected": 119060,
+    "duplicatedNativeRuntimeBytesRemoved": 175601702,
+    "boundary": "Compact receipts and actual decisive artifacts retained; disposable duplicate runtimes removed only after fresh checks. No golden updates.",
+    "duplicatePackageGraphsAndPrivateCacheBytesRemoved": 2028030996,
+    "protectedOriginalPackageFiles": 1126,
+    "protectedOriginalPackageBytes": 144050240,
+    "retainedFinalPrivatePackages": 19
+  },
+  "declaredNistFontVariant": {
+    "source": {
+      "bytes": 1099322,
+      "sha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa"
+    },
+    "variant": "Separate regular Source Sans Pro fixture fallback; system fallback disabled; original bare-font failures retained.",
+    "font": {
+      "family": "NIST Declared Source Sans",
+      "bytes": 234960,
+      "sha256": "e9eefd0655161b5558b4caf1a0667b3931c55ef8e06b58b034e8955190261d99",
+      "representation": "static OpenType/CFF1 regular face"
+    },
+    "license": "Existing licensed Adobe Source Sans Pro fixture, OFL1.1; no new dependency.",
+    "coveragePreflight": {
+      "text": "A−B γ μ χ Ω",
+      "isFullyCovered": true,
+      "diagnostics": []
+    },
+    "actualLoadedOwnersVerified": 11,
+    "loadedBindingsPassed": true,
+    "profiles": [
+      {
+        "profile": "print-paged",
+        "pages": 9,
+        "pdf": {
+          "artifact": "print-paged.pdf",
+          "bytes": 1502977,
+          "sha256": "e6c1fdccaef18ff10c9be894d03ddb75dcbd150712b7fe09903d26ad3badd574"
+        },
+        "hasLoss": true,
+        "hasErrors": false,
+        "warningCount": 22,
+        "diagnosticCodes": {
+          "HtmlRenderResourceUnavailable": 17,
+          "HtmlRenderSvgContentUnsupported": 5
+        },
+        "apiTextScalarCounts": {
+          "−": 105,
+          "γ": 1,
+          "μ": 1,
+          "χ": 1,
+          "Ω": 1
+        },
+        "pypdfTextScalarCounts": {
+          "−": 105,
+          "γ": 1,
+          "μ": 1,
+          "χ": 1,
+          "Ω": 1
+        }
+      },
+      {
+        "profile": "screen-media-paged",
+        "pages": 10,
+        "pdf": {
+          "artifact": "screen-media-paged.pdf",
+          "bytes": 1029450,
+          "sha256": "0c2b6c6b561e14f2ac9e44c99a3dc03810dff11adc6293315cb784644ea84356"
+        },
+        "hasLoss": true,
+        "hasErrors": false,
+        "warningCount": 232,
+        "diagnosticCodes": {
+          "HtmlPdfTranslucentGradientRasterized": 2,
+          "HtmlRenderResourceUnavailable": 134,
+          "HtmlRenderFontFaceUnavailable": 15,
+          "HtmlRenderPositioningModeUnsupported": 8,
+          "HtmlRenderFormFieldTypographyStaticFallback": 15,
+          "HtmlRenderBackgroundImageValueUnsupported": 7,
+          "HtmlRenderSvgContentUnsupported": 31,
+          "HtmlRenderPositionStaticAnchorFallback": 5,
+          "HtmlRenderOpenTypeFeatureUnsupported": 8,
+          "HtmlRenderOverflowScrollSnapshot": 1,
+          "unsupported-font-ligature-substitution": 6
+        },
+        "apiTextScalarCounts": {
+          "−": 105,
+          "γ": 1,
+          "μ": 1,
+          "χ": 1,
+          "Ω": 1
+        },
+        "pypdfTextScalarCounts": {
+          "−": 105,
+          "γ": 1,
+          "μ": 1,
+          "χ": 1,
+          "Ω": 1
+        }
+      },
+      {
+        "profile": "screen-snapshot-paged",
+        "pages": 9,
+        "pdf": {
+          "artifact": "screen-snapshot-paged.pdf",
+          "bytes": 950011,
+          "sha256": "c50786feda054dcced539c30f9b36b467a74d6b308a7abf8666f54e243877f34"
+        },
+        "hasLoss": true,
+        "hasErrors": false,
+        "warningCount": 190,
+        "diagnosticCodes": {
+          "HtmlPdfTranslucentGradientRasterized": 2,
+          "HtmlRenderResourceUnavailable": 134,
+          "HtmlRenderFontFaceUnavailable": 15,
+          "HtmlRenderPositioningModeUnsupported": 4,
+          "HtmlRenderFormFieldTypographyStaticFallback": 4,
+          "HtmlRenderBackgroundImageValueUnsupported": 2,
+          "HtmlRenderSvgContentUnsupported": 9,
+          "HtmlRenderPositionStaticAnchorFallback": 5,
+          "HtmlRenderOpenTypeFeatureUnsupported": 8,
+          "unsupported-font-ligature-substitution": 7
+        },
+        "apiTextScalarCounts": {
+          "−": 105,
+          "γ": 1,
+          "μ": 1,
+          "χ": 1,
+          "Ω": 1
+        },
+        "pypdfTextScalarCounts": {
+          "−": 106,
+          "γ": 1,
+          "μ": 1,
+          "χ": 1,
+          "Ω": 1
+        }
+      }
+    ],
+    "independentParsedAndRasterizedPages": 28,
+    "rootVisualInspection": {
+      "all28Pages": "Three contact sheets of independent96dpi renders",
+      "fullPrintPages": [
+        3,
+        4,
+        6,
+        7,
+        8
+      ],
+      "fullSnapshotPages": [
+        3,
+        4
+      ],
+      "observed": "Source-authored negative exponents, OHM SIGN, Celsius T0 and Greek symbols render correctly and readably in inspected states; table row boundaries and pagination remain bounded evidence."
+    },
+    "limits": [
+      "No predecessor NIST PDF oracle exists because original three profiles failed; no browser-fidelity comparison or full H10 acceptance is claimed.",
+      "Regular fallback does not qualify authored bold/italic faces or replace missing Roboto/Merriweather/Source Sans web-font assets and SVG sprites. All resource and unsupported-feature losses remain reported.",
+      "Default OfficeIMO geometrical plain-text extraction emits some raised/lowered script fragments before their larger-font base. Logical PDF content and inspected appearance retain correct source order; shared reader remediation is open.",
+      "Snapshot pypdf extraction includes one extra negative exponent from a partly clipped magnetic-flux row; API and Poppler-layout extraction retain105 minus scalars, pypdf106. Reader-dependent clipped-content extraction is preserved without universal exact-once claims.",
+      "Snapshot retains its nearly empty painted final page; no page-removal or arbitrary all-content/appearance claim."
+    ],
+    "boundedAccepted": "Declared-font conversion eligibility and inspected symbol/script appearance accepted; wider extraction/appearance criteria remain open.",
+    "rootAcceptance": {
+      "artifact": "root-declared-font-native-acceptance.json",
+      "bytes": 5980,
+      "sha256": "b98e9c57304d169be3d8dbfb02db4d948d9ece2ddba6ac45c053ba143ac0c134"
+    },
+    "inputBoundary": "Same frozen NIST MHTML. This separately declared-font request does not replace the original three failure observations or establish browser-relative fidelity."
+  }
+}

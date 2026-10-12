@@ -521,6 +521,13 @@ Specialized text retains automatic underline/strike paint and reports
 `HtmlRenderTextDecorationLineUnsupported` when overline is omitted. Descendant
 `text-decoration:none` preserves an ancestor band without adding an approximation.
 
+In ordinary horizontal flow, `::first-letter` selects its original in-flow letter
+before suppressing text at `font-size:0`, including generated `::before` text.
+A font size that resolves above zero restores only the selected fragment; the
+remaining zero-size text stays suppressed. Font and color properties not overridden
+by the pseudo-element retain the selected descendant's values. Intrinsic min/max
+sizing measures the same restored content used by the shared scene and PDF output.
+
 Supported inline SVG font and paint presentation attributes participate in the CSS cascade before layout. A label's `font-family`, `font-size` and `font-weight` attributes can override inherited HTML fonts, while author CSS and inline declarations retain their cascade priority. Relative font weights resolve once before inheritance, and nested text adds a baseline shift only when that element declares one.
 
 An authored `<details>` disclosure without `open` renders its first `<summary>` and hides its remaining content. Hidden disclosure content does not size table columns, flex/grid tracks or shrink-to-fit boxes, consume image resources, advance generated counters or footnote numbering, or contribute PDF bookmarks. Adding `open` includes the body; a closed outer disclosure also hides nested disclosures. For a complete report export, prepare script-free HTML with the intended disclosures explicitly open and all required sections and dataset rows materialized. The static renderer does not execute `beforeprint` handlers.
@@ -529,10 +536,19 @@ CSS corner radii scale proportionally to fit the used box before creating rounde
 
 HTML `<button>` descendants retain their own fonts, visibility and block, flex or grid layout in static image and PDF output. Buttons with normal-flow child content center that content vertically when their height leaves spare space; authored flex and grid alignment controls those layouts. Automatic inline-block widths measure styled descendants, including their padding and borders, so larger child text reserves its own space. Hidden buttons follow the same display rules as other elements.
 
-The PDF adapter uses the shared scene's resolved superscript/subscript scale and vertical offset,
-including nested scripts. Logical replacement text owns its painted content once, so independent
-PDF text extraction does not repeat the visible glyphs alongside their replacement. Page image
-exports retain the same scene geometry and page count; font rasterization can differ between viewers.
+Superscript and subscript resolve their font size once in the shared layout scene,
+including nested scripts. Authored font sizes remain effective. Font-relative
+`vertical-align` lengths use the element's resolved font size; percentages use its
+computed line height. Generated footnote calls default to 70% of the surrounding
+font size before resolving these dependent values. Keyword baseline shifts use
+bounded offsets; mixed-font line boxes and browser-relative baseline fidelity remain
+limited.
+
+The PDF adapter paints the scene's resolved size and vertical offset. Logical
+replacement text owns its painted content once, so independent PDF text extraction
+does not repeat the visible glyphs alongside their replacement. Page image exports
+retain the same scene geometry and page count; font rasterization can differ between
+viewers.
 Raster decoding preserves encoded color channels and does not automatically apply embedded ICC or
 PNG gamma conversion. Normalize source colors explicitly when color-managed output is required.
 

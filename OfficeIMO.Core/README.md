@@ -510,6 +510,14 @@ glyph ink within its text box. Otherwise it retains searchable stacked text, rep
 approximation, and strict conversion profiles reject that approximation. The dependency-free
 managed provider likewise reports when it cannot supply true vertical shaping.
 
+EM QUAD (`U+2001`) and EM SPACE (`U+2003`) retain their font's mapped
+advances. When these scalars are missing, `OfficeFontFaceCollection` tries eligible
+registered fallback faces before synthesizing a blank advance of one em for
+supported TrueType or CFF fonts. Automatic fallback selection respects declared
+font ranges and complete-grapheme coverage.
+Measurement and outline cursor placement use the same advance. This missing-space
+fallback is limited to these two scalars.
+
 Use `TryValidateContent(...)` at ingestion and export boundaries that must reject incomplete or
 corrupt image bodies. It applies the shared encoded-payload limit, validates the complete known
 container, decodes supported raster bodies, and validates every ICO entry. Both byte-array and
