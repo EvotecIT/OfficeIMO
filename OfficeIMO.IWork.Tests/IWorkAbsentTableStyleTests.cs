@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void SparseSourceBordersDoNotInheritDestinationGridOrFill(IWorkDocumentKind kind) {
         using var package = DimensionPackage(kind, tableStyleReference: ReferenceField(3, 40),
-            styleRecords: [ArchiveRecord(40, 6003, BytesField(11, BytesField(51, BorderStroke(1))))]);
+            styleRecords: [ArchiveRecord(40, 6003, BytesField(11, BytesField(61, BorderStroke(1))))]);
         var source = IWorkSourceDocument.Open(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
@@ -37,7 +37,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(table.GetCell(0, 0).NoFill);
             saved.Position = 0;
             using var zip = new System.IO.Compression.ZipArchive(saved, System.IO.Compression.ZipArchiveMode.Read, leaveOpen: true);
-            using var xml = zip.GetEntry("ppt/slides/slide1.xml")!.Open();
+            using var xml = Assert.Single(zip.Entries, entry => entry.FullName.StartsWith("ppt/slides/", StringComparison.Ordinal)
+                && entry.FullName.EndsWith(".xml", StringComparison.Ordinal)).Open();
             var document = System.Xml.Linq.XDocument.Load(xml);
             System.Xml.Linq.XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";
             var cell = document.Descendants(a + "tc").First();
