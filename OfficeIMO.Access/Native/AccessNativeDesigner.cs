@@ -3,7 +3,7 @@ using static OfficeIMO.Access.AccessNativeBinary;
 
 namespace OfficeIMO.Access {
     /// <summary>Bounded expanded Access designer layout. Unsupported versions remain inert opaque payloads.</summary>
-    internal static class AccessNativeDesigner {
+    internal static partial class AccessNativeDesigner {
         internal static AccessDesignerNode? Read(byte[] bytes, int maximumNodes, CancellationToken cancellation) {
             if (bytes.Length < 10 || U16(bytes, 0) != 21 || U16(bytes, 2) != 20 || U32(bytes, 4) != 0) return null;
             int offset = 8, count = 0;

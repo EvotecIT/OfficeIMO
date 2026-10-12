@@ -6,6 +6,11 @@ namespace OfficeIMO.Word.Legacy;
 internal sealed class WordPerfectAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.WordPerfect;
     public override string ProfileId => "wordperfect-5-6-salvage";
+    public override string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return WordPerfectReader.IsStructuredProfile(data)
+            ? data[10] == 0 ? "wordperfect-5-records" : "wordperfect-6-records" : ProfileId;
+    }
 
     public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -22,6 +27,7 @@ internal sealed class WordPerfectAdapter : LegacyWordAdapterBase {
     }
 
     public override LegacyWordModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
+        if (WordPerfectReader.IsStructuredProfile(data)) return WordPerfectReader.Read(data, limits, cancellationToken);
         int offset = data.Length >= 8 ? OfficeLegacyImportBuffer.ReadInt32(data, 4) : 0;
         if (offset < 0 || offset >= data.Length) offset = 0;
         LegacyWordModel model = Salvage(data, limits, offset, false, ProfileId,

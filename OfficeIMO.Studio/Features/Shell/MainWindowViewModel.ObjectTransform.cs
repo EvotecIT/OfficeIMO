@@ -11,7 +11,10 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty] private double _objectScalePercent = 100;
 
     private async void OnPageObjectTransform(PdfObjectTransformGesture gesture) {
-        if (_workspace is not { } workspace || IsWorkspaceBusy || !ReferenceEquals(SelectedObject, gesture.Selection) ||
+        bool currentSelection = gesture.Selection.Kind == PdfEditorSelectionKind.Annotation
+            ? Pages.Any(page => ReferenceEquals(page.SelectedObject, gesture.Selection))
+            : ReferenceEquals(SelectedObject, gesture.Selection);
+        if (_workspace is not { } workspace || IsWorkspaceBusy || !currentSelection ||
             (gesture.Selection.Kind == PdfEditorSelectionKind.Image ? !CanEditPageContent : !CanEditAnnotations)) return;
         long revision = workspace.Revision;
         PdfImageEditLayer layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent;

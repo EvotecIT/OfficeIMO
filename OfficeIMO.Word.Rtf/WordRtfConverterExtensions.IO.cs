@@ -1,8 +1,6 @@
 namespace OfficeIMO.Word.Rtf;
 
-/// <summary>
-/// Extension methods for Word and RTF serialization input and output.
-/// </summary>
+// Extension methods for Word and RTF serialization input and output.
 public static partial class WordRtfConverterExtensions {
     /// <summary>Serializes a Word document to RTF text.</summary>
     public static string ToRtf(this WordDocument document, RtfWriteOptions? options = null) {

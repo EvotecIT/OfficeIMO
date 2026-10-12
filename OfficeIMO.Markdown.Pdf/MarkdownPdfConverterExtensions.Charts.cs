@@ -3,9 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Markdown.Pdf;
 
-/// <summary>
-/// First-party Markdown to PDF conversion helpers.
-/// </summary>
+// First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
     private const double MinimumChartWidth = 240D;
     private const double MinimumChartHeight = 150D;

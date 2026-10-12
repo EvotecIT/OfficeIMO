@@ -116,7 +116,8 @@ namespace OfficeIMO.Excel {
                         autoFit,
                         _dateTimeOffsetWriteStrategy,
                         CancellationToken.None,
-                        dateSystem: DateSystem);
+                        dateSystem: DateSystem,
+                        omitBlankCells: true);
                     _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                     _directDataSetMetadataSourceSheet = sheet;
                 } else {
@@ -191,7 +192,8 @@ namespace OfficeIMO.Excel {
                     autoFit,
                     _dateTimeOffsetWriteStrategy,
                     cancellationToken,
-                    dateSystem: DateSystem);
+                    dateSystem: DateSystem,
+                    omitBlankCells: true);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -226,7 +228,8 @@ namespace OfficeIMO.Excel {
             bool autoFit = false,
             bool useCellValueNumberFormats = false,
             bool replacingPendingDirectCellValues = false,
-            bool includeCellReferences = true) =>
+            bool includeCellReferences = true,
+            bool preserveMissingValues = true) =>
             RegisterDeferredDirectTabularSaveCandidate(
                 sheet,
                 out _,
@@ -243,7 +246,8 @@ namespace OfficeIMO.Excel {
                 autoFit,
                 useCellValueNumberFormats,
                 replacingPendingDirectCellValues,
-                includeCellReferences);
+                includeCellReferences,
+                preserveMissingValues);
 
         internal bool RegisterDeferredDirectTabularSaveCandidate(
             ExcelSheet sheet,
@@ -261,7 +265,8 @@ namespace OfficeIMO.Excel {
             bool autoFit = false,
             bool useCellValueNumberFormats = false,
             bool replacingPendingDirectCellValues = false,
-            bool includeCellReferences = true) {
+            bool includeCellReferences = true,
+            bool preserveMissingValues = true) {
             result = null;
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
@@ -293,7 +298,8 @@ namespace OfficeIMO.Excel {
                     CancellationToken.None,
                     useCellValueNumberFormats,
                     DateSystem,
-                    includeCellReferences);
+                    includeCellReferences,
+                    omitBlankCells: preserveMissingValues);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -326,7 +332,8 @@ namespace OfficeIMO.Excel {
             bool autoFit = false,
             bool useCellValueNumberFormats = false,
             bool replacingPendingDirectCellValues = false,
-            bool includeCellReferences = true) {
+            bool includeCellReferences = true,
+            bool preserveMissingValues = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
@@ -357,7 +364,8 @@ namespace OfficeIMO.Excel {
                     CancellationToken.None,
                     useCellValueNumberFormats,
                     DateSystem,
-                    includeCellReferences);
+                    includeCellReferences,
+                    omitBlankCells: preserveMissingValues);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
                 _packageDirty = true;
@@ -383,7 +391,8 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
-            bool includeCellReferences = true) {
+            bool includeCellReferences = true,
+            bool preserveMissingValues = true) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
@@ -411,7 +420,8 @@ namespace OfficeIMO.Excel {
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     dateSystem: DateSystem,
-                    includeCellReferences: includeCellReferences);
+                    includeCellReferences: includeCellReferences,
+                    omitBlankCells: preserveMissingValues);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
             } catch {
@@ -435,7 +445,8 @@ namespace OfficeIMO.Excel {
             ExcelTableStyle tableStyle = ExcelTableStyle.TableStyleMedium2,
             bool includeAutoFilter = false,
             bool autoFit = false,
-            bool includeCellReferences = true) {
+            bool includeCellReferences = true,
+            bool preserveMissingValues = false) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
             if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
@@ -463,7 +474,8 @@ namespace OfficeIMO.Excel {
                     _dateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     dateSystem: DateSystem,
-                    includeCellReferences: includeCellReferences);
+                    includeCellReferences: includeCellReferences,
+                    omitBlankCells: preserveMissingValues);
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, ClearDirectDataSetSaveCandidate, isDeferred: false, subscribeToSourceChanges: false);
                 _directDataSetMetadataSourceSheet = sheet;
             } catch {

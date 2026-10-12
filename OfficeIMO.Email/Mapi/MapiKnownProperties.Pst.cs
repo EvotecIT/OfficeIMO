@@ -1,7 +1,7 @@
 namespace OfficeIMO.Email;
 
 public static partial class MapiKnownProperties {
-    /// <summary>Tagged properties used by PST/OST store and table structures.</summary>
+    //Tagged properties used by PST/OST store and table structures.
     public static partial class PidTag {
         /// <summary>PidTagMessageToMe (0x0057).</summary>
         public static readonly MapiPropertyKey<bool> MessageToMe = Boolean("PidTagMessageToMe", 0x0057);

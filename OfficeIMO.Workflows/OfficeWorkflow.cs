@@ -165,6 +165,14 @@ public sealed class OfficeWorkflowBuilder {
         return this;
     }
 
+    /// <summary>Selects independently ordered page scopes for ordinal rendered comparison. Null selects all pages on that side.</summary>
+    public OfficeWorkflowBuilder ComparePages(OfficeIMO.Pdf.PdfPageSelector? expectedPages, OfficeIMO.Pdf.PdfPageSelector? actualPages) {
+        if (_request.Operation != OfficeWorkflowOperation.Compare) throw new InvalidOperationException("Page comparison scopes require Compare.");
+        _request.ComparisonExpectedPages = expectedPages;
+        _request.ComparisonActualPages = actualPages;
+        return this;
+    }
+
     /// <summary>Builds an independent request snapshot, inferring a locally executable conversion route from file extensions when possible.</summary>
     public OfficeWorkflowRequest Build() {
         string? routeId = _request.ConversionRouteId;
@@ -195,6 +203,8 @@ public sealed class OfficeWorkflowBuilder {
             OutputSignatureValidator = _request.OutputSignatureValidator,
             InputPath = _request.InputPath,
             ComparisonPath = _request.ComparisonPath,
+            ComparisonExpectedPages = _request.ComparisonExpectedPages,
+            ComparisonActualPages = _request.ComparisonActualPages,
             ConversionRouteId = routeId,
             ConversionOptions = _request.ConversionOptions?.Clone(),
             RegisteredConversionSettings = _request.RegisteredConversionSettings?.Snapshot(),

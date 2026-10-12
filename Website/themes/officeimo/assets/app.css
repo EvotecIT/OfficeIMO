@@ -70,7 +70,7 @@ h1{font-size:2.75rem;font-weight:800} h2{font-size:2rem;font-weight:800} h3{font
 
 /* Buttons */
 .imo-btn{display:inline-flex;align-items:center;justify-content:center;gap:0.5rem;border:1.5px solid transparent;cursor:pointer;transition:all var(--imo-duration) var(--imo-ease);text-decoration:none;white-space:nowrap}
-.imo-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--imo-accent-glow)}
+.imo-btn:focus-visible{outline:2px solid var(--imo-accent);outline-offset:3px;box-shadow:0 0 0 3px var(--imo-accent-glow)}
 .imo-btn-primary{background:var(--imo-accent-gradient);color:var(--imo-on-accent,#fff);border:none;box-shadow:0 4px 16px var(--imo-accent-glow)}
 .imo-btn-primary:hover{box-shadow:var(--imo-shadow-glow);transform:translateY(-2px);color:var(--imo-on-accent,#fff)}
 .imo-btn-ghost{background:var(--imo-glass);backdrop-filter:blur(12px);color:var(--imo-text);border-color:var(--imo-glass-border-hover)}
@@ -105,8 +105,10 @@ pre code{background:none;padding:0;color:inherit}
 .imo-section{padding:var(--imo-section-gap) 0}
 .imo-section__title{font-size:2rem;font-weight:800;margin-bottom:0.5rem;text-align:center;background:linear-gradient(135deg,var(--imo-text) 0%,var(--imo-text-secondary) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .imo-section__subtitle{font-size:1.05rem;color:var(--imo-text-secondary);text-align:center;max-width:600px;margin:0 auto}
-.imo-section__eyebrow{display:block;width:max-content;max-width:100%;margin:0 auto 0.85rem;padding:0.36rem 0.72rem;border-radius:999px;border:1px solid var(--imo-glass-border);background:rgba(255,255,255,0.02);color:var(--imo-text-secondary);font-size:0.74rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+.imo-section__eyebrow{display:inline-block;width:max-content;max-width:100%;margin:0 0 0.85rem;padding:0.36rem 0.72rem;border-radius:999px;border:1px solid var(--imo-glass-border);background:rgba(255,255,255,0.02);color:var(--imo-text-secondary);font-size:0.74rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
 [data-theme="light"] .imo-section__eyebrow{background:rgba(255,255,255,0.78);border-color:rgba(148,163,184,0.22);color:#475569}
+/* Eyebrows follow their section's alignment; above a centred section title they centre too. */
+.imo-section__eyebrow:has(+ .imo-section__title){display:block;margin-inline:auto}
 .imo-skip-link{position:absolute;top:-50px;left:0;background:var(--imo-accent);color:var(--imo-on-accent,#fff);padding:0.5rem 1rem;z-index:9999;font-weight:600;font-size:0.85rem}
 .imo-skip-link:focus{top:0}
 .imo-dot{display:inline-block;width:6px;height:6px;background:var(--imo-accent);border-radius:50%;box-shadow:0 0 8px var(--imo-accent-glow)}
@@ -421,15 +423,128 @@ pre code{background:none;padding:0;color:inherit}
 @media(max-width:900px){.imo-benchmark-evidence-model__grid,.imo-benchmark-coverage__grid{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-library-comparison-coverage__heading,.imo-benchmark-family__header,.imo-benchmark-archive__header{grid-template-columns:1fr;gap:.8rem}.imo-benchmark-highlight-grid{grid-template-columns:1fr}.imo-benchmark-archive{width:calc(100vw - 2rem)}.imo-benchmark-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-benchmark-tools{grid-template-columns:repeat(2,minmax(0,1fr))}.imo-benchmark-reset{min-height:36px}.imo-benchmark-table-wrap{overflow-x:auto}.imo-benchmark-table--matrix{min-width:1190px;font-size:.84rem}}
 @media(max-width:600px){.imo-benchmark-hub{gap:3rem}.imo-benchmark-evidence-model__grid,.imo-benchmark-coverage__grid{grid-template-columns:1fr}.imo-benchmark-evidence-model__grid article,.imo-benchmark-coverage__grid article{min-height:0}.imo-library-comparison-coverage{padding:1rem}.imo-library-comparison-coverage__table{overflow:visible}.imo-library-comparison-coverage__row{grid-template-columns:repeat(3,minmax(0,1fr));min-width:0;gap:.4rem;padding:.75rem}.imo-library-comparison-coverage__row>strong,.imo-library-comparison-coverage__row--header>span:first-child{grid-column:1/-1}.imo-library-comparison-status{width:100%;min-width:0;padding:.24rem .2rem;font-size:.62rem}.imo-benchmark-highlight{padding:1rem}.imo-benchmark-highlight__heading{display:grid}.imo-benchmark-highlight__heading>span{max-width:none;text-align:left}.imo-benchmark-archive{width:calc(100vw - 1rem);padding:.75rem}.imo-benchmark-snapshots>summary{align-items:flex-start;padding:1rem}.imo-benchmark-snapshots>summary>span:last-child{display:none}.imo-benchmark-hero{border-left:0;border-right:0;border-radius:0}.imo-benchmark-kpis{grid-template-columns:1fr}.imo-benchmark-tools{grid-template-columns:1fr}.imo-benchmark-count{text-align:left}.imo-benchmark-method{padding:1.35rem}}
 /* Shared task discovery on the homepage and workflow hub. */
-.imo-document-tasks { padding-block: 2.5rem; }
-.imo-document-tasks > h2 { margin-bottom: 1.5rem; font-size: clamp(1.7rem, 3vw, 2.4rem); }
+/* Document jobs (shortcodes/document-tasks): an accent per job, ways to do it coloured by surface like the format map. */
+.imo-document-tasks { padding-block: 3rem 2.5rem; }
+.imo-document-tasks__head { max-width: 760px; margin-bottom: 1.5rem; }
+.imo-document-tasks__head h2 { margin: 0 0 .6rem; font-size: clamp(1.7rem, 3vw, 2.4rem); }
+.imo-document-tasks__head p:not(.imo-section__eyebrow) { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
 .imo-document-tasks__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-.imo-document-tasks__grid article { min-width: 0; padding: 1.35rem; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
-.imo-document-tasks__grid h3 { margin: 0 0 .7rem; font-size: 1.15rem; line-height: 1.35; }
-.imo-document-tasks__grid p, .imo-document-tasks__grid li { font-size: .9rem; line-height: 1.6; }
-.imo-document-tasks__grid ul { padding-left: 1.1rem; margin-block: 1rem; }
-.imo-document-tasks__boundary { color: var(--imo-text-secondary); border-top: 1px solid var(--imo-border); padding-top: .8rem; }
+.imo-job {
+  --job: var(--imo-accent);
+  position: relative; display: flex; flex-direction: column; gap: .75rem; min-width: 0; padding: 1.35rem 1.35rem 1.15rem;
+  border: 1px solid var(--imo-border); border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--job) 7%, var(--imo-surface)), var(--imo-surface) 55%);
+  transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+}
+.imo-job::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--job); opacity: .85; }
+.imo-job:hover { border-color: color-mix(in srgb, var(--job) 45%, var(--imo-border)); transform: translateY(-2px); box-shadow: 0 18px 40px -28px color-mix(in srgb, var(--job) 70%, transparent); }
+.imo-job--dotnet { --job: var(--imo-p-dotnet); }
+.imo-job--browser { --job: var(--imo-p-browser); }
+.imo-job--cli { --job: var(--imo-p-cli); }
+.imo-job--studio { --job: var(--imo-p-studio); }
+.imo-job--powershell { --job: var(--imo-p-powershell); }
+.imo-job__icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 11px; color: var(--job); background: color-mix(in srgb, var(--job) 14%, transparent); border: 1px solid color-mix(in srgb, var(--job) 28%, transparent); }
+.imo-job h3 { margin: 0; font-size: 1.15rem; line-height: 1.35; }
+.imo-job h3 a { color: var(--imo-text); text-decoration: none; }
+.imo-job h3 a::after { content: " →"; color: var(--imo-text-muted); transition: color .2s ease; }
+.imo-job h3 a:hover::after { color: var(--job); }
+.imo-job__summary { margin: 0; font-size: .92rem; line-height: 1.6; color: var(--imo-text-secondary); }
+.imo-job__paths { list-style: none; margin: .1rem 0 0; padding: 0; display: grid; gap: 4px; }
+.imo-job__path {
+  --s: var(--imo-text-muted);
+  display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 9px; font-size: .9rem; font-weight: 500;
+  color: var(--imo-text); text-decoration: none; border: 1px solid transparent; transition: background .15s ease, border-color .15s ease;
+}
+.imo-job__path i { width: 8px; height: 8px; border-radius: 50%; background: var(--s); flex: none; }
+.imo-job__path::after { content: "→"; margin-left: auto; color: var(--imo-text-muted); opacity: 0; transform: translateX(-4px); transition: opacity .15s ease, transform .15s ease; }
+.imo-job__path:hover { background: color-mix(in srgb, var(--s) 10%, transparent); border-color: color-mix(in srgb, var(--s) 25%, transparent); }
+.imo-job__path:hover::after { opacity: 1; transform: none; }
+.imo-job__path--dotnet { --s: var(--imo-p-dotnet); }
+.imo-job__path--browser { --s: var(--imo-p-browser); }
+.imo-job__path--cli { --s: var(--imo-p-cli); }
+.imo-job__path--studio { --s: var(--imo-p-studio); }
+.imo-job__path--powershell { --s: var(--imo-p-powershell); }
+.imo-job__note { display: flex; gap: 8px; align-items: flex-start; margin: auto 0 0; padding-top: .8rem; border-top: 1px dashed var(--imo-border); font-size: .8rem; line-height: 1.5; color: var(--imo-text-muted); }
+.imo-job__note svg { flex: none; margin-top: 2px; }
 .imo-intent-content .imo-document-tasks__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Inside article prose (solution pages) the page already titles the section, and prose list/link styles must not leak in. */
+.imo-intent-content .imo-document-tasks__head { display: none; }
+.imo-intent-content .imo-document-tasks { padding-block: .5rem 1.5rem; }
+.imo-document-tasks .imo-job__paths, .imo-document-tasks .imo-job__paths li { list-style: none; margin: 0; padding: 0; }
+.imo-document-tasks .imo-job__paths li::before, .imo-document-tasks .imo-job__paths li::marker { content: none; }
+.imo-document-tasks a.imo-job__path, .imo-document-tasks .imo-job h3 a { color: var(--imo-text); text-decoration: none; }
+@media (max-width: 1000px) { .imo-document-tasks__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .imo-document-tasks__grid, .imo-intent-content .imo-document-tasks__grid { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .imo-job, .imo-job__path::after { transition: none; } .imo-job:hover { transform: none; } }
+/* PDF corpus report (shortcodes/pdf-corpus): headline numbers, run facts, operation bars, one card per input. */
 .imo-pdf-corpus p code, .imo-pdf-corpus dd code { white-space: normal; overflow-wrap: anywhere; }
 .imo-pdf-corpus table { display: block; max-width: 100%; overflow-x: auto; }
+.imo-corpus-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 1rem 0 .5rem; }
+.imo-corpus-stats > div { display: grid; gap: 2px; padding: 14px 16px; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
+.imo-corpus-stats b { font-family: var(--imo-font-display); font-size: 1.7rem; line-height: 1.1; color: var(--imo-text); }
+.imo-corpus-stats b small { margin-left: 4px; font-size: .95rem; font-weight: 600; color: var(--imo-text-muted); }
+.imo-corpus-stats span { font-size: .8rem; color: var(--imo-text-secondary); }
+.imo-corpus-stats .is-good { border-color: color-mix(in srgb, var(--imo-success) 45%, var(--imo-border)); background: color-mix(in srgb, var(--imo-success) 8%, var(--imo-surface)); }
+.imo-corpus-stats .is-good b { color: var(--imo-success); }
+.imo-corpus-stats .is-warn b { color: var(--imo-warning); }
+.imo-corpus-summary { margin: 0 0 1.25rem; font-size: .85rem; color: var(--imo-text-muted); }
+.imo-corpus-run { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 1rem; }
+.imo-corpus-run > div { padding: 10px 14px; border: 1px solid var(--imo-border); border-radius: 10px; background: var(--imo-surface); }
+.imo-corpus-run dt { margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--imo-text-muted); }
+.imo-corpus-run dd { margin: 3px 0 0; font-size: .9rem; color: var(--imo-text); }
+.imo-corpus-downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 1.5rem; }
+.imo-corpus-ops { list-style: none; margin: .5rem 0 1rem; padding: 0; display: grid; gap: 6px; }
+.imo-corpus-ops li { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) auto; gap: 12px; align-items: center; margin: 0; font-size: .88rem; }
+.imo-corpus-ops li > span { font-family: var(--imo-font-mono); font-size: .8rem; color: var(--imo-text); }
+.imo-corpus-ops li > i { display: block; height: 8px; border-radius: 999px; background: var(--imo-bg-alt); overflow: hidden; }
+.imo-corpus-ops li > i > i { display: block; height: 100%; border-radius: inherit; background: var(--imo-success); }
+.imo-corpus-ops li.is-warn > i > i { background: var(--imo-warning); }
+.imo-corpus-ops li > b { font-variant-numeric: tabular-nums; color: var(--imo-text-secondary); font-weight: 600; }
+.imo-corpus-cases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: .75rem 0 1.5rem; }
+.imo-corpus-case { display: grid; gap: 8px; align-content: start; padding: 12px 14px; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); min-width: 0; }
+.imo-corpus-case.is-failed { border-color: color-mix(in srgb, var(--imo-danger) 50%, var(--imo-border)); }
+.imo-corpus-case header { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.imo-corpus-case header b { font-family: var(--imo-font-mono); font-size: .8rem; color: var(--imo-text); overflow-wrap: anywhere; }
+.imo-corpus-badge { flex: none; padding: 2px 8px; border-radius: 999px; font-size: .72rem; font-weight: 700; text-transform: capitalize; color: var(--imo-success); background: color-mix(in srgb, var(--imo-success) 14%, transparent); }
+.imo-corpus-case.is-failed .imo-corpus-badge { color: var(--imo-danger); background: color-mix(in srgb, var(--imo-danger) 14%, transparent); }
+.imo-corpus-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+.imo-corpus-tags span { padding: 1px 7px; border-radius: 6px; font-size: .7rem; color: var(--imo-text-secondary); background: var(--imo-bg-alt); }
+.imo-corpus-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.imo-corpus-metrics dt { margin: 0; font-size: .66rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--imo-text-muted); }
+.imo-corpus-metrics dd { margin: 1px 0 0; font-size: .82rem; color: var(--imo-text); }
+.imo-corpus-case details summary { cursor: pointer; font-size: .82rem; font-weight: 600; color: var(--imo-accent); }
+.imo-corpus-case details p { font-size: .82rem; }
+@media (max-width: 760px) {
+  .imo-corpus-stats, .imo-corpus-run, .imo-corpus-cases { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .imo-corpus-cases, .imo-corpus-run { grid-template-columns: minmax(0, 1fr); }
+  .imo-corpus-ops li { grid-template-columns: minmax(0, 1fr) auto; }
+  .imo-corpus-ops li > i { grid-column: 1 / -1; grid-row: 2; }
+}
+/* Prose tables scroll sideways inside their frame on narrow screens (site.js initTableScroll). */
+.imo-table-scroll { max-width: 100%; margin: 1.5rem 0; overflow-x: auto; border-radius: var(--imo-radius-lg); overscroll-behavior-x: contain; }
+.imo-table-scroll > table { margin: 0; }
+.imo-table-scroll:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .imo-table-scroll:has(> .imo-table--stack) { overflow: visible; }
+  .imo-prose table.imo-table--stack, .imo-prose table.imo-table--stack tbody, .imo-prose table.imo-table--stack tr, .imo-prose table.imo-table--stack td { display: block; width: 100%; }
+  .imo-prose table.imo-table--stack { background: none; border: 0; backdrop-filter: none; }
+  .imo-prose table.imo-table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .imo-prose table.imo-table--stack tr { margin: 0 0 10px; padding: 10px 14px; border: 1px solid var(--imo-border); border-radius: 12px; background: var(--imo-surface); }
+  .imo-prose table.imo-table--stack td { padding: 5px 0; border: 0; }
+  .imo-prose table.imo-table--stack td::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--imo-text-muted); }
+  .imo-prose table.imo-table--stack td:first-child { font-weight: 700; color: var(--imo-text); }
+  .imo-prose table.imo-table--stack td:first-child::before { display: none; }
+}
+
+/* API used by a page (docs, examples) and code that links to the reference. */
+.imo-api-used{margin:2.5rem 0 0;padding:1.1rem 1.2rem 1.2rem;border:1px solid var(--imo-border);border-radius:14px;background:var(--imo-bg-elevated)}
+.imo-api-used .imo-api-used__title{margin:0 0 .75rem;font-size:.72rem;font-weight:700;letter-spacing:.12em;line-height:1.4;text-transform:uppercase;color:var(--imo-text-muted)}
+.imo-api-used .imo-api-used__list{display:flex;flex-wrap:wrap;gap:.45rem;margin:0;padding:0;list-style:none}
+.imo-api-used .imo-api-used__list li{margin:0}
+.imo-api-used__link{display:inline-flex;padding:.28rem .6rem;border:1px solid var(--imo-border);border-radius:999px;background:var(--imo-bg);text-decoration:none;transition:border-color var(--imo-duration) var(--imo-ease)}
+.imo-api-used__link code{padding:0;border:0;background:none;font-size:.8rem;color:var(--imo-text)}
+.imo-api-used__link:hover{border-color:color-mix(in srgb,var(--imo-accent) 55%,var(--imo-border))}
+.imo-api-used__link:hover code{color:var(--imo-accent)}
+.imo-code-ref{color:inherit;text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
+.imo-code-ref:hover{color:var(--imo-accent);text-decoration-style:solid;text-decoration-color:currentColor}
+a.imo-code-ref > code{color:var(--imo-accent)}

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private void RegisterDirectCellValuesSaveCandidateIfPossible(DirectCellValuesSaveCandidate? candidate) {
+        private void RegisterDirectCellValuesSaveCandidateIfPossible(DirectCellValuesSaveCandidate? candidate, bool preserveMissingValues = false) {
             if (candidate == null || string.IsNullOrEmpty(candidate.Range)) {
                 return;
             }
@@ -21,7 +21,8 @@ namespace OfficeIMO.Excel {
                     candidate.Rows,
                     candidate.IncludeHeaders,
                     candidate.Range,
-                    includeCellReferences: candidate.IncludeCellReferences);
+                    includeCellReferences: candidate.IncludeCellReferences,
+                    preserveMissingValues: preserveMissingValues);
             } else {
                 _excelDocument.RegisterDirectCellValuesSaveCandidate(
                     this,
@@ -34,11 +35,12 @@ namespace OfficeIMO.Excel {
                     candidate.ValuesMatchColumnTypes,
                     candidate.IncludeHeaders,
                     candidate.Range,
-                    includeCellReferences: candidate.IncludeCellReferences);
+                    includeCellReferences: candidate.IncludeCellReferences,
+                    preserveMissingValues: preserveMissingValues);
             }
         }
 
-        private bool RegisterDeferredDirectCellValuesSaveCandidateIfPossible(DirectCellValuesSaveCandidate candidate) {
+        private bool RegisterDeferredDirectCellValuesSaveCandidateIfPossible(DirectCellValuesSaveCandidate candidate, bool preserveMissingValues = false) {
             if (string.IsNullOrEmpty(candidate.Range)) {
                 return false;
             }
@@ -52,7 +54,8 @@ namespace OfficeIMO.Excel {
                     candidate.Rows,
                     candidate.IncludeHeaders,
                     candidate.Range,
-                    includeCellReferences: candidate.IncludeCellReferences)
+                    includeCellReferences: candidate.IncludeCellReferences,
+                    preserveMissingValues: preserveMissingValues)
                 : _excelDocument.RegisterDeferredDirectCellValuesSaveCandidate(
                     this,
                     "Cells",
@@ -64,7 +67,8 @@ namespace OfficeIMO.Excel {
                     candidate.ValuesMatchColumnTypes,
                     candidate.IncludeHeaders,
                     candidate.Range,
-                    includeCellReferences: candidate.IncludeCellReferences);
+                    includeCellReferences: candidate.IncludeCellReferences,
+                    preserveMissingValues: preserveMissingValues);
         }
 
         private bool TryCreateDirectCellValuesAppendCandidate(IReadOnlyList<(int Row, int Column, object Value)> cells, out DirectCellValuesSaveCandidate? candidate) {

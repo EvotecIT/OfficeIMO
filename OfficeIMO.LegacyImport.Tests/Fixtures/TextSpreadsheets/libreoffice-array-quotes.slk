@@ -1,0 +1,6 @@
+ID;PCALCOOO32
+C;X1;Y1;K1;R2;C1;MROW(A1:A2)
+C;X2;Y1;K"a""b"
+C;X1;Y2;K2;I;R1;C1
+C;X2;Y2;K"quoted "text""
+E

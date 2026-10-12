@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Adds bounded schema inference and sampled-row replay to a forward-only Excel reader.
     /// </summary>
-    internal sealed class ExcelSchemaInferenceDataReader : DbDataReader {
+    internal sealed partial class ExcelSchemaInferenceDataReader : DbDataReader {
         private readonly DbDataReader _inner;
         private readonly List<object[]> _sampledRows;
         private readonly Type[] _columnTypes;
@@ -22,6 +22,7 @@ namespace OfficeIMO.Excel {
         private object[]? _sampledCurrentRow;
         private bool _closed;
         private bool _disposed;
+        partial void SetUtf8TextCursor(bool hasCurrentRow);
 
         private ExcelSchemaInferenceDataReader(
             DbDataReader inner,
@@ -212,19 +213,24 @@ namespace OfficeIMO.Excel {
         public override bool NextResult() => false;
 
         public override bool Read() {
+            SetUtf8TextCursor(false);
             if (_closed) {
                 return false;
             }
             if (_sampleIndex < _sampledRows.Count) {
                 _sampledCurrentRow = _sampledRows[_sampleIndex++];
+                SetUtf8TextCursor(true);
                 return true;
             }
 
             _sampledCurrentRow = null;
-            return _inner.Read();
+            bool hasCurrentRow = _inner.Read();
+            SetUtf8TextCursor(hasCurrentRow);
+            return hasCurrentRow;
         }
 
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {
+            SetUtf8TextCursor(false);
             if (_closed) {
                 return false;
             }
@@ -232,11 +238,14 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
             if (_sampleIndex < _sampledRows.Count) {
                 _sampledCurrentRow = _sampledRows[_sampleIndex++];
+                SetUtf8TextCursor(true);
                 return true;
             }
 
             _sampledCurrentRow = null;
-            return await _inner.ReadAsync(cancellationToken).ConfigureAwait(false);
+            bool hasCurrentRow = await _inner.ReadAsync(cancellationToken).ConfigureAwait(false);
+            SetUtf8TextCursor(hasCurrentRow);
+            return hasCurrentRow;
         }
 
         public override void Close() {
@@ -245,6 +254,7 @@ namespace OfficeIMO.Excel {
             }
 
             _closed = true;
+            SetUtf8TextCursor(false);
             _sampledCurrentRow = null;
             _inner.Close();
         }

@@ -1,11 +1,14 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
-    private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, bool isRadioButtonGroup, HashSet<int> visited, ref int nextObjectNumber) {
+    private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, bool isRadioButtonGroup, HashSet<int> visited, ref int nextObjectNumber, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (IsWidget(field)) {
             string appearanceState = isRadioButtonGroup && !HasButtonNormalAppearanceState(objects, field, name) ? "Off" : name;
             field.Items["AS"] = new PdfName(appearanceState);
-            EnsureButtonWidgetAppearances(objects, field, appearanceState, isRadioButtonGroup, ref nextObjectNumber);
+            EnsureButtonWidgetAppearances(objects, field, appearanceState, isRadioButtonGroup, ref nextObjectNumber, cancellationToken);
         }
 
         if (!field.Items.TryGetValue("Kids", out var kidsObject) ||
@@ -14,29 +17,32 @@ internal static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject kidObject = kids.Items[i];
             if (kidObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) {
                 continue;
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                SetWidgetAppearanceStates(objects, kid, name, isRadioButtonGroup, visited, ref nextObjectNumber);
+                SetWidgetAppearanceStates(objects, kid, name, isRadioButtonGroup, visited, ref nextObjectNumber, cancellationToken);
             }
         }
     }
 
-    private static HashSet<string> CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<int> visited) {
+    private static HashSet<string> CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<int> visited, CancellationToken cancellationToken = default) {
         var states = new HashSet<string>(StringComparer.Ordinal);
-        CollectButtonNormalAppearanceStates(objects, field, states, visited);
+        CollectButtonNormalAppearanceStates(objects, field, states, visited, cancellationToken);
         states.Remove("Off");
         return states;
     }
 
-    private static void CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<string> states, HashSet<int> visited) {
+    private static void CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<string> states, HashSet<int> visited, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (IsWidget(field) &&
             TryGetNormalAppearanceObject(objects, field, out PdfObject? normalAppearance) &&
             normalAppearance is PdfDictionary appearanceStates) {
             foreach (string stateName in appearanceStates.Items.Keys) {
+                cancellationToken.ThrowIfCancellationRequested();
                 states.Add(stateName);
             }
         }
@@ -47,13 +53,14 @@ internal static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject kidObject = kids.Items[i];
             if (kidObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) {
                 continue;
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                CollectButtonNormalAppearanceStates(objects, kid, states, visited);
+                CollectButtonNormalAppearanceStates(objects, kid, states, visited, cancellationToken);
             }
         }
     }
@@ -68,7 +75,8 @@ internal static partial class PdfFormFiller {
             appearanceStates.Items.ContainsKey(stateName);
     }
 
-    private static void EnsureButtonWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string selectedName, bool isRadioButton, ref int nextObjectNumber) {
+    private static void EnsureButtonWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string selectedName, bool isRadioButton, ref int nextObjectNumber, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!TryReadRect(widget, out double width, out double height)) {
             return;
         }
@@ -80,11 +88,13 @@ internal static partial class PdfFormFiller {
             normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         if (!string.Equals(selectedName, "Off", StringComparison.Ordinal) && !normalAppearances.Items.ContainsKey(selectedName)) {
             int selectedAppearanceObjectNumber = nextObjectNumber++;
             objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(selectedAppearanceObjectNumber, 0, CreateButtonAppearanceStream(width, height, selected: true, isRadioButton, ReadWidgetAppearanceStyle(objects, widget)));
             normalAppearances.Items[selectedName] = new PdfReference(selectedAppearanceObjectNumber, 0);
         }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static PdfDictionary GetOrCreateButtonNormalAppearanceDictionary(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
@@ -107,7 +117,8 @@ internal static partial class PdfFormFiller {
         return normalAppearances;
     }
 
-    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, string? fieldName, int inheritedFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, string? inheritedDefaultAppearance, bool forceMultilineAppearance, PdfFormFillerOptions? options, HashSet<int> visited, ref int nextObjectNumber) {
+    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, string? fieldName, int inheritedFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, string? inheritedDefaultAppearance, bool forceMultilineAppearance, PdfFormFillerOptions? options, HashSet<int> visited, ref int nextObjectNumber, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
         int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
         int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
@@ -123,6 +134,7 @@ internal static partial class PdfFormFiller {
 
             int appearanceObjectNumber = nextObjectNumber++;
             objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, value, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fieldName, ref nextObjectNumber));
+            cancellationToken.ThrowIfCancellationRequested();
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
@@ -135,13 +147,14 @@ internal static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject kidObject = kids.Items[i];
             if (kidObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) {
                 continue;
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                SetTextWidgetAppearances(objects, kid, value, fieldName, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, forceMultilineAppearance, options, visited, ref nextObjectNumber);
+                SetTextWidgetAppearances(objects, kid, value, fieldName, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, forceMultilineAppearance, options, visited, ref nextObjectNumber, cancellationToken);
             }
         }
     }

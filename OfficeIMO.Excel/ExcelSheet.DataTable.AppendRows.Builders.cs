@@ -82,8 +82,7 @@ namespace OfficeIMO.Excel {
                     value = null;
                 }
 
-                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
-                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
 
                 if (styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -117,8 +116,7 @@ namespace OfficeIMO.Excel {
                     value = null;
                 }
 
-                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
-                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
 
                 if (styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -143,7 +141,8 @@ namespace OfficeIMO.Excel {
             uint? objectDateTimeStyleIndex,
             uint? objectTimeSpanStyleIndex,
             bool useDirectStringCells,
-            ref Dictionary<string, int>? sharedStringIndexes) {
+            ref Dictionary<string, int>? sharedStringIndexes,
+            bool preserveMissingValues) {
             string rowReference = InvariantNumberText.Get(rowIndex);
             bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
             var row = new Row { RowIndex = (uint)rowIndex };
@@ -153,8 +152,7 @@ namespace OfficeIMO.Excel {
                     value = null;
                 }
 
-                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
-                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes, preserveMissingValues);
 
                 if (styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -181,7 +179,8 @@ namespace OfficeIMO.Excel {
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
             bool canCancel,
-            CancellationToken ct) {
+            CancellationToken ct,
+            bool preserveMissingValues) {
             string rowReference = InvariantNumberText.Get(rowIndex);
             bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
             var row = new Row { RowIndex = (uint)rowIndex };
@@ -195,8 +194,7 @@ namespace OfficeIMO.Excel {
                     value = null;
                 }
 
-                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
-                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes, preserveMissingValues);
 
                 if (styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -222,7 +220,8 @@ namespace OfficeIMO.Excel {
             bool useDirectStringCells,
             ref Dictionary<string, int>? sharedStringIndexes,
             bool canCancel,
-            CancellationToken ct) {
+            CancellationToken ct,
+            bool preserveMissingValues) {
             string rowReference = InvariantNumberText.Get(rowIndex);
             int columnCount = source.ColumnCount;
             bool hasObjectValueStyles = objectDateTimeStyleIndex.HasValue || objectTimeSpanStyleIndex.HasValue;
@@ -237,8 +236,7 @@ namespace OfficeIMO.Excel {
                     value = null;
                 }
 
-                var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes);
-                var cell = CreateTabularAppendCell(columnReferencePrefixes[offset] + rowReference, cellValue, cellType);
+                var cell = CreateTabularAppendValueCell(columnReferencePrefixes[offset] + rowReference, value, columnKinds[offset], useDirectStringCells, ref sharedStringIndexes, preserveMissingValues);
 
                 if (styleIndexes[offset] is uint styleIndex) {
                     cell.StyleIndex = styleIndex;
@@ -283,6 +281,22 @@ namespace OfficeIMO.Excel {
 
             cell.AppendChild(cellValue);
             return cell;
+        }
+
+        private Cell CreateTabularAppendValueCell(
+            string cellReference,
+            object? value,
+            TabularAppendColumnKind columnKind,
+            bool useDirectStringCells,
+            ref Dictionary<string, int>? sharedStringIndexes,
+            bool preserveMissingValues = true) {
+            if (preserveMissingValues && (value == null || value == DBNull.Value)) {
+                // Retain intentional missing coordinates without adding a custom style.
+                return new Cell { CellReference = cellReference, StyleIndex = GetMissingTabularCellStyleIndex() };
+            }
+
+            var (cellValue, cellType) = CoerceTabularAppendValue(value, columnKind, useDirectStringCells, ref sharedStringIndexes);
+            return CreateTabularAppendCell(cellReference, cellValue, cellType);
         }
 
         private (CellValue cellValue, DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) CoerceTabularAppendValue(

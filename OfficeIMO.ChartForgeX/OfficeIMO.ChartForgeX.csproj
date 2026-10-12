@@ -4,7 +4,7 @@
     <PackageId>OfficeIMO.ChartForgeX</PackageId>
     <AssemblyName>OfficeIMO.ChartForgeX</AssemblyName>
     <AssemblyTitle>OfficeIMO.ChartForgeX</AssemblyTitle>
-    <VersionPrefix>3.4.4</VersionPrefix>
+    <VersionPrefix>3.4.5</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -47,6 +47,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' == '' Or !Exists('$(ChartForgeXProjectPath)')">
-    <PackageReference Include="ChartForgeX" Version="[1.6.0,2.0.0)" />
+    <PackageReference Include="ChartForgeX" Version="2.0.0" />
   </ItemGroup>
 </Project>

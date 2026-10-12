@@ -2,9 +2,7 @@
 
 namespace OfficeIMO.Word;
 
-/// <summary>
-/// Offers helper methods for page number content.
-/// </summary>
+// Offers helper methods for page number content.
 public partial class WordPageNumber {
     /// <summary>
     /// Appends text to the last paragraph of the page number.

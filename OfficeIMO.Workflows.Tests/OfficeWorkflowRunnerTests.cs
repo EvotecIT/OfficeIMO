@@ -25,7 +25,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
+            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "publisher-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -968,6 +968,38 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(sanitization.Succeeded, sanitization.Summary);
         Assert.NotNull(sanitization.HealthReport!.After);
         Assert.True(sanitization.HealthReport.Verified);
+    }
+
+    [Theory]
+    [InlineData("CustomSans", "BT /F1 18 Tf 20 80 Td (Hello) Tj ET")]
+    [InlineData("Helvetica", "q UnknownPaint Q")]
+    public async Task IncompleteRenderingDoesNotReportAConfirmedDifference(string font, string content) {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, "incomplete.pdf");
+        string gallery = System.IO.Path.Combine(scope.Path, "incomplete-comparison.html");
+        await File.WriteAllTextAsync(input, string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /" + font + " >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }), System.Text.Encoding.ASCII);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Compare,
+            InputPath = input,
+            ComparisonPath = input,
+            OutputPath = gallery,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.False(result.HealthReport!.Verified);
+        Assert.Equal("0", result.HealthReport.Metrics["differentPages"]);
+        Assert.Equal("1", result.HealthReport.Metrics["incompletePages"]);
+        Assert.Contains("comparison is incomplete", result.Summary, StringComparison.Ordinal);
+        Assert.Contains("1 incomplete page", await File.ReadAllTextAsync(gallery), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -1,0 +1,11 @@
+ID;PCALCOOO32
+C;X1;Y1;K"Label"
+C;X2;Y1;K"Amount"
+C;X3;Y1;K"Flag"
+C;X1;Y2;K"Semi;;quoted "value""
+C;X2;Y2;K"42.25"
+C;X3;Y2;K"true"
+C;X1;Y3;K"https://example.invalid";EHYPERLINK("https://example.invalid")
+C;X2;Y3;K"-3.5"
+C;X3;Y3;K"false"
+E

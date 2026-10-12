@@ -25,6 +25,35 @@ tesseract --list-langs
 
 Tesseract 5 is the current stable major line. Its command contract supports image input, language expressions, and TSV output; see the [official Tesseract manual](https://github.com/tesseract-ocr/tesseract/blob/main/doc/tesseract.1.asc).
 
+## Optional provider catalog
+
+Hosts can register the installed engine without adding Tesseract to the neutral
+OCR core or document packages:
+
+```csharp
+using OfficeIMO.Ocr;
+using OfficeIMO.Ocr.Tesseract;
+
+var catalog = new OcrEngineCatalog().Register(new TesseractOcrEngineProvider());
+IOcrEngine engine = catalog.Create("tesseract-cli", new Dictionary<string, string> {
+    ["language"] = "eng",
+    ["pageSegmentationMode"] = "3",
+    ["timeoutSeconds"] = "120"
+});
+```
+
+Supported scalar keys are `executable`, `tessdata`, `language`,
+`temporaryDirectory`, `engineMode` (0–3), `pageSegmentationMode` (0–13),
+`dpi` (36–1200), and `timeoutSeconds` (1–600). Unknown keys are rejected.
+Executable, model, and temporary paths are trusted host configuration.
+This adapter uses the existing runtime discovery and does not download an
+executable or language model.
+
+Framework-dependent `OfficeIMO.Tool` deployments can load the provider from
+an explicit `--ocr-provider-assembly` path. Deploy the matching managed
+dependencies beside it. MCP accepts that path and provider options only when
+the server starts; document/tool content cannot register an executable.
+
 ## Recognize an image
 
 ```csharp

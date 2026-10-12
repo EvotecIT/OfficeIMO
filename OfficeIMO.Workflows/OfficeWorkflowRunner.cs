@@ -4,6 +4,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
@@ -39,8 +40,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string? providerStagingDirectory = null;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
         ValidatedRequest? validated = prepared.Validated;
+        OperationArtifact? artifact = null;
         var inputs = new WorkflowInputSnapshots();
-        OperationArtifact? completedArtifact = null;
 
         try {
             if (prepared.ValidationException != null) throw prepared.ValidationException;
@@ -61,10 +62,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
 
             Report(progress, validated.Id, "execute", DescribeOperation(validated.Operation), 0.18D);
             failureStage = WorkflowFailureStage.Operation;
-            OperationArtifact artifact = await Task.Run(
+            artifact = await Task.Run(
                 () => Execute(validated, diagnostics, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
-            completedArtifact = artifact;
             cancellationToken.ThrowIfCancellationRequested();
 
             if (artifact.Bytes is null) {
@@ -94,10 +94,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Output;
             string outputDirectory = validated.OutputStream is null ? Path.GetDirectoryName(validated.OutputPath!)!
                 : providerStagingDirectory = OfficeIMO.Core.Internal.OfficeTemporaryDirectory.Create("officeimo-provider-output-");
-            if (stagingGuard != null)
+            if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             Directory.CreateDirectory(outputDirectory);
-            if (stagingGuard != null)
+            if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
             stagingPath = Path.Combine(
                 outputDirectory,
@@ -157,6 +157,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 diagnostics,
                 artifact.HealthReport, artifact.SignatureReport, artifact.ConversionEvidence);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
+            OfficeWorkflowConversionEvidence? cancelledConversionEvidence = (error as WorkflowConversionCancellationException)?.Evidence
+                ?? artifact?.ConversionEvidence;
+            if (error is WorkflowConversionCancellationException { DiagnosticsAdded: false } cancelled)
+                AddConversionDiagnostics(cancelledConversionEvidence!, diagnostics, cancelled.ImportDiagnosticSources);
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -175,17 +179,17 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 "Cancelled",
                 diagnostics,
-                healthReport: completedArtifact?.HealthReport,
-                signatureReport: completedArtifact?.SignatureReport,
-                conversionEvidence: completedArtifact?.ConversionEvidence);
+                healthReport: artifact?.HealthReport,
+                signatureReport: artifact?.SignatureReport,
+                conversionEvidence: cancelledConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence
-                ?? completedArtifact?.ConversionEvidence;
-            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false })
-                AddConversionDiagnostics(failedConversionEvidence, diagnostics);
+                ?? artifact?.ConversionEvidence;
+            if (failedConversionEvidence != null && ex is WorkflowConversionFailureException { DiagnosticsAdded: false } failed)
+                AddConversionDiagnostics(failedConversionEvidence, diagnostics, failed.ImportDiagnosticSources);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "WorkflowFailed",
                 ex.Message,
@@ -205,8 +209,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 stopwatch.Elapsed,
                 "Workflow failed: " + ex.Message,
                 diagnostics,
-                healthReport: completedArtifact?.HealthReport,
-                signatureReport: completedArtifact?.SignatureReport,
+                healthReport: artifact?.HealthReport,
+                signatureReport: artifact?.SignatureReport,
                 conversionEvidence: failedConversionEvidence);
         } finally {
             if (stagingPath is not null) TryDelete(stagingPath);
@@ -255,10 +259,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] actual = ReadInput(request.ComparisonPath!, request.Limits, cancellationToken);
         PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions, cancellationToken);
         PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions, cancellationToken);
+        // The comparer admits both documents before resolving selectors. Retained PNGs
+        // and the final UTF-8 gallery are bounded separately by their canonical owners.
         var comparisonOptions = new PdfVisualComparisonOptions {
-            MaxTotalOutputBytes = CalculateComparisonRetainedOutputBudget(
-                request.Limits.MaximumOutputBytes,
-                Math.Min(before.PageCount, after.PageCount))
+            ExpectedPages = request.ComparisonExpectedPages,
+            ActualPages = request.ComparisonActualPages,
+            MaxTotalOutputBytes = request.Limits.MaximumOutputBytes
         };
         PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(
             expected,
@@ -268,13 +274,26 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             expectedReadOptions: request.PdfLoadOptions,
             actualReadOptions: request.ComparisonPdfLoadOptions);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
+            ["expectedTotalPages"] = comparison.ExpectedPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["actualTotalPages"] = comparison.ActualPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["expectedSelectedPageCount"] = comparison.ExpectedPageNumbers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["actualSelectedPageCount"] = comparison.ActualPageNumbers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["expectedSelectedPages"] = string.Join(",", comparison.ExpectedPageNumbers),
+            ["actualSelectedPages"] = string.Join(",", comparison.ActualPageNumbers),
+            ["unmatchedExpectedPages"] = string.Join(",", comparison.UnmatchedExpectedPageNumbers),
+            ["unmatchedActualPages"] = string.Join(",", comparison.UnmatchedActualPageNumbers),
+            ["expectedSha256"] = comparison.ExpectedSha256,
+            ["actualSha256"] = comparison.ActualSha256,
             ["pagesCompared"] = comparison.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ["differentPages"] = comparison.Pages.Count(page => !page.IsMatch).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["differentPages"] = comparison.DifferentPageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["incompletePages"] = comparison.IncompletePageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["structuralDifferences"] = comparison.StructuralDifferences.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
         };
         string summary = comparison.IsMatch
-            ? "The PDFs match within the managed structural and visual thresholds."
-            : "The PDFs differ; review the structural findings and visual comparison gallery.";
+            ? "The compared page pairs match within managed rendering thresholds. Pages outside the selected scope were not compared."
+            : comparison.HasDifferences
+                ? "The selected page sequences differ; review the ordinal rendered comparison gallery. No semantic or moved-page alignment is inferred."
+                : "The comparison is incomplete; review the rendering limitations in the gallery.";
         var report = new PdfHealthReport(
             OfficeWorkflowOperation.Compare,
             before,
@@ -291,16 +310,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken),
                 request.Limits.MaximumOutputBytes);
         return new OperationArtifact(gallery, summary, report);
-    }
-
-    private static long CalculateComparisonRetainedOutputBudget(long maximumOutputBytes, int pageCount) {
-        const long fixedGalleryOverheadBytes = 1024L;
-        const long perPageGalleryOverheadBytes = 1024L;
-        long estimatedMarkupBytes = checked(
-            fixedGalleryOverheadBytes + perPageGalleryOverheadBytes * Math.Max(0, pageCount));
-        long markupReserve = Math.Min(maximumOutputBytes - 1L, estimatedMarkupBytes);
-        long availableBase64Bytes = maximumOutputBytes - markupReserve;
-        return Math.Max(1L, (availableBase64Bytes / 4L) * 3L);
     }
 
     private static OperationArtifact Optimize(
@@ -582,6 +591,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     encoding: Encoding.UTF8,
                     cancellationToken: cancellationToken).ConfigureAwait(false);
                 break;
+            case ".md":
+                await using (FileStream stream = OpenStagedArtifact(stagingPath)) {
+                    using var reader = new StreamReader(stream, new UTF8Encoding(false, true));
+                    _ = MarkdownDoc.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
+                }
+                break;
             default:
                 throw new NotSupportedException("No output validator is registered for '" + extension + "'.");
         }
@@ -605,18 +620,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     private static string AddSuffix(string path, int suffix) => Path.Combine(
         Path.GetDirectoryName(path)!,
         Path.GetFileNameWithoutExtension(path) + " (" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")" + Path.GetExtension(path));
-
-    private static void AddPdfWarnings(IEnumerable<PdfConversionWarning> warnings, List<OfficeWorkflowDiagnostic> diagnostics) {
-        foreach (PdfConversionWarning warning in warnings) {
-            diagnostics.Add(new OfficeWorkflowDiagnostic(
-                warning.Code,
-                warning.Message,
-                warning.Severity == PdfConversionWarningSeverity.Information
-                    ? OfficeWorkflowDiagnosticSeverity.Information
-                    : warning.Severity == PdfConversionWarningSeverity.Error ? OfficeWorkflowDiagnosticSeverity.Error : OfficeWorkflowDiagnosticSeverity.Warning,
-                "convert", new Dictionary<string, string> { ["source"] = warning.Source, ["lossKind"] = warning.LossKind.ToString(), ["converter"] = warning.Converter }));
-        }
-    }
 
     private static void AddMessages(IEnumerable<string> warnings, bool hasLoss, List<OfficeWorkflowDiagnostic> diagnostics) {
         foreach (string warning in warnings) {
@@ -644,23 +647,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             "Lossless PDF optimization does not support the TextOnly output profile.", nameof(profile)),
         _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported output profile.")
     };
-
-    private static byte[] SerializePdfConversion(
-        PdfDocumentConversionResult conversion,
-        long maximumOutputBytes,
-        CancellationToken cancellationToken,
-        IReadOnlyDictionary<string, string>? facts = null) {
-        using var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
-        PdfSaveResult saved = conversion.SaveResultAsync(stream, cancellationToken).GetAwaiter().GetResult();
-        if (saved.Exception is OutOfMemoryException or StackOverflowException)
-            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(saved.Exception).Throw();
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!saved.Succeeded) {
-            throw new WorkflowConversionFailureException(saved.Exception!,
-                new OfficeWorkflowConversionEvidence(saved.ConversionReports, facts ?? new Dictionary<string, string>()));
-        }
-        return stream.ToArray();
-    }
 
     private static byte[] EncodeUtf8Bounded(string value, long maximumOutputBytes) {
         int byteCount = Encoding.UTF8.GetByteCount(value);
@@ -797,5 +783,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowConversionRegistration? Registration = null,
         IOfficeWorkflowConversionSettings? RegisteredConversionSettings = null,
         WordImageOptimizationOptions? WordImageOptimization = null,
-        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null);
+        OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null,
+        PdfPageSelector? PageSelector = null,
+        int MaximumExtractedPages = 100_000,
+        PdfPageSelector? ComparisonExpectedPages = null,
+        PdfPageSelector? ComparisonActualPages = null);
 }

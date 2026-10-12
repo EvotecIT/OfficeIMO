@@ -11,12 +11,12 @@ internal static class StudioCultureCatalog {
 
     internal static IReadOnlyList<StudioCultureDescriptor> Available { get; } = [
         Create("en", reviewed: true),
+        Create("pl", reviewed: true), Create("de", reviewed: true), Create("fr", reviewed: true),
         new StudioCultureDescriptor(PseudoCulture, "Pseudolocalized English", "Pseudolocalized English", true)
     ];
 
     internal static IReadOnlyList<StudioCultureDescriptor> Planned { get; } = [
-        Create("en", reviewed: true), Create("pl", reviewed: false), Create("de", reviewed: false),
-        Create("fr", reviewed: false), Create("it", reviewed: false), Create("es", reviewed: false),
+        Create("it", reviewed: false), Create("es", reviewed: false),
         Create("pt", reviewed: false), Create("nl", reviewed: false), Create("cs", reviewed: false),
         Create("sk", reviewed: false), Create("uk", reviewed: false), Create("ro", reviewed: false),
         Create("hu", reviewed: false), Create("sv", reviewed: false), Create("da", reviewed: false),

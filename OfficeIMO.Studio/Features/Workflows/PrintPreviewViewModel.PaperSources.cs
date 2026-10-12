@@ -28,7 +28,7 @@ public sealed partial class PrintPreviewViewModel {
         using var operation = new CancellationTokenSource();
         _paperSourceCancellation = operation;
         PaperSourceError = string.Empty;
-        var defaultChoice = new PrintPaperSourceChoice(null, T("PaperSource.Default", "Printer default"));
+        var defaultChoice = new PrintPaperSourceChoice(null, T("PaperSource.Default"));
         PaperSourceChoices = [defaultChoice];
         SelectedPaperSource = defaultChoice;
         IsDiscoveringPaperSources = printer is not null && !_disposed;
@@ -41,7 +41,7 @@ public sealed partial class PrintPreviewViewModel {
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
         catch (Exception error) {
             if (!_disposed && ReferenceEquals(_paperSourceCancellation, operation))
-                PaperSourceError = T("PaperSource.Unavailable", "Paper-source discovery failed. Printing will use the printer default.") + " " + Infrastructure.StudioMessages.Describe(error);
+                PaperSourceError = T("PaperSource.Unavailable") + " " + Infrastructure.StudioMessages.Describe(error);
         } finally {
             if (ReferenceEquals(_paperSourceCancellation, operation)) {
                 _paperSourceCancellation = null;

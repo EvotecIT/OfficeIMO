@@ -110,7 +110,7 @@ public sealed partial class PdfProvenanceTests {
 
         Assert.True(result.WasChanged);
         Assert.DoesNotContain(parsed.Map.Values, item => item.Value is PdfStream stream &&
-            stream.Dictionary.Get<PdfName>("Subtype")?.Name.Contains("c2pa", StringComparison.OrdinalIgnoreCase) == true);
+            stream.Dictionary.Get<PdfName>("Subtype")?.Name.IndexOf("c2pa", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.False(retainedCatalog.Items.ContainsKey("Wave24StreamAlias"));
         Assert.Empty(result.After.Evidence);
     }

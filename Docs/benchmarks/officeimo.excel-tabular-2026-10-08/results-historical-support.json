@@ -1,0 +1,4950 @@
+[
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "ExcelReaderTyped",
+    "parameters": "RowCount=50000&Shape=Original",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.ExcelReaderTyped(RowCount: 50000, Shape: \"Original\")",
+    "jobDisplay": "TypedReadBenchmarks.ExcelReaderTyped: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=Original]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 8.149553125,
+    "sdMs": 0.44160943588695806,
+    "allocatedBytes": 4054464,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        7972509.375,
+        7936018.75,
+        8169450,
+        8154681.25,
+        9538384.375,
+        8596631.25,
+        8159687.5,
+        8340059.375,
+        8054409.375,
+        7791493.75,
+        7893631.25,
+        7865290.625,
+        7871396.875,
+        8103225,
+        7796428.125
+      ],
+      "N": 15,
+      "Min": 7791493.75,
+      "LowerFence": 7459432.03125,
+      "Q1": 7882514.0625,
+      "Median": 8054409.375,
+      "Mean": 8149553.125,
+      "Q3": 8164568.75,
+      "UpperFence": 8587650.78125,
+      "Max": 9538384.375,
+      "InterquartileRange": 282054.6875,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        8596631.25,
+        9538384.375
+      ],
+      "AllOutliers": [
+        8596631.25,
+        9538384.375
+      ],
+      "StandardError": 114023.06604788269,
+      "Variance": 195018893864.3973,
+      "StandardDeviation": 441609.43588695803,
+      "Skewness": 2.01860184611741,
+      "Kurtosis": 6.684971835627277,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 8149553.125,
+        "StandardError": 114023.06604788269,
+        "Level": 12,
+        "Margin": 472107.27257646347,
+        "Lower": 7677445.852423537,
+        "Upper": 8621660.397576464
+      },
+      "Percentiles": {
+        "P0": 7791493.75,
+        "P25": 7882514.0625,
+        "P50": 8054409.375,
+        "P67": 8156583.625,
+        "P80": 8203571.875,
+        "P85": 8322998.4375,
+        "P90": 8494002.5,
+        "P95": 8879157.1875,
+        "P100": 9538384.375
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 2,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 4054464
+    },
+    "minimumActualIterationMs": 249.3281,
+    "maximumActualIterationMs": 305.2286,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 255120600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 253952900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 261422700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 260950100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 305228600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 275092500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 261110300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 266882200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 257741400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 249328100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 252596500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 251689600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 251885000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 259303500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 249486000
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "OfficeIMOTyped",
+    "parameters": "RowCount=50000&Shape=Original",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.OfficeIMOTyped(RowCount: 50000, Shape: \"Original\")",
+    "jobDisplay": "TypedReadBenchmarks.OfficeIMOTyped: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=Original]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 10.428836666666665,
+    "sdMs": 1.845854661777893,
+    "allocatedBytes": 2479484,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        10086468.75,
+        8563090.625,
+        9073321.875,
+        8802078.125,
+        12268571.875,
+        12809915.625,
+        9655353.125,
+        9757693.75,
+        11692203.125,
+        14198062.5,
+        11849546.875,
+        8843312.5,
+        11789656.25,
+        8358018.75,
+        8685256.25
+      ],
+      "N": 15,
+      "Min": 8358018.75,
+      "LowerFence": 4327335.9375,
+      "Q1": 8822695.3125,
+      "Median": 9757693.75,
+      "Mean": 10428836.666666666,
+      "Q3": 11819601.5625,
+      "UpperFence": 16314960.9375,
+      "Max": 14198062.5,
+      "InterquartileRange": 2996906.25,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 476597.6243056736,
+      "Variance": 3407179432407.18,
+      "StandardDeviation": 1845854.661777893,
+      "Skewness": 0.5132422319636919,
+      "Kurtosis": 1.7946797007293018,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 10428836.666666666,
+        "StandardError": 476597.6243056736,
+        "Level": 12,
+        "Margin": 1973330.5928897331,
+        "Lower": 8455506.073776932,
+        "Upper": 12402167.2595564
+      },
+      "Percentiles": {
+        "P0": 8358018.75,
+        "P25": 8822695.3125,
+        "P50": 9757693.75,
+        "P67": 11729235.3125,
+        "P80": 11933351.875,
+        "P85": 12226669.375,
+        "P90": 12593378.125,
+        "P95": 13226359.687499998,
+        "P100": 14198062.5
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 1,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 2479484
+    },
+    "minimumActualIterationMs": 267.4569,
+    "maximumActualIterationMs": 454.3383,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 322767300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 274019200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 290346600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 281666800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 392594600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 409917600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 308971600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 312246500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 374150800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 454338300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 379185800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 282986300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 377269300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 267456900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 277928500
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "SylvanTyped",
+    "parameters": "RowCount=50000&Shape=Original",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.SylvanTyped(RowCount: 50000, Shape: \"Original\")",
+    "jobDisplay": "TypedReadBenchmarks.SylvanTyped: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=Original]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 51.899076666666666,
+    "sdMs": 7.471853735585805,
+    "allocatedBytes": 10983849,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        42111659.375,
+        40971268.75,
+        45427890.625,
+        51551343.75,
+        55575843.75,
+        53309487.5,
+        56841278.125,
+        42168090.625,
+        48971606.25,
+        65582156.25,
+        58680903.125,
+        51120553.125,
+        63665528.125,
+        53265540.625,
+        49243000
+      ],
+      "N": 15,
+      "Min": 40971268.75,
+      "LowerFence": 33686529.6875,
+      "Q1": 47199748.4375,
+      "Median": 51551343.75,
+      "Mean": 51899076.666666664,
+      "Q3": 56208560.9375,
+      "UpperFence": 69721779.6875,
+      "Max": 65582156.25,
+      "InterquartileRange": 9008812.5,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 1929224.3388814332,
+      "Variance": 55828598245987.55,
+      "StandardDeviation": 7471853.735585805,
+      "Skewness": 0.1916649722911445,
+      "Kurtosis": 1.9550800024079453,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 51899076.666666664,
+        "StandardError": 1929224.3388814332,
+        "Level": 12,
+        "Margin": 7987864.84512672,
+        "Lower": 43911211.821539946,
+        "Upper": 59886941.51179338
+      },
+      "Percentiles": {
+        "P0": 40971268.75,
+        "P25": 47199748.4375,
+        "P50": 51551343.75,
+        "P67": 54170702.875,
+        "P80": 57209203.125,
+        "P85": 58496940.625,
+        "P90": 61671678.125,
+        "P95": 64240516.5625,
+        "P100": 65582156.25
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 6,
+      "Gen1Collections": 1,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 10983849
+    },
+    "minimumActualIterationMs": 1311.081,
+    "maximumActualIterationMs": 2098.6294,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 1347573500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 1311081000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 1453692900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 1649643400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 1778427400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 1705904000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 1818921300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 1349379300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 1567091800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 2098629400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 1877789300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 1635858100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 2037297300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 1704497700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 1575776400
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "ExcelReaderTyped",
+    "parameters": "RowCount=50000&Shape=SharedStrings",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.ExcelReaderTyped(RowCount: 50000, Shape: \"SharedStrings\")",
+    "jobDisplay": "TypedReadBenchmarks.ExcelReaderTyped: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=SharedStrings]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 10.451320625,
+    "sdMs": 1.5366251648390112,
+    "allocatedBytes": 2405760,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        11374812.5,
+        12521621.875,
+        11697331.25,
+        10001400,
+        12499968.75,
+        11417743.75,
+        8217475,
+        7547509.375,
+        7787112.5,
+        10550756.25,
+        11035684.375,
+        10420021.875,
+        10332146.875,
+        10820865.625,
+        10545359.375
+      ],
+      "N": 15,
+      "Min": 7547509.375,
+      "LowerFence": 8322516.40625,
+      "Q1": 10166773.4375,
+      "Median": 10550756.25,
+      "Mean": 10451320.625,
+      "Q3": 11396278.125,
+      "UpperFence": 13240535.15625,
+      "Max": 12521621.875,
+      "InterquartileRange": 1229504.6875,
+      "LowerOutliers": [
+        7547509.375,
+        7787112.5,
+        8217475
+      ],
+      "UpperOutliers": [],
+      "AllOutliers": [
+        7547509.375,
+        7787112.5,
+        8217475
+      ],
+      "StandardError": 396754.9115189811,
+      "Variance": 2361216897216.518,
+      "StandardDeviation": 1536625.1648390112,
+      "Skewness": -0.6116254728596142,
+      "Kurtosis": 2.2307168079381103,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 10451320.625,
+        "StandardError": 396754.9115189811,
+        "Level": 12,
+        "Margin": 1642745.5044918996,
+        "Lower": 8808575.1205081,
+        "Upper": 12094066.1294919
+      },
+      "Percentiles": {
+        "P0": 7547509.375,
+        "P25": 10166773.4375,
+        "P50": 10550756.25,
+        "P67": 11164553.0625,
+        "P80": 11473661.25,
+        "P85": 11669372.5,
+        "P90": 12178913.75,
+        "P95": 12506464.6875,
+        "P100": 12521621.875
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 1,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 2405760
+    },
+    "minimumActualIterationMs": 241.5206,
+    "maximumActualIterationMs": 400.6922,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 363994300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 400692200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 374314900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 320045100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 399999300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 365368100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 262959500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 241520600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 249187900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 337624500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 353142200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 333441000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 330629000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 346268000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 337451800
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "OfficeIMOTyped",
+    "parameters": "RowCount=50000&Shape=SharedStrings",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.OfficeIMOTyped(RowCount: 50000, Shape: \"SharedStrings\")",
+    "jobDisplay": "TypedReadBenchmarks.OfficeIMOTyped: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=SharedStrings]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 9.907093645833333,
+    "sdMs": 1.3851212280707064,
+    "allocatedBytes": 2477508,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        8465801.5625,
+        11306745.3125,
+        9003964.0625,
+        10940814.0625,
+        10562992.1875,
+        11444892.1875,
+        10960089.0625,
+        10798173.4375,
+        9366264.0625,
+        8205476.5625,
+        8392379.6875,
+        12532660.9375,
+        9336132.8125,
+        8224435.9375,
+        9065582.8125
+      ],
+      "N": 15,
+      "Min": 8205476.5625,
+      "LowerFence": 5411529.6875,
+      "Q1": 8734882.8125,
+      "Median": 9366264.0625,
+      "Mean": 9907093.645833334,
+      "Q3": 10950451.5625,
+      "UpperFence": 14273804.6875,
+      "Max": 12532660.9375,
+      "InterquartileRange": 2215568.75,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 357636.7632530807,
+      "Variance": 1918560816452.1018,
+      "StandardDeviation": 1385121.2280707064,
+      "Skewness": 0.24842670836392522,
+      "Kurtosis": 1.584352977437295,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 9907093.645833334,
+        "StandardError": 357636.7632530807,
+        "Level": 12,
+        "Margin": 1480778.606686323,
+        "Lower": 8426315.039147012,
+        "Upper": 11387872.252519656
+      },
+      "Percentiles": {
+        "P0": 8205476.5625,
+        "P25": 8734882.8125,
+        "P50": 9366264.0625,
+        "P67": 10852376.875,
+        "P80": 11029420.3125,
+        "P85": 11272079.6875,
+        "P90": 11389633.4375,
+        "P95": 11771222.812499998,
+        "P100": 12532660.9375
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 1,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 2477508
+    },
+    "minimumActualIterationMs": 262.5755,
+    "maximumActualIterationMs": 401.0454,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 270905900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 361816100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 288127100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 350106300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 338016000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 366236800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 350723100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 345541800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 299720700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 262575500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 268556400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 401045400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 298756500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 263182200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 290098900
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "SylvanTyped",
+    "parameters": "RowCount=50000&Shape=SharedStrings",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.SylvanTyped(RowCount: 50000, Shape: \"SharedStrings\")",
+    "jobDisplay": "TypedReadBenchmarks.SylvanTyped: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=SharedStrings]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 46.708411041666665,
+    "sdMs": 7.690612247079646,
+    "allocatedBytes": 9342346,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        40209578.125,
+        43829456.25,
+        44309278.125,
+        44700634.375,
+        39896718.75,
+        44975175,
+        42068571.875,
+        45019006.25,
+        40179890.625,
+        42991587.5,
+        62011634.375,
+        46403784.375,
+        42788209.375,
+        61220359.375,
+        60022281.25
+      ],
+      "N": 15,
+      "Min": 39896718.75,
+      "LowerFence": 37503883.59375,
+      "Q1": 42428390.625,
+      "Median": 44309278.125,
+      "Mean": 46708411.041666664,
+      "Q3": 45711395.3125,
+      "UpperFence": 50635902.34375,
+      "Max": 62011634.375,
+      "InterquartileRange": 3283004.6875,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        60022281.25,
+        61220359.375,
+        62011634.375
+      ],
+      "AllOutliers": [
+        60022281.25,
+        61220359.375,
+        62011634.375
+      ],
+      "StandardError": 1985707.5436718846,
+      "Variance": 59145516734931.445,
+      "StandardDeviation": 7690612.247079646,
+      "Skewness": 1.1525645566835725,
+      "Kurtosis": 2.6184014361303,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 46708411.041666664,
+        "StandardError": 1985707.5436718846,
+        "Level": 12,
+        "Margin": 8221730.962608596,
+        "Lower": 38486680.079058066,
+        "Upper": 54930142.00427526
+      },
+      "Percentiles": {
+        "P0": 39896718.75,
+        "P25": 42428390.625,
+        "P50": 44309278.125,
+        "P67": 44991830.875,
+        "P80": 49127483.750000015,
+        "P85": 58660431.56250001,
+        "P90": 60741128.125,
+        "P95": 61457741.875,
+        "P100": 62011634.375
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 5,
+      "Gen1Collections": 1,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 9342346
+    },
+    "minimumActualIterationMs": 1276.6954,
+    "maximumActualIterationMs": 1984.3727,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 1286706900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 1402543000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 1417897300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 1430420700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 1276695400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 1439206000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 1346194700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 1440608600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 1285756900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 1375731200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 1984372700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 1484921500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 1369223100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 1959051900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 1920713400
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "WriterBenchmarks",
+    "method": "OfficeIMO",
+    "parameters": "RowCount=50000",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.WriterBenchmarks.OfficeIMO(RowCount: 50000)",
+    "jobDisplay": "WriterBenchmarks.OfficeIMO: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 15.511064791666666,
+    "sdMs": 0.9340264359117234,
+    "allocatedBytes": 4235155,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        16519225,
+        17487696.875,
+        15186275,
+        15460353.125,
+        16021581.25,
+        15282825,
+        16226693.75,
+        15851668.75,
+        15381568.75,
+        15678334.375,
+        16219940.625,
+        14705334.375,
+        14234509.375,
+        14162859.375,
+        14247106.25
+      ],
+      "N": 15,
+      "Min": 14162859.375,
+      "LowerFence": 13183370.3125,
+      "Q1": 14945804.6875,
+      "Median": 15460353.125,
+      "Mean": 15511064.791666666,
+      "Q3": 16120760.9375,
+      "UpperFence": 17883195.3125,
+      "Max": 17487696.875,
+      "InterquartileRange": 1174956.25,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 241164.58874690492,
+      "Variance": 872405382981.9568,
+      "StandardDeviation": 934026.4359117234,
+      "Skewness": 0.2066488412822898,
+      "Kurtosis": 2.263642054573137,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 15511064.791666666,
+        "StandardError": 241164.58874690492,
+        "Level": 12,
+        "Margin": 998530.912925227,
+        "Lower": 14512533.87874144,
+        "Upper": 16509595.704591893
+      },
+      "Percentiles": {
+        "P0": 14162859.375,
+        "P25": 14945804.6875,
+        "P50": 15460353.125,
+        "P67": 15916235.5,
+        "P80": 16221291.25,
+        "P85": 16226018.4375,
+        "P90": 16402212.5,
+        "P95": 16809766.5625,
+        "P100": 17487696.875
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 10,
+      "Gen1Collections": 10,
+      "Gen2Collections": 10,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 4235155
+    },
+    "minimumActualIterationMs": 453.2121,
+    "maximumActualIterationMs": 559.6069,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 528615800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 559606900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 485961400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 494731900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 512691200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 489051000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 519254800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 507254000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 492210800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 501707300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 519038700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 470571300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 455504900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 453212100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 455908000
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-main-current",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "WriterBenchmarks",
+    "method": "ExcelReaderWriter",
+    "parameters": "RowCount=50000",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.WriterBenchmarks.ExcelReaderWriter(RowCount: 50000)",
+    "jobDisplay": "WriterBenchmarks.ExcelReaderWriter: Job-LVIGEW(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 9.373040625,
+    "sdMs": 1.2982534889725752,
+    "allocatedBytes": 4216184,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        10874162.5,
+        10889996.875,
+        11147621.875,
+        11031325,
+        11308525,
+        9462371.875,
+        8376690.625,
+        8513856.25,
+        8959631.25,
+        8681096.875,
+        9085018.75,
+        7952521.875,
+        7892312.5,
+        8283093.75,
+        8137384.375
+      ],
+      "N": 15,
+      "Min": 7892312.5,
+      "LowerFence": 4501610.9375,
+      "Q1": 8329892.1875,
+      "Median": 8959631.25,
+      "Mean": 9373040.625,
+      "Q3": 10882079.6875,
+      "UpperFence": 14710360.9375,
+      "Max": 11308525,
+      "InterquartileRange": 2552187.5,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 335207.6094630972,
+      "Variance": 1685462121629.4644,
+      "StandardDeviation": 1298253.4889725752,
+      "Skewness": 0.3939208449953603,
+      "Kurtosis": 1.321297797228668,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 9373040.625,
+        "StandardError": 335207.6094630972,
+        "Level": 12,
+        "Margin": 1387911.7246684297,
+        "Lower": 7985128.90033157,
+        "Upper": 10760952.34966843
+      },
+      "Percentiles": {
+        "P0": 7892312.5,
+        "P25": 8329892.1875,
+        "P50": 8959631.25,
+        "P67": 9998852.3125,
+        "P80": 10918262.5,
+        "P85": 11017192.1875,
+        "P90": 11101103.125,
+        "P95": 11195892.8125,
+        "P100": 11308525
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 10,
+      "Gen1Collections": 10,
+      "Gen2Collections": 10,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 4216184
+    },
+    "minimumActualIterationMs": 252.5544,
+    "maximumActualIterationMs": 361.8732,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 347973600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 348480300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 356724300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 353002800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 361873200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 302796300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 268054500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 272443800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 286708600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 277795500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 290721000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 254481100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 252554400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 265059400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 260396700
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "ExcelReaderTyped",
+    "parameters": "RowCount=50000&Shape=Original",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.ExcelReaderTyped(RowCount: 50000, Shape: \"Original\")",
+    "jobDisplay": "TypedReadBenchmarks.ExcelReaderTyped: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=Original]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 9.555126666666666,
+    "sdMs": 1.7177170705645162,
+    "allocatedBytes": 4069313,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        10068231.25,
+        8711153.125,
+        8747543.75,
+        9837437.5,
+        12443653.125,
+        11314262.5,
+        10149378.125,
+        10151762.5,
+        8132621.875,
+        8000734.375,
+        8197328.125,
+        13361250,
+        8074606.25,
+        8256784.375,
+        7880153.125
+      ],
+      "N": 15,
+      "Min": 7880153.125,
+      "LowerFence": 5186582.03125,
+      "Q1": 8164975,
+      "Median": 8747543.75,
+      "Mean": 9555126.666666666,
+      "Q3": 10150570.3125,
+      "UpperFence": 13128963.28125,
+      "Max": 13361250,
+      "InterquartileRange": 1985595.3125,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        13361250
+      ],
+      "AllOutliers": [
+        13361250
+      ],
+      "StandardError": 443512.6405195041,
+      "Variance": 2950551934508.7427,
+      "StandardDeviation": 1717717.0705645161,
+      "Skewness": 0.8532094279801917,
+      "Kurtosis": 2.444059574805355,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 9555126.666666666,
+        "StandardError": 443512.6405195041,
+        "Level": 12,
+        "Margin": 1836343.7357571097,
+        "Lower": 7718782.930909556,
+        "Upper": 11391470.402423777
+      },
+      "Percentiles": {
+        "P0": 7880153.125,
+        "P25": 8164975,
+        "P50": 8747543.75,
+        "P67": 10099067.0625,
+        "P80": 10384262.5,
+        "P85": 11198012.5,
+        "P90": 11991896.875,
+        "P95": 12718932.187499998,
+        "P100": 13361250
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 3,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 4069313
+    },
+    "minimumActualIterationMs": 252.1652,
+    "maximumActualIterationMs": 427.5603,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 322183700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 278757200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 279921700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 314798300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 398197200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 362056700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 324780400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 324856700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 260244200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 256023800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 262314800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 427560300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 258387700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 264217400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 252165200
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "OfficeIMOTyped",
+    "parameters": "RowCount=50000&Shape=Original",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.OfficeIMOTyped(RowCount: 50000, Shape: \"Original\")",
+    "jobDisplay": "TypedReadBenchmarks.OfficeIMOTyped: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=Original]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 8.392968333333334,
+    "sdMs": 0.8654253499718949,
+    "allocatedBytes": 2479485,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        8043643.75,
+        8130737.5,
+        7960500,
+        9528678.125,
+        10916437.5,
+        7851646.875,
+        7877509.375,
+        8131743.75,
+        7781706.25,
+        9324225,
+        8225181.25,
+        8175690.625,
+        7998703.125,
+        7962225,
+        7985896.875
+      ],
+      "N": 15,
+      "Min": 7781706.25,
+      "LowerFence": 7602752.34375,
+      "Q1": 7961362.5,
+      "Median": 8043643.75,
+      "Mean": 8392968.333333334,
+      "Q3": 8200435.9375,
+      "UpperFence": 8559046.09375,
+      "Max": 10916437.5,
+      "InterquartileRange": 239073.4375,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        9324225,
+        9528678.125,
+        10916437.5
+      ],
+      "AllOutliers": [
+        9324225,
+        9528678.125,
+        10916437.5
+      ],
+      "StandardError": 223451.8645217916,
+      "Variance": 748961036373.9768,
+      "StandardDeviation": 865425.3499718949,
+      "Skewness": 1.793224311427939,
+      "Kurtosis": 5.1592064683546,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 8392968.333333334,
+        "StandardError": 223451.8645217916,
+        "Level": 12,
+        "Margin": 925192.191088843,
+        "Lower": 7467776.142244491,
+        "Upper": 9318160.524422176
+      },
+      "Percentiles": {
+        "P0": 7781706.25,
+        "P25": 7961362.5,
+        "P50": 8043643.75,
+        "P67": 8148443.5625,
+        "P80": 8444990.000000002,
+        "P85": 9214320.625,
+        "P90": 9446896.875,
+        "P95": 9945005.937499998,
+        "P100": 10916437.5
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 1,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 2479485
+    },
+    "minimumActualIterationMs": 249.0149,
+    "maximumActualIterationMs": 349.3263,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 257396900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 260183900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 254736300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 304918000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 349326300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 251253000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 252080600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 260216100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 249014900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 298375500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 263206100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 261622400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 255958800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 254791500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 255549000
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "SylvanTyped",
+    "parameters": "RowCount=50000&Shape=Original",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.SylvanTyped(RowCount: 50000, Shape: \"Original\")",
+    "jobDisplay": "TypedReadBenchmarks.SylvanTyped: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=Original]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 40.08205604166666,
+    "sdMs": 0.29618478831428197,
+    "allocatedBytes": 10983849,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        40125812.5,
+        40032734.375,
+        39847753.125,
+        39879496.875,
+        39904218.75,
+        39877484.375,
+        40063793.75,
+        41002043.75,
+        40113400,
+        40393715.625,
+        39968318.75,
+        40069840.625,
+        40163365.625,
+        39993115.625,
+        39795746.875
+      ],
+      "N": 15,
+      "Min": 39795746.875,
+      "LowerFence": 39550235.15625,
+      "Q1": 39891857.8125,
+      "Median": 40032734.375,
+      "Mean": 40082056.041666664,
+      "Q3": 40119606.25,
+      "UpperFence": 40461228.90625,
+      "Max": 41002043.75,
+      "InterquartileRange": 227748.4375,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        41002043.75
+      ],
+      "AllOutliers": [
+        41002043.75
+      ],
+      "StandardError": 76474.58350274555,
+      "Variance": 87725428828.77602,
+      "StandardDeviation": 296184.78831428196,
+      "Skewness": 1.9203608835462709,
+      "Kurtosis": 6.41256001376156,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 40082056.041666664,
+        "StandardError": 76474.58350274555,
+        "Level": 12,
+        "Margin": 316639.5036574499,
+        "Lower": 39765416.53800921,
+        "Upper": 40398695.54532412
+      },
+      "Percentiles": {
+        "P0": 39795746.875,
+        "P25": 39891857.8125,
+        "P50": 40032734.375,
+        "P67": 40086393.1875,
+        "P80": 40133323.125,
+        "P85": 40159610.3125,
+        "P90": 40301575.625,
+        "P95": 40576214.0625,
+        "P100": 41002043.75
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 6,
+      "Gen1Collections": 1,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 10983849
+    },
+    "minimumActualIterationMs": 1273.4643,
+    "maximumActualIterationMs": 1312.0658,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 1284026400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 1281047900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 1275128500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 1276144300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 1276935400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 1276079900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 1282041800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 1312065800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 1283629200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 1292599300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 1278986600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 1282235300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 1285228100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 1279780100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 1273464300
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "ExcelReaderTyped",
+    "parameters": "RowCount=50000&Shape=SharedStrings",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.ExcelReaderTyped(RowCount: 50000, Shape: \"SharedStrings\")",
+    "jobDisplay": "TypedReadBenchmarks.ExcelReaderTyped: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=SharedStrings]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 8.130561666666667,
+    "sdMs": 0.9655665329404761,
+    "allocatedBytes": 2405760,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        8776275,
+        7776456.25,
+        7523415.625,
+        7606740.625,
+        7935240.625,
+        7647446.875,
+        8995600,
+        7734928.125,
+        11206768.75,
+        8442934.375,
+        7767168.75,
+        7577253.125,
+        7588696.875,
+        7620234.375,
+        7759265.625
+      ],
+      "N": 15,
+      "Min": 7523415.625,
+      "LowerFence": 6750087.5,
+      "Q1": 7613487.5,
+      "Median": 7759265.625,
+      "Mean": 8130561.666666667,
+      "Q3": 8189087.5,
+      "UpperFence": 9052487.5,
+      "Max": 11206768.75,
+      "InterquartileRange": 575600,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        11206768.75
+      ],
+      "AllOutliers": [
+        11206768.75
+      ],
+      "StandardError": 249308.2067822466,
+      "Variance": 932318729534.6914,
+      "StandardDeviation": 965566.5329404761,
+      "Skewness": 2.1404240912539616,
+      "Kurtosis": 6.970567088811815,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 8130561.666666667,
+        "StandardError": 249308.2067822466,
+        "Level": 12,
+        "Margin": 1032249.1896987627,
+        "Lower": 7098312.476967905,
+        "Upper": 9162810.85636543
+      },
+      "Percentiles": {
+        "P0": 7523415.625,
+        "P25": 7613487.5,
+        "P50": 7759265.625,
+        "P67": 7836794.3125,
+        "P80": 8509602.5,
+        "P85": 8742940.9375,
+        "P90": 8907870,
+        "P95": 9658950.624999996,
+        "P100": 11206768.75
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 1,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 2405760
+    },
+    "minimumActualIterationMs": 240.7495,
+    "maximumActualIterationMs": 358.6168,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 280841000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 248846800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 240749500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 243415900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 253927900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 244718500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 287859400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 247517900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 358616800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 270174100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 248549600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 242472300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 242838500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 243847700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 248296700
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "OfficeIMOTyped",
+    "parameters": "RowCount=50000&Shape=SharedStrings",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.OfficeIMOTyped(RowCount: 50000, Shape: \"SharedStrings\")",
+    "jobDisplay": "TypedReadBenchmarks.OfficeIMOTyped: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=SharedStrings]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 8.330474166666667,
+    "sdMs": 0.9719317525190647,
+    "allocatedBytes": 2477426,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        7815934.375,
+        8058287.5,
+        8246703.125,
+        8082231.25,
+        11770440.625,
+        8240121.875,
+        8028793.75,
+        7929606.25,
+        8650234.375,
+        8058262.5,
+        8013612.5,
+        8001668.75,
+        7987403.125,
+        8194193.75,
+        7879618.75
+      ],
+      "N": 15,
+      "Min": 7815934.375,
+      "LowerFence": 7660603.125,
+      "Q1": 7994535.9375,
+      "Median": 8058262.5,
+      "Mean": 8330474.166666667,
+      "Q3": 8217157.8125,
+      "UpperFence": 8551090.625,
+      "Max": 11770440.625,
+      "InterquartileRange": 222621.875,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        8650234.375,
+        11770440.625
+      ],
+      "AllOutliers": [
+        8650234.375,
+        11770440.625
+      ],
+      "StandardError": 250951.69941043507,
+      "Variance": 944651331554.7804,
+      "StandardDeviation": 971931.7525190647,
+      "Skewness": 2.922739517272272,
+      "Kurtosis": 10.476675677989867,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 8330474.166666667,
+        "StandardError": 250951.69941043507,
+        "Level": 12,
+        "Margin": 1039053.9955076835,
+        "Lower": 7291420.171158983,
+        "Upper": 9369528.16217435
+      },
+      "Percentiles": {
+        "P0": 7815934.375,
+        "P25": 7994535.9375,
+        "P50": 8058262.5,
+        "P67": 8124777,
+        "P80": 8241438.125,
+        "P85": 8246045,
+        "P90": 8488821.875,
+        "P95": 9586296.249999996,
+        "P100": 11770440.625
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 1,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 2477426
+    },
+    "minimumActualIterationMs": 250.1102,
+    "maximumActualIterationMs": 376.6544,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 250110200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 257865500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 263894800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 258631700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 376654400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 263684200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 256921700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 253747700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 276807800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 257864700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 256435900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 256053700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 255597200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 262214500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 252148100
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "TypedReadBenchmarks",
+    "method": "SylvanTyped",
+    "parameters": "RowCount=50000&Shape=SharedStrings",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.TypedReadBenchmarks.SylvanTyped(RowCount: 50000, Shape: \"SharedStrings\")",
+    "jobDisplay": "TypedReadBenchmarks.SylvanTyped: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000, Shape=SharedStrings]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 41.064685833333336,
+    "sdMs": 1.3890923851019799,
+    "allocatedBytes": 9342346,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        44875828.125,
+        41583865.625,
+        40196837.5,
+        40604162.5,
+        42019262.5,
+        40554675,
+        39874437.5,
+        40262646.875,
+        39882712.5,
+        42603015.625,
+        39930343.75,
+        41856981.25,
+        40010162.5,
+        40100215.625,
+        41615140.625
+      ],
+      "N": 15,
+      "Min": 39874437.5,
+      "LowerFence": 37533881.25,
+      "Q1": 40055189.0625,
+      "Median": 40554675,
+      "Mean": 41064685.833333336,
+      "Q3": 41736060.9375,
+      "UpperFence": 44257368.75,
+      "Max": 44875828.125,
+      "InterquartileRange": 1680871.875,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        44875828.125
+      ],
+      "AllOutliers": [
+        44875828.125
+      ],
+      "StandardError": 358662.11158956715,
+      "Variance": 1929577654348.3071,
+      "StandardDeviation": 1389092.3851019798,
+      "Skewness": 1.303396734539911,
+      "Kurtosis": 4.0603904954604415,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 41064685.833333336,
+        "StandardError": 358662.11158956715,
+        "Level": 12,
+        "Margin": 1485024.0144214223,
+        "Lower": 39579661.81891191,
+        "Upper": 42549709.84775476
+      },
+      "Percentiles": {
+        "P0": 39874437.5,
+        "P25": 40055189.0625,
+        "P50": 40554675,
+        "P67": 41595750.125,
+        "P80": 41889437.5,
+        "P85": 42003034.375,
+        "P90": 42369514.375,
+        "P95": 43284859.375,
+        "P100": 44875828.125
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 5,
+      "Gen1Collections": 1,
+      "Gen2Collections": 0,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 9342346
+    },
+    "minimumActualIterationMs": 1275.9823,
+    "maximumActualIterationMs": 1436.0268,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 1436026800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 1330684000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 1286299100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 1299333500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 1344616700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 1297749900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 1275982300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 1288405000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 1276247100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 1363296800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 1277771300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 1339423700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 1280325500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 1283207200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 1331684800
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "WriterBenchmarks",
+    "method": "OfficeIMO",
+    "parameters": "RowCount=50000",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.WriterBenchmarks.OfficeIMO(RowCount: 50000)",
+    "jobDisplay": "WriterBenchmarks.OfficeIMO: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 14.484665520833333,
+    "sdMs": 0.35439375357806296,
+    "allocatedBytes": 4234982,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        14931654.6875,
+        14428548.4375,
+        14265651.5625,
+        15081529.6875,
+        14202048.4375,
+        14257567.1875,
+        14639932.8125,
+        14816732.8125,
+        14536610.9375,
+        14591960.9375,
+        14059751.5625,
+        15039070.3125,
+        14197520.3125,
+        14213332.8125,
+        14008070.3125
+      ],
+      "N": 15,
+      "Min": 14008070.3125,
+      "LowerFence": 13426727.34375,
+      "Q1": 14207690.625,
+      "Median": 14428548.4375,
+      "Mean": 14484665.520833334,
+      "Q3": 14728332.8125,
+      "UpperFence": 15509296.09375,
+      "Max": 15081529.6875,
+      "InterquartileRange": 520642.1875,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 91504.07370718487,
+      "Variance": 125594932575.14882,
+      "StandardDeviation": 354393.753578063,
+      "Skewness": 0.36019566817638515,
+      "Kurtosis": 1.614235782907102,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 14484665.520833334,
+        "StandardError": 91504.07370718487,
+        "Level": 12,
+        "Margin": 378868.4181619313,
+        "Lower": 14105797.102671403,
+        "Upper": 14863533.938995264
+      },
+      "Percentiles": {
+        "P0": 14008070.3125,
+        "P25": 14207690.625,
+        "P50": 14428548.4375,
+        "P67": 14610190.25,
+        "P80": 14839717.1875,
+        "P85": 14920162.5,
+        "P90": 14996104.0625,
+        "P95": 15051808.125,
+        "P100": 15081529.6875
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 10,
+      "Gen1Collections": 10,
+      "Gen2Collections": 10,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 4234982
+    },
+    "minimumActualIterationMs": 448.2586,
+    "maximumActualIterationMs": 482.6093,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 477813300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 461713900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 456501200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 482609300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 454465900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 456242500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 468478200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 474135800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 465171900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 466943100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 449912400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 481250600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 454321000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 454827000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 448258600
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-main-current",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "WriterBenchmarks",
+    "method": "ExcelReaderWriter",
+    "parameters": "RowCount=50000",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.WriterBenchmarks.ExcelReaderWriter(RowCount: 50000)",
+    "jobDisplay": "WriterBenchmarks.ExcelReaderWriter: Job-WWMGIL(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-36df28\",/p:OfficeIMOBenchmarkNewApis=true,/p:OfficeIMOBenchmarkCsv=true,/p:OfficeIMOBenchmarkArrow=true, InvocationCount=32, IterationCount=15, LaunchCount=1, UnrollFactor=1, WarmupCount=12) [RowCount=50000]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelSha256": "A1F0BE7B8009B53FF2995867E0A98F58D093D6BE7734BB5D038A5CD67BBC9122",
+    "ownerCoreVersion": "3.4.4+36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerCoreSha256": "120ED0E03AAB955707610B90625DF19282DB1FE4DDF2922729BC1C45A1C9926E",
+    "harnessSha256": "04895AF9FF1FCF2492537A4ABD091088FC857CD496D30AAD6639D13CA9AB541D",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 15,
+    "meanMs": 8.229323645833333,
+    "sdMs": 0.32955172486954204,
+    "allocatedBytes": 4216242,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        8140482.8125,
+        8141867.1875,
+        8517801.5625,
+        8917876.5625,
+        8137604.6875,
+        8243748.4375,
+        8505276.5625,
+        8246410.9375,
+        8109170.3125,
+        8004023.4375,
+        8728670.3125,
+        8328085.9375,
+        7783714.0625,
+        7834432.8125,
+        7800689.0625
+      ],
+      "N": 15,
+      "Min": 7783714.0625,
+      "LowerFence": 7516470.3125,
+      "Q1": 8056596.875,
+      "Median": 8141867.1875,
+      "Mean": 8229323.645833333,
+      "Q3": 8416681.25,
+      "UpperFence": 8956807.8125,
+      "Max": 8917876.5625,
+      "InterquartileRange": 360084.375,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 85089.88947557767,
+      "Variance": 108604339364.49033,
+      "StandardDeviation": 329551.72486954206,
+      "Skewness": 0.47092631166513804,
+      "Kurtosis": 2.26226395982934,
+      "ConfidenceInterval": {
+        "N": 15,
+        "Mean": 8229323.645833333,
+        "StandardError": 85089.88947557767,
+        "Level": 12,
+        "Margin": 352310.7826909172,
+        "Lower": 7877012.863142416,
+        "Upper": 8581634.42852425
+      },
+      "Percentiles": {
+        "P0": 7783714.0625,
+        "P25": 8056596.875,
+        "P50": 8141867.1875,
+        "P67": 8277447.4375,
+        "P80": 8507781.5625,
+        "P85": 8516549.0625,
+        "P90": 8644322.8125,
+        "P95": 8785432.1875,
+        "P100": 8917876.5625
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 10,
+      "Gen1Collections": 10,
+      "Gen2Collections": 10,
+      "TotalOperations": 32,
+      "BytesAllocatedPerOperation": 4216242
+    },
+    "minimumActualIterationMs": 249.0791,
+    "maximumActualIterationMs": 285.3723,
+    "actualOperationCounts": [
+      32
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 32,
+        "Nanoseconds": 260495700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 32,
+        "Nanoseconds": 260540000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 32,
+        "Nanoseconds": 272569900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 32,
+        "Nanoseconds": 285372300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 32,
+        "Nanoseconds": 260403600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 32,
+        "Nanoseconds": 263800200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 32,
+        "Nanoseconds": 272169100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 32,
+        "Nanoseconds": 263885400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 32,
+        "Nanoseconds": 259493700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 32,
+        "Nanoseconds": 256129000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 11,
+        "Operations": 32,
+        "Nanoseconds": 279317700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 12,
+        "Operations": 32,
+        "Nanoseconds": 266499000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 13,
+        "Operations": 32,
+        "Nanoseconds": 249079100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 14,
+        "Operations": 32,
+        "Nanoseconds": 250702100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 15,
+        "Operations": 32,
+        "Nanoseconds": 249622300
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-crypto-before",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=False",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: False)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-WZUHJM(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-ba9\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=False]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerCoreSha256": "4222C2E8DDCD62B6CC253D1B43D8519FF0D7C9EC5AF1110491ABC07F5A9C1D97",
+    "harnessSha256": "CC38E56446699E12172F19E6EE9BD14F7A2A53292B9E5A8A2BC8DC4F805074E2",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 135.9299,
+    "sdMs": 4.704517578703828,
+    "allocatedBytes": 144578584,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        148981200,
+        133758725,
+        134106750,
+        133236175,
+        135703850,
+        133348025,
+        133400200,
+        135708100,
+        135719150,
+        135336825
+      ],
+      "N": 10,
+      "Min": 133236175,
+      "LowerFence": 130164021.875,
+      "Q1": 133489831.25,
+      "Median": 134721787.5,
+      "Mean": 135929900,
+      "Q3": 135707037.5,
+      "UpperFence": 139032846.875,
+      "Max": 148981200,
+      "InterquartileRange": 2217206.25,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        148981200
+      ],
+      "AllOutliers": [
+        148981200
+      ],
+      "StandardError": 1487699.084100455,
+      "Variance": 22132485648333.332,
+      "StandardDeviation": 4704517.578703828,
+      "Skewness": 2.0683594251061463,
+      "Kurtosis": 5.958175883217302,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 135929900,
+        "StandardError": 1487699.084100455,
+        "Level": 12,
+        "Margin": 7112559.273299612,
+        "Lower": 128817340.7267004,
+        "Upper": 143042459.2732996
+      },
+      "Percentiles": {
+        "P0": 133236175,
+        "P25": 133489831.25,
+        "P50": 134721787.5,
+        "P67": 135703977.5,
+        "P80": 135710310,
+        "P85": 135715282.5,
+        "P90": 137045355,
+        "P95": 143013277.49999997,
+        "P100": 148981200
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 11,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 144578584
+    },
+    "minimumActualIterationMs": 532.9449,
+    "maximumActualIterationMs": 595.925,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 595925000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 535035100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 536427200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 532944900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 542815600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 533392300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 533601000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 542832600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 542876800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 541347500
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-crypto-before",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=True",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: True)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-WZUHJM(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-ba9\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=True]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerCoreSha256": "4222C2E8DDCD62B6CC253D1B43D8519FF0D7C9EC5AF1110491ABC07F5A9C1D97",
+    "harnessSha256": "CC38E56446699E12172F19E6EE9BD14F7A2A53292B9E5A8A2BC8DC4F805074E2",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 150.96048,
+    "sdMs": 6.680059037370104,
+    "allocatedBytes": 144558636,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        150333625,
+        147710800,
+        159792475,
+        149458900,
+        141648075,
+        148925525,
+        164054350,
+        144572075,
+        153366625,
+        149742350
+      ],
+      "N": 10,
+      "Min": 141648075,
+      "LowerFence": 141123640.625,
+      "Q1": 148014481.25,
+      "Median": 149600625,
+      "Mean": 150960480,
+      "Q3": 152608375,
+      "UpperFence": 159499215.625,
+      "Max": 164054350,
+      "InterquartileRange": 4593893.75,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        159792475,
+        164054350
+      ],
+      "AllOutliers": [
+        159792475,
+        164054350
+      ],
+      "StandardError": 2112420.1462481366,
+      "Variance": 44623188742750,
+      "StandardDeviation": 6680059.037370104,
+      "Skewness": 0.6143582333082784,
+      "Kurtosis": 2.2516391337502117,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 150960480,
+        "StandardError": 2112420.1462481366,
+        "Level": 12,
+        "Margin": 10099296.061196998,
+        "Lower": 140861183.93880302,
+        "Upper": 161059776.06119698
+      },
+      "Percentiles": {
+        "P0": 141648075,
+        "P25": 148014481.25,
+        "P50": 149600625,
+        "P67": 150424615,
+        "P80": 154651795,
+        "P85": 157543427.5,
+        "P90": 160218662.5,
+        "P95": 162136506.25,
+        "P100": 164054350
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 11,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 144558636
+    },
+    "minimumActualIterationMs": 566.5925,
+    "maximumActualIterationMs": 656.2176,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 601334700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 590843400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 639170100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 597835800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 566592500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 595702300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 656217600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 578288500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 613466700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 598969600
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-crypto-before",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=False",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: False)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-JTLREC(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-ba9\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=False]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerCoreSha256": "4222C2E8DDCD62B6CC253D1B43D8519FF0D7C9EC5AF1110491ABC07F5A9C1D97",
+    "harnessSha256": "CC38E56446699E12172F19E6EE9BD14F7A2A53292B9E5A8A2BC8DC4F805074E2",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 141.91912,
+    "sdMs": 12.700731949592074,
+    "allocatedBytes": 144578892,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        142153225,
+        130221175,
+        135306400,
+        159941800,
+        167903000,
+        144442925,
+        141248150,
+        132645400,
+        130785975,
+        134543150
+      ],
+      "N": 10,
+      "Min": 130221175,
+      "LowerFence": 116993843.75,
+      "Q1": 133119837.5,
+      "Median": 138277275,
+      "Mean": 141919120,
+      "Q3": 143870500,
+      "UpperFence": 159996493.75,
+      "Max": 167903000,
+      "InterquartileRange": 10750662.5,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        167903000
+      ],
+      "AllOutliers": [
+        167903000
+      ],
+      "StandardError": 4016324.0911981803,
+      "Variance": 161308592055388.88,
+      "StandardDeviation": 12700731.949592074,
+      "Skewness": 0.9246911660317607,
+      "Kurtosis": 2.3356523274628236,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 141919120,
+        "StandardError": 4016324.0911981803,
+        "Level": 12,
+        "Margin": 19201694.391511332,
+        "Lower": 122717425.60848866,
+        "Upper": 161120814.39151132
+      },
+      "Percentiles": {
+        "P0": 130221175,
+        "P25": 133119837.5,
+        "P50": 138277275,
+        "P67": 142221916,
+        "P80": 147542700,
+        "P85": 154517193.75,
+        "P90": 160737920,
+        "P95": 164320460,
+        "P100": 167903000
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 11,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 144578892
+    },
+    "minimumActualIterationMs": 520.885,
+    "maximumActualIterationMs": 671.6123,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 568613200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 520885000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 541225900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 639767500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 671612300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 577772000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 564992900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 530581900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 523144200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 538172900
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-crypto-before",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=True",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: True)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-JTLREC(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\current-owner-bundle-ba9\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=True]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerCoreSha256": "4222C2E8DDCD62B6CC253D1B43D8519FF0D7C9EC5AF1110491ABC07F5A9C1D97",
+    "harnessSha256": "CC38E56446699E12172F19E6EE9BD14F7A2A53292B9E5A8A2BC8DC4F805074E2",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 140.4524975,
+    "sdMs": 6.110225519404269,
+    "allocatedBytes": 144558696,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        139373800,
+        139283700,
+        155224450,
+        140023075,
+        140417350,
+        143384600,
+        142460950,
+        136680775,
+        134442825,
+        133233450
+      ],
+      "N": 10,
+      "Min": 133233450,
+      "LowerFence": 130403690.625,
+      "Q1": 137331506.25,
+      "Median": 139698437.5,
+      "Mean": 140452497.5,
+      "Q3": 141950050,
+      "UpperFence": 148877865.625,
+      "Max": 155224450,
+      "InterquartileRange": 4618543.75,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        155224450
+      ],
+      "AllOutliers": [
+        155224450
+      ],
+      "StandardError": 1932222.965860285,
+      "Variance": 37334855897979.164,
+      "StandardDeviation": 6110225.519404269,
+      "Skewness": 1.1427338119326367,
+      "Kurtosis": 3.7256836047368185,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 140452497.5,
+        "StandardError": 1932222.965860285,
+        "Level": 12,
+        "Margin": 9237789.09376815,
+        "Lower": 131214708.40623185,
+        "Upper": 149690286.59376815
+      },
+      "Percentiles": {
+        "P0": 133233450,
+        "P25": 137331506.25,
+        "P50": 139698437.5,
+        "P67": 140478658,
+        "P80": 142645680,
+        "P85": 143061322.5,
+        "P90": 144568585,
+        "P95": 149896517.5,
+        "P100": 155224450
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 11,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 144558696
+    },
+    "minimumActualIterationMs": 532.934,
+    "maximumActualIterationMs": 620.898,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 557495400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 557135000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 620898000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 560092500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 561669600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 573538600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 569844000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 546723300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 537771500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 532934000
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-crypto-core-only",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=False",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: False)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-JWYJYT(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\crypto-only-bundle-4ee00b\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=False]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+4ee00bfa851b7b9d14b30058c67e036e53578c95",
+    "ownerCoreSha256": "0336BCBF8D00E6519401CB79795F85B0C6753E2E8839B8370D3A246637D1A824",
+    "harnessSha256": "9D4A1CED39F1EE2FD34930B5C1FC9FD8C8FF6D5D1F26B4C2A74489D9F6D48A77",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 29.60258,
+    "sdMs": 4.296242523088571,
+    "allocatedBytes": 572882,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        24052300,
+        35489475,
+        27336525,
+        25364250,
+        27033300,
+        29129125,
+        34306225,
+        27965350,
+        28996675,
+        36352575
+      ],
+      "N": 10,
+      "Min": 24052300,
+      "LowerFence": 18254840.625,
+      "Q1": 27109106.25,
+      "Median": 28481012.5,
+      "Mean": 29602580,
+      "Q3": 33011950,
+      "UpperFence": 41866215.625,
+      "Max": 36352575,
+      "InterquartileRange": 5902843.75,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 1358591.175342842,
+      "Variance": 18457699817194.445,
+      "StandardDeviation": 4296242.523088571,
+      "Skewness": 0.42270012729429196,
+      "Kurtosis": 1.5014997994521362,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 29602580,
+        "StandardError": 1358591.175342842,
+        "Level": 12,
+        "Margin": 6495305.647546708,
+        "Lower": 23107274.35245329,
+        "Upper": 36097885.64754671
+      },
+      "Percentiles": {
+        "P0": 24052300,
+        "P25": 27109106.25,
+        "P50": 28481012.5,
+        "P67": 29284438,
+        "P80": 34542875,
+        "P85": 35075337.5,
+        "P90": 35575785,
+        "P95": 35964180,
+        "P100": 36352575
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 572882
+    },
+    "minimumActualIterationMs": 96.2094,
+    "maximumActualIterationMs": 145.4105,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 96209400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 141958100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 109346300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 101457200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 108133400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 116516700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 137225100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 111861600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 115986900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 145410500
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain0-crypto-core-only",
+    "domain": 0,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=True",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: True)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-JWYJYT(OutlierMode=DontRemove, Affinity=00000000000000001111111111111111, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\crypto-only-bundle-4ee00b\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=True]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+4ee00bfa851b7b9d14b30058c67e036e53578c95",
+    "ownerCoreSha256": "0336BCBF8D00E6519401CB79795F85B0C6753E2E8839B8370D3A246637D1A824",
+    "harnessSha256": "9D4A1CED39F1EE2FD34930B5C1FC9FD8C8FF6D5D1F26B4C2A74489D9F6D48A77",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 25.24037,
+    "sdMs": 1.4637324402021021,
+    "allocatedBytes": 553538,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        24945775,
+        24961275,
+        26219825,
+        26070175,
+        23188025,
+        28163075,
+        23693200,
+        24017150,
+        25022625,
+        26122575
+      ],
+      "N": 10,
+      "Min": 23188025,
+      "LowerFence": 21459053.125,
+      "Q1": 24249306.25,
+      "Median": 24991950,
+      "Mean": 25240370,
+      "Q3": 26109475,
+      "UpperFence": 28899728.125,
+      "Max": 28163075,
+      "InterquartileRange": 1860168.75,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 462872.83961148554,
+      "Variance": 2142512656500,
+      "StandardDeviation": 1463732.440202102,
+      "Skewness": 0.4122307426551427,
+      "Kurtosis": 2.193640942150089,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 25240370,
+        "StandardError": 462872.83961148554,
+        "Level": 12,
+        "Margin": 2212954.5839761323,
+        "Lower": 23027415.41602387,
+        "Upper": 27453324.58397613
+      },
+      "Percentiles": {
+        "P0": 23188025,
+        "P25": 24249306.25,
+        "P50": 24991950,
+        "P67": 26071747,
+        "P80": 26142025,
+        "P85": 26185787.5,
+        "P90": 26414150,
+        "P95": 27288612.5,
+        "P100": 28163075
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 553538
+    },
+    "minimumActualIterationMs": 92.7523,
+    "maximumActualIterationMs": 112.6525,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 99783300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 99845300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 104879500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 104280900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 92752300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 112652500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 94773000
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 96068800
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 100090700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 104490500
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-crypto-core-only",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=False",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: False)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-KJBLOG(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\crypto-only-bundle-4ee00b\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=False]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+4ee00bfa851b7b9d14b30058c67e036e53578c95",
+    "ownerCoreSha256": "0336BCBF8D00E6519401CB79795F85B0C6753E2E8839B8370D3A246637D1A824",
+    "harnessSha256": "9D4A1CED39F1EE2FD34930B5C1FC9FD8C8FF6D5D1F26B4C2A74489D9F6D48A77",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 24.057755,
+    "sdMs": 1.8077022663760511,
+    "allocatedBytes": 573418,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        23151000,
+        24872525,
+        25333925,
+        21748525,
+        24785100,
+        21964825,
+        24918075,
+        23798775,
+        27596775,
+        22408025
+      ],
+      "N": 10,
+      "Min": 21748525,
+      "LowerFence": 19124390.625,
+      "Q1": 22593768.75,
+      "Median": 24291937.5,
+      "Mean": 24057755,
+      "Q3": 24906687.5,
+      "UpperFence": 28376065.625,
+      "Max": 27596775,
+      "InterquartileRange": 2312918.75,
+      "LowerOutliers": [],
+      "UpperOutliers": [],
+      "AllOutliers": [],
+      "StandardError": 571645.6493196735,
+      "Variance": 3267787483861.1113,
+      "StandardDeviation": 1807702.2663760511,
+      "Skewness": 0.3594126755224804,
+      "Kurtosis": 2.027442646851657,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 24057755,
+        "StandardError": 571645.6493196735,
+        "Level": 12,
+        "Margin": 2732987.878774199,
+        "Lower": 21324767.1212258,
+        "Upper": 26790742.8787742
+      },
+      "Percentiles": {
+        "P0": 21748525,
+        "P25": 22593768.75,
+        "P50": 24291937.5,
+        "P67": 24873891.5,
+        "P80": 25001245,
+        "P85": 25188377.5,
+        "P90": 25560209.999999996,
+        "P95": 26578492.499999996,
+        "P100": 27596775
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 573418
+    },
+    "minimumActualIterationMs": 86.9943,
+    "maximumActualIterationMs": 110.3873,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 92604200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 99490300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 101335900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 86994300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 99140600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 87859500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 99672500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 95195300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 110387300
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 89632300
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  },
+  {
+    "classification": "historical-support",
+    "lane": "36df-headline-core",
+    "runId": "stable36df-domain1-crypto-core-only",
+    "domain": 1,
+    "namespace": "OfficeIMO.Excel.ReaderComparison.Benchmarks",
+    "type": "EncryptedVerifiedReadBenchmarks",
+    "method": "OfficeIMOVerifiedFullFields",
+    "parameters": "Input=OriginalSmallXlsx&MemoryInput=True",
+    "fullName": "OfficeIMO.Excel.ReaderComparison.Benchmarks.EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields(Input: OriginalSmallXlsx, MemoryInput: True)",
+    "jobDisplay": "EncryptedVerifiedReadBenchmarks.OfficeIMOVerifiedFullFields: Job-KJBLOG(OutlierMode=DontRemove, Affinity=11111111111111110000000000000000, Arguments=/p:UseSharedCompilation=false,/p:OfficeIMOBenchmarkAssemblyDirectory=\"D:\\Dev\\Scratch\\officeimo-excelreader-performance\\crypto-only-bundle-4ee00b\",/p:OfficeIMOBenchmarkNewApis=true, InvocationCount=4, IterationCount=10, LaunchCount=1, UnrollFactor=1, WarmupCount=8) [Input=OriginalSmallXlsx, MemoryInput=True]",
+    "captureSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "ownerExcelVersion": "3.4.4+ba9f21651d204ba1171735d26cc48c6d0a99f765",
+    "ownerExcelSha256": "BD540DD1F7BEF8D8C5BD51147D9F5180FE30EB9CBCFF7AF699097E810A7E0403",
+    "ownerCoreVersion": "3.4.4+4ee00bfa851b7b9d14b30058c67e036e53578c95",
+    "ownerCoreSha256": "0336BCBF8D00E6519401CB79795F85B0C6753E2E8839B8370D3A246637D1A824",
+    "harnessSha256": "9D4A1CED39F1EE2FD34930B5C1FC9FD8C8FF6D5D1F26B4C2A74489D9F6D48A77",
+    "runnerSha256": null,
+    "referenceImportSha256": null,
+    "sampleCount": 10,
+    "meanMs": 23.2293875,
+    "sdMs": 1.4072327540469274,
+    "allocatedBytes": 553082,
+    "allocationScope": "Native managed bytes allocated per benchmark operation; not peak/retained/unmanaged memory",
+    "statisticsNs": {
+      "OriginalValues": [
+        26074950,
+        22439725,
+        22940850,
+        22661650,
+        22161475,
+        25529300,
+        22234975,
+        22164525,
+        22850575,
+        23235850
+      ],
+      "N": 10,
+      "Min": 22161475,
+      "LowerFence": 20972256.25,
+      "Q1": 22286162.5,
+      "Median": 22756112.5,
+      "Mean": 23229387.5,
+      "Q3": 23162100,
+      "UpperFence": 24476006.25,
+      "Max": 26074950,
+      "InterquartileRange": 875937.5,
+      "LowerOutliers": [],
+      "UpperOutliers": [
+        25529300,
+        26074950
+      ],
+      "AllOutliers": [
+        25529300,
+        26074950
+      ],
+      "StandardError": 445006.0700779822,
+      "Variance": 1980304024062.5,
+      "StandardDeviation": 1407232.7540469274,
+      "Skewness": 1.113996737588655,
+      "Kurtosis": 2.4895271762596716,
+      "ConfidenceInterval": {
+        "N": 10,
+        "Mean": 23229387.5,
+        "StandardError": 445006.0700779822,
+        "Level": 12,
+        "Margin": 2127535.1206669477,
+        "Lower": 21101852.379333053,
+        "Upper": 25356922.620666947
+      },
+      "Percentiles": {
+        "P0": 22161475,
+        "P25": 22286162.5,
+        "P50": 22756112.5,
+        "P67": 22949700,
+        "P80": 23694539.999999996,
+        "P85": 24726592.499999996,
+        "P90": 25583865,
+        "P95": 25829407.5,
+        "P100": 26074950
+      }
+    },
+    "nativeMemory": {
+      "Gen0Collections": 0,
+      "Gen1Collections": 0,
+      "Gen2Collections": 0,
+      "TotalOperations": 4,
+      "BytesAllocatedPerOperation": 553082
+    },
+    "minimumActualIterationMs": 88.6462,
+    "maximumActualIterationMs": 104.3001,
+    "actualOperationCounts": [
+      4
+    ],
+    "nativeActualMeasurements": [
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 1,
+        "Operations": 4,
+        "Nanoseconds": 104300100
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 2,
+        "Operations": 4,
+        "Nanoseconds": 89759200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 3,
+        "Operations": 4,
+        "Nanoseconds": 91763700
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 4,
+        "Operations": 4,
+        "Nanoseconds": 90646900
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 5,
+        "Operations": 4,
+        "Nanoseconds": 88646200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 6,
+        "Operations": 4,
+        "Nanoseconds": 102117500
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 7,
+        "Operations": 4,
+        "Nanoseconds": 88940200
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 8,
+        "Operations": 4,
+        "Nanoseconds": 88658400
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 9,
+        "Operations": 4,
+        "Nanoseconds": 91402600
+      },
+      {
+        "IterationMode": "Workload",
+        "IterationStage": "Actual",
+        "LaunchIndex": 1,
+        "IterationIndex": 10,
+        "Operations": 4,
+        "Nanoseconds": 92943700
+      }
+    ],
+    "captureWorkloadSource": "36df28c4abc6a4c4371e09e26a5e40e0c07d30d2",
+    "benchmarkSourceIdentityScope": "Historical36df snapshot; not final benchmark source"
+  }
+]

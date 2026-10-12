@@ -18,7 +18,8 @@ internal static partial class PdfFormFiller {
             pagesObjectId: 0,
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             objects,
-            preserveRawStringBytes: true);
+            preserveRawStringBytes: true,
+            cancellationToken: cancellationToken);
         var rewritten = new List<byte[]>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -29,7 +30,7 @@ internal static partial class PdfFormFiller {
         rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(source.UncheckedMetadata))));
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        if (ContainsOpenTypeFontFileStream(objects)) {
+        if (ContainsOpenTypeFontFileStream(objects, cancellationToken)) {
             fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
         }
 
@@ -40,8 +41,9 @@ internal static partial class PdfFormFiller {
             cancellationToken: cancellationToken) ?? result;
     }
 
-    private static bool ContainsOpenTypeFontFileStream(Dictionary<int, PdfIndirectObject> objects) {
+    private static bool ContainsOpenTypeFontFileStream(Dictionary<int, PdfIndirectObject> objects, CancellationToken cancellationToken = default) {
         foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (indirect.Value is PdfStream stream &&
                 stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType") {
                 return true;

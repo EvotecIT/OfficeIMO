@@ -194,7 +194,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Text, text);
             }
 
-            return sourceCell != null || styleIndex != 0
+            // Preserve native source cells and intentional styled blanks, including
+            // tabular missing cells carrying the explicit default format.
+            return sourceCell != null || (cell.StyleIndex != null && cell.StyleIndex.HasValue)
                 ? new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Blank, null)
                 : null;
         }

@@ -21,6 +21,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     $"The XLSB row contains column {column} outside the schema established by its header or worksheet dimension.");
             }
 
+            TrackUtf8TextCell(ordinal, recordType);
             switch (recordType) {
                 case BrtCellBlank:
                     _kinds[ordinal] = XlsbTabularValueKind.Empty;
@@ -56,6 +57,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         bytes.AsSpan(position, sizeof(uint)));
                     _kinds[ordinal] = XlsbTabularValueKind.Text;
                     _strings[ordinal] = _sharedStrings[checked((int)sharedStringIndex)];
+                    TrackUtf8SharedStringCell(ordinal, (int)sharedStringIndex);
                     break;
                 }
                 case BrtCellRString:
@@ -118,6 +120,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
             _kinds[ordinal] = XlsbTabularValueKind.Text;
             _strings[ordinal] = _sharedStrings[(int)sharedStringIndex];
+            TrackUtf8SharedStringCell(ordinal, (int)sharedStringIndex);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -145,6 +148,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
             _kinds[ordinal] = XlsbTabularValueKind.Text;
             _strings[ordinal] = _sharedStrings[(int)sharedStringIndex];
+            TrackUtf8SharedStringCell(ordinal, (int)sharedStringIndex);
         }
 
         private static string ReadValidatedWideString(byte[] bytes, int position) {

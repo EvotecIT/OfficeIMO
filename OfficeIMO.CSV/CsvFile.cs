@@ -37,6 +37,21 @@ internal static partial class CsvFile
 
     internal static TextReader OpenTextReader(Stream source, CsvLoadOptions options, bool leaveOpen, int bufferSize = 256 * 1024)
     {
+        Stream input = OpenReadStream(source, options, leaveOpen);
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        return new StreamReader(
+            new CsvBomReadStream(input),
+            encoding,
+            detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks,
+            bufferSize,
+            leaveOpen: false);
+    }
+
+    /// <summary>
+    /// Applies the same input bounds and ownership to byte and text readers over a supplied stream.
+    /// </summary>
+    internal static Stream OpenReadStream(Stream source, CsvLoadOptions options, bool leaveOpen)
+    {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (!source.CanRead) throw new ArgumentException("Source stream must be readable.", nameof(source));
 
@@ -60,13 +75,7 @@ internal static partial class CsvFile
             input = new CsvBoundedReadStream(input, maxBytesLimit, leaveOpen: false);
         }
 
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        return new StreamReader(
-            new CsvBomReadStream(input),
-            encoding,
-            detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks,
-            bufferSize,
-            leaveOpen: false);
+        return input;
     }
 
     /// <summary>
@@ -86,7 +95,7 @@ internal static partial class CsvFile
         }
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = CreateWriteStream(path, options, append, bufferSize);
-        return new StreamWriter(stream, encoding, bufferSize: bufferSize);
+        return CreateBufferedTextWriter(stream, encoding, bufferSize, leaveOpen: false);
     }
 
     internal static TextWriter CreateTextWriterForCompressionPath(
@@ -97,7 +106,7 @@ internal static partial class CsvFile
     {
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = CreateWriteStream(writePath, ResolveCompression(options.CompressionType, compressionPath), options.CompressionLevel, append: false, bufferSize);
-        return new StreamWriter(stream, encoding, bufferSize: bufferSize);
+        return CreateBufferedTextWriter(stream, encoding, bufferSize, leaveOpen: false);
     }
 
     internal static TextWriter CreateTextWriter(
@@ -115,7 +124,17 @@ internal static partial class CsvFile
         EnsureCompressionLevelSupported(compressionType, options.CompressionLevel);
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         Stream output = WrapWriteStream(destination, compressionType, options.CompressionLevel, leaveOpen);
-        return new StreamWriter(output, encoding, bufferSize, leaveOpen: compressionType == CsvCompressionType.None && leaveOpen);
+        return CreateBufferedTextWriter(output, encoding, bufferSize, leaveOpen: compressionType == CsvCompressionType.None && leaveOpen);
+    }
+
+    private static TextWriter CreateBufferedTextWriter(Stream stream, Encoding encoding, int bufferSize, bool leaveOpen)
+    {
+        if (encoding is UTF8Encoding && encoding.GetPreamble().Length == 0)
+        {
+            return new PooledUtf8TextWriter(stream, encoding, bufferSize, leaveOpen);
+        }
+
+        return new StreamWriter(stream, encoding, bufferSize, leaveOpen);
     }
 
     /// <summary>

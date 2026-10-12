@@ -246,14 +246,14 @@ namespace OfficeIMO.Excel {
                     ReadOnlySpan<byte> value = valueLength >= 0
                         ? _buffer!.AsSpan(valueStart, valueLength)
                         : ReadOnlySpan<byte>.Empty;
-                    var sharedStrings = _owner._sharedStringItems ??= _owner._sst.GetItems();
+                    int sharedStringCount = _owner._sst.Count;
                     bool parsed = TryParseInt32(value, out int index);
                     if (!parsed && valueLength >= 0) {
                         parsed = TryParseSharedStringIndex(
                             DecodeString(valueStart, valueLength),
                             out index);
                     }
-                    if (!parsed || (uint)index >= (uint)sharedStrings.Count) {
+                    if (!parsed || (uint)index >= (uint)sharedStringCount) {
                         string reference = A1.CellReference(rowIndex, columnIndex);
                         throw new InvalidDataException(
                             $"Worksheet '{_owner._sheetName}' cell {reference} references a missing shared string.");
@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (sharedFormulaFollower
-                    && (!_options.UseCachedFormulaResult || !hasCachedValue)) {
+                    && (!UseCachedFormulaResultForIndex || !hasCachedValue)) {
                     string reference = A1.CellReference(rowIndex, columnIndex);
                     throw new NotSupportedException(
                         $"Data-reader projection cannot safely expand the shared-formula follower " +

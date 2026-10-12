@@ -8,6 +8,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection(ReaderCurrentDirectoryCollection.Name)]
 public sealed class ReaderZipModularTests {
     [Fact]
     public void ZipTraversal_EmitsWarningsAndRespectsLimits() {

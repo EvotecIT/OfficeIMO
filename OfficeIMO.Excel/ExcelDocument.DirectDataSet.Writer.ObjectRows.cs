@@ -1,13 +1,15 @@
 using System.Globalization;
 using System.Threading;
+using OfficeIMO.SharedSource.IO;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
         /// Writes strongly typed values into the current package-native worksheet row.
         /// </summary>
-        public sealed class ExcelTabularRowWriter {
+        public sealed partial class ExcelTabularRowWriter {
             private readonly TextWriter _writer;
+            private readonly PooledUtf8TextWriter? _bufferedWriter;
             private readonly bool _includeCellReferences;
             private readonly string[] _cellReferencePrefixes;
             private readonly string?[]? _styleAttributes;
@@ -30,8 +32,10 @@ namespace OfficeIMO.Excel {
                 bool useCellValueNumberFormats,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
-                DirectDataSetWorkbookWriter.DirectSharedStringTable? sharedStrings) {
+                DirectDataSetWorkbookWriter.DirectSharedStringTable? sharedStrings,
+                ExcelTabularStylePlan? declaredStyles) {
                 _writer = writer;
+                _bufferedWriter = writer as PooledUtf8TextWriter;
                 _rowIndex = startRowIndex;
                 _includeCellReferences = includeCellReferences;
                 _cellReferencePrefixes = cellReferencePrefixes;
@@ -41,6 +45,7 @@ namespace OfficeIMO.Excel {
                 _dateTimeOffsetWriteStrategy = dateTimeOffsetWriteStrategy;
                 _dateSystem = dateSystem;
                 _sharedStrings = sharedStrings;
+                _declaredStyles = declaredStyles;
             }
 
             internal static ExcelTabularRowWriter Create(
@@ -53,7 +58,8 @@ namespace OfficeIMO.Excel {
                 bool useCellValueNumberFormats,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
-                object? sharedStrings) {
+                object? sharedStrings,
+                ExcelTabularStylePlan? declaredStyles = null) {
                 return new ExcelTabularRowWriter(
                     writer,
                     startRowIndex,
@@ -64,19 +70,17 @@ namespace OfficeIMO.Excel {
                     useCellValueNumberFormats,
                     dateTimeOffsetWriteStrategy,
                     dateSystem,
-                    (DirectDataSetWorkbookWriter.DirectSharedStringTable?)sharedStrings);
+                    (DirectDataSetWorkbookWriter.DirectSharedStringTable?)sharedStrings,
+                    declaredStyles);
             }
 
             internal void BeginRow() {
                 _columnIndex = 0;
-                if (_includeCellReferences) {
-                    _rowReference = InvariantNumberText.Get(_rowIndex);
-                    _writer.Write("<row r=\"");
-                    _writer.Write(_rowReference);
-                    _writer.Write("\">");
-                } else {
-                    _writer.Write("<row>");
-                }
+                _rowActive = true;
+                _rowOpened = false;
+                _rowStyle = _declaredStyles?.DefaultRowStyle;
+                _nextCellStyle = null;
+                if (_includeCellReferences) _rowReference = InvariantNumberText.Get(_rowIndex);
             }
 
             internal void EndRow() {
@@ -87,6 +91,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 _writer.Write("</row>");
+                _rowActive = false;
                 _rowIndex++;
             }
 
@@ -160,6 +165,7 @@ namespace OfficeIMO.Excel {
             }
 
             private void BeginCellCore(string? runtimeStyleAttribute) {
+                EnsureActiveRow();
                 if (_columnIndex >= _cellReferencePrefixes.Length) {
                     throw new InvalidOperationException(
                         "The row writer produced more than "
@@ -167,20 +173,32 @@ namespace OfficeIMO.Excel {
                 }
 
                 int columnIndex = _columnIndex++;
+                OpenRow();
                 if (_includeCellReferences) {
-                    _writer.Write(_cellReferencePrefixes[columnIndex]);
-                    _writer.Write(_rowReference);
-                    _writer.Write('"');
+                    WriteReferenceStart(_cellReferencePrefixes[columnIndex], "\"");
                 } else {
                     _writer.Write("<c");
                 }
 
-                string? styleAttribute = _styleAttributes?[columnIndex];
-                if (styleAttribute == null && ((_valueStyleColumns?[columnIndex] ?? false) || runtimeStyleAttribute != null)) {
-                    styleAttribute = runtimeStyleAttribute;
+                string? styleAttribute;
+                if (_declaredStyles != null) {
+                    styleAttribute = GetDeclaredCellAttribute(columnIndex, runtimeStyleAttribute ?? _styleAttributes?[columnIndex]);
+                } else {
+                    styleAttribute = _styleAttributes?[columnIndex];
+                    if (styleAttribute == null && ((_valueStyleColumns?[columnIndex] ?? false) || runtimeStyleAttribute != null)) styleAttribute = runtimeStyleAttribute;
                 }
 
                 if (styleAttribute != null) _writer.Write(styleAttribute);
+            }
+
+            private void WriteReferenceStart(string prefix, string suffix) {
+                if (_bufferedWriter != null) {
+                    _bufferedWriter.WriteFragments(prefix, _rowReference, suffix);
+                } else {
+                    _writer.Write(prefix);
+                    _writer.Write(_rowReference);
+                    _writer.Write(suffix);
+                }
             }
         }
 
@@ -197,7 +215,8 @@ namespace OfficeIMO.Excel {
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
                 DirectSharedStringTable? sharedStrings,
-                CancellationToken ct) {
+                CancellationToken ct,
+                ExcelTabularStylePlan? declaredStyles = null) {
                 var rowWriter = ExcelTabularRowWriter.Create(
                     writer,
                     startRowIndex,
@@ -208,7 +227,8 @@ namespace OfficeIMO.Excel {
                     useCellValueNumberFormats,
                     dateTimeOffsetWriteStrategy,
                     dateSystem,
-                    sharedStrings);
+                    sharedStrings,
+                    declaredStyles);
                 rows.WriteRows(rowWriter, ct);
             }
         }

@@ -69,6 +69,14 @@ domains, all measured samples, and the provenance for the README and website
 snapshot. It refreshes those four highlights; the broader comparison matrix
 and portable performance budgets remain open roadmap work.
 
+The [8 October 2026 tabular matrix](officeimo.excel-tabular-2026-10-08.md) records
+validated Windows .NET 10 workbook and CSV workloads, including first-row and
+full scans, manual construction and automatic mapping, borrowed and materialized
+fields, ordinary and compact writers, Arrow, and ADO.NET consumers. Its captured
+source-start, published, and current artifacts, CPU domains, input identities,
+samples, outliers, and warnings remain separate from the four-highlight snapshot.
+Portable first-row and process peak-memory budgets remain open.
+
 ## CSV output size
 
 The validated SQL-shaped DataReader writer now records UTF-8 output size and

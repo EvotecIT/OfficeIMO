@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_WritesStyledEmptyStringCellsAsBlanks() {
+        public void LegacyXls_NativeSave_PreservesStyledEmptyStringCells() {
             string openXmlPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
@@ -220,11 +220,11 @@ namespace OfficeIMO.Tests {
                 Assert.False(result.HasUnsupportedFeatures, FormatUnsupportedFeatures(result.UnsupportedFeatures));
 
                 LegacyXlsWorksheet worksheet = Assert.Single(result.Workbook.Worksheets);
-                LegacyXlsCell blank = Assert.Single(worksheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
-                Assert.Equal(LegacyXlsCellValueKind.Blank, blank.Kind);
-                Assert.Null(blank.Value);
+                LegacyXlsCell emptyText = Assert.Single(worksheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
+                Assert.Equal(LegacyXlsCellValueKind.Text, emptyText.Kind);
+                Assert.Equal(string.Empty, emptyText.Value);
 
-                LegacyXlsCellFormat cellFormat = result.Workbook.CellFormats[blank.StyleIndex];
+                LegacyXlsCellFormat cellFormat = result.Workbook.CellFormats[emptyText.StyleIndex];
                 Assert.True(cellFormat.ApplyFill);
                 Assert.Equal((byte)1, cellFormat.FillPattern);
                 Assert.True(result.Workbook.TryResolveColor(cellFormat.FillForegroundColorIndex, out string? fillColor));

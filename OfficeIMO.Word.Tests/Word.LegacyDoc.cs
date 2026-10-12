@@ -6547,7 +6547,7 @@ namespace OfficeIMO.Tests {
 
                 byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
                 Assert.True(
-                    ContainsBytePattern(wordDocumentStream, 0x39, 0x44, 0x03, 0x00),
+                    ContainsBytePattern(wordDocumentStream, 0x39, 0x44, 0x01, 0x00),
                     "Expected the native DOC paragraph property stream to contain sprmPWAlignFont for centered vertical character alignment.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
@@ -13954,11 +13954,11 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateUnicodeDocWithParagraphVerticalCharacterAlignment() {
+            internal static byte[] CreateUnicodeDocWithParagraphVerticalCharacterAlignment(byte alignment = 1) {
                 const string text = "vertical alignment\r";
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
-                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphVerticalCharacterAlignment(text, textOffset, papxFkpOffset);
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphVerticalCharacterAlignment(text, textOffset, papxFkpOffset, alignment);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -15504,7 +15504,7 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
-            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphVerticalCharacterAlignment(string text, int textOffset, int papxFkpOffset) {
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphVerticalCharacterAlignment(string text, int textOffset, int papxFkpOffset, byte alignment) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -15524,7 +15524,7 @@ namespace OfficeIMO.Tests {
                     papxFkpOffset,
                     new[] { textOffset, end },
                     new Dictionary<int, byte[]> {
-                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4439, 3, 0))
+                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4439, alignment, 0))
                     });
 
                 if (stream.Length < fibLength) {

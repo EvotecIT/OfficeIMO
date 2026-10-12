@@ -1,8 +1,13 @@
+using OfficeIMO;
 using OfficeIMO.Adf;
+using DBAClientX.Dbf;
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.Confluence;
 using OfficeIMO.CSV;
+using OfficeIMO.Chm;
 using OfficeIMO.Drawing;
+using OfficeIMO.DjVu;
+using OfficeIMO.DjVu.Pdf;
 using OfficeIMO.Email;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Html;
@@ -23,6 +28,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.PowerPoint.GoogleSlides;
+using OfficeIMO.Publisher;
 using OfficeIMO.Rtf;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
@@ -41,6 +47,7 @@ internal static class ConversionApiCompileContract {
         AsciiDocDocument asciiDoc,
         ConfluencePage confluencePage,
         CsvDocument csv,
+        ChmDocument chm,
         EmailDocument email,
         global::OfficeIMO.Epub.EpubDocument epub,
         ExcelDocument excel,
@@ -57,6 +64,7 @@ internal static class ConversionApiCompileContract {
         OdgDocument odg,
         PdfDocument pdf,
         PowerPointPresentation powerPoint,
+        PublisherDocument publisher,
         RtfDocument rtf,
         RtfReadResult rtfRead,
         VisioDocument visio,
@@ -68,6 +76,7 @@ internal static class ConversionApiCompileContract {
             Language = "en",
             NewLine = "\n"
         };
+        _ = DjVuDocument.Load(stream).SaveAsPdf(stream, new DjVuToPdfOptions());
         WordToHtmlOptions wordOptions = WordToHtmlOptions.CreateDocumentRoundTripProfile();
         wordOptions.DocumentOutput = output.Clone();
         ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateVisualReviewProfile();
@@ -129,6 +138,10 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Html.Pdf.HtmlPdfConverterExtensions.ToPdfDocumentResult(html);
         _ = browserPdf.ToPdfDocumentResult();
         _ = OfficeIMO.Mhtml.MhtmlPdfConverterExtensions.ToPdfDocumentResult(mhtml);
+        _ = ChmDocument.Load(stream).ToPdfBytesResult();
+        _ = chm.ToMarkdownResult();
+        _ = chm.ToMarkdownDocumentResult();
+        _ = chm.ToEpubBytesResult();
         PdfHtmlConversionResult pdfHtmlResult = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.ToHtmlResult(pdf);
         PdfConversionReport pdfHtmlReport = pdfHtmlResult.Report;
         OfficeIMO.OfficeOutputResult<PdfConversionReport> pdfHtmlOutput = OfficeIMO.Html.Pdf.PdfHtmlConverterExtensions.SaveAsHtml(pdf, stream, pdfOptions);
@@ -148,7 +161,22 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.OpenDocument.Ods.Pdf.OdsPdfConversionExtensions.ToOdsDocumentResult(pdf);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToPdfDocumentResult(odp);
         _ = OfficeIMO.OpenDocument.Odp.Pdf.OdpPdfConversionExtensions.ToOdpPresentationResult(pdf);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryVisio = VisioDocument.LoadLegacyBinary(stream);
+        OfficeLegacyImportReport binaryImportReport = binaryVisio.Report;
+        binaryVisio.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryStencil = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Stencil);
+        OfficeLegacyImportReport stencilImportReport = binaryStencil.Report;
+        binaryStencil.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryTemplate = VisioDocument.LoadLegacyBinary(stream, VisioPackageType.Template);
+        OfficeLegacyImportReport templateImportReport = binaryTemplate.Report;
+        binaryTemplate.Value.Save(stream);
+        OfficeConversionResult<VisioDocument, OfficeLegacyImportReport> binaryPageSource = VisioDocument.LoadLegacyBinary(source);
+        OfficeLegacyImportReport pageSourceImportReport = binaryPageSource.Report;
+        string binarySvg = binaryPageSource.Value.Pages[0].ToSvg();
+        PdfDocumentConversionResult binaryPdf = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(binaryPageSource.Value,
+            new OfficeIMO.Visio.Pdf.VisioToPdfOptions { Mode = OfficeIMO.Visio.Pdf.VisioPdfProjectionMode.DiagramPages });
         _ = OfficeIMO.Visio.Pdf.VisioPdfConverterExtensions.ToPdfDocumentResult(visio);
+        _ = OfficeIMO.Publisher.Pdf.PublisherPdfConversionExtensions.ToPdfDocumentResult(publisher);
         _ = WordGoogleDocsExtensions.ExportToGoogleDocsAsync(word, session);
         _ = WordGoogleDocsExtensions.ImportGoogleDocAsync(session, "document-id");
         _ = ExcelGoogleSheetsExtensions.ExportToGoogleSheetsAsync(excel, session);
@@ -165,6 +193,13 @@ internal static class ConversionApiCompileContract {
         _ = ConfluenceContentConverter.ToHtml(confluencePage);
         _ = ExcelDocumentCsvExtensions.ToExcelDocument(csv);
         _ = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
+        using (DbfDataReader dbf = DbfDataReader.Open(source))
+        using (StringWriter csvOutput = new StringWriter()) {
+            CsvDocument.WriteDataReader(csvOutput, dbf);
+        }
+        using (DbfDataReader dbf = DbfDataReader.Open(source)) {
+            _ = ExcelDocument.WriteDataReader(stream, dbf);
+        }
         _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
         _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointPresentationResult(officeMarkup);

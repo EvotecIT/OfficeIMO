@@ -5,7 +5,7 @@
         <AssemblyName>OfficeIMO.Excel</AssemblyName>
         <AssemblyTitle>OfficeIMO.Excel</AssemblyTitle>
 
-        <VersionPrefix>3.4.4</VersionPrefix>
+        <VersionPrefix>3.4.5</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
@@ -37,6 +37,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\OfficeIMO.SharedSource\IO\PooledUtf8TextWriter*.cs" Link="SharedSource\IO\%(Filename)%(Extension)" />
+        <Using Include="OfficeIMO.SharedSource.IO" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartExplosions.cs" />

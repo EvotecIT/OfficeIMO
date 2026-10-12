@@ -12,6 +12,7 @@ namespace OfficeIMO.Access {
             using (AccessNativeRowCursor rows = new AccessNativeRowCursor(catalog, cancellation, rowLimit: MaxCatalogObjects)) {
                 while (rows.Read(cancellation)) {
                     if (_catalog.Count == MaxCatalogObjects) throw new InvalidDataException("Native Access catalog exceeds MaxCatalogObjects.");
+                    object? source = Field(catalog, rows, "Database", cancellation), foreignTable = Field(catalog, rows, "ForeignName", cancellation);
                     NativeCatalogRecord record = new NativeCatalogRecord {
                         Id = Convert.ToInt32(RequiredField(catalog, rows, "Id", cancellation)),
                         Name = RequiredName(catalog, rows, "Name", cancellation),
@@ -19,8 +20,8 @@ namespace OfficeIMO.Access {
                         Flags = Convert.ToInt32(RequiredField(catalog, rows, "Flags", cancellation)),
                         ParentId = Field(catalog, rows, "ParentId", cancellation) as int?,
                         Properties = Field(catalog, rows, "LvProp", cancellation) as byte[],
-                        Source = Field(catalog, rows, "Database", cancellation) as string,
-                        ForeignTable = Field(catalog, rows, "ForeignName", cancellation) as string,
+                        Source = source as string, ForeignTable = foreignTable as string,
+                        HasOpaqueLinkedMetadata = source is AccessOpaqueValue || foreignTable is AccessOpaqueValue,
                         Connection = Field(catalog, rows, "Connect", cancellation) as string
                     };
                     _catalog.Add(record);
@@ -56,9 +57,10 @@ namespace OfficeIMO.Access {
             }
             foreach (NativeCatalogRecord? record in _catalog.Where(x => x.Type == 4 || x.Type == 6)) {
                 if (SelectedTables != null && !SelectedTables.Contains(record.Name)) continue;
-                AccessTable table = new AccessTable(_document, record.Name) { LinkedTable = new AccessLinkedTableInfo(record.Source, record.ForeignTable, RedactConnection(record.Connection)) };
+                AccessTable table = new AccessTable(_document, record.Name) { LinkedTable = new AccessLinkedTableInfo(record.Source, record.ForeignTable, record.Connection) };
                 table.Columns.CatalogStatus = table.Indexes.CatalogStatus = AccessCatalogStatus.NotDecoded;
                 table.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.linked-table.inert", "Linked-table metadata is inspected without opening its source. External schema and rows are unavailable.", table.Id) });
+                if (record.HasOpaqueLinkedMetadata) table.Diagnostics = table.Diagnostics.Concat(new[] { new AccessDiagnostic("access.linked-table.encoding-opaque", "Unqualified source/table text remains available through exact catalog records and the system-table reader; unavailable metadata is not inferred from null.", table.Id) }).ToArray();
                 _document.Tables.AddNativeItem(table);
             }
             _document.CatalogStatus = AccessCatalogStatus.Decoded;
@@ -71,14 +73,17 @@ namespace OfficeIMO.Access {
         private AccessTable Model(AccessNativeTable definition, bool system) {
             AccessTable table = new AccessTable(_document, definition.Name) { NativeTable = definition, IsSystem = system }; definition.Model = table;
             foreach (AccessNativeColumn native in definition.Columns) {
+                bool unsupportedEncoding = Layout.IsJet3 && (native.Type == 10 || native.Type == 12) && native.CodePage != 0 && !QualifiedJet3CodePage(native.CodePage);
                 AccessDataType dataType = DataType(native);
-                AccessColumn column = new AccessColumn(table, native.Name, dataType, dataType == AccessDataType.ShortText ? native.Size / 2 : (int?)null) {
+                AccessColumn column = new AccessColumn(table, native.Name, dataType, dataType == AccessDataType.ShortText ? native.Size / (Layout.IsJet3 ? 1 : 2) : (int?)null) {
                     IsAutoNumber = (native.Flags & 0x44) != 0, AutoNumberSeed = null, IsHyperlink = (native.Flags & 0x80) != 0, IsCalculated = native.Calculated,
-                    Precision = native.Type == 16 ? native.Precision : (int?)null, Scale = native.Type == 16 ? native.Scale : (int?)null
+                    Precision = native.Type == 16 ? native.Precision : (int?)null, Scale = native.Type == 16 ? native.Scale : (int?)null,
+                    HasOpaqueTextValues = unsupportedEncoding && !native.RedactConnection
                 };
                 native.Model = column; table.Columns.AddNativeItem(column);
-                native.RedactConnection = definition.Name == "MSysObjects" && native.Name == "Connect";
-                string? opaque = native.Calculated ? "calculated" : column.DataType == AccessDataType.Unknown ? "unknown-type" : native.Type == 16 && (native.Precision < 1 || native.Precision > 28 || native.Scale > 28) ? "decimal-precision" : null;
+                if (unsupportedEncoding && native.RedactConnection)
+                    column.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.value.redacted.encoding", "Connection text with an unqualified encoding is withheld from ordinary readers; explicit native inspection retains the source.", column.Id) });
+                string? opaque = native.Calculated ? "calculated" : column.DataType == AccessDataType.Unknown ? "unknown-type" : unsupportedEncoding && !native.RedactConnection ? "encoding" : native.Type == 16 && (native.Precision < 1 || native.Precision > 28 || native.Scale > 28) ? "decimal-precision" : null;
                 if (opaque != null) column.Diagnostics = Array.AsReadOnly(new[] { new AccessDiagnostic("access.value.opaque." + opaque, "The field's native payload is retained exactly without evaluation, narrowing or coercion.", column.Id) });
             }
             foreach (AccessNativeIndex native in definition.Indexes) table.Indexes.AddNativeItem(new AccessIndex(table, native.Name,
@@ -146,6 +151,7 @@ namespace OfficeIMO.Access {
         }
         private sealed class NativeCatalogRecord {
             internal int Id, Type, Flags; internal int? ParentId; internal string Name = string.Empty;
+            internal bool HasOpaqueLinkedMetadata;
             internal byte[]? Properties; internal string? Source, ForeignTable, Connection;
         }
         private sealed class NativeRelationshipField {

@@ -38,6 +38,8 @@ internal interface ISearchablePdfOcrService {
 }
 
 internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
+    private readonly StudioOcrRuntime? _runtime;
+    internal SearchablePdfOcrService(StudioOcrRuntime? runtime = null) => _runtime = runtime;
     public async Task<SearchablePdfOcrOutcome> MakeSearchableAsync(
         string inputPath,
         string outputPath,
@@ -57,11 +59,13 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
             PublicationGuard = options.PublicationGuard,
             ReviewCorrectionsAsync = options.ReviewCorrectionsAsync
         };
-        TesseractOcrSession session = await StudioOcrProvider
-            .CreateSessionAsync(new TesseractOcrSessionOptions {
+        var sessionOptions = new TesseractOcrSessionOptions {
                 Languages = options.Languages,
                 ProvisionMissingLanguageData = options.ProvisionMissingLanguageData
-            }, cancellationToken)
+            };
+        TesseractOcrSession session = await (_runtime is null
+            ? StudioOcrProvider.CreateSessionAsync(sessionOptions, cancellationToken)
+            : _runtime.CreateSessionAsync(sessionOptions, cancellationToken))
             .ConfigureAwait(false);
         PdfSearchableWorkflowResult result = await new OfficeWorkflowRunner()
             .MakePdfSearchableAsync(request, session.Engine, cancellationToken).ConfigureAwait(false);
@@ -131,14 +135,15 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
         Func<CancellationToken, Task<string?>>? pickOutputPdf = null,
         OfficeWorkflowOutputRecoveryStore? recoveryStore = null,
         Func<string, Task<bool>>? confirmProviderWrite = null,
-        IScanTextRecognitionService? textRecognition = null) {
+        IScanTextRecognitionService? textRecognition = null,
+        StudioOcrRuntime? ocrRuntime = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickOutputFolder = pickOutputFolder ?? throw new ArgumentNullException(nameof(pickOutputFolder));
         _openDocument = openDocument;
-        _service = service ?? new SearchablePdfOcrService();
+        _service = service ?? new SearchablePdfOcrService(ocrRuntime);
         RecognitionUnavailableReason = service is null ? StudioOcrProvider.UnavailableReason : null;
         TextRecognitionAvailable = textRecognition is not null || StudioOcrProvider.UnavailableReason is null;
-        _textRecognition = textRecognition ?? new ScanTextRecognitionService();
+        _textRecognition = textRecognition ?? new ScanTextRecognitionService(ocrRuntime);
         _canPublishPath = canPublishPath ?? (_ => true);
         _publicationGuard = publicationGuard ?? new OfficeIMO.Studio.Features.Shell.StudioWorkflowPublicationGuard((path, _) => _canPublishPath(path));
         _localizer = localizer ?? StudioLocalization.Current;

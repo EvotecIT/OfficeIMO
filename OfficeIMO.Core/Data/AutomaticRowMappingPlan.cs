@@ -132,9 +132,10 @@ internal sealed class AutomaticRowMappingPlan<
         }
     }
 
-    private bool HasNullReaderValue(DbDataReader reader) {
+    private bool HasIncompatibleReaderValue(DbDataReader reader) {
         foreach (MappingBinding binding in _bindings) {
-            if (reader.IsDBNull(binding.ColumnIndex)) return true;
+            if (!DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, binding.ColumnIndex, binding.Property.ValueType)
+                || reader.IsDBNull(binding.ColumnIndex)) return true;
         }
         return false;
     }
@@ -148,7 +149,7 @@ internal sealed class AutomaticRowMappingPlan<
         if (typeConverter is null &&
             _fastReaderMap is not null &&
             reader is IDataReaderFastMappingValues &&
-            !HasNullReaderValue(reader)) {
+            !HasIncompatibleReaderValue(reader)) {
             try {
                 return _fastReaderMap(reader);
             } catch (TypedReaderValueException) {
@@ -173,6 +174,7 @@ internal sealed class AutomaticRowMappingPlan<
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter) =>
         typeConverter is null &&
         _fastReaderMap is not null &&
+        reader is not IDataReaderTypedMappingCompatibility &&
         reader is IDataReaderFastMappingValues { HasOnlyNonNullFastValues: true }
             ? _fastReaderMap
             : null;
@@ -301,7 +303,8 @@ internal sealed class AutomaticRowMappingPlan<
 
         internal object? ReadReaderValue(DbDataReader reader, int ordinal) {
             if (reader.IsDBNull(ordinal)) return null;
-            if (_readReaderValue is not null) {
+            if (_readReaderValue is not null &&
+                DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, ValueType)) {
                 try {
                     return _readReaderValue(reader, ordinal);
                 } catch (InvalidCastException) {
@@ -311,7 +314,7 @@ internal sealed class AutomaticRowMappingPlan<
                 } catch (NotImplementedException) {
                 }
             }
-            object value = reader.GetValue(ordinal);
+            object? value = DataReaderMappingValue.Read(reader, ordinal, ValueType);
             return ReferenceEquals(value, DBNull.Value) ? null : value;
         }
 
@@ -324,7 +327,7 @@ internal sealed class AutomaticRowMappingPlan<
             Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
             DataMappingErrorValuePolicy errorValuePolicy) {
             if (typeConverter is null &&
-                reader is IDataReaderFastMappingValues &&
+                DataReaderTypedMappingCompatibility.CanUseTypedGetter(reader, ordinal, ValueType) &&
                 !reader.IsDBNull(ordinal) &&
                 _assignReader is not null) {
                 try {
