@@ -7,6 +7,13 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
+        internal static int FitSingleLineFontToHeight(int preferredFontSize, double heightCm) {
+            // Include ascenders, descenders and the font's line spacing, rather than
+            // treating the nominal point size as the complete line height.
+            int heightFontSize = Math.Max(1, (int)Math.Floor(heightCm * 72 / 2.54 / 1.2));
+            return Math.Min(preferredFontSize, heightFontSize);
+        }
+
         internal static PowerPointTextBox AddText(PowerPointSlide slide, string text, double leftCm, double topCm,
             double widthCm, double heightCm, int fontSize, string color, string fontName, bool bold = false) {
             PowerPointTextBox box = slide.AddTextBoxCm(text, leftCm, topCm, widthCm, heightCm);
