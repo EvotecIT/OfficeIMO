@@ -36,4 +36,3 @@ public sealed class PdfPathContinuationTests {
         Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
     }
 }
-
