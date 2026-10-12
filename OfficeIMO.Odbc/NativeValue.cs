@@ -48,7 +48,10 @@ namespace OfficeIMO.Odbc {
             try {
                 if (targetType is 1 or -8 or -2) {
                     bool wide = targetType == -8;
-                    byte[] bytes = targetType == -2 && value is byte[] binary ? binary : NativeText.Bytes(Text(value), wide);
+                    if (targetType == -2 && value is not byte[])
+                        return statement.Fail("07006", "Binary output requires a binary SQL value.");
+                    string text = targetType == -2 ? "" : Text(value);
+                    byte[] bytes = targetType == -2 ? (byte[])value : NativeText.Bytes(text, wide);
                     int offset = advance ? statement.DataOffset : 0;
                     if (offset >= bytes.Length && offset > 0) return 100;
                     int remaining = bytes.Length - offset;
@@ -62,6 +65,13 @@ namespace OfficeIMO.Odbc {
                     if (capacity < terminator) return statement.Fail("HY090", "Buffer cannot hold a string terminator.");
                     int copied = (int)Math.Min(remaining, Math.Min(int.MaxValue, capacity - terminator));
                     if (wide) copied -= copied % 2;
+                    if (targetType != -2 && value is byte[]) copied -= copied % (wide ? 4 : 2);
+                    if (targetType != -2 && value is not string && SqlType(reader, column - 1) is 8 or -5 or 4 or 5 or -7) {
+                        int point = text.IndexOf('.');
+                        int whole = text.Contains('E') || point < 0 ? text.Length : point;
+                        if (offset == 0 && copied < whole * (wide ? 2 : 1))
+                            return statement.Fail("22003", "Character buffer cannot preserve the whole numeric value.");
+                    }
                     bytes.AsSpan(offset, copied).CopyTo(new Span<byte>((void*)buffer, copied));
                     if (terminator != 0) new Span<byte>((byte*)buffer + copied, terminator).Clear();
                     if (advance) statement.DataOffset = copied == remaining ? -1 : offset + copied;
@@ -94,10 +104,11 @@ namespace OfficeIMO.Odbc {
                     case -25: *(long*)buffer = Convert.ToInt64(integral, CultureInfo.InvariantCulture); size = 8; break;
                     case -27: *(ulong*)buffer = Convert.ToUInt64(integral, CultureInfo.InvariantCulture); size = 8; break;
                     case 7:
-                        float single = Convert.ToSingle(value, CultureInfo.InvariantCulture);
-                        if (!float.IsFinite(single)) throw new OverflowException();
+                        double floating = Floating(value);
+                        float single = (float)floating;
+                        if (!float.IsFinite(single) || single == 0 && floating != 0) throw new OverflowException();
                         *(float*)buffer = single; size = 4; break;
-                    case 8: *(double*)buffer = Convert.ToDouble(value, CultureInfo.InvariantCulture); size = 8; break;
+                    case 8: *(double*)buffer = Floating(value); size = 8; break;
                     case 91: case 92: case 93:
                         DateTime date = value is DateTime typed ? typed : DateTime.Parse(Text(value), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
                         ushort* parts = (ushort*)buffer;
@@ -139,12 +150,8 @@ namespace OfficeIMO.Odbc {
         }
 
         private static decimal TruncateText(string value, out bool fractional) {
-            System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(value.Trim(),
-                @"\A(?<sign>[+-]?)(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?(?:[eE](?<exponent>[+-]?[0-9]+))?\z",
-                System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.NonBacktracking,
-                TimeSpan.FromSeconds(1));
+            System.Text.RegularExpressions.Match match = NumericLiteral(value);
             string digits = match.Groups["whole"].Value + match.Groups["fraction"].Value;
-            if (!match.Success || digits.Length == 0) throw new FormatException("Expected a numeric literal.");
             int first = digits.AsSpan().IndexOfAnyExcept('0');
             if (first < 0) { fractional = false; return 0; }
             string exponentText = match.Groups["exponent"].Value;
@@ -162,12 +169,32 @@ namespace OfficeIMO.Odbc {
             return decimal.Parse(match.Groups["sign"].Value + integral, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
         }
 
+        private static System.Text.RegularExpressions.Match NumericLiteral(string value) {
+            System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(value.Trim(),
+                @"\A(?<sign>[+-]?)(?<whole>[0-9]*)(?:\.(?<fraction>[0-9]*))?(?:[eE](?<exponent>[+-]?[0-9]+))?\z",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.NonBacktracking,
+                TimeSpan.FromSeconds(1));
+            string digits = match.Groups["whole"].Value + match.Groups["fraction"].Value;
+            if (!match.Success || digits.Length == 0) throw new FormatException("Expected a numeric literal.");
+            return match;
+        }
+
+        private static double Floating(object value) {
+            System.Text.RegularExpressions.Match? literal = value is string text ? NumericLiteral(text) : null;
+            double number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            if (!double.IsFinite(number)) throw new OverflowException();
+            if (number == 0 && literal is not null &&
+                (literal.Groups["whole"].Value + literal.Groups["fraction"].Value).AsSpan().IndexOfAnyExcept('0') >= 0)
+                throw new OverflowException();
+            return number;
+        }
+
         internal static object? Read(ParameterBinding binding) {
             nint length = binding.Indicator != 0 ? *(nint*)binding.Indicator : binding.Type is 1 or -8 ? -3 : binding.Length;
             if (length == -1) return DBNull.Value;
             if (length < 0 && length != -3) throw new NotSupportedException("Data-at-execution parameters are not supported.");
             if (binding.Buffer == 0) throw new ArgumentException("Parameter value buffer is required.");
-            return binding.Type switch {
+            return NativeParameter.CheckValue(binding, binding.Type switch {
                 1 => NativeText.Read(binding.Buffer, checked((int)length), false),
                 -8 => NativeText.Read(binding.Buffer, length == -3 ? -3 : checked((int)length / 2), true),
                 -7 => *(byte*)binding.Buffer != 0,
@@ -180,16 +207,24 @@ namespace OfficeIMO.Odbc {
                 8 => *(double*)binding.Buffer,
                 91 or 93 => ReadDate(binding.Buffer, binding.Type == 93),
                 _ => throw new NotSupportedException("Unsupported C parameter type.")
-            };
+            });
         }
 
         private static DateTime ReadDate(nint buffer, bool timestamp) {
             ushort* parts = (ushort*)buffer;
             DateTime result = new(parts[0], parts[1], parts[2], timestamp ? parts[3] : 0, timestamp ? parts[4] : 0, timestamp ? parts[5] : 0);
-            return timestamp ? result.AddTicks(*(uint*)((byte*)buffer + 12) / 100) : result;
+            if (!timestamp) return result;
+            uint fraction = *(uint*)((byte*)buffer + 12);
+            if (fraction >= 1_000_000_000 || fraction % 100 != 0)
+                throw new ParameterValueException("22008", "Timestamp fraction must be representable in 100 nanosecond ticks.");
+            return result.AddTicks(fraction / 100);
         }
 
-        private static string Text(object value) => value is DateTime date ? date.ToString("O", CultureInfo.InvariantCulture) :
-            Convert.ToString(value, CultureInfo.InvariantCulture) ?? "";
+        private static string Text(object value) => value switch {
+            byte[] bytes => Convert.ToHexString(bytes),
+            bool bit => bit ? "1" : "0",
+            DateTime date => date.ToString("O", CultureInfo.InvariantCulture),
+            _ => Convert.ToString(value, CultureInfo.InvariantCulture) ?? ""
+        };
     }
 }

@@ -113,7 +113,13 @@ namespace OfficeIMO.Odbc {
                 if (direction != 1) return statement.Fail("HYC00", "Only input parameters are supported.");
                 if (ordinal == 0 || ordinal > 256) return statement.Fail("07009", "Invalid parameter ordinal.");
                 if (length < 0) return statement.Fail("HY090", "Negative parameter buffer length.");
-                statement.Parameters[ordinal] = new(type, buffer, length, indicator);
+                short defaultType = NativeParameter.DefaultCType(sqlType);
+                if (defaultType == 0) return statement.Fail("HY004", "Unsupported SQL parameter type.");
+                short effectiveType = type == 99 ? defaultType : type;
+                if (!NativeParameter.Supports(effectiveType, sqlType))
+                    return statement.Fail("07006", "Bind a matching C and SQL parameter type; cross-type conversions are not supported.");
+                if (sqlType == 93 && scale is < 0 or > 7) return statement.Fail("HY104", "Timestamp parameters support zero through seven fractional digits.");
+                statement.Parameters[ordinal] = new(effectiveType, buffer, length, indicator, sqlType, size, scale);
                 return 0;
             });
 
@@ -144,7 +150,10 @@ namespace OfficeIMO.Odbc {
         });
 
         [UnmanagedCallersOnly(EntryPoint = "SQLCloseCursor")]
-        internal static short SQLCloseCursor(nint id) => DriverHandles.With<StatementHandle>(id, statement => { statement.CloseCursor(); return 0; });
+        internal static short SQLCloseCursor(nint id) => DriverHandles.With<StatementHandle>(id, statement => {
+            if (statement.Reader is null) return statement.Fail("24000", "No result cursor is open.");
+            statement.CloseCursor(); return 0;
+        });
         [UnmanagedCallersOnly(EntryPoint = "SQLMoreResults")]
         internal static short SQLMoreResults(nint id) => DriverHandles.With<StatementHandle>(id, statement => { statement.CloseCursor(); return 100; });
         [UnmanagedCallersOnly(EntryPoint = "SQLFreeStmt")]

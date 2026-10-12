@@ -111,7 +111,7 @@ def verify(driver_name, path, ado_consumer, hive):
             m.check(m.SQLSetEnvAttr(environment, 200, 3, 0), 1, environment)
             connection = m.allocate(2, environment)
             output, length = c.create_unicode_buffer(2048), c.c_short()
-            m.check(m.SQLDriverConnectW(connection, None, connection_string, -3, output, 2048, c.byref(length), 0), 2, connection)
+            m.check(m.SQLDriverConnectW(connection, None, connection_string, -3, output, 2048, c.byref(length), (0, 1, 3)[iteration]), 2, connection)
             assert output.value == connection_string, "Completed string must select the same driver on reconnect"
             connection_string = output.value
             connected = True
@@ -373,7 +373,7 @@ def verify_native_widths(driver):
         length = c.c_int()
         m.check(m.SQLGetDescFieldW(descriptor, 0, 25, canary, 0, c.byref(length)), 4, descriptor)
         assert canary[0] == 0 and canary[1] == 0x12345678 and length.value == 4
-        for attribute, expected in [(0, 30), (4, 0), (6, 0), (7, 1), (11, 1)]:
+        for attribute, expected in [(0, 30), (4, 1), (6, 0), (7, 1), (11, 1)]:
             value = c.c_size_t(-1)
             m.check(m.SQLGetStmtAttrW(statement, attribute, c.byref(value), 0, None), 3, statement)
             assert value.value == expected
@@ -400,13 +400,18 @@ def verify_native_compatibility(driver, path):
         m.check(m.SQLDriverConnectW(connection, None, f"DBQ={{{path}}};ReadOnly=1;", -3, None, 0, None, 0), 2, connection)
         connected = True
         statement = m.allocate(3, connection)
+        assert m.SQLCloseCursor(statement) == -1
+        assert m.diagnostics(3, statement)[0][0] == "24000"
+        m.check(m.SQLFreeStmt(statement, 0), 3, statement)
+        assert m.SQLSetStmtAttrW(statement, 4, 0, 0) == -1
+        m.check(m.SQLSetStmtAttrW(statement, 4, 1, 0), 3, statement)
         catalog, length = c.create_unicode_buffer(2), c.c_int()
         assert m.SQLGetConnectAttrW(connection, 109, catalog, c.sizeof(catalog), c.byref(length)) == 1
         assert m.diagnostics(2, connection)[0][0] == "01004"
         for kind, handle in [(1, environment), (2, connection)]:
             for completion in (0, 1):
                 m.check(m.SQLEndTran(kind, handle, completion), kind, handle)
-        for info, expected in [(93, 4), (95, 23)]:
+        for info, expected in [(84, 2), (93, 4), (95, 23)]:
             value = c.c_uint()
             m.check(m.SQLGetInfoW(connection, info, c.byref(value), 4, None), 2, connection)
             assert value.value == expected
@@ -414,6 +419,54 @@ def verify_native_compatibility(driver, path):
         m.check(m.SQLFetch(statement), 3, statement)
         assert m.text(statement, 3) == "53" and m.text(statement, 18) == "2"
         m.check(m.SQLCloseCursor(statement), 3, statement)
+        m.check(m.SQLGetTypeInfoW(statement, 0), 3, statement)
+        types = []
+        while m.SQLFetch(statement) == 0:
+            types.append(int(m.text(statement, 2)))
+        assert types == [-9, -7, -5, 4, 5, 8, 93]
+        m.check(m.SQLCloseCursor(statement), 3, statement)
+        parameter = c.create_unicode_buffer("001")
+        assert m.SQLBindParameter(statement, 1, 1, -8, 4, 10, 0, parameter, c.sizeof(parameter), None) == -1
+        assert m.diagnostics(3, statement)[0][0] == "07006"
+        integer = c.c_int(1)
+        m.check(m.SQLBindParameter(statement, 1, 1, 99, 4, 10, 0, c.byref(integer), c.sizeof(integer), None), 3, statement)
+        m.check(m.SQLPrepareW(statement, 'SELECT ? = 1', -3), 3, statement)
+        m.check(m.SQLExecute(statement), 3, statement)
+        m.check(m.SQLFetch(statement), 3, statement)
+        assert m.text(statement, 1) == "1"
+        m.check(m.SQLCloseCursor(statement), 3, statement)
+        m.check(m.SQLFreeStmt(statement, 3), 3, statement)
+        for sql, expected in [("SELECT '1,2'", "22018"), ("SELECT '1e999'", "22003")]:
+            for target, scalar in [(7, c.c_float), (8, c.c_double)]:
+                m.check(m.SQLExecDirectW(statement, sql, -3), 3, statement)
+                m.check(m.SQLFetch(statement), 3, statement)
+                value = scalar()
+                assert m.SQLGetData(statement, 1, target, c.byref(value), c.sizeof(value), None) == -1
+                assert m.diagnostics(3, statement)[0][0] == expected
+        for target in (1, -8):
+            m.check(m.SQLExecDirectW(statement, "SELECT X'00ABFF'", -3), 3, statement)
+            m.check(m.SQLFetch(statement), 3, statement)
+            buffer = c.create_string_buffer(4) if target == 1 else c.create_unicode_buffer(4)
+            chunks = []
+            for expected in ('00', 'AB', 'FF'):
+                status = m.SQLGetData(statement, 1, target, buffer, c.sizeof(buffer), None)
+                assert status == (0 if expected == 'FF' else 1)
+                chunks.append(buffer.value.decode('ascii') if target == 1 else buffer.value)
+            assert ''.join(chunks) == '00ABFF'
+            m.check(m.SQLExecDirectW(statement, 'SELECT 12345', -3), 3, statement)
+            m.check(m.SQLFetch(statement), 3, statement)
+            assert m.SQLGetData(statement, 1, target, buffer, 3 if target == 1 else 6, None) == -1
+            assert m.diagnostics(3, statement)[0][0] == '22003'
+            m.check(m.SQLExecDirectW(statement, 'SELECT "Active" FROM "Customers"', -3), 3, statement)
+            m.check(m.SQLFetch(statement), 3, statement)
+            assert m.SQLGetData(statement, 1, target, buffer, 1 if target == 1 else 2, None) == -1
+            assert m.diagnostics(3, statement)[0][0] == '22003'
+            m.check(m.SQLFreeStmt(statement, 0), 3, statement)
+            m.check(m.SQLBindCol(statement, 1, target, buffer, 3 if target == 1 else 6, None), 3, statement)
+            m.check(m.SQLExecDirectW(statement, 'SELECT 12345', -3), 3, statement)
+            assert m.SQLFetch(statement) == -1
+            assert m.diagnostics(3, statement)[0][0] == '22003'
+            m.check(m.SQLFreeStmt(statement, 2), 3, statement)
         m.check(m.SQLExecDirectW(statement, 'SELECT "name", "amount" FROM "customers"', -3), 3, statement)
         value = c.c_ssize_t()
         for ordinal, field, expected in [(1, 4, 0), (2, 4, 15), (2, 1005, 53), (2, 6, 24), (1, 6, -4), (1, 1013, -4)]:
@@ -501,7 +554,8 @@ if __name__ == "__main__":
                     created.append(path)
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, hive + "\\" + root + "\\" + name, 0, winreg.KEY_WRITE) as key:
                 winreg.SetValueEx(key, "Driver", 0, winreg.REG_SZ, str(args.driver.resolve(strict=True)))
-                winreg.SetValueEx(key, "APILevel", 0, winreg.REG_SZ, "1")
+                winreg.SetValueEx(key, "APILevel", 0, winreg.REG_SZ, "0")
+                winreg.SetValueEx(key, "FileUsage", 0, winreg.REG_SZ, "2")
                 winreg.SetValueEx(key, "ConnectFunctions", 0, winreg.REG_SZ, "NYN")
                 winreg.SetValueEx(key, "DriverODBCVer", 0, winreg.REG_SZ, "03.00")
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, hive + "\\" + root + r"\ODBC Drivers", 0, winreg.KEY_SET_VALUE) as key:

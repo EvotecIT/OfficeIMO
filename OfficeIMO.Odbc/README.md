@@ -21,7 +21,8 @@ $driverPath = (Resolve-Path './artifacts/odbc/OfficeIMO.Odbc.dll').Path
 $driverKey = 'HKLM:\SOFTWARE\ODBC\ODBCINST.INI\OfficeIMO Excel'
 New-Item -Path $driverKey -ErrorAction Stop
 New-ItemProperty -Path $driverKey -Name Driver -Value $driverPath -PropertyType String
-New-ItemProperty -Path $driverKey -Name APILevel -Value '1' -PropertyType String
+New-ItemProperty -Path $driverKey -Name APILevel -Value '0' -PropertyType String
+New-ItemProperty -Path $driverKey -Name FileUsage -Value '2' -PropertyType String
 New-ItemProperty -Path $driverKey -Name DriverODBCVer -Value '03.00' -PropertyType String
 New-ItemProperty -Path $driverKey -Name ConnectFunctions -Value 'NYN' -PropertyType String
 New-ItemProperty -Path 'HKLM:\SOFTWARE\ODBC\ODBCINST.INI\ODBC Drivers' -Name 'OfficeIMO Excel' -Value Installed -PropertyType String
@@ -49,6 +50,10 @@ ORDER BY "Amount" DESC
 ```
 
 Queries use SQLite's SELECT syntax and positional ODBC `?` parameters. Quote worksheet and column identifiers with double quotes. Table names are the worksheet names, without an Excel `$` suffix.
+
+The driver uses `SQL_NOSCAN_ON`: it does not translate ODBC date, time or function escapes. Use SQLite literals and functions. Input parameters support matching C and SQL types for text, bit, signed integers, floating-point numbers, dates and timestamps, including `SQL_C_DEFAULT`. Text can use ANSI or Unicode C buffers. Cross-type conversions, such as binding C text as SQL integer, return `07006`; bind an integer buffer instead. Text values must fit the declared SQL column size, and timestamp values must be exactly representable at the declared precision of zero through seven fractional digits.
+
+Binary query results can be read as bytes or as hexadecimal text. Request `SQL_C_BINARY` only for binary SQL results; converting other result types to binary is unsupported. Numeric-to-text buffers must preserve the whole part of the number. Text-to-number reads require a numeric literal and reject values outside the target type's range.
 
 An application using `System.Data.Odbc` can execute that query as follows:
 

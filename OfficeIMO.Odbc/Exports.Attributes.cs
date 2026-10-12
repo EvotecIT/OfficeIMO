@@ -20,7 +20,10 @@ namespace OfficeIMO.Odbc {
                     statement.MaximumRows = (long)value; return 0;
                 case 25: statement.RowStatusPointer = value; return 0;
                 case 26: statement.RowsFetchedPointer = value; return 0;
-                case 2: case 4: case 5: case 6: case 18: case 20:
+                case 4:
+                    if (value == 1) return 0;
+                    return statement.Fail("HYC00", "ODBC escape translation is not supported; use SQL_NOSCAN_ON and SQLite SELECT syntax.");
+                case 2: case 5: case 6: case 18: case 20:
                     if (value == 0) return 0;
                     break;
                 case 7: case 11: case 22: case 27:
@@ -44,8 +47,8 @@ namespace OfficeIMO.Odbc {
                 case 25: value = statement.RowStatusPointer; break;
                 case 26: value = statement.RowsFetchedPointer; break;
                 case 10010: case 10011: case 10012: case 10013: value = statement.Descriptors[attribute]; break;
-                case 2: case 4: case 5: case 6: case 18: case 20: value = 0; break;
-                case 7: case 11: case 22: case 27: value = 1; break;
+                case 2: case 5: case 6: case 18: case 20: value = 0; break;
+                case 4: case 7: case 11: case 22: case 27: value = 1; break;
                 default: return statement.Fail("HYC00", "Unsupported statement attribute.");
             }
             *(nint*)output = value;

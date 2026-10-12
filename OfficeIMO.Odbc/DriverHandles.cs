@@ -53,7 +53,7 @@ namespace OfficeIMO.Odbc {
         }
     }
     internal sealed record ColumnBinding(short Type, nint Buffer, nint Length, nint Indicator);
-    internal sealed record ParameterBinding(short Type, nint Buffer, nint Length, nint Indicator);
+    internal sealed record ParameterBinding(short Type, nint Buffer, nint Length, nint Indicator, short SqlType, nuint Size, short Scale);
 
     /// <summary>Opaque monotonic IDs prevent native callers from dereferencing managed or stale pointers.</summary>
     internal static class DriverHandles {
@@ -108,6 +108,7 @@ namespace OfficeIMO.Odbc {
                 handle.Diagnostics.Clear();
                 try { return operation(typed); }
                 catch (OperationCanceledException) { return handle.Fail("HY008", "Query canceled or its execution deadline expired."); }
+                catch (ParameterValueException exception) { return handle.Fail(exception.State, exception.Message); }
                 catch (NotSupportedException exception) { return handle.Fail("HYC00", exception.Message); }
                 catch (ArgumentException exception) { return handle.Fail("HY090", exception.Message); }
                 catch (Exception exception) { return handle.Fail("HY000", "OfficeIMO could not complete the operation: " + exception.GetBaseException().Message); }

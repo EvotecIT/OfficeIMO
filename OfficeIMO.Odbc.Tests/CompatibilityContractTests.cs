@@ -170,6 +170,91 @@ namespace OfficeIMO.Odbc.Tests {
             Assert.Equal("HY009", Assert.Single(DriverHandles.All[statement.Descriptors[10012]].Diagnostics).State);
         }
 
+        [Fact]
+        public unsafe void FileAndStatementCapabilitiesMatchTheSupportedWorkflow() {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            delegate* unmanaged<nint, ushort, nint, short, short*, short> info = &Exports.SQLGetInfoW;
+            ushort usage = 0;
+            Assert.Equal(0, info(handles.Connection, 84, (nint)(&usage), 2, null));
+            Assert.Equal(2, usage);
+            delegate* unmanaged<nint, short, short> types = &Exports.SQLGetTypeInfoW;
+            Assert.Equal(0, types(handles.Statement, 0));
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            List<short> values = [];
+            while (statement.Reader!.Read()) values.Add(statement.Reader.GetInt16(1));
+            Assert.Equal(new short[] { -9, -7, -5, 4, 5, 8, 93 }, values);
+            delegate* unmanaged<nint, short> close = &Exports.SQLCloseCursor;
+            Assert.Equal(0, close(handles.Statement));
+            Assert.Equal(-1, close(handles.Statement));
+            Assert.Equal("24000", Assert.Single(statement.Diagnostics).State);
+            delegate* unmanaged<nint, ushort, short> free = &Exports.SQLFreeStmt;
+            Assert.Equal(0, free(handles.Statement, 0));
+            delegate* unmanaged<nint, int, nint, int, short> set = &Exports.SQLSetStmtAttrW;
+            delegate* unmanaged<nint, int, nint, int, int*, short> get = &Exports.SQLGetStmtAttrW;
+            nint noscan = 0;
+            Assert.Equal(0, get(handles.Statement, 4, (nint)(&noscan), 0, null));
+            Assert.Equal((nint)1, noscan);
+            Assert.Equal(-1, set(handles.Statement, 4, 0, 0));
+            Assert.Equal("HYC00", Assert.Single(statement.Diagnostics).State);
+            Assert.Equal(0, set(handles.Statement, 4, 1, 0));
+        }
+
+        [Theory]
+        [InlineData(0, false)]
+        [InlineData(1, false)]
+        [InlineData(3, false)]
+        [InlineData(0, true)]
+        [InlineData(1, true)]
+        [InlineData(3, true)]
+        public unsafe void CompleteConnectionStringsNeedNoDialog(ushort completion, bool wide) {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new();
+            byte[] input = NativeText.Bytes("DBQ={" + fixture.FilePath + "};", wide);
+            delegate* unmanaged<nint, nint, nint, short, nint, short, short*, ushort, short> connect = wide ? &Exports.SQLDriverConnectW : &Exports.SQLDriverConnect;
+            fixed (byte* pointer = input)
+                Assert.Equal(0, connect(handles.Connection, 0, (nint)pointer, checked((short)(input.Length / (wide ? 2 : 1))), 0, 0, null, completion));
+        }
+
+        [Fact]
+        public unsafe void UnsupportedParameterConversionsAreRejectedAndDefaultIntegerIsTyped() {
+            using WorkbookFixture fixture = new();
+            using NativeHandles handles = new(fixture.FilePath);
+            delegate* unmanaged<nint, ushort, short, short, short, nuint, short, nint, nint, nint, short> bind = &Exports.SQLBindParameter;
+            char* text = stackalloc char[] { '0', '0', '1', '\0' };
+            Assert.Equal(-1, bind(handles.Statement, 1, 1, -8, 4, 10, 0, (nint)text, 8, 0));
+            StatementHandle statement = (StatementHandle)DriverHandles.All[handles.Statement];
+            Assert.Equal("07006", Assert.Single(statement.Diagnostics).State);
+            Assert.Empty(statement.Parameters);
+            int number = 1;
+            Assert.Equal(0, bind(handles.Statement, 1, 1, 99, 4, 10, 0, (nint)(&number), 4, 0));
+            Assert.Equal(4, statement.Parameters[1].SqlType);
+            Assert.Equal(4, statement.Parameters[1].Type);
+            string sql = "SELECT ? = 1";
+            delegate* unmanaged<nint, nint, int, short> execute = &Exports.SQLExecDirectW;
+            fixed (char* pointer = sql) Assert.Equal(0, execute(handles.Statement, (nint)pointer, -3));
+            Assert.True(statement.Reader!.Read());
+            Assert.Equal(1, statement.Reader.GetInt64(0));
+        }
+
+        [Fact]
+        public unsafe void ParameterDeclaredLengthsAndTimestampPrecisionAreEnforced() {
+            char* text = stackalloc char[] { 'a', 'b', 'c', '\0' };
+            ParameterValueException error = Assert.Throws<ParameterValueException>(() => NativeValue.Read(new(-8, (nint)text, 8, 0, -9, 2, 0)));
+            Assert.Equal("22001", error.State);
+            byte* timestamp = stackalloc byte[16];
+            ushort* parts = (ushort*)timestamp;
+            parts[0] = 2026; parts[1] = 10; parts[2] = 12; parts[3] = 0; parts[4] = 0; parts[5] = 0;
+            *(uint*)(timestamp + 12) = 123_400_000;
+            ParameterBinding binding = new(93, (nint)timestamp, 16, 0, 93, 27, 4);
+            Assert.IsType<DateTime>(NativeValue.Read(binding));
+            error = Assert.Throws<ParameterValueException>(() => NativeValue.Read(binding with { Scale = 3 }));
+            Assert.Equal("22008", error.State);
+            *(uint*)(timestamp + 12) = 123_400_001;
+            error = Assert.Throws<ParameterValueException>(() => NativeValue.Read(binding));
+            Assert.Equal("22008", error.State);
+        }
+
         private sealed class NativeHandles : IDisposable {
             internal nint Environment { get; }
             internal nint Connection { get; }

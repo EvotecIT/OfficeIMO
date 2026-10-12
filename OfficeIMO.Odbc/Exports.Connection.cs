@@ -22,7 +22,8 @@ namespace OfficeIMO.Odbc {
         private static short Connect(nint id, nint input, short inputLength, nint output, short capacity, short* outputLength, ushort completion, bool wide) =>
             DriverHandles.With<ConnectionHandle>(id, handle => {
                 if (handle.Snapshot is not null) return handle.Fail("08002", "Connection is already open.");
-                if (completion != 0) return handle.Fail("HYC00", "Interactive connection dialogs are not supported; use SQL_DRIVER_NOPROMPT.");
+                if (completion > 3) return handle.Fail("HY110", "Invalid driver completion option.");
+                if (completion == 2) return handle.Fail("HYC00", "Interactive connection dialogs are not supported; supply DRIVER and DBQ.");
                 if (capacity < 0) return handle.Fail("HY090", "Negative output buffer length.");
                 string connectionString = NativeText.Read(input, inputLength, wide);
                 string path = ConnectionSettings.WorkbookPath(connectionString);

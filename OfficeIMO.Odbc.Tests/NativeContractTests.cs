@@ -24,7 +24,7 @@ namespace OfficeIMO.Odbc.Tests {
 
         [Theory]
         [InlineData(0, 30)]
-        [InlineData(4, 0)]
+        [InlineData(4, 1)]
         [InlineData(6, 0)]
         [InlineData(7, 1)]
         [InlineData(11, 1)]
@@ -63,8 +63,8 @@ namespace OfficeIMO.Odbc.Tests {
             short type = wide ? (short)-8 : (short)1;
             byte[] text = NativeText.Bytes("Poland\0padding", wide);
             fixed (byte* pointer = text) {
-                Assert.Equal("Poland", NativeValue.Read(new(type, (nint)pointer, 0, 0)));
-                Assert.Equal("Poland", NativeValue.Read(new(type, (nint)pointer, text.Length, 0)));
+                Assert.Equal("Poland", NativeValue.Read(new(type, (nint)pointer, 0, 0, -9, 32, 0)));
+                Assert.Equal("Poland", NativeValue.Read(new(type, (nint)pointer, text.Length, 0, -9, 32, 0)));
             }
         }
 

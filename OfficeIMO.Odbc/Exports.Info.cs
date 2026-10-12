@@ -46,7 +46,7 @@ namespace OfficeIMO.Odbc {
                 // SQLUSMALLINT-valued information types must not overwrite a two-byte caller buffer.
                 if (info is 0 or 1 or 9 or 12 or 15 or 22 or 23 or 24 or 28 or 30 or 31 or 32 or 33 or 34 or 35 or 46 or 74 or 75 or 84 or 85 or 88 or 93 or 97 or 98 or 99 or 100 or 101 or 106 or 107 or 114 or 10005) {
                     *(ushort*)output = info switch { 0 => 32, 1 => 0, 28 or 93 => 4, 23 or 24 => 2,
-                        30 or 35 or 10005 => 255, 74 => 2, 75 => 1, 84 => 1, 85 => 1, 88 => 3,
+                        30 or 35 or 10005 => 255, 74 => 2, 75 => 1, 84 => 2, 85 => 1, 88 => 3,
                         97 or 99 or 100 or 101 => 256, 106 => 64, 114 => 1, _ => 0 };
                     if (length != null) *length = 2;
                     return 0;

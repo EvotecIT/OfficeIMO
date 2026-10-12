@@ -76,7 +76,7 @@ namespace OfficeIMO.Odbc {
                 ("SEARCHABLE", typeof(short)), ("UNSIGNED_ATTRIBUTE", typeof(short)), ("FIXED_PREC_SCALE", typeof(short)), ("AUTO_UNIQUE_VALUE", typeof(short)),
                 ("LOCAL_TYPE_NAME", typeof(string)), ("MINIMUM_SCALE", typeof(short)), ("MAXIMUM_SCALE", typeof(short)), ("SQL_DATA_TYPE", typeof(short)),
                 ("SQL_DATETIME_SUB", typeof(short)), ("NUM_PREC_RADIX", typeof(int)), ("INTERVAL_PRECISION", typeof(short))]);
-            foreach (short type in new short[] { -9, -7, -5, 5, 4, 8, 93 }) {
+            foreach (short type in new short[] { -9, -7, -5, 4, 5, 8, 93 }) {
                 if (selected != 0 && selected != type) continue;
                 result.Rows.Add(NativeValue.TypeName(type), type, type == 8 ? 53 : (int)NativeValue.CatalogColumnSize(type), type is -9 or 93 ? "'" : DBNull.Value,
                     type is -9 or 93 ? "'" : DBNull.Value, DBNull.Value, (short)1, (short)(type == -9 ? 1 : 0), (short)3,
