@@ -54,6 +54,7 @@ The [workflow guide](https://officeimo.com/docs/pswriteoffice/object-workflows/)
 
 ## Inspect, convert, and integrate
 
+- [Mixed-format conversion review](Workflows/MixedFormat-ConversionReview.md): bounded folder-to-PDF conversion with file outcomes, diagnostics and hash-verified restart; requires PSWriteOffice 3.0.9 and PowerShell 7.4 or newer.
 - [Visio service flow](Visio/Recipe-Visio-ServiceFlow.ps1), [architecture map](Visio/Example-Visio-ArchitectureMap.ps1), and [network topology](Visio/Example-Visio-NetworkTopology.ps1)
 - [Mixed-document search](Reader/Example-MixedDocumentSearch.ps1), [bounded chunks](Reader/Recipe-Reader-BoundedChunks.ps1), and [table export](Reader/Recipe-Reader-ExportTables.ps1)
 - [Update and convert RTF](Rtf/Recipe-Rtf-UpdateAndConvert.ps1) and [RTF/Markdown round trip](Rtf/Example-RtfMarkdownRoundTrip.ps1)
