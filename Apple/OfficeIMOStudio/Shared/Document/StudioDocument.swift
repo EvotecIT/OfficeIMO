@@ -76,9 +76,13 @@ final class StudioDocument: ReferenceFileDocument, @unchecked Sendable {
 
     static let workingCopies = FileManager.default.temporaryDirectory.appending(path: "WorkingCopies", directoryHint: .isDirectory)
 
-    /// Removes working copies left by an earlier process that ended without closing its documents.
+    /// Copies of open documents written for sharing; a destination may still read one after the share sheet closes.
+    static let sharedCopies = FileManager.default.temporaryDirectory.appending(path: "Shared", directoryHint: .isDirectory)
+
+    /// Removes working and shared copies left by an earlier process.
     static func removeStaleWorkingCopies() {
         try? FileManager.default.removeItem(at: workingCopies)
+        try? FileManager.default.removeItem(at: sharedCopies)
     }
 }
 

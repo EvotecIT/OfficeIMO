@@ -79,6 +79,12 @@ struct StudioCommands: Commands {
             .disabled(session?.canPrint != true)
         }
 
+        CommandGroup(after: .importExport) {
+            Section {
+                if let session { SecurityCommands(session: session) }
+            }
+        }
+
         CommandGroup(before: .toolbar) {
             Group {
                 ForEach(Array(StudioTask.allCases.enumerated()), id: \.element) { index, task in

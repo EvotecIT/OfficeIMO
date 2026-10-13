@@ -16,8 +16,8 @@ struct PageCanvas: NSViewRepresentable {
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
         view.setMarkupActive(session.task == .markup && session.canEditAnnotations)
-        view.setSelectionActive(session.task == .read && (session.canCopyText || session.canFillForms))
-        view.forms.setEnabled(session.task == .read && session.canFillForms)
+        view.setSelectionActive(session.task == .read && (session.canCopyText || session.canFillForms || session.pendingSignature != nil))
+        view.forms.setEnabled(session.task == .read && (session.canFillForms || session.pendingSignature != nil))
         _ = session.formFieldsVersion
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = NSColor.selectedTextBackgroundColor.withAlphaComponent(0.6).cgColor

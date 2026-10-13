@@ -45,6 +45,72 @@
         }
       }
     },
+    "%@ – Protected.pdf" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – geschützt.pdf"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – protégé.pdf"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – chroniony.pdf"
+          }
+        }
+      }
+    },
+    "%@ – Signed.pdf" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – signiert.pdf"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – signé.pdf"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – podpisany.pdf"
+          }
+        }
+      }
+    },
+    "%@ – Unprotected.pdf" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – ohne Passwort.pdf"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – sans mot de passe.pdf"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – bez hasła.pdf"
+          }
+        }
+      }
+    },
     "%lld Selected" : {
       "localizations" : {
         "de" : {
@@ -85,6 +151,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld z %lld"
+          }
+        }
+      }
+    },
+    "A .p12 or .pfx file with your certificate and its private key, such as one exported from Keychain Access or issued by your organization." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine .p12- oder .pfx-Datei mit deinem Zertifikat und seinem privaten Schlüssel, etwa aus der Schlüsselbundverwaltung exportiert oder von deiner Organisation ausgestellt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Un fichier .p12 ou .pfx contenant votre certificat et sa clé privée, par exemple exporté depuis Trousseau d’accès ou fourni par votre organisation."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plik .p12 lub .pfx z certyfikatem i jego kluczem prywatnym, np. wyeksportowany z Pęku kluczy lub wydany przez Twoją organizację."
           }
         }
       }
@@ -177,6 +265,50 @@
         }
       }
     },
+    "Add Signature" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signatur hinzufügen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajouter une signature"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dodaj podpis"
+          }
+        }
+      }
+    },
+    "Allow" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erlauben"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Autoriser"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zezwalaj"
+          }
+        }
+      }
+    },
     "Annotations on Page %lld" : {
       "localizations" : {
         "de" : {
@@ -195,6 +327,50 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adnotacje na stronie %lld"
+          }
+        }
+      }
+    },
+    "Anyone with the password can print, copy and change the copy." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle mit dem Passwort können die Kopie drucken, kopieren und ändern."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toute personne disposant du mot de passe peut imprimer, copier et modifier la copie."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każdy, kto zna hasło, może drukować, kopiować i zmieniać kopię."
+          }
+        }
+      }
+    },
+    "Apps that respect permissions ask for the permissions password before allowing what is turned off. It must differ from the password to open." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apps, die Berechtigungen beachten, fragen nach dem Berechtigungspasswort, bevor sie Deaktiviertes erlauben. Es muss sich vom Passwort zum Öffnen unterscheiden."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les apps qui respectent les autorisations demandent le mot de passe des autorisations avant de permettre ce qui est désactivé. Il doit différer du mot de passe d’ouverture."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplikacje respektujące uprawnienia proszą o hasło uprawnień, zanim pozwolą na to, co jest wyłączone. Musi się ono różnić od hasła otwarcia."
           }
         }
       }
@@ -239,6 +415,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie można otworzyć tego dokumentu"
+          }
+        }
+      }
+    },
+    "Certificate" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zertifikat"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certificat"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certyfikat"
+          }
+        }
+      }
+    },
+    "Certificate Password" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zertifikatspasswort"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe du certificat"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasło certyfikatu"
+          }
+        }
+      }
+    },
+    "Changes, Comments and Form Filling" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Änderungen, Kommentare und Ausfüllen von Formularen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modifications, commentaires et remplissage de formulaires"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zmiany, komentarze i wypełnianie formularzy"
           }
         }
       }
@@ -327,6 +569,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wybierz obrazy na strony nowego pliku PDF."
+          }
+        }
+      }
+    },
+    "Choose…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswählen …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wybierz…"
+          }
+        }
+      }
+    },
+    "Clear" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löschen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Effacer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wyczyść"
+          }
+        }
+      }
+    },
+    "Click where to sign." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klicke dort, wo signiert werden soll."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cliquez à l’endroit de la signature."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kliknij miejsce podpisu."
           }
         }
       }
@@ -551,6 +859,28 @@
         }
       }
     },
+    "Copying Text and Images" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieren von Text und Bildern"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copie du texte et des images"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiowanie tekstu i obrazów"
+          }
+        }
+      }
+    },
     "Create PDF" : {
       "localizations" : {
         "de" : {
@@ -569,6 +899,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Utwórz PDF"
+          }
+        }
+      }
+    },
+    "Current Permissions Password" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktuelles Berechtigungspasswort"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe actuel des autorisations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obecne hasło uprawnień"
           }
         }
       }
@@ -1409,6 +1761,28 @@
         }
       }
     },
+    "Location" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ort"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lieu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miejsce"
+          }
+        }
+      }
+    },
     "Make ${file} searchable" : {
       "localizations" : {
         "de" : {
@@ -1717,6 +2091,50 @@
         }
       }
     },
+    "New Signature" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Signatur"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvelle signature"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowy podpis"
+          }
+        }
+      }
+    },
+    "New Signature…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Signatur …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nouvelle signature…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nowy podpis…"
+          }
+        }
+      }
+    },
     "Next" : {
       "localizations" : {
         "de" : {
@@ -1981,6 +2399,28 @@
         }
       }
     },
+    "Optional" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Facultatif"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opcjonalnie"
+          }
+        }
+      }
+    },
     "Oval" : {
       "localizations" : {
         "de" : {
@@ -2223,6 +2663,28 @@
         }
       }
     },
+    "Password to Open" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort zum Öffnen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe d’ouverture"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasło otwarcia"
+          }
+        }
+      }
+    },
     "Pen" : {
       "localizations" : {
         "de" : {
@@ -2263,6 +2725,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Uprawnienia"
+          }
+        }
+      }
+    },
+    "Permissions Password" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Berechtigungspasswort"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe des autorisations"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasło uprawnień"
           }
         }
       }
@@ -2355,6 +2839,28 @@
         }
       }
     },
+    "Printing" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drucken"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impression"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drukowanie"
+          }
+        }
+      }
+    },
     "Print…" : {
       "localizations" : {
         "de" : {
@@ -2373,6 +2879,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Drukuj…"
+          }
+        }
+      }
+    },
+    "Protect" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schützen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protéger"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chroń"
+          }
+        }
+      }
+    },
+    "Protect with Password" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Passwort schützen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protéger par mot de passe"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chroń hasłem"
+          }
+        }
+      }
+    },
+    "Protect with Password…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Passwort schützen …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protéger par mot de passe…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chroń hasłem…"
           }
         }
       }
@@ -2465,6 +3037,28 @@
         }
       }
     },
+    "Reason" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grund"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Motif"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powód"
+          }
+        }
+      }
+    },
     "Rectangle" : {
       "localizations" : {
         "de" : {
@@ -2505,6 +3099,94 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ponów"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entfernen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń"
+          }
+        }
+      }
+    },
+    "Remove Password" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort entfernen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le mot de passe"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń hasło"
+          }
+        }
+      }
+    },
+    "Remove Password…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passwort entfernen …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer le mot de passe…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń hasło…"
+          }
+        }
+      }
+    },
+    "Remove Signature" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signatur entfernen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supprimer la signature"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usuń podpis"
           }
         }
       }
@@ -2861,6 +3543,116 @@
         }
       }
     },
+    "Sign" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signieren"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpisz"
+          }
+        }
+      }
+    },
+    "Sign on the line." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unterschreibe auf der Linie."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signez sur la ligne."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpisz się na linii."
+          }
+        }
+      }
+    },
+    "Sign with Certificate" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Zertifikat signieren"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signer avec un certificat"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpisz certyfikatem"
+          }
+        }
+      }
+    },
+    "Sign with Certificate…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Zertifikat signieren …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signer avec un certificat…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpisz certyfikatem…"
+          }
+        }
+      }
+    },
+    "Signature" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signatur"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signature"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podpis"
+          }
+        }
+      }
+    },
     "Size" : {
       "localizations" : {
         "de" : {
@@ -2945,6 +3737,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Przekreślenie"
+          }
+        }
+      }
+    },
+    "Tap where to sign." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tippe dort, wo signiert werden soll."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touchez l’endroit de la signature."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stuknij miejsce podpisu."
           }
         }
       }
@@ -3059,6 +3873,28 @@
         }
       }
     },
+    "The copy opens without a password, and anyone can print, copy and change it." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Kopie öffnet sich ohne Passwort, und alle können sie drucken, kopieren und ändern."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La copie s’ouvre sans mot de passe, et tout le monde peut l’imprimer, la copier et la modifier."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopia otwiera się bez hasła i każdy może ją drukować, kopiować i zmieniać."
+          }
+        }
+      }
+    },
     "The note goes in the middle of the page in view." : {
       "localizations" : {
         "de" : {
@@ -3099,6 +3935,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hasło jest nieprawidłowe. Spróbuj ponownie."
+          }
+        }
+      }
+    },
+    "The passwords don’t match." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Passwörter stimmen nicht überein."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les mots de passe ne correspondent pas."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hasła nie są zgodne."
           }
         }
       }
@@ -3187,6 +4045,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stron tego dokumentu nie można jeszcze zmieniać: zawiera on treść, np. pola formularza lub znaczniki ułatwień dostępu, której OfficeIMO nie może bezpiecznie przepisać. Nadal możesz wyodrębniać strony."
+          }
+        }
+      }
+    },
+    "This document’s permissions don’t allow changing its security without its permissions password." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Berechtigungen dieses Dokuments erlauben ohne Berechtigungspasswort keine Änderung seiner Sicherheit."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les autorisations de ce document ne permettent pas de modifier sa sécurité sans son mot de passe des autorisations."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uprawnienia tego dokumentu nie pozwalają zmienić jego zabezpieczeń bez hasła uprawnień."
           }
         }
       }
@@ -3297,6 +4177,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Cofnij"
+          }
+        }
+      }
+    },
+    "Verify" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vérifier"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Powtórz"
           }
         }
       }

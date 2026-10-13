@@ -44,6 +44,12 @@ struct DocumentFacts: Decodable, Sendable {
     let canMakeSearchable: Bool?
     /// Whether the document's form fields can be filled.
     let canFillForms: Bool?
+    /// Whether a password protects the document.
+    let isEncrypted: Bool?
+    /// Whether its password protection can change without the owner password.
+    let canChangeProtection: Bool?
+    /// Whether a certificate signature can be added.
+    let canSign: Bool?
 
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
@@ -94,6 +100,64 @@ struct SearchResult: Decodable, Sendable {
     let hits: [Hit]
 }
 
+/// A copy with a password to open it, or, without userPassword, one without the document's password.
+struct ProtectionRequest: Encodable, Sendable {
+    let path: String
+    var userPassword: String?
+    /// Unlocks the permissions below in other apps; the copy then opens with restrictions for everyone else.
+    var ownerPassword: String?
+    /// The owner password of the open document, when changing its protection needs it.
+    var currentOwnerPassword: String?
+    var allowPrinting = true
+    var allowCopying = true
+    var allowChanges = true
+}
+
+/// A copy signed with the certificate and private key of a PKCS #12 file.
+struct SigningRequest: Encodable, Sendable {
+    let path: String
+    let certificateURL: URL
+    let certificatePassword: String
+    var reason: String?
+    var location: String?
+
+    enum CodingKeys: String, CodingKey { case path, certificatePath, certificatePassword, reason, location }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(path, forKey: .path)
+        try container.encode(certificateURL.path, forKey: .certificatePath)
+        try container.encode(certificatePassword, forKey: .certificatePassword)
+        try container.encodeIfPresent(reason, forKey: .reason)
+        try container.encodeIfPresent(location, forKey: .location)
+    }
+}
+
+/// One searched page's hits while a search runs: pagesSearched of pageCount are done.
+struct SearchPage: Decodable, Sendable {
+    let query: String
+    let revision: Int64
+    let pagesSearched: Int
+    let pageCount: Int
+    let hits: [SearchResult.Hit]
+}
+
+/// Receives officeimo_document_search_stream_json's pages on the engine's thread.
+private final class SearchReceiver: Sendable {
+    let pageSearched: @Sendable (SearchPage) -> Void
+
+    init(_ pageSearched: @escaping @Sendable (SearchPage) -> Void) {
+        self.pageSearched = pageSearched
+    }
+
+    /// The C function the engine calls; its context is a SearchReceiver.
+    static let callback: officeimo_search_progress = { context, json in
+        guard let context, let json,
+              let page = try? JSONDecoder().decode(SearchPage.self, from: Data(String(cString: json).utf8)) else { return }
+        Unmanaged<SearchReceiver>.fromOpaque(context).takeUnretainedValue().pageSearched(page)
+    }
+}
+
 /// A colour with components from 0 through 1, as the engine's JSON carries it.
 struct EngineColor: Codable, Sendable, Hashable {
     let red: Double
@@ -102,7 +166,7 @@ struct EngineColor: Codable, Sendable, Hashable {
 }
 
 /// A point or rectangle in the displayed page's points, from its top-left corner.
-struct EnginePoint: Codable, Sendable {
+struct EnginePoint: Codable, Sendable, Hashable {
     let x: Double
     let y: Double
 }
@@ -334,6 +398,22 @@ actor EngineDocument {
         return try JSONDecoder().decode(SearchResult.self, from: Data(json.utf8))
     }
 
+    /// Finds text, ignoring case, passing each page's hits from the engine's thread as soon as the page is searched.
+    func search(_ query: String, pageSearched: @escaping @Sendable (SearchPage) -> Void) async throws -> SearchResult {
+        let receiver = Unmanaged.passRetained(SearchReceiver(pageSearched))
+        defer { receiver.release() }
+        let json: String = try await withEngineCancellation { cancellation in
+            var json: UnsafeMutablePointer<CChar>?
+            var error: UnsafeMutablePointer<CChar>?
+            let status = query.withCString {
+                officeimo_document_search_stream_json(handle, $0, SearchReceiver.callback, receiver.toOpaque(), cancellation, &json, &error)
+            }
+            try check(status, error)
+            return takeString(json) ?? "{}"
+        }
+        return try JSONDecoder().decode(SearchResult.self, from: Data(json.utf8))
+    }
+
     func addAnnotation(_ request: AnnotationRequest) async throws {
         let json = String(decoding: try JSONEncoder().encode(request), as: UTF8.self)
         try await withEngineCancellation { cancellation in
@@ -408,6 +488,37 @@ actor EngineDocument {
         try queue.sync {
             var error: UnsafeMutablePointer<CChar>?
             try check(officeimo_document_save(handle, nil, 0, &error), error)
+        }
+    }
+
+    /// Writes the open revision with a password to open it, or without the document's password when protection.userPassword
+    /// is nil. A wrong owner password throws EngineError with .invalidPassword.
+    func saveProtectedCopy(_ protection: ProtectionRequest) async throws {
+        let request = String(decoding: try JSONEncoder().encode(protection), as: UTF8.self)
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            try check(request.withCString { officeimo_document_save_protected_copy_json(handle, $0, cancellation, &error) }, error)
+        }
+    }
+
+    /// Writes the open revision with a certificate signature. A password the certificate file doesn't accept throws
+    /// EngineError with .invalidPassword.
+    func saveSignedCopy(_ signing: SigningRequest) async throws {
+        let request = String(decoding: try JSONEncoder().encode(signing), as: UTF8.self)
+        let certificate = signing.certificateURL
+        try await withEngineCancellation { cancellation in
+            let accessing = certificate.startAccessingSecurityScopedResource()
+            defer { if accessing { certificate.stopAccessingSecurityScopedResource() } }
+            var error: UnsafeMutablePointer<CChar>?
+            try check(request.withCString { officeimo_document_save_signed_copy_json(handle, $0, cancellation, &error) }, error)
+        }
+    }
+
+    /// Writes the open revision, with unsaved changes, to url; the document keeps its location and saved state.
+    func saveCopy(to url: URL) async throws {
+        try await withEngineCancellation { cancellation in
+            var error: UnsafeMutablePointer<CChar>?
+            try check(url.path.withCString { officeimo_document_save_copy(handle, $0, cancellation, &error) }, error)
         }
     }
 

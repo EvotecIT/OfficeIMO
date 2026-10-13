@@ -24,6 +24,11 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
         let page = layout().page(atY: location.y)
         let frame = frames[page - 1]
         let point = CGPoint(x: location.x - frame.minX, y: location.y - frame.minY)
+        if session.pendingSignature != nil, frame.contains(location) {
+            finish(commit: true)
+            session.placeSignature(page: page, at: point)
+            return true
+        }
         guard let (field, widget) = session.formField(at: point, page: page) else {
             finish(commit: true)
             return false

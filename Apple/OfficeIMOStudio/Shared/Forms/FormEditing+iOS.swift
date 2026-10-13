@@ -3,7 +3,7 @@ import UIKit
 
 /// Filling forms on iPad and iPhone in the Read task, as Files and Preview do: tap a text field to type in it, with
 /// the keyboard, Scribble with Apple Pencil and AutoFill; tap a check box or radio button to set it; tap a choice for
-/// its options. Each committed value is one undoable change.
+/// its options. Each committed value is one undoable change. A tap also places a signature waiting to be placed.
 @MainActor
 final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDelegate, UITextViewDelegate {
     private let session: DocumentSession
@@ -43,10 +43,16 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         // Only a tap on a field is the form's; any other tap goes to the page as before.
         if editing != nil { return true }
         guard let (page, point) = pagePoint(gestureRecognizer) else { return false }
-        return session.formField(at: point, page: page) != nil
+        return session.pendingSignature != nil || session.formField(at: point, page: page) != nil
     }
 
     @objc private func tapped(_ gesture: UITapGestureRecognizer) {
+        if session.pendingSignature != nil, let (page, point) = pagePoint(gesture) {
+            finish(commit: true)
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            session.placeSignature(page: page, at: point)
+            return
+        }
         let target = pagePoint(gesture).flatMap { page, point in session.formField(at: point, page: page).map { (page, $0.0, $0.1) } }
         if let editing, target?.1.name != editing.field.name || target?.0 != editing.page {
             finish(commit: true)

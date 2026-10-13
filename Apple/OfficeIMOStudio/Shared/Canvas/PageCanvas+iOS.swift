@@ -18,7 +18,7 @@ struct PageCanvas: UIViewRepresentable {
         let drawing = session.task == .markup && session.canEditAnnotations
         view.markup.setActive(drawing)
         view.textSelection.setEnabled(session.task == .read && session.canCopyText)
-        view.forms.setEnabled(session.task == .read && session.canFillForms)
+        view.forms.setEnabled(session.task == .read && (session.canFillForms || session.pendingSignature != nil))
         _ = session.formFieldsVersion
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = view.tintColor.withAlphaComponent(0.3).cgColor
