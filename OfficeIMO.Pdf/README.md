@@ -2667,7 +2667,7 @@ Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 ```
 
 The strict PDF quality scorecard runs every public inspection and semantic stage,
-the complete 21-operation mutation portfolio, managed rendering, and declared
+the complete mutation portfolio, managed rendering, and declared
 compliance claim gating against hash-pinned Open Preservation Foundation and
 veraPDF fixtures. The real-world corpus lane applies the same deep PDF stages to
 a deterministic sample of a checksum-pinned public GovDocs archive in isolated
