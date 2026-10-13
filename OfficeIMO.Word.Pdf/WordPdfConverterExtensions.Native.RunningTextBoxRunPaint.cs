@@ -28,19 +28,18 @@ public static partial class WordPdfConverterExtensions {
         W.RunPropertiesBaseStyle? documentProperties) where T : W.OnOffType {
         bool? declared = ReadNativeOnOff(direct?.GetFirstChild<T>());
         if (declared.HasValue) return declared.Value;
-        // A direct false is absolute. At each style level the nearest declaration wins.
-        // Enabled values at multiple levels can toggle each other; this narrow admission
-        // profile keeps that ambiguous unsupported paint explicitly approximated.
-        return ReadNativeNearestRunningTextBoxStyleEffect<T>(paragraphStyles) == true ||
-            ReadNativeNearestRunningTextBoxStyleEffect<T>(characterStyles) == true ||
+        // A direct false is absolute. A false toggle inside an inherited style is
+        // not an independently qualified cancellation of an enabled ancestor.
+        // Keep all ambiguous inherited paint on the explicitly approximated route.
+        return HasNativeEnabledRunningTextBoxStyleEffect<T>(paragraphStyles) ||
+            HasNativeEnabledRunningTextBoxStyleEffect<T>(characterStyles) ||
             ReadNativeOnOff(documentProperties?.GetFirstChild<T>()) == true;
     }
 
-    private static bool? ReadNativeNearestRunningTextBoxStyleEffect<T>(IReadOnlyList<W.Style> styles) where T : W.OnOffType {
-        for (int index = styles.Count - 1; index >= 0; index--) {
-            bool? declared = ReadNativeOnOff(styles[index].GetFirstChild<W.StyleRunProperties>()?.GetFirstChild<T>());
-            if (declared.HasValue) return declared.Value;
+    private static bool HasNativeEnabledRunningTextBoxStyleEffect<T>(IReadOnlyList<W.Style> styles) where T : W.OnOffType {
+        foreach (W.Style style in styles) {
+            if (ReadNativeOnOff(style.GetFirstChild<W.StyleRunProperties>()?.GetFirstChild<T>()) == true) return true;
         }
-        return null;
+        return false;
     }
 }
