@@ -257,6 +257,7 @@ struct ReadView: View {
                 // The page in view and its neighbours have their text ready for selection.
                 for page in [session.currentPage, session.currentPage + 1, session.currentPage - 1] where page >= 1 {
                     await session.loadPageText(page)
+                    await session.loadFormFields(page)
                 }
             }
             .task(id: session.currentPage) {

@@ -18,12 +18,16 @@ struct PageCanvas: UIViewRepresentable {
         let drawing = session.task == .markup && session.canEditAnnotations
         view.markup.setActive(drawing)
         view.textSelection.setEnabled(session.task == .read && session.canCopyText)
+        view.forms.setEnabled(session.task == .read && session.canFillForms)
+        _ = session.formFieldsVersion
+        view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = view.tintColor.withAlphaComponent(0.3).cgColor
         if let selection = session.textSelection {
             view.tiles.select(page: selection.page, rects: session.selectionRects)
         } else {
             view.tiles.select(page: 0, rects: [])
         }
+        view.textSelection.layoutHandles()
         // A double tap on the page draws a dot while marking up, rather than zooming.
         view.doubleTap.isEnabled = !drawing
         view.markup.update()
@@ -44,6 +48,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     private(set) lazy var markup = MarkupController(session: session, scrollView: self)
     let doubleTap = UITapGestureRecognizer()
     private(set) lazy var textSelection = TextSelectionController(session: session, scrollView: self)
+    private(set) lazy var forms = FormController(session: session, scrollView: self)
     private var handledRequest: UUID?
     private var laidOutWidth: CGFloat = 0
     private var fitZoom: CGFloat = 1
@@ -63,6 +68,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         doubleTap.numberOfTapsRequired = 2
         addGestureRecognizer(doubleTap)
         _ = textSelection
+        _ = forms
     }
 
     @available(*, unavailable)
@@ -133,6 +139,8 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         centerContent()
         updateTiles(settled: !isZooming && !isZoomBouncing)
         markup.layout(isZooming: isZooming || isZoomBouncing)
+        forms.layout()
+        textSelection.layoutHandles()
     }
 
     /// The sidebar and inspector float over the pages, so the width the pages fit changes with the safe area.
@@ -149,6 +157,8 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         centerContent()
         updateTiles(settled: false)
         markup.layout(isZooming: true)
+        forms.layout()
+        textSelection.layoutHandles()
     }
 
     func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
@@ -162,6 +172,8 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         updateTiles(settled: !isZooming && !isZoomBouncing)
         reportPage()
         markup.layout(isZooming: isZooming || isZoomBouncing)
+        forms.layout()
+        textSelection.layoutHandles()
     }
 
     // MARK: Zoom and position

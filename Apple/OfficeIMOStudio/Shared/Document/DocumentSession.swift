@@ -99,6 +99,11 @@ final class DocumentSession {
     private(set) var recognitionProgress: RecognitionProgress?
     /// The outcome of a change that turned out to change nothing, to tell the user.
     var notice: String?
+    /// Form fields of pages near the one in view, for the revision they were read from.
+    @ObservationIgnored var formPages: [Int: FormFields] = [:]
+    @ObservationIgnored var formLoads: [Int: Task<FormFields?, Never>] = [:]
+    /// Bumped when form fields load, so the page view shows where they are.
+    var formFieldsVersion = 0
 
     // Markup
     /// Whether drawing not yet added to the document is on the page.
@@ -460,7 +465,7 @@ final class DocumentSession {
 
     /// Runs an engine edit after any earlier one and registers its undo once it has succeeded. An edit that takes
     /// several engine changes undoes them together.
-    private func edit(_ name: String, steps: Int = 1, _ change: @escaping @Sendable (EngineDocument) async throws -> Void,
+    func edit(_ name: String, steps: Int = 1, _ change: @escaping @Sendable (EngineDocument) async throws -> Void,
                       then: ((DocumentSession) -> Void)? = nil, failed: (() -> Void)? = nil,
                       passwordNeeded: ((ImportPasswordNeeded) -> Void)? = nil) {
         enqueue(change, failed: failed, passwordNeeded: passwordNeeded) { session in
@@ -579,6 +584,11 @@ final class DocumentSession {
         searchResult = nil
         currentHitIndex = nil
         isSearching = false
+    }
+
+    /// Scrolls a rectangle of a page, in its displayed points, into view without changing the zoom.
+    func reveal(page: Int, rect: CGRect) {
+        canvasRequest = CanvasRequest(kind: .reveal(page: page, rect: rect))
     }
 
     private func revealCurrentHit() {

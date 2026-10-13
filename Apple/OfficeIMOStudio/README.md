@@ -25,12 +25,19 @@ The `Shared` folder is synchronized with both targets, so new files need no proj
 | `Shared/Canvas` | The page view: the page layout in PDF points, the tile renderer, and its hosts in `UIScrollView` and `NSScrollView`. |
 | `Shared/Views` | The document window, toolbar, page list, Pages task and inspector. |
 | `Shared/Conversion` | Converting Word, Excel, PowerPoint and other documents to PDF with the engine, from the launch screen, the File menu and Shortcuts. |
+| `Shared/Forms` | Filling form fields in the Read task: the engine's fields per page, the text, check box, radio and choice editors over the page in UIKit and AppKit, and each value as one undoable change. |
 | `Shared/Intents` | Shortcuts actions and their Siri and Spotlight phrases, over `DocumentActions`, which the unattended journey also runs. |
 | `Shared/Printing` | Printing the engine's page renderings through the system print panel and sheet. |
 | `Shared/Scan` | Scanning paper into a searchable PDF: the VisionKit document camera and the photo picker on iPad and iPhone, image files and Continuity Camera on the Mac, and Vision text recognition passed to the engine. |
 | `Shared/Engine` | `Engine` for process-wide calls and `EngineDocument`, an actor per open document. Engine calls block, so each document actor runs on its own serial queue, off the main actor and Swift's cooperative pool. Task cancellation cancels the engine call. Page rectangles become `CGImage`s that own the engine's pixels. |
 | `Shared/Journey`, `Shared/Measurement` | The engine journey and the measurements for unattended runs. |
 | `Measurements` | The measurement documents' generator and the runner for the Mac and an iPad simulator. |
+
+`Shared/Localizable.xcstrings`, `InfoPlist.xcstrings` and `AppShortcuts.xcstrings` hold the app's strings in English, Polish, German and French for both targets, reusing the wording of OfficeIMO Studio's [own translations](../../OfficeIMO.Studio/Localization) where the two apps share a term. Xcode adds new strings to `Localizable.xcstrings` when it builds. From the command line, build both targets and sync the catalog with the extracted strings:
+
+```sh
+xcrun xcstringstool sync Shared/Localizable.xcstrings --stringsdata <derived data>/Build/Intermediates.noindex/OfficeIMOStudio.build/*/*.build/Objects-normal/arm64/*.stringsdata
+```
 
 ## Unattended runs
 

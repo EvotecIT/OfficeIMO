@@ -42,6 +42,8 @@ struct DocumentFacts: Decodable, Sendable {
     let canImportPages: Bool?
     /// Whether recognized text can be added to the pages.
     let canMakeSearchable: Bool?
+    /// Whether the document's form fields can be filled.
+    let canFillForms: Bool?
 
     /// The page image's size at a scale: the page's size times the scale, each side rounded up, as the engine renders it.
     func pageImageSize(page number: Int, scale: Double) -> (width: Int, height: Int) {
@@ -162,7 +164,7 @@ struct RenderedPage: Sendable {
 /// One open document. Engine calls block, so the actor runs on its own serial queue rather than the main actor or
 /// Swift's cooperative pool; the engine also serializes calls on one document, and separate documents run concurrently.
 actor EngineDocument {
-    private let handle: officeimo_document
+    let handle: officeimo_document
     private let queue: DispatchSerialQueue
 
     nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }

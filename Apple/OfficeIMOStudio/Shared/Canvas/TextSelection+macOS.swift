@@ -7,6 +7,8 @@ import AppKit
 final class TextSelectionView: NSView, NSMenuItemValidation {
     private let session: DocumentSession
     private let layout: () -> PageLayout
+    /// Form fields under the pointer take clicks before text selection does.
+    var forms: FormEditor?
 
     init(session: DocumentSession, layout: @escaping () -> PageLayout) {
         self.session = session
@@ -28,13 +30,21 @@ final class TextSelectionView: NSView, NSMenuItemValidation {
     }
 
     override func mouseMoved(with event: NSEvent) {
+        if let kind = forms?.isField(at: convert(event.locationInWindow, from: nil)) {
+            (kind == .text ? NSCursor.iBeam : NSCursor.pointingHand).set()
+            return
+        }
         let over = pageText(at: convert(event.locationInWindow, from: nil)).flatMap { text, point in text.index(nearest: point, reach: 2) } != nil
         (over ? NSCursor.iBeam : NSCursor.arrow).set()
     }
 
     override func mouseDown(with event: NSEvent) {
-        window?.makeFirstResponder(self)
         let location = convert(event.locationInWindow, from: nil)
+        if forms?.click(at: location) == true {
+            session.textSelection = nil
+            return
+        }
+        window?.makeFirstResponder(self)
         guard let (text, point) = pageText(at: location), let index = text.index(nearest: point, reach: 12) else {
             session.textSelection = nil
             return

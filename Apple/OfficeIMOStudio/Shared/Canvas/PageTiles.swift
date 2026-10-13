@@ -98,6 +98,8 @@ final class PageTiles {
             drawHighlights()
             selectionLayers.removeAll()
             drawSelection()
+            fieldLayers.removeAll()
+            drawFields()
         }
     }
 
@@ -124,6 +126,36 @@ final class PageTiles {
             mark.zPosition = 11
             clipLayers[selection.page - 1].addSublayer(mark)
             selectionLayers.append(mark)
+        }
+    }
+
+    private var fieldBoxes: [Int: [CGRect]] = [:]
+    private var fieldLayers: [CALayer] = []
+    /// The colour fillable form fields are tinted with: the accent colour, faintly.
+    var fieldColor = CGColor(red: 0, green: 0.48, blue: 1, alpha: 0.1)
+
+    /// Tints the fillable form fields on pages, in each page's displayed points, so people see where to type.
+    func markFields(_ boxes: [Int: [CGRect]]) {
+        guard boxes != fieldBoxes else { return }
+        fieldBoxes = boxes
+        withoutAnimation { drawFields() }
+    }
+
+    private func drawFields() {
+        fieldLayers.forEach { $0.removeFromSuperlayer() }
+        fieldLayers.removeAll()
+        for (page, boxes) in fieldBoxes where clipLayers.indices.contains(page - 1) {
+            for box in boxes {
+                let mark = CALayer()
+                mark.frame = box
+                mark.backgroundColor = fieldColor
+                mark.borderColor = fieldColor.copy(alpha: 0.45)
+                mark.borderWidth = 0.75
+                mark.cornerRadius = min(3, box.height / 4)
+                mark.zPosition = 9
+                clipLayers[page - 1].addSublayer(mark)
+                fieldLayers.append(mark)
+            }
         }
     }
 

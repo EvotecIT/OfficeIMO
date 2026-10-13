@@ -16,7 +16,10 @@ struct PageCanvas: NSViewRepresentable {
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
         view.setMarkupActive(session.task == .markup && session.canEditAnnotations)
-        view.setSelectionActive(session.task == .read && session.canCopyText)
+        view.setSelectionActive(session.task == .read && (session.canCopyText || session.canFillForms))
+        view.forms.setEnabled(session.task == .read && session.canFillForms)
+        _ = session.formFieldsVersion
+        view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = NSColor.selectedTextBackgroundColor.withAlphaComponent(0.6).cgColor
         if let selection = session.textSelection {
             view.tiles.select(page: selection.page, rects: session.selectionRects)
@@ -40,6 +43,7 @@ final class PageScrollView: NSScrollView {
     private var isMagnifying = false
     private lazy var markup = MarkupInkView(session: session) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
     private lazy var selection = TextSelectionView(session: session) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
+    private(set) lazy var forms = FormEditor(session: session, pages: pages) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
 
     init(session: DocumentSession) {
         self.session = session
@@ -133,6 +137,7 @@ final class PageScrollView: NSScrollView {
     /// Adds the text selection view over the pages while reading.
     func setSelectionActive(_ active: Bool) {
         if active, selection.superview == nil {
+            selection.forms = forms
             selection.frame = pages.bounds
             selection.autoresizingMask = [.width, .height]
             pages.addSubview(selection)
