@@ -1,0 +1,22 @@
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
+
+namespace OfficeIMO.Examples.Showcase.Workflows {
+    /// <summary>Maps a support request from intake through verification, including the investigation loop.</summary>
+    internal static class TriageFlow {
+        internal static void Create(string folder) {
+            var document = VisioDocument.Create(Path.Combine(folder, "example.vsdx"))
+                .Flowchart("Support triage", flow => flow
+                    .Theme(VisioStyleTheme.Process()).RouteBranches(laneSpacing: 0.6)
+                    .Start("received", "Request received")
+                    .Step("classify", "Confirm scope and impact")
+                    .Step("investigate", "Assign owner and investigate")
+                    .Step("verify", "Verify with requester")
+                    .Decision("resolved", "Outcome accepted?")
+                    .End("closed", "Record result and close")
+                    .Branch("resolved", "No / investigate further", "investigate"));
+            document.Pages[0].FitToContent(0.7, 0.6);
+            document.Save();
+        }
+    }
+}

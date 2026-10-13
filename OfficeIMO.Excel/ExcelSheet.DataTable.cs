@@ -75,6 +75,7 @@ namespace OfficeIMO.Excel {
             if (table == null) throw new ArgumentNullException(nameof(table));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+            _excelDocument.MaterializeDeferredDataSetImport(ct);
             if (table.Columns.Count > 0 && table.Rows.Count + (includeHeaders ? 1L : 0L) > 0) {
                 long lastRow = (long)startRow + table.Rows.Count + (includeHeaders ? 1L : 0L) - 1;
                 long lastColumn = (long)startColumn + table.Columns.Count - 1;
@@ -106,8 +107,6 @@ namespace OfficeIMO.Excel {
                     canRegisterDirectSave = false;
                 }
             }
-
-            _excelDocument.MaterializeDeferredDataSetImport();
 
             if (TryInsertDataTableByAppendingRows(table, startRow, startColumn, includeHeaders, ct)) {
                 RegisterDirectDataTableSaveCandidateIfPossible(table, startRow, startColumn, includeHeaders, canRegisterDirectSave, copyDirectSaveTable);

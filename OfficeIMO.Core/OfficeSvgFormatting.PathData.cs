@@ -34,26 +34,30 @@ public static partial class OfficeSvgFormatting {
     internal static string FormatEditablePathData(IReadOnlyList<OfficePathCommand> commands) =>
         AppendPathData(new StringBuilder(), commands, 0, 0, preservePrecision: true).ToString();
 
-    private static StringBuilder AppendPathData(StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX, double offsetY, bool preservePrecision) {
+    private static StringBuilder AppendPathData(StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX, double offsetY, bool preservePrecision, bool suppressEmptyClosure = false) {
         string Number(double value) => preservePrecision ? value.ToString("R", CultureInfo.InvariantCulture) : FormatNumber(value);
         if (commands == null) {
             throw new ArgumentNullException(nameof(commands));
         }
 
+        bool subpathHasDraw = false;
         for (int i = 0; i < commands.Count; i++) {
             OfficePathCommand command = commands[i];
             switch (command.Kind) {
                 case OfficePathCommandKind.MoveTo:
+                    subpathHasDraw = false;
                     builder.Append('M')
                         .Append(Number(command.Point.X + offsetX)).Append(' ')
                         .Append(Number(command.Point.Y + offsetY));
                     break;
                 case OfficePathCommandKind.LineTo:
+                    subpathHasDraw = true;
                     builder.Append('L')
                         .Append(Number(command.Point.X + offsetX)).Append(' ')
                         .Append(Number(command.Point.Y + offsetY));
                     break;
                 case OfficePathCommandKind.QuadraticBezierTo:
+                    subpathHasDraw = true;
                     builder.Append('Q')
                         .Append(Number(command.ControlPoint1.X + offsetX)).Append(' ')
                         .Append(Number(command.ControlPoint1.Y + offsetY)).Append(' ')
@@ -61,6 +65,7 @@ public static partial class OfficeSvgFormatting {
                         .Append(Number(command.Point.Y + offsetY));
                     break;
                 case OfficePathCommandKind.CubicBezierTo:
+                    subpathHasDraw = true;
                     builder.Append('C')
                         .Append(Number(command.ControlPoint1.X + offsetX)).Append(' ')
                         .Append(Number(command.ControlPoint1.Y + offsetY)).Append(' ')
@@ -70,7 +75,8 @@ public static partial class OfficeSvgFormatting {
                         .Append(Number(command.Point.Y + offsetY));
                     break;
                 case OfficePathCommandKind.Close:
-                    builder.Append('Z');
+                    if (!suppressEmptyClosure || subpathHasDraw) builder.Append('Z');
+                    subpathHasDraw = false;
                     break;
             }
         }

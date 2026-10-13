@@ -110,6 +110,8 @@ namespace OfficeIMO.Word.Pdf {
 
             List<WordTextBox> textBoxes = runs.SelectMany(run => run.GetTextBoxes()).ToList();
             if (textBoxes.Count > 0) {
+                if (TryRenderNativeAnchoredRunningTextBoxParagraph(pdf, paragraph, runs, marker,
+                        footnoteNumbersById, options, nativeDefaults, nativeFontMap, nextParagraph)) return;
                 RenderNativeMixedTextBoxes(pdf, paragraph, runs, marker, getMarker,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap, 0, nextParagraph);
                 return;

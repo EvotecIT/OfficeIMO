@@ -450,6 +450,8 @@ namespace OfficeIMO.Word.Pdf {
             DoubleEquals(left.NaturalMultiplier, right.NaturalMultiplier) &&
             NullableDoubleEquals(left.FontLineBoxMultiplier, right.FontLineBoxMultiplier) &&
             NullableDoubleEquals(left.LineGridPitch, right.LineGridPitch) &&
+            left.FontAlignment == right.FontAlignment &&
+            DoubleEquals(left.FontAlignmentPointsPerPixel, right.FontAlignmentPointsPerPixel) &&
             NullableDoubleEquals(left.FixedLineBoxBaselineOffset, right.FixedLineBoxBaselineOffset);
 
         private static bool NullableDoubleEquals(double? left, double? right) {

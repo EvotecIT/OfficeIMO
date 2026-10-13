@@ -11,7 +11,7 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             using var payload = JsonDocument.Parse(json);
             int version = payload.RootElement.GetProperty("schemaVersion").GetInt32();
             using var schema = JsonDocument.Parse(OfficeDocumentReadResultSchema.GetJsonSchema(version));
-            Assert.Equal(13, version);
+            Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, version);
             Assert.Equal(27, (int)ReaderInputKind.Chm);
             Assert.Equal(28, (int)ReaderInputKind.DjVu);
             Assert.Equal(29, (int)ReaderInputKind.Dbf);

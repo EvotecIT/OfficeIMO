@@ -27,6 +27,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Alignment aka Paragraph Alignment. This element specifies the paragraph alignment which shall be applied to text in this paragraph.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then no alignment is applied to the paragraph.
+        /// Setting this property to <see langword="null"/> removes direct alignment and restores style inheritance.
         /// </summary>
         public WordParagraphAlignment? ParagraphAlignment {
             get {
@@ -36,11 +37,15 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
+                if (value == null) {
+                    _paragraphProperties?.RemoveAllChildren<Justification>();
+                    return;
+                }
                 if (_paragraphProperties == null) {
                     _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
                 _paragraph.ParagraphProperties!.Justification = new Justification {
-                    Val = value?.ToOpenXml()
+                    Val = value.Value.ToOpenXml()
                 };
             }
         }
@@ -48,6 +53,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Text Alignment aka Vertical Character Alignment on Line. This element specifies the vertical alignment of all text on each line displayed within a paragraph. If the line height (before any added spacing) is larger than one or more characters on the line, all characters are aligned to each other as specified by this element.
         /// If this element is omitted on a given paragraph, its value is determined by the setting previously set at any level of the style hierarchy (i.e.that previous setting remains unchanged). If this setting is never specified in the style hierarchy, then the vertical alignment of all characters on the line shall be automatically determined by the consumer.
+        /// Setting this property to <see langword="null"/> removes direct alignment and restores style inheritance.
         /// </summary>
         public WordVerticalCharacterAlignment? VerticalCharacterAlignmentOnLine {
             get {
@@ -57,12 +63,14 @@ namespace OfficeIMO.Word {
                 return null;
             }
             set {
-                var textAlignment = new TextAlignment();
-                textAlignment.Val = value?.ToOpenXml();
+                if (value == null) {
+                    _paragraphProperties?.RemoveAllChildren<TextAlignment>();
+                    return;
+                }
                 if (_paragraphProperties == null) {
                     _paragraph.ParagraphProperties = new ParagraphProperties();
                 }
-                _paragraph.ParagraphProperties!.TextAlignment = textAlignment;
+                _paragraph.ParagraphProperties!.TextAlignment = new TextAlignment { Val = value.Value.ToOpenXml() };
             }
         }
         /// <summary>

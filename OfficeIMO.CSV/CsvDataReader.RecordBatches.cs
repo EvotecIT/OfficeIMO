@@ -7,7 +7,7 @@ namespace OfficeIMO.CSV;
 
 internal sealed partial class CsvDataReader
 {
-    internal async Task<(CsvRecordTextBatch Batch, bool ReachedEnd)> ReadRecordTextBatchAsync(
+    internal async ValueTask<(CsvRecordTextBatch Batch, bool ReachedEnd)> ReadRecordTextBatchAsync(
         int preferredRows, CancellationToken cancellationToken)
     {
         var batch = new CsvRecordTextBatch(preferredRows, FieldCount, _culture, _dateTimeFormats);

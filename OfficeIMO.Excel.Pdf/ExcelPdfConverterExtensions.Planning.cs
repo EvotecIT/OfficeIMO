@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel.Pdf {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
-        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelToPdfOptions options, bool preserveConfiguredFontSlots) {
+        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelToPdfOptions options, bool preserveConfiguredFontSlots, OfficeFontInfo? defaultFont) {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
 
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -177,6 +177,12 @@ namespace OfficeIMO.Excel.Pdf {
                 }
             }
 
+            if (options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas &&
+                options.UseWorksheetColumnWidths && defaultFont.HasValue &&
+                options.ResourcePolicy.AllowSystemFontEmbedding && options.ResourcePolicy.AllowDocumentFontEmbedding) {
+                RegisterWorksheetFontCandidate(defaultFont.Value.FamilyName, pdfOptions, registeredFamilies,
+                    registeredFontSlots, options, exportPlans.FirstOrDefault()?.SheetName ?? string.Empty);
+            }
             return registeredFontSlots;
         }
 
@@ -376,7 +382,7 @@ namespace OfficeIMO.Excel.Pdf {
                     ISet<string>? exportedCellReferences = CreateExportedCellReferenceSet(exportData.CellReferences, exportedRows);
                     bool filterMediaToExportedCells = !boundedRead && HasWorksheetPrintArea(workbookSheet, options) ||
                                                       options.MaxRowsPerSheet.HasValue ||
-                                                      (options.RespectWorksheetHiddenRowsAndColumns && HasHiddenRowsOrColumns(workbookSheet));
+                                                      (options.RespectWorksheetHiddenRowsAndColumns && HasHiddenRowsOrColumns(workbookSheet, options.CancellationToken));
                     IReadOnlyList<WorksheetImageExportData> images = boundedRead
                         ? Array.Empty<WorksheetImageExportData>()
                         : FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
@@ -481,9 +487,10 @@ namespace OfficeIMO.Excel.Pdf {
                 Math.Max(1, firstColumn),
                 Math.Max(Math.Max(1, firstRow), lastRow),
                 Math.Max(Math.Max(1, firstColumn), lastColumn),
-                workbookSheet?.DefaultColumnWidth is double defaultColumnWidth && defaultColumnWidth > 0D ? defaultColumnWidth : 8.43D,
+                workbookSheet?.DefaultColumnWidth is double defaultColumnWidth && defaultColumnWidth > 0D ? defaultColumnWidth : (double?)null,
+                workbookSheet?.BaseColumnWidth ?? 8D,
                 workbookSheet?.DefaultRowHeight is double defaultRowHeight && defaultRowHeight > 0D ? defaultRowHeight : 15D,
-                workbookSheet?.GetColumnDefinitions() ?? Array.Empty<ExcelColumnSnapshot>(),
+                workbookSheet?.GetColumnDefinitions(options.CancellationToken) ?? Array.Empty<ExcelColumnSnapshot>(),
                 workbookSheet?.GetRowDefinitions() ?? Array.Empty<ExcelRowSnapshot>(),
                 options.UseWorksheetColumnWidths,
                 options.UseWorksheetRowHeights,

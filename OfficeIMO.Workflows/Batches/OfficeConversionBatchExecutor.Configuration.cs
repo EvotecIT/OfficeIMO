@@ -18,6 +18,7 @@ internal static partial class OfficeConversionBatchExecutor {
     private static string CaptureRenderingConfiguration(OfficeConversionBatchRequest settings, string routeId) {
         OfficeWorkflowConversionOptions options = settings.ConversionOptions.ForRoute(routeId);
         if (options.Html?.ResourceResolver != null || options.Html?.TextShapingProvider != null || options.Rtf?.ImageConverter != null || options.Markdown?.RemoteImageResolver != null ||
+            options.PublisherRead?.ImageCodec != null ||
             options.Visio?.DrawingOptions?.TextShapingProvider != null ||
             options.Visio?.DrawingOptions?.Fonts.FontProgramProvider != null || options.Visio?.DrawingOptions?.Fonts.FontVariationResolver != null ||
             options.Markdown?.ResourcePolicy.AllowRemoteResourceResolution == true ||

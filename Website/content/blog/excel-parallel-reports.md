@@ -4,7 +4,9 @@ description: "Learn how OfficeIMO.Excel uses a parallel threading model to accel
 date: 2025-03-20
 tags: [excel, performance, threading]
 categories: [Tutorial, Deep Dive]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 When your reporting pipeline needs to fill a workbook with tens of thousands of rows, single-threaded cell writes can become a bottleneck. **OfficeIMO.Excel** includes a parallel compute layer that can use multiple cores for bulk-oriented workloads such as row writes and column AutoFit.

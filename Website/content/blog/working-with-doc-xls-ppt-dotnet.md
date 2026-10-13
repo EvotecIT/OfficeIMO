@@ -4,7 +4,9 @@ description: "A practical guide to reading, converting, validating, and preservi
 date: 2026-07-25
 tags: [dotnet, word, excel]
 categories: [Workflow]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 meta.seo_title: "DOC, XLS, and PPT in .NET Without Microsoft Office"
 ---
 

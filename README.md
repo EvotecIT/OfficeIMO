@@ -14,6 +14,8 @@ This is not one facade over a collection of unrelated document libraries. Office
 
 Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
 
+For existing Windows x64 applications that import through ODBC, [OfficeIMO.Odbc](OfficeIMO.Odbc/README.md) exposes bounded `.xlsx` workbook snapshots as read-only SQL tables. It is built and deployed separately from the .NET document packages.
+
 Upgrading an existing application? The [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
@@ -40,6 +42,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| CAB and passive MSI extraction | None | Managed Cabinet decoding, embedded MSI payload mapping, bounded extraction, and path validation |
 | JavaScript and browser assets | None | Strict TypeScript document layers, streaming XLSX/CSV and embedded portable scripts |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
@@ -50,7 +53,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Email, email stores, and address books | `System.Text.Encoding.CodePages` | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, protected-wrapper preservation, limits, and diagnostics |
 | Optional Security provider | [Bouncy Castle](https://www.bouncycastle.org/csharp/) and `System.Security.Cryptography.Xml` | CMS/S/MIME/RFC 3161/X.509/XML DSig orchestration behind one typed provider explicitly supplied to Word, PDF, or Email |
 | Optional ChartForgeX bridge | [ChartForgeX](https://github.com/EvotecIT/ChartForgeX) | Vector-first visual artifact conversion, OfficeDrawing fidelity reports, and Word, Excel, PowerPoint, and PDF placement |
-| Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
+| Visio | `System.IO.Packaging` | VSDX/VSTX/VSSX and macro-enabled package model, bounded legacy binary import, diagram builders, editing, validation, topology, and PNG/JPEG/TIFF/SVG/WebP export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
 | Optional document AI | [OfficeIMO.AI](OfficeIMO.AI/README.md) and [IntelligenceX adapter](OfficeIMO.AI.IntelligenceX/README.md) | Read-only questions, summaries, field extraction and proposed structure with bounded source evidence; .NET 10 and caller-selected model execution |
@@ -95,6 +98,14 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Reproducible, output-validated identification, decode, encode, resize, and placement-optimization benchmarks with opt-in library comparisons isolated from runtime packages
 
 _Dependency footprint:_ zero third-party runtime dependencies.
+
+#### [OfficeIMO.Archives](OfficeIMO.Archives/README.md)
+
+- [x] Managed single-cabinet extraction with Store, MSZIP, and LZX compression
+- [x] Passive MSI extraction maps embedded CAB members through authored Directory, Component, File, and Media tables
+- [x] Selective output, path and collision validation, finite resource limits, cancellation, and atomic destination publication
+
+_Dependency footprint:_ only `OfficeIMO.Core`; extraction does not execute installers or custom actions. Cabinet sets, external MSI payloads, and action-dependent installation layouts are unsupported; see the [support matrix](OfficeIMO.Archives/SUPPORT.md).
 
 #### [OfficeIMO.IWork](OfficeIMO.IWork/README.md)
 
@@ -339,6 +350,16 @@ therefore do not change the restore graph, trimming roots, or NativeAOT surface 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no OpenDocument SDK and no LibreOffice runtime.
 
+#### [OfficeIMO.Publisher](OfficeIMO.Publisher/README.md)
+
+Native Publisher publication recovery into positioned pages, styled text stories,
+table cells and embedded image assets, with SVG export and explicit fidelity
+reports. [OfficeIMO.Publisher.Pdf](OfficeIMO.Publisher.Pdf/README.md) adds multi-page
+PDF conversion through the shared drawing and PDF engines. The
+[support contract](OfficeIMO.Publisher/SUPPORT.md) identifies profile and rendering
+limits. The reader references only `OfficeIMO.Core` and does not require Publisher.
+The [Reader adapter](OfficeIMO.Reader.Publisher/README.md) retains complete stories,
+physical page inventory and image descriptors for semantic ingestion.
 #### [OfficeIMO.Chm](OfficeIMO.Chm/README.md)
 
 Compiled HTML Help reading with exact entry extraction, topics, embedded resources,
@@ -1025,6 +1046,13 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeI
 - [x] Slide, notes, table, image, metadata, diagnostic, and password-aware projection
 
 _Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.PowerPoint`.
+
+#### [OfficeIMO.Reader.Publisher](OfficeIMO.Reader.Publisher/README.md)
+
+Complete native `.pub` story extraction, bullet markers, physical page inventory
+and optional embedded-image payloads, with explicit semantic projection losses.
+
+_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Publisher`.
 
 #### [OfficeIMO.Reader.Markdown](OfficeIMO.Reader.Markdown/README.md)
 

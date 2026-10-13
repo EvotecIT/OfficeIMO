@@ -9,6 +9,10 @@ internal sealed record OfficeConversionSupportAssessment(
 
 internal static class OfficeConversionSupportAssessments {
     internal static OfficeConversionSupportAssessment Get(string routeId) {
+        if (routeId is "visio-binary-vsdx" or "visio-binary-vssx" or "visio-binary-vstx" or "visio-binary-svg" or "visio-binary-pdf")
+            return Targeted(
+                "Independent Microsoft Visio version 11 drawings, stencils and templates are compared with paired native XML for shape hierarchy, masters, transforms and cached text; modern packages reopen and SVG/PDF output is inspected.",
+                "Cached reconstruction only. Earlier binary generations, native binary writing, formulas, active content, unsupported geometry, custom data and full native visual fidelity are outside this profile. Import and subsequent projection have separate loss reports; native Microsoft Visio acceptance remains unqualified.");
         if (IsImageRoute(routeId, out string source)) return Image(source);
         if (routeId.StartsWith("email-", StringComparison.Ordinal)) {
             return Established(
@@ -142,6 +146,9 @@ internal static class OfficeConversionSupportAssessments {
         "visio-pdf" => Targeted(
             "Typed drawing and legacy XML fixtures verify semantic reports and cached diagram pages, source dimensions, searchable text, layer selection, and source/PDF loss diagnostics.",
             "Diagram pages use the cached Visio-to-Drawing profile. Arbitrary formula recalculation, broad native appearance and exact native typography remain unqualified; workflow defaults select diagram pages while the direct adapter defaults to a semantic report."),
+        "publisher-pdf" => Targeted(
+            "Native Contents/Quill/OfficeArt fixtures verify physical pages, searchable styled text, linked frames, native tables, embedded images and carried source/PDF diagnostics.",
+            "Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified."),
         "docx-google-docs" or "google-docs-docx" => Established(
             "Native request/import fixtures verify run typography, paragraphs, tables, tabs, remote operation policies, and Drive fallback behavior without requiring live credentials.",
             "Google Docs supports single underline and strike rather than Word decoration variants; all-caps is materialized and unsupported Word-only layout uses explicit diagnostics or Drive fallback."),

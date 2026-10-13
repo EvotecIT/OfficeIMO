@@ -22,6 +22,9 @@ public sealed class DjVuPdfWorkflowTests {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("4", evidence.Facts["sourcePages"]);
             Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "djvu.pdf.stored-text-corrupt");
+            foreach (var finding in evidence.FidelityDiagnostics)
+                Assert.Equal(evidence.FidelityDiagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message),
+                    result.Diagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message));
             Assert.Equal(source, File.ReadAllBytes(input));
         } finally { Directory.Delete(root, true); }
     }
