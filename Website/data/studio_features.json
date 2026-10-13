@@ -63,13 +63,7 @@
           "id": "reading-layouts",
           "title": "Reading layouts",
           "detail": "Single, continuous, two-page and grid views, view rotation",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
-          "notes": {
-            "mac": "Single page, continuous, two-page and grid; view rotation is planned.",
-            "ipad": "Single page, continuous, two-page and grid; view rotation is planned.",
-            "iphone": "Single page, continuous, two-page and grid; view rotation is planned."
-          },
-          "roadmap": "phase-7-native-apple-apps"
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
         },
         {
           "id": "outline",

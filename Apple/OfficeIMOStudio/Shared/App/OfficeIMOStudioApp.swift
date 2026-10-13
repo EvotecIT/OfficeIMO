@@ -98,6 +98,8 @@ struct StudioCommands: Commands {
                     ForEach(ReadingLayout.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.inline)
+                Button("Rotate View Left") { session?.rotateView(clockwise: false) }
+                Button("Rotate View Right") { session?.rotateView(clockwise: true) }
                 Divider()
                 Button("Actual Size") { session?.zoom(.actualSize) }
                     .keyboardShortcut("0")

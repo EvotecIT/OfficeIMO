@@ -181,12 +181,18 @@ struct DocumentToolbar: ToolbarContent {
                 ForEach(StudioTask.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
             }
             .pickerStyle(.inline)
-            Picker(selection: $session.readingLayout) {
-                ForEach(ReadingLayout.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+            Menu {
+                Picker("Reading Layout", selection: $session.readingLayout) {
+                    ForEach(ReadingLayout.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+                }
+                .pickerStyle(.inline)
+                Section {
+                    Button("Rotate View Left", systemImage: "rotate.left") { session.rotateView(clockwise: false) }
+                    Button("Rotate View Right", systemImage: "rotate.right") { session.rotateView(clockwise: true) }
+                }
             } label: {
                 Label("Reading Layout", systemImage: session.readingLayout.systemImage)
             }
-            .pickerStyle(.menu)
             Section {
                 Button("Make Searchable", systemImage: "text.viewfinder") { session.makeSearchable() }
                     .disabled(!session.canMakeSearchable)

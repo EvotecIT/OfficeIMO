@@ -22,9 +22,10 @@ final class PageTiles {
     /// The pages, positioned in PDF points from the top left. The host adds it to its zooming view.
     let layer = CALayer()
     private(set) var layout = PageLayout(pages: [])
-    /// The reading layout, and the page Single Page shows.
+    /// The reading layout, the page Single Page shows and the view's clockwise rotation.
     private(set) var mode = ReadingLayout.continuous
     private var shownPage = 1
+    private var rotation = 0
 
     private var engine: EngineDocument?
     private var facts: DocumentFacts?
@@ -54,7 +55,7 @@ final class PageTiles {
     func show(_ engine: EngineDocument, facts: DocumentFacts) {
         guard engine !== self.engine || facts.revision != self.facts?.revision else { return }
         cancelAll()
-        let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage)
+        let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage, rotation: rotation)
         let keepsLayout = engine === self.engine && newLayout == layout
         self.engine = engine
         self.facts = facts
@@ -77,11 +78,12 @@ final class PageTiles {
     /// Lays the pages out in a reading layout, Single Page showing one page. Returns whether the layout changed, so
     /// the host sizes its view again.
     @discardableResult
-    func setLayout(_ mode: ReadingLayout, shownPage: Int) -> Bool {
+    func setLayout(_ mode: ReadingLayout, shownPage: Int, rotation: Int) -> Bool {
         self.mode = mode
         self.shownPage = shownPage
+        self.rotation = rotation
         guard let facts else { return false }
-        let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage)
+        let newLayout = PageLayout(pages: facts.pages, mode: mode, shownPage: shownPage, rotation: rotation)
         guard newLayout != layout else { return false }
         cancelAll()
         apply(newLayout)
@@ -100,7 +102,7 @@ final class PageTiles {
             previews.removeAll()
             tiles.removeAll()
             layer.bounds = CGRect(origin: .zero, size: layout.size)
-            for frame in layout.frames {
+            for (index, frame) in layout.frames.enumerated() {
                 let page = CALayer()
                 page.frame = frame
                 page.backgroundColor = CGColor(gray: 1, alpha: 1)
@@ -108,8 +110,11 @@ final class PageTiles {
                 page.shadowRadius = 3
                 page.shadowOffset = CGSize(width: 0, height: 1)
                 page.shadowPath = CGPath(rect: page.bounds, transform: nil)
+                // The page's images, marks and selection are upright inside the clip, which the view's rotation turns.
                 let clip = CALayer()
-                clip.frame = page.bounds
+                clip.bounds = CGRect(origin: .zero, size: layout.pageSize(index + 1))
+                clip.position = CGPoint(x: page.bounds.midX, y: page.bounds.midY)
+                clip.transform = CATransform3DMakeRotation(CGFloat(layout.rotation) * .pi / 180, 0, 0, 1)
                 clip.masksToBounds = true
                 page.addSublayer(clip)
                 layer.addSublayer(page)
@@ -310,7 +315,7 @@ final class PageTiles {
         let side = Double(Self.tileSize)
         for page in range where !layout.frames[page - 1].isEmpty && tileScale > previewScale(page) * 1.15 {
             let frame = layout.frames[page - 1]
-            let local = rect.intersection(frame).offsetBy(dx: -frame.minX, dy: -frame.minY)
+            let local = layout.pageRect(rect.intersection(frame), page: page)
             guard !local.isNull, !local.isEmpty else { continue }
             let size = facts.pageImageSize(page: page, scale: tileScale)
             let columns = (size.width + Self.tileSize - 1) / Self.tileSize
@@ -346,7 +351,7 @@ final class PageTiles {
     }
 
     private func distance(of key: TileKey, to point: CGPoint) -> Double {
-        let rect = pageRect(key).offsetBy(dx: layout.frames[key.page - 1].minX, dy: layout.frames[key.page - 1].minY)
+        let rect = layout.layoutRect(pageRect(key), page: key.page)
         return hypot(rect.midX - point.x, rect.midY - point.y)
     }
 
@@ -374,8 +379,7 @@ final class PageTiles {
         withoutAnimation {
             for (key, tile) in tiles where !needed.contains(key) {
                 if key.scale != tileScale, let rect, tiles.count < 256 {
-                    let frame = layout.frames[key.page - 1]
-                    if pageRect(key).offsetBy(dx: frame.minX, dy: frame.minY).intersects(rect) { continue }
+                    if layout.layoutRect(pageRect(key), page: key.page).intersects(rect) { continue }
                 }
                 tile.removeFromSuperlayer()
                 tiles[key] = nil

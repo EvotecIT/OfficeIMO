@@ -118,10 +118,15 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
         var groups: [InkKey: [[EnginePoint]]] = [:]
         var order: [InkKey] = []
         let zoom = drawnZoom
+        // The canvas covers the page as shown, which may be turned; the strokes go on the upright page.
+        let layout = scrollView.tiles.layout
+        guard layout.frames.indices.contains(page - 1) else { return }
+        let frame = layout.frames[page - 1], drawnPage = page
         for stroke in strokes {
             let points = stroke.path.interpolatedPoints(by: .distance(2)).map { point -> EnginePoint in
                 let location = point.location.applying(stroke.transform)
-                return EnginePoint(x: location.x / zoom, y: location.y / zoom)
+                let upright = layout.pagePoint(CGPoint(x: frame.minX + location.x / zoom, y: frame.minY + location.y / zoom), page: drawnPage)
+                return EnginePoint(x: upright.x, y: upright.y)
             }
             guard points.count > 1 else { continue }
             let widths = stroke.path.map(\.size.width)

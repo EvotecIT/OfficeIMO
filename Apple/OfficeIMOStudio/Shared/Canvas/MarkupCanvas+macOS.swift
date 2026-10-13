@@ -75,15 +75,15 @@ final class MarkupInkView: NSView {
     override func mouseUp(with event: NSEvent) {
         guard let shape = strokeLayer else { return }
         strokeLayer = nil
-        let frames = layout().frames
-        guard stroke.count > 1, frames.indices.contains(strokePage - 1) else {
+        let pages = layout()
+        guard stroke.count > 1, pages.frames.indices.contains(strokePage - 1) else {
             shape.removeFromSuperlayer()
             return
         }
-        let origin = frames[strokePage - 1].origin
         let style = session.markupStyle
+        let page = strokePage
         let request = AnnotationRequest(tool: .ink, page: strokePage,
-                                        strokes: [stroke.map { EnginePoint(x: $0.x - origin.x, y: $0.y - origin.y) }],
+                                        strokes: [stroke.map { let point = pages.pagePoint($0, page: page); return EnginePoint(x: point.x, y: point.y) }],
                                         author: DocumentSession.author, color: session.markupColor,
                                         strokeWidth: style.strokeWidth, opacity: style.opacity)
         waiting.append((session.revision, shape))

@@ -23,7 +23,7 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
         guard !frames.isEmpty else { return false }
         let page = layout().page(at: location)
         let frame = frames[page - 1]
-        let point = CGPoint(x: location.x - frame.minX, y: location.y - frame.minY)
+        let point = layout().pagePoint(location, page: page)
         if session.pendingSignature != nil, frame.contains(location) {
             finish(commit: true)
             session.placeSignature(page: page, at: point)
@@ -35,9 +35,9 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
         }
         if editing?.field.name != field.name { finish(commit: true) }
         switch field.kind {
-        case .text: beginTyping(page: page, field: field, box: widget.bounds.cgRect.offsetBy(dx: frame.minX, dy: frame.minY))
+        case .text: beginTyping(page: page, field: field, box: layout().layoutRect(widget.bounds.cgRect, page: page))
         case .checkbox, .radio: session.toggle(field, widget: widget)
-        case .combo, .list: showChoices(field, box: widget.bounds.cgRect.offsetBy(dx: frame.minX, dy: frame.minY))
+        case .combo, .list: showChoices(field, box: layout().layoutRect(widget.bounds.cgRect, page: page))
         default: return false
         }
         return true
@@ -48,8 +48,7 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
         let pages = layout()
         guard !pages.frames.isEmpty else { return nil }
         let page = pages.page(at: location)
-        let frame = pages.frames[page - 1]
-        return session.formField(at: CGPoint(x: location.x - frame.minX, y: location.y - frame.minY), page: page)?.0.kind
+        return session.formField(at: pages.pagePoint(location, page: page), page: page)?.0.kind
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -124,9 +123,9 @@ final class FormEditor: NSObject, NSTextFieldDelegate {
         let next = order[(index + step + order.count) % order.count]
         let frames = layout().frames
         guard frames.indices.contains(next.page - 1) else { return }
-        let frame = frames[next.page - 1]
-        beginTyping(page: next.page, field: next.field, box: next.box.offsetBy(dx: frame.minX, dy: frame.minY))
-        pages?.scrollToVisible(next.box.offsetBy(dx: frame.minX, dy: frame.minY).insetBy(dx: 0, dy: -24))
+        let box = layout().layoutRect(next.box, page: next.page)
+        beginTyping(page: next.page, field: next.field, box: box)
+        pages?.scrollToVisible(box.insetBy(dx: 0, dy: -24))
     }
 
     func controlTextDidEndEditing(_ notification: Notification) {

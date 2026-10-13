@@ -14,7 +14,7 @@ struct PageCanvas: UIViewRepresentable {
     func updateUIView(_ view: PageScrollView, context: Context) {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
-        view.setReadingLayout(session.readingLayout, page: session.currentPage)
+        view.setReadingLayout(session.readingLayout, page: session.currentPage, rotation: session.viewRotation)
         if let request = session.canvasRequest { view.handle(request) }
         let dragTool = session.pageDragTool
         let drawing = session.task == .markup && session.canEditAnnotations && dragTool == nil
@@ -104,9 +104,9 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     }
 
     /// Lays the pages out for reading: Single Page shows the given page, which a swipe across it changes.
-    func setReadingLayout(_ mode: ReadingLayout, page: Int) {
+    func setReadingLayout(_ mode: ReadingLayout, page: Int, rotation: Int) {
         for swipe in swipes { swipe.isEnabled = mode == .singlePage }
-        if tiles.setLayout(mode, shownPage: page) { layoutChanged() }
+        if tiles.setLayout(mode, shownPage: page, rotation: rotation) { layoutChanged() }
     }
 
     /// Sizes the content to a new layout; the next layout pass fits the width and shows the current page.
@@ -138,8 +138,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
     /// Scrolls a rectangle of a page into the middle of the visible area, unless it is already in view.
     private func reveal(_ rect: CGRect, onPage page: Int) {
         guard tiles.layout.frames.indices.contains(page - 1) else { return }
-        let frame = tiles.layout.frames[page - 1]
-        let target = rect.offsetBy(dx: frame.minX, dy: frame.minY)
+        let target = tiles.layout.layoutRect(rect, page: page)
         let visible = convert(bounds.inset(by: adjustedContentInset), to: content)
         guard !visible.insetBy(dx: 8, dy: 8).contains(target) else { return }
         let size = visible.size
@@ -259,7 +258,7 @@ final class PageScrollView: UIScrollView, UIScrollViewDelegate {
         guard tiles.layout.frames.indices.contains(page - 1) else { return }
         let frame = tiles.layout.frames[page - 1]
         let middle = CGPoint(x: min(max(visible.midX, frame.minX + 24), frame.maxX - 24), y: min(max(visible.midY, frame.minY + 24), frame.maxY - 24))
-        session.viewCenterOnPage = CGPoint(x: middle.x - frame.minX, y: middle.y - frame.minY)
+        session.viewCenterOnPage = tiles.layout.pagePoint(middle, page: page)
     }
 }
 #endif

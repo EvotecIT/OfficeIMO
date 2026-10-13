@@ -32,15 +32,26 @@ enum ReadingLayout: String, CaseIterable, Identifiable {
 /// Pages in PDF points, in one of the reading layouts: one column, a single page, a cover followed by two-page
 /// spreads, or a grid. The scroll view zooms the whole layout, so a page's frame never changes with the zoom and the
 /// tiles only need to know how many pixels a point covers. In Single Page every other page has an empty frame.
+///
+/// The view can turn every page a quarter, a half or three quarters clockwise without changing the document. Frames are
+/// then the turned pages; the views over them convert between the layout and each upright page with pagePoint,
+/// layoutPoint, pageRect and layoutRect, which add only the frame's origin when the view isn't turned.
 struct PageLayout: Equatable {
     static let spacing: CGFloat = 12
     static let margin: CGFloat = 12
 
     let frames: [CGRect]
     let size: CGSize
+    /// Clockwise degrees: 0, 90, 180 or 270.
+    let rotation: Int
+    /// Each page's upright size in displayed points.
+    private let pageSizes: [CGSize]
 
-    init(pages: [DocumentFacts.Page], mode: ReadingLayout = .continuous, shownPage: Int = 1) {
-        let sizes = pages.map(\.displaySize)
+    init(pages: [DocumentFacts.Page], mode: ReadingLayout = .continuous, shownPage: Int = 1, rotation: Int = 0) {
+        let rotation = ((rotation % 360) + 360) % 360 / 90 * 90
+        self.rotation = rotation
+        pageSizes = pages.map(\.displaySize)
+        let sizes = pageSizes.map { rotation % 180 == 0 ? $0 : CGSize(width: $0.height, height: $0.width) }
         let widest = sizes.map(\.width).max() ?? 0
         let tallest = sizes.map(\.height).max() ?? 0
         var frames = Array(repeating: CGRect.zero, count: sizes.count)
@@ -132,4 +143,63 @@ struct PageLayout: Equatable {
     }
 
     private func area(_ rect: CGRect) -> CGFloat { rect.isNull ? 0 : rect.width * rect.height }
+
+    // MARK: The layout and the upright page
+
+    /// A page's upright size in displayed points.
+    func pageSize(_ page: Int) -> CGSize {
+        pageSizes.indices.contains(page - 1) ? pageSizes[page - 1] : .zero
+    }
+
+    /// A point of the layout as a point of the upright page, in its displayed points from its top left.
+    func pagePoint(_ point: CGPoint, page: Int) -> CGPoint {
+        guard frames.indices.contains(page - 1) else { return point }
+        let frame = frames[page - 1], size = pageSizes[page - 1]
+        let v = CGPoint(x: point.x - frame.minX, y: point.y - frame.minY)
+        switch rotation {
+        case 90: return CGPoint(x: v.y, y: size.height - v.x)
+        case 180: return CGPoint(x: size.width - v.x, y: size.height - v.y)
+        case 270: return CGPoint(x: size.width - v.y, y: v.x)
+        default: return v
+        }
+    }
+
+    /// A point of the upright page as a point of the layout.
+    func layoutPoint(_ point: CGPoint, page: Int) -> CGPoint {
+        guard frames.indices.contains(page - 1) else { return point }
+        let frame = frames[page - 1], size = pageSizes[page - 1]
+        let v: CGPoint
+        switch rotation {
+        case 90: v = CGPoint(x: size.height - point.y, y: point.x)
+        case 180: v = CGPoint(x: size.width - point.x, y: size.height - point.y)
+        case 270: v = CGPoint(x: point.y, y: size.width - point.x)
+        default: v = point
+        }
+        return CGPoint(x: v.x + frame.minX, y: v.y + frame.minY)
+    }
+
+    /// A rectangle of the upright page as a rectangle of the layout.
+    func layoutRect(_ rect: CGRect, page: Int) -> CGRect {
+        Self.bounds(layoutPoint(CGPoint(x: rect.minX, y: rect.minY), page: page), layoutPoint(CGPoint(x: rect.maxX, y: rect.maxY), page: page))
+    }
+
+    /// A rectangle of the layout as a rectangle of the upright page.
+    func pageRect(_ rect: CGRect, page: Int) -> CGRect {
+        guard !rect.isNull else { return rect }
+        return Self.bounds(pagePoint(CGPoint(x: rect.minX, y: rect.minY), page: page), pagePoint(CGPoint(x: rect.maxX, y: rect.maxY), page: page))
+    }
+
+    /// A vector of the layout, such as a drag, as a vector of the upright page.
+    func pageVector(_ vector: CGVector) -> CGVector {
+        switch rotation {
+        case 90: return CGVector(dx: vector.dy, dy: -vector.dx)
+        case 180: return CGVector(dx: -vector.dx, dy: -vector.dy)
+        case 270: return CGVector(dx: -vector.dy, dy: vector.dx)
+        default: return vector
+        }
+    }
+
+    private static func bounds(_ a: CGPoint, _ b: CGPoint) -> CGRect {
+        CGRect(x: min(a.x, b.x), y: min(a.y, b.y), width: abs(a.x - b.x), height: abs(a.y - b.y))
+    }
 }

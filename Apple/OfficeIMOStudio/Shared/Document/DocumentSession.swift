@@ -82,6 +82,8 @@ final class DocumentSession {
     var zoomToFit = 1.0
     /// Points on screen per PDF point, reported by the page view.
     var zoom = 1.0
+    /// How far the pages are turned on screen, in clockwise degrees; the document itself doesn't change.
+    var viewRotation = 0
     /// How the pages are laid out for reading; the last choice is kept for new windows.
     var readingLayout = ReadingLayout(rawValue: UserDefaults.standard.string(forKey: "ReadingLayout") ?? "") ?? .continuous {
         didSet {
@@ -208,6 +210,12 @@ final class DocumentSession {
         guard (1...max(pageCount, 1)).contains(page) else { return }
         currentPage = page
         canvasRequest = CanvasRequest(kind: .showPage(page))
+    }
+
+    /// Turns the pages on screen a quarter, leaving the document as it is.
+    func rotateView(clockwise: Bool) {
+        viewRotation = (viewRotation + (clockwise ? 90 : 270)) % 360
+        zoomToFit = 1
     }
 
     func showNextPage() { show(page: currentPage + 1) }
