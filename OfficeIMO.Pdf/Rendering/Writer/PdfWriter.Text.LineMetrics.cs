@@ -51,6 +51,8 @@ internal static partial class PdfWriter {
         out double ascent, out double descent) {
         double size = EffectiveRichFontSize(fontSize, baseline);
         double rise = TextRiseForBaseline(fontSize, baseline);
+        if (spacing?.IsExact == false)
+            rise += ResolveFontLineAlignmentRise(font, namedFont, size, options, spacing);
         if (spacing?.FontLineBoxMultiplier is double natural) {
             OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? metrics = ResolveFontLineMetrics(font, namedFont, options);
             double fontDescent = metrics.HasValue ? size * metrics.Value.DescentRatio
@@ -103,7 +105,7 @@ internal static partial class PdfWriter {
                 ascender = Math.Max(ascender, inline.BaselineOffset + inline.Height);
                 descender = Math.Max(descender, -inline.BaselineOffset);
             } else {
-                double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline);
+                double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.LineAlignmentRise;
                 double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
                 ascender = Math.Max(ascender, rise + GetAscenderForOptions(segment.Font, segment.NamedFont, size, options));
                 descender = Math.Max(descender, GetDescenderForOptions(segment.Font, segment.NamedFont, size, options) - rise);

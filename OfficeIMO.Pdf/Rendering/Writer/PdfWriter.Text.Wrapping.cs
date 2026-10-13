@@ -357,6 +357,8 @@ internal static partial class PdfWriter {
                 ? resolvedNamedFont
                 : null;
             double runFontSize = run.FontSize ?? fontSize;
+            currentRunDecorationTextRise += ResolveFontLineAlignmentRise(fontForRun, currentRunNamedFont,
+                currentRunDecorationFontSize, options, lineSpacing);
             currentRunContributesDescent = run.ContributesLineBoxDescent;
             currentRunIsInline = run.InlineElement != null;
             GetRichRunLineMetrics(fontForRun, currentRunNamedFont, runFontSize, baseline, options, lineSpacing,
@@ -729,6 +731,7 @@ internal static partial class PdfWriter {
         if (heights.Count < lines.Count) heights.Add(currentLineHeight);
         foreach (RichLine line in lines) {
             runKerning.Apply(line);
+            foreach (RichSeg segment in line) segment.LineAlignmentRise = ResolveRichRunLineAlignmentRise(segment, options, lineSpacing);
             line.BaselineOffset = ResolveRichLineBaselineOffset(line, baseFont, fontSize, options, lineSpacing);
             if (lineSpacing?.FontLineBoxMultiplier != null && lineSpacing.Rule == PdfLineSpacingRule.Multiple)
                 line.FrameFitHeight = ResolveImportedLineFrameFitHeight(line, baseFont, fontSize, options, lineSpacing);

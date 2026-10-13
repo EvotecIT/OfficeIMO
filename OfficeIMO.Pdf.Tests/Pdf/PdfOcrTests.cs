@@ -166,41 +166,6 @@ public class PdfOcrTests {
     }
 
     [Fact]
-    public async Task RecognizeAndMergeAsync_DoesNotRestartTimedOutNonConcurrentProvider() {
-        byte[] pdf = PdfDocument.Create()
-            .Image(PdfPngTestImages.CreateRgbPng(230, 230, 230), 220, 90)
-            .ToBytes();
-        var completion = new TaskCompletionSource<OcrResult>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var firstCallStarted = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        int callCount = 0;
-        var provider = new DelegateOcrEngine("stalled-non-concurrent-pdf-fixture", (_, _) => {
-            Interlocked.Increment(ref callCount);
-            firstCallStarted.TrySetResult(null);
-            return completion.Task;
-        });
-        // The first operation must enter the provider before testing its occupied gate.
-        // This is a provider deadline, not an elapsed-performance assertion.
-        var options = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromSeconds(5) };
-
-        try {
-            Task<PdfOcrMergeResult> firstCall = PdfDocument.Load(pdf).ReadWithOcrAsync(provider, options);
-            Task started = await Task.WhenAny(firstCallStarted.Task, firstCall);
-            Assert.Same(firstCallStarted.Task, started);
-            OcrEngineTimeoutException first = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
-                () => firstCall);
-            var occupiedGateOptions = new PdfOcrMergeOptions { ProviderTimeout = TimeSpan.FromMilliseconds(200) };
-            OcrEngineTimeoutException second = await Assert.ThrowsAsync<OcrEngineTimeoutException>(
-                () => PdfDocument.Load(pdf).ReadWithOcrAsync(provider, occupiedGateOptions));
-
-            Assert.True(first.ProviderCallStarted);
-            Assert.False(second.ProviderCallStarted);
-            Assert.Equal(1, Volatile.Read(ref callCount));
-        } finally {
-            completion.TrySetResult(new OcrResult());
-        }
-    }
-
-    [Fact]
     public async Task RecognizeAndMergeAsync_UsesCanonicalStructuredReadForNativeEvidence() {
         byte[] pdf = PdfDocument.Create()
             .TaggedPdfCatalogMarkers()

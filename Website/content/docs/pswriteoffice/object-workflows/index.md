@@ -16,7 +16,7 @@ $services | Export-OfficeExcel -Path '.\Services.xlsx' -WorksheetName 'Services'
 
 This is the closest fit for inventory exports, query results, and data passed from modules such as DbaClientX. Start here unless the workbook needs several sheets, formulas, charts, or carefully placed content.
 
-The same object boundary works for operational modules. The [PSEventViewer report recipe](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) queries typed events once, projects stable report columns, and creates both Excel and Word deliverables without requiring either module to know about the other's internals.
+The same object boundary works for operational modules. The [PSEventViewer report recipe](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Integrations/Recipe-PSEventViewer-OfficeReport.ps1) queries typed events once, projects stable report columns, and creates both Excel and Word deliverables without requiring either module to know about the other's internals.
 
 ## Incremental jobs: keep the document object
 
@@ -43,7 +43,7 @@ $workbook | Save-OfficeExcel
 $workbook | Close-OfficeExcel
 ```
 
-PowerPoint and Markdown also expose explicit presentation or document targets. See the [Word](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Recipe-Word-ObjectComposition.ps1), [Excel](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Excel/Recipe-Excel-ObjectComposition.ps1), [PowerPoint](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1), and [Markdown](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) object recipes for complete scripts.
+PowerPoint and Markdown also expose explicit presentation or document targets. See the [Word](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Word/Recipe-Word-ObjectComposition.ps1), [Excel](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Excel/Recipe-Excel-ObjectComposition.ps1), [PowerPoint](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/PowerPoint/Recipe-PowerPoint-ObjectComposition.ps1), and [Markdown](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Markdown/Recipe-Markdown-ObjectComposition.ps1) object recipes for complete scripts.
 
 ## Complete authored documents: use the DSL
 

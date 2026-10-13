@@ -20,6 +20,7 @@ public sealed class OfficeArtPictureProperties {
         RecolorColor = GetColor(0x011A);
         Grayscale = GetBoolean(0x013F, 1U << 18, 1U << 2);
         BiLevel = GetBoolean(0x013F, 1U << 17, 1U << 1);
+        PreserveGrays = GetBoolean(0x013F, 1U << 22, 1U << 6);
     }
 
     /// <summary>Decodes picture-frame properties from an OfficeArt property table.</summary>
@@ -81,6 +82,9 @@ public sealed class OfficeArtPictureProperties {
     /// <summary>Gets explicit two-color black-and-white display state, or null when inherited.</summary>
     public bool? BiLevel { get; }
 
+    /// <summary>Gets whether native color modifications leave source gray values unchanged, or null when inherited.</summary>
+    public bool? PreserveGrays { get; }
+
     /// <summary>Gets the top crop as a fraction of image height.</summary>
     public double? CropFromTop => ToFraction(CropFromTopRaw);
 
@@ -111,23 +115,17 @@ public sealed class OfficeArtPictureProperties {
         || Grayscale == true || BiLevel == true;
 
     private int? GetSignedValue(ushort propertyId) {
-        OfficeArtProperty? property = Properties.LastOrDefault(item =>
-            item.PropertyId == propertyId && !item.IsComplex);
+        OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(Properties, propertyId);
         return property == null ? null : unchecked((int)property.Value);
     }
 
     private OfficeArtColorReference? GetColor(ushort propertyId) {
-        OfficeArtProperty? property = Properties.LastOrDefault(item =>
-            item.PropertyId == propertyId && !item.IsComplex);
+        OfficeArtProperty? property = OfficeArtProperty.GetScalarProperty(Properties, propertyId);
         return property == null ? null : new OfficeArtColorReference(property.Value);
     }
 
-    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) {
-        OfficeArtProperty? property = Properties.LastOrDefault(item =>
-            item.PropertyId == propertyId && !item.IsComplex);
-        if (property == null || (property.Value & useMask) == 0) return null;
-        return (property.Value & valueMask) != 0;
-    }
+    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) =>
+        OfficeArtProperty.GetBoolean(Properties, propertyId, useMask, valueMask);
 
     private static double? ToFraction(int? value) => value.HasValue
         ? value.Value / 65536D

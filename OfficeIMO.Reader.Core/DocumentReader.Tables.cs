@@ -159,6 +159,7 @@ internal static partial class DocumentReaderEngine {
             Path = string.IsNullOrWhiteSpace(tableLocation?.Path) ? chunkLocation.Path : tableLocation!.Path,
             BlockIndex = tableLocation?.BlockIndex ?? chunkLocation.BlockIndex,
             SourceBlockIndex = tableLocation?.SourceBlockIndex ?? chunkLocation.SourceBlockIndex,
+            LogicalOrder = tableLocation?.LogicalOrder ?? chunkLocation.LogicalOrder,
             StartLine = tableLocation?.StartLine ?? chunkLocation.StartLine,
             EndLine = tableLocation?.EndLine ?? chunkLocation.EndLine,
             NormalizedStartLine = tableLocation?.NormalizedStartLine ?? chunkLocation.NormalizedStartLine,

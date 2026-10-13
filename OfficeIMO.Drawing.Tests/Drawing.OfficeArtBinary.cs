@@ -5,6 +5,97 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
+    [Theory]
+    [InlineData(0x0182)]
+    [InlineData(0x0184)]
+    public void OfficeArtBooleanInheritance_MalformedEffectiveOpacityDoesNotReviveAnOlderInvalidValue(int id) {
+        var properties = new[] { new OfficeArtProperty(0, 0x0180, 4),
+            new OfficeArtProperty(1, (ushort)id, 65537),
+            new OfficeArtProperty(2, (ushort)(id | 0x8000), 1, 1, complexData: new byte[] { 0 }) };
+        Assert.True(OfficeArtLinearGradientProjector.TryProject(OfficeArtShapeStyle.Decode(properties),
+            80, 40, _ => null, out var fill, out _));
+        Assert.NotNull(fill);
+    }
+
+    [Theory]
+    [InlineData(0U, false)]
+    [InlineData(1U, true)]
+    public void OfficeArtShapeStyle_GradientStopsHonorTheFinalNonComplexOverride(uint replacement, bool invalid) {
+        byte[] colors = { 2, 0, 2, 0, 8, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 1, 0 };
+        var original = new OfficeArtProperty(0, 0x8197, (uint)colors.Length, colors.Length, complexData: colors);
+        Assert.Equal(2, OfficeArtShapeStyle.Decode(new[] { original }).FillGradientStops.Count);
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] { original, new OfficeArtProperty(1, 0x0197, replacement) });
+        Assert.Empty(style.FillGradientStops);
+        Assert.Equal(invalid, style.IsFillGradientStopTableTruncated);
+    }
+
+    [Fact]
+    public void OfficeArtShapeStyle_ClearedBlipReferenceDoesNotReviveAnEarlierTable() {
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x4186, 7), new OfficeArtProperty(1, 0x0186, 0) });
+        Assert.Null(style.FillBlipStoreIndex);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtShapeStyle_UnderstatedFullAndCompactColorArraysDoNotHideExtraStops(bool compact) {
+        byte[] colors = compact
+            ? new byte[] { 1, 0, 1, 0, 0xF0, 0xFF, 0xFF, 0, 0, 0, 0, 0xFF, 0, 0 }
+            : new byte[] { 1, 0, 1, 0, 8, 0, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0, 0, 0, 0, 1, 0 };
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x8197, (uint)colors.Length, colors.Length, complexData: colors) });
+        Assert.Empty(style.FillGradientStops);
+        Assert.True(style.IsFillGradientStopTableTruncated);
+    }
+
+    [Fact]
+    public void OfficeArtShapeStyle_DecodesCompactGradientStopsWithZeroExtendedPositions() {
+        byte[] colors = { 2, 0, 2, 0, 0xF0, 0xFF, 0xFF, 0, 0, 0, 0, 0xFF, 0, 0 };
+        var properties = new[] { new OfficeArtProperty(0, 0x8197, (uint)colors.Length,
+            colors.Length, complexData: colors) };
+        // Caller buffers and public copies cannot mutate the owned payload
+        // borrowed by repeated native style decodes.
+        colors[6] = 0;
+        properties[0].CopyComplexData()![10] = 0xFF;
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(properties);
+        Assert.False(style.IsFillGradientStopTableTruncated);
+        Assert.Equal(2, style.FillGradientStops.Count);
+        Assert.Equal(new[] { 0D, 0D }, style.FillGradientStops.Select(stop => stop.Position));
+        Assert.Equal(new[] { 0x000000FFU, 0x0000FF00U }, style.FillGradientStops.Select(stop => stop.Color.Value));
+    }
+
+    [Theory]
+    [InlineData(0x00360036U, true)]
+    [InlineData(0x00000036U, null)]
+    public void OfficeArtShapeStyle_DecodesFillMappingOnlyWhenItsUseBitsAreSet(uint flags, bool? expected) {
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x01BF, flags), new OfficeArtProperty(1, 0x019C, 0x40000003U)
+        });
+        Assert.Equal(expected, style.FillRotatesWithShape);
+        Assert.Equal(expected, style.FillAlignedWithShape);
+        Assert.Equal(expected, style.FillUsesCustomRectangle);
+        Assert.Equal(0x40000003U, style.FillShadeType);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeArtShapeStyle_SecondaryBooleanGroupsPreserveUnchangedBits(bool enabled) {
+        uint bit = enabled ? 8U : 0U;
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x01FF, 0x00080000U | bit),
+            new OfficeArtProperty(0, 0x01FF, 0x00400000U)
+        });
+        Assert.Equal(enabled, style.LineEnabled);
+        OfficeArtShapeStyle overridden = OfficeArtShapeStyle.Decode(new[] {
+            new OfficeArtProperty(0, 0x01FF, 0x00080000U | bit),
+            new OfficeArtProperty(0, 0x01FF, 0x00080000U | (enabled ? 0U : 8U))
+        });
+        Assert.Equal(!enabled, overridden.LineEnabled);
+        Assert.Null(OfficeArtShapeStyle.Decode(new[] { new OfficeArtProperty(0, 0x01FF, 0x00400000U) }).LineEnabled);
+    }
+
     [Fact]
     public void OfficeArtShapeStyle_RejectsOversizedGradientStopTables() {
         const int stopCount = 257;
@@ -55,17 +146,19 @@ public partial class DrawingTests {
             0xBF, 0x01, 0x10, 0x00, 0x10, 0x00,
             0xC0, 0x01, 0x33, 0x22, 0x11, 0x00,
             0xCB, 0x01, 0x00, 0x7F, 0x00, 0x00,
+            0xCC, 0x01, 0x00, 0x80, 0x03, 0x00,
             0xCE, 0x01, 0x03, 0x00, 0x00, 0x00,
             0xFF, 0x01, 0x08, 0x00, 0x08, 0x00
         };
 
         OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(
-            OfficeArtPropertyTableReader.Read(payload, 7));
+            OfficeArtPropertyTableReader.Read(payload, 8));
 
         Assert.True(style.FillEnabled);
         Assert.Equal(0.5D, style.FillOpacity);
         Assert.True(style.LineEnabled);
         Assert.Equal(32512, style.LineWidthEmus);
+        Assert.Equal(3.5D, style.LineMiterLimit);
         Assert.Equal(3U, style.LineDashing);
         Assert.True(style.FillColor!.Value.TryResolve(
             index => index == 0 ? OfficeColor.FromRgb(0xAA, 0xBB, 0xCC) : null,
@@ -156,7 +249,7 @@ public partial class DrawingTests {
     public void OfficeArtShapeTransform_HonorsExplicitFlipOverrides() {
         var properties = new[] {
             new OfficeArtProperty(0, 0x033F,
-                (1U << 24) | (1U << 25) | (1U << 9))
+                (1U << 8) | (1U << 9) | (1U << 25))
         };
 
         OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(

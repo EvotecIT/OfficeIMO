@@ -43,12 +43,25 @@ namespace OfficeIMO.Excel {
         /// <param name="worksheetName">Requested worksheet name.</param>
         /// <param name="validationMode">How to validate the sheet name: None (no checks), Sanitize (coerce), or Strict (throw on invalid).</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
-        public ExcelSheet AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode) {
+        public ExcelSheet AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode) =>
+            AddWorksheet(worksheetName, validationMode, CancellationToken.None);
+
+        /// <summary>
+        /// Adds a worksheet, observing cancellation while earlier deferred worksheet data is materialized.
+        /// </summary>
+        /// <param name="worksheetName">Requested worksheet name.</param>
+        /// <param name="validationMode">How to validate the worksheet name.</param>
+        /// <param name="cancellationToken">Cancels deferred materialization and worksheet creation.</param>
+        /// <returns>The created worksheet.</returns>
+        /// <exception cref="OperationCanceledException">The operation was canceled.</exception>
+        public ExcelSheet AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!_materializingDeferredDataSetImport) {
-                MaterializeDeferredDataSetImport();
+                MaterializeDeferredDataSetImport(cancellationToken);
             }
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
+                cancellationToken.ThrowIfCancellationRequested();
                 EnsureSheetCacheInitialized(_lock);
                 string name = ValidateOrSanitizeSheetName(worksheetName, validationMode, currentSheetName: null);
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);

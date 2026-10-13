@@ -4,7 +4,9 @@ description: "A practical sample showing one way to build automated Excel report
 date: 2026-01-15
 tags: [excel, ci-cd, automation]
 categories: [Workflow]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 This walkthrough uses GitHub issues as a concrete sample input, but the same pattern works for any repeatable report source your team already has: API responses, database exports, CSV snapshots, or repository metadata. The goal is not a special OfficeIMO-only workflow; it is a simple CI job that turns structured data into an `.xlsx` artifact on a schedule.

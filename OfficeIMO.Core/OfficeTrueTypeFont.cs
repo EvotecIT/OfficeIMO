@@ -354,6 +354,13 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
 
         foreach (var required in new[] { "cmap", "glyf", "head", "hhea", "hmtx", "loca", "maxp" }) if (!tables.ContainsKey(required)) return null;
+        // Advance-width reads must stay inside the declared tables, including fonts
+        // whose directory is valid but whose long horizontal metrics are truncated.
+        if (tableLengths["head"] < 54 || tableLengths["hhea"] < 36 || tableLengths["maxp"] < 6) return null;
+        int glyphCount = ReadUInt16(data, tables["maxp"] + 4);
+        int metricCount = ReadUInt16(data, tables["hhea"] + 34);
+        if (glyphCount == 0 || metricCount == 0 || metricCount > glyphCount
+            || tableLengths["hmtx"] < metricCount * 4) return null;
         return new OfficeTrueTypeFont(data, tables, tableLengths, collectionIndex, variationModel);
     }
 
@@ -1289,13 +1296,14 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         yield return family;
     }
 
-    internal static IEnumerable<string> CandidateFamilyPaths(string family) {
+    internal static IEnumerable<string> CandidateFamilyPaths(string family, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string key = NormalizeFontFamilyKey(family);
         foreach (string path in CandidateKnownFamilyPaths(key)) {
             yield return path;
         }
 
-        foreach (string path in CandidateFontDirectoryPaths(key)) {
+        foreach (string path in CandidateFontDirectoryPaths(key, cancellationToken)) {
             yield return path;
         }
     }
@@ -1374,19 +1382,22 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         }
     }
 
-    private static IEnumerable<string> CandidateFontDirectoryPaths(string key) {
+    private static IEnumerable<string> CandidateFontDirectoryPaths(string key, CancellationToken cancellationToken = default) {
         foreach (string directory in CandidateFontDirectories()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!Directory.Exists(directory)) {
                 continue;
             }
 
             foreach (string path in SafeEnumerateFontFiles(directory)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string fileKey = NormalizeFontFamilyKey(Path.GetFileNameWithoutExtension(path));
                 if (fileKey == key || fileKey.StartsWith(key, StringComparison.OrdinalIgnoreCase) || fileKey.Contains(key)) {
                     yield return path;
                 }
             }
         }
+        foreach (string path in OfficeCloudFontFiles.GetFamilyFiles(key, cancellationToken)) yield return path;
     }
 
     private static IEnumerable<string> CandidateFontDirectories() {

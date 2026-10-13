@@ -3,13 +3,13 @@
   <g data-officeimo-visio-page="Service team">
     <g data-visio-shape-id="org-band-delivery-team" data-visio-nameu="Rectangle">
       <path d="M 24 634.56 L 288 634.56 L 288 469.44 L 24 469.44 Z" data-officeimo-preserved-geometry="true" fill="#DAF2FC" stroke="#92CAE0" stroke-width="1.344" />
-      <text x="156" y="481.387" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
+      <text x="156" y="483.787" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
         <tspan x="156" dy="0">Delivery</tspan>
       </text>
     </g>
     <g data-visio-shape-id="org-band-operations-team" data-visio-nameu="Rectangle">
       <path d="M 513.6 634.56 L 1022.4 634.56 L 1022.4 469.44 L 513.6 469.44 Z" data-officeimo-preserved-geometry="true" fill="#DAF2FC" stroke="#92CAE0" stroke-width="1.344" />
-      <text x="768" y="481.387" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
+      <text x="768" y="483.787" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
         <tspan x="768" dy="0">Operations</tspan>
       </text>
     </g>
@@ -57,7 +57,7 @@
     </g>
     <g data-visio-shape-id="support" data-visio-nameu="Rectangle">
       <path d="M 801.6 591.36 L 979.2 591.36 L 979.2 512.64 L 801.6 512.64 Z" data-officeimo-preserved-geometry="true" fill="#DAF2FC" stroke="#92CAE0" stroke-width="1.344" />
-      <text x="890.4" y="524.587" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
+      <text x="890.4" y="526.987" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#223E50" font-weight="700">
         <tspan x="890.4" dy="0">Support Specialist</tspan>
       </text>
     </g>

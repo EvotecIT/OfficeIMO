@@ -4,7 +4,9 @@ description: "Learn how to use selective OfficeIMO.Reader adapters to extract no
 date: 2026-03-01
 tags: [reader, ingestion, ai]
 categories: [Tutorial]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 Large language models and search engines are hungry for text, but the text they need is locked inside modern and legacy Office files, Markdown, PDF, and text-like files scattered across file shares and SharePoint libraries. **OfficeIMO.Reader** provides one extraction API over selective format adapters and emits normalized chunks ready for embedding, indexing, or summarisation.
