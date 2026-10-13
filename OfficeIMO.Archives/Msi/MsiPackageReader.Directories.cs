@@ -36,7 +36,7 @@ internal sealed partial class MsiPackageReader {
             string definition = RequiredString(entry.Value[2], "Directory.DefaultDir");
             string[] pair = definition.Split(':');
             if (pair.Length > 2) throw new InvalidDataException("MSI directory contains an invalid target/source name pair.");
-            string target = InstalledDirectoryName(LongName(pair[0]));
+            string target = InstalledName(LongName(pair[0]));
             string? parent = entry.Value[1] as string;
             bool root = parent == null || string.Equals(parent, entry.Key, StringComparison.Ordinal);
             int structuralDepth = resolved.StructuralDepth + 1;
@@ -55,12 +55,12 @@ internal sealed partial class MsiPackageReader {
         return resolved;
     }
 
-    // Windows Installer creates each authored directory through Win32, which drops trailing
-    // spaces and dots from the new name (Microsoft's Server 2022 ADMX MSI authors one with a
-    // trailing space). Apply the same spelling, then validate it like any other segment.
-    // '.' keeps its "same as parent" meaning; '..' and other all-dot or all-space names stay
-    // unchanged so the existing segment rejection still applies.
-    private static string InstalledDirectoryName(string authored) {
+    // Windows Installer creates authored directories and files through Win32, which drops
+    // trailing spaces and dots from the new name (Microsoft's Server 2022 ADMX MSI authors a
+    // directory with a trailing space). Apply the same spelling, then validate it like any
+    // other segment. A directory '.' keeps its "same as parent" meaning; '..' and other
+    // all-dot or all-space names stay unchanged so the existing segment rejection applies.
+    private static string InstalledName(string authored) {
         if (authored == ".") return authored;
         string trimmed = authored.TrimEnd(' ', '.');
         return trimmed.Length == 0 ? authored : trimmed;

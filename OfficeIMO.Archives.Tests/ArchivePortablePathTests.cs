@@ -80,6 +80,71 @@ namespace OfficeIMO.Archives.Tests {
             Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
         }
 
+        [Theory]
+        [InlineData("Template.admx ", "Template.admx")]
+        [InlineData("Template.admx.", "Template.admx")]
+        [InlineData("TEMPLA~1.ADM|Template.admx . ", "Template.admx")]
+        public void MsiFileNamesUseTheirInstalledSpelling(string authored, string installed) {
+            using var fixture = new ArchiveFixtures();
+            var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                new MsiFixtureFile(authored, "A"))), fixture.Destination);
+            string relative = "PolicyDefinitions/en-US/" + installed;
+            Assert.Equal(relative, Assert.Single(result.Files).RelativePath);
+            Assert.Equal("A", File.ReadAllText(Path.Combine(fixture.Destination, relative.Replace('/', Path.DirectorySeparatorChar))));
+        }
+
+        [Theory]
+        [InlineData(".")]
+        [InlineData("..")]
+        [InlineData("   ")]
+        [InlineData("CON .")]
+        [InlineData("a?b ")]
+        public void MsiFileNamesStillRejectNonportableNamesAfterNormalization(string authored) {
+            using var fixture = new ArchiveFixtures();
+            int selectionCalls = 0;
+            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+                fixture.Package(ArchiveFixtures.MsiAliasFiles(false, new MsiFixtureFile(authored))), fixture.Destination,
+                new ArchiveExtractionOptions { IncludeFile = _ => { selectionCalls++; return true; } }));
+            Assert.Equal(0, selectionCalls);
+            Assert.False(Directory.Exists(fixture.Destination));
+        }
+
+        [Fact]
+        public void MsiFilesThatNormalizeToTheSameSpellingAreVerifiedAsAliases() {
+            using (var fixture = new ArchiveFixtures()) {
+                var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                    new MsiFixtureFile("Template.admx ", "A"), new MsiFixtureFile("Template.admx", "A"))), fixture.Destination);
+                Assert.Equal("PolicyDefinitions/en-US/Template.admx", Assert.Single(result.Files).RelativePath);
+            }
+            using (var fixture = new ArchiveFixtures()) {
+                var error = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                    new MsiFixtureFile("Template.admx ", "A"), new MsiFixtureFile("Template.admx", "B"))), fixture.Destination));
+                Assert.Contains("payload", error.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.False(Directory.Exists(fixture.Destination));
+            }
+        }
+
+        [Theory]
+        [InlineData("CON .txt")]
+        [InlineData("NUL  .admx")]
+        [InlineData("COM1 .adml")]
+        public void DeviceNamesFollowedBySpacesBeforeTheExtensionAreRejected(string name) {
+            using var fixture = new ArchiveFixtures();
+            var error = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+                fixture.Package(ArchiveFixtures.Utf8Cabinet(name)), fixture.Destination));
+            Assert.Contains("nonportable", error.Message, StringComparison.Ordinal);
+            Assert.False(Directory.Exists(fixture.Destination));
+        }
+
+        [Fact]
+        public void CabinetMembersKeepRejectingTrailingSpacesAndQuoteTheSegment() {
+            using var fixture = new ArchiveFixtures();
+            var error = Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+                fixture.Package(ArchiveFixtures.Utf8Cabinet("Template.admx ")), fixture.Destination));
+            Assert.EndsWith("segment: 'Template.admx '", error.Message, StringComparison.Ordinal);
+            Assert.False(Directory.Exists(fixture.Destination));
+        }
+
         [Fact]
         public void MsiDirectoryNormalizationAppliesToTheLongTargetName() {
             using var fixture = new ArchiveFixtures();

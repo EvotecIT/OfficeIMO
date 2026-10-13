@@ -37,10 +37,11 @@ internal sealed class ArchivePaths {
         if (part.Length == 0 || part.Length > 255 || Encoding.UTF8.GetByteCount(part) > 255)
             throw new InvalidDataException("Archive member has an empty or oversized path segment.");
         int dot = part.IndexOf('.');
-        string baseName = dot < 0 ? part : part.Substring(0, dot);
+        // Win32 ignores spaces before the extension when matching devices, so "CON .txt" is CON.
+        string baseName = (dot < 0 ? part : part.Substring(0, dot)).TrimEnd(' ');
         if (part.EndsWith(".", StringComparison.Ordinal)
             || part.EndsWith(" ", StringComparison.Ordinal) || part.Any(c => c < 32 || ":<>\"|?*/\\".IndexOf(c) >= 0)
-            || IsDevice(baseName)) throw new InvalidDataException("Archive member has a nonportable path segment: " + part);
+            || IsDevice(baseName)) throw new InvalidDataException("Archive member has a nonportable path segment: '" + part + "'");
     }
     /// <summary>Rejects a linked node or links inside a controlled subtree, trusting caller and OS ancestors.</summary>
     internal static void RejectLinks(string fullPath, string? controlledRoot = null) {
