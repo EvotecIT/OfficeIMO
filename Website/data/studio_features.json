@@ -75,19 +75,19 @@
           "id": "outline",
           "title": "Bookmarks and outline",
           "detail": "Navigate, add, rename and reorder bookmarks",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Navigate, add, rename, re-point and delete bookmarks, or make them from headings; reordering is planned.",
+            "ipad": "Navigate, add, rename, re-point and delete bookmarks, or make them from headings; reordering is planned.",
+            "iphone": "Navigate, add, rename, re-point and delete bookmarks, or make them from headings; reordering is planned."
+          },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
           "id": "properties",
           "title": "Document properties",
           "detail": "Title, author, subject and keywords, attachments",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
-          "notes": {
-            "mac": "Shown in the inspector; editing is planned.",
-            "ipad": "Shown in the inspector; editing is planned.",
-            "iphone": "Shown in the inspector; editing is planned."
-          },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         }
       ]
@@ -171,7 +171,7 @@
           "id": "split",
           "title": "Split a document",
           "detail": "Every few pages or at each bookmark",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
@@ -190,14 +190,14 @@
           "id": "crop",
           "title": "Crop and resize pages",
           "detail": "Crop boxes and paper sizes",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         },
         {
           "id": "page-stamps",
           "title": "Page numbers, headers and watermarks",
           "detail": "Including Bates numbering",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "roadmap": "phase-7-native-apple-apps"
         }
       ]
@@ -232,7 +232,12 @@
           "id": "links",
           "title": "Links and attachments",
           "detail": "Add web and page links; add, save and remove attachments",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Add, save and delete attachments; adding links is planned.",
+            "ipad": "Add, save and delete attachments; adding links is planned.",
+            "iphone": "Add, save and delete attachments; adding links is planned."
+          },
           "roadmap": "phase-7-native-apple-apps"
         }
       ]
@@ -265,7 +270,12 @@
           "id": "flatten",
           "title": "Flatten forms and annotations",
           "detail": "Make values and markup part of the page",
-          "support": { "windows": "available", "linux": "available", "mac": "planned", "ipad": "planned", "iphone": "planned" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "notes": {
+            "mac": "Form fields; flattening markup is planned.",
+            "ipad": "Form fields; flattening markup is planned.",
+            "iphone": "Form fields; flattening markup is planned."
+          },
           "roadmap": "phase-7-native-apple-apps"
         }
       ]
@@ -321,9 +331,9 @@
           "detail": "Word, Excel, PowerPoint, HTML, Markdown, text and page images",
           "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
           "notes": {
-            "mac": "Text, through the Get Text from PDF shortcut.",
-            "ipad": "Text, through the Get Text from PDF shortcut.",
-            "iphone": "Text, through the Get Text from PDF shortcut."
+            "mac": "Text, Markdown and structured JSON; Word, Excel, PowerPoint, HTML and page images are planned.",
+            "ipad": "Text, Markdown and structured JSON; Word, Excel, PowerPoint, HTML and page images are planned.",
+            "iphone": "Text, Markdown and structured JSON; Word, Excel, PowerPoint, HTML and page images are planned."
           },
           "roadmap": "phase-7-native-apple-apps"
         }

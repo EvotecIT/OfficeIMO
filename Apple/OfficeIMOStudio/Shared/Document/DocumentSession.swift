@@ -103,6 +103,19 @@ final class DocumentSession {
     var isChoosingPagesToImport = false
     /// An import waiting for the password of one of its PDFs.
     var pendingImport: PendingImport?
+    /// The properties, outline and attachments, for the revision they were read from.
+    var structure: DocumentStructure?
+    @ObservationIgnored var structureLoad: Task<Void, Never>?
+    /// What the sidebar lists in the Read task: page thumbnails or the outline.
+    var sidebarMode = SidebarMode.thumbnails
+    /// The page production or output sheet shown.
+    var structureSheet: StructureSheet?
+    /// Whether the panel for choosing a file to attach is shown.
+    var isChoosingAttachment = false
+    /// Files an output wrote, waiting for the user to choose where to save them.
+    var exportedFile: ExportedFile?
+    /// An output a sheet wrote, offered for saving once the sheet closes.
+    var pendingExportedFile: ExportedFile?
     /// The page being read while Make Searchable runs.
     private(set) var recognitionProgress: RecognitionProgress?
     /// The outcome of a change that turned out to change nothing, to tell the user.

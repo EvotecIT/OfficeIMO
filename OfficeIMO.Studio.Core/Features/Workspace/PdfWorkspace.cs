@@ -205,12 +205,26 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal Task CropByMarginAsync(IReadOnlyList<int> pageNumbers, double margin, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
         if (!double.IsFinite(margin) || margin < 0D) throw new ArgumentOutOfRangeException(nameof(margin));
+        return CropByMarginsAsync(pageNumbers, margin, margin, margin, margin, $"Cropped {pageNumbers.Count} page(s) by {margin:0.#} pt",
+            cancellationToken, progress);
+    }
+
+    /// <summary>Crops inward from each displayed edge of the pages by its own margin in points, as one undoable change.</summary>
+    internal Task CropByMarginsAsync(IReadOnlyList<int> pageNumbers, double left, double bottom, double right, double top,
+        CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
+        foreach (double margin in new[] { left, bottom, right, top })
+            if (!double.IsFinite(margin) || margin < 0D) throw new ArgumentOutOfRangeException(nameof(left), "Crop margins are zero or more points.");
+        return CropByMarginsAsync(pageNumbers, left, bottom, right, top, $"Cropped {pageNumbers.Count} page(s)", cancellationToken, progress);
+    }
+
+    private Task CropByMarginsAsync(IReadOnlyList<int> pageNumbers, double left, double bottom, double right, double top, string description,
+        CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress) {
         PdfPageSelection selection = PdfPageSelection.From(pageNumbers.ToArray());
         return MutateAsync(
             PdfWorkspaceOperationKind.CropBox,
-            $"Cropped {pageNumbers.Count} page(s) by {margin:0.#} pt",
+            description,
             pageNumbers,
-            document => document.Pages.ApplyAttributes(PdfPageAttributeEdit.CropMargins(margin, margin, margin, margin, selection)),
+            document => document.Pages.ApplyAttributes(PdfPageAttributeEdit.CropMargins(left, bottom, right, top, selection)),
             cancellationToken,
             progress);
     }

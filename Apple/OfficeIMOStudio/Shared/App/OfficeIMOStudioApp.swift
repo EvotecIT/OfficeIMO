@@ -103,6 +103,15 @@ struct StudioCommands: Commands {
                 Button("Zoom Out") { session?.zoom(.zoomOut) }
                     .keyboardShortcut("-")
                 Divider()
+                Toggle(isOn: Binding { session?.sidebarMode == .thumbnails } set: { if $0 { session?.sidebarMode = .thumbnails; session?.isPageListShown = true } }) {
+                    Text("Thumbnails")
+                }
+                .keyboardShortcut("2", modifiers: [.command, .option])
+                Toggle(isOn: Binding { session?.sidebarMode == .outline } set: { if $0 { session?.sidebarMode = .outline; session?.isPageListShown = true } }) {
+                    Text("Table of Contents")
+                }
+                .keyboardShortcut("3", modifiers: [.command, .option])
+                Divider()
                 Button(session?.isInspectorShown == true ? "Hide Inspector" : "Show Inspector") { session?.isInspectorShown.toggle() }
                     .keyboardShortcut("i", modifiers: [.command, .option])
             }
@@ -160,6 +169,8 @@ struct StudioCommands: Commands {
                 .disabled(session?.canMakeSearchable != true)
             if let session {
                 SignatureMenu(session: session)
+                Divider()
+                StructureCommands(session: session)
             }
         }
     }

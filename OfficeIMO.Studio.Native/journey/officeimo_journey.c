@@ -49,7 +49,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json) X(officeimo_document_import_pages_json) \
     X(officeimo_document_make_searchable_json) X(officeimo_conversion_sources_json) X(officeimo_convert_to_pdf_json) \
     X(officeimo_document_form_fields_json) X(officeimo_document_fill_form_json) X(officeimo_document_search_stream_json) \
-    X(officeimo_document_save_copy) X(officeimo_document_save_protected_copy_json) X(officeimo_document_save_signed_copy_json)
+    X(officeimo_document_save_copy) X(officeimo_document_save_protected_copy_json) X(officeimo_document_save_signed_copy_json) \
+    X(officeimo_document_structure_json) X(officeimo_document_edit_json) X(officeimo_document_write_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(&name) engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -346,6 +347,38 @@ int main(int argc, char **argv) {
     CHECK("search", engine_officeimo_document_search_json(document, "no such words", 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "hits", "[]"), "unexpected search hits", json);
     engine_officeimo_free(json);
+
+    /* Document structure: a bookmark added and undone as one step, a request naming two edits refused, and the text
+       exported beside the document, which stays as it was. */
+    CHECK("structure", engine_officeimo_document_structure_json(document, 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"outline\":[") && strstr(json, "\"attachments\":["), "the structure is missing", json);
+    int can_edit_outline = has(json, "canEditOutline", "true");
+    engine_officeimo_free(json);
+    if (can_edit_outline) {
+        CHECK("add bookmark", engine_officeimo_document_edit_json(document, "{\"outline\":[{\"op\":\"add\",\"title\":\"Journey mark\",\"page\":1}]}",
+              0, &error), OFFICEIMO_OK);
+        CHECK("structure with bookmark", engine_officeimo_document_structure_json(document, 0, &json, &error), OFFICEIMO_OK);
+        expect(json && strstr(json, "\"title\":\"Journey mark\"") != NULL, "the added bookmark is missing", json);
+        engine_officeimo_free(json);
+        CHECK("undo bookmark", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    }
+    CHECK("two edits at once", engine_officeimo_document_edit_json(document, "{\"properties\":{\"title\":\"x\"},\"removeAttachment\":\"a\"}",
+          0, &error), OFFICEIMO_INVALID_ARGUMENT);
+    json = facts(document);
+    int can_read_text = has(json, "canExtractText", "true");
+    engine_officeimo_free(json);
+    if (can_read_text) {
+        char text_export[4096], escaped_export[6 * sizeof text_export], export_request[sizeof escaped_export + 64];
+        path_in(text_export, sizeof text_export, work, "text.md");
+        json_escape(escaped_export, sizeof escaped_export, text_export);
+        snprintf(export_request, sizeof export_request, "{\"export\":{\"format\":\"markdown\",\"path\":\"%s\"}}", escaped_export);
+        CHECK("export Markdown", engine_officeimo_document_write_json(document, export_request, 0, &json, &error), OFFICEIMO_OK);
+        expect(json && strstr(json, "text.md") != NULL, "the export lists no file", json);
+        engine_officeimo_free(json);
+        FILE *exported = fopen(text_export, "rb");
+        expect(exported != NULL, "the Markdown export was not written", NULL);
+        if (exported) fclose(exported);
+    }
 
     char shared[4096];
     path_in(shared, sizeof shared, work, "shared.pdf");

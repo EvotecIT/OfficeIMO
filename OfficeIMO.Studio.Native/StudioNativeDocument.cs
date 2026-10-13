@@ -15,7 +15,7 @@ namespace OfficeIMO.Studio.Native;
 /// identity checks and verified saving behave identically in every host. Calls on one document are serialized; the
 /// host may call from any thread and should not call from its main thread.
 /// </summary>
-internal sealed class StudioNativeDocument : IDisposable {
+internal sealed partial class StudioNativeDocument : IDisposable {
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly PdfWorkspace _workspace;
     private PdfDocumentSession? _session;

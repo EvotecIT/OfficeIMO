@@ -70,6 +70,9 @@ struct DocumentWindow: View {
             .sheet(item: $session.securitySheet, onDismiss: { session.presentPendingExport() }) { sheet in
                 SecuritySheetView(session: session, sheet: sheet)
             }
+            .sheet(item: $session.structureSheet, onDismiss: { session.presentPendingExportedFile() }) { sheet in
+                StructureSheetView(session: session, sheet: sheet)
+            }
             .sheet(isPresented: $session.isCreatingSignature) {
                 SignaturePad(session: session)
             }
@@ -155,6 +158,18 @@ struct DocumentWindow: View {
                     .presentationBackgroundInteraction(.enabled(upThrough: .medium))
             }
             .toolbar { DocumentToolbar(session: session, fileURL: fileURL, isCompact: isCompact, isAddingNote: $isAddingNote) }
+            .fileExporter(isPresented: exportedFileShown, document: session.exportedFile?.document,
+                          contentType: session.exportedFile?.contentType ?? .data, defaultFilename: session.exportedFile?.name) { result in
+                if let folder = session.exportedFile?.folder { try? FileManager.default.removeItem(at: folder) }
+                session.exportedFile = nil
+                if case .failure(let error) = result { session.errorMessage = error.localizedDescription }
+            }
+            .fileImporter(isPresented: $session.isChoosingAttachment, allowedContentTypes: [.item]) { result in
+                switch result {
+                case .success(let url): session.attach(url)
+                case .failure(let error): session.errorMessage = error.localizedDescription
+                }
+            }
             .alert("Add Note", isPresented: $isAddingNote) {
                 TextField("Note", text: $noteText, axis: .vertical)
                 Button("Add") {
@@ -212,6 +227,10 @@ struct DocumentWindow: View {
 
     private var exportShown: Binding<Bool> {
         Binding { session.extractedPages != nil } set: { if !$0 { session.extractedPages = nil } }
+    }
+
+    private var exportedFileShown: Binding<Bool> {
+        Binding { session.exportedFile != nil } set: { if !$0 { session.exportedFile = nil } }
     }
 
     private var errorShown: Binding<Bool> {

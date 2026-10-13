@@ -36,7 +36,7 @@ private struct ProtectSheet: View {
     }
 
     var body: some View {
-        SecurityForm(title: "Protect with Password", confirm: "Protect", isComplete: isComplete, isWriting: isWriting, problem: problem,
+        SheetForm(title: "Protect with Password", confirm: "Protect", isComplete: isComplete, isWriting: isWriting, problem: problem,
                      cancel: { dismiss() }, confirmAction: protect) {
             Section {
                 SecureField("Password", text: $password)
@@ -95,7 +95,7 @@ private struct RemovePasswordSheet: View {
     @State private var isWriting = false
 
     var body: some View {
-        SecurityForm(title: "Remove Password", confirm: "Remove", isComplete: !session.needsOwnerPassword || !currentOwnerPassword.isEmpty,
+        SheetForm(title: "Remove Password", confirm: "Remove", isComplete: !session.needsOwnerPassword || !currentOwnerPassword.isEmpty,
                      isWriting: isWriting, problem: problem, cancel: { dismiss() }, confirmAction: remove) {
             Section {
                 Text("The copy opens without a password, and anyone can print, copy and change it.")
@@ -136,7 +136,7 @@ private struct SignSheet: View {
     @State private var isWriting = false
 
     var body: some View {
-        SecurityForm(title: "Sign with Certificate", confirm: "Sign", isComplete: certificate != nil, isWriting: isWriting, problem: problem,
+        SheetForm(title: "Sign with Certificate", confirm: "Sign", isComplete: certificate != nil, isWriting: isWriting, problem: problem,
                      cancel: { dismiss() }, confirmAction: sign) {
             Section {
                 LabeledContent("Certificate") {
@@ -190,7 +190,7 @@ private struct CurrentOwnerPasswordSection: View {
 }
 
 /// A grouped form with Cancel and a confirming button, as system sheets have, and a problem shown under the fields.
-private struct SecurityForm<Content: View>: View {
+struct SheetForm<Content: View>: View {
     let title: LocalizedStringKey
     let confirm: LocalizedStringKey
     let isComplete: Bool

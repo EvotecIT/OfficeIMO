@@ -13,6 +13,7 @@ struct DocumentInspector: View {
                     LabeledContent("File Size", value: Measurement(value: Double(facts.fileSize), unit: UnitInformationStorage.bytes),
                                    format: .byteCount(style: .file))
                 }
+                PropertiesSection(session: session)
                 if facts.pages.indices.contains(session.currentPage - 1) {
                     let page = facts.pages[session.currentPage - 1]
                     Section("Page \(page.number)") {
@@ -22,6 +23,7 @@ struct DocumentInspector: View {
                     }
                 }
                 AnnotationSection(session: session)
+                AttachmentsSection(session: session)
                 Section("Permissions") {
                     LabeledContent("Copy Text", value: facts.canExtractText ? "Allowed" : "Not Allowed")
                     LabeledContent("Extract Content", value: facts.canExtractContent ? "Allowed" : "Not Allowed")
