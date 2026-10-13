@@ -31,7 +31,8 @@
             "value" : "%1$@ – %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ – %@.pdf" : {
       "localizations" : {
