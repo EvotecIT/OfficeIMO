@@ -21,7 +21,9 @@ public static partial class WordPdfConverterExtensions {
         var inner = new WordParagraph(box.Document, innerSource);
         if (WordDocumentTraversal.GetListInfo(inner).HasValue ||
             WordEquation.GetOccurrences(inner._document, inner._paragraph).Count > 0) return false;
-        OpenXmlElement[] innerChildren = GetNativeRuns(inner).SelectMany(run => run.EnumerateEffectiveRunContent())
+        List<WordParagraph> innerRuns = GetNativeRuns(inner);
+        if (HasNativeUnsupportedRunningTextBoxRunPaint(inner, innerRuns)) return false;
+        OpenXmlElement[] innerChildren = innerRuns.SelectMany(run => run.EnumerateEffectiveRunContent())
             .Where(child => child is not W.RunProperties).ToArray();
         if (innerChildren.Any(child => child is not W.Text && child is not W.Break) ||
             innerChildren.OfType<W.Break>().Count() > 1 ||
@@ -35,6 +37,7 @@ public static partial class WordPdfConverterExtensions {
             body.Anchor?.Value is { } anchor && anchor != A.TextAnchoringTypeValues.Top ||
             body.ColumnCount?.Value is > 1 ||
             body.GetFirstChild<A.PresetTextWarp>() is { } warp && warp.Preset?.Value != A.TextShapeValues.TextNoShape ||
+            body.GetFirstChild<A.Scene3DType>() != null || body.GetFirstChild<A.Shape3DType>() != null ||
             body.GetFirstChild<A.NormalAutoFit>() != null) return false;
 
         // Each square-wrap exclusion must clear the entire ordinary line.
