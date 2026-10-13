@@ -180,9 +180,8 @@ public static partial class WordPdfConverterExtensions {
 
     private static void RecordNativeMixedTextBoxDiagnostic(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs,
         WordToPdfOptions? options, string source) {
-        if (options != null && GetNativeVisibleTextBoxes(paragraph, runs).Count > 0 &&
-            runs.Any(run => !IsNativeHiddenTextRun(run, paragraph) && run.EnumerateEffectiveRunContent().OfType<W.Text>().Any()))
+        if (options != null && GetNativeVisibleTextBoxes(paragraph, runs).Count > 0)
             AddNativeExportWarning(options, "NativeMixedTextBoxLayoutApproximated", source,
-                "Text around text boxes is retained in source order; anchored positioning, shape geometry, wrapping and pagination are approximated by bounded flow.");
+                "Text-box content and surrounding text are retained in source order; anchored positioning, shape geometry, wrapping and pagination are approximated by bounded flow.");
     }
 }
