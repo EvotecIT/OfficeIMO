@@ -508,7 +508,7 @@ internal static partial class PdfWriter {
             double leading = style.LineHeight ?? size * 1.2D;
             PdfStandardFont baseFont = ChooseNormal(style.Font ?? currentOpts.DefaultFont);
             var blockText = new RichParagraphBlock(item.Runs, style.Align, style.TextColor);
-            var wrap = WrapRichRunsCore(item.Runs, textWidth, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            var wrap = WrapRichRunsWithSpacing(item.Runs, textWidth, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts, style.LineSpacing);
             if (wrap.Lines.Count > 0) {
                 double textContentHeight = MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, leading);
                 if (textContentHeight > textHeight + 0.01D) {

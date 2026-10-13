@@ -13,6 +13,8 @@ namespace OfficeIMO.Word.Pdf {
             public NativeLineSpacing LineSpacing { get; init; }
             public NativeParagraphSpacing ParagraphSpacing { get; init; }
             public OfficeIMO.Pdf.PdfRunningContentContext? RunningContentContext { get; init; }
+            // An inherited story uses the selecting section's page and margin geometry.
+            public WordSection? RunningContentSection { get; init; }
             // A missing docDefaults element follows Word's 12pt application fallback.
             public static NativeDocumentDefaults WordDefault { get; } = new(null, null, 12D, NativeDefaultParagraphLineHeight, 0D, false, NativeDefaultParagraphSpacingAfter, false, true, null) { OpenTypeFeaturesEnabled = true };
         }

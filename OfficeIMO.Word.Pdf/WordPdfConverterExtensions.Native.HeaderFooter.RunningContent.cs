@@ -33,6 +33,9 @@ public static partial class WordPdfConverterExtensions {
         section.DocumentOddEvenSettingEnabled ? section.ResolveEvenFooter() : null);
 
     private static bool UsesNativeRunningStories(WordSection section, WordToPdfOptions? options, bool isFooter, params WordHeaderFooter?[] variants) {
+        // Required table/field stories retain rich flow for every active sibling.
+        // The paragraph renderer qualifies non-intersecting fixed page anchors;
+        // other mixed/nested boxes retain bounded flow with approximation reports.
         if (variants.Any(RequiresNativeRunningStory)) return true;
         bool hasNumberedParagraph = false;
         bool hasParagraph = false;
@@ -45,8 +48,8 @@ public static partial class WordPdfConverterExtensions {
             double minimumHeight = 0D;
             double joinedLineHeight = double.PositiveInfinity;
             ordinaryStoriesSupported &= story.ChildElements.All(element => element is W.Paragraph);
-            // Admission switches all active variants. Preserve the source-order
-            // text-box path until flow can retain its mixed and nested content.
+            // Without a required table/field story, retain the established simple
+            // projection. It preserves its distinct presentation override contract.
             if (story.ChildElements.Any(element => element.Descendants<W.TextBoxContent>().Any())) return false;
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
                 ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
@@ -160,9 +163,16 @@ public static partial class WordPdfConverterExtensions {
         // operation report is captured. Discover approximation diagnostics now.
         if (story != null)
             foreach (W.Paragraph source in story.ChildElements.SelectMany(element => element is W.Paragraph paragraph
-                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>()))
-                RecordNativeMixedTextBoxDiagnostic(GetNativeRuns(new WordParagraph(story.Document, source)), options,
-                    "header/footer paragraph");
+                ? new[] { paragraph }.Concat(element.Descendants<W.Paragraph>()) : element.Descendants<W.Paragraph>())) {
+                var paragraph = new WordParagraph(story.Document, source);
+                List<WordParagraph> runs = GetNativeRuns(paragraph);
+                // Context-dependent fields are assessed when materialized. Keep
+                // their conservative report rather than prequalifying cached text.
+                if (source.Descendants<W.SimpleField>().Any() || source.Descendants<W.FieldChar>().Any() ||
+                    !TryPrepareNativeAnchoredRunningTextBoxParagraph(GetNativePageSize(section, options), paragraph,
+                        runs, null, null, options, defaults with { RunningContentSection = section }, fontMap, out _))
+                    RecordNativeMixedTextBoxDiagnostic(runs, options, "header/footer paragraph");
+            }
         // A text-free source footer owns blank geometry; its generated number
         // keeps the established text projection and physical margin. Missing
         // variants have no native story and must not acquire an exclusion.
@@ -174,7 +184,7 @@ public static partial class WordPdfConverterExtensions {
             options?.CancellationToken.ThrowIfCancellationRequested();
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
                 new PdfCore.PageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);
-            NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context };
+            NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context, RunningContentSection = section };
             if (story != null && !story.ChildElements.Any())
                 RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);
             var notes = new NativeNoteNumbering(section._document, options);

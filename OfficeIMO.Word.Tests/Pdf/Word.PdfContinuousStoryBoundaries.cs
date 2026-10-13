@@ -109,11 +109,11 @@ public partial class Word {
     [InlineData(true, false, true)]
     [InlineData(false, true, true)]
     [InlineData(true, true, true)]
-    public void SaveAsPdf_InheritedRequiredStoryPreservesMixedTextBoxFrame(bool footer, bool even, bool table) {
+    public void SaveAsPdf_InheritedRequiredStoryPreservesMixedAnchoredTextBox(bool footer, bool even, bool table) {
         using WordDocument source = WordDocument.Create();
         WordHeaderFooter required = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
-        required.AddParagraph("COUNT ").AddField(WordFieldType.SectionPages);
         if (table) required.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "TABLE";
+        else required.AddParagraph("COUNT ").AddField(WordFieldType.SectionPages);
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection();
         later.AddHeadersAndFooters();
@@ -132,19 +132,18 @@ public partial class Word {
         source.Paragraphs.Last().AddBreak(WordBreakType.Page);
         SetInheritedRunningControlStyle(source.AddParagraph("S3"));
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        string[] before = AnchoredRunningStoryXml(document);
         using var pdf = PdfPigDocument.Open(document.ToPdfBytes(EmptyRunningOptions()));
         Assert.Equal(3, pdf.NumberOfPages);
-        string visible = string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value));
-        int prefix = visible.IndexOf("PREFIX", StringComparison.Ordinal);
-        int box = visible.IndexOf("BOX", StringComparison.Ordinal);
-        int suffix = visible.IndexOf("SUFFIX", StringComparison.Ordinal);
-        Assert.True(prefix >= 0 && box > prefix && suffix > box, visible);
-        foreach (string marker in new[] { "PREFIX", "BOX", "SUFFIX" })
-            Assert.Equal(1, visible.Split(new[] { marker }, StringSplitOptions.None).Length - 1);
-        Assert.Contains(pdf.GetPage(2).Paths, path => path.IsStroked &&
-            path.GetBoundingRectangle() is { } bounds && bounds.Width > 0D && bounds.Height > 0D);
-        Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
+        var page = pdf.GetPage(2);
+        var prefix = AnchoredRunningLetters(page, "PREFIX");
+        var suffix = AnchoredRunningLetters(page, "SUFFIX");
+        AnchoredRunningLetters(page, "BOX");
+        Assert.Equal(prefix[0].StartBaseLine.Y, suffix[0].StartBaseLine.Y, 3);
+        Assert.True(suffix[0].StartBaseLine.X >= prefix.Last().EndBaseLine.X);
+        Assert.DoesNotContain(page.Paths, path => path.IsStroked);
+        Assert.Contains(table ? "TABLE" : "COUNT 2", pdf.GetPage(3).Text);
         Assert.DoesNotContain("{sectionpages}", pdf.GetPage(3).Text);
-        if (table) Assert.Contains("TABLE", pdf.GetPage(3).Text);
+        Assert.Equal(before, AnchoredRunningStoryXml(document));
     }
 }
