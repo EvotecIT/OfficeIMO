@@ -286,18 +286,30 @@ int main(int argc, char **argv) {
     CHECK("import nothing", engine_officeimo_document_import_pages_json(document, "{\"insertBefore\":1,\"sources\":[]}", 0, &json,
           &error), OFFICEIMO_INVALID_ARGUMENT);
 
-    /* Make searchable: both pages, the rotated image and the blank one, gain the recognized word as text, which search
-       then finds on each; undone after. */
+    /* Content editing has its own preservation rules. Check the reported capability before exercising OCR. */
+    json = facts(document);
+    int can_make_searchable = has(json, "canMakeSearchable", "true");
+    engine_officeimo_free(json);
+    json = NULL;
     int recognized = 0;
-    CHECK("make searchable", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
-          OFFICEIMO_OK);
-    expect(recognized == 2 && has(json, "words", "2"), "the recognized words were not added", json);
-    engine_officeimo_free(json);
-    CHECK("search recognized", engine_officeimo_document_search_json(document, "journeyword", 0, &json, &error), OFFICEIMO_OK);
-    expect(json && strstr(json, "\"page\":1") != NULL && strstr(json, "\"page\":2") != NULL, "the recognized words are not searchable",
-           json);
-    engine_officeimo_free(json);
-    CHECK("undo searchable", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    if (can_make_searchable) {
+        /* Both pages gain searchable text as one undoable change. */
+        CHECK("make searchable", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
+              OFFICEIMO_OK);
+        expect(recognized == 2 && has(json, "words", "2"), "the recognized words were not added", json);
+        engine_officeimo_free(json);
+        CHECK("search recognized", engine_officeimo_document_search_json(document, "journeyword", 0, &json, &error), OFFICEIMO_OK);
+        expect(json && strstr(json, "\"page\":1") != NULL && strstr(json, "\"page\":2") != NULL, "the recognized words are not searchable",
+               json);
+        engine_officeimo_free(json);
+        CHECK("undo searchable", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    } else {
+        CHECK("searchable prohibited", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
+              OFFICEIMO_UNSUPPORTED);
+        expect(recognized == 0 && json == NULL, "unsupported OCR invoked recognition or returned a result", json);
+        engine_officeimo_free(json);
+        /* No undo: rejecting content editing must preserve the existing page-edit history. */
+    }
 
     for (int edit = 0; edit < 4; edit++) CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
