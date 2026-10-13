@@ -7,7 +7,9 @@ public enum ArchiveFormat {
     /// <summary>A Microsoft Cabinet archive.</summary>
     Cab,
     /// <summary>A Windows Installer database with embedded cabinets.</summary>
-    Msi
+    Msi,
+    /// <summary>A single-disk ZIP archive with stored or Deflate members.</summary>
+    Zip
 }
 
 /// <summary>A verified file published by an extraction operation.</summary>

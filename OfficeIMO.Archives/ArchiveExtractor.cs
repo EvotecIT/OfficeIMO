@@ -9,7 +9,7 @@ namespace OfficeIMO.Archives;
 
 /// <summary>Extracts one managed archive container into a fresh directory without executing its contents.</summary>
 public static partial class ArchiveExtractor {
-    /// <summary>Verifies and extracts selected files from a CAB or ordinary MSI package.
+    /// <summary>Verifies and extracts selected files from a ZIP, CAB or ordinary MSI package.
     /// The destination must be absent or empty. A completed staging directory is published by a same-volume move.</summary>
     /// <exception cref="InvalidDataException">The input is corrupt, unsafe, conflicting or exceeds a configured limit.</exception>
     /// <exception cref="NotSupportedException">The input uses an unsupported format or extraction feature.</exception>
@@ -38,6 +38,7 @@ public static partial class ArchiveExtractor {
             switch (format) {
                 case ArchiveFormat.Cab: ExtractCab(source, staging, limits, files, ref total, cancellationToken); break;
                 case ArchiveFormat.Msi: ExtractMsi(source, staging, limits, files, ref total, cancellationToken); break;
+                case ArchiveFormat.Zip: ExtractZip(source, staging, limits, files, ref total, cancellationToken); break;
                 default: throw new NotSupportedException("Unsupported archive format.");
             }
             cancellationToken.ThrowIfCancellationRequested();
@@ -82,7 +83,10 @@ public static partial class ArchiveExtractor {
         if (length >= 4 && bytes[0] == 'M' && bytes[1] == 'S' && bytes[2] == 'C' && bytes[3] == 'F') return ArchiveFormat.Cab;
         byte[] compound = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
         if (length == 8 && bytes.SequenceEqual(compound)) return ArchiveFormat.Msi;
-        throw new NotSupportedException("The package is not a supported Cabinet or Windows Installer container.");
+        // A local file header, or the end-of-central-directory record of an empty archive.
+        if (length >= 4 && bytes[0] == 'P' && bytes[1] == 'K' && (bytes[2] == 3 && bytes[3] == 4 || bytes[2] == 5 && bytes[3] == 6))
+            return ArchiveFormat.Zip;
+        throw new NotSupportedException("The package is not a supported ZIP, Cabinet or Windows Installer container.");
     }
     private static void ExtractCab(Stream source, string staging, ArchiveLimits limits, List<ExtractedArchiveFile> files,
         ref long total, CancellationToken token) {
