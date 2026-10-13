@@ -9,14 +9,20 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed partial class AgentIWorkConversionTests {
     [Theory]
-    [InlineData("pages", "docx")]
-    [InlineData("pages", "pdf")]
-    [InlineData("numbers", "xlsx")]
-    [InlineData("numbers", "pdf")]
-    [InlineData("key", "pptx")]
-    [InlineData("key", "pdf")]
-    public async Task Authorized_directory_packages_use_all_six_shared_routes_and_captured_source_identity(string kind, string format) {
-        using var files = new Files(true, kind, noteFreeKeynote: kind == "key" && format == "pdf", completeNumbers: kind == "numbers");
+    [InlineData("pages", "docx", false)]
+    [InlineData("pages", "pdf", false)]
+    [InlineData("numbers", "xlsx", false)]
+    [InlineData("numbers", "pdf", false)]
+    [InlineData("key", "pptx", false)]
+    [InlineData("key", "pdf", false)]
+    [InlineData("pages", "docx", true)]
+    [InlineData("pages", "pdf", true)]
+    [InlineData("numbers", "xlsx", true)]
+    [InlineData("numbers", "pdf", true)]
+    [InlineData("key", "pptx", true)]
+    [InlineData("key", "pdf", true)]
+    public async Task Authorized_native_packages_use_all_six_shared_routes_and_captured_source_identity(string kind, string format, bool directoryPackage) {
+        using var files = new Files(directoryPackage, kind, noteFreeKeynote: kind == "key" && format == "pdf", completeNumbers: kind == "numbers");
         var registry = new AgentSourceRegistry();
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
         AgentConvertResult result = await service.ConvertAsync(files.Input, files.Output(format), format);
@@ -24,40 +30,62 @@ public sealed partial class AgentIWorkConversionTests {
         string contentHash = IWorkSourceDocument.Open(files.Input).ComputePackageContentHash();
         Assert.Equal(contentHash, result.Workflow.ConversionEvidence!.Facts["packageContentSha256"]);
         var source = registry.Resolve(result.SourceId);
-        Assert.True(source.IsDirectory);
+        Assert.Equal(directoryPackage, source.IsDirectory);
+        Assert.Equal((await service.InspectAsync(files.Input)).SourceId, result.SourceId);
         Assert.Equal(files.Input, source.Path);
-        Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "SourceSnapshot" && item.Details["snapshotKind"] == "DirectoryPackage");
+        Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "SourceSnapshot"
+            && item.Details["snapshotKind"] == (directoryPackage ? "DirectoryPackage" : "FileBytes"));
         Assert.Contains(result.Workflow.Diagnostics, item => item.Code == "OutputReopened");
         Assert.Equal(64, result.SourceSha256!.Length);
-        Assert.NotEqual(contentHash, result.SourceSha256); // The workflow hashes its transport ZIP.
+        Assert.NotEqual(contentHash, result.SourceSha256); // File-byte snapshots and canonical package content are distinct.
+        if (!directoryPackage) {
+            string rawHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(files.Input)));
+            Assert.Equal(rawHash, result.SourceSha256, ignoreCase: true);
+            Assert.Equal(new FileInfo(files.Input).Length, source.LengthBytes);
+        }
         if (format == "pdf") Assert.Equal(kind == "key" ? 2 : 1, PdfReadDocument.Open(File.ReadAllBytes(result.OutputPath)).Pages.Count);
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Directory_inspect_search_fetch_share_ids_and_reject_changed_members(bool freshService) {
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Native_package_inspect_search_fetch_share_ids_and_reject_changed_members(bool directoryPackage, bool freshService) {
         using var files = new Files(true);
         string member = Path.Combine(files.Input, "extra.bin");
         File.WriteAllText(member, "baseline");
+        string input = directoryPackage ? files.Input : Path.Combine(files.Root, "transport.pages");
+        if (!directoryPackage) System.IO.Compression.ZipFile.CreateFromDirectory(files.Input, input,
+            System.IO.Compression.CompressionLevel.NoCompression, false);
         var registry = new AgentSourceRegistry();
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
-        var conversion = await service.ConvertAsync(files.Input, files.Output("docx"), "docx");
-        var inspected = await service.InspectAsync(files.Input);
+        var conversion = await service.ConvertAsync(input, files.Output("docx"), "docx");
+        var inspected = await service.InspectAsync(input);
         Assert.Equal(conversion.SourceId, inspected.SourceId);
-        var search = await service.SearchAsync(files.Input, "hello");
+        var search = await service.SearchAsync(input, "hello");
         var hit = Assert.Single(search.Results);
         var consumer = freshService ? new OfficeImoAgentService(new AgentPathPolicy([files.Root])) : service;
-        var fetched = await consumer.FetchAsync(search.SourceId, hit.Id, sourcePath: freshService ? files.Input : null);
+        var fetched = await consumer.FetchAsync(search.SourceId, hit.Id, sourcePath: freshService ? input : null);
         Assert.Contains("hello pages", AgentJson.Serialize(fetched));
         DateTime rootTime = Directory.GetLastWriteTimeUtc(files.Input);
         DateTime memberTime = File.GetLastWriteTimeUtc(member);
+        DateTime transportTime = File.GetLastWriteTimeUtc(input);
+        long? transportLength = directoryPackage ? null : new FileInfo(input).Length;
         File.WriteAllText(member, "mutation");
         File.SetLastWriteTimeUtc(member, memberTime);
         Directory.SetLastWriteTimeUtc(files.Input, rootTime);
+        if (!directoryPackage) {
+            File.Delete(input);
+            System.IO.Compression.ZipFile.CreateFromDirectory(files.Input, input,
+                System.IO.Compression.CompressionLevel.NoCompression, false);
+            File.SetLastWriteTimeUtc(input, transportTime);
+            Assert.Equal(transportLength, new FileInfo(input).Length);
+            Assert.Equal(transportTime, File.GetLastWriteTimeUtc(input));
+        }
         Assert.Throws<AgentUsageException>(() => registry.Resolve(conversion.SourceId));
         await Assert.ThrowsAsync<AgentUsageException>(() => consumer.FetchAsync(search.SourceId, hit.Id,
-            sourcePath: freshService ? files.Input : null));
+            sourcePath: freshService ? input : null));
     }
 
     [Fact]

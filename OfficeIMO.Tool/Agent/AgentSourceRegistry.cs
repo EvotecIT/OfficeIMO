@@ -116,11 +116,11 @@ internal sealed partial class AgentSourceRegistry {
         using IncrementalHash fingerprint = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         Append(fingerprint, fullPath);
         Append(fingerprint, isDirectory ? "directory" : "file");
-        Append(fingerprint, length?.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        bool iworkDirectory = isDirectory && dataOptions is null && IsIWorkPackagePath(fullPath);
-        // Native directory identities bind captured content. Root timestamps do not
-        // identify member edits and can change without changing document content.
-        if (!iworkDirectory) Append(fingerprint, lastWriteUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        bool iworkPackage = dataOptions is null && IsIWorkPackagePath(fullPath);
+        Append(fingerprint, iworkPackage ? null : length?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        // Native identities bind captured content. File length and timestamps do
+        // not identify an in-place edit and are informational metadata only.
+        if (!iworkPackage) Append(fingerprint, lastWriteUtc.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
         if (dataOptions != null) {
             // Identity discovery uses the same bounded artifact owners as the inspector.
             using var opened = EmailDataArtifact.Open(fullPath, dataOptions, cancellationToken);
@@ -137,8 +137,8 @@ internal sealed partial class AgentSourceRegistry {
                     fingerprint.AppendData(buffer, 0, read);
                 }
             }
-        } else if (iworkDirectory) {
-            Append(fingerprint, capturedIWorkContentHash ?? ComputeIWorkContentHash(fullPath, iworkMaximumPackageBytes, cancellationToken));
+        } else if (iworkPackage) {
+            Append(fingerprint, capturedIWorkContentHash ?? ComputeIWorkSourceHash(fullPath, isDirectory, iworkMaximumPackageBytes, cancellationToken));
         } else if (isDirectory) {
             using EmailStoreSession session = EmailStoreSession.Open(
                 fullPath,

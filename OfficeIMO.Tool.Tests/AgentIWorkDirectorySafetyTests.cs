@@ -109,37 +109,49 @@ public sealed partial class AgentIWorkConversionTests {
         Assert.Equal((await service.InspectAsync(files.Input)).SourceId, result.SourceId);
     }
 
-    [Fact]
-    public async Task Directory_identity_binds_returned_reader_capture_even_when_members_change_before_registration() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Native_identity_binds_returned_reader_capture_even_when_members_change_before_registration(bool directoryPackage) {
         using var files = new Files(true);
         string member = Path.Combine(files.Input, "extra.bin"); File.WriteAllText(member, "baseline");
+        string input = directoryPackage ? files.Input : Path.Combine(files.Root, "transport.pages");
+        if (!directoryPackage) ZipFile.CreateFromDirectory(files.Input, input, CompressionLevel.NoCompression, false);
         var reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
         var options = new ReaderOptions { ComputeHashes = true };
-        var captured = await reader.ReadDocumentAsync(files.Input, options);
+        var captured = await reader.ReadDocumentAsync(input, options);
         string hash = Assert.IsType<string>(captured.Source.SourceHash);
-        DateTime timestamp = Directory.GetLastWriteTimeUtc(files.Input);
+        DateTime timestamp = directoryPackage ? Directory.GetLastWriteTimeUtc(input) : File.GetLastWriteTimeUtc(input);
         var registry = new AgentSourceRegistry();
-        string expectedId = registry.Register(files.Input).SourceId;
+        string expectedId = registry.Register(input).SourceId;
         File.WriteAllText(member, "mutation");
-        var registration = registry.RegisterIWorkDirectorySnapshot(files.Input, hash, timestamp, CancellationToken.None);
+        if (!directoryPackage) {
+            File.Delete(input);
+            ZipFile.CreateFromDirectory(files.Input, input, CompressionLevel.NoCompression, false);
+        }
+        var registration = registry.RegisterIWorkSnapshot(input, directoryPackage, hash, timestamp, CancellationToken.None,
+            capturedLengthBytes: captured.Source.LengthBytes);
         Assert.Equal(expectedId, registration.SourceId);
         Assert.Contains("hello pages", captured.Markdown);
-        var changed = await reader.ReadDocumentAsync(files.Input, options);
+        var changed = await reader.ReadDocumentAsync(input, options);
         Assert.NotEqual(hash, changed.Source.SourceHash);
-        Assert.Throws<AgentUsageException>(() => registry.ResolveIWorkDirectorySnapshot(expectedId, files.Input,
+        Assert.Throws<AgentUsageException>(() => registry.ResolveIWorkSnapshot(expectedId, input, directoryPackage,
             changed.Source.SourceHash!, timestamp, CancellationToken.None));
     }
 
-    [Fact]
-    public async Task Semantic_json_output_and_source_id_share_the_captured_reader_hash() {
-        using var files = new Files(true);
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Semantic_json_output_and_source_id_share_the_captured_reader_hash(bool directoryPackage) {
+        using var files = new Files(directoryPackage);
         var registry = new AgentSourceRegistry();
         var service = new OfficeImoAgentService(new AgentPathPolicy([files.Root]), registry);
         var result = await service.ConvertAsync(files.Input, files.Output("json"), "json");
         using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(result.OutputPath));
         string hash = document.RootElement.GetProperty("source").GetProperty("sourceHash").GetString()!;
-        var captured = registry.RegisterIWorkDirectorySnapshot(files.Input, hash,
-            Directory.GetLastWriteTimeUtc(files.Input), CancellationToken.None);
+        var captured = registry.RegisterIWorkSnapshot(files.Input, directoryPackage, hash,
+            directoryPackage ? Directory.GetLastWriteTimeUtc(files.Input) : File.GetLastWriteTimeUtc(files.Input),
+            CancellationToken.None, capturedLengthBytes: directoryPackage ? null : new FileInfo(files.Input).Length);
         Assert.Equal(result.SourceId, captured.SourceId);
         Assert.Equal((await service.InspectAsync(files.Input)).SourceId, result.SourceId);
     }

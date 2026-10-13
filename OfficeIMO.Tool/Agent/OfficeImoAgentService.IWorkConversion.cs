@@ -11,7 +11,7 @@ internal sealed partial class OfficeImoAgentService {
         CancellationToken token) {
         string input = _pathPolicy.ResolveInput(path);
         bool directoryPackage = Directory.Exists(input);
-        DateTime directoryWriteTime = directoryPackage ? Directory.GetLastWriteTimeUtc(input) : default;
+        DateTime sourceWriteTime = directoryPackage ? Directory.GetLastWriteTimeUtc(input) : File.GetLastWriteTimeUtc(input);
         string destination = _pathPolicy.ResolveOutput(outputPath);
         ReaderToolPathSafety.EnsureDistinctFile(input, destination);
         if (directoryPackage) ReaderToolPathSafety.EnsureOutsideInput(input, destination);
@@ -25,7 +25,6 @@ internal sealed partial class OfficeImoAgentService {
             ?? throw new AgentUsageException("Choose a Pages-to-DOCX, Numbers-to-XLSX, Keynote-to-PPTX, or iWork-to-PDF conversion.");
         var settings = new IWorkWorkflowSettings { ConversionOptions = options ?? new() };
         long maximumPackageBytes = Math.Min(maximumInputBytes, settings.ReadOptions.MaximumPackageBytes);
-        AgentSourceRegistration? source = directoryPackage ? null : _registry.PrepareIWorkFile(input, maximumPackageBytes, token);
         var request = new OfficeWorkflowRequest {
             InputPath = input, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route,
@@ -35,22 +34,21 @@ internal sealed partial class OfficeImoAgentService {
             PublicationGuard = new AgentConversionPublicationGuard(_pathPolicy, input)
         };
         OfficeWorkflowResult workflow = await runner.RunAsync(request, cancellationToken: token).ConfigureAwait(false);
+        string? sourceHash = workflow.Diagnostics.FirstOrDefault(diagnostic => diagnostic.Code == "SourceSnapshot")?.Details.GetValueOrDefault("sha256");
+        AgentSourceRegistration? source = null;
         if (workflow.ConversionEvidence?.Facts.GetValueOrDefault("packageContentSha256") is string contentHash) {
             // Result construction binds already captured evidence, including cancellation.
             // It performs no filesystem read and must not discard the workflow's result.
-            if (directoryPackage)
-                source = _registry.RegisterIWorkDirectorySnapshot(input, contentHash, directoryWriteTime, CancellationToken.None,
-                    maximumPackageBytes);
-            else
-                _registry.RegisterIWorkFileSnapshot(source!);
-        } else {
-            source = null;
+            string? capturedHash = directoryPackage ? contentHash : sourceHash;
+            if (capturedHash is { Length: 64 } && capturedHash.All(Uri.IsHexDigit))
+                source = _registry.RegisterIWorkSnapshot(input, directoryPackage, capturedHash, sourceWriteTime,
+                    CancellationToken.None, maximumPackageBytes, directoryPackage ? null : workflow.InputBytes);
         }
         return new AgentConvertResult {
             SourceId = source?.SourceId ?? string.Empty, SourcePath = input, OutputPath = workflow.OutputPath ?? string.Empty,
             Format = format.ToLowerInvariant(), LengthBytes = workflow.OutputBytes, Sha256 = workflow.OutputSha256 ?? string.Empty,
             DiagnosticCount = workflow.Diagnostics.Count, Workflow = workflow,
-            SourceSha256 = workflow.Diagnostics.FirstOrDefault(diagnostic => diagnostic.Code == "SourceSnapshot")?.Details.GetValueOrDefault("sha256")
+            SourceSha256 = sourceHash
         };
     }
 

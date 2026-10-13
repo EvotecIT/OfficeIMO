@@ -53,7 +53,7 @@ internal sealed partial class OfficeImoAgentService {
         CancellationToken cancellationToken = default) {
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
         string inputPath = _pathPolicy.ResolveInput(path);
-        AgentSourceRegistration? source = IsIWorkDirectory(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
+        AgentSourceRegistration? source = IsIWorkPackage(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
         AgentInspectResult result;
         if (source != null && IsEmailStoreSource(source)) {
             result = InspectEmailStore(source, maxOutputCharacters, cancellationToken);
@@ -83,7 +83,7 @@ internal sealed partial class OfficeImoAgentService {
         ValidateSearchBounds(take, cursor);
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
         string inputPath = _pathPolicy.ResolveInput(path);
-        AgentSourceRegistration? source = IsIWorkDirectory(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
+        AgentSourceRegistration? source = IsIWorkPackage(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
         AgentSearchResult result;
         if (source != null && IsEmailStoreSource(source)) {
             result = SearchEmailStore(
@@ -127,7 +127,7 @@ internal sealed partial class OfficeImoAgentService {
         maxOutputCharacters = ValidateOutputBudget(maxOutputCharacters);
         string authorizedPath = _pathPolicy.ResolveInput(string.IsNullOrWhiteSpace(sourcePath)
             ? _registry.GetRegisteredPath(sourceId) : sourcePath);
-        AgentSourceRegistration? source = IsIWorkDirectory(authorizedPath) ? null
+        AgentSourceRegistration? source = IsIWorkPackage(authorizedPath) ? null
             : _registry.Resolve(sourceId, authorizedPath, cancellationToken);
         (string kind, string value) = AgentOpaqueId.Decode(id);
         AgentFetchResult result;
@@ -307,7 +307,7 @@ internal sealed partial class OfficeImoAgentService {
             return await ConvertIWorkAsync(path, outputPath, format, overwrite, iworkOptions,
                 maximumInputBytes, maximumOutputBytes, cancellationToken).ConfigureAwait(false);
         string inputPath = _pathPolicy.ResolveInput(path);
-        AgentSourceRegistration? source = IsIWorkDirectory(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
+        AgentSourceRegistration? source = IsIWorkPackage(inputPath) ? null : _registry.Register(inputPath, cancellationToken);
         if (source != null && IsEmailStoreSource(source)) {
             throw new AgentUsageException(
                 "Whole-store conversion is intentionally disabled. Search the store and fetch selected items.");
