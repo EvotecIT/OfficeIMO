@@ -47,5 +47,82 @@ namespace OfficeIMO.Archives.Tests {
             Assert.False(Directory.Exists(fixture.Destination));
             Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
         }
+
+        [Theory]
+        [InlineData("Windows Server 2022 August 2021 Update ", "Windows Server 2022 August 2021 Update")]
+        [InlineData("Templates.", "Templates")]
+        [InlineData("Templates. .", "Templates")]
+        public void MsiDirectorySegmentsUseTheirInstalledSpelling(string authored, string installed) {
+            using var fixture = new ArchiveFixtures();
+            var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                new MsiFixtureFile("Template.admx", "A", parent: authored + "/PolicyDefinitions"))), fixture.Destination);
+            string relative = installed + "/PolicyDefinitions/Template.admx";
+            Assert.Equal(relative, Assert.Single(result.Files).RelativePath);
+            Assert.Equal("A", File.ReadAllText(Path.Combine(fixture.Destination, relative.Replace('/', Path.DirectorySeparatorChar))));
+        }
+
+        [Theory]
+        [InlineData("..")]
+        [InlineData("...")]
+        [InlineData("   ")]
+        [InlineData(". .")]
+        [InlineData("CON ")]
+        [InlineData("NUL.")]
+        [InlineData("a*b ")]
+        public void MsiDirectorySegmentsStillRejectTraversalAndNonportableNamesAfterNormalization(string authored) {
+            using var fixture = new ArchiveFixtures();
+            int selectionCalls = 0;
+            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(
+                fixture.Package(ArchiveFixtures.MsiAliasFiles(false, new MsiFixtureFile("Template.admx", parent: authored + "/PolicyDefinitions"))),
+                fixture.Destination, new ArchiveExtractionOptions { IncludeFile = _ => { selectionCalls++; return true; } }));
+            Assert.Equal(0, selectionCalls);
+            Assert.False(Directory.Exists(fixture.Destination));
+            Assert.Empty(Directory.GetDirectories(fixture.Root, ".officeimo-archive-*"));
+        }
+
+        [Fact]
+        public void MsiDirectoryNormalizationAppliesToTheLongTargetName() {
+            using var fixture = new ArchiveFixtures();
+            var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                new MsiFixtureFile("Template.admx", "A", parent: "TEMPLA~1|Templates :SOURCE~1|Source "))), fixture.Destination);
+            Assert.Equal("Templates/Template.admx", Assert.Single(result.Files).RelativePath);
+        }
+
+        [Fact]
+        public void MsiDirectoriesThatNormalizeToTheSameSpellingMergeLikeWindowsInstaller() {
+            using var fixture = new ArchiveFixtures();
+            var result = ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                new MsiFixtureFile("First.admx", "A", parent: "Templates "),
+                new MsiFixtureFile("Second.admx", "B", parent: "Templates"))), fixture.Destination);
+            Assert.Equal(new[] { "Templates/First.admx", "Templates/Second.admx" },
+                result.Files.Select(file => file.RelativePath).OrderBy(path => path, StringComparer.Ordinal));
+        }
+
+        [Fact]
+        public void MsiDirectoriesThatNormalizeToTheSameSpellingRejectConflictingFiles() {
+            using var fixture = new ArchiveFixtures();
+            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                new MsiFixtureFile("Template.admx", "A", parent: "Templates "),
+                new MsiFixtureFile("Template.admx", "B", parent: "Templates"))), fixture.Destination));
+            Assert.False(Directory.Exists(fixture.Destination));
+        }
+
+        [Fact]
+        public void MsiDirectoriesThatNormalizeToCaseVariantsStillCollide() {
+            using var fixture = new ArchiveFixtures();
+            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                new MsiFixtureFile("First.admx", "A", parent: "Templates "),
+                new MsiFixtureFile("Second.admx", "B", parent: "templates"))), fixture.Destination));
+            Assert.False(Directory.Exists(fixture.Destination));
+        }
+
+        [Fact]
+        public void MsiDirectoryThatNormalizesToASiblingFileNameStillCollides() {
+            using var fixture = new ArchiveFixtures();
+            Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(ArchiveFixtures.MsiAliasFiles(false,
+                new MsiFixtureFile("Template.admx", "A", parent: "Root/Templates "),
+                new MsiFixtureFile("Templates", "B", parent: "Root"))), fixture.Destination));
+            Assert.False(Directory.Exists(fixture.Destination));
+        }
     }
 }
