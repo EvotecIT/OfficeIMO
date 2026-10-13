@@ -51,6 +51,75 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_InheritedSectionPagesPreservesOverlappingPageAnchoredPeerTextBoxes() {
+        using WordDocument document = CreateOverlappingPageAnchoredPeerControl();
+        using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
+        string[] before = AnchoredRunningStoryXml(document);
+        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        Assert.Equal(3, pdf.NumberOfPages);
+        Assert.Equal(controlPdf.NumberOfPages, pdf.NumberOfPages);
+        Page page = pdf.GetPage(2);
+        Page controlPage = controlPdf.GetPage(2);
+        foreach (string token in new[] { "PREFIX", "SUFFIX" })
+            Assert.Equal(AnchoredRunningLetters(controlPage, token).Select(letter => letter.StartBaseLine),
+                AnchoredRunningLetters(page, token).Select(letter => letter.StartBaseLine));
+        Assert.Equal(AnchoredRunningLetters(controlPage, "S2")[0].StartBaseLine.Y,
+            AnchoredRunningLetters(page, "S2")[0].StartBaseLine.Y, 3);
+
+        string visible = string.Concat(page.Letters.Select(letter => letter.Value));
+        int peerIndex = visible.IndexOf("PEERBOX", StringComparison.Ordinal);
+        Assert.True(peerIndex >= 0, visible);
+        Assert.Equal(peerIndex, visible.LastIndexOf("PEERBOX", StringComparison.Ordinal));
+        int boxIndex = visible.IndexOf("BOX", peerIndex + "PEERBOX".Length, StringComparison.Ordinal);
+        Assert.True(boxIndex > peerIndex, $"Overlapping peer paint order changed: {visible}");
+        Assert.Equal(boxIndex, visible.LastIndexOf("BOX", StringComparison.Ordinal));
+        Assert.Equal(2, visible.Split(new[] { "BOX" }, StringSplitOptions.None).Length - 1);
+        foreach (Letter[] box in new[] {
+            page.Letters.Skip(peerIndex).Take("PEERBOX".Length).ToArray(),
+            page.Letters.Skip(boxIndex).Take("BOX".Length).ToArray()
+        }) {
+            Assert.Equal((612D - 468D * 0.585D) / 2D + 7.2D, box[0].StartBaseLine.X, 3);
+            Assert.Equal(36D - (14.4D + 3.6D), box[0].StartBaseLine.Y -
+                AnchoredRunningLetters(controlPage, "PREFIX")[0].StartBaseLine.Y, 3);
+        }
+        Assert.DoesNotContain(page.Paths, path => path.IsStroked || path.IsFilled);
+        Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
+        Assert.DoesNotContain("{sectionpages}", pdf.GetPage(3).Text);
+        Assert.Equal(before, AnchoredRunningStoryXml(document));
+    }
+
+    [Fact]
+    public void SaveAsPdf_PageAnchoredPeersWithDisallowedOverlapRetainWarnedContentFlow() {
+        using WordDocument document = CreateOverlappingPageAnchoredPeerControl();
+        DW.Anchor[] anchors = document.Sections[1].Header!.First!.ChildElements
+            .SelectMany(child => child.Descendants<DW.Anchor>()).ToArray();
+        anchors[0].AllowOverlap = true;
+        anchors[1].AllowOverlap = false;
+        string[] before = AnchoredRunningStoryXml(document);
+        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        Assert.Equal(3, pdf.NumberOfPages);
+        string visible = string.Concat(pdf.GetPage(2).Letters.Select(letter => letter.Value));
+        int prefixIndex = visible.IndexOf("PREFIX", StringComparison.Ordinal);
+        int peerIndex = visible.IndexOf("PEERBOX", StringComparison.Ordinal);
+        Assert.True(prefixIndex >= 0 && peerIndex > prefixIndex, visible);
+        int boxIndex = visible.IndexOf("BOX", peerIndex + "PEERBOX".Length, StringComparison.Ordinal);
+        int suffixIndex = visible.IndexOf("SUFFIX", StringComparison.Ordinal);
+        Assert.True(boxIndex > peerIndex && suffixIndex > boxIndex, visible);
+        foreach (string marker in new[] { "PREFIX", "PEERBOX", "SUFFIX" })
+            Assert.Equal(1, visible.Split(new[] { marker }, StringSplitOptions.None).Length - 1);
+        Assert.Equal(boxIndex, visible.LastIndexOf("BOX", StringComparison.Ordinal));
+        Assert.Equal(2, visible.Split(new[] { "BOX" }, StringSplitOptions.None).Length - 1);
+        Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
+        Assert.DoesNotContain("{sectionpages}", pdf.GetPage(3).Text);
+        Assert.Equal(before, AnchoredRunningStoryXml(document));
+    }
+
+    [Fact]
     public void SaveAsPdf_AnchoredRunningTextBoxPreservesContextualAfterSpacing() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
@@ -128,7 +197,8 @@ public partial class Word {
             first.AddText("AFTERINNER");
         } else {
             WordParagraph suffix = story.Paragraphs.Last();
-            suffix.AddTextBox("PEERBOX", WordImageTextWrapping.Square);
+            WordTextBox unsupportedPeer = suffix.AddTextBox("PEERBOX", WordImageTextWrapping.Square);
+            unsupportedPeer.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Paragraph;
             suffix.AddText("ENDTEXT");
         }
         string[] before = AnchoredRunningStoryXml(document);
@@ -150,6 +220,20 @@ public partial class Word {
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
         Assert.DoesNotContain("{sectionpages}", pdf.GetPage(3).Text);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
+    }
+
+    private static WordDocument CreateOverlappingPageAnchoredPeerControl() {
+        WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
+        W.Paragraph paragraph = document.Sections[1].Header!.First!.ChildElements.OfType<W.Paragraph>().Single();
+        DW.Anchor original = paragraph.Descendants<DW.Anchor>().Single();
+        original.GetFirstChild<DW.DocProperties>()!.Id = 1U;
+        var peer = original.Ancestors<DocumentFormat.OpenXml.AlternateContent>().Single().CloneNode(true);
+        peer.Descendants<DW.DocProperties>().Single().Id = 2U;
+        peer.Descendants<W.Text>().Single().Text = "PEERBOX";
+        // The retained input places the cloned peer in the PREFIX run before
+        // the original BOX. Equal-depth paints keep that source order.
+        paragraph.Elements<W.Run>().First().Append(peer);
+        return document;
     }
 
     private static WordDocument CreateAnchoredRunningTextBoxControl(bool includeTextBox) {
