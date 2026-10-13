@@ -14,7 +14,7 @@ struct StructureSheetView: View {
         case .watermark: WatermarkSheet(session: session)
         case .bates: BatesSheet(session: session)
         case .split: SplitSheet(session: session)
-        case .export: ExportTextSheet(session: session)
+        case .export: ExportSheet(session: session)
         case .flatten: FlattenSheet(session: session)
         case .signatures: SignaturesSheet(session: session)
         case .standard: StandardSheet(session: session)
@@ -417,63 +417,121 @@ private struct SplitSheet: View {
     }
 }
 
-/// Export Text: the document's text as plain text, Markdown with headings and lists, or structured JSON.
-private struct ExportTextSheet: View {
+/// Export: the document as a Word, Excel or PowerPoint file, a web page, its text, or images of its pages or the
+/// pictures inside it. A conversion that couldn't keep everything lists what it left out before the file is saved.
+private struct ExportSheet: View {
     let session: DocumentSession
     @Environment(\.dismiss) private var dismiss
-    @State private var format = TextExportFormat.markdown
+    @State private var format = ExportFormat.word
+    @State private var converted: ExportedFile?
     @State private var problem: String?
     @State private var isWriting = false
 
     var body: some View {
-        SheetForm(title: "Export Text", confirm: "Export", isComplete: true, isWriting: isWriting, problem: problem,
-                  cancel: { dismiss() }, confirmAction: export) {
-            Section {
-                Picker("Format", selection: $format) {
-                    ForEach(TextExportFormat.allCases) { format in
-                        Text(format.title).tag(format)
+        SheetForm(title: "Export", confirm: converted == nil ? "Export" : "Save…", isComplete: true, isWriting: isWriting, problem: problem,
+                  cancel: cancel, confirmAction: export) {
+            if let converted, let notes = converted.notes {
+                Section {
+                    ForEach(notes.split(separator: "\n").map(String.init), id: \.self) { note in
+                        Label(note, systemImage: "exclamationmark.triangle")
                     }
+                } header: {
+                    Text("Converted with Notes")
+                } footer: {
+                    Text("Some content couldn’t be kept exactly as it is in the PDF. Save the file, or cancel to keep the document only.")
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-            } footer: {
-                Text(format == .markdown ? "Headings, paragraphs, lists and tables, for notes and editors."
-                     : format == .json ? "The text with its structure and position on each page, for other programs."
-                     : "The text only, in reading order.")
+            } else {
+                Section("Document") { options(ExportFormat.documents) }
+                Section("Text") { options(ExportFormat.texts) }
+                Section {
+                    options(ExportFormat.pictures)
+                } header: {
+                    Text("Images")
+                } footer: {
+                    Text(format.detail)
+                }
             }
         }
+        .onChange(of: format) { problem = nil }
+    }
+
+    private func options(_ formats: [ExportFormat]) -> some View {
+        Picker("Format", selection: $format) {
+            ForEach(formats) { format in
+                Text(format.title).tag(format)
+            }
+        }
+        .pickerStyle(.inline)
+        .labelsHidden()
     }
 
     private func export() {
+        if let converted {
+            session.pendingExportedFile = converted
+            dismiss()
+            return
+        }
         problem = nil
         isWriting = true
         Task {
             defer { isWriting = false }
             do {
-                try await session.exportText(format)
-                dismiss()
+                guard let file = try await session.export(format) else { return }
+                if file.notes == nil {
+                    session.pendingExportedFile = file
+                    dismiss()
+                } else {
+                    converted = file
+                }
             } catch {
                 problem = error.localizedDescription
             }
         }
     }
+
+    private func cancel() {
+        if let converted { try? FileManager.default.removeItem(at: converted.folder) }
+        dismiss()
+    }
 }
 
-/// Flatten Form: the fields' current values become part of the pages, so the form can no longer be changed.
+/// Flatten: the form's current values, or the markup, become part of the pages, so they can no longer be changed.
 private struct FlattenSheet: View {
     let session: DocumentSession
     @Environment(\.dismiss) private var dismiss
+    @State private var target = FlattenTarget.form
+
+    enum FlattenTarget: Hashable {
+        case form, markup
+    }
 
     var body: some View {
-        SheetForm(title: "Flatten Form", confirm: "Flatten", isComplete: true, isWriting: false, problem: nil,
+        SheetForm(title: "Flatten", confirm: "Flatten", isComplete: isAvailable(target), isWriting: false, problem: nil,
                   cancel: { dismiss() }, confirmAction: {
-                      session.flattenForm()
+                      if target == .form { session.flattenForm() } else { session.flattenMarkup() }
                       dismiss()
                   }) {
             Section {
-                Text("The form’s current values become part of the pages, and its fields can no longer be filled or changed. Undo restores the form.")
-                    .foregroundStyle(.secondary)
+                Picker("Flatten", selection: $target) {
+                    Text("Form Fields").tag(FlattenTarget.form)
+                        .selectionDisabled(!session.canFlattenForms)
+                    Text("Markup").tag(FlattenTarget.markup)
+                        .selectionDisabled(!session.canFlattenMarkup)
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } footer: {
+                Text(target == .form
+                     ? "The form’s current values become part of the pages, and its fields can no longer be filled or changed. Undo restores the form."
+                     : "Drawings, shapes, highlights, notes and stamps become part of the pages and can no longer be moved or changed. Links stay. Undo restores the markup.")
             }
         }
+        .onAppear {
+            if !session.canFlattenForms, session.canFlattenMarkup { target = .markup }
+        }
+    }
+
+    private func isAvailable(_ target: FlattenTarget) -> Bool {
+        target == .form ? session.canFlattenForms : session.canFlattenMarkup
     }
 }

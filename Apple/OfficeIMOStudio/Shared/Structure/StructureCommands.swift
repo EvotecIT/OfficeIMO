@@ -27,8 +27,8 @@ struct StructureCommands: View {
             .disabled(session.textSelection == nil || !session.canEditAnnotations)
         Button("Add Bookmark", systemImage: "bookmark") { session.addBookmark() }
             .disabled(!session.canEditOutline)
-        Button("Flatten Form…", systemImage: "square.stack.3d.down.forward") { session.structureSheet = .flatten }
-            .disabled(!session.canFlattenForms)
+        Button("Flatten…", systemImage: "square.stack.3d.down.forward") { session.structureSheet = .flatten }
+            .disabled(!session.canFlattenForms && !session.canFlattenMarkup)
         Button("Redact…", systemImage: "rectangle.fill.badge.xmark") { session.structureSheet = .redact }
             .disabled(!session.canRedact)
         Button("Mark Areas to Redact", systemImage: "rectangle.dashed") { session.beginMarkingRedactions() }
@@ -43,7 +43,7 @@ struct StructureCommands: View {
         Divider()
         Button("Split Document…", systemImage: "square.split.1x2") { session.structureSheet = .split }
             .disabled(!session.canSplit)
-        Button("Export Text…", systemImage: "doc.plaintext") { session.structureSheet = .export }
+        Button("Export…", systemImage: "square.and.arrow.up.on.square") { session.structureSheet = .export }
             .disabled(!session.canExportText)
     }
 }
