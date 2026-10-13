@@ -22,14 +22,11 @@ public static partial class WordPdfConverterExtensions {
             if (source.Descendants<W.Drawing>().Any() || source.Descendants<W.Picture>().Any() ||
                 source.Ancestors<W.TableCell>().Any()) return null;
             var paragraph = new WordParagraph(document, source);
-            NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
             if (WordDocumentTraversal.GetListInfo(paragraph).HasValue ||
                 HasNativeParagraphBorder(GetNativeEffectiveParagraphBorders(paragraph)) ||
                 CreateNativeParagraphPanelStyle(paragraph, paragraphStyle) != null)
                 return null;
-            NativeLineSpacing spacing = ResolveNativeParagraphLineSpacing(paragraph, styleDefaults, defaults);
-            if (spacing.Rule != W.LineSpacingRuleValues.Exact || !spacing.Value.HasValue) continue;
             // These body objects or their decorations have no unclipped ink
             // inventory here. Keep foreground admission explicitly unqualified.
             if (source.Descendants<W.EmbeddedObject>().Any() ||
@@ -41,7 +38,8 @@ public static partial class WordPdfConverterExtensions {
                 FontSize = paragraphStyle.FontSize, LineHeight = paragraphStyle.LineHeight, LineSpacing = paragraphStyle.LineSpacing
             };
             // A page fragment can start with any run. Measure each at the
-            // canonical exact-line baseline rather than assuming a font ratio.
+            // canonical baseline for its effective spacing and font size.
+            // Short proportional lines can paint above the frame too.
             foreach (PdfCore.PdfTextRun run in CreateNativeCellParagraphRuns(paragraph, null,
                     NativeTableStyleDefaults.Empty, defaults, fontMap)) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
@@ -52,8 +50,11 @@ public static partial class WordPdfConverterExtensions {
                 double? width = fontMap.MeasureText(run);
                 if (!width.HasValue) return null;
                 if (width.Value <= 0D) continue;
+                double? fontSize = run.FontSize ?? paragraphStyle.FontSize;
+                if (canvasStyle.LineSpacing == null || !fontSize.HasValue) return null;
+                double frameHeight = canvasStyle.LineSpacing.GetAdvance(fontSize.Value);
                 PdfCore.PdfWriter.CanvasTextBoxMeasurement? measured = fontMap.MeasureCanvasTextBox(new[] { run },
-                    width.Value, canvasStyle.LineSpacing!.Value, canvasStyle);
+                    width.Value, frameHeight, canvasStyle);
                 if (measured == null) return null;
                 topOffset = Math.Min(topOffset, measured.TextInkTop);
             }
