@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -13,12 +14,18 @@ public sealed partial class OfficeTrueTypeFont {
 
     /// <summary>Resolves an installed family using the same numeric face ordering as document-scoped fonts.</summary>
     public static OfficeTrueTypeFont? TryLoadFontFamilyForText(string? families, OfficeFontFaceDescriptor descriptor,
-        string? text, out OfficeFontStyle resolvedStyle) {
+        string? text, out OfficeFontStyle resolvedStyle) => TryLoadFontFamilyForText(
+            families, descriptor, text, out resolvedStyle, CancellationToken.None);
+
+    internal static OfficeTrueTypeFont? TryLoadFontFamilyForText(string? families, OfficeFontFaceDescriptor descriptor,
+        string? text, out OfficeFontStyle resolvedStyle, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         resolvedStyle = OfficeFontStyle.Regular;
         if (string.IsNullOrWhiteSpace(families)) return TryLoadDefault();
         OfficeTrueTypeFont? synthesisCandidate = null;
         foreach (string family in ExpandFontFamilyFallbacks(families!)) {
-            foreach (FontFamilyResolution resolved in OrderedNumericFamily(family, descriptor)) {
+            foreach (FontFamilyResolution resolved in OrderedNumericFamily(family, descriptor, cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 OfficeTrueTypeFont candidate = resolved.Font!;
                 if (!string.IsNullOrEmpty(text) && !candidate.HasGlyphs(text!)) {
                     if (synthesisCandidate == null && OfficeMissingSpaceMetrics.CoversWithSynthesis(candidate, text!))
@@ -33,19 +40,24 @@ public sealed partial class OfficeTrueTypeFont {
         return synthesisCandidate;
     }
 
-    private static List<FontFamilyResolution> OrderedNumericFamily(string family, OfficeFontFaceDescriptor descriptor) {
-        var candidates = new List<FontFamilyResolution>(GetNumericFamily(family));
+    private static List<FontFamilyResolution> OrderedNumericFamily(string family, OfficeFontFaceDescriptor descriptor,
+        CancellationToken cancellationToken = default) {
+        var candidates = new List<FontFamilyResolution>(GetNumericFamily(family, cancellationToken));
         candidates.Sort((left, right) => OfficeFontFaceMatcher.Compare(left.Font!.FaceDescriptor, right.Font!.FaceDescriptor, descriptor));
         return candidates;
     }
 
-    private static IReadOnlyList<FontFamilyResolution> GetNumericFamily(string family) {
+    private static IReadOnlyList<FontFamilyResolution> GetNumericFamily(string family, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string key = NormalizeFontFamilyKey(family);
         lock (FontCacheLock) { if (NumericFamilyCache.TryGetValue(key, out var cached)) return cached; }
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<FontFamilyResolution>();
         foreach (OfficeFontStyle style in new[] { OfficeFontStyle.Regular, OfficeFontStyle.Bold, OfficeFontStyle.Italic, OfficeFontStyle.Bold | OfficeFontStyle.Italic }) {
-            foreach (string path in CandidateStyledFamilyPaths(key, style)) paths.Add(path);
+            foreach (string path in CandidateStyledFamilyPaths(key, style, cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                paths.Add(path);
+            }
         }
         // Abbreviated Windows filenames include faces beyond the four legacy style flags.
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
@@ -54,8 +66,10 @@ public sealed partial class OfficeTrueTypeFont {
                 paths.Add(Path.Combine(windows, "Fonts", file));
         }
         foreach (string path in paths) foreach (OfficeTrueTypeFont font in LoadFaces(path)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (font.HasFamilyKey(key)) result.Add(new FontFamilyResolution(font, path));
         }
+        cancellationToken.ThrowIfCancellationRequested();
         lock (FontCacheLock) {
             if (NumericFamilyCache.Count >= 32) NumericFamilyCache.Clear();
             NumericFamilyCache[key] = result.AsReadOnly();
