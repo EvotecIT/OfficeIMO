@@ -35,15 +35,8 @@ internal static partial class PdfWriter {
         }
 
         private string? EnsureOpacityState(OfficeIMO.Drawing.OfficeShape shape) {
-            bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line;
-            bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
-            double fillColorOpacity = shape.FillGradient == null && shape.FillRadialGradient == null && shape.FillColor.HasValue
-                ? shape.FillColor.Value.A / 255D
-                : 1D;
-            double strokeColorOpacity = shape.StrokeColor.HasValue ? shape.StrokeColor.Value.A / 255D : 1D;
-            double fillOpacity = hasFill ? (shape.FillOpacity ?? 1D) * fillColorOpacity : 1D;
-            double strokeOpacity = hasStroke ? (shape.StrokeOpacity ?? 1D) * strokeColorOpacity : 1D;
-            return EnsureGraphicsState(fillOpacity, strokeOpacity);
+            var opacity = ResolveShapePaintOpacity(shape);
+            return EnsureGraphicsState(opacity.Fill, opacity.Stroke);
         }
 
         private string? EnsureFillGradient(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
@@ -114,6 +107,7 @@ internal static partial class PdfWriter {
                 DrawShapeGeometryAt(fill, xShape, bottomY);
                 OfficeShape? stroke = CreateGradientStrokeShape(shape);
                 if (stroke != null) DrawShapeGeometryAt(stroke, xShape, bottomY);
+                DrawShapeMarkersAt(shape, xShape, bottomY);
                 return;
             }
 
@@ -177,6 +171,7 @@ internal static partial class PdfWriter {
                 new ContentStreamBuilder(sb)
                     .RestoreState();
             }
+            DrawShapeMarkersAt(shape, xShape, bottomY);
         }
 
         private int? DrawShapeAt(ShapeBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
@@ -480,10 +475,12 @@ internal static partial class PdfWriter {
             }
 
             double x = GetAlignedObjectX(containerX, containerWidth, shape.Shape.Width, style.Align);
-            double x1 = x;
-            double x2 = x + shape.Shape.Width;
-            double y1 = topY - shape.Shape.Height;
-            double y2 = topY;
+            var canvas = (shape.Shape.Transform ?? OfficeTransform.Identity)
+                .TransformRectangleBounds(0, 0, shape.Shape.Width, shape.Shape.Height);
+            double x1 = x + canvas.Left;
+            double x2 = x + canvas.Right;
+            double y1 = topY - canvas.Bottom;
+            double y2 = topY - canvas.Top;
             double halfStroke = Math.Max(0.5D, Math.Max(0D, shape.Shape.StrokeWidth) / 2D);
             if (x2 <= x1) {
                 x1 -= halfStroke;
@@ -493,6 +490,19 @@ internal static partial class PdfWriter {
             if (y2 <= y1) {
                 y1 -= halfStroke;
                 y2 += halfStroke;
+            }
+
+            if (TryGetShapePaintBounds(shape.Shape, x, topY - shape.Shape.Height, null, "Body", "shape",
+                    out double paintX, out double paintY, out double paintWidth, out double paintHeight, conservativeWhenUnmeasured: true)) {
+                x1 = Math.Min(x1, paintX); x2 = Math.Max(x2, paintX + paintWidth);
+                y1 = Math.Min(y1, paintY); y2 = Math.Max(y2, paintY + paintHeight);
+            }
+
+            foreach (OfficeShape marker in CreateLineMarkerShapes(shape.Shape)) {
+                if (!TryGetShapePaintBounds(marker, x, topY - marker.Height, null, "Body", "marker",
+                        out double markerX, out double markerY, out double markerWidth, out double markerHeight, conservativeWhenUnmeasured: true)) continue;
+                x1 = Math.Min(x1, markerX); x2 = Math.Max(x2, markerX + markerWidth);
+                y1 = Math.Min(y1, markerY); y2 = Math.Max(y2, markerY + markerHeight);
             }
 
             currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = shape.LinkUri!, Contents = shape.LinkContents, StructElementIndex = structElementIndex });

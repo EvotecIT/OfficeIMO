@@ -18,7 +18,7 @@
   "Sources": [
     {
       "Repo": "EvotecIT/PSWriteOffice",
-      "Ref": "53f5e6cf96e8c38fa77735e50c1b9995509c61e5",
+      "Ref": "c7a9d408e711859c7c71e8d498687086a4143f2f",
       "Slug": "pswriteoffice",
       "Destination": "./projects/pswriteoffice",
       "Clean": true
@@ -132,7 +132,7 @@
       "DefaultLayout": "blog-post",
       "ListLayout": "page",
       "UseToc": false,
-      "SitemapLastModified": "publishedDate",
+      "SitemapLastModified": "sourceDate",
       "EditorialCards": {
         "ImageAspect": "16/9",
         "ImageFit": "cover",
@@ -214,12 +214,15 @@
     "Enabled": true,
     "Breadcrumbs": true,
     "Article": true,
+    "WebPage": true,
+    "OrganizationName": "Evotec",
+    "OrganizationUrl": "https://evotec.xyz/",
     "FaqPage": true,
     "HowTo": true,
     "SoftwareApplication": true,
     "OrganizationLegalName": "Evotec Services sp. z o.o.",
     "OrganizationDescription": "Open source .NET libraries for creating, reading, and editing Office documents without Microsoft Office.",
-    "OrganizationLogo": "https://officeimo.com/favicon.svg",
+    "OrganizationLogo": "https://evotec.xyz/favicon.svg",
     "OrganizationSameAs": [
       "https://github.com/EvotecIT/OfficeIMO",
       "https://github.com/EvotecIT/PSWriteOffice",
@@ -597,6 +600,15 @@
           "global",
           "docs",
           "experience"
+        ]
+      },
+      {
+        "Match": "/docs/integrations/**",
+        "Bundles": [
+          "global",
+          "docs",
+          "experience",
+          "showcase"
         ]
       },
       {

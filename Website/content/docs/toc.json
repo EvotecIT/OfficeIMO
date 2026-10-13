@@ -59,6 +59,31 @@
     ]
   },
   {
+    "title": "Report Integrations",
+    "items": [
+      {
+        "title": "Reporting Tasks",
+        "path": "integrations/index.md",
+        "href": "/docs/integrations/"
+      },
+      {
+        "title": "Compare Supplier Quotes",
+        "path": "integrations/supplier-review/index.md",
+        "href": "/docs/integrations/supplier-review/"
+      },
+      {
+        "title": "Investigate Windows Events",
+        "path": "integrations/event-brief/index.md",
+        "href": "/docs/integrations/event-brief/"
+      },
+      {
+        "title": "Review Report Email",
+        "path": "integrations/report-email/index.md",
+        "href": "/docs/integrations/report-email/"
+      }
+    ]
+  },
+  {
     "title": "Platform Map",
     "items": [
       {
@@ -372,107 +397,107 @@
     "title": "PSWriteOffice",
     "items": [
       {
-        "title": "PSWriteOffice Overview",
+        "title": "PSWriteOffice Documentation",
         "path": "pswriteoffice/index.md",
         "href": "/docs/pswriteoffice/"
       },
       {
-        "title": "Platform and Command Map",
+        "title": "What PSWriteOffice Covers",
         "path": "pswriteoffice/overview/index.md",
         "href": "/docs/pswriteoffice/overview/"
       },
       {
-        "title": "Install and Update",
+        "title": "Install and Verify PSWriteOffice",
         "path": "pswriteoffice/install/index.md",
         "href": "/docs/pswriteoffice/install/"
       },
       {
-        "title": "Choose a Workflow",
+        "title": "Choose a PSWriteOffice Workflow",
         "path": "pswriteoffice/choosing-a-workflow/index.md",
         "href": "/docs/pswriteoffice/choosing-a-workflow/"
       },
       {
-        "title": "All Command Families",
+        "title": "PSWriteOffice Command Families",
         "path": "pswriteoffice/command-families/index.md",
         "href": "/docs/pswriteoffice/command-families/"
       },
       {
-        "title": "Compare ImportExcel and ExcelFast",
+        "title": "PSWriteOffice vs ImportExcel vs ExcelFast",
         "path": "pswriteoffice/compare-importexcel-excelfast/index.md",
         "href": "/docs/pswriteoffice/compare-importexcel-excelfast/"
       },
       {
-        "title": "Compare Office Automation Options",
+        "title": "PSWriteOffice vs Office Interop, Graph, and LibreOffice",
         "path": "pswriteoffice/compare-office-automation-options/index.md",
         "href": "/docs/pswriteoffice/compare-office-automation-options/"
       },
       {
-        "title": "Migrate from Legacy Modules",
+        "title": "Migrate Legacy Modules to PSWriteOffice",
         "path": "pswriteoffice/migrate-from-legacy-modules/index.md",
         "href": "/docs/pswriteoffice/migrate-from-legacy-modules/"
       },
       {
-        "title": "Migrate from PSWriteWord",
+        "title": "Migrate from PSWriteWord to PSWriteOffice",
         "path": "pswriteoffice/migrate-from-pswriteword/index.md",
         "href": "/docs/pswriteoffice/migrate-from-pswriteword/"
       },
       {
-        "title": "Migrate from PSWriteExcel",
+        "title": "Migrate from PSWriteExcel to PSWriteOffice",
         "path": "pswriteoffice/migrate-from-pswriteexcel/index.md",
         "href": "/docs/pswriteoffice/migrate-from-pswriteexcel/"
       },
       {
-        "title": "Migrate from PSWritePDF",
+        "title": "Migrate from PSWritePDF to PSWriteOffice",
         "path": "pswriteoffice/migrate-from-pswritepdf/index.md",
         "href": "/docs/pswriteoffice/migrate-from-pswritepdf/"
       },
       {
-        "title": "Word Cmdlets",
+        "title": "Automate Word Documents",
         "path": "pswriteoffice/word/index.md",
         "href": "/docs/pswriteoffice/word/"
       },
       {
-        "title": "Excel Cmdlets",
+        "title": "Automate Excel Workbooks",
         "path": "pswriteoffice/excel/index.md",
         "href": "/docs/pswriteoffice/excel/"
       },
       {
-        "title": "PowerPoint Cmdlets",
+        "title": "Automate PowerPoint Presentations",
         "path": "pswriteoffice/powerpoint/index.md",
         "href": "/docs/pswriteoffice/powerpoint/"
       },
       {
-        "title": "PDF Cmdlets",
+        "title": "Automate PDF Workflows",
         "path": "pswriteoffice/pdf/index.md",
         "href": "/docs/pswriteoffice/pdf/"
       },
       {
-        "title": "Reader Cmdlets",
+        "title": "Reader, Document Extraction, and OCR",
         "path": "pswriteoffice/reader/index.md",
         "href": "/docs/pswriteoffice/reader/"
       },
       {
-        "title": "Confluence Cloud Cmdlets",
+        "title": "Publish to Confluence Cloud",
         "path": "pswriteoffice/confluence/index.md",
         "href": "/docs/pswriteoffice/confluence/"
       },
       {
-        "title": "Visio Cmdlets",
+        "title": "Automate Visio Diagrams",
         "path": "pswriteoffice/visio/index.md",
         "href": "/docs/pswriteoffice/visio/"
       },
       {
-        "title": "Open and Text Formats",
+        "title": "Open Formats and Text Automation",
         "path": "pswriteoffice/open-text-formats/index.md",
         "href": "/docs/pswriteoffice/open-text-formats/"
       },
       {
-        "title": "Automation Patterns",
+        "title": "Reliable Automation Patterns",
         "path": "pswriteoffice/automation-patterns/index.md",
         "href": "/docs/pswriteoffice/automation-patterns/"
       },
       {
-        "title": "Troubleshooting",
+        "title": "Troubleshooting and Diagnostics",
         "path": "pswriteoffice/troubleshooting/index.md",
         "href": "/docs/pswriteoffice/troubleshooting/"
       },

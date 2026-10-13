@@ -46,9 +46,16 @@ internal static partial class CsvFile
             _offset += copied;
             return copied;
         }
-        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken token)
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken token)
         {
-            if (count == 0) return 0;
+            if (count == 0) return Task.FromResult(0);
+            if (!_initialized || _offset != _count) return ReadPrefixAsync(buffer, offset, count, token);
+            try { return _inner.ReadAsync(buffer, offset, count, token); }
+            catch (Exception exception) { return ReadFailureAsync(exception); }
+        }
+
+        private async Task<int> ReadPrefixAsync(byte[] buffer, int offset, int count, CancellationToken token)
+        {
             if (!_initialized)
             {
                 if (count >= _prefix.Length && _count == 0)
@@ -73,9 +80,16 @@ internal static partial class CsvFile
             return copied;
         }
 #if NET8_0_OR_GREATER
-        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken token = default)
         {
-            if (buffer.Length == 0) return 0;
+            if (buffer.Length == 0) return new ValueTask<int>(0);
+            if (!_initialized || _offset != _count) return ReadPrefixAsync(buffer, token);
+            try { return _inner.ReadAsync(buffer, token); }
+            catch (Exception exception) { return new ValueTask<int>(ReadFailureAsync(exception)); }
+        }
+
+        private async ValueTask<int> ReadPrefixAsync(Memory<byte> buffer, CancellationToken token)
+        {
             if (!_initialized)
             {
                 if (buffer.Length >= _prefix.Length && _count == 0)
@@ -100,6 +114,11 @@ internal static partial class CsvFile
             return copied;
         }
 #endif
+        // Forwarding still reports a synchronously thrown input error through the returned operation.
+        // Awaiting also preserves an OperationCanceledException and its token as cancellation.
+        private static async Task<int> ReadFailureAsync(Exception exception) =>
+            await Task.FromException<int>(exception).ConfigureAwait(false);
+
         public override void Flush() => _inner.Flush();
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();

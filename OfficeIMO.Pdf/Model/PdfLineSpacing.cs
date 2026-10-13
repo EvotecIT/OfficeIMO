@@ -48,13 +48,25 @@ public sealed class PdfLineSpacing {
     // A document line grid constrains natural line boxes before applying
     // multiple or minimum spacing. Exact spacing bypasses the grid.
     internal double? LineGridPitch { get; private init; }
+    internal PdfFontLineAlignment FontAlignment { get; private init; }
+    internal double FontAlignmentPointsPerPixel { get; private init; }
+
+    internal PdfLineSpacing WithFontAlignment(PdfFontLineAlignment alignment, double pointsPerPixel) {
+        if (pointsPerPixel <= 0D || double.IsNaN(pointsPerPixel) || double.IsInfinity(pointsPerPixel))
+            throw new System.ArgumentOutOfRangeException(nameof(pointsPerPixel));
+        return new(Rule, Value, NaturalMultiplier) {
+            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset,
+            LineGridPitch = LineGridPitch, FontAlignment = alignment, FontAlignmentPointsPerPixel = pointsPerPixel
+        };
+    }
 
     internal PdfLineSpacing WithLineGrid(double pitch) {
         if (pitch <= 0D || double.IsNaN(pitch) || double.IsInfinity(pitch))
             throw new System.ArgumentOutOfRangeException(nameof(pitch));
         return new(Rule, Value, NaturalMultiplier) {
             FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset,
-            LineGridPitch = IsExact ? null : pitch
+            LineGridPitch = IsExact ? null : pitch,
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel
         };
     }
 
@@ -62,13 +74,15 @@ public sealed class PdfLineSpacing {
         if (!IsExact || baselineOffset < 0D || double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset))
             throw new System.ArgumentOutOfRangeException(nameof(baselineOffset), "A fixed line-box baseline requires exact spacing and a finite non-negative offset.");
         return new(Rule, Value, NaturalMultiplier) {
-            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = baselineOffset, LineGridPitch = LineGridPitch
+            FontLineBoxMultiplier = FontLineBoxMultiplier, FixedLineBoxBaselineOffset = baselineOffset, LineGridPitch = LineGridPitch,
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel
         };
     }
 
     internal PdfLineSpacing WithFontLineBoxBaseline(double naturalMultiplier) =>
         new(Rule, Value, NaturalMultiplier) {
-            FontLineBoxMultiplier = naturalMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset, LineGridPitch = LineGridPitch
+            FontLineBoxMultiplier = naturalMultiplier, FixedLineBoxBaselineOffset = FixedLineBoxBaselineOffset, LineGridPitch = LineGridPitch,
+            FontAlignment = FontAlignment, FontAlignmentPointsPerPixel = FontAlignmentPointsPerPixel
         };
 
     internal double GetAdvance(double fontSize) => LineGridPitch.HasValue && !IsExact

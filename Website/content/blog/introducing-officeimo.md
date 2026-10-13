@@ -4,7 +4,9 @@ description: "Announcing OfficeIMO, a free MIT-licensed suite of .NET libraries 
 date: 2025-01-15
 tags: [open-source, dotnet, office]
 categories: [Announcement]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 ---
 
 OfficeIMO is a family of open-source .NET libraries for creating, reading, and transforming Office-oriented document formats without installing Microsoft Office. The main packages ship under the **MIT license**, so you can use them in commercial products, internal tooling, and automation workflows without a proprietary runtime fee.

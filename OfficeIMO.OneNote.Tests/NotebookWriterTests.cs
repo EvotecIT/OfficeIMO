@@ -426,10 +426,11 @@ public sealed class NotebookWriterTests {
 
     private static OneNoteNotebook CreateGroupChain(int groupCount) {
         var notebook = new OneNoteNotebook { Name = "Groups" };
-        var root = new OneNoteSectionGroup { Name = "Group 0" };
+        // Keep CAB paths short so these fixtures exercise depth rather than name limits.
+        var root = new OneNoteSectionGroup { Name = "G0" };
         OneNoteSectionGroup parent = root;
         for (int index = 1; index < groupCount; index++) {
-            var child = new OneNoteSectionGroup { Name = "Group " + index };
+            var child = new OneNoteSectionGroup { Name = "G" + index };
             parent.SectionGroups.Add(child);
             parent = child;
         }

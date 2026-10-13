@@ -237,14 +237,13 @@ namespace OfficeIMO.Core.Internal {
             CancellationToken cancellationToken) {
             int required = checked((int)((size + sectorSize - 1) / sectorSize));
             var result = new List<uint>(required);
-            var visited = new bool[physicalSectorCount];
+            var visited = new HashSet<uint>();
             uint sector = startSector;
             while (result.Count < required) {
                 if (sector == EndOfChain || sector == FreeSect || sector >= physicalSectorCount ||
-                    visited[sector]) {
+                    !visited.Add(sector)) {
                     throw new InvalidDataException("Compound mini stream chain is shorter than its declared size.");
                 }
-                visited[sector] = true;
                 result.Add(sector);
                 sector = ReadFatEntry(input, basePosition, sector, sectorSize, physicalSectorCount,
                     fatSectorIds, fatCache, cancellationToken);

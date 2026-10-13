@@ -1,13 +1,15 @@
 namespace OfficeIMO.Excel.Xlsb.Model {
     internal sealed class XlsbWorksheetFormatInfo {
         internal XlsbWorksheetFormatInfo(
-            double defaultColumnWidth,
+            double? defaultColumnWidth,
+            uint? baseColumnWidth,
             double defaultRowHeight,
             bool customDefaultRowHeight,
             bool defaultRowsHidden,
             byte maximumRowOutlineLevel,
             byte maximumColumnOutlineLevel) {
             DefaultColumnWidth = defaultColumnWidth;
+            BaseColumnWidth = baseColumnWidth;
             DefaultRowHeight = defaultRowHeight;
             CustomDefaultRowHeight = customDefaultRowHeight;
             DefaultRowsHidden = defaultRowsHidden;
@@ -15,7 +17,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
             MaximumColumnOutlineLevel = maximumColumnOutlineLevel;
         }
 
-        internal double DefaultColumnWidth { get; }
+        internal double? DefaultColumnWidth { get; }
+
+        internal uint? BaseColumnWidth { get; }
 
         internal double DefaultRowHeight { get; }
 

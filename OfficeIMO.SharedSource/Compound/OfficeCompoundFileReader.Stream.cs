@@ -199,13 +199,12 @@ namespace OfficeIMO.Core.Internal {
         private static List<uint> GetMiniSectorChain(uint startSector, long size, IReadOnlyList<uint> miniFat) {
             int required = checked((int)((size + MiniSectorSize - 1) / MiniSectorSize));
             var chain = new List<uint>(required);
-            var visited = new bool[miniFat.Count];
+            var visited = new HashSet<uint>();
             uint sector = startSector;
             while (chain.Count < required) {
-                if (sector == EndOfChain || sector == FreeSect || sector >= miniFat.Count || visited[sector]) {
+                if (sector == EndOfChain || sector == FreeSect || sector >= miniFat.Count || !visited.Add(sector)) {
                     throw new InvalidDataException("Compound mini-sector chain is shorter than its declared stream size.");
                 }
-                visited[sector] = true;
                 chain.Add(sector);
                 sector = miniFat[checked((int)sector)];
             }
@@ -280,6 +279,7 @@ namespace OfficeIMO.Core.Internal {
             private readonly long _rootSize;
             private readonly bool _leaveOpen;
             private readonly CancellationToken _cancellationToken;
+            private readonly Func<bool>? _ownerDisposed;
             private long _position;
             private bool _disposed;
 
@@ -293,7 +293,7 @@ namespace OfficeIMO.Core.Internal {
                 IReadOnlyList<uint>? rootChain,
                 long rootSize,
                 bool leaveOpen,
-                CancellationToken cancellationToken) {
+                CancellationToken cancellationToken, Func<bool>? ownerDisposed = null) {
                 _source = source;
                 _basePosition = basePosition;
                 _sectorSize = sectorSize;
@@ -304,10 +304,11 @@ namespace OfficeIMO.Core.Internal {
                 _rootSize = rootSize;
                 _leaveOpen = leaveOpen;
                 _cancellationToken = cancellationToken;
+                _ownerDisposed = ownerDisposed;
             }
 
-            public override bool CanRead => !_disposed;
-            public override bool CanSeek => !_disposed;
+            public override bool CanRead => !_disposed && _ownerDisposed?.Invoke() != true;
+            public override bool CanSeek => !_disposed && _ownerDisposed?.Invoke() != true;
             public override bool CanWrite => false;
             public override long Length { get { ThrowIfDisposed(); return _length; } }
             public override long Position {
@@ -405,7 +406,7 @@ namespace OfficeIMO.Core.Internal {
             }
 
             private void ThrowIfDisposed() {
-                if (_disposed) throw new ObjectDisposedException(nameof(CompoundEntryStream));
+                if (_disposed || _ownerDisposed?.Invoke() == true) throw new ObjectDisposedException(nameof(CompoundEntryStream));
             }
         }
     }

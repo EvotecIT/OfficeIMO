@@ -3,7 +3,6 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
-        private const double ExcelDefaultMaximumDigitWidth = 7D;
         private const double WorksheetHeadingHeight = 22D;
 
         private static void AddWorksheetCanvasPages(
@@ -234,6 +233,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static double GetWorksheetColumnWidthPoints(WorksheetGeometryData geometry, int sourceColumn) {
             double width = geometry.DefaultColumnWidth;
+            bool hasExplicitWidth = geometry.HasExplicitDefaultColumnWidth;
             for (int index = geometry.Columns.Count - 1; index >= 0; index--) {
                 ExcelColumnSnapshot definition = geometry.Columns[index];
                 if (sourceColumn < definition.StartIndex || sourceColumn > definition.EndIndex) {
@@ -249,11 +249,29 @@ namespace OfficeIMO.Excel.Pdf {
                     definition.Width is double customWidth &&
                     customWidth > 0D) {
                     width = customWidth;
+                    hasExplicitWidth = true;
                 }
                 break;
             }
 
-            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / ExcelDefaultMaximumDigitWidth)) / 256D * ExcelDefaultMaximumDigitWidth) + 5D;
+            if (geometry.MaximumDigitWidthPoints is double maximumDigitWidth) {
+                if (!hasExplicitWidth) {
+                    // baseColWidth excludes the margin and gridline allowance.
+                    // The five logical pixels are format padding at 96 DPI.
+                    const double paddingPoints = 5D * 72D / 96D;
+                    return Math.Max(0.75D, geometry.BaseColumnWidth * maximumDigitWidth + paddingPoints);
+                }
+                // The stored width already includes the character-unit padding.
+                // Keep PDF geometry in points rather than quantizing it to a screen
+                // pixel grid. Printer-specific hinting remains a separate limit.
+                return Math.Max(0.75D, width * maximumDigitWidth);
+            }
+
+            // Preserve the established estimate when the workbook default font
+            // program is unavailable; a substituted text font does not establish
+            // the workbook's column units.
+            const double fallbackDigitWidth = 7D;
+            double pixels = Math.Truncate((256D * width + Math.Truncate(128D / fallbackDigitWidth)) / 256D * fallbackDigitWidth) + 5D;
             return Math.Max(0.75D, Math.Max(1D, pixels) * 72D / 96D);
         }
 

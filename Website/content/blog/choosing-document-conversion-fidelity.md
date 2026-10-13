@@ -4,7 +4,9 @@ description: "Why document conversion needs an explicit fidelity policy, and how
 date: 2026-07-25
 tags: [dotnet, word, excel]
 categories: [Workflow]
-author: "Przemyslaw Klys"
+meta.author.name: "Przemyslaw Klys"
+meta.author.url: https://github.com/PrzemyslawKlys
+meta.schema.type: BlogPosting
 meta.seo_title: "Choosing Document Conversion Fidelity in .NET"
 ---
 

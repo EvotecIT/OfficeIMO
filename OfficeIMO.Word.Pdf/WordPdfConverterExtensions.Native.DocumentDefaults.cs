@@ -70,7 +70,8 @@ namespace OfficeIMO.Word.Pdf {
                 ComplexScript = default(NativeComplexScriptDefaults).Merge(defaultRuns),
                 TextSpacing = default(NativeTextSpacing).Merge(defaultRuns),
                 OpenTypeFeaturesEnabled = AreNativeOpenTypeFeaturesEnabled(document),
-                LineSpacing = ReadNativeLineSpacing(spacing),
+                LineSpacing = ReadNativeLineSpacing(spacing, defaults.GetFirstChild<W.ParagraphPropertiesDefault>()?
+                    .GetFirstChild<W.ParagraphPropertiesBaseStyle>()?.GetFirstChild<W.TextAlignment>()),
                 ParagraphSpacing = default(NativeParagraphSpacing).Merge(defaults.GetFirstChild<W.ParagraphPropertiesDefault>()?
                     .GetFirstChild<W.ParagraphPropertiesBaseStyle>())
             };

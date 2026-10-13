@@ -12,6 +12,7 @@ slug: index
 - [Database reporting](/docs/workflows/database-reporting/) connects DbaClientX query and bulk-write paths to Excel and CSV artifacts.
 - [Content publishing](/docs/workflows/content-publishing/) covers Markdown, HTML, RTF, OneNote, OpenDocument, Office, and PDF routes.
 - [Generated output gallery](/showcase/) shows committed document previews tied to examples and tests.
+- [Reports across PowerShell modules](/docs/integrations/) turns HTML tables and event snapshots into editable reports and local email packages.
 - [PSWriteOffice benchmarks](/docs/workflows/powershell-benchmarks/) explains the comparison contract and provides reproducible commands.
 - [OfficeIMO roadmap](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/ROADMAP.md) lists open product work; package and workflow pages describe the current source contract.
 
