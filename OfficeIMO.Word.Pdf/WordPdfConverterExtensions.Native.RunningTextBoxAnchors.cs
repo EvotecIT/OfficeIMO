@@ -55,6 +55,10 @@ public static partial class WordPdfConverterExtensions {
         if (!surrounding.Any(run => IsNativeRenderableTextRun(run, paragraph))) return false;
         PdfCore.PdfParagraphStyle paragraphStyle = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
         PdfCore.PageMargins margins = GetNativeMargins(defaults.RunningContentSection, options, (0D, 0D));
+        // Upfront reporting has no visible page parity. Both passes retain the
+        // warned flow until an asymmetric mirrored exclusion is qualified.
+        if (ShouldMirrorNativeMargins(defaults.RunningContentSection, options) &&
+            margins.Left != margins.Right) return false;
         double textLeft = margins.Left + paragraphStyle.LeftIndent + paragraphStyle.FirstLineIndent;
         double textWidth = 0D;
         foreach (WordParagraph run in surrounding) {
@@ -68,7 +72,7 @@ public static partial class WordPdfConverterExtensions {
         var canvas = new PdfCore.PdfPageCanvas();
         foreach (WordTextBox box in boxes.OrderBy(box => box.ZOrder)) {
             options?.CancellationToken.ThrowIfCancellationRequested();
-            if (!TryAddNativeRunningTextBox(canvas, box, pageSize, textLeft, textWidth,
+            if (!TryAddNativeRunningTextBox(canvas, box, pageSize, margins, textLeft, textWidth,
                     notes, options, defaults, fontMap)) return false;
         }
         paragraphStyle.AnchoredCanvas = new PdfCore.PdfCanvasBlock(canvas.Items);

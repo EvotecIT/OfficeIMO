@@ -8,13 +8,16 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     /// <summary>Resolves persisted page anchors and fractional relative extents without modifying source XML.</summary>
     private static bool TryGetNativeRunningTextBoxFrame(WordTextBox box, WordSection section,
-        WordToPdfOptions? options, PdfCore.PageSize page, out double x, out double y, out double width, out double height) {
+        WordToPdfOptions? options, PdfCore.PageSize page, out double x, out double y, out double width, out double height,
+        out bool behindDocument) {
         x = y = width = height = 0D;
+        behindDocument = false;
         if (!WordDrawingLayoutReader.TryRead(box.Drawing, out WordDrawingLayoutSnapshot layout) ||
             layout.Placement != WordDrawingPlacementKind.Anchored || layout.Wrap != WordDrawingWrapKind.Square ||
             layout.HorizontalRelativeFrom != "page" || layout.VerticalRelativeFrom != "page" ||
             box.DrawingShapeProperties?.GetFirstChild<A.Transform2D>() is { } transform &&
                 (transform.Rotation?.Value is > 0 or < 0 || transform.HorizontalFlip?.Value == true || transform.VerticalFlip?.Value == true)) return false;
+        behindDocument = layout.BehindDocument;
         PdfCore.PageMargins margins = GetNativeMargins(section, options, (0D, 0D));
         width = layout.WidthPoints;
         height = layout.HeightPoints;
