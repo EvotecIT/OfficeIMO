@@ -98,7 +98,7 @@ static void path_in(char *buffer, size_t size, const char *directory, const char
 }
 
 /* Quotes a filesystem path for the scan request, including Windows separators and JSON control characters. */
-static char *json_string(const char *value) {
+static char *quote_json_path(const char *value) {
     char *quoted = malloc(strlen(value) * 6 + 3);
     if (!quoted) return NULL;
     char *at = quoted;
@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
     /* A scan: the rendered page image becomes a PDF page with a recognized word as searchable text. */
     char scan[1024], scan_request[32768];
     path_in(scan, sizeof scan, work, "scan.pdf");
-    char *image_path = json_string(page_png);
+    char *image_path = quote_json_path(page_png);
     if (!image_path) { fprintf(stderr, "Could not allocate the scan request path.\n"); return 1; }
     snprintf(scan_request, sizeof scan_request,
              "{\"pages\":[{\"image\":%s,\"words\":[{\"text\":\"Journey\",\"x\":0.1,\"y\":0.1,\"width\":0.3,\"height\":0.1}]}]}",
