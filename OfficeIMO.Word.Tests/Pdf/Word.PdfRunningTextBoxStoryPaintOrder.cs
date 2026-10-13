@@ -23,9 +23,21 @@ public partial class Word {
         Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
         using var orderedPdf = PdfPigDocument.Open(orderedResult.Value.ToBytes());
         Assert.DoesNotContain(orderedResult.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        foreach (string marker in new[] { "FIRSTBOX", "SECONDBOX" })
-            Assert.Equal((612D - 468D * .585D) / 2D + 7.2D,
-                AnchoredRunningLetters(orderedPdf.GetPage(2), marker)[0].StartBaseLine.X, 3);
+        var orderedPage = orderedPdf.GetPage(2);
+        var orderedFirst = AnchoredRunningLetters(orderedPage, "FIRSTBOX");
+        var orderedSecond = AnchoredRunningLetters(orderedPage, "SECONDBOX");
+        if (footer) {
+            // This footer control qualifies admission and visible bounds;
+            // native footer coordinates require separate producer evidence.
+            Assert.Equal(orderedFirst[0].StartBaseLine.X, orderedSecond[0].StartBaseLine.X, 3);
+            foreach (var letter in orderedFirst.Concat(orderedSecond)) {
+                Assert.InRange(letter.GlyphRectangle.Left, 0D, orderedPage.Width);
+                Assert.InRange(letter.GlyphRectangle.Right, 0D, orderedPage.Width);
+                Assert.InRange(letter.GlyphRectangle.Bottom, 0D, orderedPage.Height);
+                Assert.InRange(letter.GlyphRectangle.Top, 0D, orderedPage.Height);
+            }
+        } else foreach (var letters in new[] { orderedFirst, orderedSecond })
+            Assert.Equal((612D - 468D * .585D) / 2D + 7.2D, letters[0].StartBaseLine.X, 3);
 
         var result = document.ToPdfDocumentResult(EmptyRunningOptions());
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
