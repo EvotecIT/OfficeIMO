@@ -47,7 +47,8 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_extract_pages) X(officeimo_document_search_json) X(officeimo_document_add_annotation_json) \
     X(officeimo_document_annotations_json) X(officeimo_document_update_annotation_json) X(officeimo_document_remove_annotation) \
     X(officeimo_document_page_text_json) X(officeimo_create_pdf_from_scan_json) X(officeimo_document_import_pages_json) \
-    X(officeimo_document_make_searchable_json) X(officeimo_conversion_sources_json) X(officeimo_convert_to_pdf_json)
+    X(officeimo_document_make_searchable_json) X(officeimo_conversion_sources_json) X(officeimo_convert_to_pdf_json) \
+    X(officeimo_document_form_fields_json) X(officeimo_document_fill_form_json)
 
 #define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
@@ -297,6 +298,11 @@ int main(int argc, char **argv) {
     expect(json && strstr(json, "\"texts\":[") && strstr(json, "\"boxes\":[") && strstr(json, "\"breaks\":["),
            "the page text is missing", json);
     engine_officeimo_free(json);
+    CHECK("form fields", engine_officeimo_document_form_fields_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
+    expect(json && strstr(json, "\"fields\":[]") != NULL, "a page without a form lists fields", json);
+    engine_officeimo_free(json);
+    CHECK("fill missing field", engine_officeimo_document_fill_form_json(document, "{\"values\":{\"Missing\":[\"x\"]}}", 0, &error),
+          OFFICEIMO_INVALID_ARGUMENT);
     CHECK("page text missing page", engine_officeimo_document_page_text_json(document, 99, 0, &json, &error),
           OFFICEIMO_INVALID_ARGUMENT);
     CHECK("search", engine_officeimo_document_search_json(document, "no such words", 0, &json, &error), OFFICEIMO_OK);

@@ -209,6 +209,84 @@ public sealed class StudioNativeEngineTests : IDisposable {
         } finally { close(document); }
     }
 
+    private string CreateFormPdf() {
+        string path = Path.Combine(_root, "form.pdf");
+        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
+            canvas.TextField("Name", null, 72, 72, 200, 24);
+            canvas.CheckBox("Subscribe", false, 72, 120, 16, 16);
+            canvas.RadioButton("Plan", "Basic", true, 72, 160, 16, 16);
+            canvas.RadioButton("Plan", "Pro", false, 120, 160, 16, 16);
+            canvas.ChoiceField("Country", ["Poland", "Germany"], null, 72, 200, 150, 22);
+        }))).ToBytes());
+        return path;
+    }
+
+    [Fact]
+    public async Task Form_fields_list_their_kinds_widgets_and_values_and_fill_as_one_undoable_change() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateFormPdf(), null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanFillForms);
+
+        StudioNativeFormFields form = await document.GetFormFieldsAsync(1, default);
+        Assert.True(form.CanFill);
+        Assert.Equal(new[] { "Country", "Name", "Plan", "Subscribe" }, form.Fields.Select(static field => field.Name).Order());
+        StudioNativeFormField name = form.Fields.Single(static field => field.Name == "Name");
+        Assert.Equal("text", name.Kind);
+        Assert.True(name.Widgets[0].Bounds.Width > 150 && name.Widgets[0].Bounds.Height > 10);
+        StudioNativeFormField subscribe = form.Fields.Single(static field => field.Name == "Subscribe");
+        Assert.Equal("checkbox", subscribe.Kind);
+        Assert.False(subscribe.Widgets[0].IsOn);
+        StudioNativeFormField plan = form.Fields.Single(static field => field.Name == "Plan");
+        Assert.Equal("radio", plan.Kind);
+        Assert.Equal(2, plan.Widgets.Count);
+        Assert.Equal(new[] { "Poland", "Germany" }, form.Fields.Single(static field => field.Name == "Country").Options.Select(static option => option.Value));
+
+        await document.FillFormAsync(new StudioNativeFormFill(new Dictionary<string, IReadOnlyList<string>> {
+            ["Name"] = ["Ada Lovelace"], ["Subscribe"] = [subscribe.Widgets[0].OnState!], ["Plan"] = [plan.Widgets[1].OnState!], ["Country"] = ["Germany"]
+        }), default);
+
+        StudioNativeFormFields filled = await document.GetFormFieldsAsync(1, default);
+        Assert.Equal("Ada Lovelace", filled.Fields.Single(static field => field.Name == "Name").Values.Single());
+        Assert.True(filled.Fields.Single(static field => field.Name == "Subscribe").Widgets[0].IsOn);
+        Assert.Equal(new[] { false, true }, filled.Fields.Single(static field => field.Name == "Plan").Widgets.Select(static widget => widget.IsOn));
+        Assert.Equal("Germany", filled.Fields.Single(static field => field.Name == "Country").Values.Single());
+
+        await document.UndoAsync(default);
+        Assert.DoesNotContain((await document.GetFormFieldsAsync(1, default)).Fields.Single(static field => field.Name == "Name").Values, static value => value.Length > 0);
+    }
+
+    [Fact]
+    public async Task Filling_refuses_fields_the_form_does_not_have() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateFormPdf(), null, default);
+        await Assert.ThrowsAsync<ArgumentException>(() => document.FillFormAsync(new StudioNativeFormFill(null), default));
+        await Assert.ThrowsAsync<ArgumentException>(() => document.FillFormAsync(new StudioNativeFormFill(
+            new Dictionary<string, IReadOnlyList<string>> { ["Missing"] = ["x"] }), default));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => document.GetFormFieldsAsync(9, default));
+        Assert.False((await document.GetInfoAsync(default)).IsDirty);
+    }
+
+    [Fact]
+    public unsafe void The_C_interface_lists_and_fills_form_fields() {
+        string path = CreateFormPdf();
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, int, nint, byte**, byte**, int> fields = &StudioNativeExports.DocumentFormFieldsJson;
+        delegate* unmanaged<nint, byte*, nint, byte**, int> fill = &StudioNativeExports.DocumentFillFormJson;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+        nint document = 0; byte* error = null; byte* json = null;
+        fixed (byte* location = Encoding.UTF8.GetBytes(path + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(location, null, 0, &document, &error));
+        try {
+            fixed (byte* body = Encoding.UTF8.GetBytes("{\"values\":{\"Name\":[\"Grace\"]}}\0")) Assert.Equal(StudioNativeAbi.Ok, fill(document, body, 0, &error));
+            fixed (byte* body = Encoding.UTF8.GetBytes("{\"values\":{\"Nope\":[\"x\"]}}\0")) Assert.Equal(StudioNativeAbi.InvalidArgument, fill(document, body, 0, &error));
+            free(error);
+            Assert.Equal(StudioNativeAbi.Ok, fields(document, 1, 0, &json, &error));
+            using JsonDocument form = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            free(json);
+            JsonElement name = form.RootElement.GetProperty("fields").EnumerateArray().Single(field => field.GetProperty("name").GetString() == "Name");
+            Assert.Equal("Grace", name.GetProperty("values")[0].GetString());
+            Assert.Equal("text", name.GetProperty("kind").GetString());
+        } finally { close(document); }
+    }
+
     [Fact]
     public async Task Extracted_pages_form_a_new_document_and_leave_the_open_one_unchanged() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310, 320), null, default);

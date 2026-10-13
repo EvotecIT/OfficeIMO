@@ -80,13 +80,14 @@ void officeimo_document_close(officeimo_document document);
  * { "abiVersion", "fileName", "path", "fileSize", "revision", "isDirty", "canUndo", "canRedo",
  *   "hasRecovery", "canExtractText", "canExtractContent", "pages": [ { "number", "width", "height", "rotation" } ],
  *   "maxRenderPixels", "canMutatePages", "canExtractPages", "canEditAnnotations", "canPrint", "canImportPages",
- *   "canMakeSearchable" }
+ *   "canMakeSearchable", "canFillForms" }
  * hasRecovery reports unsaved edits kept from an earlier session for this file. maxRenderPixels is the largest page
  * image officeimo_document_render_page produces. canExtractText allows search; canMutatePages allows rotating, deleting,
  * duplicating, reordering and inserting pages; canExtractPages allows officeimo_document_extract_pages; canEditAnnotations
  * allows adding, changing and removing annotations, which a tagged or signed document may take as an appended revision.
  * canPrint is false when the document's permissions forbid printing and it was not opened with its owner password;
- * canImportPages allows officeimo_document_import_pages_json; canMakeSearchable allows officeimo_document_make_searchable_json.
+ * canImportPages allows officeimo_document_import_pages_json; canMakeSearchable allows officeimo_document_make_searchable_json;
+ * canFillForms allows officeimo_document_fill_form_json.
  * Width and height are in points (1/72 inch) before rotation: the page's visible box at its user unit, the size that
  * render scales apply to. The revision changes with every edit, undo and redo.
  */
@@ -151,6 +152,24 @@ int32_t officeimo_document_extract_pages(officeimo_document document, const int3
  */
 int32_t officeimo_document_import_pages_json(officeimo_document document, const char *request,
                                              officeimo_cancellation cancellation, char **json, char **error);
+
+/*
+ * The form fields with a widget on a page, as JSON: { "abiVersion", "revision", "page", "canFill", "fields": [ { "name",
+ * "kind", "values": [ ], "options": [ { "value", "text" } ], "readOnly", "required", "multiline", "password", "comb",
+ * "maxLength", "multipleSelection", "editable", "label", "widgets": [ { "objectNumber", "bounds": { "x", "y", "width",
+ * "height" }, "onState", "isOn" } ] } ] }. kind is "text", "checkbox", "radio", "combo", "list", "button" or "signature";
+ * bounds are in points of the page as displayed; onState is the value that turns a check box or radio button on.
+ */
+int32_t officeimo_document_form_fields_json(officeimo_document document, int32_t page, officeimo_cancellation cancellation,
+                                            char **json, char **error);
+
+/*
+ * Sets form field values as one undoable change. The request is JSON: { "values": { "<field name>": [ "<value>" ] } }:
+ * text, the selected option values of a choice, or a widget's onState for a check box or radio button, "Off" to clear
+ * it. A read-only, push-button or signature field, or a name the form doesn't have, fails with OFFICEIMO_INVALID_ARGUMENT.
+ */
+int32_t officeimo_document_fill_form_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
+                                          char **error);
 
 /*
  * The document formats that convert to PDF, as JSON: { "abiVersion", "sources": [ { "route", "name", "extensions": [ ] } ] },

@@ -275,6 +275,27 @@ internal static unsafe class StudioNativeExports {
         });
     }
 
+    /// <summary>The form fields with a widget on a page, as UTF-8 JSON.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_form_fields_json")]
+    internal static int DocumentFormFieldsJson(nint document, int page, nint cancellation, byte** json, byte** error) {
+        if (json is null) return Fail(error, new ArgumentNullException(nameof(json)));
+        *json = null;
+        return WithDocument(document, error, cancellation, (target, token) => {
+            StudioNativeFormFields fields = target.GetFormFieldsAsync(page, token).GetAwaiter().GetResult();
+            *json = StudioNativeAbi.ToUtf8(JsonSerializer.Serialize(fields, StudioNativeJson.Default.StudioNativeFormFields));
+        });
+    }
+
+    /// <summary>Sets form field values, described by a UTF-8 JSON request, as one undoable change.</summary>
+    [UnmanagedCallersOnly(EntryPoint = "officeimo_document_fill_form_json")]
+    internal static int DocumentFillFormJson(nint document, byte* request, nint cancellation, byte** error) {
+        StudioNativeFormFill? parsed;
+        try { parsed = JsonSerializer.Deserialize(StudioNativeAbi.FromUtf8(request) ?? "null", StudioNativeJson.Default.StudioNativeFormFill); }
+        catch (JsonException exception) { return Fail(error, new ArgumentException("The form request is not valid JSON.", exception)); }
+        if (parsed is null) return Fail(error, new ArgumentNullException(nameof(request)));
+        return WithDocument(document, error, cancellation, (target, token) => target.FillFormAsync(parsed, token).GetAwaiter().GetResult());
+    }
+
     /// <summary>Finds text, ignoring case, and returns the hits with their page rectangles as UTF-8 JSON.</summary>
     [UnmanagedCallersOnly(EntryPoint = "officeimo_document_search_json")]
     internal static int DocumentSearchJson(nint document, byte* query, nint cancellation, byte** json, byte** error) {

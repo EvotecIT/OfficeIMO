@@ -44,7 +44,7 @@ internal sealed class StudioNativeDocument : IDisposable {
                 }).ToArray(),
                 StudioPdfSecurityPolicy.MaximumRasterPixels, _workspace.CanMutatePages, _workspace.CanExtractPages, _workspace.CanEditAnnotations,
                 !view.Security.HasEncryption || view.Security.HasOwnerAuthorization || view.Security.AllowsPrinting == true,
-                _workspace.CanImportPages, _workspace.CanEditPageContent && view.CanExtractText);
+                _workspace.CanImportPages, _workspace.CanEditPageContent && view.CanExtractText, _workspace.CanFillForms);
         } finally { _gate.Release(); }
     }
 
@@ -114,6 +114,67 @@ internal sealed class StudioNativeDocument : IDisposable {
         // The local path keeps the workflow runner, and the conversions it roots, out of the NativeAOT library.
         return RunAsync(() => _workspace.ExtractToLocalFileAsync(RequirePages(pageNumbers), path, cancellationToken), cancellationToken);
     }
+
+    /// <summary>
+    /// The form fields with a widget on a page: each field's kind, value, options and flags, and its widgets' boxes in
+    /// points of the page as displayed, with the state that turns a check box or radio button on.
+    /// </summary>
+    internal async Task<StudioNativeFormFields> GetFormFieldsAsync(int pageNumber, CancellationToken cancellationToken) {
+        await EnterAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            if (pageNumber < 1 || pageNumber > _workspace.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageNumber), "The page does not exist.");
+            PdfDocument snapshot = _workspace.CreateDocumentSnapshot();
+            var boxes = new Dictionary<int, StudioNativeRectangle>();
+            foreach (PdfPageInteractionRegion region in snapshot.Render.Interactions(pageNumber).Regions) {
+                if (region.Kind == PdfInteractionKind.FormWidget && region.ObjectNumber is { } number)
+                    boxes[number] = new StudioNativeRectangle(region.Quad.Left, region.Quad.Top, region.Quad.Width, region.Quad.Height);
+            }
+            var fields = new List<StudioNativeFormField>();
+            foreach (PdfFormField field in snapshot.Inspect().FormFields) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (string.IsNullOrEmpty(field.Name)) continue;
+                var widgets = field.Widgets
+                    .Where(widget => widget.PageNumber == pageNumber && !widget.IsHidden && !widget.IsNoView && widget.ObjectNumber is { } number && boxes.ContainsKey(number))
+                    .Select(widget => {
+                        string? on = widget.NormalAppearanceStates.FirstOrDefault(static state => !string.Equals(state, "Off", StringComparison.Ordinal));
+                        return new StudioNativeFormWidget(widget.ObjectNumber!.Value, boxes[widget.ObjectNumber!.Value], on,
+                            on is not null && string.Equals(widget.AppearanceState, on, StringComparison.Ordinal));
+                    }).ToArray();
+                if (widgets.Length == 0) continue;
+                fields.Add(new StudioNativeFormField(field.Name, KindOf(field), field.Values.ToArray(),
+                    field.Options.Select(static option => new StudioNativeFormOption(option.ExportValue, option.DisplayText)).ToArray(),
+                    field.IsReadOnly, field.IsRequired, field.IsMultiline, field.IsPassword, field.IsComb, field.MaxLength,
+                    field.AllowsMultipleSelection, field.IsEditableChoice, field.AlternateName, widgets));
+            }
+            return new StudioNativeFormFields(StudioNativeAbi.Version, _workspace.Revision, pageNumber, _workspace.CanFillForms, fields);
+        } finally { _gate.Release(); }
+    }
+
+    /// <summary>
+    /// Sets form field values as one undoable change: text, the selected options of a choice, or the on state of a check
+    /// box or radio button ("Off" to clear it). A signed or certified document takes the values as an appended revision.
+    /// </summary>
+    internal Task FillFormAsync(StudioNativeFormFill request, CancellationToken cancellationToken) {
+        IReadOnlyDictionary<string, IReadOnlyList<string>> values = request.Values is { Count: > 0 } given
+            ? given : throw new ArgumentException("Give at least one field value.", nameof(request));
+        return RunAsync(() => {
+            if (!_workspace.CanFillForms) throw new NotSupportedException("This document's form can't be filled.");
+            var fields = _workspace.CreateDocumentSnapshot().Inspect().FormFields
+                .Where(static field => !string.IsNullOrEmpty(field.Name)).GroupBy(static field => field.Name!).ToDictionary(static group => group.Key, static group => group.First());
+            var fill = new Dictionary<string, PdfFormFieldValue>(StringComparer.Ordinal);
+            foreach ((string name, IReadOnlyList<string> fieldValues) in values) {
+                if (!fields.TryGetValue(name, out PdfFormField? field)) throw new ArgumentException($"The form has no field “{name}”.", nameof(request));
+                if (field.IsReadOnly) throw new ArgumentException($"The field “{name}” is read-only.", nameof(request));
+                if (field.IsSignatureField || field.IsPushButton) throw new ArgumentException($"The field “{name}” doesn't take a value.", nameof(request));
+                fill[name] = PdfFormFieldValue.FromValues(fieldValues ?? []);
+            }
+            return _workspace.FillFormFieldsAsync(fill, cancellationToken);
+        }, cancellationToken);
+    }
+
+    private static string KindOf(PdfFormField field) =>
+        field.IsTextField ? "text" : field.IsCheckBox ? "checkbox" : field.IsRadioButton ? "radio" : field.IsPushButton ? "button"
+        : field.IsChoiceField ? (field.IsCombo ? "combo" : "list") : field.IsSignatureField ? "signature" : "other";
 
     /// <summary>
     /// Recognizes each page's text with the host's recognizer and adds it as invisible text over the page, as one undoable
@@ -369,7 +430,7 @@ internal sealed class StudioNativeDocument : IDisposable {
 internal sealed record StudioNativeDocumentInfo(
     int AbiVersion, string FileName, string Path, long FileSize, long Revision, bool IsDirty, bool CanUndo, bool CanRedo, bool HasRecovery,
     bool CanExtractText, bool CanExtractContent, IReadOnlyList<StudioNativePageInfo> Pages, long MaxRenderPixels, bool CanMutatePages,
-    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable);
+    bool CanExtractPages, bool CanEditAnnotations, bool CanPrint, bool CanImportPages, bool CanMakeSearchable, bool CanFillForms);
 
 internal sealed record StudioNativePageInfo(int Number, double Width, double Height, int Rotation);
 
@@ -396,6 +457,18 @@ internal sealed record StudioNativeAnnotation(int ObjectNumber, int Page, string
 internal sealed record StudioNativeAnnotationList(int AbiVersion, long Revision, int Page, bool CanEdit, IReadOnlyList<StudioNativeAnnotation> Annotations);
 
 internal sealed record StudioNativeAnnotationUpdate(int ObjectNumber, string? Contents = null, string? Author = null, StudioNativeColor? Color = null);
+
+internal sealed record StudioNativeFormWidget(int ObjectNumber, StudioNativeRectangle Bounds, string? OnState, bool IsOn);
+
+internal sealed record StudioNativeFormOption(string Value, string Text);
+
+internal sealed record StudioNativeFormField(string Name, string Kind, IReadOnlyList<string> Values, IReadOnlyList<StudioNativeFormOption> Options,
+    bool ReadOnly, bool Required, bool Multiline, bool Password, bool Comb, int? MaxLength, bool MultipleSelection, bool Editable, string? Label,
+    IReadOnlyList<StudioNativeFormWidget> Widgets);
+
+internal sealed record StudioNativeFormFields(int AbiVersion, long Revision, int Page, bool CanFill, IReadOnlyList<StudioNativeFormField> Fields);
+
+internal sealed record StudioNativeFormFill(IReadOnlyDictionary<string, IReadOnlyList<string>>? Values);
 
 internal sealed record StudioNativeSearchableResult(int AbiVersion, int Pages, int Words, long Revision);
 
