@@ -14,6 +14,8 @@ public partial class WordSection {
     // role. An explicit reference, including an empty part, ends the search.
     // Keep the authored slots unchanged so callers can still inspect linkage.
     private WordHeader? ResolveHeader(HeaderFooterValues kind) {
+        var snapshot = WordHeaderFooterResolutionSnapshot.Current(_document);
+        if (snapshot != null && snapshot.TryGet(this, out var stories)) return stories.Header(kind);
         for (int index = GetSectionOrdinal(); index >= 0; index--) {
             WordSection section = _document.Sections[index];
             if (!WordHeadersAndFooters.GetHeaderReference(_document, section, kind)) continue;
@@ -24,6 +26,8 @@ public partial class WordSection {
     }
 
     private WordFooter? ResolveFooter(HeaderFooterValues kind) {
+        var snapshot = WordHeaderFooterResolutionSnapshot.Current(_document);
+        if (snapshot != null && snapshot.TryGet(this, out var stories)) return stories.Footer(kind);
         for (int index = GetSectionOrdinal(); index >= 0; index--) {
             WordSection section = _document.Sections[index];
             if (!WordHeadersAndFooters.GetFooterReference(_document, section, kind)) continue;

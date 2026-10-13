@@ -213,6 +213,10 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
+            nativeDefaults = nativeDefaults with {
+                BodyTextInkTopOffset = GetNativeBodyTextInkTopOffset(document, nativeDefaults, nativeFontMap, options),
+                RunningTextBoxStoryPeers = GetNativeRunningTextBoxStoryPeers(document, options)
+            };
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
             IReadOnlyList<WordSection> sections = document.Sections;
             var documentEndnotes = new List<PdfFootnote>();
@@ -220,7 +224,7 @@ namespace OfficeIMO.Word.Pdf {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers);
                 WordSection firstSection = sections[sectionIndex];
-                bool preserveSectionPageCounts = UsesNativeSectionPageCounts(firstSection);
+                bool preserveLogicalRunningSections = UsesNativeSectionPageCounts(firstSection) || firstSection.DifferentFirstPage;
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
@@ -238,7 +242,7 @@ namespace OfficeIMO.Word.Pdf {
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
                         WordSection section = sections[currentSectionIndex];
-                        if (preserveSectionPageCounts) pdf.BeginRunningContentSection(currentSectionIndex);
+                        if (preserveLogicalRunningSections) pdf.BeginRunningContentSection(currentSectionIndex);
                         footnoteNumbersById.BeginSection(section);
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById, documentEndnotes);
@@ -417,6 +421,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool NativeSectionHeaderFooterReferencesEquivalent(WordSection first, WordSection second) =>
             first.DifferentFirstPage == second.DifferentFirstPage &&
+            (!HasNativeSectionStory(first, isFooter: false) || NativeDoubleEquals(first.Margins.HeaderDistance, second.Margins.HeaderDistance)) &&
+            (!HasNativeSectionStory(first, isFooter: true) || NativeDoubleEquals(first.Margins.FooterDistance, second.Margins.FooterDistance)) &&
             ReferenceEquals(first.ResolveDefaultHeader()?._header, second.ResolveDefaultHeader()?._header) &&
             ReferenceEquals(first.ResolveDefaultFooter()?._footer, second.ResolveDefaultFooter()?._footer) &&
             (!first.DifferentFirstPage ||
@@ -425,6 +431,14 @@ namespace OfficeIMO.Word.Pdf {
             (!first.DocumentOddEvenSettingEnabled ||
                 (ReferenceEquals(first.ResolveEvenHeader()?._header, second.ResolveEvenHeader()?._header) &&
                  ReferenceEquals(first.ResolveEvenFooter()?._footer, second.ResolveEvenFooter()?._footer)));
+
+        private static bool HasNativeSectionStory(WordSection section, bool isFooter) => isFooter
+            ? section.ResolveDefaultFooter() != null ||
+                (section.DifferentFirstPage && section.ResolveFirstFooter() != null) ||
+                (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
+            : section.ResolveDefaultHeader() != null ||
+                (section.DifferentFirstPage && section.ResolveFirstHeader() != null) ||
+                (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null);
 
         private static bool NativeSectionPageNumberingEquivalent(WordSection first, WordSection second) =>
             NativeOpenXmlChildEquivalent<W.PageNumberType>(first, second);
