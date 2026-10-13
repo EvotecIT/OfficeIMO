@@ -689,6 +689,13 @@ conservative reading-order rule, not mathematical reconstruction. The separate
 semantic understanding pipeline used by `PdfDocument.Read()` retains its own
 line grouping.
 
+When a closed `/ActualText` replacement maps completely to visible glyphs on
+one forward baseline, low-level line construction uses the complete painted
+extent for spacing and script attachment. `PdfTextSpan.Advance`, glyph evidence,
+clipping and edit geometry retain their original paint values. Incomplete or
+ambiguous mappings, mixed fonts or streams, incompatible transforms or clips,
+and backward or multiline paint retain the conservative span extent.
+
 ## Examples
 
 ### Export PDF pages as images

@@ -1,0 +1,296 @@
+{
+  "schema": "officeimo.html.selected-font-logical-text-qualification/v1",
+  "recordedUtc": "2026-10-13T10:57:30.405864+00:00",
+  "sourceCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+  "baselineCommit": "7907cedadc3ccf957c0bea13de67a6f79e67ff01",
+  "implementation": {
+    "owners": [
+      "OfficeIMO.Core/OfficeManagedTextShapingProvider.FontPrograms.cs",
+      "OfficeIMO.Pdf/Reading/Core/TextContentParser.ActualText.cs",
+      "OfficeIMO.Pdf/Reading/Layout/TextLayoutEngine.cs"
+    ],
+    "contracts": [
+      "Supported managed TrueType shaping loads the selected variation coordinates. Default Latin caches distinguish selected font instances and collection faces.",
+      "Eligible closed ActualText replacements accumulate fully mapped, forward, single-baseline visible paint for low-level line spacing and script attachment. Incomplete, ambiguous or incompatible paint retains conservative layout extent.",
+      "Public span advances, glyph evidence, paint, clipping, selection and edit geometry retain their original values."
+    ],
+    "publicApiChanged": false,
+    "runtimeDependenciesChanged": false
+  },
+  "correctness": [
+    {
+      "scope": "clean-drawing-net10",
+      "sourceCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+      "exitCode": 0,
+      "passed": 5555,
+      "failed": 0,
+      "total": 5559,
+      "skipped": 4,
+      "trxSha256": "95ac41109d1854e576cf72c11f3dca27d432c4f9c168b104a33b7492aba877f5",
+      "commandReceiptSha256": "4f6d25428bb5e71a1b8e8552ecd07a4eb4d94c54dcb36eddce6c8731942e24e9"
+    },
+    {
+      "scope": "clean-drawing-net8",
+      "sourceCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+      "exitCode": 0,
+      "passed": 5555,
+      "failed": 0,
+      "total": 5559,
+      "skipped": 4,
+      "trxSha256": "2697dcafd15e46d3ff129d28eb71cff82bd1d3e049a58ba11cc5dc8ca71a4ac3",
+      "commandReceiptSha256": "4edc98fba18176cad54578cc5459f60c343d2ef0bb05ca1ebe435825796e0fc4"
+    },
+    {
+      "scope": "clean-html-net10",
+      "sourceCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+      "exitCode": 0,
+      "passed": 6066,
+      "failed": 0,
+      "total": 6066,
+      "skipped": 0,
+      "trxSha256": "118d865d5941c167ae7dd8cedab0408adcff82013e60e6c5ebd2006c345335af",
+      "commandReceiptSha256": "95ba393897e1706575b73089df46c9f33c96f79d71bfba2e3b729c0338d9b69a"
+    },
+    {
+      "scope": "clean-html-net8",
+      "sourceCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+      "exitCode": 0,
+      "passed": 6066,
+      "failed": 0,
+      "total": 6066,
+      "skipped": 0,
+      "trxSha256": "d8cdd9419d48094ae6aa5274a0c1146d3c0c10682341a5c77e88d23b102224e2",
+      "commandReceiptSha256": "99d145b4c066103a25b2a353bc9ab3838b8f5b1503f544980a9b6e358e6efe76"
+    },
+    {
+      "scope": "clean-pdf-reading-net10",
+      "sourceCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+      "exitCode": 0,
+      "passed": 1243,
+      "failed": 0,
+      "total": 1243,
+      "skipped": 0,
+      "trxSha256": "b881f367e9f1941b3b9ff43c81e750b2d94a474084f56ab98e36713642b671a6",
+      "commandReceiptSha256": "133e780ee8b26c0c0a1eafdd7afd990dc04dcd202c9f845aac6768fffdceadde"
+    },
+    {
+      "scope": "clean-pdf-reading-net8",
+      "sourceCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+      "exitCode": 0,
+      "passed": 1243,
+      "failed": 0,
+      "total": 1243,
+      "skipped": 0,
+      "trxSha256": "f358af3845bee56b17da76ee412cf308c0d35b54872f2c5258dd8703a4e69adb",
+      "commandReceiptSha256": "5614a9bc78a650dbc8df7f618d7816a1098e1e63233ea48d75ecc0d485de35c4"
+    }
+  ],
+  "correctnessBoundary": [
+    "Local normal ProjectReference NET10/NET8 correctness runs; Category=Performance excluded.",
+    "Four existing delayed in-flight cancellation sampling cases are skipped in each Drawing run.",
+    "Earlier working-candidate focused runs remain separate; clean committed runs above cover the final production source."
+  ],
+  "normalConsumer": {
+    "framework": "net10.0",
+    "normalProjectReferenceBuild": true,
+    "ownedAssemblies": 10,
+    "dependencySuppression": false,
+    "frozenOverlay": false,
+    "actualRuntimeHashesVersionsAndMvidsVerified": true,
+    "buildStageSha256": "2e05fa42de6f6998b97762323a396ea0cc9672cfdbe7ce12844f3d94b5e3e5d9"
+  },
+  "heldOutPreservation": {
+    "corpusId": "officeimo-html-h4-advanced-held-out",
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "acceptanceSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+    "caseCount": 8,
+    "orderedExports": 76,
+    "completePdfs": 16,
+    "splitImageWitnesses": 30,
+    "outputBytes": 2599978,
+    "fingerprintSha256": "1843b460fb2c388e20d9fd351745d589e862cd9a7f15f2057b82740aa4f2ae16",
+    "allOrderedArtifactsEqualPriorReference": true,
+    "allSplitBytesGeometryAndDiagnosticsEqual": true,
+    "replaySha256": "e65a40630bf6f86c2be5db61f00c2d9c511178f56ea013e2e0d4763075463743",
+    "budgetsAndEncoderDefaultsChanged": false
+  },
+  "diagnosticAllocation": {
+    "prior737NormalWindowBytes": 817481672,
+    "candidateNormalWindowBytes": 817502592,
+    "boundary": "Observer preloads, full warmup, retained witnesses, extra split work and durable output I/O differ from canonical cold/three-warm budgets. Busy host; no elapsed, peak-memory or platform acceptance."
+  },
+  "originalNistReaderReplay": {
+    "pdfProducerCommit": "369748df63cdbd878c288e645a2a0a18992908de",
+    "readerCommit": "a233f5fe188b04663d0c1039d46af16366db6735",
+    "inputs": [
+      {
+        "profile": "screen-snapshot-paged",
+        "sha256": "f9123a9ee804b97451739f8acecfd24882801b0a9560b5e2b85f9d169006e108",
+        "bytes": 951410,
+        "selectedPage": 3
+      },
+      {
+        "profile": "screen-media-paged",
+        "sha256": "0af8f5d9225d832c061f0d418a0efc527cb46ae04100b49d02f2d1f709549bea",
+        "bytes": 1021553,
+        "selectedPage": 4
+      },
+      {
+        "profile": "print-paged",
+        "sha256": "5d704572e37172e954cd9d61fd69aa216ba918ae4e6b1c1b3940f745d95ad6e2",
+        "bytes": 1504112,
+        "selectedPage": 4
+      }
+    ],
+    "orderedPublicSpans": 538,
+    "orderedPublicSpanRecordsExactlyEqualBaseline737": true,
+    "frequencyForcePressureChecks": 18,
+    "ordinaryAndSingleColumnExtractionPassed": true,
+    "nonWhitespaceScalarMultisetsUnchanged": true,
+    "printTextUnchanged": true,
+    "comparisonSha256": "cef86a172f49afd3efda6edc760b76fc79bed6e404c6f8b2094be4cf0bcf6c2c",
+    "limits": [
+      "Original PDFs are unchanged; this is new reader evidence over old producer bytes.",
+      "Screen-media steradian footnote remains on its separate line; broader formula reconstruction, repeated-header association and clipped-copy extraction remain open."
+    ]
+  },
+  "physicalCanvasReplay": {
+    "profile": "PrintPaged",
+    "pageCount": 16,
+    "physicalBoxPoints": [
+      595.92,
+      842.88
+    ],
+    "requestedViewport": [
+      816,
+      900
+    ],
+    "requestedScale": 1,
+    "resolvedPrintScaleMeasured": false,
+    "margins": 0,
+    "honorCssPageRules": false,
+    "autoFitWidePrintContent": false,
+    "anchors": [
+      {
+        "text": "Rings",
+        "baseline737": {
+          "page": 9,
+          "x": 18,
+          "topDownBaseline": 131.264,
+          "paintAdvance": 32.9403312
+        },
+        "candidateA233": {
+          "page": 9,
+          "x": 18,
+          "topDownBaseline": 131.264,
+          "paintAdvance": 32.9403312
+        }
+      },
+      {
+        "text": "Jupiter",
+        "baseline737": {
+          "page": 10,
+          "x": 250.629,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 41.82530016000001
+        },
+        "candidateA233": {
+          "page": 10,
+          "x": 250.661,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 41.82530015999998
+        }
+      },
+      {
+        "text": "Saturn",
+        "baseline737": {
+          "page": 10,
+          "x": 311.654,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 39.311023680000005
+        },
+        "candidateA233": {
+          "page": 10,
+          "x": 311.686,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 39.311023680000005
+        }
+      },
+      {
+        "text": "Uranus",
+        "baseline737": {
+          "page": 10,
+          "x": 416.521,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 42.28560143999999
+        },
+        "candidateA233": {
+          "page": 10,
+          "x": 416.559,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 42.102254879999975
+        }
+      },
+      {
+        "text": "Neptune",
+        "baseline737": {
+          "page": 10,
+          "x": 487.492,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 50.33943935999997
+        },
+        "candidateA233": {
+          "page": 10,
+          "x": 487.485,
+          "topDownBaseline": 22.350000000000023,
+          "paintAdvance": 50.33943936000003
+        }
+      }
+    ],
+    "nativeRenderer": "Poppler26.09",
+    "nativeDpi": 144,
+    "nativePagesViewed": [
+      9,
+      10
+    ],
+    "warnings": 135,
+    "errors": 0,
+    "hasLoss": true,
+    "pdfSha256": "3c42b0abe5e9bff67d7d8b45825c3ecd02dce9bf4afdd9e965c613a3953cb75f",
+    "boundary": "Matching the physical canvas preserves the table on page10. Selected kerning correction does not qualify browser flow, all-page appearance or print-scale equivalence.",
+    "resourceCount": 43,
+    "archivedHtmlAndResourceBytesUnchanged": true
+  },
+  "sampledBrowserFontObservation": {
+    "pdfProducerBoundary": "01b9559c5ca51bb66c0d899049a0700d603bf39a",
+    "source39Sha256": "450f3ba4e47ee174bd9692b396f264b907d37d2528f53911760f3d0edb785f7e",
+    "selectedCharProcs": 18,
+    "selectedSpans": 31,
+    "widthObservationSha256": "0bccd3d462fc56842380350e82b52005e8a17a416374fa1581f30cccd798e59a",
+    "outlineObservationSha256": "953368ada7464e7e4a2a864ee3ad9ff48e4eae179d81a52c6ce293e3f9ba2a4b",
+    "allClosedContourSegmentStructuresMatch": true,
+    "user700MaxCoordinateResidualDesignUnits": 0.015590816599797108,
+    "selectedSampleSupportsSource39At700": true,
+    "static40Excluded": true,
+    "wholeFontIdentityEstablished": false,
+    "uniqueAxisRecovered": false,
+    "acceptanceToleranceApplied": false,
+    "strictNameGuardChanged": false,
+    "modeledF2Dot14CoordinateProvenActual": false,
+    "boundary": "The selected width/path sample does not establish a missing-font or used600 defect. Original generated-name guard, full font admission and browser print geometry remain distinct."
+  },
+  "independentReview": {
+    "scope": "11-file delta and reachable cache/variation selection, ActualText carrier/clip, span clone and line-layout consumers",
+    "findings": [],
+    "productApiDisposition": "accept-as-shaped",
+    "fullPasses": 1,
+    "targetedConfirmations": 0,
+    "buildsOrTestsByReviewer": false
+  },
+  "remaining": [
+    "Current-source canonical time/allocation/peak-memory qualification on supported platforms; Windows timing is deferred.",
+    "Named H10 whole-page appearance, captured-font admission and resolved print-scale geometry.",
+    "Broader table sizing/fragmentation, script/formula reading order and clipped-row acceptance.",
+    "Current packed consumer, trimming, NativeAOT and WASM qualification."
+  ]
+}

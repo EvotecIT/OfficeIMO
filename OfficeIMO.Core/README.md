@@ -1296,6 +1296,11 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 
 `OfficeFontFaceCollection` accepts TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is available on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. The engine is part of `OfficeIMO.Core`; it does not require another font-program package or a license key.
 
+For supported TrueType runs, the managed shaper uses the selected variation
+coordinates when resolving glyphs and advances. Distinct instances of the same
+source font keep distinct measurements. Extract a single face from a variable
+TrueType font collection before selecting variation axes.
+
 ## What it provides
 
 - `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions` for one lifecycle vocabulary across document packages.
