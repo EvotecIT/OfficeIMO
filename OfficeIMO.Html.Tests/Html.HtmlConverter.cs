@@ -110,7 +110,7 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_Image_Base64_RoundTrip() {
-        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
         byte[] imageBytes = File.ReadAllBytes(assetPath);
         string base64 = Convert.ToBase64String(imageBytes);
         string html = $"<p><img src=\"data:image/png;base64,{base64}\" /></p>";
@@ -124,7 +124,7 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_Image_File_RoundTrip() {
-        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
         string uri = new Uri(assetPath).AbsoluteUri;
         string html = $"<p><img src=\"{uri}\" /></p>";
         
@@ -327,7 +327,7 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_Image_Base64_Conversion() {
-        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
         byte[] imageBytes = File.ReadAllBytes(assetPath);
         string base64 = Convert.ToBase64String(imageBytes);
         string html = $"<p><img src=\"data:image/png;base64,{base64}\" /></p>";
@@ -339,7 +339,7 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_Image_File_Conversion() {
-        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
         string uri = new Uri(assetPath).AbsoluteUri;
         string html = $"<p><img src=\"{uri}\" /></p>";
 
@@ -351,7 +351,7 @@ public partial class Html {
 
     [Fact]
     public void Test_Html_ImageAlt_Preserved() {
-        string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+        string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
         byte[] imageBytes = File.ReadAllBytes(assetPath);
         string base64 = Convert.ToBase64String(imageBytes);
         string html = $"<p><img src=\"data:image/png;base64,{base64}\" alt=\"Company logo\" /></p>";

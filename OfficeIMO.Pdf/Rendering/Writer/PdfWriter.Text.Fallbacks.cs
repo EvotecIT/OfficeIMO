@@ -22,6 +22,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> source =
             runs as System.Collections.Generic.IReadOnlyList<PdfTextRun>
             ?? new System.Collections.Generic.List<PdfTextRun>(runs);
+        source = ApplyInheritedRunFontStyle(source, baseFont);
         int layoutControls = 0;
         foreach (PdfTextRun run in source) {
             if (run.InlineElement != null) continue;
@@ -61,6 +62,25 @@ internal static partial class PdfWriter {
         }
 
         return normalized ?? source;
+    }
+
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> ApplyInheritedRunFontStyle(
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> source, PdfStandardFont baseFont) {
+        PdfStandardFont normal = ChooseNormal(baseFont);
+        bool bold = baseFont == ChooseBold(normal) || baseFont == ChooseBoldItalic(normal);
+        bool italic = baseFont == ChooseItalic(normal) || baseFont == ChooseBoldItalic(normal);
+        if (!bold && !italic) return source;
+
+        // Measurement, fallback, wrapping and resource usage consume the same
+        // effective style. Keep the common unstyled path allocation-free.
+        System.Collections.Generic.List<PdfTextRun>? styled = null;
+        for (int index = 0; index < source.Count; index++) {
+            PdfTextRun run = source[index].WithInheritedFontStyle(bold, italic);
+            if (ReferenceEquals(run, source[index])) continue;
+            styled ??= new System.Collections.Generic.List<PdfTextRun>(source);
+            styled[index] = run;
+        }
+        return styled ?? source;
     }
 
     // Returns null when the run is kept as-is (no fallback needed); otherwise the expanded runs.

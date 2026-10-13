@@ -77,7 +77,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double glyphWidth = MeasureText(element, effectiveFont, segment.Run.Style.FontDescriptor);
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
-                    + (IsWhitespaceToken(element) ? segment.Run.Style.WordSpacing : 0D);
+                    + (IsWordSpacingSeparator(element) ? segment.Run.Style.WordSpacing : 0D);
                 result.Add(new InlinePaintSegment(element, cursor, Math.Max(0.01D, glyphWidth), advance, logicalOrder ?? index));
                 cursor += advance;
             }
@@ -86,9 +86,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int start = 0;
         while (start < elements.Count) {
-            bool whitespace = IsWhitespaceToken(elements[start]);
+            bool whitespace = IsWordSpacingSeparator(elements[start]);
             int end = start + 1;
-            while (end < elements.Count && IsWhitespaceToken(elements[end]) == whitespace) end++;
+            while (end < elements.Count && IsWordSpacingSeparator(elements[end]) == whitespace) end++;
             string text = string.Concat(elements.Skip(start).Take(end - start));
             double glyphWidth = MeasureText(text, effectiveFont, segment.Run.Style.FontDescriptor);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
@@ -120,6 +120,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (lines.Count == 1 && lines[0].Count < 2) return null;
         if (lines.SelectMany(static line => line).Any(static segment =>
                 segment.Run.AtomicBlock != null ||
+                segment.Run.IsEmptyInlineBox ||
                 segment.Run.RunningStringElement != null ||
                 segment.Run.PositionedMarkerElement != null)) {
             return null;
@@ -220,6 +221,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 logicalEndProgress: sources[ordered[start].SourceSegmentIndex].LogicalEndProgress));
             start = end;
         }
+        // Reordering may split a source segment into several visual groups.
+        // Its box edges belong to the two visual ends, never to every group.
+        foreach (IGrouping<int, InlineBidiElement> source in ordered.GroupBy(element => element.SourceSegmentIndex)) {
+            HtmlInlineRun run = sources[source.Key].Run;
+            InlineSegment[] groups = result.Where(segment => ReferenceEquals(segment.Run, run)).ToArray();
+            if (groups.Length == 0) continue;
+            groups[0].LeadingAdvance += sources[source.Key].LeadingAdvance;
+            groups[groups.Length - 1].TrailingAdvance += sources[source.Key].TrailingAdvance;
+        }
         return result.AsReadOnly();
     }
 
@@ -252,7 +262,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string element = elements[index];
             double advance = (hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont, style.FontDescriptor))
                 + style.LetterSpacing
-                + (IsWhitespaceToken(element) ? style.WordSpacing : 0D);
+                + (IsWordSpacingSeparator(element) ? style.WordSpacing : 0D);
             right -= advance;
             double glyphWidth = hasContextualWidths ? contextualWidths[index] : MeasureText(element, effectiveFont, style.FontDescriptor);
             result.Add(new InlinePaintSegment(

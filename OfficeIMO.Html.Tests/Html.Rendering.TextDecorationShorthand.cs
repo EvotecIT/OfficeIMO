@@ -68,7 +68,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void ThicknessContainingLinkPaintPreservesAuthoredStyleColorAndReportsApproximation() {
+    public void ThicknessContainingLinkPaintUsesVectorGeometryAndPreservesAuthoredColor() {
         const string html = """
             <a href='https://example.test' style='text-decoration:underline 0.05em dashed rgb(88,88,88)'><span>Decorated label</span></a>
             <span style='text-decoration:none 2px red'>No decoration</span>
@@ -76,11 +76,14 @@ public sealed partial class HtmlRenderingTests {
             """;
         HtmlRenderDocument scene = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { ViewportWidth = 800 });
         HtmlRenderText label = Assert.Single(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderText>(), t => t.Text == "Decorated label");
-        Assert.Equal(OfficeTextDecorationStyle.Dashed, label.UnderlineStyle);
+        Assert.Equal(OfficeTextDecorationStyle.None, label.UnderlineStyle);
         Assert.Equal(OfficeColor.FromRgb(88,88,88), label.DecorationColor);
-        HtmlDiagnostic diagnostic = Assert.Single(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated");
-        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.True(scene.HasLoss);
+        HtmlRenderShape decoration = Assert.Single(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderShape>(),
+            s => s.Source?.EndsWith(":decoration:underline", StringComparison.Ordinal) == true);
+        Assert.Equal(1D, decoration.Height);
+        Assert.Equal(OfficeColor.FromRgb(88,88,88), decoration.Shape.FillColor);
+        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+            && d.Detail?.Contains("pattern", StringComparison.Ordinal) == true);
     }
     [Theory]
     [InlineData("0.0")]
@@ -138,16 +141,19 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("overline", false)]
     [InlineData("overline underline line-through", true)]
-    public void OverlineOmissionIsReportedSeparatelyFromPaintedThickness(string lines, bool hasPaintedLines) {
+    public void OverlineAndCombinedLinesPaintAtExplicitThickness(string lines, bool hasPaintedLines) {
         string html = "<span style='text-decoration:" + lines + " 2px dashed red'>Label</span>";
         HtmlRenderDocument scene = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
-        HtmlDiagnostic omission = Assert.Single(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationLineUnsupported");
-        Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
-        Assert.Equal(hasPaintedLines ? 1 : 0, scene.Diagnostics.Count(d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"));
+        Assert.DoesNotContain(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationLineUnsupported");
+        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+            && d.Detail?.Contains("pattern", StringComparison.Ordinal) == true);
         HtmlRenderText label = Assert.Single(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderText>(), t => t.Text == "Label");
-        Assert.Equal(hasPaintedLines ? OfficeTextDecorationStyle.Dashed : OfficeTextDecorationStyle.None, label.UnderlineStyle);
-        Assert.Equal(hasPaintedLines ? OfficeTextDecorationStyle.Dashed : OfficeTextDecorationStyle.None, label.StrikethroughStyle);
-        Assert.True(scene.HasLoss);
+        Assert.Equal(OfficeTextDecorationStyle.None, label.UnderlineStyle);
+        Assert.Equal(OfficeTextDecorationStyle.None, label.StrikethroughStyle);
+        HtmlRenderShape[] decorations = scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderShape>()
+            .Where(s => s.Source?.Contains(":decoration:", StringComparison.Ordinal) == true).ToArray();
+        Assert.Equal(hasPaintedLines ? 3 : 1, decorations.Length);
+        Assert.All(decorations, d => Assert.Equal(2D, d.Height));
     }
 
     [Theory]
@@ -170,7 +176,11 @@ public sealed partial class HtmlRenderingTests {
         }
         HtmlRenderDocument scene = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
         HtmlRenderText text = Assert.Single(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderText>(), t => t.Text == "Variable");
-        Assert.Equal(keyword == "inherit" ? OfficeTextDecorationStyle.Dashed : OfficeTextDecorationStyle.None, text.UnderlineStyle);
+        Assert.Equal(OfficeTextDecorationStyle.None, text.UnderlineStyle);
+        var decorations = scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderShape>()
+            .Where(s => s.Source?.Contains(":decoration:", StringComparison.Ordinal) == true).ToArray();
+        Assert.Equal(keyword == "inherit" ? 2 : 0, decorations.Length);
+        Assert.All(decorations, decoration => Assert.Equal(4D, decoration.Height));
     }
 
     [Theory]

@@ -22,16 +22,22 @@ public sealed partial class OfficeTrueTypeFont {
         cancellationToken.ThrowIfCancellationRequested();
         resolvedStyle = OfficeFontStyle.Regular;
         if (string.IsNullOrWhiteSpace(families)) return TryLoadDefault();
+        OfficeTrueTypeFont? synthesisCandidate = null;
         foreach (string family in ExpandFontFamilyFallbacks(families!)) {
             foreach (FontFamilyResolution resolved in OrderedNumericFamily(family, descriptor, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 OfficeTrueTypeFont candidate = resolved.Font!;
-                if (!string.IsNullOrEmpty(text) && !candidate.HasGlyphs(text!)) continue;
+                if (!string.IsNullOrEmpty(text) && !candidate.HasGlyphs(text!)) {
+                    if (synthesisCandidate == null && OfficeMissingSpaceMetrics.CoversWithSynthesis(candidate, text!))
+                        synthesisCandidate = candidate;
+                    continue;
+                }
                 resolvedStyle = candidate.FaceDescriptor.ToStyle();
                 return candidate;
             }
         }
-        return null;
+        if (synthesisCandidate != null) resolvedStyle = synthesisCandidate.FaceDescriptor.ToStyle();
+        return synthesisCandidate;
     }
 
     private static List<FontFamilyResolution> OrderedNumericFamily(string family, OfficeFontFaceDescriptor descriptor,

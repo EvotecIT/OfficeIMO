@@ -1,20 +1,27 @@
-using System.Text;
 using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRichFontUsageTests {
     [Theory]
-    [InlineData(TableSurface.Flow)]
-    [InlineData(TableSurface.RowColumn)]
-    [InlineData(TableSurface.Canvas)]
-    public void TableHeaderBoldCombinesWithRunItalicAcrossRenderingSurfaces(TableSurface surface) {
+    [InlineData(TableSurface.Flow, false)]
+    [InlineData(TableSurface.RowColumn, false)]
+    [InlineData(TableSurface.Canvas, false)]
+    [InlineData(TableSurface.Flow, true)]
+    [InlineData(TableSurface.RowColumn, true)]
+    [InlineData(TableSurface.Canvas, true)]
+    public void TableHeaderBoldCombinesWithRunItalicAcrossRenderingSurfaces(TableSurface surface, bool namedFont) {
         var options = new PdfOptions {
             CompressContentStreams = false,
             PageWidth = 300D,
             PageHeight = 200D
         };
+        if (namedFont) {
+            byte[] font = ManagedTextShapingTestAssets.CreateFont("StyledHeaderMarker".Distinct().Select(ch => (int)ch).ToArray());
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("StyledHeader", font, font, font, font));
+        }
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
             HeaderBold = true,
@@ -23,7 +30,7 @@ public class PdfRichFontUsageTests {
         IReadOnlyList<PdfTableCell[]> rows = new[] {
             new[] {
                 PdfTableCell.RichTextCell(new[] {
-                    new PdfTextRun("StyledHeaderMarker", italic: true)
+                    new PdfTextRun("StyledHeaderMarker", italic: true, fontFamily: namedFont ? "StyledHeader" : null)
                 })
             }
         };
@@ -39,11 +46,14 @@ public class PdfRichFontUsageTests {
         };
 
         byte[] bytes = document.ToBytes();
-        string raw = Encoding.ASCII.GetString(bytes);
-
         Assert.True(bytes.AsSpan().StartsWith("%PDF"u8));
-        Assert.Contains("/BaseFont /Helvetica-BoldOblique", raw, StringComparison.Ordinal);
         Assert.Contains("StyledHeaderMarker", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        using var independent = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var letters = independent.GetPage(1).Letters;
+        Assert.Equal("StyledHeaderMarker", string.Concat(letters.Select(letter => letter.Value)));
+        string expectedFont = namedFont ? "StyledHeader-BoldItalic" : "Helvetica-BoldOblique";
+        Assert.All(letters, letter => Assert.True(letter.FontName?.EndsWith(expectedFont, StringComparison.Ordinal) == true,
+            "The painted header font must combine row bold with run italic; actual font: " + letter.FontName));
     }
 
     public enum TableSurface {

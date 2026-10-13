@@ -5,8 +5,8 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>
-    /// Represents a local absolute box's pure translation as its paged placement.
-    /// Its containing block still owns flow height; fixed and normal-flow paint
+    /// Represents a locally positioned box's pure translation as its paged placement.
+    /// Its containing block still owns flow height; viewport-fixed and normal-flow paint
     /// effects retain their separate transform/fragmentation behavior.
     /// </summary>
     private bool TryTakePositionedTranslation(

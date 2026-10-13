@@ -317,7 +317,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_OutputBudgetCombinesEarlyImageAndLaterElements() {
             using WordDocument document = WordDocument.Create();
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             document.AddParagraph().AddImage(assetPath, 20, 20);
             for (int index = 0; index < 800; index++) {
                 document.AddParagraph();

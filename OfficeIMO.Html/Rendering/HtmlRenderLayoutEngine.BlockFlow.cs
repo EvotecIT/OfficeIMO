@@ -58,7 +58,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<HtmlFloatExclusion>? activeFloats = pageBoundary.HasValue || emittedFloats != null
             ? inheritedFloats == null ? new List<HtmlFloatExclusion>() : new List<HtmlFloatExclusion>(inheritedFloats)
             : null;
-        foreach (INode node in nodes) {
+        foreach (TableFlowEntry entry in EnumerateTableFlowEntries(container, nodes, width, parentStyle)) {
+            if (entry.TableNodes != null) {
+                if (seekingContinuation && !entry.TableNodes.OfType<IElement>().Any(element => ReferenceEquals(element, continuationChild))) continue;
+                seekingContinuation = false;
+                double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth,
+                    pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight, floatContext.At(width, 0D, flowHeight));
+                flowHeight += inlineHeight;
+                HtmlRenderBoxStyle tableStyle = CreateAnonymousBoxStyle(parentStyle, "table", "anonymous-table");
+                double tableY = flowHeight;
+                tableStyle = PlaceIndependentBlockBesideFloats(tableStyle, width, floatContext, ref tableY);
+                if (tableY > flowHeight) {
+                    blocks.Add(CreateFloatClearanceBlock(width, tableY - flowHeight));
+                    flowHeight = tableY;
+                }
+                TableFormattingStructure formatting = BuildTableFormattingStructure(container, width, tableStyle, depth, entry.TableNodes);
+                HtmlRenderFlowBlock tableBlock = LayoutTable(container, width, tableStyle, depth, continuationTarget, formatting);
+                blocks.Add(tableBlock);
+                flowHeight += tableBlock.Height;
+                if (continuationTarget != null && formatting.Rows.Any(row => row.Contains(continuationTarget))) {
+                    continuationTarget = null;
+                    continuationLogicalCharacters = 0;
+                }
+                adjoiningMargins.Clear();
+                continue;
+            }
+            INode node = entry.Node!;
             CheckCancellation();
             for (int index = (activeFloats?.Count ?? 0) - 1; index >= 0; index--) {
                 if (activeFloats![index].Bottom <= flowHeight + 0.0001D) activeFloats.RemoveAt(index);
@@ -74,6 +99,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(element, width, parentStyle);
+                childStyle = ForwardContainingHeightBasis(element, childStyle, parentStyle);
                 if (childStyle.Display == "none") {
                     continue;
                 }
@@ -186,6 +212,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     HtmlRenderBoxStyle unavoidedStyle = childStyle.Clone();
                     childStyle = AvoidActiveFloatsForFormattingContext(
                         unavoidedStyle, width, flowHeight, activeFloats);
+                    childStyle = ResolveOrdinaryIntrinsicWidths(element, childStyle, width, depth + 1);
                     childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     List<HtmlFloatExclusion>? childFloats = activeFloats != null
@@ -216,6 +243,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                                 childBlock.Height - childStyle.MarginTop - childStyle.MarginBottom);
                             HtmlRenderBoxStyle measuredStyle = AvoidActiveFloatsForFormattingContext(
                                 unavoidedStyle, width, flowHeight, activeFloats, measuredHeight);
+                            measuredStyle = ResolveOrdinaryIntrinsicWidths(element, measuredStyle, width, depth + 1);
                             measuredStyle = ResolveNormalFlowHorizontalAutoMargins(element, measuredStyle, width);
                             if (Math.Abs(measuredStyle.MarginTop - childStyle.MarginTop) <= 0.0001D
                                 && Math.Abs(measuredStyle.MarginLeft - childStyle.MarginLeft) <= 0.0001D

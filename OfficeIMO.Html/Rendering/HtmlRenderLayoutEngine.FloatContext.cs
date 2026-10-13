@@ -64,6 +64,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal bool HasFloats => _placements.Count > 0 || _inheritedFloats.Count > 0 || _originatingPageExclusions.Count > 0;
+        internal IReadOnlyList<InlineFloatPlacement> GetFragmentPlacements(double contentY) => _placements
+            .Select(item => new InlineFloatPlacement(item.Run, item.X - _originX,
+                item.Y - _originY + contentY, item.Width, item.Height)).ToArray();
         internal InlineFloatContext At(double width, double x, double y) =>
             new InlineFloatContext(width, _placements, _originX + x, _originY + y, _inheritedFloats, _originatingPageExclusions);
 

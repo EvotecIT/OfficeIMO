@@ -43,12 +43,12 @@ public static partial class HtmlComputedStyleEngine {
             parseCss = PreserveManagedGradientFunctions(PreserveRevertLayerDeclarations(parseCss));
             parseCss = ProtectGeneratedContentFunctions(parseCss);
             parseCss = ProtectManagedPseudoElements(parseCss);
-            parseCss = PreserveManagedDeclarations(parseCss);
             Dictionary<string, Queue<OfficeIMO.Html.Css.HtmlCssQualifiedRule>> ownedRules;
             OfficeIMO.Html.Css.HtmlCssNamespaceContext namespaceContext;
             try {
                 OfficeIMO.Html.Css.HtmlCssStyleSheet ownedSheet = OfficeIMO.Html.Css.HtmlCssSyntaxParser.ParseStyleSheet(
                     parseCss, budget.CreateStylesheetSyntaxOptions());
+                parseCss = PreserveManagedDeclarations(parseCss, ownedSheet);
                 namespaceContext = OfficeIMO.Html.Css.HtmlCssNamespaceContext.FromStyleSheet(ownedSheet);
                 ownedRules = IndexOwnedQualifiedRules(ownedSheet, namespaceContext, environment, budget);
             } catch (OfficeIMO.Html.Css.HtmlCssSyntaxLimitException exception) {
@@ -1085,10 +1085,12 @@ public static partial class HtmlComputedStyleEngine {
         IDictionary<string, StyleDeclaration> declarations) {
         for (int index = 0; index < ownedRule.Declarations.Count; index++) {
             OfficeIMO.Html.Css.HtmlCssDeclaration declaration = ownedRule.Declarations[index];
-            string propertyName = declaration.Name.Trim().ToLowerInvariant();
-            // Supported layout and image keywords can be lost by the retained
+            string propertyName = declaration.Name.Trim();
+            bool isCustomProperty = propertyName.StartsWith("--", StringComparison.Ordinal);
+            if (!isCustomProperty) propertyName = propertyName.ToLowerInvariant();
+            // Custom components and supported layout and image keywords can be lost by the retained
             // provider when another declaration makes the whole rule use this path.
-            if (propertyName is not ("display" or "flex" or "flex-grow" or "flex-shrink" or "flex-basis" or "float" or "float-reference" or "text-transform"
+            if (!isCustomProperty && propertyName is not ("display" or "flex" or "flex-grow" or "flex-shrink" or "flex-basis" or "float" or "float-reference" or "text-transform"
                 or "image-orientation" or "image-resolution")) continue;
             string value = RestoreProtectedDeclarationValue(StripCssCommentsOutsideStrings(
                 OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(declaration, UnboundedPropertyTokenization).AuthoredValue).Trim());

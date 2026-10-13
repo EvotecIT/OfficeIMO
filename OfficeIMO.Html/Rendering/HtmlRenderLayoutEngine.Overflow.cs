@@ -7,10 +7,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderFlowBlock block,
         HtmlRenderBoxStyle style,
         IElement element,
-        double containingWidth) {
+        double containingWidth,
+        double? usedBorderBoxWidth = null) {
         if (style.OverflowX == "visible" && style.OverflowY == "visible") return block;
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
-        double boxWidth = ResolveBoxWidth(availableWidth, style);
+        double boxWidth = usedBorderBoxWidth ?? ResolveBoxWidth(availableWidth, style);
         double boxHeight = Math.Max(0.01D, block.Height - style.MarginTop - style.MarginBottom);
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         var outside = new List<HtmlRenderVisual>();

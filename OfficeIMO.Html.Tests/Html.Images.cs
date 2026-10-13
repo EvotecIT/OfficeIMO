@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_RelativeImage_UsesBaseUrl() {
             var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(dir);
-            var source = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            var source = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var dest = Path.Combine(dir, "logo.png");
             File.Copy(source, dest);
             try {
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_RelativeImage_UsesOptionsBasePath() {
             var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(dir);
-            var source = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            var source = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var dest = Path.Combine(dir, "logo.png");
             File.Copy(source, dest);
             try {

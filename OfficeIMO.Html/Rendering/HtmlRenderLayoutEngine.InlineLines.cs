@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private sealed class InlineLine {
+    private sealed partial class InlineLine {
         private int _flowContentCount;
         private double _availableWidth;
         private double _indent;
@@ -12,10 +12,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
         internal double Width { get; private set; }
         internal bool HasFlowContent => _flowContentCount > 0;
+        internal bool HasForcedBreak { get; set; }
         internal bool HasExplicitPlacement { get; private set; }
         internal double X { get; private set; }
         internal double Y { get; private set; }
         internal double AvailableWidth => Math.Max(0.01D, _availableWidth - _indent);
+        internal HtmlRenderBoxStyle? ParagraphStyle { get; set; }
         internal bool EndsWithHyphenation { get; set; }
 
         internal void Place(double x, double y, double availableWidth) {
@@ -44,19 +46,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal void Add(InlineSegment segment) {
+            segment.LeadingAdvance = 0D;
+            segment.TrailingAdvance = 0D;
             Segments.Add(segment);
             Width += segment.Width;
+            AddInlineEdges(segment);
             if (segment.Run.RunningStringElement == null
                 && segment.Run.RunningElementAssignment == null
                 && !segment.Run.IsFlowMarker) _flowContentCount++;
         }
 
-        internal void RemoveAt(int index) {
+        internal void RemoveAt(int index, bool preserveScopeContent = false) {
+            InlineSegment removed = Segments[index];
             if (Segments[index].Run.RunningStringElement == null
                 && Segments[index].Run.RunningElementAssignment == null
                 && !Segments[index].Run.IsFlowMarker) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
+            if (_inlineEdges.Count > 0) RebuildInlineEdges(removed, preserveScopeContent);
         }
 
         internal void SetSegmentWidth(int index, double width) {

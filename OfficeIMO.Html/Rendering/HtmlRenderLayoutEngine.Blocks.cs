@@ -36,6 +36,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool continuesThisBox = continuationTarget != null
             && ContainsElementOrSelf(element, continuationTarget)
             && (!ReferenceEquals(element, continuationTarget) || continuationLogicalCharacters > 0);
+        // Page and continuation reflow can enter here with a fresh style,
+        // bypassing normal child placement and its auto-margin preparation.
+        if (style.HasIntrinsicWidths && !style.IntrinsicWidthsResolved) {
+            style = ResolveOrdinaryIntrinsicWidths(element, style, containingWidth, depth);
+            style = ResolveNormalFlowHorizontalAutoMargins(element, style, containingWidth);
+        }
         style = PrepareButtonChildStyle(element, style);
         if (UsesButtonChildLayout(element) && !style.ExplicitWidth.HasValue) {
             // A native button remains intrinsically sized with display:block.
@@ -54,7 +60,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (IsReplacedImageElementTag(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutImage(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "math" && TryLayoutMath(element, containingWidth, style, inheritedLink: null, shrinkToFit: false, out HtmlRenderFlowBlock mathBlock, out _)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(mathBlock, element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (IsFormControlElement(tag) && !UsesButtonChildLayout(element)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
+        if (style.Display is "table" or "inline-table") {
+            HtmlRenderFlowBlock table = LayoutTable(element, containingWidth, style, depth, continuationTarget);
+            // The table envelope owns its used border box before optional semantic
+            // wrapping. Its fixed columns can enlarge the authored width.
+            double tableWidth = table.Visuals.OfType<HtmlRenderSemanticGroup>().First().Width;
+            return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(
+                ApplySpecializedElementSemantics(table, element, style), style, element, containingWidth, tableWidth),
+                style, containingWidth, containingHeight, element), style, element));
+        }
         if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutHorizontalRule(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, pageBoundary, out HtmlRenderFlowBlock flexBlock)) {
             flexBlock = ApplyElementSemantics(flexBlock, element, style);
@@ -252,7 +266,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     // preceding sibling already contributes that boundary; forwarding
                     // zero through a bordered parent can strand its top edge on the
                     // previous page before any child content fits.
-                    if (offset > 0.0001D) contentBreakOffsets.Add(childStart + offset);
+                    // An anonymous float chunk can have a painted tail beyond its
+                    // normal-flow height. Keep its internal opportunities, while
+                    // the float context owns its final boundary and deferral.
+                    bool isAnonymousFloatTail = child.OwnerElement == null
+                        && child.PagedPaintExtent > child.Height + 0.0001D
+                        && offset >= child.PagedPaintExtent - 0.0001D;
+                    if (offset > 0.0001D && !isAnonymousFloatTail) contentBreakOffsets.Add(childStart + offset);
                 }
 
                 foreach (HtmlRenderLineBreakGroup group in child.LineBreakGroups) {
@@ -307,6 +327,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             contentBreakOffsets.AddRange(inline.BreakOffsets);
             lineBreakOffsets.AddRange(inline.LineBreakOffsets);
             runningStringAssignments.AddRange(inline.RunningStringAssignments);
+            forcedBreaks.AddRange(inline.ForcedBreaks);
+            lineBreakGroups.AddRange(inline.LineBreakGroups);
+            continuationGroups.AddRange(inline.ContinuationGroups);
+            trailingGroups.AddRange(inline.TrailingGroups);
         }
 
         if (ownsFloatContext) contentHeight = Math.Max(contentHeight, contentFloats.Bottom);
@@ -394,14 +418,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
                 Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
             : outerHeight;
+        if (_options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible" && inlineLayout != null
+            && inlineLayout.PagedPaintExtent > inlineLayout.Height + 0.0001D) {
+            pagedPaintExtent = Math.Max(pagedPaintExtent, contentYForBreaks + inlineLayout.PagedPaintExtent);
+        }
         HtmlRenderAvoidBreakRange? trailingBoxKeep = ResolveTrailingBoxKeepRange(style, contentHeight,
             outerHeight, contentYForBreaks, contentBreakOffsets, continuationBreakProgress);
         if (trailingBoxKeep.HasValue) contentAvoidBreakRanges.Add(trailingBoxKeep.Value);
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
-        if (pagedPaintExtent > outerHeight + 0.0001D) {
+        bool hasPagedFloats = _options.Mode == HtmlRenderMode.Paged && contentFloats.HasFloats;
+        if (pagedPaintExtent > outerHeight + 0.0001D || hasPagedFloats) {
             IReadOnlyList<(double Top, double Bottom)> atomicRanges = CollectAtomicParallelVisualRanges(visuals);
-            breakOffsets = breakOffsets.Where(offset => !CrossesAtomicParallelVisual(atomicRanges, offset));
+            breakOffsets = hasPagedFloats
+                ? CollectSafeFloatBreaks(breakOffsets, contentFloats.GetFragmentPlacements(contentYForBreaks), atomicRanges,
+                    pageBoundary?.PageHeight ?? _activePageGeometry.ContentHeight)
+                : breakOffsets.Where(offset => !CrossesAtomicParallelVisual(atomicRanges, offset));
         }
         if (children.Count == 0 && contentVisuals.Count == 0) {
             breakOffsets = breakOffsets.Concat(CollectPositionedContainerBreakOffsets(
@@ -418,7 +450,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             group.Translate(
                 contentX,
                 contentYForBreaks,
-                group.SourceEndsAt >= contentHeight - 0.0001D ? outerHeight : (double?)null));
+                // A terminal footer inherits the box tail only when that cannot
+                // move its source end before the body. A float may extend past
+                // normal flow; clamping it there would rewind pagination.
+                group.SourceEndsAt >= contentHeight - 0.0001D
+                    && outerHeight >= contentYForBreaks + group.ContentEndsAt - 0.0001D
+                    ? outerHeight : (double?)null));
         string? pageName = style.PageName;
         if (pageName == null && children.Count > 0) {
             pageName = children[0].PageName;
@@ -456,8 +493,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         block = ApplyElementSemantics(block, element, style);
         if (ownsFloatContext) foreach (HtmlRenderVisual visual in block.Visuals) visual.PaintPhase = HtmlRenderPaintPhase.Atomic;
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
-        return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
+        HtmlRenderFlowBlock completed = StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),
             style, element, collapsesThrough, collapsedTopGroup, collapsedBottomGroup));
+        completed.KnownNoInFlowLineBoxes = !usesBlockFormatting && inlineLayout?.HasInFlowLineBoxes == false;
+        return completed;
     }
 
     private static HtmlRenderBoxStyle SuppressContinuationStartDecorations(HtmlRenderBoxStyle style) {
@@ -601,10 +640,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inline.LineBreakOffsets,
             style.Orphans,
             style.Widows,
+            lineBreakGroups: inline.LineBreakGroups,
+            continuationGroups: inline.ContinuationGroups,
+            trailingGroups: inline.TrailingGroups,
             pageName: style.PageName,
             runningStringAssignments: inline.RunningStringAssignments,
+            forcedBreaks: inline.ForcedBreaks,
             layoutViewportWidth: ActiveSurfaceWidth,
-            layoutViewportHeight: _activePageGeometry.Height);
+            layoutViewportHeight: _activePageGeometry.Height,
+            pagedPaintExtent: inline.PagedPaintExtent);
         blocks.Add(block);
         return block.Height;
     }
@@ -663,7 +707,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.BorderBox) width += style.HorizontalInsets;
         if (style.MaxWidth.HasValue) width = Math.Min(width, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
         if (style.MinWidth.HasValue) width = Math.Max(width, style.MinWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
-        return Math.Max(1D, width);
+        return Math.Max(style.HorizontalInsets, Math.Max(1D, width));
     }
 
     private HtmlRenderBoxStyle ResolveNormalFlowHorizontalAutoMargins(IElement element, HtmlRenderBoxStyle style, double containingWidth) {
@@ -677,11 +721,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxWidth = IsReplacedImageElement(element)
             ? ResolveReplacedImageBoxWidth(element, style)
             : ResolveBoxWidth(availableWidth, style);
-        if (element.LocalName.Equals("table", StringComparison.OrdinalIgnoreCase)
-            && style.ExplicitWidth.HasValue && !style.BorderBox) {
-            // A table's declared width is its border box; LayoutTable uses the same adjustment.
-            boxWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        }
         double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - boxWidth);
         if (freeSpace <= 0D) return style;
 
@@ -713,7 +752,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!style.BorderBox || !style.ExplicitHeight.HasValue && !usesAspectRatio) height += style.VerticalInsets;
         if (style.MaxHeight.HasValue) height = Math.Min(height, style.MaxHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
         if (style.MinHeight.HasValue) height = Math.Max(height, style.MinHeight.Value + (style.BorderBox ? 0D : style.VerticalInsets));
-        return Math.Max(0.01D, height);
+        return Math.Max(style.VerticalInsets, Math.Max(0.01D, height));
     }
 
     private void ReportUnsupportedLayout(IElement element, HtmlRenderBoxStyle style) {

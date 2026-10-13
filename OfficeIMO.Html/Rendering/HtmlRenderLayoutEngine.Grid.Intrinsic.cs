@@ -106,15 +106,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveGridMinContentContribution(FlexItem item, double availableSize, int depth = 1) =>
         ResolveGridContentContributions(item, availableSize, depth).Minimum;
 
-    private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth) {
+    private (double Minimum, double Maximum) ResolveGridContentContributions(FlexItem item, double availableSize, int depth, bool includeDescendantInsets = false) {
         HtmlRenderBoxStyle style = item.Style;
-        if (TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
-        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth);
+        if (!style.HasIntrinsicWidths && TryResolveDefiniteGridContribution(item, availableSize, out double definite)) return (definite, definite);
+        IReadOnlyList<IntrinsicTextRun> textRuns = ResolveInFlowIntrinsicTextRuns(item, availableSize, depth,
+            includeDescendantInsets: includeDescendantInsets || style.HasIntrinsicWidths);
         double replaced = ResolveDescendantReplacedGridContribution(item, availableSize);
         double minimum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMinContentRuns(textRuns),
             ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
         double maximum = Math.Max(textRuns.Count == 0 ? 1D : MeasureMaxContentRuns(textRuns), replaced);
-        return (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
+        return style.HasIntrinsicWidths ? ResolveOrdinaryIntrinsicContributions(style, minimum, maximum, availableSize)
+            : (ResolveGridMeasuredContribution(style, minimum), ResolveGridMeasuredContribution(style, maximum));
     }
 
     private double ResolveDescendantReplacedGridContribution(FlexItem item, double availableSize, bool minimum = false) {
@@ -122,12 +124,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return ResolveDescendantReplacedGridContribution(item.Element, item.Style, availableSize, 1, minimum);
     }
 
-    private double ResolveDescendantReplacedGridContribution(IElement parent, HtmlRenderBoxStyle parentStyle, double availableSize, int depth, bool minimum) {
+    private double ResolveDescendantReplacedGridContribution(IElement parent, HtmlRenderBoxStyle parentStyle, double availableSize, int depth,
+        bool minimum, bool blockifyChildren = false) {
+        blockifyChildren |= parentStyle.Display is "flex" or "inline-flex" or "grid" or "inline-grid";
         double maximum = 0D;
         foreach (IElement child in parent.Children) {
             EnsureDepth(depth, child);
             if (IsClosedDisclosureChild(child) || ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
+            if (blockifyChildren) childStyle = BlockifyFlexItemStyle(childStyle);
+            childStyle = ForwardContainingHeightBasis(child, childStyle, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
             double contribution;
             if (IsReplacedImageElement(child)) {
@@ -135,7 +141,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     ? ResolveCompressibleReplacedMinimumWidth(childStyle)
                     : ResolveIntrinsicReplacedImageBoxWidth(child, childStyle) + childStyle.MarginLeft + childStyle.MarginRight;
             } else {
-                double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1, minimum);
+                // Contents flatten into the same item collection. An actual item
+                // starts its own formatting context for its descendants.
+                double descendant = ResolveDescendantReplacedGridContribution(child, childStyle, availableSize, depth + 1, minimum,
+                    blockifyChildren: blockifyChildren && childStyle.Display == "contents");
                 contribution = descendant > 0D ? ResolveGridMeasuredContribution(childStyle, descendant) : 0D;
             }
             maximum = Math.Max(maximum, contribution);

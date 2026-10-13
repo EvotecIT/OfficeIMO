@@ -17,8 +17,10 @@ if ($Check) {
 }
 
 $previousUpdateValue = $env:OFFICEIMO_UPDATE_HTML_SUPPORT_MATRIX
+$previousOutputPath = $env:OFFICEIMO_HTML_SUPPORT_MATRIX_OUTPUT
 try {
     $env:OFFICEIMO_UPDATE_HTML_SUPPORT_MATRIX = '1'
+    $env:OFFICEIMO_HTML_SUPPORT_MATRIX_OUTPUT = $outputPath
     dotnet test $testProject --framework net8.0 --filter 'FullyQualifiedName~HtmlSupportMatrix_CheckedInArtifactMatchesExecutableContracts' --no-restore
     if ($LASTEXITCODE -ne 0) {
         throw 'Failed to generate the HTML support matrix.'
@@ -28,6 +30,11 @@ try {
         Remove-Item Env:OFFICEIMO_UPDATE_HTML_SUPPORT_MATRIX -ErrorAction SilentlyContinue
     } else {
         $env:OFFICEIMO_UPDATE_HTML_SUPPORT_MATRIX = $previousUpdateValue
+    }
+    if ($null -eq $previousOutputPath) {
+        Remove-Item Env:OFFICEIMO_HTML_SUPPORT_MATRIX_OUTPUT -ErrorAction SilentlyContinue
+    } else {
+        $env:OFFICEIMO_HTML_SUPPORT_MATRIX_OUTPUT = $previousOutputPath
     }
 }
 

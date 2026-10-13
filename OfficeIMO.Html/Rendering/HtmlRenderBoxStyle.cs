@@ -3,7 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderBoxStyle {
+    internal bool IntrinsicWidthsResolved;
+    internal HtmlRenderIntrinsicWidth? IntrinsicWidth;
+    internal HtmlRenderIntrinsicWidth? IntrinsicMinWidth;
+    internal HtmlRenderIntrinsicWidth? IntrinsicMaxWidth;
+    internal bool HasIntrinsicWidths => IntrinsicWidth.HasValue || IntrinsicMinWidth.HasValue || IntrinsicMaxWidth.HasValue;
     internal string Display = "block";
+    internal string TableVerticalAlignment = "baseline";
     internal string StringSet = string.Empty;
     internal bool DisplayWasSpecified;
     internal bool PaintVisible = true;
@@ -117,6 +123,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeFontFaceDescriptor FontDescriptor = OfficeFontFaceDescriptor.Regular;
     internal OfficeTextDecorationStyle UnderlineStyle;
     internal OfficeTextDecorationStyle StrikethroughStyle;
+    internal OfficeTextDecorationStyle OverlineStyle;
+    internal double? DecorationThickness;
+    internal double? UnderlineOffset;
+    internal bool VectorTextDecoration;
     internal OfficeColor DecorationColor = OfficeColor.Black;
     internal OfficeTextBaseline Baseline;
     internal int BaselineLevel;
@@ -132,6 +142,17 @@ internal sealed class HtmlRenderBoxStyle {
     internal double? ExplicitWidth;
     internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
+    // Non-replaced inline/contents boxes carry their enclosing basis without
+    // turning it into an authored dimension used by decoration or box layout.
+    internal bool HasForwardedContainingHeight;
+    internal double? ForwardedContainingHeight;
+    internal double? DefiniteContentHeight => HasForwardedContainingHeight
+        ? ForwardedContainingHeight
+        : ExplicitHeight.HasValue
+            ? BorderBox ? Math.Max(0D, ExplicitHeight.Value - VerticalInsets) : ExplicitHeight.Value
+            : null;
+    // Table tracks resolve percentages after the grid's content minimum is known.
+    internal string TablePercentageHeight = string.Empty;
     // Flex/grid stretching supplies a used height without changing the authored auto-height contract.
     internal bool AutoHeightLayoutStretch;
     internal double? MinWidth;
@@ -191,6 +212,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal string IndividualScale = "none";
     internal string TransformOrigin = "50% 50%";
     internal string ClipPath = "none";
+    internal string Clip = "auto";
     internal bool OpacityWasSpecified;
     internal string UnsupportedOpacity = string.Empty;
     internal int BoxShadowLayerCount;

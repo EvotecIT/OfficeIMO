@@ -37,7 +37,8 @@ public sealed partial class OfficeTrueTypeFont {
             cancellationToken.ThrowIfCancellationRequested();
             int sourceIndex = textIndex;
             int glyph = ReadMappedGlyph(text, ref textIndex, out int scalar);
-            if (glyph > 0 || glyph == 0 && HasPaintedNotdefMapping(scalar)) {
+            if (glyph > 0 || glyph == 0 && (HasPaintedNotdefMapping(scalar) ||
+                OfficeMissingSpaceMetrics.IsEmSpace(scalar) && MapGlyph(scalar) == 0)) {
                 indexes.Add(sourceIndex);
                 glyphs.Add((checked((ushort)glyph), scalar));
             }
@@ -50,20 +51,23 @@ public sealed partial class OfficeTrueTypeFont {
             glyphIds.Add(glyph);
             scalars.Add(scalar);
         }
-        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
+        bool[]? missingSpaces = FindMissingEmSpaces(glyphIds, scalars);
+        OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars, synthesizedSpaces: missingSpaces);
         bool[]? boundaries = TrackingBoundaries(text, indexes);
         var positioned = new PositionedGlyph[glyphs.Count];
         OfficeTrueTypeVariations.WorkBudget? variationBudget = _variations?.CreateWorkBudget();
         for (int index = 0; index < glyphs.Count; index++) {
             positioned[index] = new PositionedGlyph(
                 glyphs[index].Glyph,
-                checked(AdvanceWidth(glyphs[index].Glyph, variationBudget, cancellationToken) + positioning[index].XAdvance),
+                checked(TextAdvanceWidth(glyphs[index].Glyph, OfficeMissingSpaceMetrics.IsSynthesized(missingSpaces, index),
+                    variationBudget, cancellationToken) + positioning[index].XAdvance),
                 0,
                 positioning[index].XPlacement,
                 0);
             positioned[index].TrackingBoundary = boundaries == null || boundaries[index];
         }
-        return TryGetPositionedColorContours(positioned, OfficeTextDirection.LeftToRight, x, y, fontSize, palette, foreground, maximumPointCount, cancellationToken, out paintedLayers);
+        return TryGetPositionedColorContours(positioned, OfficeTextDirection.LeftToRight, x, y, fontSize, palette, foreground,
+            maximumPointCount, cancellationToken, out paintedLayers, missingSpaces);
     }
 
     internal bool TryGetShapedColorTextContours(
@@ -94,7 +98,8 @@ public sealed partial class OfficeTrueTypeFont {
         OfficeColor foreground,
         int maximumPointCount,
         CancellationToken cancellationToken,
-        out List<OfficeColorGlyphContours> paintedLayers) {
+        out List<OfficeColorGlyphContours> paintedLayers,
+        bool[]? synthesizedSpaces = null) {
         paintedLayers = new List<OfficeColorGlyphContours>();
         if (_colorGlyphs == null || glyphs.Length == 0) return false;
         if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
@@ -110,7 +115,9 @@ public sealed partial class OfficeTrueTypeFont {
                 double glyphX = x + glyph.OffsetX * scale;
                 double glyphBaseline = verticalCursor - glyph.OffsetY * scale;
                 IReadOnlyList<OfficeColorGlyphLayer> layers;
-                if (!_colorGlyphs.TryGetLayers(glyph.GlyphId, palette, foreground, out layers)) {
+                if (OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index)) {
+                    layers = Array.Empty<OfficeColorGlyphLayer>();
+                } else if (!_colorGlyphs.TryGetLayers(glyph.GlyphId, palette, foreground, out layers)) {
                     layers = new[] { new OfficeColorGlyphLayer(glyph.GlyphId, foreground) };
                 }
                 foreach (OfficeColorGlyphLayer layer in layers) {
@@ -149,7 +156,9 @@ public sealed partial class OfficeTrueTypeFont {
             double glyphX = cursor + glyph.OffsetX * scale;
             double glyphBaseline = baseline - glyph.OffsetY * scale;
             IReadOnlyList<OfficeColorGlyphLayer> layers;
-            if (!_colorGlyphs.TryGetLayers(glyph.GlyphId, palette, foreground, out layers)) {
+            if (OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index)) {
+                layers = Array.Empty<OfficeColorGlyphLayer>();
+            } else if (!_colorGlyphs.TryGetLayers(glyph.GlyphId, palette, foreground, out layers)) {
                 layers = new[] { new OfficeColorGlyphLayer(glyph.GlyphId, foreground) };
             }
             foreach (OfficeColorGlyphLayer layer in layers) {

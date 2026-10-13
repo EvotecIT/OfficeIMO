@@ -4,74 +4,6 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private void ApplyFirstLetterStyle(
-        IElement? formattingContainer,
-        double width,
-        HtmlRenderBoxStyle parentStyle,
-        List<HtmlInlineRun> runs) {
-        if (formattingContainer == null
-            || !_styleResolver.TryResolvePseudo(
-                formattingContainer,
-                HtmlPseudoElementKind.FirstLetter,
-                width,
-                parentStyle,
-                out HtmlRenderBoxStyle firstLetterStyle)) return;
-
-        for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
-            HtmlInlineRun run = runs[runIndex];
-            if (run.AtomicBlock != null || run.Text.Length == 0) continue;
-            if (!TryFindFirstLetterBounds(run.Text, out int start, out int end)) continue;
-            string prefix = run.Text.Substring(0, start);
-            string firstLetter = run.Text.Substring(start, end - start);
-            string suffix = run.Text.Substring(end);
-            var replacement = new List<HtmlInlineRun>(3);
-            if (prefix.Length > 0) replacement.Add(run.CloneText(prefix, prefix, run.Style));
-            HtmlRenderBoxStyle letterStyle = firstLetterStyle.Clone();
-            letterStyle.Language = run.Style.Language;
-            replacement.Add(run.CloneText(firstLetter, firstLetter, letterStyle, isFirstLetter: true));
-            if (suffix.Length > 0) replacement.Add(run.CloneText(suffix, suffix, run.Style));
-            runs.RemoveAt(runIndex);
-            runs.InsertRange(runIndex, replacement);
-            return;
-        }
-    }
-
-    private bool TryFindFirstLetterBounds(string text, out int start, out int end) {
-        start = end = 0;
-        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
-        int examined = 0;
-        bool MoveNext() {
-            if (!enumerator.MoveNext()) return false;
-            ChargeLayoutOperation("first-letter scanning");
-            if ((++examined & 0xFF) == 0) CheckCancellation();
-            return true;
-        }
-
-        if (!MoveNext()) return false;
-        while (string.IsNullOrWhiteSpace(enumerator.GetTextElement())) {
-            if (!MoveNext()) return false;
-        }
-        start = enumerator.ElementIndex;
-        while (IsFirstLetterPunctuation(enumerator.GetTextElement())) {
-            if (!MoveNext()) {
-                end = text.Length;
-                return true;
-            }
-        }
-        if (!MoveNext()) {
-            end = text.Length;
-            return true;
-        }
-        while (IsFirstLetterPunctuation(enumerator.GetTextElement())) {
-            if (!MoveNext()) {
-                end = text.Length;
-                return true;
-            }
-        }
-        end = enumerator.ElementIndex;
-        return end > start;
-    }
-
     private void ApplyFirstLineStyle(
         IElement? formattingContainer,
         double width,
@@ -87,29 +19,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         width = Math.Max(0.01D, width - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
-        double lineWidth = 0D;
+        PrepareInlineEdgeScopes(runs);
+        InlineWordFitting wordFitting = CreateInlineWordFitting(
+            runs,
+            parentStyle,
+            run => CreateFirstLineRunStyle(run, firstLineStyle));
+        var previewLine = new InlineLine();
         bool firstLine = true;
         bool hasContent = false;
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
+            if (run.InlineEdgeBoundary != null) {
+                if (firstLine) ProcessInlineEdgeBoundary(run, previewLine);
+                styledRuns.Add(run);
+                continue;
+            }
             if (!firstLine || run.AtomicBlock != null || run.Text.Length == 0) {
                 styledRuns.Add(run);
                 if (firstLine && run.AtomicBlock != null) {
-                    if (hasContent && lineWidth + run.AtomicBlock.Width > width) firstLine = false;
+                    if (hasContent && previewLine.PreviewAdvance(run, run.AtomicBlock.Width) > width) firstLine = false;
                     else {
-                        lineWidth += run.AtomicBlock.Width;
+                        previewLine.Add(new InlineSegment(string.Empty, run.AtomicBlock.Width, run));
                         hasContent = true;
                     }
                 }
                 continue;
             }
 
-            HtmlRenderBoxStyle runFirstLineStyle = firstLineStyle.Clone();
-            // Language comes from the originating element, not a CSS pseudo-element.
-            runFirstLineStyle.Language = run.Style.Language;
+            HtmlRenderBoxStyle runFirstLineStyle = CreateFirstLineRunStyle(run, firstLineStyle);
             IReadOnlyList<string> tokens = Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces).ToList();
+            int sourceOffset = 0;
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                int sourceStartOffset = sourceOffset;
+                sourceOffset += run.Style.PreserveWhitespace && token == "\n"
+                    && run.Text[sourceOffset] == '\r'
+                    && sourceOffset + 1 < run.Text.Length && run.Text[sourceOffset + 1] == '\n'
+                        ? 2 : token.Length;
+                run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 if (!firstLine) {
                     styledRuns.Add(run.CloneText(token, token, run.Style, run.IsFirstLetter));
                     continue;
@@ -122,11 +69,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 HtmlRenderBoxStyle tokenStyle = run.IsFirstLetter ? run.Style : runFirstLineStyle;
                 string measuredToken = !run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token;
-                double tokenWidth = MeasureInlineText(measuredToken, tokenStyle);
-                double remainingWidth = Math.Max(0D, width - lineWidth);
+                double tokenWidth = tokenStyle.PreserveWhitespace && measuredToken.IndexOf('\t') >= 0
+                    ? MeasureTabExpandedText(measuredToken, tokenStyle, previewLine.PreviewContentStart(run))
+                    : MeasureInlineText(measuredToken, tokenStyle);
+                double remainingWidth = Math.Max(0D, width - previewLine.PreviewAdvance(run, 0D, false));
                 bool preventWrapping = parentStyle.PreventTextWrapping || run.Style.PreventTextWrapping;
-                bool moveWholeToken = !preventWrapping && hasContent && !IsWhitespaceToken(token)
-                    && tokenWidth > remainingWidth + 0.0001D
+                bool canBreakBefore = wordFitting.CanBreakBefore(run, sourceStartOffset);
+                double previewAdvance = !preventWrapping
+                    && (canBreakBefore || wordFitting.HasBreakInside(run, sourceStartOffset, sourceOffset)
+                        || !IsWhitespaceToken(token)
+                            && PrepareHyphenationToken(token, token, run.Style, reportUnsupportedLanguage: false).HasBreaks)
+                        ? wordFitting.PreviewWithContinuation(previewLine, run, sourceOffset, tokenWidth)
+                        : previewLine.PreviewAdvance(run, tokenWidth);
+                bool moveWholeToken = !preventWrapping && hasContent && canBreakBefore && !IsWhitespaceToken(token)
+                    && previewAdvance > width + 0.0001D
                     && (tokenStyle.HyphenateLimitZone > 0D && remainingWidth <= tokenStyle.HyphenateLimitZone + 0.0001D
                         || tokenStyle.HyphenateLimitLast == "always"
                             && !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex)
@@ -137,7 +93,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 if (!preventWrapping
-                    && tokenWidth > remainingWidth
+                    && previewAdvance > width
                     && !IsWhitespaceToken(token)
                     && remainingWidth > 0.0001D
                     && TryResolveFirstLineTokenSplit(token, run.Style, tokenStyle, remainingWidth, out int split, out HyphenationToken? prepared)) {
@@ -157,17 +113,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     hasContent = true;
                     continue;
                 }
-                if (hasContent && lineWidth + tokenWidth > width) firstLine = false;
+                if (!preventWrapping && hasContent && previewAdvance > width
+                    && (IsWhitespaceToken(token) || canBreakBefore)) firstLine = false;
                 HtmlRenderBoxStyle appliedStyle = firstLine ? tokenStyle : run.Style;
                 styledRuns.Add(run.CloneText(token, token, appliedStyle, run.IsFirstLetter));
                 if (firstLine) {
-                    lineWidth += tokenWidth;
+                    previewLine.Add(new InlineSegment(token, tokenWidth, run));
                     if (!IsWhitespaceToken(token)) hasContent = true;
                 }
             }
         }
         runs.Clear();
         runs.AddRange(styledRuns);
+    }
+
+    private static HtmlRenderBoxStyle CreateFirstLineRunStyle(HtmlInlineRun run, HtmlRenderBoxStyle firstLineStyle) {
+        if (run.IsFirstLetter) return run.Style;
+        HtmlRenderBoxStyle style = firstLineStyle.Clone();
+        // Language comes from the originating element, not a CSS pseudo-element.
+        style.Language = run.Style.Language;
+        // ::first-line changes eligible font/paint properties. It must not
+        // replace the originating run's whitespace and tab-stop contract.
+        style.PreserveWhitespace = run.Style.PreserveWhitespace;
+        style.BreakSpaces = run.Style.BreakSpaces;
+        style.PreventTextWrapping = run.Style.PreventTextWrapping;
+        style.TabSize = run.Style.TabSize;
+        style.TabSizeIsLength = run.Style.TabSizeIsLength;
+        return style;
     }
 
     private bool TryResolveFirstLineTokenSplit(
@@ -274,13 +246,5 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return best;
     }
 
-    private static bool IsFirstLetterPunctuation(string textElement) {
-        if (string.IsNullOrEmpty(textElement)) return false;
-        UnicodeCategory category = char.GetUnicodeCategory(textElement, 0);
-        return category == UnicodeCategory.OpenPunctuation
-            || category == UnicodeCategory.ClosePunctuation
-            || category == UnicodeCategory.InitialQuotePunctuation
-            || category == UnicodeCategory.FinalQuotePunctuation
-            || category == UnicodeCategory.OtherPunctuation;
-    }
+
 }

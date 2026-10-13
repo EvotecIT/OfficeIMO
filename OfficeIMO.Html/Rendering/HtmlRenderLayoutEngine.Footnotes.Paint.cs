@@ -25,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlRenderVisual visual in entry.MarkerBlock.Visuals) {
                     children.Add(visual.Translate(x, cursorY, _paintOrder++));
                 }
-                if (chunk.Start > 0.0001D) {
+                if (chunk.Start > 0.0001D && entry.MarkerStyle.Font.Size > 0D) {
                     _fontUsage?.Observe("\u00a0(cont.)", entry.MarkerStyle.Font.FamilyName, entry.MarkerStyle.FontDescriptor);
                     children.Add(new HtmlRenderText(
                         "\u00a0(cont.)",
@@ -48,7 +48,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         fontPalette: entry.MarkerStyle.FontPalette,
                         fontDescriptor: entry.MarkerStyle.FontDescriptor));
                 }
-            } else {
+            } else if (entry.MarkerStyle.Font.Size > 0D) {
                 children.Add(new HtmlRenderText(
                     marker,
                     x,

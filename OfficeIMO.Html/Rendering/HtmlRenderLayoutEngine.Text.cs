@@ -24,7 +24,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
-        string? inheritedLink = generatedContentOwner == null ? null : ResolveAncestorLink(generatedContentOwner);
+        string? inheritedLink = formattingContainer == null ? null : ResolveAncestorLink(formattingContainer);
         if (generatedContentOwner != null) {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.Before, width, containingHeight, parentStyle, inheritedLink, 0D, 0D, runs);
         }
@@ -40,8 +40,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Suppress indentation of later anonymous blocks without changing the
         // inheritance context used above by descendant inline-block elements.
         if (!applyTextIndent) parentStyle = WithoutTextIndent(parentStyle);
-        ApplyPendingInlineTextTransforms(runs);
+        ApplyPendingInlineTextTransforms(runs, retainSuppressedText: true);
         ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
+        RemoveSuppressedInlineText(runs);
         ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
 
@@ -102,7 +103,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             body.SupportsContinuationReflow,
             lineBreakOffsets: body.LineBreakOffsets,
             floatExclusions: body.FloatExclusions,
-            interruptedFlow: body.InterruptedFlow?.WithVisuals(visuals, width: width, height: Math.Max(marker.Height, body.Height)));
+            interruptedFlow: body.InterruptedFlow?.WithVisuals(visuals, width: width, height: Math.Max(marker.Height, body.Height)),
+            forcedBreaks: body.ForcedBreaks,
+            lineBreakGroups: body.LineBreakGroups,
+            continuationGroups: body.ContinuationGroups,
+            trailingGroups: body.TrailingGroups,
+            pagedPaintExtent: Math.Max(marker.Height, body.PagedPaintExtent));
     }
 
     private static HtmlInlineRun CreateListMarkerRun(HtmlListMarker marker, IElement? owner) =>
@@ -186,7 +192,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     run.PaintOffsetY,
                     run.OwnerElement,
                     run.PositionedMarkerElement,
-                    fallback.Text);
+                    fallback.Text) {
+                    InlineStrutStyles = run.InlineStrutStyles
+                };
                 resolvedRun.PreparedHyphenation = run.PreparedHyphenation?.SliceSource(fallbackOffset, fallback.Text.Length);
                 fallbackOffset += fallback.Text.Length;
                 resolvedRun.EndsFirstLine = run.EndsFirstLine && fallbackOffset == run.Text.Length;
@@ -217,7 +225,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private void AssignLogicalTextOrders(IEnumerable<HtmlInlineRun> runs) {
         foreach (HtmlInlineRun run in runs) {
-            if (run.Text.Length == 0 || run.LogicalTextOrder.HasValue) continue;
+            if (run.IsTextTransformContextOnly || run.Text.Length == 0 || run.LogicalTextOrder.HasValue) continue;
             run.AssignLogicalTextOrder(_nextLogicalTextOrder++);
         }
     }
@@ -231,7 +239,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         double inheritedPaintOffsetX,
         double inheritedPaintOffsetY,
-        ICollection<HtmlInlineRun> runs) {
+        IList<HtmlInlineRun> runs, bool flattenInternalTableBoxes = false) {
+        CheckCancellation();
+        ChargeLayoutOperation("inline node traversal");
         if (IsClosedDisclosureChild(node)) return;
         if (depth > _options.MaxLayoutDepth) {
             if (node is IElement limitedElement) EnsureDepth(depth, limitedElement);
@@ -239,8 +249,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (node is IText textNode) {
-            if (textNode.Data.Length > 0 && inheritedStyle.Font.Size > 0D) {
-                ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
+            if (textNode.Data.Length > 0) {
+                bool contextOnly = inheritedStyle.Font.Size <= 0D;
+                if (!contextOnly) ReportUnsupportedComplexTextShaping(textNode.Data, textNode.ParentElement, inheritedStyle);
                 string source = textNode.ParentElement != null
                     && HtmlRenderSourceIdentity.TryGet(textNode.ParentElement, out string interactionSource)
                     ? interactionSource
@@ -253,7 +264,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     inheritedPaintOffsetX,
                     inheritedPaintOffsetY,
                     textNode.ParentElement,
-                    textTransformPending: true));
+                    textTransformPending: true) { IsTextTransformContextOnly = contextOnly });
             }
 
             return;
@@ -262,6 +273,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!(node is IElement element) || ShouldSkipElement(element)) return;
         string tag = element.TagName.ToLowerInvariant();
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
+        style = ForwardContainingHeightBasis(element, style, inheritedStyle);
         style = PrepareButtonChildStyle(element, style);
         if (style.FloatSide == "footnote" && _options.Mode != HtmlRenderMode.Paged) {
             // CSS footnote extraction is a paged-media behavior. Continuous output
@@ -271,13 +283,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        if (tag == "table") flattenInternalTableBoxes = style.Display == "inline";
+        bool isBlock = HtmlRenderStyleResolver.IsBlockElement(element, style)
+            && !(flattenInternalTableBoxes && IsInternalTableDisplay(style.Display));
         if (tag == "br") {
             runs.Add(new HtmlInlineRun("\u2028", inheritedStyle, inheritedLink, HtmlRenderStyleResolver.DescribeSource(element), inheritedPaintOffsetX, inheritedPaintOffsetY, element));
             return;
         }
         bool isPageFloat = TryGetPageFloatSide(element, style, out _);
         bool isColumnFloat = TryGetColumnEdgeFloatSide(element, style, out _, out _);
-        if (!HtmlRenderStyleResolver.IsBlockElement(element, style) && !isPageFloat && !isColumnFloat) {
+        // These boxes run LayoutElement, which owns their destination at the
+        // laid-out box. An additional zero-flow marker would duplicate it.
+        bool ownsAtomicDestination = !IsReplacedImageElementTag(tag) && tag is not ("math" or "ruby")
+            && (!IsFormControlElement(tag) || UsesButtonChildLayout(element))
+            && style.Display is "inline-block" or "inline-flex" or "inline-grid" or "inline-table";
+        if (!isBlock && !isPageFloat && !isColumnFloat && !ownsAtomicDestination) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (!isPageFloat && !isColumnFloat) ReportUnsupportedFloatValues(element, style);
@@ -322,7 +342,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         // Extracted figures own their destination at the moved box. A
         // rejected extraction retains the ordinary inline target in source flow.
-        if ((isPageFloat || isColumnFloat) && !HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+        if ((isPageFloat || isColumnFloat) && !isBlock && !ownsAtomicDestination) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
         if (style.FloatSide != "none") {
@@ -332,7 +352,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
-        if (HtmlRenderStyleResolver.IsBlockElement(element, style)) {
+        if (IsInternalTableDisplay(style.Display) && !flattenInternalTableBoxes) ReportTableFormattingFallback(element, "orphan table boxes in an inline formatting context");
+
+        if (isBlock) {
             AssignLogicalTextOrders(runs);
             HtmlRenderFlowBlock block = LayoutElement(element, width, style, inheritedStyle, depth + 1);
             runs.Add(new HtmlInlineRun(block, style, link, HtmlRenderStyleResolver.DescribeSource(element),
@@ -385,6 +407,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return;
         }
 
+        if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-table") {
+            AssignLogicalTextOrders(runs);
+            HtmlRenderFlowBlock table = LayoutElement(element, width, style, inheritedStyle, depth + 1);
+            runs.Add(new HtmlInlineRun(table, style, link, HtmlRenderStyleResolver.DescribeSource(element),
+                inheritedPaintOffsetX, inheritedPaintOffsetY, element));
+            return;
+        }
         if (!IsReplacedImageElementTag(tag) && tag != "math" && style.Display == "inline-block") {
             AssignLogicalTextOrders(runs);
             AddInlineBlockRun(element, width, inheritedStyle, depth, style, link, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
@@ -422,7 +451,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<HtmlInlineRun>? semanticRuns = ShouldCollectSemanticInlineRuns(style)
             ? new List<HtmlInlineRun>()
             : null;
-        ICollection<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        IList<HtmlInlineRun> targetRuns = semanticRuns ?? runs;
+        int firstInlineRun = targetRuns.Count;
+        HtmlInlineEdgeScope? inlineEdgeScope = !IsReplacedImageElementTag(tag) && tag != "math"
+            ? ResolveInlineEdgeScope(element, style, inheritedStyle, paintOffsetX) : null;
+        if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, true, link, paintOffsetX, paintOffsetY));
+        else if (style.Display == "inline" && !IsReplacedImageElementTag(tag) && tag != "math") {
+            targetRuns.Add(new HtmlInlineRun(string.Empty, style, link, HtmlRenderStyleResolver.DescribeSource(element),
+                paintOffsetX, paintOffsetY, element) { IsInlineStrutMarker = true });
+        }
         AddUnicodeBidiBoundaryRun(style, element, opening: true, paintOffsetX, paintOffsetY, targetRuns);
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.Before, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
 
@@ -443,11 +480,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         foreach (INode child in element.ChildNodes) {
-            CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, targetRuns);
+            CollectInlineRuns(child, width, containingHeight, style, link, depth + 1, paintOffsetX, paintOffsetY, targetRuns, flattenInternalTableBoxes);
         }
 
         AddGeneratedInlineRun(element, HtmlPseudoElementKind.After, width, containingHeight, style, link, paintOffsetX, paintOffsetY, targetRuns);
         AddUnicodeBidiBoundaryRun(style, element, opening: false, paintOffsetX, paintOffsetY, targetRuns);
+        if (inlineEdgeScope != null) targetRuns.Add(CreateInlineEdgeBoundary(inlineEdgeScope, false, link, paintOffsetX, paintOffsetY));
+        if (style.Display == "inline") CaptureInlineStrutStyles(targetRuns, firstInlineRun, style);
         AppendSemanticInlineRuns(element, style, semanticRuns, runs, link, paintOffsetX, paintOffsetY);
     }
 
@@ -546,14 +585,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         else if (style.SemanticGroupRoleOverride.HasValue) run.AssignInlineSemanticGroup(style.SemanticGroupRoleOverride.Value, structureElementKey);
     }
 
-    private void ReportUnsupportedComplexTextShaping(IText textNode, HtmlRenderBoxStyle style) {
-        IElement? element = textNode.ParentElement;
-        if (element == null || string.IsNullOrWhiteSpace(textNode.Data) || _reportedComplexTextShapingElements.Contains(element)) return;
+    private void ReportUnsupportedComplexTextShaping(string text, IElement? element, HtmlRenderBoxStyle style, string? source = null) {
+        if (element == null || string.IsNullOrWhiteSpace(text) || _reportedComplexTextShapingElements.Contains(element)) return;
         bool featureShaping = !style.TextFeatureSettings.IsDefault;
-        if (!featureShaping && !RequiresConfiguredTextShaping(textNode.Data)) return;
+        if (!featureShaping && !RequiresConfiguredTextShaping(text)) return;
         if (featureShaping && _options.TextShapingProvider != null) return;
         IReadOnlyList<OfficeFontFallbackRun> fallbackRuns = _fonts.PlanFallbackRuns(
-            textNode.Data,
+            text,
             style.Font.FamilyName,
             style.FontDescriptor);
         bool allUnsupportedRunsShaped = true;
@@ -579,7 +617,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             diagnosticCode,
             message,
             HtmlDiagnosticSeverity.Warning,
-            HtmlRenderStyleResolver.DescribeSource(element),
+            source ?? HtmlRenderStyleResolver.DescribeSource(element),
             "provider-declined",
             OfficeConversionLossKind.Approximation);
     }
@@ -645,9 +683,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int skipLogicalCharacters = 0,
         PagedFloatBoundary? pageBoundary = null,
         IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
-        InlinePaintCapture? paintCapture = null, InlineFloatContext? floatContext = null) {
+        InlinePaintCapture? paintCapture = null, InlineFloatContext? floatContext = null,
+        bool inlineEdgesPrepared = false) {
         AssignLogicalTextOrders(runs);
-        if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
+        if (!inlineEdgesPrepared) PrepareInlineEdgeScopes(runs);
+        if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D,
+            hasInFlowLineBoxes: runs.Count == 0 ? false : (bool?)null);
         if (runs.Any(run => run.IsBlockInterruption)) {
             return LayoutInterruptedInlineRuns(runs, width, paragraphStyle, formattingContainer);
         }
@@ -670,22 +711,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (skipLogicalCharacters == 0) line.Indent(paragraphStyle.TextIndent?.Resolve(width) ?? 0D, paragraphStyle.Direction == "rtl");
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
+        int noWrapStrutStart = 0;
         bool noWrapRangeStartedAfterContent = false;
+        InlineWordFitting wordFitting = CreateInlineWordFitting(runs, paragraphStyle,
+            consecutiveHyphenatedLines: () => CountConsecutiveHyphenatedLines(lines));
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
+            if (ProcessInlineEdgeBoundary(run, line)) continue;
             bool runPreventsWrapping = !paragraphStyle.PreventTextWrapping && run.Style.PreventTextWrapping;
             if (!runPreventsWrapping && noWrapRangeStart >= 0) {
                 previousWasCollapsibleSpace = FinalizeNoWrapRange(
                     lines,
                     ref line,
                     noWrapRangeStart,
+                    noWrapStrutStart,
                     noWrapRangeStartedAfterContent,
                     width);
                 noWrapRangeStart = -1;
                 noWrapRangeStartedAfterContent = false;
             } else if (runPreventsWrapping && noWrapRangeStart < 0) {
                 noWrapRangeStart = line.Segments.Count;
+                noWrapStrutStart = line.EmptyInlineStrutStyles.Count;
                 noWrapRangeStartedAfterContent = line.HasFlowContent;
+            }
+            if (run.IsInlineStrutMarker) {
+                line.RecordEmptyInlineStruts(run.InlineStrutStyles);
+                continue;
             }
             if (run.RunningStringElement != null) {
                 line.Add(new InlineSegment(string.Empty, 0D, run));
@@ -710,7 +761,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (!paragraphStyle.PreventTextWrapping
                     && !runPreventsWrapping
                     && line.HasFlowContent
-                    && line.Width + atomicWidth > line.ResolveAvailableWidth(width) + 0.0001D) {
+                    && line.PreviewAdvance(run, atomicWidth) > line.ResolveAvailableWidth(width) + 0.0001D) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -721,17 +772,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             int logicalOffset = 0;
+            int sourceOffset = 0;
             bool preserveWhitespace = run.Style.PreserveWhitespace;
             IReadOnlyList<string> tokens = Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces).ToList();
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                int sourceStartOffset = sourceOffset;
+                sourceOffset += preserveWhitespace && token == "\n" && run.Text[sourceOffset] == '\r'
+                    && sourceOffset + 1 < run.Text.Length && run.Text[sourceOffset + 1] == '\n' ? 2 : token.Length;
+                run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
+                    line.HasForcedBreak = true;
                     if (noWrapRangeStart >= 0) {
                         FinalizeNoWrapRange(
                             lines,
                             ref line,
                             noWrapRangeStart,
+                            noWrapStrutStart,
                             noWrapRangeStartedAfterContent,
                             width);
                     }
@@ -739,6 +797,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     line = new InlineLine();
                     previousWasCollapsibleSpace = false;
                     noWrapRangeStart = runPreventsWrapping ? 0 : -1;
+                    noWrapStrutStart = 0;
                     noWrapRangeStartedAfterContent = false;
                     continue;
                 }
@@ -773,16 +832,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (skipLogicalCharacters > tokenStart) {
                     int skipWithinToken = skipLogicalCharacters - tokenStart;
                     if (skipWithinToken >= normalizedLogicalToken.Length) {
+                        MarkSkippedInlineEdges(run);
                         continue;
                     }
                     normalizedToken = normalizedToken.Substring(skipWithinToken);
+                    MarkSkippedInlineEdges(run);
                     normalizedLogicalToken = normalizedLogicalToken.Substring(skipWithinToken);
                     visibleTokenStart += skipWithinToken;
                     whitespace = IsWhitespaceToken(normalizedToken);
                 }
 
                 bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
-                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.Width) : 0D;
+                double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.PreviewContentStart(run)) : 0D;
                 string paintToken = hasTabs ? normalizedToken.Replace("\t", string.Empty) : normalizedToken;
                 HyphenationToken hyphenation = run.PreparedHyphenation.HasValue
                     ? run.PreparedHyphenation.Value.SliceSource(
@@ -801,10 +862,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
+                int visibleSourceStart = sourceStartOffset + visibleTokenStart - tokenStart;
+                bool canBreakBefore = whitespace || wordFitting.CanBreakBefore(run, visibleSourceStart);
+                bool previewContinuation = !preventTokenWrapping && !whitespace
+                    && !AllowsEmergencyTokenBreak(run.Style)
+                    && (canBreakBefore || hyphenation.HasBreaks
+                        || wordFitting.HasBreakInside(run, visibleSourceStart, sourceOffset));
+                double previewAdvance = previewContinuation
+                    ? wordFitting.PreviewWithContinuation(line, run, sourceOffset, measured)
+                    : line.PreviewAdvance(run, measured);
                 if (!preventTokenWrapping
                     && !whitespace
                     && run.Style.WordBreak != "break-all"
-                    && measured > Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width) + 0.0001D
+                    && previewAdvance > line.ResolveAvailableWidth(width) + 0.0001D
                     && TryAddHyphenatedToken(
                         lines,
                         ref line,
@@ -813,12 +883,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         width,
                         visibleTokenStart,
                         tokenEnd,
-                        !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex))) {
+                        !HasRemainingInlineFlowContent(runs, runIndex, tokens, tokenIndex),
+                        wordFitting, visibleSourceStart, sourceOffset, previewContinuation)) {
                     continue;
                 }
                 if (!preventTokenWrapping
                     && !whitespace
-                    && measured > Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width) + 0.0001D
+                    && previewAdvance > line.ResolveAvailableWidth(width) + 0.0001D
                     && TryAddPreferredBreakToken(
                         lines,
                         ref line,
@@ -827,16 +898,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         logicalPaintToken,
                         width,
                         visibleTokenStart,
-                        followsCollapsibleSpace)) {
+                        followsCollapsibleSpace,
+                        wordFitting, visibleSourceStart, sourceOffset, hyphenation.SourceBoundaries)) {
                     continue;
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
                     && line.HasFlowContent
-                    && measured > Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width) + 0.0001D;
+                    && measured > Math.Max(0D, line.ResolveAvailableWidth(width) - line.PreviewAdvance(run, 0D)) + 0.0001D;
+                bool continuationNeedsEmergencyBreak = !canBreakBefore && line.HasFlowContent
+                    && line.PreviewAdvance(run, measured) > line.ResolveAvailableWidth(width) + 0.0001D;
                 if (!preventTokenWrapping
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
-                    && (measured > line.ResolveAvailableWidth(width) + 0.0001D || breakAllIntoRemainingSpace)) {
+                    && (InlineLine.PreviewEmptyLineAdvance(run, measured) > line.ResolveAvailableWidth(width) + 0.0001D
+                        || breakAllIntoRemainingSpace || continuationNeedsEmergencyBreak)) {
                     if (followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                         TrimTrailingWhitespace(line);
                         lines.Add(line);
@@ -846,7 +921,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (!preventTokenWrapping && line.HasFlowContent && line.Width + measured > line.ResolveAvailableWidth(width) + 0.0001D) {
+                if (!preventTokenWrapping && canBreakBefore && line.HasFlowContent
+                    && previewAdvance > line.ResolveAvailableWidth(width) + 0.0001D) {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
@@ -866,6 +942,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 lines,
                 ref line,
                 noWrapRangeStart,
+                noWrapStrutStart,
                 noWrapRangeStartedAfterContent,
                 width);
         }
@@ -939,8 +1016,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return false;
     }
 
-    private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
-        if (style.Hyphens == "auto" && style.WordBreak != "break-all"
+    private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style,
+        bool reportUnsupportedLanguage = true) {
+        if (reportUnsupportedLanguage && style.Hyphens == "auto" && style.WordBreak != "break-all"
             && _options.TextHyphenationCallback == null
             && !OfficeTextHyphenationPatterns.SupportsLanguage(style.Language)
             && logicalToken.Any(char.IsLetter)
@@ -1035,12 +1113,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         int logicalStartProgress,
         int logicalEndProgress,
-        bool isFinalContentToken) {
+        bool isFinalContentToken,
+        InlineWordFitting wordFitting,
+        int sourceStartOffset,
+        int sourceEndOffset,
+        bool previewContinuation) {
         if (!token.HasBreaks || token.PaintText.Length != token.LogicalText.Length) return false;
         if (run.Style.HyphenateLimitLast == "always"
             && isFinalContentToken
             && line.HasFlowContent
-            && MeasureInlineText(token.PaintText, run.Style) <= width + 0.0001D) {
+            && wordFitting.CanBreakBefore(run, sourceStartOffset)
+            && InlineLine.PreviewEmptyLineAdvance(run, MeasureInlineText(token.PaintText, run.Style)) <= width + 0.0001D) {
             TrimTrailingWhitespace(line);
             lines.Add(line);
             line = new InlineLine();
@@ -1053,6 +1136,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return true;
         }
         if (line.HasFlowContent && run.Style.HyphenateLimitZone > 0D
+            && wordFitting.CanBreakBefore(run, sourceStartOffset)
             && line.ResolveAvailableWidth(width) - line.Width <= run.Style.HyphenateLimitZone + 0.0001D) {
             TrimTrailingWhitespace(line);
             lines.Add(line);
@@ -1061,12 +1145,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         int start = 0;
         while (start < token.PaintText.Length) {
-            double available = Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width);
+            double available = Math.Max(0D, line.ResolveAvailableWidth(width) - line.PreviewAdvance(run, 0D, false));
             bool hyphenationAllowed = !run.Style.HyphenateLimitLines.HasValue
                 || CountConsecutiveHyphenatedLines(lines) < run.Style.HyphenateLimitLines.Value;
             int selectedEnd = -1;
             bool selectedIsBreak = false;
-            if (MeasureInlineText(token.PaintText.Substring(start), run.Style) <= available + 0.0001D) {
+            double remainderWidth = MeasureInlineText(token.PaintText.Substring(start), run.Style);
+            double remainderAdvance = previewContinuation && start == 0
+                ? wordFitting.PreviewWithContinuation(line, run, sourceEndOffset, remainderWidth)
+                : line.PreviewAdvance(run, remainderWidth);
+            if (remainderAdvance <= line.ResolveAvailableWidth(width) + 0.0001D) {
                 selectedEnd = token.PaintText.Length;
             } else if (hyphenationAllowed) {
                 selectedEnd = SelectHyphenationBreak(token.PrimaryBreaks, token.PaintText, start, available, run.Style);
@@ -1077,6 +1165,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             if (selectedEnd < 0) {
+                if (start == 0 && line.HasFlowContent && !wordFitting.CanBreakBefore(run, sourceStartOffset)) return false;
                 if (!line.HasFlowContent) {
                     if (AllowsEmergencyTokenBreak(run.Style)) return false;
                     string paintRemainder = token.PaintText.Substring(start);
@@ -1151,7 +1240,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string logicalToken,
         double width,
         int logicalStartProgress,
-        bool followsCollapsibleSpace) {
+        bool followsCollapsibleSpace,
+        InlineWordFitting wordFitting,
+        int sourceStartOffset,
+        int sourceEndOffset,
+        IReadOnlyList<int> sourceBoundaries) {
         if (paintToken.Length != logicalToken.Length) return false;
         IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
@@ -1163,17 +1256,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string paintChunk = paintToken.Substring(start, end - start);
             string logicalChunk = logicalToken.Substring(start, end - start);
             double chunkWidth = MeasureInlineText(paintChunk, run.Style);
-            if (chunkWidth > line.ResolveAvailableWidth(width) + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
+            bool completesToken = end == paintToken.Length;
+            int sourceStart = sourceStartOffset + (start < sourceBoundaries.Count ? sourceBoundaries[start] : start);
+            int sourceEnd = completesToken ? sourceEndOffset
+                : sourceStartOffset + (end < sourceBoundaries.Count ? sourceBoundaries[end] : end);
+            bool canBreakBefore = wordFitting.CanBreakBefore(run, sourceStart);
+            double chunkAdvance = canBreakBefore
+                ? wordFitting.PreviewWithContinuation(line, run, sourceEnd, chunkWidth, completesToken)
+                : line.PreviewAdvance(run, chunkWidth, completesToken);
+            bool emergencyContinuation = !canBreakBefore && line.HasFlowContent
+                && line.PreviewAdvance(run, chunkWidth, completesToken) > line.ResolveAvailableWidth(width) + 0.0001D;
+            if ((InlineLine.PreviewEmptyLineAdvance(run, chunkWidth, completesToken) > line.ResolveAvailableWidth(width) + 0.0001D
+                    || emergencyContinuation) && AllowsEmergencyTokenBreak(run.Style)) {
                 if (start == 0 && followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
                     TrimTrailingWhitespace(line);
                     lines.Add(line);
                     line = new InlineLine();
                 }
-                AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start);
+                AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start, completesToken);
                 start = end;
                 continue;
             }
-            if (line.HasFlowContent && line.Width + chunkWidth > line.ResolveAvailableWidth(width) + 0.0001D) {
+            if (canBreakBefore && line.HasFlowContent && chunkAdvance > line.ResolveAvailableWidth(width) + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -1183,7 +1287,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 chunkWidth,
                 run,
                 logicalChunk,
-                logicalEndProgress: logicalStartProgress + end));
+                logicalEndProgress: logicalStartProgress + (end < sourceBoundaries.Count ? sourceBoundaries[end] : end)));
             start = end;
         }
         return start == paintToken.Length;
@@ -1201,7 +1305,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (value.IndexOf('\t') < 0) return MeasureInlineText(value, style);
         double spaceWidth = Math.Max(0.01D, MeasureInlineText(" ", style));
         double stopWidth = style.TabSizeIsLength ? style.TabSize : style.TabSize * spaceWidth;
-        double cursor = Math.Max(0D, currentWidth);
+        double cursor = currentWidth;
         foreach (char character in value) {
             if (character != '\t') {
                 cursor += MeasureInlineText(character.ToString(), style);
@@ -1211,7 +1315,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double nextStop = (Math.Floor(cursor / stopWidth) + 1D) * stopWidth;
             cursor = nextStop;
         }
-        return Math.Max(0D, cursor - Math.Max(0D, currentWidth));
+        return Math.Max(0D, cursor - currentWidth);
     }
 
     private void AddTabExpandedSegments(
@@ -1240,8 +1344,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
             double tabWidth = 0D;
             if (stopWidth > 0D) {
-                double nextStop = (Math.Floor(line.Width / stopWidth) + 1D) * stopWidth;
-                tabWidth = Math.Max(0D, nextStop - line.Width);
+                double textStart = line.PreviewContentStart(run);
+                double nextStop = (Math.Floor(textStart / stopWidth) + 1D) * stopWidth;
+                tabWidth = Math.Max(0D, nextStop - textStart);
             }
             string logicalTab = logicalText.Substring(index, 1);
             logicalProgress += logicalTab.Length;
@@ -1350,7 +1455,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     previous.Width + segment.Width,
                     previous.Run,
                     previous.LogicalText + segment.LogicalText,
-                    logicalEndProgress: segment.LogicalEndProgress);
+                    logicalEndProgress: segment.LogicalEndProgress) {
+                    LeadingAdvance = previous.LeadingAdvance + segment.LeadingAdvance,
+                    TrailingAdvance = previous.TrailingAdvance + segment.TrailingAdvance
+                };
             } else {
                 merged.Add(segment);
             }
@@ -1366,19 +1474,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string token,
         string logicalToken,
         double width,
-        int logicalStartProgress) {
+        int logicalStartProgress,
+        bool completesToken = true) {
         var part = new StringBuilder();
         var logicalPart = new StringBuilder();
         double partWidth = 0D;
         int partLogicalLength = 0;
         IReadOnlyList<string> paintElements = OfficeTextElements.Split(token);
         IReadOnlyList<string> logicalElements = OfficeTextElements.Split(logicalToken);
-        double partLimit = Math.Max(0D, line.ResolveAvailableWidth(width) - line.Width);
         for (int index = 0; index < paintElements.Count; index++) {
             string value = paintElements[index];
             string logicalValue = index < logicalElements.Count ? logicalElements[index] : OfficeArabicTextShaper.ToLogicalText(value);
             double charWidth = MeasureInlineText(value, run.Style);
-            if (part.Length > 0 && partWidth + charWidth > partLimit) {
+            bool completesPiece = completesToken && index == paintElements.Count - 1;
+            if (part.Length > 0 && line.PreviewAdvance(run, partWidth + charWidth, completesPiece) > line.ResolveAvailableWidth(width) + 0.0001D) {
                 line.Add(new InlineSegment(
                     part.ToString(),
                     partWidth,
@@ -1390,12 +1499,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 part.Clear();
                 logicalPart.Clear();
                 partWidth = 0D;
-                partLimit = width;
-            } else if (part.Length == 0 && line.HasFlowContent && charWidth > partLimit) {
+            } else if (part.Length == 0 && line.HasFlowContent && line.PreviewAdvance(run, charWidth, completesPiece) > line.ResolveAvailableWidth(width) + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
-                partLimit = width;
             }
 
             part.Append(value);
@@ -1405,7 +1512,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (part.Length > 0) {
-            if (line.HasFlowContent && line.Width + partWidth > line.ResolveAvailableWidth(width) + 0.0001D) {
+            if (line.HasFlowContent && line.PreviewAdvance(run, partWidth, completesToken) > line.ResolveAvailableWidth(width) + 0.0001D) {
                 TrimTrailingWhitespace(line);
                 lines.Add(line);
                 line = new InlineLine();
@@ -1458,7 +1565,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> elements = OfficeTextElements.Split(value);
         if (elements.Count == 0) return measured;
         measured += style.LetterSpacing * elements.Count;
-        measured += style.WordSpacing * elements.Count(IsWhitespaceToken);
+        // Word spacing includes no-break separators independently of collapsing.
+        measured += style.WordSpacing * elements.Count(IsWordSpacingSeparator);
         return measured;
     }
 
@@ -1521,7 +1629,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
-            bool currentWhitespace = char.IsWhiteSpace(current);
+            bool currentWhitespace = IsCollapsibleCssWhitespace(current);
             if (breakSpaces && currentWhitespace) {
                 if (token.Length > 0) {
                     yield return token.ToString();
@@ -1543,68 +1651,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (token.Length > 0) yield return token.ToString();
     }
 
-    private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) =>
-        ApplyTextTransformSegments(new[] { text }, style)[0];
+    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(IsCollapsibleCssWhitespace);
 
-    private static void ApplyPendingInlineTextTransforms(IReadOnlyList<HtmlInlineRun> runs) {
-        int start = 0;
-        while (start < runs.Count) {
-            HtmlInlineRun first = runs[start];
-            if (!first.TextTransformPending) {
-                start++;
-                continue;
-            }
-
-            int end = start + 1;
-            while (end < runs.Count
-                   && runs[end].TextTransformPending
-                   && HasEquivalentTextTransform(first.Style, runs[end].Style)) {
-                end++;
-            }
-
-            IReadOnlyList<string> transformed = ApplyTextTransformSegments(
-                runs.Skip(start).Take(end - start).Select(static run => run.Text).ToArray(),
-                first.Style);
-            for (int index = start; index < end; index++) {
-                runs[index].CompleteTextTransform(transformed[index - start]);
-            }
-            start = end;
-        }
-    }
-
-    private static bool HasEquivalentTextTransform(HtmlRenderBoxStyle left, HtmlRenderBoxStyle right) =>
-        string.Equals(left.TextTransform, right.TextTransform, StringComparison.OrdinalIgnoreCase)
-        && string.Equals(left.Language, right.Language, StringComparison.OrdinalIgnoreCase)
-        && left.ApproximateSmallCaps == right.ApproximateSmallCaps;
-
-    private static IReadOnlyList<string> ApplyTextTransformSegments(
-        IReadOnlyList<string> segments,
-        HtmlRenderBoxStyle style) {
-        CultureInfo culture = ResolveTextTransformCulture(style.Language);
-        OfficeTextCase textCase = style.TextTransform.ToLowerInvariant() switch {
-            "uppercase" => OfficeTextCase.Uppercase,
-            "lowercase" => OfficeTextCase.Lowercase,
-            "capitalize" => OfficeTextCase.Capitalize,
-            _ => OfficeTextCase.None
-        };
-        IReadOnlyList<string> transformed = string.Equals(style.TextTransform, "math-auto", StringComparison.OrdinalIgnoreCase)
-            ? segments.Select(OfficeMathTextTransform.MathAuto).ToArray()
-            : OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
-        return style.ApproximateSmallCaps
-            ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)
-            : transformed;
-    }
-
-    private static CultureInfo ResolveTextTransformCulture(string language) {
-        if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
-        try {
-            return CultureInfo.GetCultureInfo(language);
-        } catch (CultureNotFoundException) {
-            return CultureInfo.InvariantCulture;
-        }
-    }
-
-    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);
+    // Word spacing applies to separators independently of CSS collapsing and
+    // line-breaking rules, including nonbreaking spaces but excluding fixed-width spaces.
+    private static bool IsWordSpacingSeparator(string textElement) => textElement.Length > 0
+        && textElement.All(static value => char.IsWhiteSpace(value)
+            && (value < '\u2000' || value > '\u200a')
+            && value != '\u3000');
 
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
@@ -1620,14 +1674,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<InlineLine> lines,
         ref InlineLine line,
         int rangeStart,
+        int strutRangeStart,
         bool startedAfterContent,
         double width) {
         if (startedAfterContent && rangeStart < line.Segments.Count && line.Width > line.ResolveAvailableWidth(width) + 0.0001D) {
             var range = line.Segments.Skip(rangeStart).ToArray();
-            while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart);
+            IReadOnlyList<HtmlRenderBoxStyle> rangeStruts = line.TakeEmptyInlineStruts(strutRangeStart);
+            while (line.Segments.Count > rangeStart) line.RemoveAt(rangeStart, preserveScopeContent: true);
             TrimTrailingWhitespace(line);
             if (line.Segments.Count > 0) lines.Add(line);
             line = new InlineLine();
+            line.RecordEmptyInlineStruts(rangeStruts);
             foreach (InlineSegment segment in range) {
                 if (!line.HasFlowContent
                     && segment.Run.RunningStringElement == null
@@ -1711,6 +1768,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string Text { get; }
         internal string LogicalText { get; }
         internal double Width { get; private set; }
+        internal double LeadingAdvance { get; set; }
+        internal double TrailingAdvance { get; set; }
+        internal double Advance => LeadingAdvance + Width + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal int LogicalEndProgress { get; }
