@@ -376,10 +376,11 @@ internal static partial class OfficeArchiveSafety {
         }
     }
 
-    // Any later signature counts: .NET 10 also considers positions too close to the end for a complete record,
+    // Any signature overlapping the comment counts, including a prefix in the last three header bytes.
+    // Numeric fields wholly inside the fixed header are not comments. .NET 10 also considers positions too close to the end for a complete record,
     // so such bytes would make readers disagree or fail on some targets. Rejecting them keeps every target consistent.
     private static bool HasLaterEndOfCentralDirectorySignature(byte[] tail, int endOfCentralDirectory) {
-        for (int offset = endOfCentralDirectory + 1; offset <= tail.Length - 4; offset++) {
+        for (int offset = endOfCentralDirectory + 19; offset <= tail.Length - 4; offset++) {
             if (ReadZipUInt32(tail, offset) == EndOfCentralDirectorySignature) return true;
         }
         return false;

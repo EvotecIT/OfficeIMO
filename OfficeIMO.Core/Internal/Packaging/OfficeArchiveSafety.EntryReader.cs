@@ -25,7 +25,7 @@ internal static partial class OfficeArchiveSafety {
         ushort localFlags = Provenance.OfficeProvenanceBinary.ReadUInt16(bytes, metadata.LocalHeaderOffset + 6, littleEndian: true);
         ushort localMethod = Provenance.OfficeProvenanceBinary.ReadUInt16(bytes, metadata.LocalHeaderOffset + 8, littleEndian: true);
         if (localFlags != metadata.GeneralPurposeFlags || localMethod != metadata.CompressionMethod
-            || (localFlags & (0x0001 | 0x0020 | 0x0040 | 0x2000)) != 0 || localMethod is not (0 or 8)) {
+            || !HasSupportedZipFlags(localFlags, localMethod)) {
             throw new InvalidDataException("ZIP entry uses conflicting, encrypted or unsupported compression metadata.");
         }
         using (var validation = new MemoryStream(bytes, writable: false)) {

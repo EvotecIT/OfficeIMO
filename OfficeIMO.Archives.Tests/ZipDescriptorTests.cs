@@ -5,6 +5,125 @@ namespace OfficeIMO.Archives.Tests;
 
 public sealed partial class ZipExtractionTests {
     [Theory]
+    [InlineData(0x0010, false)]
+    [InlineData(0x0080, false)]
+    [InlineData(0x0100, false)]
+    [InlineData(0x0200, false)]
+    [InlineData(0x0400, false)]
+    [InlineData(0x1000, false)]
+    [InlineData(0x4000, false)]
+    [InlineData(0x8000, false)]
+    [InlineData(0x0002, true)]
+    [InlineData(0x0004, true)]
+    public void UnsupportedFlagsFailBeforeSelectionInBothPayloadReaders(int flag, bool stored) {
+        byte[] zip = PatchHeaders(stored ? StoredMemberZip() : Zip(("Example.admx", "A", CompressionLevel.Optimal)), flagsToSet: (ushort)flag);
+        using var fixture = new ArchiveFixtures();
+        int calls = 0;
+        Assert.Throws<NotSupportedException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination,
+            new ArchiveExtractionOptions { IncludeFile = _ => { calls++; return false; } }));
+        Assert.Equal(0, calls);
+        Assert.False(Directory.Exists(fixture.Destination));
+        using var input = new MemoryStream(zip);
+        using var archive = new ZipArchive(input, ZipArchiveMode.Read);
+        var entry = Assert.Single(archive.Entries);
+        var metadata = OfficeIMO.Provenance.OfficeProvenanceZip.GetInputEntryMetadata(zip, archive)[entry];
+        Assert.Throws<InvalidDataException>(() => OfficeArchiveSafety.OpenEntryPayload(zip, entry, metadata));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(4)]
+    [InlineData(6)]
+    public void DeflateCompressionLevelFlagsRemainSupported(int flags) {
+        using var fixture = new ArchiveFixtures();
+        byte[] zip = PatchHeaders(Zip(("Example.admx", "A", CompressionLevel.Optimal)), flagsToSet: (ushort)flags);
+        Assert.Single(ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination).Files);
+    }
+
+    [Fact]
+    public void StoredMembersAcceptUtf8NamesWithoutDeflateLevelHints() {
+        using var fixture = new ArchiveFixtures();
+        Assert.Single(ArchiveExtractor.Extract(fixture.Package(PatchHeaders(StoredMemberZip(), flagsToSet: 0x0800)), fixture.Destination).Files);
+    }
+
+    private static byte[] StoredMemberZip() {
+        byte[] original = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        int payload = 30 + BitConverter.ToUInt16(original, 26) + BitConverter.ToUInt16(original, 28);
+        int central = (int)BitConverter.ToUInt32(original, original.Length - 6);
+        byte[] zip = original.Take(payload).Concat(new[] { (byte)'A' }).Concat(original.Skip(central)).ToArray();
+        central = payload + 1;
+        WriteUInt16(zip, 8, 0); WriteUInt16(zip, central + 10, 0);
+        WriteUInt32(zip, 18, 1); WriteUInt32(zip, central + 20, 1); WriteUInt32(zip, zip.Length - 6, (uint)central);
+        return zip;
+    }
+
+    [Fact]
+    public void EndRecordNumericFieldsAreNotMistakenForCommentSignatures() {
+        // A virtual read-only archive avoids allocating its 101 MB central-directory comments.
+        using var source = new LargeCommentDirectoryStream();
+        var scan = OfficeArchiveSafety.ScanZipCentralDirectory(source, source.Length, 2000);
+        Assert.True(scan.IsValid, scan.Error);
+        Assert.Equal(1541, scan.EntryCount);
+        Assert.Equal(0, source.Position);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EndSignaturesOverlappingTheCommentBoundaryRemainAmbiguous(bool oneHeaderByte) {
+        byte[] original = Zip(("Example.admx", "A", CompressionLevel.Optimal));
+        byte[] comment = new byte[oneHeaderByte ? 0x5000 : 0x4b50];
+        if (oneHeaderByte) { comment[0] = 0x4b; comment[1] = 5; comment[2] = 6; }
+        else { comment[0] = 5; comment[1] = 6; }
+        WriteUInt16(original, original.Length - 2, (ushort)comment.Length);
+        byte[] zip = original.Concat(comment).ToArray();
+        Assert.False(OfficeArchiveSafety.ScanZipCentralDirectory(zip, 10).IsValid);
+        using var fixture = new ArchiveFixtures();
+        Assert.Throws<InvalidDataException>(() => ArchiveExtractor.Extract(fixture.Package(zip), fixture.Destination));
+    }
+
+    private sealed class LargeCommentDirectoryStream : Stream {
+        private const int DirectorySize = 0x06054b50, RecordLength = 65582, LocalLength = 31;
+        private readonly byte[] _local = new byte[LocalLength], _full = Header(ushort.MaxValue), _last = Header((ushort)(DirectorySize % RecordLength - 47)), _end = new byte[22];
+        internal LargeCommentDirectoryStream() {
+            WriteUInt32(_local, 0, 0x04034b50); WriteUInt16(_local, 26, 1); _local[30] = (byte)'A';
+            WriteUInt32(_end, 0, 0x06054b50); WriteUInt16(_end, 8, 1541); WriteUInt16(_end, 10, 1541);
+            WriteUInt32(_end, 12, DirectorySize); WriteUInt32(_end, 16, LocalLength);
+        }
+        private static byte[] Header(ushort comment) {
+            var bytes = new byte[47]; WriteUInt32(bytes, 0, 0x02014b50); WriteUInt16(bytes, 28, 1); WriteUInt16(bytes, 32, comment); bytes[46] = (byte)'A'; return bytes;
+        }
+        public override int Read(byte[] buffer, int offset, int count) {
+            int total = 0;
+            while (count > 0 && Position < Length) {
+                byte[]? data; int within, available;
+                if (Position < LocalLength) { data = _local; within = (int)Position; available = LocalLength - within; }
+                else if (Position >= LocalLength + DirectorySize) { data = _end; within = (int)(Position - LocalLength - DirectorySize); available = data.Length - within; }
+                else {
+                    int relative = (int)(Position - LocalLength), record = relative / RecordLength;
+                    within = relative % RecordLength; data = record == DirectorySize / RecordLength ? _last : _full;
+                    int length = record == DirectorySize / RecordLength ? DirectorySize % RecordLength : RecordLength;
+                    available = within < data.Length ? data.Length - within : length - within;
+                    if (within >= data.Length) data = null;
+                }
+                int read = Math.Min(count, available);
+                if (data == null) Array.Clear(buffer, offset, read); else Array.Copy(data, within, buffer, offset, read);
+                Position += read; offset += read; count -= read; total += read;
+            }
+            return total;
+        }
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => LocalLength + DirectorySize + 22L;
+        public override long Position { get; set; }
+        public override long Seek(long offset, SeekOrigin origin) => Position = (origin == SeekOrigin.Begin ? 0 : origin == SeekOrigin.Current ? Position : Length) + offset;
+        public override void Flush() { }
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    }
+
+    [Theory]
     [InlineData(false, true, true)]
     [InlineData(true, true, true)]
     [InlineData(false, true, false)]

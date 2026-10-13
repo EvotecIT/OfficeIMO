@@ -6,6 +6,10 @@ using System.Threading;
 namespace OfficeIMO.Core.Internal;
 
 internal static partial class OfficeArchiveSafety {
+    /// <summary>Supports UTF-8 names and descriptors, plus level hints only for ordinary Deflate.</summary>
+    internal static bool HasSupportedZipFlags(ushort flags, ushort method) =>
+        (method == 0 || method == 8) && (flags & ~(method == 8 ? 0x080e : 0x0808)) == 0;
+
     private readonly struct ZipEntryCoordinates(ulong compressed, ulong expanded, ulong offset, uint disk, bool zip64) {
         internal ulong Compressed { get; } = compressed;
         internal ulong Expanded { get; } = expanded;
@@ -55,6 +59,8 @@ internal static partial class OfficeArchiveSafety {
 
     /// <summary>Checks the local header and bounded compressed range even when a member is excluded.</summary>
     internal static long ValidateEntryPayload(Stream source, ZipCentralDirectoryRecord record) {
+        if (!HasSupportedZipFlags(record.Flags, record.CompressionMethod))
+            throw new InvalidDataException("ZIP entry uses unsupported compression flags.");
         long offset = record.LocalHeaderOffset;
         long bound = record.PayloadUpperBound;
         if (offset < 0 || offset > bound - 30 || bound > source.Length)

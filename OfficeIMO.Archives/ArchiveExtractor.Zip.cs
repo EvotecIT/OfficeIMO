@@ -9,9 +9,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Archives;
 
 public static partial class ArchiveExtractor {
-    // General-purpose flag bits: traditional encryption, strong encryption and masked local headers.
-    private const ushort ZipEncryptionFlags = 0x0001 | 0x0040 | 0x2000;
-    private const ushort ZipPatchedDataFlag = 0x0020;
     private const ushort ZipUtf8NameFlag = 0x0800;
     private const ushort ZipStored = 0;
     private const ushort ZipDeflate = 8;
@@ -28,10 +25,10 @@ public static partial class ArchiveExtractor {
         if (!scan.IsValid) throw new InvalidDataException(scan.Error ?? "The ZIP central directory is malformed.");
         if (scan.LimitExceeded) throw new InvalidDataException("ZIP exceeds the configured member count.");
         foreach (OfficeArchiveSafety.ZipCentralDirectoryRecord record in records) {
-            if ((record.Flags & ZipEncryptionFlags) != 0) throw new NotSupportedException("Encrypted ZIP members are not supported.");
-            if ((record.Flags & ZipPatchedDataFlag) != 0) throw new NotSupportedException("Patched ZIP data sets are not supported.");
             if (record.CompressionMethod != ZipStored && record.CompressionMethod != ZipDeflate)
                 throw new NotSupportedException("ZIP members must be stored or Deflate-compressed.");
+            if (!OfficeArchiveSafety.HasSupportedZipFlags(record.Flags, record.CompressionMethod))
+                throw new NotSupportedException("ZIP member uses encrypted, patched, enhanced or reserved compression flags.");
             token.ThrowIfCancellationRequested();
             OfficeArchiveSafety.ValidateEntryPayload(source, record);
         }
