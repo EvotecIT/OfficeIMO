@@ -31,7 +31,18 @@ public class PdfPanelStyle {
 
     internal double? PaddingTopOverride { get; set; }
     internal double? ContinuationPaddingTopOverride { get; set; }
+    // A joined frame can restore the preceding separator when a new element
+    // starts on a fresh page or column. Continuing an element stays undecorated.
+    internal double? FrameStartPaddingTopOverride { get; set; }
+    internal PdfPanelBorder? FrameStartTopBorder { get; set; }
+    internal bool BorderContinuesWithNext { get; set; }
+    // Paragraph spacing ends at the current frame; it does not create blank
+    // content at the top of the next page or column like an explicit spacer.
+    internal bool ClipSpacingAfterAtFrameEnd { get; set; }
     internal double? PaddingBottomOverride { get; set; }
+    // Imported paragraph decoration follows the final line advance even when
+    // that advance extends below the frame after its visible text has fitted.
+    internal bool AllowTrailingPaddingOverflow { get; set; }
     internal double TopPadding => PaddingTopOverride ?? PaddingY;
     internal double BottomPadding => PaddingBottomOverride ?? PaddingY;
 
@@ -179,7 +190,12 @@ public class PdfPanelStyle {
             BorderColor = BorderColor,
             PaddingTopOverride = PaddingTopOverride,
             ContinuationPaddingTopOverride = ContinuationPaddingTopOverride,
+            FrameStartPaddingTopOverride = FrameStartPaddingTopOverride,
+            FrameStartTopBorder = FrameStartTopBorder?.Clone(),
+            BorderContinuesWithNext = BorderContinuesWithNext,
+            ClipSpacingAfterAtFrameEnd = ClipSpacingAfterAtFrameEnd,
             PaddingBottomOverride = PaddingBottomOverride,
+            AllowTrailingPaddingOverflow = AllowTrailingPaddingOverflow,
             BorderWidth = BorderWidth,
             CornerRadius = CornerRadius,
             TopBorder = _topBorder,

@@ -7,6 +7,7 @@ public static partial class WordPdfConverterExtensions {
     private static void ApplyNativeInlineTablePlacement(WordTable table, TableLayout layout,
         PdfCore.PdfTableStyle style, NativeTableStyleDefaults defaults) {
         if (layout.Rows.Count == 0 || layout.Rows[0].Count == 0 || style.CellSpacing > 0D ||
+            style.BorderFrame?.Border != null ||
             table._tableProperties?.TablePositionProperties != null) return;
 
         int firstColumn = GetNativeTableRowStartColumn(layout, 0);

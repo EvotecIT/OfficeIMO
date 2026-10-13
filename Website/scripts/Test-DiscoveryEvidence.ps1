@@ -32,7 +32,7 @@ $expectedSitemapPolicies = @{
     solutions   = 'sourceDate'
     comparisons = 'sourceDate'
     docs        = 'sourceDate'
-    blog        = 'publishedDate'
+    blog        = 'sourceDate'
 }
 foreach ($entry in $expectedSitemapPolicies.GetEnumerator()) {
     $collection = @($siteConfig.Collections | Where-Object Name -EQ $entry.Key)
@@ -296,6 +296,23 @@ if (-not [string]::IsNullOrWhiteSpace($ArtifactRoot)) {
                 if ($sampleArtifact -notmatch [regex]::Escape($requiredRenderedEvidence)) {
                     Add-Failure "Rendered comparison '$sampleRoute' is missing '$requiredRenderedEvidence'."
                 }
+            }
+        }
+    }
+
+    foreach ($sitemapArtifact in @('sitemap.xml', 'sitemap/index.json', 'sitemap/index.html')) {
+        $sitemapArtifactPath = Join-Path $resolvedArtifactRoot $sitemapArtifact
+        if (-not (Test-Path -LiteralPath $sitemapArtifactPath -PathType Leaf)) {
+            Add-Failure "The generated discovery artifact '$sitemapArtifact' is missing."
+        } else {
+            $contents = Get-Content -LiteralPath $sitemapArtifactPath -Raw
+            $discoveryUrls = @(switch ($sitemapArtifact) {
+                'sitemap.xml' { ([xml] $contents).urlset.url | ForEach-Object { [string] $_.loc } }
+                'sitemap/index.json' { ($contents | ConvertFrom-Json).entries | ForEach-Object { [string] $_.url } }
+                'sitemap/index.html' { [regex]::Matches($contents, '\bhref=["''](?<url>[^"'']+)["'']') | ForEach-Object { $_.Groups['url'].Value } }
+            })
+            if (@($discoveryUrls | Where-Object { $_ -match '^(?:https://officeimo\.com)?/downloads/(?:showcase|integrations)/' }).Count) {
+                Add-Failure "Generated '$sitemapArtifact' advertises a sample download as a website page."
             }
         }
     }

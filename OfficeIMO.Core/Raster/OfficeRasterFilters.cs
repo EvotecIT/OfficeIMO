@@ -63,7 +63,7 @@ public static partial class OfficeRasterFilters {
         }
     }
 
-    private static OfficeRasterImage Map(OfficeRasterImage source, Func<OfficeColor, int, int, OfficeColor> operation, CancellationToken token) {
+    internal static OfficeRasterImage Map(OfficeRasterImage source, Func<OfficeColor, int, int, OfficeColor> operation, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         ValidateSource(source);
         var result = new OfficeRasterImage(source.Width, source.Height);

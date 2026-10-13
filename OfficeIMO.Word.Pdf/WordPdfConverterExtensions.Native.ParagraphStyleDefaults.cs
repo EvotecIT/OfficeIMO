@@ -38,10 +38,13 @@ namespace OfficeIMO.Word.Pdf {
             public NativeComplexScriptDefaults ComplexScript { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeLineSpacing LineSpacing { get; init; }
+            public NativeParagraphSpacing ParagraphSpacing { get; init; }
             public static NativeParagraphStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeParagraphBorders.Empty);
         }
 
         private readonly record struct NativeParagraphBorderSide(W.BorderValues? Style, string? ColorHex, uint? Size, uint? Space) {
+            public bool Shadow { get; init; }
+            public bool Frame { get; init; }
             public bool IsEmpty => Style == null && string.IsNullOrWhiteSpace(ColorHex) && Size == null && Space == null;
         }
 
@@ -50,6 +53,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphBorderSide Right,
             NativeParagraphBorderSide Bottom,
             NativeParagraphBorderSide Left) {
+            public NativeParagraphBorderSide Between { get; init; }
             public static NativeParagraphBorders Empty { get; } = new(default, default, default, default);
         }
 
@@ -113,6 +117,7 @@ namespace OfficeIMO.Word.Pdf {
             bool? keepWithNext = null;
             bool? widowControl = null;
             bool? contextualSpacing = null;
+            NativeParagraphSpacing paragraphSpacing = default;
             string? shadingFillColorHex = null;
             NativeParagraphBorders borders = NativeParagraphBorders.Empty;
 
@@ -134,10 +139,11 @@ namespace OfficeIMO.Word.Pdf {
                 highlight = runProperties?.GetFirstChild<W.Highlight>()?.Val?.Value ?? highlight;
 
                 W.StyleParagraphProperties? paragraphProperties = style.GetFirstChild<W.StyleParagraphProperties>();
+                paragraphSpacing = paragraphSpacing.Merge(paragraphProperties);
                 if (paragraphProperties != null) {
                     W.SpacingBetweenLines? spacing = paragraphProperties.GetFirstChild<W.SpacingBetweenLines>();
+                    authoredLineSpacing = ReadNativeLineSpacing(spacing, paragraphProperties.GetFirstChild<W.TextAlignment>()).Inherit(authoredLineSpacing);
                     if (spacing != null) {
-                        authoredLineSpacing = ReadNativeLineSpacing(spacing).Inherit(authoredLineSpacing);
                         double? styleLineHeight = GetNativeStyleParagraphLineHeight(
                             spacing,
                             fontFamily,
@@ -209,7 +215,7 @@ namespace OfficeIMO.Word.Pdf {
                 widowControl,
                 contextualSpacing,
                 shadingFillColorHex,
-                borders) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing };
+                borders) { FontFamilies = fontFamilies, ComplexScript = complexScript, TextSpacing = textSpacing, LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing };
             if (cache != null && !string.IsNullOrWhiteSpace(resolvedStyleId)) {
                 cache.ParagraphDefaults[resolvedStyleId!] = result;
             }
@@ -414,7 +420,8 @@ namespace OfficeIMO.Word.Pdf {
                 Top = ReadNativeParagraphBorderSide(borders.TopBorder) ?? current.Top,
                 Right = ReadNativeParagraphBorderSide(borders.RightBorder) ?? current.Right,
                 Bottom = ReadNativeParagraphBorderSide(borders.BottomBorder) ?? current.Bottom,
-                Left = ReadNativeParagraphBorderSide(borders.LeftBorder) ?? current.Left
+                Left = ReadNativeParagraphBorderSide(borders.LeftBorder) ?? current.Left,
+                Between = ReadNativeParagraphBorderSide(borders.BetweenBorder) ?? current.Between
             };
         }
 
@@ -427,7 +434,10 @@ namespace OfficeIMO.Word.Pdf {
                 border.Val?.Value,
                 NormalizeNativeBorderColor(border.Color?.Value),
                 border.Size?.Value,
-                border.Space?.Value);
+                border.Space?.Value) {
+                Shadow = border.Shadow?.Value == true,
+                Frame = border.Frame?.Value == true
+            };
         }
 
         private static double? GetNativeStyleParagraphLineHeight(

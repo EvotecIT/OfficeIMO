@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -46,7 +47,9 @@ public sealed partial class OfficeTrueTypeFont {
         }
     }
 
-    private static IEnumerable<string> CandidateStyledFamilyPaths(string key, OfficeFontStyle requested) {
+    private static IEnumerable<string> CandidateStyledFamilyPaths(string key, OfficeFontStyle requested,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrEmpty(windows) && WindowsStyledFontFiles.TryGetValue(key, out string?[]? files)) {
             string fonts = Path.Combine(windows, "Fonts");
@@ -61,13 +64,16 @@ public sealed partial class OfficeTrueTypeFont {
         // Other platforms name faces after the family ("Arial Bold.ttf", "LiberationSans-Bold.ttf") or
         // keep them in one collection ("Helvetica.ttc").
         foreach (string path in CandidateKnownFamilyPaths(key)) yield return path;
-        foreach (string path in CandidateFontDirectoryPaths(key)) {
+        foreach (string path in CandidateFontDirectoryPaths(key, cancellationToken)) {
             yield return path;
         }
     }
 
     private static IEnumerable<OfficeTrueTypeFont> LoadFaces(string path) {
         int count = ReadCollectionFaceCount(path);
+        // CFF belongs to the bounded scoped loader. Do not read its entire source
+        // into the TrueType cache before applying that operation's resource limits.
+        if (count < 0) yield break;
         if (count == 0) {
             OfficeTrueTypeFont? font = TryLoad(path);
             if (font != null) yield return font;
@@ -92,7 +98,7 @@ public sealed partial class OfficeTrueTypeFont {
         catch (NotSupportedException) { return null; }
     }
 
-    // Returns the number of faces in a font collection, or zero for a standalone font or unreadable file.
+    // Returns collection faces, zero for standalone/unavailable, or -1 for CFF.
     private static int ReadCollectionFaceCount(string path) {
         try {
             if (!File.Exists(path)) return 0;
@@ -105,7 +111,9 @@ public sealed partial class OfficeTrueTypeFont {
                 read += chunk;
             }
 
-            if (ReadUInt32(header, 0) != 0x74746366) return 0;
+            uint scaler = ReadUInt32(header, 0);
+            if (scaler == 0x4F54544F) return -1;
+            if (scaler != 0x74746366) return 0;
             uint count = ReadUInt32(header, 8);
             return count == 0 || count > MaxTrueTypeCollectionFonts ? 0 : (int)count;
         } catch (IOException) {

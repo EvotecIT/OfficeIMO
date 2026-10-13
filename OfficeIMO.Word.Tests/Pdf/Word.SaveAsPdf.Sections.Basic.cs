@@ -721,8 +721,8 @@ public partial class Word {
             double firstFooterY = FindWordStartY(page, "NativeFooterBandLineOne");
             double secondFooterY = FindWordStartY(page, "NativeFooterBandLineTwo");
 
-            Assert.InRange(firstFooterY, 74D, 77D);
-            Assert.InRange(secondFooterY, 52D, 56D);
+            Assert.InRange(firstFooterY, 65D, 68D);
+            Assert.InRange(secondFooterY, 46D, 49D);
         }
     }
 
@@ -774,17 +774,20 @@ public partial class Word {
         footer.AddParagraph("ClearanceFooterOne").FontSize = 9;
         footer.AddParagraph("ClearanceFooterTwo").FontSize = 9;
 
-        var method = typeof(WordPdfConverterExtensions).GetMethod(
-            "GetNativeMargins",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
-            binder: null,
-            new[] { typeof(WordSection), typeof(WordToPdfOptions) },
-            modifiers: null)!;
-        PdfCore.PageMargins margins = Assert.IsType<PdfCore.PageMargins>(method.Invoke(null, new object?[] { document.Sections[0], null }));
-
-        Assert.Equal(30D, margins.Top);
-        Assert.Equal(30D, margins.Left);
-        Assert.Equal(30D, margins.Right);
-        Assert.InRange(margins.Bottom, 53D, 55D);
+        for (int index = 0; index < 70; index++) {
+            WordParagraph paragraph = document.AddParagraph("BodyMarker");
+            paragraph.FontSize = 11;
+            paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new SpacingBetweenLines {
+                Before = "0", After = "0", Line = "280", LineRule = LineSpacingRuleValues.Exact });
+        }
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        Assert.True(pdf.NumberOfPages > 1);
+        Assert.Equal(70, pdf.GetPages().Sum(page => page.GetWords().Count(word => word.Text == "BodyMarker")));
+        foreach (var page in pdf.GetPages()) {
+            double footerTop = FindWordStartY(page, "ClearanceFooterOne");
+            var body = page.GetWords().Where(word => word.Text == "BodyMarker").ToArray();
+            Assert.NotEmpty(body);
+            Assert.All(body, word => Assert.True(word.Letters[0].StartBaseLine.Y > footerTop + 9D));
+        }
     }
 }

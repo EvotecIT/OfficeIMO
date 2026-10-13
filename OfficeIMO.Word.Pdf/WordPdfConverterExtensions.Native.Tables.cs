@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.Pdf {
                         embeddedContent.Images.Count == 0 ? null : embeddedContent.Images,
                         // Word no-wrap changes automatic sizing. Fixed-layout tables and
                         // cells with absolute preferred widths still wrap their content.
-                        noWrap: usesAutoFitLayout && cell.WidthType != WordTableWidthUnit.Dxa && !cell.WrapText,
+                        noWrap: usesAutoFitLayout && TablePreferredWidth.CanDisableCellWrapping(cell) && !cell.WrapText,
                         textRotation: GetNativeCellTextRotation(cell.TextDirection)) {
                         OrientedRowTextHeight = GetNativeOrientedCellMarkHeight(cell, cellText.Runs, embeddedContent,
                             nativeDefaults, cellStyleDefaults, nativeFontMap)
@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeDirectCellBorders(style, layout, directCellBorders);
-            if (style.CellBorders != null && style.CellSpacing <= 0D) {
+            if (style.CellBorders != null && !UsesNativeSeparateTableCellBorders(table, style, tableStyleDefaults)) {
                 ReconcileNativeHiddenSharedBorders(table, layout, tableStyleDefaults, style.HeaderRowCount, style.CellBorders, directCellBorders);
             }
 
@@ -203,12 +203,17 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            ApplyNativeFixedTablePercentageWidth(table, layout, style, contentWidth, tableStyleDefaults);
             ApplyNativeTableBorderFrame(table, layout, style, tableStyleDefaults);
             ApplyNativeUnspacedTableRowMargins(table, layout, style);
             // An explicit PDF table style retains its presentation placement.
             // Source compatibility geometry applies to the Word-owned style path.
             if (!hasExplicitDefaultTableStyle || ResolveNativeWordTableStyle(table, hasExplicitDefaultTableStyle) != null)
                 ApplyNativeInlineTablePlacement(table, layout, style, tableStyleDefaults);
+            ApplyNativeFixedTableMinimumWidths(layout, style);
+            ApplyNativeZeroSpacingCellMargins(layout, style);
+            ApplyNativeFixedPercentageColumnPreferences(layout, style);
+            ApplyNativeAutomaticTableFrameWidth(layout, style, contentWidth);
             ApplyNativeColumnWidths(table, layout, style, contentWidth);
 
             if (horizontalAlignments != null) {
@@ -598,6 +603,7 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
                 !conditionalStyle.TextSpacing.WidthPercentage.HasValue &&
                 !conditionalStyle.TextSpacing.CharacterSpacing.HasValue &&
+                !conditionalStyle.TextSpacing.KerningMinimumFontSize.HasValue &&
                 string.IsNullOrWhiteSpace(conditionalStyle.FontFamily) &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
@@ -611,6 +617,8 @@ namespace OfficeIMO.Word.Pdf {
                 !conditionalStyle.ParagraphLineSpacingPoints.HasValue &&
                 !conditionalStyle.ParagraphLineSpacingRule.HasValue &&
                 !conditionalStyle.LineSpacing.Value.HasValue && !conditionalStyle.LineSpacing.Rule.HasValue &&
+                !conditionalStyle.LineSpacing.FontAlignment.HasValue &&
+                conditionalStyle.ParagraphSpacing == default &&
                 !conditionalStyle.ParagraphSpacingBefore.HasValue &&
                 !conditionalStyle.ParagraphSpacingAfter.HasValue &&
                 !conditionalStyle.ParagraphAlignment.HasValue &&
@@ -622,6 +630,7 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeTableRunStyleDefaults runStyle = tableStyleDefaults.RunStyle;
             return tableStyleDefaults with {
+                ParagraphSpacing = conditionalStyle.ParagraphSpacing.Inherit(tableStyleDefaults.ParagraphSpacing),
                 CellFill = conditionalStyle.CellFill ?? tableStyleDefaults.CellFill,
                 CellVerticalAlignment = conditionalStyle.CellVerticalAlignment ?? tableStyleDefaults.CellVerticalAlignment,
                 ParagraphLineHeight = conditionalStyle.ParagraphLineHeight ?? tableStyleDefaults.ParagraphLineHeight,

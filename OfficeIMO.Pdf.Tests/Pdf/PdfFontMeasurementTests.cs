@@ -10,6 +10,51 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontMeasurementTests {
+    [Fact]
+    public void ImportedLayoutRetainsProviderAdvancesAndShapesOnlyOnce() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229, 'A');
+        var font = PdfTrueTypeFontProgram.Parse(data, "Provider precision");
+        var provider = new FontUnitAdvanceProvider();
+        Assert.Equal(15.24609375D, font.MeasureTextWidth("AA", 12, shapingProvider: provider, useFontUnitAdvances: true));
+        Assert.Equal(1, provider.Calls);
+        Assert.Equal(15.24D, font.MeasureTextWidth("AA", 12, shapingProvider: provider));
+        Assert.Equal(2, provider.Calls);
+    }
+
+    private sealed class FontUnitAdvanceProvider : IOfficeTextShapingProvider {
+        internal int Calls { get; private set; }
+        public OfficeTextShapingResult ShapeText(OfficeTextShapingRequest request) {
+            Calls++;
+            return new OfficeTextShapingResult(new[] {
+                new OfficeShapedGlyph(1, "A", 0, 1301), new OfficeShapedGlyph(1, "A", 1, 1301)
+            });
+        }
+    }
+
+    [Theory]
+    [InlineData(false, PdfTextShapingMode.UnicodeScalar)]
+    [InlineData(false, PdfTextShapingMode.OpenTypeLigatures)]
+    [InlineData(true, PdfTextShapingMode.UnicodeScalar)]
+    [InlineData(true, PdfTextShapingMode.OpenTypeLigatures)]
+    public void ImportedLayoutRetainsDesignUnitWidthsAcrossDocumentForks(bool cff, PdfTextShapingMode mode) {
+        byte[] data = cff ? File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!)
+            : ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(2048, 1229, 'A');
+        WriteUInt16(data, FindTableOffset(data, "head") + 18, 2048);
+        WriteUInt16(data, FindTableOffset(data, "hhea") + 34, 1);
+        WriteUInt16(data, FindTableOffset(data, "hmtx"), 1229);
+        var trueType = cff ? null : PdfTrueTypeFontProgram.Parse(data, "Layout precision");
+        var openType = cff ? PdfOpenTypeCffFontProgram.Parse(data, "Layout precision") : null;
+        foreach (bool fork in new[] { false, true }) {
+            PdfTrueTypeFontProgram? tt = fork ? trueType?.ForkForDocument() : trueType;
+            PdfOpenTypeCffFontProgram? ot = fork ? openType?.ForkForDocument() : openType;
+            double Measure(bool original) => cff
+                ? ot!.MeasureTextWidth("AAAAAAAAAA", 12, mode, useFontUnitAdvances: original)
+                : tt!.MeasureTextWidth("AAAAAAAAAA", 12, mode, useFontUnitAdvances: original);
+            Assert.Equal(72D, Measure(false));
+            Assert.Equal(72.01171875D, Measure(true));
+        }
+    }
+
     [Theory]
     [InlineData(false, 16, 8000, 4095938)]
     [InlineData(true, 16, 8000, 4095938)]

@@ -26,6 +26,30 @@ internal static partial class PdfWriter {
         internal double Height { get; }
     }
 
+    /// <summary>Inside-frame borders bound text at the paint interior; independent perimeters also retain vertical cell margins.</summary>
+    private static TableCellContentFrame GetTableCellInkClipFrame(PdfTableStyle style, int row, int column,
+        double left, double top, double width, double height) {
+        if (!style.ClipTextToCellBounds || style.CellBorders == null ||
+            !style.CellBorders.TryGetValue((row, column), out PdfCellBorder? border) || border == null ||
+            !border.PaintInsideFrame) return new TableCellContentFrame(left, top, width, height);
+        double leftInset = Thickness(border.Left, border.LeftBorderSnapshot);
+        double rightInset = Thickness(border.Right, border.RightBorderSnapshot);
+        double topInset = Thickness(border.Top, border.TopBorderSnapshot);
+        double bottomInset = Thickness(border.Bottom, border.BottomBorderSnapshot);
+        if (style.CellTextClipIncludesVerticalPadding) {
+            PdfCellPadding? padding = GetTableCellPaddingOverride(style, row, column);
+            topInset = Math.Max(topInset, padding?.Top ?? GetTableCellPaddingTop(style));
+            bottomInset = Math.Max(bottomInset, padding?.Bottom ?? GetTableCellPaddingBottom(style));
+        }
+        return new TableCellContentFrame(left + leftInset, top - topInset,
+            Math.Max(0D, width - leftInset - rightInset), Math.Max(0D, height - topInset - bottomInset));
+
+        double Thickness(bool enabled, PdfCellBorderSide? side) {
+            PdfCellBorderSide? resolved = enabled ? ResolveCellBorderSide(side, border) : null;
+            return IsRenderableCellBorderSide(resolved) ? resolved!.PaintThickness : 0D;
+        }
+    }
+
     private static double GetTableCellContentWidth(TableCellLayout cell, double cellWidth) {
         double width = cell.Viewport is { } viewport ? cellWidth * (viewport.ContentWidth / viewport.Width) : cellWidth;
         if (double.IsInfinity(width)) throw new ArgumentOutOfRangeException(nameof(cell), "The scaled cell text viewport width must remain finite.");
@@ -110,7 +134,7 @@ internal static partial class PdfWriter {
             if (lineAlignment == PdfAlign.Center) lineX += Math.Max(0D, (availableWidth - lineWidth) / 2D);
             else if (lineAlignment == PdfAlign.Right) lineX += Math.Max(0D, availableWidth - lineWidth);
             GetRichLineInkMetrics(line, options, out double ascender, out double descender);
-            if (lineX + lineWidth <= clipX || lineX >= clipX + clipWidth ||
+            if (clipWidth <= 0D || clipHeight <= 0D || lineX + lineWidth <= clipX || lineX >= clipX + clipWidth ||
                 inkBaseline + ascender <= clipBottom || inkBaseline - descender >= clipBottom + clipHeight)
                 lines[index] = new List<RichSeg>();
             lineY -= index < heights.Count ? heights[index] : leading;

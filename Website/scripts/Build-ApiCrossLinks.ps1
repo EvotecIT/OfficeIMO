@@ -6,8 +6,8 @@ param([switch] $Check)
 Derives the links between the API reference and the guides and examples that use it.
 
 .DESCRIPTION
-Reads the merged xref map (data/xrefmap.json) for every documented type, member, and
-PowerShell command, then scans docs and workflow pages (inline code and C#/PowerShell
+Reads the merged xref map (data/xrefmap.json) for documented types and members, and
+the imported command metadata for PowerShell commands, then scans docs and workflow pages (inline code and C#/PowerShell
 blocks) and the showcase example sources for the symbols they use. It writes:
 
 - data/apidocs/related/<package>.json: "Guides & Samples" manifests for each API package,
@@ -109,6 +109,23 @@ foreach ($reference in $xref.RootElement.GetProperty('references').EnumerateArra
 }
 $xref.Dispose()
 
+# DSL aliases are PowerShell commands, even when their names also identify a C# type.
+$commandAliases = @{}
+$commandMetadata = Get-Content -LiteralPath (Join-Path $websiteRoot 'data/apidocs/powershell/command-metadata.json') -Raw | ConvertFrom-Json
+foreach ($command in $commandMetadata.commands) {
+    # The imported release catalog owns command availability. The merged xref can
+    # predate that snapshot, so it must not hide a supported command or its aliases.
+    $commands[$command.name] = [pscustomobject]@{
+        Uid = $command.name; Name = $command.name
+        Href = "/api/powershell/$($command.name.ToLowerInvariant())/"
+        Package = 'powershell'; Namespace = ''
+    }
+    foreach ($alias in $command.aliases) {
+        $canonical = $commands[$command.name]
+        $commandAliases[$alias] = [pscustomobject]@{ Uid = $canonical.Uid; Name = $alias; Href = $canonical.Href; Package = 'powershell'; Namespace = '' }
+    }
+}
+
 # API steps from the pipeline: package base URLs, docs homes, and curated manifests.
 $pipelinePath = Join-Path $websiteRoot 'pipeline.json'
 $pipeline = Get-Content -LiteralPath $pipelinePath -Raw | ConvertFrom-Json -Depth 40
@@ -150,18 +167,25 @@ function Remove-CodeNoise([string] $code, [string] $language) {
 }
 
 function Add-Mention([hashtable] $mentions, $symbol, [string] $kind, [int] $weight) {
-    $key = "$kind|$($symbol.Href)"
+    $key = "$kind|$($symbol.Href)|$($symbol.Name)"
     if (-not $mentions.ContainsKey($key)) {
         $mentions[$key] = [pscustomobject]@{ Kind = $kind; Symbol = $symbol; Weight = 0 }
     }
     $mentions[$key].Weight += $weight
 }
 
-function Find-Mentions([string] $code, [string[]] $usings, [string[]] $contextPackages, [hashtable] $mentions, [int] $weight) {
+function Find-Mentions([string] $code, [string[]] $usings, [string[]] $contextPackages, [hashtable] $mentions, [int] $weight, [string] $language = '') {
+    $isPowerShell = $language -in @('powershell', 'ps1', 'pwsh', 'ps')
+    if ($isPowerShell) {
+        foreach ($match in [regex]::Matches($code, '(?<![\w.\-$@])[A-Za-z][A-Za-z0-9-]*')) {
+            if ($commandAliases.ContainsKey($match.Value)) { Add-Mention $mentions $commandAliases[$match.Value] 'command' $weight }
+        }
+    }
     foreach ($match in [regex]::Matches($code, '\b[A-Z][a-z]+-[A-Z][A-Za-z0-9]+\b')) {
         if ($commands.ContainsKey($match.Value)) { Add-Mention $mentions $commands[$match.Value] 'command' $weight }
     }
     foreach ($match in [regex]::Matches($code, '(?<![\w.\-$@])[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*')) {
+        if ($isPowerShell -and $commandAliases.ContainsKey($match.Value)) { continue }
         $parts = $match.Value.Split('.')
         $type = $null
         $memberIndex = -1
@@ -185,7 +209,7 @@ function Find-Mentions([string] $code, [string[]] $usings, [string[]] $contextPa
     }
 }
 
-function Get-PageMentions([string] $body, [string[]] $contextPackages) {
+function Get-PageMentions([string] $body, [string[]] $contextPackages, [string] $inlineLanguage = '') {
     $mentions = @{}
     $normalized = $body.Replace("`r`n", "`n")
     $blocks = [regex]::Matches($normalized, '(?ms)^[ \t]*```[ \t]*([\w#+-]*)[^\n]*\n(.*?)^[ \t]*```')
@@ -193,7 +217,7 @@ function Get-PageMentions([string] $body, [string[]] $contextPackages) {
     foreach ($block in $blocks) {
         if ($codeLanguages -contains $block.Groups[1].Value.ToLowerInvariant()) {
             $language = $block.Groups[1].Value.ToLowerInvariant()
-            Find-Mentions (Remove-CodeNoise $block.Groups[2].Value $language) $usings $contextPackages $mentions 1
+            Find-Mentions (Remove-CodeNoise $block.Groups[2].Value $language) $usings $contextPackages $mentions 1 $language
         }
     }
     # Prose names an API on purpose; weigh inline code above incidental use in a sample.
@@ -201,7 +225,7 @@ function Get-PageMentions([string] $body, [string[]] $contextPackages) {
     foreach ($inline in [regex]::Matches($prose, '`([^`\n]+)`')) {
         # Very short spans such as `A1` are cell addresses or values, not type names.
         if ($inline.Groups[1].Value.Trim().Length -lt 4) { continue }
-        Find-Mentions $inline.Groups[1].Value $usings $contextPackages $mentions 3
+        Find-Mentions $inline.Groups[1].Value $usings $contextPackages $mentions 3 $inlineLanguage
     }
     $mentions
 }
@@ -217,7 +241,8 @@ foreach ($collection in $collections) {
         foreach ($docsHome in $packagesByDocsHome.Keys | Sort-Object Length -Descending) {
             if ($route.StartsWith($docsHome)) { $contextPackages = @($packagesByDocsHome[$docsHome]); break }
         }
-        $mentions = Get-PageMentions $parsed.Body $contextPackages
+        $inlineLanguage = if ($route.StartsWith('/docs/pswriteoffice/') -or $contextPackages -contains 'powershell') { 'powershell' } else { '' }
+        $mentions = Get-PageMentions $parsed.Body $contextPackages $inlineLanguage
         if ($mentions.Count -eq 0) { continue }
         $pages.Add([pscustomobject]@{ Route = $route; Title = $parsed.Meta.title; Summary = Get-Summary $parsed.Meta.description; Kind = 'guide'; Mentions = $mentions })
     }
@@ -229,7 +254,8 @@ foreach ($card in @($showcase.cards | Where-Object { $_.walkthrough_url -and $_.
     if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) { throw "Showcase source not found: $($card.source_path)" }
     $source = [IO.File]::ReadAllText($sourcePath).Replace("`r`n", "`n")
     $fence = '```'
-    $mentions = Get-PageMentions "$fence`csharp`n$source`n$fence`n" $null
+    $language = if ($card.source_language -eq 'powershell') { 'powershell' } else { 'csharp' }
+    $mentions = Get-PageMentions "$fence$language`n$source`n$fence`n" $null $language
     if ($mentions.Count -eq 0) { continue }
     $pages.Add([pscustomobject]@{ Route = $card.walkthrough_url; Title = $card.title; Summary = Get-Summary $card.description; Kind = 'sample'; Mentions = $mentions })
 }
@@ -251,11 +277,14 @@ foreach ($page in $pages | Sort-Object Route) {
 # Guides & Samples per API package: each type keeps the pages that use it most.
 $pagesByType = @{}
 foreach ($page in $pages) {
-    foreach ($mention in $page.Mentions.Values) {
-        if ($mention.Kind -eq 'member') { continue }
+    # Aliases remain distinct page links, but a page gets one ranking slot per
+    # canonical API. Sum its uses before applying the bounded guide/sample lists.
+    foreach ($group in ($page.Mentions.Values | Where-Object Kind -NE 'member' | Group-Object { $_.Symbol.Uid })) {
+        $mention = $group.Group[0]
         $uid = $mention.Symbol.Uid
         if (-not $pagesByType.ContainsKey($uid)) { $pagesByType[$uid] = [Collections.Generic.List[object]]::new() }
-        $pagesByType[$uid].Add([pscustomobject]@{ Page = $page; Weight = $mention.Weight; Symbol = $mention.Symbol })
+        $weight = ($group.Group | Measure-Object Weight -Sum).Sum
+        $pagesByType[$uid].Add([pscustomobject]@{ Page = $page; Weight = $weight; Symbol = $mention.Symbol })
     }
 }
 $targetsByPackage = @{}

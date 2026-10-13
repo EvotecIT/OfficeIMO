@@ -7,6 +7,9 @@ using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
+        /// <summary>Resolves the body section containing this paragraph, including paragraphs in nested tables.</summary>
+        internal WordSection? GetBodySection() => FindBodySection(_document, _paragraph);
+
         private static object? ResolveParent(WordDocument document, Paragraph paragraph) {
             if (document == null || paragraph == null) {
                 return null;
@@ -101,6 +104,7 @@ namespace OfficeIMO.Word {
             if (bodyChild?.Parent is not Body body) {
                 return null;
             }
+            if (document.Sections.Count == 1) return document.Sections[0];
 
             int sectionIndex = 0;
             foreach (OpenXmlElement child in body.ChildElements) {

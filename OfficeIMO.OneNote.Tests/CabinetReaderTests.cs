@@ -4,6 +4,40 @@ using OfficeIMO.OneNote.Markdown;
 namespace OfficeIMO.OneNote.Tests;
 
 public sealed class CabinetReaderTests {
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 1)]
+    [InlineData(true, 2)]
+    public void LzxFramesRejectBytesAfterTheirCompleteCompressedStream(bool literal, int extraBytes) {
+        const int length = 4;
+        byte[] chunk;
+        if (literal) {
+            var bits = new List<int>();
+            AppendBits(bits, 0, 1); AppendBits(bits, 1, 3);
+            AppendBits(bits, 0, 16); AppendBits(bits, length, 8);
+            AppendLiteralPathLengths(bits, 256, true);
+            AppendLiteralPathLengths(bits, 256, false);
+            AppendLiteralPathLengths(bits, 249, false);
+            AppendBits(bits, 0, length);
+            chunk = PackWords(bits);
+        } else chunk = BuildUncompressedLzxChunk(new byte[] { 1, 2, 3, 4 });
+        Assert.Equal(length, DecompressLzxCabinet(chunk, length, 16).Length);
+        byte[] malformed = chunk.Concat(Enumerable.Repeat((byte)0x55, extraBytes)).ToArray();
+        var exception = Assert.Throws<OneNoteFormatException>(() => DecompressLzxCabinet(malformed, length, 16));
+        Assert.Equal("ONENOTE_CAB_LZX_CORRUPT", exception.Code);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LzxOddUncompressedBlocksRequireAZeroPaddingByte(bool missing) {
+        byte[] chunk = BuildUncompressedLzxChunk(new byte[] { 1, 2, 3 });
+        if (missing) Array.Resize(ref chunk, chunk.Length - 1); else chunk[chunk.Length - 1] = 1;
+        var exception = Assert.Throws<OneNoteFormatException>(() => DecompressLzxCabinet(chunk, 3, 16));
+        Assert.Equal(missing ? "ONENOTE_CAB_LZX_TRUNCATED" : "ONENOTE_CAB_LZX_CORRUPT", exception.Code);
+    }
+
     [Fact]
     public void ReadsBoundedUncompressedCabinetEntry() {
         byte[] payload = Encoding.UTF8.GetBytes("offline OneNote package entry");
@@ -20,7 +54,7 @@ public sealed class CabinetReaderTests {
         byte[] payload = Encoding.UTF8.GetBytes("uncompressed LZX block payload, raw bytes copied verbatim");
         byte[] chunk = BuildUncompressedLzxChunk(payload);
 
-        byte[] decoded = OneNoteLzxDecoder.Decompress(new[] { chunk }, new[] { payload.Length }, 15, 1024 * 1024);
+        byte[] decoded = DecompressLzxCabinet(chunk, payload.Length, 15);
 
         Assert.Equal(payload, decoded);
     }
@@ -34,11 +68,7 @@ public sealed class CabinetReaderTests {
         };
         byte[] chunk = BuildUncompressedLzxChunk(blocks);
 
-        byte[] decoded = OneNoteLzxDecoder.Decompress(
-            new[] { chunk },
-            new[] { blocks.Sum(block => block.Length) },
-            15,
-            1024 * 1024);
+        byte[] decoded = DecompressLzxCabinet(chunk, blocks.Sum(block => block.Length), 15);
 
         Assert.Equal(blocks.SelectMany(block => block).ToArray(), decoded);
     }
@@ -70,7 +100,7 @@ public sealed class CabinetReaderTests {
         for (int index = 0; index < 3; index++) WriteUInt32(stream, 1);
         stream.Write(tail, 0, tail.Length);
 
-        byte[] decoded = OneNoteLzxDecoder.Decompress(new[] { stream.ToArray() }, new[] { literalCount + tail.Length }, 16, 1024);
+        byte[] decoded = DecompressLzxCabinet(stream.ToArray(), literalCount + tail.Length, 16);
 
         Assert.Equal(Enumerable.Repeat((byte)'A', literalCount).Concat(tail), decoded);
     }
@@ -136,7 +166,7 @@ public sealed class CabinetReaderTests {
     [InlineData(22)]
     public void LzxRejectsWindowOutsideCabinetRange(int windowBits) {
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteLzxDecoder.Decompress(new[] { Array.Empty<byte>() }, new[] { 0 }, windowBits, 1024));
+            DecompressLzxCabinet(Array.Empty<byte>(), 1, windowBits));
 
         Assert.Equal("ONENOTE_CAB_LZX_WINDOW", exception.Code);
     }
@@ -175,13 +205,13 @@ public sealed class CabinetReaderTests {
     }
 
     [Fact]
-    public void RejectsUncompressedFolderPastManagedBufferCapacityBeforeNarrowing() {
+    public void RejectsFramePastCabinetExpandedBlockSizeBeforeMaterializing() {
         byte[] cabinet = BuildOversizedDeclaredUncompressedCabinet();
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
             OneNoteCabinetArchiveReader.Read(cabinet, long.MaxValue, 1, 1));
 
-        Assert.Equal("ONENOTE_CAB_EXPANDED_LIMIT", exception.Code);
+        Assert.Equal("ONENOTE_CAB_BLOCK_SIZE", exception.Code);
     }
 
     [Theory]
@@ -197,6 +227,16 @@ public sealed class CabinetReaderTests {
 
     private static byte[] BuildUncompressedCabinet(string name, byte[] payload) =>
         BuildUncompressedCabinet(new[] { name }, payload);
+
+    private static byte[] DecompressLzxCabinet(byte[] chunk, int expandedLength, int windowBits) {
+        byte[] cabinet = BuildUncompressedCabinet("test.one", chunk);
+        int filesOffset = checked((int)BitConverter.ToUInt32(cabinet, 16));
+        int dataOffset = checked((int)BitConverter.ToUInt32(cabinet, 36));
+        WriteUInt16(cabinet, 42, checked((ushort)((windowBits << 8) | 3)));
+        WriteUInt32(cabinet, filesOffset, checked((uint)expandedLength));
+        WriteUInt16(cabinet, dataOffset + 6, checked((ushort)expandedLength));
+        return Assert.Single(OneNoteCabinetArchiveReader.Read(cabinet, 1024 * 1024, 1024 * 1024, 10)).Data;
+    }
 
     private static byte[] BuildUncompressedCabinet(IReadOnlyList<string> names, byte[] payload) {
         byte[][] nameBytes = names.Select(name => Encoding.UTF8.GetBytes(name + "\0")).ToArray();
@@ -230,7 +270,7 @@ public sealed class CabinetReaderTests {
     }
 
     private static byte[] BuildOversizedDeclaredUncompressedCabinet() {
-        const int blockCount = 32769;
+        const int blockCount = 1;
         const int folderOffset = 36;
         const int dataOffset = folderOffset + 8;
         var data = new byte[dataOffset + blockCount * 8];

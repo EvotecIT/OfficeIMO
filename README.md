@@ -14,6 +14,8 @@ This is not one facade over a collection of unrelated document libraries. Office
 
 Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
 
+For existing Windows x64 applications that import through ODBC, [OfficeIMO.Odbc](OfficeIMO.Odbc/README.md) exposes bounded `.xlsx` workbook snapshots as read-only SQL tables. It is built and deployed separately from the .NET document packages.
+
 Upgrading an existing application? The [OfficeIMO migration guide](MIGRATION.md) covers package, API, and behavior changes across every format. Release history and downloadable artifacts are published through [GitHub Releases](https://github.com/EvotecIT/OfficeIMO/releases).
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should start with [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).
@@ -40,6 +42,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
 | Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| CAB and passive MSI extraction | None | Managed Cabinet decoding, embedded MSI payload mapping, bounded extraction, and path validation |
 | JavaScript and browser assets | None | Strict TypeScript document layers, streaming XLSX/CSV and embedded portable scripts |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
@@ -95,6 +98,14 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Reproducible, output-validated identification, decode, encode, resize, and placement-optimization benchmarks with opt-in library comparisons isolated from runtime packages
 
 _Dependency footprint:_ zero third-party runtime dependencies.
+
+#### [OfficeIMO.Archives](OfficeIMO.Archives/README.md)
+
+- [x] Managed single-cabinet extraction with Store, MSZIP, and LZX compression
+- [x] Passive MSI extraction maps embedded CAB members through authored Directory, Component, File, and Media tables
+- [x] Selective output, path and collision validation, finite resource limits, cancellation, and atomic destination publication
+
+_Dependency footprint:_ only `OfficeIMO.Core`; extraction does not execute installers or custom actions. Cabinet sets, external MSI payloads, and action-dependent installation layouts are unsupported; see the [support matrix](OfficeIMO.Archives/SUPPORT.md).
 
 #### [OfficeIMO.IWork](OfficeIMO.IWork/README.md)
 

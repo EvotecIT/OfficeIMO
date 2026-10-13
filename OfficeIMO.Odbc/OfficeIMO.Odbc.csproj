@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <VersionPrefix>3.4.5</VersionPrefix>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+    <PublishAot Condition="'$(OfficeIMOOdbcNative)' == 'true'">true</PublishAot>
+    <NativeLib>Shared</NativeLib>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <Description>Read-only native ODBC access to OfficeIMO Excel workbook snapshots.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+    <PackageReference Include="DBAClientX.SQLite" Version="1.0.14" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Odbc.Tests" />
+  </ItemGroup>
+</Project>

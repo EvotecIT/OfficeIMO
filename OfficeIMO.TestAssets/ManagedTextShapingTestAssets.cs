@@ -96,11 +96,11 @@ internal static partial class ManagedTextShapingTestAssets {
             glyphCount: baseGlyphCount + 1, colr: colr, cpal: CreateCpalV1());
     }
 
-    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar) {
+    internal static byte[] CreateFontWithPairPositioning(int firstScalar, int secondScalar, bool includeSpace = false) {
         if (firstScalar == secondScalar) throw new ArgumentException("Positioning test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
-            glyphCount: 3,
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, includeSpace ? 32 : null, 3),
+            glyphCount: includeSpace ? 4 : 3,
             gpos: CreatePairPositioningGpos());
     }
 
@@ -267,7 +267,7 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphHeights = null,
         IReadOnlyDictionary<int, int>? glyphBottoms = null,
         IReadOnlyDictionary<int, int>? glyphWidths = null,
-        IReadOnlyDictionary<int, int>? glyphLefts = null) {
+        IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null) {
         byte[] glyph = emptyGlyphs ? Array.Empty<byte>() : CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -313,6 +313,7 @@ internal static partial class ManagedTextShapingTestAssets {
         if (cpal != null) tables.Add(("CPAL", cpal));
         if (math != null) tables.Add(("MATH", math));
         if (os2 != null) tables.Add(("OS/2", os2));
+        if (vdmx != null) tables.Add(("VDMX", vdmx));
 
         int tableDirectoryLength = 12 + (tables.Count * 16);
         var offsets = new int[tables.Count];

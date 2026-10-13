@@ -17,6 +17,15 @@ public enum PdfTextShapingMode {
 }
 
 public sealed partial class PdfOptions {
+    /// <summary>Uses original font advances for imported document layout; PDF painting retains encoded widths.</summary>
+    internal bool UseFontUnitTextLayout { get; set; }
+
+    /// <summary>Supplies source-document features for text without explicit run formatting.</summary>
+    internal OfficeTextFeatureSettings DefaultTextFeatureSettings { get; set; } = OfficeTextFeatureSettings.Default;
+
+    internal OfficeTextFeatureSettings ResolveTextFeatureSettings(OfficeTextFeatureSettings? features) =>
+        features == null || features.IsDefault ? DefaultTextFeatureSettings : features;
+
     private PdfTextWhitespaceMode _textWhitespaceMode;
     private bool _hasExplicitTextWhitespaceConfiguration;
 

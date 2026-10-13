@@ -616,6 +616,42 @@
       "artifact": "/downloads/showcase/workflows/markdown-api-handover/example.md"
     }
   ],
+  "pswriteoffice-patch-report": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx"
+    }
+  ],
+  "pswriteoffice-project-delivery": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/pswriteoffice/project-delivery-pack.docx"
+    }
+  ],
+  "pswriteoffice-budget-review": [
+    {
+      "title": "Excel to PDF",
+      "url": "/browser/excel-to-pdf/",
+      "artifact": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/pswriteoffice/budget-forecast-review.xlsx"
+    }
+  ],
   "word-research-brief": [
     {
       "title": "Word to PDF",
@@ -1045,6 +1081,483 @@
       "title": "Find hidden characters in text",
       "url": "/browser/hidden-characters/",
       "artifact": "/downloads/showcase/workflows/project-milestone-timeline/example.xml"
+    }
+  ],
+  "word-business-case": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/word-business-case/example.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/word-business-case/example.docx"
+    }
+  ],
+  "word-renewal-proposal": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/word-renewal-proposal/example.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/word-renewal-proposal/example.docx"
+    }
+  ],
+  "word-post-incident-review": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/word-post-incident-review/example.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/word-post-incident-review/example.docx"
+    }
+  ],
+  "word-statement-of-work": [
+    {
+      "title": "Word to PDF",
+      "url": "/browser/word-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/word-statement-of-work/example.docx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/word-statement-of-work/example.docx"
+    }
+  ],
+  "excel-cash-flow-forecast": [
+    {
+      "title": "Excel to PDF",
+      "url": "/browser/excel-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/excel-cash-flow-forecast/example.xlsx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/excel-cash-flow-forecast/example.xlsx"
+    }
+  ],
+  "excel-asset-depreciation": [
+    {
+      "title": "Excel to PDF",
+      "url": "/browser/excel-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/excel-asset-depreciation/example.xlsx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/excel-asset-depreciation/example.xlsx"
+    }
+  ],
+  "excel-vendor-comparison": [
+    {
+      "title": "Excel to PDF",
+      "url": "/browser/excel-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/excel-vendor-comparison/example.xlsx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/excel-vendor-comparison/example.xlsx"
+    }
+  ],
+  "excel-workforce-rota": [
+    {
+      "title": "Excel to PDF",
+      "url": "/browser/excel-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/excel-workforce-rota/example.xlsx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/excel-workforce-rota/example.xlsx"
+    }
+  ],
+  "pdf-travel-itinerary": [
+    {
+      "title": "Inspect PDF",
+      "url": "/browser/inspect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "PDF tables to Excel",
+      "url": "/browser/pdf-to-excel/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "PDF to HTML",
+      "url": "/browser/pdf-to-html/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "PDF to images",
+      "url": "/browser/pdf-to-images/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "PDF to PowerPoint",
+      "url": "/browser/pdf-to-powerpoint/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "PDF to Word",
+      "url": "/browser/pdf-to-word/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Compress PDF",
+      "url": "/browser/compress-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Delete pages",
+      "url": "/browser/delete-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Extract pages",
+      "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Protect PDF",
+      "url": "/browser/protect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Redact PDF text",
+      "url": "/browser/redact-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Reorder pages",
+      "url": "/browser/reorder-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Rotate pages",
+      "url": "/browser/rotate-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Split PDF",
+      "url": "/browser/split-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    },
+    {
+      "title": "Unlock PDF",
+      "url": "/browser/unlock-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-travel-itinerary/example.pdf"
+    }
+  ],
+  "pdf-event-badges": [
+    {
+      "title": "Inspect PDF",
+      "url": "/browser/inspect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "PDF tables to Excel",
+      "url": "/browser/pdf-to-excel/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "PDF to HTML",
+      "url": "/browser/pdf-to-html/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "PDF to images",
+      "url": "/browser/pdf-to-images/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "PDF to PowerPoint",
+      "url": "/browser/pdf-to-powerpoint/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "PDF to Word",
+      "url": "/browser/pdf-to-word/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Compress PDF",
+      "url": "/browser/compress-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Delete pages",
+      "url": "/browser/delete-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Extract pages",
+      "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Protect PDF",
+      "url": "/browser/protect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Redact PDF text",
+      "url": "/browser/redact-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Reorder pages",
+      "url": "/browser/reorder-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Rotate pages",
+      "url": "/browser/rotate-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Split PDF",
+      "url": "/browser/split-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    },
+    {
+      "title": "Unlock PDF",
+      "url": "/browser/unlock-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-event-badges/example.pdf"
+    }
+  ],
+  "pdf-maintenance-job-card": [
+    {
+      "title": "Inspect PDF",
+      "url": "/browser/inspect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "PDF tables to Excel",
+      "url": "/browser/pdf-to-excel/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "PDF to HTML",
+      "url": "/browser/pdf-to-html/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "PDF to images",
+      "url": "/browser/pdf-to-images/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "PDF to PowerPoint",
+      "url": "/browser/pdf-to-powerpoint/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "PDF to Word",
+      "url": "/browser/pdf-to-word/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Compress PDF",
+      "url": "/browser/compress-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Delete pages",
+      "url": "/browser/delete-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Extract pages",
+      "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Protect PDF",
+      "url": "/browser/protect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Redact PDF text",
+      "url": "/browser/redact-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Reorder pages",
+      "url": "/browser/reorder-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Rotate pages",
+      "url": "/browser/rotate-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Split PDF",
+      "url": "/browser/split-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    },
+    {
+      "title": "Unlock PDF",
+      "url": "/browser/unlock-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-maintenance-job-card/example.pdf"
+    }
+  ],
+  "pdf-risk-assessment": [
+    {
+      "title": "Inspect PDF",
+      "url": "/browser/inspect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "PDF tables to Excel",
+      "url": "/browser/pdf-to-excel/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "PDF to HTML",
+      "url": "/browser/pdf-to-html/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "PDF to images",
+      "url": "/browser/pdf-to-images/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "PDF to PowerPoint",
+      "url": "/browser/pdf-to-powerpoint/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "PDF to Word",
+      "url": "/browser/pdf-to-word/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Compress PDF",
+      "url": "/browser/compress-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Delete pages",
+      "url": "/browser/delete-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Extract pages",
+      "url": "/browser/extract-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Protect PDF",
+      "url": "/browser/protect-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Redact PDF text",
+      "url": "/browser/redact-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Reorder pages",
+      "url": "/browser/reorder-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Rotate pages",
+      "url": "/browser/rotate-pages/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Split PDF",
+      "url": "/browser/split-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    },
+    {
+      "title": "Unlock PDF",
+      "url": "/browser/unlock-pdf/",
+      "artifact": "/downloads/showcase/workflows/pdf-risk-assessment/example.pdf"
+    }
+  ],
+  "powerpoint-board-decision": [
+    {
+      "title": "PowerPoint to PDF",
+      "url": "/browser/powerpoint-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/powerpoint-board-decision/example.pptx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/powerpoint-board-decision/example.pptx"
+    }
+  ],
+  "powerpoint-sales-pipeline": [
+    {
+      "title": "PowerPoint to PDF",
+      "url": "/browser/powerpoint-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/powerpoint-sales-pipeline/example.pptx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/powerpoint-sales-pipeline/example.pptx"
+    }
+  ],
+  "powerpoint-retrospective": [
+    {
+      "title": "PowerPoint to PDF",
+      "url": "/browser/powerpoint-to-pdf/",
+      "artifact": "/downloads/showcase/workflows/powerpoint-retrospective/example.pptx"
+    },
+    {
+      "title": "Check and remove file origin data",
+      "url": "/browser/file-origin/",
+      "artifact": "/downloads/showcase/workflows/powerpoint-retrospective/example.pptx"
+    }
+  ],
+  "markdown-release-checklist": [
+    {
+      "title": "Markdown to HTML",
+      "url": "/browser/markdown-to-html/",
+      "artifact": "/downloads/showcase/workflows/markdown-release-checklist/example.md"
+    },
+    {
+      "title": "Markdown to Word",
+      "url": "/browser/markdown-to-word/",
+      "artifact": "/downloads/showcase/workflows/markdown-release-checklist/example.md"
+    },
+    {
+      "title": "Find hidden characters in text",
+      "url": "/browser/hidden-characters/",
+      "artifact": "/downloads/showcase/workflows/markdown-release-checklist/example.md"
     }
   ]
 }

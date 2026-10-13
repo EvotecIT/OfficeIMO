@@ -210,17 +210,27 @@ internal static partial class PdfWriter {
             pageDirty = false;
         }
 
-        private void NewPage(bool preserveEmptyPage = false) {
+        private void NewPage(bool preserveEmptyPage = false, bool forcePhysicalPage = false, double? firstBodyHeight = null,
+            bool firstBodyAllowsFooterOverlap = false) {
             cancellationToken.ThrowIfCancellationRequested();
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
-            if (activeColumnFlow != null) {
-                AdvanceColumnFrame(forcePhysicalPage: false, preserveEmptyPage);
-                return;
+            double? previousBodyHeight = runningFirstBodyHeight;
+            bool previousFooterOverlap = runningFirstBodyAllowsFooterOverlap;
+            runningFirstBodyHeight = firstBodyHeight;
+            runningFirstBodyAllowsFooterOverlap = firstBodyAllowsFooterOverlap;
+            try {
+                if (activeColumnFlow != null) {
+                    AdvanceColumnFrame(forcePhysicalPage, preserveEmptyPage);
+                    return;
+                }
+                PrepareActiveContainerScopesForPageBreak();
+                FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
+                StartPage(currentPageBaseOptions);
+                ResumeActiveContainerScopesOnNewPage();
+            } finally {
+                runningFirstBodyHeight = previousBodyHeight;
+                runningFirstBodyAllowsFooterOverlap = previousFooterOverlap;
             }
-            PrepareActiveContainerScopesForPageBreak();
-            FlushPage(preserveEmptyPage || pageDirty || HasCurrentPageNonContentObjects());
-            StartPage(currentPageBaseOptions);
-            ResumeActiveContainerScopesOnNewPage();
         }
 
         private double ResolveTopLevelSpacingBefore(double spacingBefore) {

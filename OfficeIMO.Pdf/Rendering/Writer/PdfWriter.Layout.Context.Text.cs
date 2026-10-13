@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null) {
+        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, PdfColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null, OfficeTextFeatureSettings? featureSettings = null) {
             EnsurePage();
             pageDirty = true;
             AppendMarkedContentBegin(sb, structureType, markedContentId);
@@ -24,11 +24,11 @@ internal static partial class PdfWriter {
             for (int i = 0; i < lines.Count; i++) {
                 string line = lines[i];
                 double dx = 0;
-                double estWidth = EstimateSimpleTextWidthForOptions(line, lineFont, namedFont, fontSize, currentOpts);
+                double estWidth = EstimateSimpleTextWidthForOptions(line, lineFont, namedFont, fontSize, currentOpts, featureSettings);
                 if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
                 else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
                 if (Math.Abs(dx) > 0.0001) content.MoveText(dx, 0);
-                content.ShowText(EncodeTextShowCommand(line, lineFont, namedFont, currentOpts), fontSize);
+                content.ShowText(EncodeTextShowCommand(line, lineFont, namedFont, currentOpts, featureSettings), fontSize);
                 if (Math.Abs(dx) > 0.0001) content.MoveText(-dx, 0);
                 if (i != lines.Count - 1) content.NextTextLine();
             }

@@ -21,18 +21,18 @@ namespace OfficeIMO.Word.Pdf {
                 hasParagraph = true;
                 foreach (W.Run run in paragraph.Descendants<W.Run>()) {
                     W.RunProperties? properties = run.RunProperties;
-                    NativeTextSpacing spacing = ResolveNativeTextRunStyle(
-                        new WordParagraph(document, paragraph, run)).TextSpacing;
+                    NativeResolvedTextStyle style = ResolveNativeTextRunStyle(
+                        new WordParagraph(document, paragraph, run));
                     foreach (OpenXmlElement child in run.ChildElements) {
                         if (child is W.Text text) {
-                            AddNativeVmlTextRun(runs, document, run, properties, text, spacing);
+                            AddNativeVmlTextRun(runs, document, run, properties, text, style);
                         } else if (child is W.Break) {
-                            runs.Add(CreateNativeVmlTextRun("\n", properties, spacing));
+                            runs.Add(CreateNativeVmlTextRun("\n", properties, style));
                         } else if (child is W.TabChar) {
-                            runs.Add(spacing.ApplyTo(PdfCore.PdfTextRun.Tab()));
+                            runs.Add(style.ApplyTo(PdfCore.PdfTextRun.Tab()));
                         } else {
                             foreach (W.Text nestedText in child.Descendants<W.Text>()) {
-                                AddNativeVmlTextRun(runs, document, run, properties, nestedText, spacing);
+                                AddNativeVmlTextRun(runs, document, run, properties, nestedText, style);
                             }
                         }
                     }
@@ -52,17 +52,17 @@ namespace OfficeIMO.Word.Pdf {
             return runs;
         }
 
-        private static void AddNativeVmlTextRun(List<PdfCore.PdfTextRun> runs, WordDocument document, W.Run run, W.RunProperties? properties, W.Text text, NativeTextSpacing spacing) {
+        private static void AddNativeVmlTextRun(List<PdfCore.PdfTextRun> runs, WordDocument document, W.Run run, W.RunProperties? properties, W.Text text, NativeResolvedTextStyle style) {
             string value = ResolveNativeVmlRunText(document, run, text);
             if (string.IsNullOrEmpty(value)) {
                 return;
             }
 
-            runs.Add(CreateNativeVmlTextRun(value, properties, spacing));
+            runs.Add(CreateNativeVmlTextRun(value, properties, style));
         }
 
-        private static PdfCore.PdfTextRun CreateNativeVmlTextRun(string value, W.RunProperties? properties, NativeTextSpacing spacing) =>
-            spacing.ApplyTo(new PdfCore.PdfTextRun(
+        private static PdfCore.PdfTextRun CreateNativeVmlTextRun(string value, W.RunProperties? properties, NativeResolvedTextStyle style) =>
+            style.ApplyTo(new PdfCore.PdfTextRun(
                 value,
                 bold: HasNativeOnOff(properties?.Bold),
                 underline: HasNativeVmlUnderline(properties?.Underline),

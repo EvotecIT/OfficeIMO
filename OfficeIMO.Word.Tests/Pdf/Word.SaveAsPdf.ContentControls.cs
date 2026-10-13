@@ -108,7 +108,8 @@ public partial class Word {
         Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterEquationUnsupported");
         Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
 
-        string text = PdfCore.PdfTextExtractor.ExtractAllText(pdfPath);
+        string text = PdfCore.PdfReadDocument.Open(pdfPath,
+            new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("Native header equation: h=2 header-suffix", NormalizePdfText(text));
         Assert.Contains("Native body equation:", text);
         Assert.Contains("(a)/(b)", NormalizePdfText(text));

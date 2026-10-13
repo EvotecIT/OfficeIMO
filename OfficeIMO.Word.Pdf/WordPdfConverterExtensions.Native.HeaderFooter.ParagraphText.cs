@@ -168,7 +168,7 @@ namespace OfficeIMO.Word.Pdf {
             string text,
             NativeResolvedTextStyle style,
             double horizontalOffset) =>
-            style.TextSpacing.ApplyTo(new PdfCore.PdfTextRun(
+            style.ApplyTo(new PdfCore.PdfTextRun(
                 text.Replace('\t', ' '),
                 bold: style.Bold,
                 underline: style.Underline,

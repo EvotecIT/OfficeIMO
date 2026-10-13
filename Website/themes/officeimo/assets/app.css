@@ -548,3 +548,7 @@ pre code{background:none;padding:0;color:inherit}
 .imo-code-ref{color:inherit;text-decoration:underline dotted;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
 .imo-code-ref:hover{color:var(--imo-accent);text-decoration-style:solid;text-decoration-color:currentColor}
 a.imo-code-ref > code{color:var(--imo-accent)}
+
+.imo-article-meta{display:flex;flex-wrap:wrap;gap:.45rem 1.25rem;margin-top:1.25rem;color:var(--imo-text-muted);font-size:.8rem;line-height:1.6}
+.imo-article-meta a{color:var(--imo-text-secondary);text-decoration:underline;text-underline-offset:3px}
+.imo-article-meta a:hover{color:var(--imo-accent)}
