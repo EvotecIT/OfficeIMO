@@ -119,9 +119,9 @@
           "detail": "Rectangles, ellipses, lines, polygons, callouts and stamps",
           "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
           "notes": {
-            "mac": "Standard stamps; drawing shapes and text boxes is planned.",
-            "ipad": "Standard stamps; drawing shapes and text boxes is planned.",
-            "iphone": "Standard stamps; drawing shapes and text boxes is planned."
+            "mac": "Rectangles, ovals, lines, arrows, text boxes and standard stamps; polygons and callouts are planned.",
+            "ipad": "Rectangles, ovals, lines, arrows, text boxes and standard stamps; polygons and callouts are planned.",
+            "iphone": "Rectangles, ovals, lines, arrows, text boxes and standard stamps; polygons and callouts are planned."
           },
           "roadmap": "phase-7-native-apple-apps"
         },
@@ -348,13 +348,12 @@
           "id": "redact",
           "title": "Redaction",
           "detail": "Mark, review and permanently remove content",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "mac": "Text you find or select, verified after removal; marking areas of images and drawings is planned.",
-            "ipad": "Text you find or select, verified after removal; marking areas of images and drawings is planned.",
-            "iphone": "Text you find or select, verified after removal; marking areas of images and drawings is planned."
-          },
-          "roadmap": "phase-7-native-apple-apps"
+            "mac": "Text you find or select and areas you drag across, verified after removal.",
+            "ipad": "Text you find or select and areas you drag across, verified after removal.",
+            "iphone": "Text you find or select and areas you drag across, verified after removal."
+          }
         },
         {
           "id": "handwritten-signature",

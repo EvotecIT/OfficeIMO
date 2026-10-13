@@ -3049,4 +3049,155 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Orientation.After" xml:space="preserve"><value>Proposed correction</value></data>
   <data name="Orientation.Accept" xml:space="preserve"><value>Accept this page correction</value></data>
   <data name="Orientation.Apply" xml:space="preserve"><value>Apply accepted corrections</value></data>
+  <data name="Provenance.Status.Ready" xml:space="preserve">
+    <value>Choose a local file and assess its supported provenance evidence.</value>
+  </data>
+  <data name="Provenance.Status.ImportCancelled" xml:space="preserve">
+    <value>Import cancelled.</value>
+  </data>
+  <data name="Provenance.Status.SelectFile" xml:space="preserve">
+    <value>Select an accessible local file. Provider locations are not supported by this workbench.</value>
+  </data>
+  <data name="Provenance.Status.ChooseOutputFolder" xml:space="preserve">
+    <value>Choose an existing local output folder for the separate copy.</value>
+  </data>
+  <data name="Provenance.Status.Copying" xml:space="preserve">
+    <value>Creating and re-inspecting a separate copy…</value>
+  </data>
+  <data name="Provenance.Status.Assessing" xml:space="preserve">
+    <value>Assessing local file…</value>
+  </data>
+  <data name="Provenance.Status.Cancelled" xml:space="preserve">
+    <value>Cancelled.</value>
+  </data>
+  <data name="Provenance.Status.CancelledCheckOutput" xml:space="preserve">
+    <value>Cancelled. Check the output folder before retrying.</value>
+  </data>
+  <data name="Provenance.Status.Failed" xml:space="preserve">
+    <value>Provenance workflow failed: {0}</value>
+  </data>
+  <data name="Provenance.Status.ChooseReportFolder" xml:space="preserve">
+    <value>Choose an existing local folder for the report.</value>
+  </data>
+  <data name="Provenance.Status.Queued" xml:space="preserve">
+    <value>Queued</value>
+  </data>
+  <data name="Provenance.Status.Exporting" xml:space="preserve">
+    <value>Exporting report…</value>
+  </data>
+  <data name="Provenance.Status.ReportExported" xml:space="preserve">
+    <value>Report exported.</value>
+  </data>
+  <data name="Provenance.Status.ReportCancelled" xml:space="preserve">
+    <value>Report export cancelled.</value>
+  </data>
+  <data name="Provenance.Status.ReportFailed" xml:space="preserve">
+    <value>Report export failed: {0}</value>
+  </data>
+  <data name="Provenance.Status.ReportProtected" xml:space="preserve">
+    <value>The report destination is protected by the host publication policy.</value>
+  </data>
+  <data name="Provenance.Job.Copy" xml:space="preserve">
+    <value>Provenance copy</value>
+  </data>
+  <data name="Provenance.Job.Assessment" xml:space="preserve">
+    <value>Provenance assessment</value>
+  </data>
+  <data name="Provenance.Job.Report" xml:space="preserve">
+    <value>Provenance report</value>
+  </data>
+  <data name="Provenance.Checks" xml:space="preserve">
+    <value>Structural: {0} · Text integrity: {1} · Verification: {2} · Providers: {3}</value>
+  </data>
+  <data name="Provenance.Evidence.Recognized" xml:space="preserve">
+    <value>{0} · {1} · Structurally recognized</value>
+  </data>
+  <data name="Provenance.Evidence.Malformed" xml:space="preserve">
+    <value>{0} · {1} · Malformed or ambiguous</value>
+  </data>
+  <data name="Provenance.TextFinding" xml:space="preserve">
+    <value>{0} · {1} · {2} · {3} · UTF-16 offset {4}</value>
+  </data>
+  <data name="Provenance.VerificationFinding" xml:space="preserve">
+    <value>{0} · Verification: {1}</value>
+  </data>
+  <data name="Provenance.Measurement" xml:space="preserve">
+    <value>{0} · detector {1} · {2}: {3} · threshold: {4} · tokens: {5}</value>
+  </data>
+  <data name="Provenance.Change" xml:space="preserve">
+    <value>{0} · {1} · {2} bytes removed</value>
+  </data>
+  <data name="Provenance.Provider.NotConfigured" xml:space="preserve">
+    <value>No verifier configured. Assessment remains available without it.</value>
+  </data>
+  <data name="Provenance.Provider.Changed" xml:space="preserve">
+    <value>Configuration changed. Check the executable, then assess the file again.</value>
+  </data>
+  <data name="Provenance.Provider.EnterPath" xml:space="preserve">
+    <value>Enter the path to a trusted c2patool executable.</value>
+  </data>
+  <data name="Provenance.Provider.Checking" xml:space="preserve">
+    <value>Checking executable and process containment…</value>
+  </data>
+  <data name="Provenance.Provider.Available" xml:space="preserve">
+    <value>Available · {0} · {1}</value>
+  </data>
+  <data name="Provenance.Provider.Unavailable" xml:space="preserve">
+    <value>Unavailable · {0} · {1}</value>
+  </data>
+  <data name="Provenance.Provider.UnknownVersion" xml:space="preserve">
+    <value>unknown version</value>
+  </data>
+  <data name="Provenance.Provider.Cancelled" xml:space="preserve">
+    <value>Provider check cancelled.</value>
+  </data>
+  <data name="Provenance.Provider.Failed" xml:space="preserve">
+    <value>Provider check failed: {0}</value>
+  </data>
+  <data name="Signing.Validation.Summary" xml:space="preserve">
+    <value>{0} signature(s) · {1}</value>
+  </data>
+  <data name="Signing.Validation.None" xml:space="preserve">
+    <value>No certificate signatures found</value>
+  </data>
+  <data name="Signing.Validation.Unnamed" xml:space="preserve">
+    <value>Unnamed signature</value>
+  </data>
+  <data name="Signing.Validation.StructureValid" xml:space="preserve">
+    <value>{0} · structure valid</value>
+  </data>
+  <data name="Signing.Validation.StructureIssue" xml:space="preserve">
+    <value>{0} · structural issue</value>
+  </data>
+  <data name="Signing.Validation.Complete" xml:space="preserve">
+    <value>Signature validation complete</value>
+  </data>
+  <data name="Signing.VisibleText" xml:space="preserve">
+    <value>Digitally signed by {0}</value>
+  </data>
+  <data name="Forms.ApplyNotPermitted" xml:space="preserve">
+    <value>This document does not permit applying form values.</value>
+  </data>
+  <data name="Editor.ObjectMoved" xml:space="preserve">
+    <value>Selected object moved. Save when ready.</value>
+  </data>
+  <data name="Editor.ImageChangedDuringSelection" xml:space="preserve">
+    <value>The document changed while the replacement image was being selected. Select the image again.</value>
+  </data>
+  <data name="Editor.ImageReplaced" xml:space="preserve">
+    <value>Selected image replaced. Save when ready.</value>
+  </data>
+  <data name="Editor.ObjectRemoved" xml:space="preserve">
+    <value>Selected object removed. Save when ready.</value>
+  </data>
+  <data name="Editor.AnnotationGeometryUpdated" xml:space="preserve">
+    <value>Annotation geometry updated. Save when ready.</value>
+  </data>
+  <data name="Editor.DefaultNoteText" xml:space="preserve">
+    <value>Review note</value>
+  </data>
+  <data name="Editor.DefaultFieldOptions" xml:space="preserve">
+    <value>Option 1
+Option 2</value>
+  </data>
 </root>

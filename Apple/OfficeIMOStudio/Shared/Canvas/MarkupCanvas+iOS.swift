@@ -44,8 +44,6 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
             scrollView.addSubview(canvas)
             canvas.isUserInteractionEnabled = true
             session.markupUndoManager = canvas.undoManager
-            // One finger draws; two scroll and pinch, as in Notes and Files.
-            scrollView.panGestureRecognizer.minimumNumberOfTouches = 2
             move(to: session.currentPage)
             toolPicker.setVisible(true, forFirstResponder: canvas)
             canvas.becomeFirstResponder()
@@ -56,7 +54,6 @@ final class MarkupController: NSObject, PKCanvasViewDelegate, PKToolPickerObserv
             // An addition still on its way stays visible until the page shows it.
             canvas.isUserInteractionEnabled = false
             if clearAfterRevision == nil { canvas.removeFromSuperview() }
-            scrollView.panGestureRecognizer.minimumNumberOfTouches = 1
         }
     }
 

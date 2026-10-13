@@ -50,6 +50,30 @@ public sealed class StudioNativeReviewTests : IDisposable {
     }
 
     [Fact]
+    public async Task Shapes_text_boxes_and_arrows_are_drawn_as_annotations() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("shapes.pdf", "Shapes"), null, default);
+        var red = new StudioNativeColor(0.85, 0.12, 0.1);
+
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("rectangle", 1, new StudioNativeRectangle(40, 60, 100, 50), Color: red, StrokeWidth: 2), default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("ellipse", 1, new StudioNativeRectangle(160, 60, 80, 50), Color: red, StrokeWidth: 2), default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("freeText", 1, new StudioNativeRectangle(40, 140, 160, 30), Text: "Check this", Color: red), default);
+        await document.AddAnnotationAsync(new StudioNativeAnnotationRequest("line", 1, Strokes: [[new StudioNativePoint(260, 200), new StudioNativePoint(340, 150)]],
+            Color: red, StrokeWidth: 2, LineEnd: "OpenArrow"), default);
+
+        Assert.Equal(["Circle", "FreeText", "Line", "Square"],
+            (await document.GetAnnotationsAsync(1, default)).Annotations.Select(annotation => annotation.Subtype).Order());
+        string saved = Path.Combine(_root, "shapes-saved.pdf");
+        await document.SaveCopyAsync(saved, default);
+        IReadOnlyList<PdfAnnotation> annotations = PdfDocument.Load(saved).Annotations.GetForEditing();
+        Assert.Equal("OpenArrow", Assert.Single(annotations, annotation => annotation.Subtype == "Line").LineEndEnding);
+        Assert.Equal("Check this", Assert.Single(annotations, annotation => annotation.Subtype == "FreeText").Contents);
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.AddAnnotationAsync(new StudioNativeAnnotationRequest("rectangle", 1,
+            new StudioNativeRectangle(40, 60, 100, 50), LineEnd: "OpenArrow"), default));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => document.AddAnnotationAsync(new StudioNativeAnnotationRequest("line", 1,
+            Strokes: [[new StudioNativePoint(10, 10), new StudioNativePoint(50, 50)]], LineEnd: "Butt"), default));
+    }
+
+    [Fact]
     public async Task Signatures_are_reported_for_a_signed_copy_and_absent_from_an_unsigned_document() {
         string source = CreateTextPdf("unsigned.pdf", "Contract");
         using (StudioNativeDocument unsigned = await StudioNativeDocument.OpenAsync(source, null, default)) {
@@ -137,6 +161,17 @@ public sealed class StudioNativeReviewTests : IDisposable {
         Assert.Contains("Alex", text);
         await document.UndoAsync(default);
         Assert.Contains("4111", await PageTextAsync(document, 1));
+
+        // An area drawn over the page removes what it covers, as a drag across the page does.
+        StudioNativeRectangle name = Assert.Single((await document.RedactAsync(
+            new StudioNativeRedactionRequest(Find: new StudioNativeRedactionFind("Alex")), default)).Marks!).Bounds!;
+        StudioNativeRedactionVerification drawn = (await document.RedactAsync(new StudioNativeRedactionRequest(Apply: new StudioNativeRedactionApply(
+            [new StudioNativeRedactionMark(1, name with { X = name.X - 2, Y = name.Y - 2, Width = name.Width + 4, Height = name.Height + 4 })])), default)).Verification!;
+        Assert.True(drawn.Verified);
+        text = await PageTextAsync(document, 1);
+        Assert.DoesNotContain("Alex", text);
+        Assert.Contains("Account", text);
+        await document.UndoAsync(default);
 
         await Assert.ThrowsAnyAsync<ArgumentException>(() => document.RedactAsync(new StudioNativeRedactionRequest(
             Apply: new StudioNativeRedactionApply([new StudioNativeRedactionMark(1, new StudioNativeRectangle(10, 10, 0, 5))])), default));

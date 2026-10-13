@@ -35,6 +35,11 @@
 - Adding, renaming or removing an MCP tool or plugin skill updates the page's `tools` or `skills` in the same change. Mark a client ready only when it installs through the client's own documented plugin or MCP mechanism and the server starts with exactly that configuration; a directory is listed only once the listing is live, with its URL. Planned entries link to a `Docs/ROADMAP.md` section.
 - Install commands and configurations use `{version}`; the release binding updates `pluginVersion` with the plugin. Run `Website/scripts/Test-AgentIntegrations.ps1`, which checks the tools against the server's registrations, the skills against the plugin and the install configurations against its `mcp.json`.
 
+## Studio translations
+
+- Studio's interface text is translated for every shipped language in both app families: the desktop `StudioStrings.<language>.resx` resources and the Apple String Catalogs. A change that adds or rewords interface text translates it into every shipped language in the same change.
+- Use the [Studio translations skill](.agents/skills/officeimo-studio-translations/SKILL.md) and the `Build/Studio/*-StudioTranslations.ps1` scripts to add languages or strings; don't edit the catalogs' languages or `ShippedCultures` by hand. `Build/Studio/Test-StudioTranslations.ps1` must pass.
+
 ## Testing evidence
 
 - Do not use product unit tests to pin human-authored README, roadmap, migration, compatibility, planning, or agent prose.

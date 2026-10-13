@@ -19,8 +19,16 @@ struct DocumentToolbar: ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
             pageActions
             if session.task == .markup {
-                Picker("Tool", selection: $session.markupStyle) {
-                    ForEach(MarkupStyle.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+                // Each segment shows its symbol and names its tool, rather than the symbol, to VoiceOver and in its tooltip.
+                Picker("Tool", selection: markupChoice) {
+                    ForEach(MarkupStyle.allCases) { style in
+                        Image(systemName: style.systemImage).accessibilityLabel(Text(style.title)).help(Text(style.title))
+                            .tag(MarkupChoice.style(style))
+                    }
+                    ForEach(ShapeTool.allCases) { shape in
+                        Image(systemName: shape.systemImage).accessibilityLabel(Text(shape.title)).help(Text(shape.title))
+                            .tag(MarkupChoice.shape(shape))
+                    }
                 }
                 .pickerStyle(.segmented)
                 ColorPicker("Colour", selection: markupColor, supportsOpacity: false)
@@ -45,6 +53,7 @@ struct DocumentToolbar: ToolbarContent {
             // The system tool picker takes the bottom of the screen, so Markup's commands sit at the top.
             ToolbarItemGroup(placement: .topBarTrailing) {
                 undoRedo
+                shapesMenu
                 Button("Add Note", systemImage: "note.text.badge.plus") { isAddingNote = true }
             }
             ToolbarItem(placement: .confirmationAction) {
@@ -106,7 +115,35 @@ struct DocumentToolbar: ToolbarContent {
         }
     }
 
+    #if os(iOS)
+    /// Shapes and text boxes, which a drag on the page draws in place of the drawing tools until Done.
+    private var shapesMenu: some View {
+        Menu("Shapes", systemImage: "square.on.circle") {
+            Picker("Shapes", selection: $session.shapeTool) {
+                ForEach(ShapeTool.allCases) { Label($0.title, systemImage: $0.systemImage).tag(Optional($0)) }
+            }
+            .pickerStyle(.inline)
+        }
+        .disabled(!session.canEditAnnotations)
+    }
+    #endif
+
     #if os(macOS)
+    /// The pen, the highlighter or a shape, as one choice.
+    private var markupChoice: Binding<MarkupChoice> {
+        Binding {
+            session.shapeTool.map(MarkupChoice.shape) ?? .style(session.markupStyle)
+        } set: { choice in
+            switch choice {
+            case .style(let style):
+                session.markupStyle = style
+                session.shapeTool = nil
+            case .shape(let shape):
+                session.shapeTool = shape
+            }
+        }
+    }
+
     private var markupColor: Binding<Color> {
         Binding {
             Color(red: session.markupColor.red, green: session.markupColor.green, blue: session.markupColor.blue)
@@ -148,7 +185,6 @@ struct DocumentToolbar: ToolbarContent {
         .menuIndicator(.hidden)
         .fixedSize()
         .disabled(!session.isReady)
-        .task(id: session.revision) { await session.loadStructure() }
     }
 
     @ViewBuilder private var share: some View {

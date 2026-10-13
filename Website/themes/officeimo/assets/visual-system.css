@@ -459,6 +459,8 @@ p { text-wrap: pretty; }
 .imo-product-hero__inner {
   grid-template-columns: minmax(0, 0.92fr) minmax(450px, 1.08fr);
   gap: clamp(2rem, 4vw, 4rem);
+  /* The preview column carries a document, its caption and a code sample, so the copy starts at the top beside it. */
+  align-items: start;
 }
 
 .imo-product-hero__copy { min-width: 0; max-width: 620px; }
@@ -1075,6 +1077,9 @@ body.pf-api-docs {
   .imo-product-hero__inner { grid-template-columns: 1fr; }
   .imo-hero__copy,
   .imo-product-hero__copy { max-width: 680px; }
+  /* The product hero centres its single column, so the column and its install command centre too. */
+  .imo-product-hero__copy,
+  .imo-product-install-command { margin-inline: auto; }
   .imo-hero-proof,
   .imo-product-proof { width: min(680px, 100%); margin-inline: auto; }
   .imo-how-it-works__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -1,0 +1,7 @@
+interface:
+  display_name: OfficeIMO Studio translations
+  short_description: Add or update Studio interface languages on Windows, Linux, Mac, iPad and iPhone.
+  default_prompt: >-
+    Add or update OfficeIMO Studio interface languages with the Build/Studio
+    translation scripts: sync the Apple strings, export one file per language,
+    translate it, import it into both apps and run the checks.

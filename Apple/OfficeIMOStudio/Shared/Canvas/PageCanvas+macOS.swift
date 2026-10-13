@@ -15,9 +15,12 @@ struct PageCanvas: NSViewRepresentable {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
         if let request = session.canvasRequest { view.handle(request) }
+        let dragTool = session.pageDragTool
         view.setMarkupActive(session.task == .markup && session.canEditAnnotations)
-        view.setSelectionActive(session.task == .read && (session.canCopyText || session.canFillForms || session.pendingSignature != nil))
-        view.forms.setEnabled(session.task == .read && (session.canFillForms || session.pendingSignature != nil))
+        view.setSelectionActive(session.task == .read && dragTool == nil
+                                && (session.canCopyText || session.canFillForms || session.pendingSignature != nil))
+        view.forms.setEnabled(session.task == .read && dragTool == nil && (session.canFillForms || session.pendingSignature != nil))
+        view.setDragTool(dragTool)
         _ = session.formFieldsVersion
         view.tiles.markFields(session.fillableFieldBoxes)
         view.tiles.selectionColor = NSColor.selectedTextBackgroundColor.withAlphaComponent(0.6).cgColor
@@ -44,6 +47,7 @@ final class PageScrollView: NSScrollView {
     private lazy var markup = MarkupInkView(session: session) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
     private lazy var selection = TextSelectionView(session: session) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
     private(set) lazy var forms = FormEditor(session: session, pages: pages) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
+    private lazy var drag = PageDragView(session: session) { [weak self] in self?.tiles.layout ?? PageLayout(pages: []) }
 
     init(session: DocumentSession) {
         self.session = session
@@ -53,7 +57,10 @@ final class PageScrollView: NSScrollView {
         documentView = pages
         pages.wantsLayer = true
         pages.layer?.addSublayer(tiles.layer)
-        tiles.revisionShown = { [weak self] revision in self?.markup.revisionShown(revision) }
+        tiles.revisionShown = { [weak self] revision in
+            self?.markup.revisionShown(revision)
+            self?.drag.revisionShown(revision)
+        }
         hasVerticalScroller = true
         hasHorizontalScroller = true
         autohidesScrollers = true
@@ -78,7 +85,9 @@ final class PageScrollView: NSScrollView {
         }
         pages.frame = CGRect(origin: .zero, size: tiles.layout.size)
         markup.frame = pages.bounds
+        drag.frame = pages.bounds
         window?.invalidateCursorRects(for: markup)
+        window?.invalidateCursorRects(for: drag)
         laidOutWidth = 0
         needsLayout = true
     }
@@ -158,6 +167,18 @@ final class PageScrollView: NSScrollView {
         } else if !active, markup.superview != nil {
             markup.removeFromSuperview()
         }
+    }
+
+    /// Keeps the view for shapes and areas to redact over the others, so a drag with a tool reaches it.
+    func setDragTool(_ tool: PageDragTool?) {
+        if drag.superview == nil {
+            drag.frame = pages.bounds
+            drag.autoresizingMask = [.width, .height]
+            pages.addSubview(drag)
+        } else if tool != nil, pages.subviews.last !== drag {
+            pages.addSubview(drag, positioned: .above, relativeTo: nil)
+        }
+        drag.update(tool: tool)
     }
 
     // MARK: Zoom and position

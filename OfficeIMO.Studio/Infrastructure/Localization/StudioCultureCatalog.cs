@@ -9,21 +9,22 @@ internal static class StudioCultureCatalog {
     internal const string DefaultCulture = "en";
     internal const string PseudoCulture = "en-XA";
 
+    // The languages the picker offers, each with complete StudioStrings.<name>.resx resources and the matching Apple
+    // String Catalog translations. Build/Studio/Import-StudioTranslations.ps1 adds a language here with its strings.
+    private static readonly string[] ShippedCultures = ["en", "pl", "de", "fr"];
+
+    // Culture names reserved for future packs. They are accepted in preferences but not offered until shipped.
+    private static readonly string[] ReservedCultures = [
+        "it", "es", "pt", "nl", "cs", "sk", "uk", "ro", "hu", "sv", "da", "fi", "nb", "ar", "he", "ja", "ko", "zh-Hans", "zh-Hant"
+    ];
+
     internal static IReadOnlyList<StudioCultureDescriptor> Available { get; } = [
-        Create("en", reviewed: true),
-        Create("pl", reviewed: true), Create("de", reviewed: true), Create("fr", reviewed: true),
+        .. ShippedCultures.Select(static name => Create(name, reviewed: true)),
         new StudioCultureDescriptor(PseudoCulture, "Pseudolocalized English", "Pseudolocalized English", true)
     ];
 
-    internal static IReadOnlyList<StudioCultureDescriptor> Planned { get; } = [
-        Create("it", reviewed: false), Create("es", reviewed: false),
-        Create("pt", reviewed: false), Create("nl", reviewed: false), Create("cs", reviewed: false),
-        Create("sk", reviewed: false), Create("uk", reviewed: false), Create("ro", reviewed: false),
-        Create("hu", reviewed: false), Create("sv", reviewed: false), Create("da", reviewed: false),
-        Create("fi", reviewed: false), Create("nb", reviewed: false), Create("ar", reviewed: false),
-        Create("he", reviewed: false), Create("ja", reviewed: false), Create("ko", reviewed: false),
-        Create("zh-Hans", reviewed: false), Create("zh-Hant", reviewed: false)
-    ];
+    internal static IReadOnlyList<StudioCultureDescriptor> Planned { get; } =
+        [.. ReservedCultures.Except(ShippedCultures, StringComparer.OrdinalIgnoreCase).Select(static name => Create(name, reviewed: false))];
 
     internal static string NormalizeOrDefault(string? cultureName) {
         if (string.IsNullOrWhiteSpace(cultureName)) return DefaultCulture;

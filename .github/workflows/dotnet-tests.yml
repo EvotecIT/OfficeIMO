@@ -254,6 +254,9 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Check Studio translations
+        shell: pwsh
+        run: ./Build/Studio/Test-StudioTranslations.ps1
       - name: Test Studio
         shell: pwsh
         env:
