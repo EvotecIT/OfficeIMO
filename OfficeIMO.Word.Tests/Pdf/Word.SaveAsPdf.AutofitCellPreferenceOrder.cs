@@ -81,6 +81,51 @@ public partial class Word {
         Assert.Equal(source, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_AbsoluteMergedCellPreservesAutomaticColumnContentPreference(bool automaticLast) {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateAutofitPreferenceOrderControl(document);
+        WordTableCell automatic = table.Rows[1].Cells[0];
+        automatic.WidthType = WordTableWidthUnit.Auto;
+        automatic.Width = 0;
+        automatic.Paragraphs[0].Text = "Alpha Bravo Charlie Delta";
+        table.AddRow();
+        table.MergeCells(2, 0, 1, 2, copyParagraphs: false);
+        WordTableCell merged = table.Rows[2].Cells[0];
+        merged.WidthType = WordTableWidthUnit.Dxa;
+        merged.Width = table.GridColumnWidth.Sum();
+        merged.Paragraphs[0].Text = "MERGED";
+        if (automaticLast) {
+            W.TableRow[] rows = table._table.Elements<W.TableRow>().ToArray();
+            rows[2].Remove();
+            table._table.InsertBefore(rows[2], rows[1]);
+        }
+        string source = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
+
+        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false, ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
+        }));
+        var page = Assert.Single(pdf.GetPages());
+        var words = page.GetWords().ToArray();
+        const string expected = "AlphaBravoCharlieDelta";
+        var letters = page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        int start = Array.FindIndex(letters, letter => letter.Value == "A");
+        Assert.True(start >= 0);
+        var phraseLetters = letters.Skip(start).Take(expected.Length).ToArray();
+        Assert.Equal(expected, string.Concat(phraseLetters.Select(letter => letter.Value)));
+        Assert.All(phraseLetters, letter => Assert.Equal(phraseLetters[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
+        var first = Assert.Single(words, word => word.Text == "M0");
+        var second = Assert.Single(words, word => word.Text == "M1");
+        // Native Word retains automatic single-column growth in either order:
+        // an absolute merged cell constrains the span, not each column's frame.
+        Assert.True(second.BoundingBox.Left - first.BoundingBox.Left > table.GridColumnWidth[0] / 20D);
+        Assert.Contains("P1", page.Text, StringComparison.Ordinal);
+        Assert.Single(words, word => word.Text == "MERGED");
+        Assert.Equal(source, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
+    }
+
     private static WordTable CreateAutofitPreferenceOrderControl(WordDocument document) {
         WordTable table = CreateAutomaticWidthControl(document, 1600, 1600);
         table.AddRow();
