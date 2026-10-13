@@ -28,6 +28,7 @@ internal static partial class CsvParser
         internal async ValueTask<(int Count, bool ReachedEnd)> CaptureRawRecordRunAsync(
             CsvRecordTextBatch batch, CancellationToken token)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after an interrupted record.");
             try
             {

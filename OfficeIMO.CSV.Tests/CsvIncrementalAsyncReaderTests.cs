@@ -14,6 +14,23 @@ namespace OfficeIMO.CSV.Tests;
 
 public class CsvIncrementalAsyncReaderTests
 {
+    [Fact]
+    public async Task Parser_Disposal_Failure_Preserves_Error_And_Ends_Both_Advance_Routes()
+    {
+        var input = new ThrowingDisposeTextReader("Value\n1\n");
+        var parser = new CsvParser.IncrementalRecords(input, new CsvLoadOptions());
+        Assert.True(await parser.ReadAsync(asynchronous: true, CancellationToken.None));
+
+        Assert.Same(input.Failure, Assert.Throws<IOException>(() => parser.Dispose()));
+        parser.Dispose();
+        Assert.Equal(1, input.DisposeCalls);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            parser.ReadAsync(asynchronous: true, CancellationToken.None, reuseValues: true).AsTask());
+        using var batch = new CsvRecordTextBatch(1, 1, System.Globalization.CultureInfo.InvariantCulture, null);
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            parser.CaptureRawRecordRunAsync(batch, CancellationToken.None).AsTask());
+    }
+
     [Theory]
     [InlineData(",", 1)]
     [InlineData(",", 4096)]
@@ -470,6 +487,17 @@ public class CsvIncrementalAsyncReaderTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.ReadAsync(cancellation.Token));
         Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
         await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
+    }
+
+    private sealed class ThrowingDisposeTextReader(string text) : StringReader(text)
+    {
+        internal IOException Failure { get; } = new("dispose failure");
+        internal int DisposeCalls { get; private set; }
+        protected override void Dispose(bool disposing)
+        {
+            DisposeCalls++;
+            throw Failure;
+        }
     }
 
     internal sealed class AsyncInput : Stream

@@ -1,5 +1,6 @@
 #nullable enable
 #if NET8_0_OR_GREATER
+using System.Buffers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,7 @@ internal static partial class CsvParser
     {
         private readonly TextReader _reader;
         private readonly CsvLoadOptions _options;
-        private readonly char[] _buffer = new char[CsvLineReader.DefaultBufferSize];
+        private readonly char[] _buffer;
         private readonly Queue<CsvLine> _pending = new();
         private readonly Dictionary<string, string>? _cache;
         private readonly string _delimiter;
@@ -22,7 +23,7 @@ internal static partial class CsvParser
         private StringBuilder? _lineBuffer;
         private const int MaximumRetainedTextCapacity = 64 * 1024;
         private int _offset, _length, _line = 1, _emitted;
-        private bool _failed;
+        private bool _failed, _disposed;
         internal CsvParsedRecord Current { get; private set; }
         internal int StartLine { get; private set; }
         internal int EndLine { get; private set; }
@@ -33,11 +34,13 @@ internal static partial class CsvParser
             _options = options;
             _cache = CreateStringCache(options);
             _delimiter = GetDelimiterText(options);
+            _buffer = ArrayPool<char>.Shared.Rent(CsvLineReader.DefaultBufferSize);
         }
 
         // Initialization retains schema samples; normal traversal borrows fields until the next advance.
         internal async ValueTask<bool> ReadAsync(bool asynchronous, CancellationToken token, bool reuseValues = false)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after an interrupted record.");
             try
             {
@@ -223,18 +226,21 @@ internal static partial class CsvParser
             if (_offset < _length) return true;
             _offset = 0;
             _length = asynchronous
-                ? await _reader.ReadAsync(_buffer.AsMemory(), token).ConfigureAwait(false)
-                : _reader.Read(_buffer, 0, _buffer.Length);
+                ? await _reader.ReadAsync(_buffer.AsMemory(0, CsvLineReader.DefaultBufferSize), token).ConfigureAwait(false)
+                : _reader.Read(_buffer, 0, CsvLineReader.DefaultBufferSize);
             return _length > 0;
         }
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
             _fields.Clear();
             _borrowedFields.Clear();
             _logicalRecordBuffer = _lineBuffer = null;
             Current = default;
-            _reader.Dispose();
+            try { _reader.Dispose(); }
+            finally { ArrayPool<char>.Shared.Return(_buffer, clearArray: true); }
         }
     }
 }

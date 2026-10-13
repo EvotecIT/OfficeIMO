@@ -67,8 +67,8 @@ internal static partial class CsvParser
             _offset = 0;
             _length = remaining;
             int read = asynchronous
-                ? await _reader.ReadAsync(_buffer.AsMemory(remaining), token).ConfigureAwait(false)
-                : _reader.Read(_buffer, remaining, _buffer.Length - remaining);
+                ? await _reader.ReadAsync(_buffer.AsMemory(remaining, CsvLineReader.DefaultBufferSize - remaining), token).ConfigureAwait(false)
+                : _reader.Read(_buffer, remaining, CsvLineReader.DefaultBufferSize - remaining);
             _length += read;
             return read > 0;
         }

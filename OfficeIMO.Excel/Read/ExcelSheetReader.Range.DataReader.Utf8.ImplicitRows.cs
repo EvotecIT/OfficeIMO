@@ -104,9 +104,14 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    int sharedStringIndex = ValidateIndexedCell(
-                        rowIndex, columnIndex, kind, styleIndex,
-                        sharedFormulaFollower: false, hasCachedValue, valueStart, valueLength);
+                    // Exact cached tags already proved their style against this
+                    // reader's immutable StylesCache. Shared-string indexes belong
+                    // to each value and must still be validated on every cell.
+                    int sharedStringIndex = repeatedTag && kind != Utf8CellKind.SharedString
+                        ? -1
+                        : ValidateIndexedCell(
+                            rowIndex, columnIndex, kind, styleIndex,
+                            sharedFormulaFollower: false, hasCachedValue, valueStart, valueLength);
                     if (sharedStringIndex >= 0) {
                         _valueStarts![cellIndex] = sharedStringIndex;
                         _valueLengths![cellIndex] = SharedStringIndexValueLength;
