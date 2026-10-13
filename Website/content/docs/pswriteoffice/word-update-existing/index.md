@@ -23,7 +23,7 @@ Use `-WhatIf` before a broad replacement. `Find-OfficeWord` can count the old an
 
 For structural work, open an editable document and pipe the specific object to commands such as `Set-OfficeWordParagraph`, `Set-OfficeWordText`, `Set-OfficeWordTableCell`, `Set-OfficeWordImage`, or `Set-OfficeWordDocumentProperty`. Save or close with `-Save` only after all changes succeed.
 
-The [update-existing recipe](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Recipe-Word-UpdateExisting.ps1) demonstrates link-aware replacement. [Example-WordModifyExistingObjects.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.6/Examples/Word/Example-WordModifyExistingObjects.ps1) shows object-level changes.
+The [update-existing recipe](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Word/Recipe-Word-UpdateExisting.ps1) demonstrates link-aware replacement. [Example-WordModifyExistingObjects.ps1](https://github.com/EvotecIT/PSWriteOffice/blob/v3.0.8/Examples/Word/Example-WordModifyExistingObjects.ps1) shows object-level changes.
 
 ## Preserve intent
 

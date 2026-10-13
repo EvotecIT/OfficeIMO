@@ -224,15 +224,18 @@ namespace OfficeIMO.Excel {
             CompleteCellValueMutation(row, column);
         }
 
-        private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value) {
-            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
-            DateTime converted;
+        private DateTime ConvertDateTimeOffsetForCell(DateTimeOffset value) {
             try {
-                converted = dateTimeOffsetStrategy(value);
+                return _excelDocument.DateTimeOffsetWriteStrategy(value);
             } catch (Exception ex) {
                 throw new InvalidOperationException("The configured DateTimeOffset write strategy threw an exception.", ex);
             }
+        }
 
+        private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value) =>
+            CellDateTimeOffsetValueCore(row, column, value, ConvertDateTimeOffsetForCell(value));
+
+        private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value, DateTime converted) {
             string? numericText = null;
             if (value.UtcDateTime >= CellValueExcelMinimumSupportedDate) {
                 try {

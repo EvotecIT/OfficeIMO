@@ -159,6 +159,25 @@ internal sealed class OfficeOpenTypeReader {
     /// <summary>Prefers the typographic family name for exact installed-face matching.</summary>
     internal string? ReadFamilyName() => ReadFirstName(16) ?? ReadFirstName(1);
 
+    /// <summary>Reads the declared static face attributes for installed-font selection.</summary>
+    internal OfficeFontFaceDescriptor ReadFaceDescriptor() {
+        int flags = ReadUInt16(_head.Offset + 44);
+        int weight = (flags & 1) != 0 ? 700 : 400;
+        double stretch = 100D;
+        OfficeFontSlant slant = (flags & 2) != 0 ? OfficeFontSlant.Italic : OfficeFontSlant.Normal;
+        if (TryGetTable("OS/2", out int offset, out int length) && length >= 8) {
+            int declared = ReadUInt16(offset + 4), width = ReadUInt16(offset + 6);
+            if (declared >= 1 && declared <= 1000) weight = declared;
+            if (width >= 1 && width <= 9) stretch = new[] { 50D, 62.5D, 75D, 87.5D, 100D, 112.5D, 125D, 150D, 200D }[width - 1];
+            if (length >= 64) {
+                int selection = ReadUInt16(offset + 62);
+                if ((selection & 512) != 0) slant = OfficeFontSlant.Oblique;
+                else if ((selection & 1) != 0) slant = OfficeFontSlant.Italic;
+            }
+        }
+        return new OfficeFontFaceDescriptor(weight, stretch, slant);
+    }
+
     internal string? ReadDisplayName() => ReadFirstName(4) ?? ReadFirstName(1) ?? ReadFirstName(6) ?? ReadFirstName(2);
 
     internal ushort ReadUInt16(int offset) {

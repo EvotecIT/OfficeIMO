@@ -475,21 +475,11 @@ namespace OfficeIMO.Excel {
         }
 
         private int CalculateColumnSpanPixels(int startColumn, int endColumn) {
-            ExcelTextMeasurer textMeasurer = ExcelTextMeasurer.Create(GetWorkbookDefaultFontInfo());
-            float mdw = textMeasurer.DefaultStyle.MaximumDigitWidth;
-            if (mdw <= 0.0001f) {
-                mdw = 7f;
-            }
-
+            var geometry = Utilities.ExcelWorksheetGeometryIndex.Create(WorksheetPart);
             double total = 0;
             for (int column = startColumn; column <= endColumn; column++) {
-                if (IsColumnHidden(column)) {
-                    continue;
-                }
-
-                total += GetColumnWidthPixels(column, mdw);
+                total += geometry.GetSimpleColumnWidthPixels(column);
             }
-
             return Math.Max(1, (int)Math.Round(total));
         }
 
@@ -500,13 +490,6 @@ namespace OfficeIMO.Excel {
             }
 
             return Math.Max(1, (int)Math.Round(total));
-        }
-
-        private bool IsColumnHidden(int columnIndex) {
-            var columns = WorksheetRoot.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>();
-            var column = columns?.Elements<DocumentFormat.OpenXml.Spreadsheet.Column>()
-                .FirstOrDefault(c => c.Min != null && c.Max != null && c.Min.Value <= (uint)columnIndex && c.Max.Value >= (uint)columnIndex);
-            return column?.Hidden?.Value == true;
         }
 
         private double GetRowHeightPixels(int rowIndex) {

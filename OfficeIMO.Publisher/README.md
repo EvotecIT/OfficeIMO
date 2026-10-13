@@ -46,6 +46,29 @@ Dynamic field markers and cached
 display text remain unevaluated. `Images` retains original embedded payloads;
 `GetBytes()` returns an independent copy.
 
+Native transparent-color keys, brightness/contrast controls, grayscale and
+two-color picture modes produce a processed PNG in the page scene. Original
+assets remain in `Images`. The read report identifies the managed color-space
+and threshold approximations; recoloring and extended color controls remain
+unassessed. Picture effects require bounded raster decoding. `MaximumRasterPixels`
+limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulative
+decode/filter work and inspected GIF, WebP or icon frame pixels across picture
+references.
+
+Native custom paths retain their declared frame canvas, including inset and
+negative coordinates. Literal vertices, open or closed line and cubic paths,
+subpaths, and no-fill/no-line controls use the shared drawing model. Custom
+picture paths clip the processed image without changing its original asset.
+Geometry guides resolve arithmetic, conditional, trigonometric and ellipse
+formulas using geometry-space dimensions, signed adjustments, earlier guides,
+stroke state and frame sizes in EMUs. The table is limited to 128 integer results.
+Invalid references or arithmetic, unsupported device-pixel parameters,
+limousine scaling, advanced commands and separately painted path groups use a
+reported geometry fallback. Producer rounding, native winding and picture-mask
+appearance remain unqualified against Publisher output. `Limits.MaxItems` bounds
+cumulative native vertex, guide and command work and copied shape/mask commands
+as well as drawing elements.
+
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
 column settings and wrap-object references. Linked stories follow their native
 links across frames and pages. Columns and rectangular wrap exclusions use the
@@ -55,12 +78,50 @@ including paragraph separators. These ranges describe recovered layout, rather
 than stored native break positions. A null range means placement is unresolved;
 `HasOverflow` identifies remaining story content after the final frame.
 
+Frame `X`, `Y`, `Width` and `Height` describe the unrotated rectangle in points.
+`PageTransform` maps frame-local points into the page, including the frame's own
+rotation/reflection and enclosing group transforms, including non-uniform scale. Use it when placing an
+annotation or inspecting the visible frame corners.
+
 ```csharp
 foreach (var page in publication.Pages)
     foreach (var frame in page.TextFrames)
         Console.WriteLine($"Frame {frame.Id}, story {frame.StoryId}, " +
             $"range {frame.TextStart}+{frame.TextLength}, overflow {frame.HasOverflow}");
+
+var firstFrame = publication.Pages[0].TextFrames[0];
+var corner = firstFrame.PageTransform.TransformPoint(new OfficeIMO.Drawing.OfficePoint(0, 0));
+Console.WriteLine($"Transformed top-left: {corner.X}, {corner.Y}");
 ```
+
+## Inspect native tables
+
+`PublisherPage.Tables` exposes native column widths, row heights, cell spans,
+styled cell paragraphs and text. Grid indices are zero-based; a merged cell
+appears once. Cell coordinates are local to the table and use points. Table
+`PageTransform` maps those coordinates into the page, including rotation and
+enclosing groups. The frame size and the grid track dimensions remain distinct.
+Tables inherited from a master are listed on that master in `MasterPages`.
+Hidden tables and tables with unavailable geometry retain their grid and mapped
+cell text. `HasPlacement = false` identifies a table whose frame cannot be used
+for page placement; its recovered cell data remains available.
+
+```csharp
+foreach (var page in publication.Pages)
+    foreach (var table in page.Tables) {
+        Console.WriteLine($"Table {table.Id}: {table.RowCount} x {table.ColumnCount}");
+        if (!table.HasTextMapping) continue;
+        foreach (var cell in table.Cells)
+            Console.WriteLine($"({cell.RowIndex}, {cell.ColumnIndex}), " +
+                $"span {cell.RowSpan} x {cell.ColumnSpan}: {cell.Text}");
+    }
+```
+
+An unresolved native cell-text mapping retains the grid with
+`HasTextMapping = false` and empty cell paragraphs/text. The read report carries
+the omission; complete recovered stories remain in `TextStories`. Cell fills,
+individual borders and padding remain unassessed. These source records describe
+recovery; changing the separate page drawing does not update the table model.
 
 ## Export a page as SVG
 
@@ -102,7 +163,11 @@ snapshotted for each operation. Cancellation applies to input reading, native
 records, and page projection. Exceeding a configured limit rejects the operation
 instead of returning a truncated document. Item and text limits also bound
 projected content, including repeated master use. `MaxItems` bounds image-store
-entries even when their payload cannot be recovered. `MaxInputBytes` also bounds
+entries even when their payload cannot be recovered and cumulative projected
+gradient stops, including focus expansion, as well as recovered table tracks and
+cells. `MaxTextCharacters` bounds copied table text. Native linear fills preserve colors,
+angle, focus and transparency in the shared drawing model; inspect the conversion
+report for unsupported shading, anchors and opacity ratios. `MaxInputBytes` also bounds
 cumulative encoded image-payload processing, including repeated delayed
 references; delayed decoding results are reused within the operation.
 `MaxTextCharacters` also bounds cumulative text measured while continuing stories;

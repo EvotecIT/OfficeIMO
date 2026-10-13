@@ -337,8 +337,9 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        internal bool TryEnableDirectTabularSaveCandidateAutoFit(ExcelSheet sheet) {
+        internal bool TryEnableDirectTabularSaveCandidateAutoFit(ExcelSheet sheet, CancellationToken ct = default) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ct.ThrowIfCancellationRequested();
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
             }
@@ -359,7 +360,8 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                var model = candidate.Model.WithAutoFitColumns(sheet.Name, _dateTimeOffsetWriteStrategy, CancellationToken.None);
+                var model = candidate.Model.WithAutoFitColumns(sheet.Name, _dateTimeOffsetWriteStrategy, ct);
+                ct.ThrowIfCancellationRequested();
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
                     candidate.Owner,
                     model,
@@ -372,6 +374,8 @@ namespace OfficeIMO.Excel {
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
                 return true;
+            } catch (OperationCanceledException) {
+                throw;
             } catch {
                 ClearDirectDataSetSaveCandidate();
                 return false;
@@ -543,7 +547,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal bool TryEnableDirectTabularSaveCandidateAutoFit(ExcelSheet sheet, IReadOnlyList<int> columnIndexes) {
+        internal bool TryEnableDirectTabularSaveCandidateAutoFit(ExcelSheet sheet, IReadOnlyList<int> columnIndexes, CancellationToken ct = default) {
+            ct.ThrowIfCancellationRequested();
             if (columnIndexes == null || columnIndexes.Count == 0) {
                 return false;
             }
@@ -571,15 +576,17 @@ namespace OfficeIMO.Excel {
             }
 
             if (allColumnsRequested) {
-                return TryEnableDirectTabularSaveCandidateAutoFit(sheet);
+                return TryEnableDirectTabularSaveCandidateAutoFit(sheet, ct);
             }
 
+            ct.ThrowIfCancellationRequested();
             if (sheetModel.AutoFitColumns) {
                 return true;
             }
 
             try {
-                var model = candidate.Model.WithAutoFitColumns(sheet.Name, columnIndexes, _dateTimeOffsetWriteStrategy, CancellationToken.None);
+                var model = candidate.Model.WithAutoFitColumns(sheet.Name, columnIndexes, _dateTimeOffsetWriteStrategy, ct);
+                ct.ThrowIfCancellationRequested();
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
                     candidate.Owner,
                     model,
@@ -592,6 +599,8 @@ namespace OfficeIMO.Excel {
                 _unchangedPackageBytes = null;
                 _requiresSavePreflight = false;
                 return true;
+            } catch (OperationCanceledException) {
+                throw;
             } catch {
                 ClearDirectDataSetSaveCandidate();
                 return false;

@@ -134,6 +134,7 @@ namespace OfficeIMO.Word {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            using IDisposable storyScope = WordHeaderFooterResolutionSnapshot.Begin(document, cancellationToken);
             using WordDocumentTraversal.ListMarkerRenderScope listMarkerScope =
                 WordDocumentTraversal.BuildListMarkersForRendering(document, cancellationToken);
             return CreateSnapshot(

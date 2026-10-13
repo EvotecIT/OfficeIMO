@@ -135,7 +135,8 @@ internal static partial class PdfWriter {
                         leading,
                         currentOpts.MarginLeft + markerOffset,
                         markerWidth,
-                        AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size),
+                        AdjustRichLineBaseline(baselineY, segmentLines[0], currentOpts, size) +
+                            ResolveFontLineAlignmentRise(markerFont, markerNamedFont, markerSize, currentOpts, lineSpacing),
                         markerLines,
                         markerAlign,
                         markerColor ?? color,

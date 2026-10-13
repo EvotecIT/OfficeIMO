@@ -28,6 +28,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Archives" />
+    <InternalsVisibleTo Include="OfficeIMO.Archives.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Html" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote" />
     <InternalsVisibleTo Include="OfficeIMO.Chm" />
@@ -86,6 +88,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Numerics" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 

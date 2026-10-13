@@ -38,6 +38,8 @@ internal static partial class PdfWriter {
         private double yStart;
         private double y;
         private bool pageHasContent;
+        private bool pageHasBodyContent;
+        private int runningNonContentObjectCount;
         private int? currentRunningSectionId;
         // Body emission records logical ownership at the same point as page
         // dirtiness, after any paragraph/table pagination has taken place.
@@ -45,6 +47,7 @@ internal static partial class PdfWriter {
             get => pageHasContent;
             set {
                 pageHasContent = value;
+                if (value && !isRunningContent) pageHasBodyContent = true;
                 if (value) RecordRunningContentSection();
             }
         }
@@ -163,7 +166,9 @@ internal static partial class PdfWriter {
             sb.Clear();
             behindTextCanvases.Clear();
             pageDirty = false;
+            pageHasBodyContent = false;
             PrepareAndRenderRunningContents();
+            runningNonContentObjectCount = CountCurrentPageNonContentObjects();
             for (int i = 0; i < activeLayers.Count; i++) {
                 BeginLayerContent(activeLayers[i]);
             }
@@ -193,17 +198,15 @@ internal static partial class PdfWriter {
             FlushPage(force: true);
         }
 
-        private bool HasCurrentPageNonContentObjects() =>
-            currentPage != null &&
-            (currentPage.Images.Count > 0 ||
-            currentPage.Annotations.Count > 0 ||
-            currentPage.TextAnnotations.Count > 0 ||
-            currentPage.FreeTextAnnotations.Count > 0 ||
-            currentPage.HighlightAnnotations.Count > 0 ||
-            currentPage.FormFields.Count > 0 ||
-            currentPage.GraphicsStates.Count > 0 ||
-            currentPage.Shadings.Count > 0 ||
-            currentPage.NamedDestinations.Count > 0);
+        private int CountCurrentPageNonContentObjects() => currentPage == null ? 0 :
+            currentPage.Images.Count + currentPage.Annotations.Count + currentPage.TextAnnotations.Count +
+            currentPage.FreeTextAnnotations.Count + currentPage.HighlightAnnotations.Count + currentPage.FormFields.Count +
+            currentPage.GraphicsStates.Count + currentPage.Shadings.Count + currentPage.NamedDestinations.Count;
+
+        private bool HasCurrentPageNonContentObjects() => CountCurrentPageNonContentObjects() > 0;
+
+        private bool HasCurrentPageBodyContent() => pageHasBodyContent || y < yStart - .001D ||
+            CountCurrentPageNonContentObjects() > runningNonContentObjectCount;
 
         private void FlushPage(bool force = false) {
             if (currentPage == null) return;
