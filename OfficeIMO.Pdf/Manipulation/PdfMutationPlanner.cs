@@ -330,7 +330,7 @@ internal static class PdfMutationPlanner {
             permissions,
             proofs,
             blockers);
-        IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, mode, security);
+        IReadOnlyList<string> warnings = GetWarnings(preflight, appendOnly, operation, mode, security);
         IReadOnlyList<string> diagnostics = GetDiagnostics(preflight, appendOnly, operation, mode, blockers, fullRewriteCapability, appendOnlyAvailable, security);
 
         return new PdfMutationPlan(
@@ -417,9 +417,10 @@ internal static class PdfMutationPlanner {
     }
 
     private static bool BlocksActiveContentPreservingMutation(PdfDocumentPreflight preflight, PdfMutationOperation operation) {
+        // A form-value revision appends field values and appearance streams only; existing actions stay
+        // byte-for-byte in earlier revisions and none are added, so it preserves active content as found.
         if (operation != PdfMutationOperation.UpdateMetadata &&
-            operation != PdfMutationOperation.SynchronizeMetadata &&
-            operation != PdfMutationOperation.FillFormFields) {
+            operation != PdfMutationOperation.SynchronizeMetadata) {
             return false;
         }
         return preflight.Probe.HasActiveContent || preflight.UncheckedDocumentInfo?.HasActiveContent == true;
@@ -743,6 +744,7 @@ internal static class PdfMutationPlanner {
     private static IReadOnlyList<string> GetWarnings(
         PdfDocumentPreflight preflight,
         PdfAppendOnlyMutationReport appendOnly,
+        PdfMutationOperation operation,
         PdfMutationExecutionMode mode,
         PdfDocumentSecurityInfo security) {
         var warnings = new List<string>();
@@ -758,6 +760,12 @@ internal static class PdfMutationPlanner {
 
         if (security.HasDocumentSecurityStore) {
             Add(warnings, "Input.DocumentSecurityStorePresent");
+        }
+
+        if (operation == PdfMutationOperation.FillFormFields &&
+            mode != PdfMutationExecutionMode.Blocked &&
+            preflight.UncheckedDocumentInfo?.AcroFormXfa is not null) {
+            Add(warnings, "Input.XfaDataNotSynchronized");
         }
 
         if (mode == PdfMutationExecutionMode.FullRewrite && security.HasIncrementalUpdates) {

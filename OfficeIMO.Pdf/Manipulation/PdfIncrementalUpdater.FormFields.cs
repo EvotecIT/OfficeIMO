@@ -117,6 +117,11 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(effectiveOptions.KeepNeedAppearances);
+        if (effectiveOptions.XfaHandling == PdfFormXfaHandling.Remove && acroForm.Items.Remove("XFA") &&
+            catalog.Items.Remove("NeedsRendering")) {
+            changedObjectNumbers.Add(security.RootObjectNumber.Value);
+        }
+
         if (acroFormObject is PdfReference acroFormReferenceForNeedAppearances) {
             changedObjectNumbers.Add(acroFormReferenceForNeedAppearances.ObjectNumber);
         } else {

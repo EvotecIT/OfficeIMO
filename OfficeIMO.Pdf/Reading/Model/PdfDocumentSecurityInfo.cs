@@ -41,6 +41,7 @@ public sealed class PdfDocumentSecurityInfo {
         int? docMDPPermissionLevel,
         bool hasUsageRights,
         IReadOnlyList<int> usageRightsObjectNumbers,
+        IReadOnlyList<string> usageRightsFormPermissions,
         PdfDocumentDssInfo documentSecurityStore,
         int? rootObjectNumber,
         int? rootObjectGeneration,
@@ -80,6 +81,7 @@ public sealed class PdfDocumentSecurityInfo {
         DocMDPPermissionLevel = docMDPPermissionLevel;
         HasUsageRights = hasUsageRights;
         UsageRightsObjectNumbers = usageRightsObjectNumbers;
+        UsageRightsFormPermissions = usageRightsFormPermissions;
         DocumentSecurityStore = documentSecurityStore;
         RootObjectNumber = rootObjectNumber;
         RootObjectGeneration = rootObjectGeneration;
@@ -229,6 +231,24 @@ public sealed class PdfDocumentSecurityInfo {
 
     /// <summary>Object numbers referenced by catalog usage-rights entries such as /UR or /UR3.</summary>
     public IReadOnlyList<int> UsageRightsObjectNumbers { get; }
+
+    /// <summary>Form rights granted by the usage-rights signature's /TransformParams /Form array, for example FillIn or Import.</summary>
+    public IReadOnlyList<string> UsageRightsFormPermissions { get; }
+
+    /// <summary>True when the usage-rights signature grants form fill-in (/Form contains /FillIn).</summary>
+    public bool UsageRightsAllowFormFillIn => UsageRightsFormPermissions.Contains("FillIn", StringComparer.Ordinal);
+
+    /// <summary>
+    /// True when every signature value is a usage-rights signature referenced from catalog /Perms,
+    /// so the document carries no approval or certification signature.
+    /// </summary>
+    public bool HasOnlyUsageRightsSignatures =>
+        HasUsageRights &&
+        !HasDocMDPPermissions &&
+        UsageRightsObjectNumbers.Count > 0 &&
+        Signatures.Count > 0 &&
+        Signatures.Count == SignatureValueCount &&
+        Signatures.All(signature => UsageRightsObjectNumbers.Contains(signature.ObjectNumber));
 
     /// <summary>Document Security Store (/DSS) evidence used for long-term signature validation, when present.</summary>
     public PdfDocumentDssInfo DocumentSecurityStore { get; }

@@ -15,5 +15,6 @@
     <ProjectReference Include="../OfficeIMO.Studio.Native/OfficeIMO.Studio.Native.csproj" />
     <None Include="../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf"
           Link="Fixtures/openpreserve-pdfa1b-text.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.TestAssets/OcrQuality/fw9.pdf" Link="Fixtures/fw9.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -64,6 +64,9 @@ public sealed partial class PdfDocumentPreflight {
 
             if (security.HasUsageRights) {
                 AddDistinct(messages, "Catalog /Perms contains usage-rights entries; rewrite may invalidate viewer-extended rights.");
+                if (PdfIncrementalUpdater.AllowsUsageRightsFormFillIn(security)) {
+                    AddDistinct(messages, "The usage-rights signature grants form fill-in (/Form /FillIn) and is the only signature; form values can be appended as a new revision that keeps the signed bytes.");
+                }
             }
 
             if (security.HasDocumentSecurityStore) {
@@ -161,12 +164,15 @@ public sealed partial class PdfDocumentPreflight {
                 AddDistinct(messages, "Encrypted PDFs cannot be append-only mutated by OfficeIMO.Pdf yet.");
             }
 
+            bool usageRightsFormFillIn = PdfIncrementalUpdater.AllowsUsageRightsFormFillIn(security);
             if (security.HasSignatures) {
                 if (security.Signatures.Any(static signature => signature.HasFieldLock)) {
                     AddDistinct(messages, "Signature field locks restrict append-only form filling; requested fields must be checked before update.");
                 }
 
-                if (security.HasDocMDPPermissions &&
+                if (usageRightsFormFillIn) {
+                    AddDistinct(messages, "Usage-rights signatures permit only append-only form fill-in revisions; other append-only changes would exceed the granted rights.");
+                } else if (security.HasDocMDPPermissions &&
                     security.DocMDPPermissionLevel.HasValue &&
                     security.DocMDPPermissionLevel.Value >= 2 &&
                     security.DocMDPPermissionLevel.Value <= 3) {
@@ -184,7 +190,7 @@ public sealed partial class PdfDocumentPreflight {
                 }
             }
 
-            if (security.HasUsageRights) {
+            if (security.HasUsageRights && !usageRightsFormFillIn) {
                 AddDistinct(messages, "Usage-rights entries must be preserved before append-only mutation.");
             }
 

@@ -257,6 +257,34 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.DoesNotContain((await document.GetFormFieldsAsync(1, default)).Fields.Single(static field => field.Name == "Name").Values, static value => value.Length > 0);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_rights_enabled_government_form_fills_as_an_appended_revision(bool removeXfa) {
+        string source = Path.Combine(_root, "fw9.pdf");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "fw9.pdf"), source);
+        byte[] original = File.ReadAllBytes(source);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default);
+        Assert.True((await document.GetInfoAsync(default)).CanFillForms);
+        StudioNativeFormFields form = await document.GetFormFieldsAsync(1, default);
+        Assert.True(form.CanFill);
+        Assert.True(form.HasXfa);
+        string name = form.Fields.First(static field => field.Kind == "text" && !field.ReadOnly).Name;
+
+        await document.FillFormAsync(new StudioNativeFormFill(
+            new Dictionary<string, IReadOnlyList<string>> { [name] = ["Ada Lovelace"] }, removeXfa), default);
+        string copy = Path.Combine(_root, "fw9-filled.pdf");
+        await document.SaveAsync(copy, default);
+
+        byte[] saved = File.ReadAllBytes(copy);
+        Assert.True(saved.AsSpan(0, original.Length).SequenceEqual(original));
+        using StudioNativeDocument reopened = await StudioNativeDocument.OpenAsync(copy, null, default);
+        StudioNativeFormFields filled = await reopened.GetFormFieldsAsync(1, default);
+        Assert.Equal("Ada Lovelace", filled.Fields.Single(field => field.Name == name).Values.Single());
+        Assert.Equal(!removeXfa, filled.HasXfa);
+        Assert.True(filled.CanFill);
+    }
+
     [Fact]
     public async Task Filling_refuses_fields_the_form_does_not_have() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateFormPdf(), null, default);

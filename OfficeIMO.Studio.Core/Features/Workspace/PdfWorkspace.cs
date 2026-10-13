@@ -106,7 +106,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal bool CanRedact => CanPlan(PdfMutationOperation.Redact);
 
-    internal bool CanFillForms => _preflight.CanFillSimpleFormFields || _preflight.CanAppendFormFieldRevision;
+    internal bool CanFillForms => CanPlan(PdfMutationOperation.FillFormFields);
 
     internal bool CanFlattenForms => _preflight.CanFlattenSimpleFormFields;
 

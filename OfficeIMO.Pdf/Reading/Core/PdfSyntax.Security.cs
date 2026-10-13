@@ -87,6 +87,7 @@ internal static partial class PdfSyntax {
         int? docMDPPermissionLevel = null;
         bool hasUsageRights = false;
         var usageRightsObjectNumbers = new List<int>();
+        var usageRightsFormPermissions = new List<string>();
         PdfDocumentDssInfo documentSecurityStore = PdfDocumentDssInfo.Empty;
 
         if (includeParsedDetails) {
@@ -150,6 +151,7 @@ internal static partial class PdfSyntax {
                         out docMDPPermissionLevel,
                         out hasUsageRights,
                         usageRightsObjectNumbers,
+                        usageRightsFormPermissions,
                         cancellationToken);
                 }
 
@@ -256,6 +258,7 @@ internal static partial class PdfSyntax {
             docMDPPermissionLevel,
             hasUsageRights,
             usageRightsObjectNumbers.Count == 0 ? Array.Empty<int>() : usageRightsObjectNumbers.AsReadOnly(),
+            usageRightsFormPermissions.Count == 0 ? Array.Empty<string>() : usageRightsFormPermissions.AsReadOnly(),
             documentSecurityStore,
             rootObjectNumber,
             rootObjectGeneration,
@@ -283,6 +286,7 @@ internal static partial class PdfSyntax {
         out int? docMDPPermissionLevel,
         out bool hasUsageRights,
         List<int> usageRightsObjectNumbers,
+        List<string> usageRightsFormPermissions,
         CancellationToken cancellationToken) {
         acroFormSignatureFlags = null;
         hasDocMDPPermissions = false;
@@ -316,6 +320,8 @@ internal static partial class PdfSyntax {
             ReadUsageRightsReference(permissions, "UR", usageRightsObjectNumbers);
             ReadUsageRightsReference(permissions, "UR3", usageRightsObjectNumbers);
             hasUsageRights = permissions.Items.ContainsKey("UR") || permissions.Items.ContainsKey("UR3");
+            ReadUsageRightsFormPermissions(objects, permissions, "UR", usageRightsFormPermissions, cancellationToken);
+            ReadUsageRightsFormPermissions(objects, permissions, "UR3", usageRightsFormPermissions, cancellationToken);
         }
     }
 
@@ -423,6 +429,41 @@ internal static partial class PdfSyntax {
             }
 
             return;
+        }
+    }
+
+    private static void ReadUsageRightsFormPermissions(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary permissions,
+        string key,
+        List<string> formPermissions,
+        CancellationToken cancellationToken) {
+        if (!permissions.Items.TryGetValue(key, out PdfObject? signatureObject) ||
+            ResolveObject(objects, signatureObject) is not PdfDictionary signature ||
+            !signature.Items.TryGetValue("Reference", out PdfObject? referenceObject) ||
+            ResolveObject(objects, referenceObject) is not PdfArray references) {
+            return;
+        }
+
+        for (int i = 0; i < references.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ResolveObject(objects, references.Items[i]) is not PdfDictionary reference) {
+                continue;
+            }
+
+            string? method = TryReadName(objects, reference, "TransformMethod");
+            if ((!string.Equals(method, "UR", StringComparison.Ordinal) && !string.Equals(method, "UR3", StringComparison.Ordinal)) ||
+                !reference.Items.TryGetValue("TransformParams", out PdfObject? transformParamsObject) ||
+                ResolveObject(objects, transformParamsObject) is not PdfDictionary transformParams) {
+                continue;
+            }
+
+            IReadOnlyList<string> granted = ReadNameOrTextArray(objects, transformParams, "Form", cancellationToken);
+            for (int j = 0; j < granted.Count; j++) {
+                if (!formPermissions.Contains(granted[j])) {
+                    formPermissions.Add(granted[j]);
+                }
+            }
         }
     }
 
