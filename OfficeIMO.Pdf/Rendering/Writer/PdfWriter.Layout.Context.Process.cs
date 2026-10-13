@@ -86,9 +86,10 @@ internal static partial class PdfWriter {
                 if (block is PageBreakBlock pageBreak) {
                     pendingFloatingBookmarks.Clear();
                     // A paragraph's page-break-before already holds on a fresh
-                    // body frame. Its running stories alone must not emit a
-                    // blank page; explicit preserved breaks still do.
-                    if (!pageBreak.PreserveEmptyPage && !HasCurrentPageBodyContent()) continue;
+                    // first column. Running stories alone must not emit a blank
+                    // page, but an empty later column still needs a page break.
+                    if (!pageBreak.PreserveEmptyPage && !HasCurrentPageBodyContent() &&
+                        (activeColumnFlow == null || activeColumnFlow.ColumnIndex == 0)) continue;
                     if (activeColumnFlow != null) AdvanceColumnFrame(forcePhysicalPage: true, pageBreak.PreserveEmptyPage);
                     else NewPage(pageBreak.PreserveEmptyPage);
                     continue;
