@@ -56,14 +56,14 @@ public sealed partial class MainWindowViewModel {
         }
         var drafts = FormFields.Where(field => field.HasDraft).ToArray();
         if (drafts.Length > 0 && _workspace?.CanFillForms != true) {
-            ErrorMessage = "This document does not permit applying form values.";
+            ErrorMessage = UiText("Forms.ApplyNotPermitted");
             return null;
         }
         var invalid = drafts.FirstOrDefault(field => !field.CanApplyValue);
         if (invalid is not null) {
             SelectedFormField = invalid;
             ErrorMessage = invalid.DisplayName + ": " + (invalid.HasDraftConflict
-                ? "The saved field changed. Choose whether to keep your draft or reset it."
+                ? UiText("Forms.DraftConflict")
                 : invalid.ValidationSummary);
             return null;
         }

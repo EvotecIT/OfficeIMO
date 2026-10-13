@@ -1,3 +1,4 @@
+using OfficeIMO.Studio.Infrastructure.Localization;
 using Avalonia;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -22,7 +23,7 @@ public sealed partial class MainWindowViewModel {
     private PdfEditorToolChoice _selectedEditorToolChoice = null!;
 
     [ObservableProperty]
-    private string _editorText = "Review note";
+    private string _editorText = StudioLocalization.Current.Get("Editor.DefaultNoteText");
 
     [ObservableProperty]
     private string _editorAuthor = Environment.UserName;
@@ -96,7 +97,7 @@ public sealed partial class MainWindowViewModel {
     private string _newFormFieldValue = string.Empty;
 
     [ObservableProperty]
-    private string _newFormFieldOptions = "Option 1\nOption 2";
+    private string _newFormFieldOptions = StudioLocalization.Current.Get("Editor.DefaultFieldOptions");
 
     [ObservableProperty]
     private string _newFormFieldCaption = "Button";

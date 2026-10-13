@@ -98,7 +98,9 @@ public sealed class ProvenanceWorkbenchTests {
                 Assert.Equal(localizer.Get("Provenance.TimeNotRecorded"), credential.Actions[1].Time);
                 Assert.Equal(localizer.Get("Provenance.ActionWatermarked"), credential.Actions[1].Action);
                 Assert.True(credential.Actions[1].HasWatermark);
-                Assert.Contains("Verification: NotConfigured", workspace.Checks);
+                // The summary is in the interface language; the verifier state stays the engine's identifier.
+                Assert.StartsWith(localizer.Format("Provenance.Checks", "", "", "", "").Split(' ')[0], workspace.Checks);
+                Assert.Contains("NotConfigured", workspace.Checks);
                 var view = new ProvenanceWorkbenchView { DataContext = model };
                 window = new Window { Width = width, Height = height, Content = view };
                 window.Show(); window.UpdateLayout();

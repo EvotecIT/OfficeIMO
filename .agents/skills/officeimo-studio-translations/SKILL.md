@@ -50,8 +50,9 @@ already accepted in preferences.
 - Translate whole sentences naturally; counts such as "(%lld)" may move within the sentence.
 - Right-to-left languages (`ar`, `he`) also need layout and document-text checks in both apps before they ship; translate
   them only when that work is planned.
-- A pack is complete when the check passes. Whether it needs a native speaker's review before release is the
-  maintainer's decision; report which languages were machine-translated.
+- Languages are translated and reviewed by AI agents; no human translation is required. A pack ships when the check
+  passes and a second agent pass has reviewed the whole language in the export file (`-All`) for meaning, consistent
+  terminology, the platform's standard terms and length, with its corrections imported.
 
 ## Adding interface text
 

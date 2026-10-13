@@ -61,7 +61,8 @@ foreach ($file in $Path) {
         $problems | ForEach-Object { Write-Host "${file}: $_" }
         throw "$file has $($problems.Count) problem(s); nothing from it was written."
     }
-    Write-ResxValues -Language $code -Values $desktopValues
+    # A file without desktop strings leaves the language's resources as they are.
+    if ($desktopCount) { Write-ResxValues -Language $code -Values $desktopValues }
     foreach ($name in $AppleCatalogs) { Write-AppleCatalog $name $catalogs[$name] }
     if (-not $NoRegister) { Add-StudioLanguageRegistration -Language $code }
     Write-Host "${code}: $desktopCount desktop and $appleCount Apple strings written from $file."

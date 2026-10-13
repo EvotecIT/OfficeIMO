@@ -329,7 +329,7 @@ final class DocumentSession {
     func extract(_ pages: [Int]) {
         guard let engine, !pages.isEmpty else { return }
         let base = (facts?.fileName as NSString?)?.deletingPathExtension ?? "Document"
-        let name = pages.count == 1 ? "\(base) – Page \(pages[0]).pdf" : "\(base) – \(pages.count) Pages.pdf"
+        let name = pages.count == 1 ? String(localized: "\(base) – Page \(pages[0]).pdf") : String(localized: "\(base) – \(pages.count) Pages.pdf")
         let folder = FileManager.default.temporaryDirectory.appending(path: "Extracted/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name)
         isWorking = true

@@ -66,7 +66,7 @@ public sealed partial class MainWindowViewModel {
                     _workspace.MoveAnnotationAsync(objectNumber, selection.PageNumber, deltaX, deltaY, token, CreateProgress()),
                 _ => throw new InvalidOperationException("The selected object cannot be moved.")
             },
-            cancellationToken, successStatus: "Selected object moved. Save when ready.").ConfigureAwait(true);
+            cancellationToken, successStatus: UiText("Editor.ObjectMoved")).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -88,14 +88,14 @@ public sealed partial class MainWindowViewModel {
         }
         if (bytes is null) return;
         if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
-            OperationStatus = "The document changed while the replacement image was being selected. Select the image again.";
+            OperationStatus = UiText("Editor.ImageChangedDuringSelection");
             return;
         }
         ClearObjectSelection();
         var imageOptions = new PdfImageEditOptions { Layer = PlaceEditedImageBehindContent ? PdfImageEditLayer.BehindExistingContent : PdfImageEditLayer.AboveExistingContent };
         await RunMutationAsync(
             token => workspace.ReplaceSelectedImageAsync(selection, bytes, token, CreateProgress(), imageOptions),
-            cancellationToken, successStatus: "Selected image replaced. Save when ready.").ConfigureAwait(true);
+            cancellationToken, successStatus: UiText("Editor.ImageReplaced")).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -115,7 +115,7 @@ public sealed partial class MainWindowViewModel {
                     _workspace.RemoveAnnotationAsync(objectNumber, token, CreateProgress()),
                 _ => throw new InvalidOperationException("The selected object cannot be deleted.")
             },
-            cancellationToken, successStatus: "Selected object removed. Save when ready.").ConfigureAwait(true);
+            cancellationToken, successStatus: UiText("Editor.ObjectRemoved")).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -130,6 +130,6 @@ public sealed partial class MainWindowViewModel {
         ClearObjectSelection();
         await RunMutationAsync(
             token => _workspace.ResizeAnnotationAsync(objectNumber, selection.PageNumber, rectangle, token, CreateProgress()),
-            cancellationToken, successStatus: "Annotation geometry updated. Save when ready.").ConfigureAwait(true);
+            cancellationToken, successStatus: UiText("Editor.AnnotationGeometryUpdated")).ConfigureAwait(true);
     }
 }

@@ -6659,4 +6659,155 @@ Défauts récupérés : {7:N0} · Seulement détectés : {8:N0}</value>
   <data name="Orientation.Apply" xml:space="preserve">
     <value>Appliquer les corrections acceptées</value>
   </data>
+  <data name="Provenance.Status.Ready" xml:space="preserve">
+    <value>Choisissez un fichier local et évaluez ses preuves d’origine prises en charge.</value>
+  </data>
+  <data name="Provenance.Status.ImportCancelled" xml:space="preserve">
+    <value>Importation annulée.</value>
+  </data>
+  <data name="Provenance.Status.SelectFile" xml:space="preserve">
+    <value>Sélectionnez un fichier local accessible. Les emplacements de fournisseurs ne sont pas pris en charge ici.</value>
+  </data>
+  <data name="Provenance.Status.ChooseOutputFolder" xml:space="preserve">
+    <value>Choisissez un dossier local existant pour la copie distincte.</value>
+  </data>
+  <data name="Provenance.Status.Copying" xml:space="preserve">
+    <value>Création et nouvelle inspection d’une copie distincte…</value>
+  </data>
+  <data name="Provenance.Status.Assessing" xml:space="preserve">
+    <value>Évaluation du fichier local…</value>
+  </data>
+  <data name="Provenance.Status.Cancelled" xml:space="preserve">
+    <value>Annulé.</value>
+  </data>
+  <data name="Provenance.Status.CancelledCheckOutput" xml:space="preserve">
+    <value>Annulé. Vérifiez le dossier de sortie avant de réessayer.</value>
+  </data>
+  <data name="Provenance.Status.Failed" xml:space="preserve">
+    <value>La vérification de l’origine a échoué : {0}</value>
+  </data>
+  <data name="Provenance.Status.ChooseReportFolder" xml:space="preserve">
+    <value>Choisissez un dossier local existant pour le rapport.</value>
+  </data>
+  <data name="Provenance.Status.Queued" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Provenance.Status.Exporting" xml:space="preserve">
+    <value>Exportation du rapport…</value>
+  </data>
+  <data name="Provenance.Status.ReportExported" xml:space="preserve">
+    <value>Rapport exporté.</value>
+  </data>
+  <data name="Provenance.Status.ReportCancelled" xml:space="preserve">
+    <value>Exportation du rapport annulée.</value>
+  </data>
+  <data name="Provenance.Status.ReportFailed" xml:space="preserve">
+    <value>L’exportation du rapport a échoué : {0}</value>
+  </data>
+  <data name="Provenance.Status.ReportProtected" xml:space="preserve">
+    <value>La destination du rapport est protégée par la stratégie de publication de l’hôte.</value>
+  </data>
+  <data name="Provenance.Job.Copy" xml:space="preserve">
+    <value>Copie sans données d’origine</value>
+  </data>
+  <data name="Provenance.Job.Assessment" xml:space="preserve">
+    <value>Évaluation de l’origine</value>
+  </data>
+  <data name="Provenance.Job.Report" xml:space="preserve">
+    <value>Rapport d’origine</value>
+  </data>
+  <data name="Provenance.Checks" xml:space="preserve">
+    <value>Structure : {0} · Intégrité du texte : {1} · Vérification : {2} · Fournisseurs : {3}</value>
+  </data>
+  <data name="Provenance.Evidence.Recognized" xml:space="preserve">
+    <value>{0} · {1} · Structure reconnue</value>
+  </data>
+  <data name="Provenance.Evidence.Malformed" xml:space="preserve">
+    <value>{0} · {1} · Malformé ou ambigu</value>
+  </data>
+  <data name="Provenance.TextFinding" xml:space="preserve">
+    <value>{0} · {1} · {2} · {3} · décalage UTF-16 {4}</value>
+  </data>
+  <data name="Provenance.VerificationFinding" xml:space="preserve">
+    <value>{0} · Vérification : {1}</value>
+  </data>
+  <data name="Provenance.Measurement" xml:space="preserve">
+    <value>{0} · détecteur {1} · {2} : {3} · seuil : {4} · jetons : {5}</value>
+  </data>
+  <data name="Provenance.Change" xml:space="preserve">
+    <value>{0} · {1} · {2} octets supprimés</value>
+  </data>
+  <data name="Provenance.Provider.NotConfigured" xml:space="preserve">
+    <value>Aucun vérificateur configuré. L’évaluation reste disponible sans lui.</value>
+  </data>
+  <data name="Provenance.Provider.Changed" xml:space="preserve">
+    <value>Configuration modifiée. Vérifiez l’exécutable, puis évaluez à nouveau le fichier.</value>
+  </data>
+  <data name="Provenance.Provider.EnterPath" xml:space="preserve">
+    <value>Saisissez le chemin d’un exécutable c2patool de confiance.</value>
+  </data>
+  <data name="Provenance.Provider.Checking" xml:space="preserve">
+    <value>Vérification de l’exécutable et de l’isolement du processus…</value>
+  </data>
+  <data name="Provenance.Provider.Available" xml:space="preserve">
+    <value>Disponible · {0} · {1}</value>
+  </data>
+  <data name="Provenance.Provider.Unavailable" xml:space="preserve">
+    <value>Indisponible · {0} · {1}</value>
+  </data>
+  <data name="Provenance.Provider.UnknownVersion" xml:space="preserve">
+    <value>version inconnue</value>
+  </data>
+  <data name="Provenance.Provider.Cancelled" xml:space="preserve">
+    <value>Vérification du fournisseur annulée.</value>
+  </data>
+  <data name="Provenance.Provider.Failed" xml:space="preserve">
+    <value>La vérification du fournisseur a échoué : {0}</value>
+  </data>
+  <data name="Signing.Validation.Summary" xml:space="preserve">
+    <value>{0} signature(s) · {1}</value>
+  </data>
+  <data name="Signing.Validation.None" xml:space="preserve">
+    <value>Aucune signature par certificat trouvée</value>
+  </data>
+  <data name="Signing.Validation.Unnamed" xml:space="preserve">
+    <value>Signature sans nom</value>
+  </data>
+  <data name="Signing.Validation.StructureValid" xml:space="preserve">
+    <value>{0} · structure valide</value>
+  </data>
+  <data name="Signing.Validation.StructureIssue" xml:space="preserve">
+    <value>{0} · problème de structure</value>
+  </data>
+  <data name="Signing.Validation.Complete" xml:space="preserve">
+    <value>Vérification des signatures terminée</value>
+  </data>
+  <data name="Signing.VisibleText" xml:space="preserve">
+    <value>Signé numériquement par {0}</value>
+  </data>
+  <data name="Forms.ApplyNotPermitted" xml:space="preserve">
+    <value>Ce document ne permet pas d’appliquer des valeurs de formulaire.</value>
+  </data>
+  <data name="Editor.ObjectMoved" xml:space="preserve">
+    <value>Objet sélectionné déplacé. Enregistrez quand vous êtes prêt.</value>
+  </data>
+  <data name="Editor.ImageChangedDuringSelection" xml:space="preserve">
+    <value>Le document a changé pendant le choix de l’image de remplacement. Sélectionnez à nouveau l’image.</value>
+  </data>
+  <data name="Editor.ImageReplaced" xml:space="preserve">
+    <value>Image sélectionnée remplacée. Enregistrez quand vous êtes prêt.</value>
+  </data>
+  <data name="Editor.ObjectRemoved" xml:space="preserve">
+    <value>Objet sélectionné supprimé. Enregistrez quand vous êtes prêt.</value>
+  </data>
+  <data name="Editor.AnnotationGeometryUpdated" xml:space="preserve">
+    <value>Position de l’annotation mise à jour. Enregistrez quand vous êtes prêt.</value>
+  </data>
+  <data name="Editor.DefaultNoteText" xml:space="preserve">
+    <value>Note de révision</value>
+  </data>
+  <data name="Editor.DefaultFieldOptions" xml:space="preserve">
+    <value>Option 1
+Option 2</value>
+  </data>
 </root>
