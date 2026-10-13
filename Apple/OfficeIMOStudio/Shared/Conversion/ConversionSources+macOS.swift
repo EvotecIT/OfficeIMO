@@ -9,11 +9,16 @@ enum ConversionSources {
     static func newDocumentFromFile(_ newDocument: NewDocumentAction) {
         Task {
             do {
+                let extensions = try await DocumentConversion.extensions()
                 let panel = NSOpenPanel()
-                panel.allowedContentTypes = try await DocumentConversion.contentTypes()
+                panel.allowedContentTypes = DocumentConversion.types(for: extensions)
+                let filter = ExtensionFilter(extensions)
+                panel.delegate = filter
                 panel.message = String(localized: "Choose a document to convert to PDF.")
                 panel.prompt = String(localized: "Convert")
-                guard panel.runModal() == .OK, let input = panel.url else { return }
+                let response = panel.runModal()
+                withExtendedLifetime(filter) {}
+                guard response == .OK, let input = panel.url else { return }
                 let converted = try await DocumentConversion.convert(input)
                 let document = try StudioDocument(contentsOf: converted.url)
                 newDocument { document }
@@ -21,6 +26,19 @@ enum ConversionSources {
                 NSAlert(error: error).runModal()
             }
         }
+    }
+}
+
+/// Enables only files whose extension the engine converts, and folders to browse.
+private final class ExtensionFilter: NSObject, NSOpenSavePanelDelegate {
+    private let extensions: Set<String>
+
+    init(_ extensions: Set<String>) {
+        self.extensions = extensions
+    }
+
+    func panel(_ sender: Any, shouldEnable url: URL) -> Bool {
+        url.hasDirectoryPath || extensions.contains(url.pathExtension.lowercased())
     }
 }
 #endif

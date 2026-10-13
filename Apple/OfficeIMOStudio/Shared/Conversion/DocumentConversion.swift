@@ -30,10 +30,18 @@ struct ConversionResult: Decodable, Sendable {
 enum DocumentConversion {
     /// The file types the engine converts, for the system's file pickers.
     static func contentTypes() async throws -> [UTType] {
-        let extensions = try await Engine.conversionSources().flatMap(\.extensions)
+        types(for: try await extensions())
+    }
+
+    /// The file extensions the engine converts, lowercased and without the dot. A picker filtering by type also offers
+    /// types that conform to these, such as CSV as plain text, so a picker that can, checks the extension too.
+    static func extensions() async throws -> Set<String> {
+        Set(try await Engine.conversionSources().flatMap(\.extensions).map { String($0.drop { $0 == "." }).lowercased() })
+    }
+
+    static func types(for extensions: Set<String>) -> [UTType] {
         var seen = Set<String>()
-        return extensions.compactMap { UTType(filenameExtension: String($0.drop { $0 == "." })) }
-            .filter { seen.insert($0.identifier).inserted }
+        return extensions.sorted().compactMap { UTType(filenameExtension: $0) }.filter { seen.insert($0.identifier).inserted }
     }
 
     /// Converts a document to a new PDF named after it.
