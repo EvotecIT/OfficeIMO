@@ -160,7 +160,7 @@ internal sealed class StudioNativeDocument : IDisposable {
     /// Sets form field values as one undoable change: text, the selected options of a choice, or the on state of a check
     /// box or radio button ("Off" to clear it). A signed or certified document takes the values as an appended revision.
     /// A form that also carries Adobe XFA data keeps it unchanged unless the request removes it; removing it lets Adobe
-    /// Acrobat show the new values too and ends Adobe Reader's extended rights for the changed form.
+    /// Acrobat use the AcroForm values and can invalidate Adobe Reader's extended rights for the changed form.
     /// </summary>
     internal Task FillFormAsync(StudioNativeFormFill request, CancellationToken cancellationToken) {
         IReadOnlyDictionary<string, IReadOnlyList<string>> values = request.Values is { Count: > 0 } given

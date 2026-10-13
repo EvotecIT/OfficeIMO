@@ -318,6 +318,40 @@ public sealed class StudioNativeEngineTests : IDisposable {
         } finally { close(document); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public unsafe void The_C_interface_reports_xfa_and_applies_the_removal_choice(bool removeXfa) {
+        string path = Path.Combine(_root, "fw9.pdf");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", "fw9.pdf"), path);
+        delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;
+        delegate* unmanaged<nint, int, nint, byte**, byte**, int> fields = &StudioNativeExports.DocumentFormFieldsJson;
+        delegate* unmanaged<nint, byte*, nint, byte**, int> fill = &StudioNativeExports.DocumentFillFormJson;
+        delegate* unmanaged<nint, void> close = &StudioNativeExports.DocumentClose;
+        delegate* unmanaged<void*, void> free = &StudioNativeExports.Free;
+        nint document = 0; byte* error = null; byte* json = null;
+        fixed (byte* location = Encoding.UTF8.GetBytes(path + "\0")) Assert.Equal(StudioNativeAbi.Ok, open(location, null, 0, &document, &error));
+        try {
+            Assert.Equal(StudioNativeAbi.Ok, fields(document, 1, 0, &json, &error));
+            string name;
+            using (JsonDocument form = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!)) {
+                Assert.True(form.RootElement.GetProperty("hasXfa").GetBoolean());
+                name = form.RootElement.GetProperty("fields").EnumerateArray().First(field =>
+                    field.GetProperty("kind").GetString() == "text" && !field.GetProperty("readOnly").GetBoolean()).GetProperty("name").GetString()!;
+            }
+            free(json); json = null;
+            var values = new Dictionary<string, string[]> { [name] = ["Grace Hopper"] };
+            // Omitting removeXfa exercises the public default used by existing native clients.
+            string request = removeXfa ? JsonSerializer.Serialize(new { values, removeXfa = true }) : JsonSerializer.Serialize(new { values });
+            fixed (byte* body = Encoding.UTF8.GetBytes(request + "\0")) Assert.Equal(StudioNativeAbi.Ok, fill(document, body, 0, &error));
+            Assert.Equal(StudioNativeAbi.Ok, fields(document, 1, 0, &json, &error));
+            using JsonDocument filled = JsonDocument.Parse(Marshal.PtrToStringUTF8((nint)json)!);
+            Assert.Equal(!removeXfa, filled.RootElement.GetProperty("hasXfa").GetBoolean());
+            Assert.Equal("Grace Hopper", filled.RootElement.GetProperty("fields").EnumerateArray()
+                .Single(field => field.GetProperty("name").GetString() == name).GetProperty("values")[0].GetString());
+        } finally { free(json); free(error); close(document); }
+    }
+
     [Fact]
     public async Task Extracted_pages_form_a_new_document_and_leave_the_open_one_unchanged() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310, 320), null, default);

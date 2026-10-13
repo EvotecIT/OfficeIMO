@@ -156,19 +156,24 @@ int32_t officeimo_document_import_pages_json(officeimo_document document, const 
                                              officeimo_cancellation cancellation, char **json, char **error);
 
 /*
- * The form fields with a widget on a page, as JSON: { "abiVersion", "revision", "page", "canFill", "fields": [ { "name",
+ * The form fields with a widget on a page, as JSON: { "abiVersion", "revision", "page", "canFill", "hasXfa", "fields": [ { "name",
  * "kind", "values": [ ], "options": [ { "value", "text" } ], "readOnly", "required", "multiline", "password", "comb",
  * "maxLength", "multipleSelection", "editable", "label", "widgets": [ { "objectNumber", "bounds": { "x", "y", "width",
  * "height" }, "onState", "isOn" } ] } ] }. kind is "text", "checkbox", "radio", "combo", "list", "button" or "signature";
  * bounds are in points of the page as displayed; onState is the value that turns a check box or radio button on.
+ * hasXfa reports whether the form also carries an XFA packet.
  */
 int32_t officeimo_document_form_fields_json(officeimo_document document, int32_t page, officeimo_cancellation cancellation,
                                             char **json, char **error);
 
 /*
- * Sets form field values as one undoable change. The request is JSON: { "values": { "<field name>": [ "<value>" ] } }:
+ * Sets form field values as one undoable change. The request is JSON:
+ * { "values": { "<field name>": [ "<value>" ] }, "removeXfa": false }:
  * text, the selected option values of a choice, or a widget's onState for a check box or radio button, "Off" to clear
  * it. A read-only, push-button or signature field, or a name the form doesn't have, fails with OFFICEIMO_INVALID_ARGUMENT.
+ * removeXfa defaults to false, preserving the XFA packet without synchronizing its data. Set it to true to remove
+ * XFA in the appended revision so XFA-aware viewers use the AcroForm values; this can invalidate Reader usage rights.
+ * Removing XFA from a DocMDP-certified form is refused; its form values can still be filled while preserving XFA.
  */
 int32_t officeimo_document_fill_form_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
                                           char **error);

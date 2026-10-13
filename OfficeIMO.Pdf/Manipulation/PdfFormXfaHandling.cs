@@ -9,8 +9,9 @@ public enum PdfFormXfaHandling {
     Preserve = 0,
 
     /// <summary>
-    /// Remove /XFA from the AcroForm in the appended revision so every viewer uses the AcroForm values. Earlier
-    /// revisions keep the XFA packet; Adobe Reader treats usage rights as no longer applying to the changed form.
+    /// Remove /XFA from the AcroForm in the appended revision so XFA-aware viewers can use the AcroForm values.
+    /// Earlier revisions keep the XFA packet; removal can invalidate Adobe Reader usage rights.
+    /// Removing XFA from a DocMDP-certified document is refused because it changes the form definition.
     /// </summary>
     Remove = 1
 }

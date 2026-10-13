@@ -320,8 +320,9 @@ internal static partial class PdfSyntax {
             ReadUsageRightsReference(permissions, "UR", usageRightsObjectNumbers);
             ReadUsageRightsReference(permissions, "UR3", usageRightsObjectNumbers);
             hasUsageRights = permissions.Items.ContainsKey("UR") || permissions.Items.ContainsKey("UR3");
-            ReadUsageRightsFormPermissions(objects, permissions, "UR", usageRightsFormPermissions, cancellationToken);
-            ReadUsageRightsFormPermissions(objects, permissions, "UR3", usageRightsFormPermissions, cancellationToken);
+            // UR3 supersedes the legacy UR grant, even when it grants no form rights.
+            string effectiveUsageRightsKey = permissions.Items.ContainsKey("UR3") ? "UR3" : "UR";
+            ReadUsageRightsFormPermissions(objects, permissions, effectiveUsageRightsKey, usageRightsFormPermissions, cancellationToken);
         }
     }
 

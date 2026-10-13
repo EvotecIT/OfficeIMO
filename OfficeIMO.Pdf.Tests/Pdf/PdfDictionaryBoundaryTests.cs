@@ -54,7 +54,7 @@ public sealed class PdfDictionaryBoundaryTests {
 
         PdfDocumentInfo info = PdfInspector.Inspect(Encoding.ASCII.GetBytes(pdf));
 
-        Assert.Equal(new[] { "Check", "Name" }, info.FormFields.Select(static field => field.Name).Order());
+        Assert.Equal(new[] { "Check", "Name" }, info.FormFields.Select(static field => field.Name).OrderBy(static name => name, StringComparer.Ordinal));
         Assert.Equal("a >> b", info.FormFields.Single(static field => field.Name == "Name").AlternateName);
     }
 

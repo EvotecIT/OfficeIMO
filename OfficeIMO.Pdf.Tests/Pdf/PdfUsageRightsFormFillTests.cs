@@ -96,6 +96,36 @@ public class PdfUsageRightsFormFillTests {
     }
 
     [Theory]
+    [InlineData("[/Import]", "[/FillIn]", false)]
+    [InlineData(null, "[/FillIn]", false)]
+    [InlineData("[/FillIn]", "[/Import]", true)]
+    public void Ur3Grant_TakesPrecedenceOverLegacyUr(string? formRights, string legacyFormRights, bool canFill) {
+        byte[] original = BuildUsageRightsFormPdf(formRights, documentSignature: false, legacyFormRights: legacyFormRights);
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(original);
+        PdfDocumentSecurityInfo security = preflight.Probe.Security;
+        Assert.Equal(canFill, security.UsageRightsAllowFormFillIn);
+        Assert.Equal(canFill, PdfSyntax.ReadDocumentSecurityInfo(original).UsageRightsAllowFormFillIn);
+        Assert.True(security.HasOnlyUsageRightsSignatures);
+        Assert.Equal(canFill, preflight.CanAppendFormFieldRevision);
+        Assert.Equal(canFill, PdfDocument.Load(original).Forms.FillResult(AfterValues).Succeeded);
+        Assert.False(PdfMutationPlanner.Plan(original, PdfMutationOperation.UpdateMetadata).CanExecute);
+    }
+
+    [Fact]
+    public void LegacyUrGrant_AllowsFillInWhenUr3IsAbsent() {
+        byte[] original = BuildUsageRightsFormPdf("[/FillIn]", documentSignature: false, usageRightsKey: "UR");
+
+        Assert.True(PdfInspector.Preflight(original).CanAppendFormFieldRevision);
+        Assert.True(PdfSyntax.ReadDocumentSecurityInfo(original).UsageRightsAllowFormFillIn);
+        PdfOperationResult<PdfDocument> filled = PdfDocument.Load(original).Forms.FillResult(AfterValues);
+        Assert.True(filled.Succeeded, string.Join(" ", filled.Diagnostics));
+        byte[] updated = filled.Value!.ToBytes();
+        Assert.True(updated.AsSpan(0, original.Length).SequenceEqual(original));
+        Assert.Equal("after", Assert.Single(PdfInspector.Inspect(updated).FormFields).Value);
+    }
+
+    [Theory]
     [InlineData("fw9.pdf")]
     [InlineData("fw9sp.pdf")]
     [InlineData("fw8ben.pdf")]
@@ -149,14 +179,34 @@ public class PdfUsageRightsFormFillTests {
     private static string GovernmentForm(string name) =>
         Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "OcrQuality", name);
 
-    private static byte[] BuildUsageRightsFormPdf(string? formRights, bool documentSignature) {
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void CertifiedHybridForms_PreserveXfaAndRefuseItsRemoval(int permissionLevel) {
+        byte[] original = PdfITextInspiredCoverageTests.BuildDocMdpFormPdf(permissionLevel, includeXfa: true);
+        PdfDocument document = PdfDocument.Load(original);
+        Assert.NotNull(document.Inspect().AcroFormXfa);
+        var values = new Dictionary<string, PdfFormFieldValue> { ["Name"] = PdfFormFieldValue.From("Grace") };
+
+        byte[] preserved = document.Forms.AppendRevision(values).ToBytes();
+        Assert.True(preserved.AsSpan(0, original.Length).SequenceEqual(original));
+        Assert.NotNull(PdfInspector.Inspect(preserved).AcroFormXfa);
+        Assert.Equal("Grace", PdfInspector.Inspect(preserved).FormFieldsByName["Name"].Value);
+
+        Assert.Throws<NotSupportedException>(() => document.Forms.AppendRevision(values,
+            new PdfIncrementalFormFieldUpdateOptions { XfaHandling = PdfFormXfaHandling.Remove }));
+    }
+
+    private static byte[] BuildUsageRightsFormPdf(string? formRights, bool documentSignature,
+        string? legacyFormRights = null, string usageRightsKey = "UR3") {
         string transformParams = "<< /Type /TransformParams /V /2.2" +
             (formRights is null ? string.Empty : " /Form " + formRights) +
             " /Document [/FullSave] >>";
         string fields = documentSignature ? "[4 0 R 8 0 R]" : "[4 0 R]";
         string annots = documentSignature ? "[4 0 R 8 0 R]" : "[4 0 R]";
         var objects = new List<string> {
-            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /Perms << /UR3 6 0 R >> >>",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R /Perms << /" + usageRightsKey + " 6 0 R" +
+                (legacyFormRights is null ? string.Empty : " /UR 8 0 R") + " >> >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << >> /Annots " + annots + " >>",
             "<< /FT /Tx /T (Name) /V (before) /Type /Annot /Subtype /Widget /Rect [20 200 220 222] /P 3 0 R /DA (/Helv 10 Tf 0 g) >>",
@@ -168,6 +218,10 @@ public class PdfUsageRightsFormFillTests {
         if (documentSignature) {
             objects.Add("<< /FT /Sig /T (Approval) /V 9 0 R /Type /Annot /Subtype /Widget /Rect [20 100 220 140] /P 3 0 R >>");
             objects.Add("<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /ByteRange [0 10 20 30] /Contents <2233> >>");
+        }
+        if (legacyFormRights is not null) {
+            objects.Add("<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /ByteRange [0 100 200 300] /Contents <4455> " +
+                "/Reference [<< /Type /SigRef /TransformMethod /UR /TransformParams << /Form " + legacyFormRights + " >> >>] >>");
         }
 
         var builder = new StringBuilder("%PDF-1.7\n");

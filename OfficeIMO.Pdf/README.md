@@ -2267,9 +2267,11 @@ blocked. Existing JavaScript and other actions are kept unchanged, and the plan
 reports `Input.ActiveContentPreserved`. On a hybrid AcroForm/XFA form the revision
 fills the AcroForm fields and reports `Input.XfaDataNotSynchronized`, because
 XFA-aware viewers such as Adobe Acrobat may keep showing the unchanged XFA data.
-Set `XfaHandling` to remove the XFA packet in the appended revision so every
-viewer shows the AcroForm values. Adobe Reader then no longer applies the form's
-usage rights.
+Set `XfaHandling` to remove the XFA packet in the appended revision so XFA-aware
+viewers can use the AcroForm values. Removal can invalidate Adobe Reader usage
+rights; preserving the original signed bytes does not establish viewer acceptance
+of the changed form. Certified forms retain their XFA packet: removing it changes
+the form definition and is refused under DocMDP.
 
 ```csharp
 using OfficeIMO.Pdf;
