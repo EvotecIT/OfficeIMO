@@ -213,6 +213,9 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
             NativeDocumentDefaults nativeDefaults = GetNativeDocumentDefaults(document, nativeFontMap);
+            nativeDefaults = nativeDefaults with {
+                BodyTextInkTopOffset = GetNativeBodyTextInkTopOffset(document, nativeDefaults, nativeFontMap, options)
+            };
             var footnoteNumbersById = new NativeNoteNumbering(document, options);
             IReadOnlyList<WordSection> sections = document.Sections;
             var documentEndnotes = new List<PdfFootnote>();
