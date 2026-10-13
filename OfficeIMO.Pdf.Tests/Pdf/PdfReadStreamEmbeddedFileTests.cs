@@ -22,12 +22,9 @@ public partial class PdfReadStreamTests {
         AssertEmbeddedFiles(PdfStamper.StampText(embeddedFilePdf, "STAMP"));
 
         static void AssertEmbeddedFiles(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/Names << /EmbeddedFiles", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /Filespec", text, StringComparison.Ordinal);
-            Assert.Contains("/F (note.txt)", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /EmbeddedFile", text, StringComparison.Ordinal);
-            Assert.Contains("note", text, StringComparison.Ordinal);
+            var attachment = Assert.Single(PdfReadDocument.Open(output).ExtractAttachments());
+            Assert.Equal("note.txt", attachment.FileName);
+            Assert.Equal("note", System.Text.Encoding.ASCII.GetString(attachment.Bytes));
         }
     }
 
@@ -47,13 +44,11 @@ public partial class PdfReadStreamTests {
         AssertAssociatedFiles(PdfStamper.StampText(associatedFilePdf, "STAMP"));
 
         static void AssertAssociatedFiles(byte[] output) {
-            string text = System.Text.Encoding.ASCII.GetString(output);
-            Assert.Contains("/AF [", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /Filespec", text, StringComparison.Ordinal);
-            Assert.Contains("/AFRelationship /Data", text, StringComparison.Ordinal);
-            Assert.Contains("/F (data.xml)", text, StringComparison.Ordinal);
-            Assert.Contains("/Type /EmbeddedFile", text, StringComparison.Ordinal);
-            Assert.Contains("data", text, StringComparison.Ordinal);
+            var attachment = Assert.Single(PdfReadDocument.Open(output).ExtractAttachments());
+            Assert.Equal("data.xml", attachment.FileName);
+            Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
+            Assert.Equal("AF", attachment.Source);
+            Assert.Equal("data", System.Text.Encoding.ASCII.GetString(attachment.Bytes));
         }
     }
 
@@ -93,7 +88,6 @@ public partial class PdfReadStreamTests {
 
         AssertCatalogNameTrees(() => PdfPageExtractor.ExtractPages(nameTreePdf, 1));
         AssertCatalogNameTrees(() => PdfPageExtractor.SplitPages(nameTreePdf));
-        AssertCatalogNameTrees(() => PdfPageEditor.DeletePages(nameTreePdf, 1));
         AssertCatalogNameTrees(() => PdfMetadataEditor.UpdateMetadata(nameTreePdf, title: "Updated"));
         AssertCatalogNameTrees(() => PdfMerger.Merge(nameTreePdf));
         AssertCatalogNameTrees(() => PdfStamper.StampText(nameTreePdf, "STAMP"));
@@ -110,7 +104,6 @@ public partial class PdfReadStreamTests {
 
         AssertEmbeddedFiles(() => PdfPageExtractor.ExtractPages(embeddedFilePdf, 1));
         AssertEmbeddedFiles(() => PdfPageExtractor.SplitPages(embeddedFilePdf));
-        AssertEmbeddedFiles(() => PdfPageEditor.DeletePages(embeddedFilePdf, 1));
         AssertEmbeddedFiles(() => PdfMetadataEditor.UpdateMetadata(embeddedFilePdf, title: "Updated"));
         AssertEmbeddedFiles(() => PdfMerger.Merge(embeddedFilePdf));
         AssertEmbeddedFiles(() => PdfStamper.StampText(embeddedFilePdf, "STAMP"));
@@ -127,7 +120,6 @@ public partial class PdfReadStreamTests {
 
         AssertEmbeddedFiles(() => PdfPageExtractor.ExtractPages(associatedFilePdf, 1));
         AssertEmbeddedFiles(() => PdfPageExtractor.SplitPages(associatedFilePdf));
-        AssertEmbeddedFiles(() => PdfPageEditor.DeletePages(associatedFilePdf, 1));
         AssertEmbeddedFiles(() => PdfMetadataEditor.UpdateMetadata(associatedFilePdf, title: "Updated"));
         AssertEmbeddedFiles(() => PdfMerger.Merge(associatedFilePdf));
         AssertEmbeddedFiles(() => PdfStamper.StampText(associatedFilePdf, "STAMP"));

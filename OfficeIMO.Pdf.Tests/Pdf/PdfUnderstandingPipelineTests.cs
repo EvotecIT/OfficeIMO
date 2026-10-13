@@ -2440,7 +2440,7 @@ public partial class PdfUnderstandingPipelineTests {
         pdf = PdfPageEditor.RotatePages(pdf, 90);
         var pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.GlyphDecoding = new FixedGlyphStage(new[] {
-            new PdfTextSpan("Visual header", "F1", 12D, 470D, 400D, 20D)
+            new PdfTextSpan("Visual header", "F1", 12D, 110D, 400D, 20D)
         });
 
         PdfDocumentReadResult result = Read(pdf, pipeline);
@@ -2781,8 +2781,8 @@ public partial class PdfUnderstandingPipelineTests {
             new PdfTextLayoutOptions(),
             10_000,
             10_000);
-        PdfUnderstandingRegion visualBottom = CreateUnderstandingRegion("Visual bottom", 150D, 500D, 11D);
-        PdfUnderstandingRegion visualTop = CreateUnderstandingRegion("Visual top", 350D, 500D, 11D);
+        PdfUnderstandingRegion visualBottom = CreateUnderstandingRegion("Visual bottom", 350D, 500D, 11D);
+        PdfUnderstandingRegion visualTop = CreateUnderstandingRegion("Visual top", 150D, 500D, 11D);
 
         IReadOnlyList<PdfUnderstandingRegion> ordered = PdfAdvancedUnderstandingStages.ReadingOrder.Order(
             context,

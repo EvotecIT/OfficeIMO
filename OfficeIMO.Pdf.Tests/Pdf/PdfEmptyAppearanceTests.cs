@@ -9,6 +9,29 @@ namespace OfficeIMO.Tests.Pdf;
 /// every form widget, so a page that carries them still renders, reports diagnostics and flattens.
 /// </summary>
 public sealed class PdfEmptyAppearanceTests {
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void RotationNormalizationPreservesEmptyAppearancesAndWidgetStates(int rotation) {
+        PdfDocument source = PdfDocument.Load(BuildPdf(widgetOffAppearanceBox: "[0 0 0 0]",
+            squareAppearanceBox: "[0 0 0 0]")).Pages.Rotate(rotation);
+        PdfPageRenderResult before = Assert.Single(PdfPageImageRenderer.RenderPages(source.ToBytes(),
+            options: new PdfPageRenderOptions { ContinueOnError = false }));
+
+        PdfDocument normalized = source.Pages.NormalizeRotation();
+        PdfPageRenderResult after = Assert.Single(PdfPageImageRenderer.RenderPages(normalized.ToBytes(),
+            options: new PdfPageRenderOptions { ContinueOnError = false }));
+
+        Assert.Equal(0, normalized.Inspect().Pages[0].RotationDegrees);
+        Assert.Single(normalized.Annotations.GetForEditing());
+        Assert.Single(normalized.Inspect().FormFields);
+        Assert.True(before.Succeeded);
+        Assert.True(after.Succeeded);
+        Assert.NotNull(before.Bytes);
+        Assert.Equal(before.Bytes, after.Bytes);
+    }
+
     [Fact]
     public void RenderingSkipsAnEmptyWidgetAppearanceAndDrawsTheRestOfThePage() {
         byte[] pdf = BuildPdf(widgetOffAppearanceBox: "[0 0 0 0]", squareAppearanceBox: "[0 0 20 20]");

@@ -48,5 +48,8 @@ public enum PdfMutationStructure {
     TaggedContent,
 
     /// <summary>Executable document, catalog, page, annotation, or form actions.</summary>
-    ActiveContent
+    ActiveContent,
+
+    /// <summary>Page dictionary rotation and boundary boxes, including explicit overrides of inherited values.</summary>
+    PageAttributes
 }

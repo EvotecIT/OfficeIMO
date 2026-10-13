@@ -221,8 +221,8 @@ public class PdfPageInteractionMapTests {
 
     [Theory]
     [InlineData(0, 30D, 60D, 80D, 110D)]
-    [InlineData(90, 60D, 80D, 110D, 130D)]
-    [InlineData(270, 10D, 30D, 60D, 80D)]
+    [InlineData(90, 10D, 30D, 60D, 80D)]
+    [InlineData(270, 60D, 80D, 110D, 130D)]
     public void InteractionMap_ClipsImageUsingSourceCoordinatesOnOffsetRotatedCrop(
         int rotation,
         double expectedLeft,

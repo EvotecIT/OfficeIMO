@@ -1216,7 +1216,7 @@
     <value>Zamknij</value>
   </data>
   <data name="Capability.SignedDocument" xml:space="preserve">
-    <value>Ten PDF zawiera podpisy. Pozostań w trybie Widok, aby zachować podpisane bajty, albo pracuj na niepodpisanej kopii przed wprowadzeniem zmian.</value>
+    <value>Ten plik PDF zawiera podpisy. Dostępne są tylko działania dozwolone przez zasady podpisów.</value>
   </data>
   <data name="Capability.EncryptedDocument" xml:space="preserve">
     <value>Ten PDF jest zaszyfrowany. Wprowadź hasło właściciela w trybie Ochrona lub zapisz dozwoloną kopię przed zmianą treści dokumentu.</value>
@@ -5682,4 +5682,23 @@ Naprawione defekty: {7:N0} · Tylko wykryte: {8:N0}</value>
   <data name="PageActions.SelectAllAnnotations" xml:space="preserve"><value>Zaznacz wszystkie adnotacje</value></data>
   <data name="Workflow.Status.Completed" xml:space="preserve"><value>Ukończono</value></data>
   <data name="Workflow.Status.Failed" xml:space="preserve"><value>Niepowodzenie</value></data>
+  <data name="Crop.Reset" xml:space="preserve"><value>Cofnij przycięcie</value></data>
+  <data name="Crop.VisibilityHint" xml:space="preserve"><value>Przycięcie ukrywa marginesy i zachowuje zawartość strony. Cofnięcie przycięcia ponownie odsłania całą stronę.</value></data>
+  <data name="Commands.RotateViewLeft.Title" xml:space="preserve"><value>Obróć widok w lewo</value></data>
+  <data name="Commands.RotateViewLeft.Description" xml:space="preserve"><value>Obróć widok czytnika w lewo bez zmieniania pliku PDF.</value></data>
+  <data name="Commands.RotateViewRight.Title" xml:space="preserve"><value>Obróć widok w prawo</value></data>
+  <data name="Commands.RotateViewRight.Description" xml:space="preserve"><value>Obróć widok czytnika w prawo bez zmieniania pliku PDF.</value></data>
+  <data name="Commands.ResetViewRotation.Title" xml:space="preserve"><value>Przywróć obrót widoku</value></data>
+  <data name="Commands.ResetViewRotation.Description" xml:space="preserve"><value>Przywróć widok czytnika do orientacji zapisanej w pliku PDF.</value></data>
+  <data name="Commands.NormalizePageRotation.Title" xml:space="preserve"><value>Utrwal obrót w zawartości</value></data>
+  <data name="Commands.NormalizePageRotation.Description" xml:space="preserve"><value>Zachowaj wygląd wybranych stron, przenosząc zapisany obrót do zawartości i geometrii strony.</value></data>
+  <data name="Commands.DetectPageOrientation.Title" xml:space="preserve"><value>Sprawdź orientację stron</value></data>
+  <data name="Commands.DetectPageOrientation.Description" xml:space="preserve"><value>Wykryj sugerowane poprawki, obejrzyj podgląd i zaakceptuj wybrane strony przed obróceniem dokumentu.</value></data>
+  <data name="Orientation.Hint" xml:space="preserve"><value>Obejrzyj każdą sugerowaną poprawkę przed jej akceptacją. Wiarygodność zależy od dostawcy; żadna strona nie jest wybierana automatycznie.</value></data>
+  <data name="Orientation.Page" xml:space="preserve"><value>Strona {0}: {1}° w prawo · wiarygodność {2}</value></data>
+  <data name="Orientation.Preview" xml:space="preserve"><value>Podgląd tej strony</value></data>
+  <data name="Orientation.Before" xml:space="preserve"><value>Oryginał</value></data>
+  <data name="Orientation.After" xml:space="preserve"><value>Proponowana poprawka</value></data>
+  <data name="Orientation.Accept" xml:space="preserve"><value>Zaakceptuj poprawkę tej strony</value></data>
+  <data name="Orientation.Apply" xml:space="preserve"><value>Zastosuj zaakceptowane poprawki</value></data>
 </root>

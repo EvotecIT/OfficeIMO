@@ -11,14 +11,12 @@ internal static partial class PdfPageEditor {
     internal static byte[] DeletePagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
 
         var deleted = new HashSet<int>(pageNumbers);
@@ -30,12 +28,11 @@ internal static partial class PdfPageEditor {
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
             if (!deleted.Contains(pageNumber)) {
-                remaining.Add(document.Pages[i].ObjectNumber);
+                remaining.Add(pageNumber);
             }
         }
 
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, remaining.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
+        return PdfTaggedPageOrganizer.Rewrite(pdf, document, remaining, readOptions);
     }
 
     /// <summary>

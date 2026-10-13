@@ -531,6 +531,12 @@ public static partial class PowerPointPdfConverterExtensions {
                 visual.Top,
                 Math.Max(visual.Width, fontSize),
                 Math.Max(visual.Height, fontSize * 1.2D));
+            double sourceRotation = block.Spans.Count > 0 ? block.Spans[0].RotationDegrees : 0D;
+            // PDF text angles are counterclockwise in y-up space; page and PowerPoint rotation are clockwise.
+            double visualRotation = NormalizeRotation(page.RotationDegrees - sourceRotation);
+            if (Math.Abs(visualRotation - 90D) < 0.01D || Math.Abs(visualRotation - 270D) < 0.01D) {
+                bounds = bounds.SwapDimensionsAroundCenter();
+            }
             PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(
                 string.Empty,
                 bounds.Left,
@@ -547,10 +553,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 block,
                 GetEditableTypographyScale(page, placement.Scale),
                 cancellationToken);
-            double sourceRotation = block.Spans.Count > 0 ? block.Spans[0].RotationDegrees : 0D;
-            double visualRotation = -(page.RotationDegrees + sourceRotation);
             if (Math.Abs(visualRotation) > 0.01D) {
-                textBox.Rotation = NormalizeRotation(visualRotation);
+                textBox.Rotation = visualRotation;
             }
             imported++;
         }

@@ -68,6 +68,12 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanMutateSelection => HasOrganizerSelection && CanMutatePages;
 
+    public bool CanRotateSelection => HasOrganizerSelection && CanRotatePages;
+
+    public bool CanCropSelection => HasOrganizerSelection && CanCropPages;
+
+    public bool CanResizeSelection => HasOrganizerSelection && _workspace?.CanResizePages == true;
+
     public bool CanExtractSelection => HasOrganizerSelection && CanExtractPages;
 
     public bool CanDeleteSelection => CanMutateSelection && _workspace is not null && _organizerSelection.Count < _workspace.Pages.Count;
@@ -109,6 +115,12 @@ public sealed partial class MainWindowViewModel {
         UpdateCropPreview();
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanMutateSelection));
+        OnPropertyChanged(nameof(CanResizeSelection));
+        OnPropertyChanged(nameof(CanRotateSelection));
+        OnPropertyChanged(nameof(CanNormalizePageRotation));
+        OnPropertyChanged(nameof(CanDetectPageOrientation));
+        OnPropertyChanged(nameof(CanCropSelection));
+        OnPropertyChanged(nameof(CanResizeSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(OrganizerSelectionLabel));
@@ -232,8 +244,16 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task CropSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
-        if (_workspace is null || pages.Length == 0) return;
+        if (_workspace is null || pages.Length == 0 || !CanCropSelection) return;
         await RunMutationAsync(token => _workspace.CropByMarginAsync(pages, CropMargin, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
+        EndCropPreview();
+    }
+
+    [RelayCommand]
+    private async Task ResetCropSelectedAsync(CancellationToken cancellationToken) {
+        int[] pages = GetSelectedPages();
+        if (_workspace is null || pages.Length == 0 || !CanCropSelection) return;
+        await RunMutationAsync(token => _workspace.ResetCropAsync(pages, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
         EndCropPreview();
     }
 
@@ -397,6 +417,7 @@ public sealed partial class MainWindowViewModel {
 
     private void RefreshWorkspacePresentation(IReadOnlyCollection<int>? organizerSelection = null) {
         if (_workspace is null) return;
+        ClearOrientationReview();
         CancelPendingRedaction();
         ClearObjectSelection();
         int selectedPage = Math.Clamp(SelectedPage?.PageNumber ?? 1, 1, _workspace.Pages.Count);
@@ -419,7 +440,7 @@ public sealed partial class MainWindowViewModel {
             page.RotationDegrees,
             sceneCoordinator,
             renderCoordinator,
-            _localizer)).ToArray();
+            _localizer, page.Geometry)).ToArray();
 
         ReplaceDocument(_workspace, session, sceneCoordinator, renderCoordinator, pages, organizerPages, organizerSelection);
         SelectedPage = Pages[selectedPage - 1];
@@ -437,9 +458,15 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanRedo));
         OnPropertyChanged(nameof(HasRecovery));
         OnPropertyChanged(nameof(CanMutatePages));
+        OnPropertyChanged(nameof(CanRotatePages));
+        OnPropertyChanged(nameof(CanNormalizePageRotation));
+        OnPropertyChanged(nameof(CanDetectPageOrientation));
+        OnPropertyChanged(nameof(CanCropPages));
         OnPropertyChanged(nameof(CanExtractPages));
         OnPropertyChanged(nameof(CanImportPages));
         OnPropertyChanged(nameof(CanMutateSelection));
+        OnPropertyChanged(nameof(CanRotateSelection));
+        OnPropertyChanged(nameof(CanCropSelection));
         OnPropertyChanged(nameof(CanExtractSelection));
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(CanEditAnnotations));
@@ -467,7 +494,7 @@ public sealed partial class MainWindowViewModel {
             DocumentName = _workspace.FileName + (_workspace.IsDirty ? " *" : string.Empty);
             string pageLabel = _workspace.Pages.Count == 1 ? UiText("Document.Page") : UiText("Document.Pages");
             DocumentDescription = UiFormat("Document.Summary", _workspace.Pages.Count, pageLabel, FormatByteSize(_workspace.FileSize));
-            if (_workspace.HasRecovery) OperationStatus = UiText("Workspace.RecoveryAvailable");
+            if (_workspace.HasRecovery && !HasError) OperationStatus = UiText("Workspace.RecoveryAvailable");
         }
         RebuildBookmarks();
         RebuildFormFields();

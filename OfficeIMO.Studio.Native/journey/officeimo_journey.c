@@ -50,7 +50,7 @@ static void *load_symbol(library_handle library, const char *name) { return dlsy
     X(officeimo_document_make_searchable_json) X(officeimo_conversion_sources_json) X(officeimo_convert_to_pdf_json) \
     X(officeimo_document_form_fields_json) X(officeimo_document_fill_form_json)
 
-#define DECLARE_FUNCTION(name) static TYPE_OF(name) *engine_##name;
+#define DECLARE_FUNCTION(name) static TYPE_OF(&name) engine_##name;
 ENGINE_FUNCTIONS(DECLARE_FUNCTION)
 
 static int failures;
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 #define LOAD_FUNCTION(name) \
-    engine_##name = (TYPE_OF(name) *)load_symbol(library, #name); \
+    engine_##name = (TYPE_OF(&name))load_symbol(library, #name); \
     if (!engine_##name) { fprintf(stderr, "Missing export %s\n", #name); return 1; }
     ENGINE_FUNCTIONS(LOAD_FUNCTION)
 
@@ -226,6 +226,17 @@ int main(int argc, char **argv) {
     expect(has(json, "canPrint", "true"), "an unrestricted document cannot be printed", json);
     engine_officeimo_free(json);
 
+    CHECK("rotate page 1 again", engine_officeimo_document_rotate_pages(document, first_page, 1, 90, 0, &error),
+          OFFICEIMO_OK);
+    json = facts(document);
+    expect(has(json, "rotation", "180"), "relative rotation not accumulated", json);
+    engine_officeimo_free(json);
+
+    CHECK("undo repeated rotation", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    json = facts(document);
+    expect(has(json, "rotation", "90"), "repeated rotation undo not applied", json);
+    engine_officeimo_free(json);
+
     CHECK("undo", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
     expect(has(json, "rotation", "0") && has(json, "canRedo", "true"), "undo not applied", json);
@@ -276,18 +287,30 @@ int main(int argc, char **argv) {
     CHECK("import nothing", engine_officeimo_document_import_pages_json(document, "{\"insertBefore\":1,\"sources\":[]}", 0, &json,
           &error), OFFICEIMO_INVALID_ARGUMENT);
 
-    /* Make searchable: both pages, the rotated image and the blank one, gain the recognized word as text, which search
-       then finds on each; undone after. */
+    /* Content editing has its own preservation rules. Check the reported capability before exercising OCR. */
+    json = facts(document);
+    int can_make_searchable = has(json, "canMakeSearchable", "true");
+    engine_officeimo_free(json);
+    json = NULL;
     int recognized = 0;
-    CHECK("make searchable", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
-          OFFICEIMO_OK);
-    expect(recognized == 2 && has(json, "words", "2"), "the recognized words were not added", json);
-    engine_officeimo_free(json);
-    CHECK("search recognized", engine_officeimo_document_search_json(document, "journeyword", 0, &json, &error), OFFICEIMO_OK);
-    expect(json && strstr(json, "\"page\":1") != NULL && strstr(json, "\"page\":2") != NULL, "the recognized words are not searchable",
-           json);
-    engine_officeimo_free(json);
-    CHECK("undo searchable", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    if (can_make_searchable) {
+        /* Both pages gain searchable text as one undoable change. */
+        CHECK("make searchable", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
+              OFFICEIMO_OK);
+        expect(recognized == 2 && has(json, "words", "2"), "the recognized words were not added", json);
+        engine_officeimo_free(json);
+        CHECK("search recognized", engine_officeimo_document_search_json(document, "journeyword", 0, &json, &error), OFFICEIMO_OK);
+        expect(json && strstr(json, "\"page\":1") != NULL && strstr(json, "\"page\":2") != NULL, "the recognized words are not searchable",
+               json);
+        engine_officeimo_free(json);
+        CHECK("undo searchable", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
+    } else {
+        CHECK("searchable prohibited", engine_officeimo_document_make_searchable_json(document, recognize_page, &recognized, 0, &json, &error),
+              OFFICEIMO_UNSUPPORTED);
+        expect(recognized == 0 && json == NULL, "unsupported OCR invoked recognition or returned a result", json);
+        engine_officeimo_free(json);
+        /* No undo: rejecting content editing must preserve the existing page-edit history. */
+    }
 
     for (int edit = 0; edit < 4; edit++) CHECK("undo page edit", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
     json = facts(document);
@@ -307,33 +330,6 @@ int main(int argc, char **argv) {
           OFFICEIMO_INVALID_ARGUMENT);
     CHECK("search", engine_officeimo_document_search_json(document, "no such words", 0, &json, &error), OFFICEIMO_OK);
     expect(has(json, "hits", "[]"), "unexpected search hits", json);
-    engine_officeimo_free(json);
-
-    /* Markup: an ink stroke and a note, listed, changed and removed, then undone back to the rotated page. */
-    CHECK("add ink", engine_officeimo_document_add_annotation_json(document,
-          "{\"tool\":\"ink\",\"page\":1,\"strokes\":[[{\"x\":20,\"y\":20},{\"x\":120,\"y\":60}]],"
-          "\"color\":{\"red\":0.9,\"green\":0.1,\"blue\":0.1},\"strokeWidth\":4,\"opacity\":0.8}", 0, &error), OFFICEIMO_OK);
-    CHECK("add note", engine_officeimo_document_add_annotation_json(document,
-          "{\"tool\":\"note\",\"page\":1,\"bounds\":{\"x\":40,\"y\":40,\"width\":18,\"height\":18},\"text\":\"Journey\"}",
-          0, &error), OFFICEIMO_OK);
-    CHECK("add unknown tool", engine_officeimo_document_add_annotation_json(document, "{\"tool\":\"redact\",\"page\":1}", 0, &error),
-          OFFICEIMO_INVALID_ARGUMENT);
-    CHECK("list annotations", engine_officeimo_document_annotations_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
-    expect(has(json, "subtype", "\"Ink\"") && has(json, "contents", "\"Journey\""), "the markup is not listed", json);
-    int note = 0;
-    const char *found = json ? strstr(json, "\"subtype\":\"Text\"") : NULL;
-    for (const char *at = found; at && at > json; at--) {
-        if (strncmp(at, "\"objectNumber\":", 15) == 0) { note = atoi(at + 15); break; }
-    }
-    engine_officeimo_free(json);
-    char update[128];
-    snprintf(update, sizeof update, "{\"objectNumber\":%d,\"contents\":\"Checked\"}", note);
-    CHECK("update note", engine_officeimo_document_update_annotation_json(document, update, 0, &error), OFFICEIMO_OK);
-    CHECK("remove note", engine_officeimo_document_remove_annotation(document, note, 0, &error), OFFICEIMO_OK);
-    CHECK("remove missing", engine_officeimo_document_remove_annotation(document, note, 0, &error), OFFICEIMO_INVALID_ARGUMENT);
-    for (int edit = 0; edit < 4; edit++) CHECK("undo markup", engine_officeimo_document_undo(document, 0, &error), OFFICEIMO_OK);
-    CHECK("list after undo", engine_officeimo_document_annotations_json(document, 1, 0, &json, &error), OFFICEIMO_OK);
-    expect(has(json, "annotations", "[]"), "markup not undone", json);
     engine_officeimo_free(json);
 
     CHECK("save copy", engine_officeimo_document_save(document, copy, 0, &error), OFFICEIMO_OK);
@@ -366,6 +362,32 @@ int main(int argc, char **argv) {
     if (scanned) {
         CHECK("search scan", engine_officeimo_document_search_json(scanned, "journey", 0, &json, &error), OFFICEIMO_OK);
         expect(has(json, "page", "1"), "the scan's word is not found", json);
+        engine_officeimo_free(json);
+        /* Markup: an ink stroke and a note, listed, changed and removed, then undone back to the new scan. */
+        CHECK("add ink", engine_officeimo_document_add_annotation_json(scanned,
+              "{\"tool\":\"ink\",\"page\":1,\"strokes\":[[{\"x\":20,\"y\":20},{\"x\":120,\"y\":60}]],"
+              "\"color\":{\"red\":0.9,\"green\":0.1,\"blue\":0.1},\"strokeWidth\":4,\"opacity\":0.8}", 0, &error), OFFICEIMO_OK);
+        CHECK("add note", engine_officeimo_document_add_annotation_json(scanned,
+              "{\"tool\":\"note\",\"page\":1,\"bounds\":{\"x\":40,\"y\":40,\"width\":18,\"height\":18},\"text\":\"Journey\"}",
+              0, &error), OFFICEIMO_OK);
+        CHECK("add unknown tool", engine_officeimo_document_add_annotation_json(scanned, "{\"tool\":\"redact\",\"page\":1}", 0, &error),
+              OFFICEIMO_INVALID_ARGUMENT);
+        CHECK("list annotations", engine_officeimo_document_annotations_json(scanned, 1, 0, &json, &error), OFFICEIMO_OK);
+        expect(has(json, "subtype", "\"Ink\"") && has(json, "contents", "\"Journey\""), "the markup is not listed", json);
+        int note = 0;
+        const char *found = json ? strstr(json, "\"subtype\":\"Text\"") : NULL;
+        for (const char *at = found; at && at > json; at--) {
+            if (strncmp(at, "\"objectNumber\":", 15) == 0) { note = atoi(at + 15); break; }
+        }
+        engine_officeimo_free(json);
+        char update[128];
+        snprintf(update, sizeof update, "{\"objectNumber\":%d,\"contents\":\"Checked\"}", note);
+        CHECK("update note", engine_officeimo_document_update_annotation_json(scanned, update, 0, &error), OFFICEIMO_OK);
+        CHECK("remove note", engine_officeimo_document_remove_annotation(scanned, note, 0, &error), OFFICEIMO_OK);
+        CHECK("remove missing", engine_officeimo_document_remove_annotation(scanned, note, 0, &error), OFFICEIMO_INVALID_ARGUMENT);
+        for (int edit = 0; edit < 4; edit++) CHECK("undo markup", engine_officeimo_document_undo(scanned, 0, &error), OFFICEIMO_OK);
+        CHECK("list after undo", engine_officeimo_document_annotations_json(scanned, 1, 0, &json, &error), OFFICEIMO_OK);
+        expect(has(json, "annotations", "[]"), "markup not undone", json);
         engine_officeimo_free(json);
         engine_officeimo_document_close(scanned);
     }

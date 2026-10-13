@@ -804,6 +804,32 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task Rotation_preserves_stream_and_tagged_sources_through_native_workspace_history() {
+        foreach (string name in new[] { "latin-0-native.pdf", "openpreserve-pdfa1b-text.pdf" }) {
+            string source = Path.Combine(_root, name);
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Fixtures", name), source);
+            byte[] original = File.ReadAllBytes(source);
+            using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default);
+            await document.RotatePagesAsync([1], 90, default);
+            Assert.Equal(90, (await document.GetInfoAsync(default)).Pages[0].Rotation);
+            await document.RotatePagesAsync([1], 90, default);
+            Assert.Equal(180, (await document.GetInfoAsync(default)).Pages[0].Rotation);
+            await document.UndoAsync(default);
+            Assert.Equal(90, (await document.GetInfoAsync(default)).Pages[0].Rotation);
+            await document.UndoAsync(default);
+            Assert.Equal(0, (await document.GetInfoAsync(default)).Pages[0].Rotation);
+            await document.RedoAsync(default);
+            string copy = Path.Combine(_root, "rotated-" + name);
+            await document.SaveAsync(copy, default);
+            byte[] output = File.ReadAllBytes(copy);
+            Assert.True(output.AsSpan(0, original.Length).SequenceEqual(original));
+            using StudioNativeDocument reopened = await StudioNativeDocument.OpenAsync(copy, null, default);
+            Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
+            Assert.Equal(original, File.ReadAllBytes(source));
+        }
+    }
+
+    [Fact]
     public unsafe void The_C_interface_reports_failures_as_status_and_message_without_throwing() {
         string source = CreatePdf(1);
         delegate* unmanaged<byte*, byte*, nint, nint*, byte**, int> open = &StudioNativeExports.DocumentOpen;

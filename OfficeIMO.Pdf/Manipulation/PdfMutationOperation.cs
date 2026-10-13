@@ -63,5 +63,17 @@ public enum PdfMutationOperation {
     Sanitize,
 
     /// <summary>Add, replace, or remove named document-level JavaScript through an explicit active-content edit.</summary>
-    ModifyJavaScript
+    ModifyJavaScript,
+
+    /// <summary>Set absolute page rotation or boundary boxes without changing page membership, content, or resources.</summary>
+    ModifyPageAttributes,
+
+    /// <summary>Preserve page appearance while baking quarter-turn rotation into content, boxes, annotations and destinations.</summary>
+    NormalizePageRotation,
+
+    /// <summary>Change page order or membership through the catalog-preserving organizer with structure ownership updates.</summary>
+    OrganizePages,
+
+    /// <summary>Insert source page graphs while preserving the primary catalog and combining tagged structure ownership.</summary>
+    ImportPages
 }

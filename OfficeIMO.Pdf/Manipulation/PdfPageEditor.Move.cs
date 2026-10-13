@@ -12,19 +12,14 @@ internal static partial class PdfPageEditor {
     internal static byte[] MovePagesWithReadOptions(byte[] pdf, int insertBeforePageNumber, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions);
 
         if (pageNumbers.Length == 0) {
             throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
         }
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
         var plan = PdfPageReorderPlan.Move(document.Pages.Count, insertBeforePageNumber, pageNumbers);
-        int[] ordered = plan.SourcePageNumbers.Select(page => document.Pages[page - 1].ObjectNumber).ToArray();
-
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion);
+        return PdfTaggedPageOrganizer.Rewrite(pdf, document, plan.SourcePageNumbers, readOptions);
     }
 
     /// <summary>

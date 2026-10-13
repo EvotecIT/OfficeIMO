@@ -22,19 +22,9 @@ internal static partial class PdfPageEditor {
         Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
-
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        var document = PdfReadDocument.Open(pdf, readOptions);
+        var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.OrganizePages, readOptions);
         ValidateReorderPageNumbers(pageNumbers, document.Pages.Count, nameof(pageNumbers));
-
-        var ordered = new int[pageNumbers.Length];
-        for (int i = 0; i < pageNumbers.Length; i++) {
-            ordered[i] = document.Pages[pageNumbers[i] - 1].ObjectNumber;
-        }
-
-        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
-        return PdfPageExtractor.ExtractPages(objects, document.UncheckedMetadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, document), fileVersion: fileVersion, captureObjectNumbers: captureObjectNumbers);
+        return PdfTaggedPageOrganizer.Rewrite(pdf, document, pageNumbers, readOptions, captureObjectNumbers: captureObjectNumbers);
     }
 
     /// <summary>
