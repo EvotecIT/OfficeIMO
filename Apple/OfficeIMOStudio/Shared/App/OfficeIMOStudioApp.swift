@@ -94,6 +94,13 @@ struct StudioCommands: Commands {
                     .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
                 }
                 Divider()
+                Picker("Reading Layout", selection: Binding { session?.readingLayout ?? .continuous } set: { session?.readingLayout = $0 }) {
+                    ForEach(ReadingLayout.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.inline)
+                Button("Rotate View Left") { session?.rotateView(clockwise: false) }
+                Button("Rotate View Right") { session?.rotateView(clockwise: true) }
+                Divider()
                 Button("Actual Size") { session?.zoom(.actualSize) }
                     .keyboardShortcut("0")
                 Button("Zoom to Fit") { session?.zoom(.fitWidth) }

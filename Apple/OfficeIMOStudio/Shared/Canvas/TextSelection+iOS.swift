@@ -56,8 +56,8 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
         let rects = session.selectionRects
         let frames = scrollView.tiles.layout.frames
         guard let first = rects.first, let last = rects.last, frames.indices.contains(selection.page - 1) else { return nil }
-        let origin = frames[selection.page - 1].origin
-        func convert(_ rect: CGRect) -> CGRect { scrollView.contentView.convert(rect.offsetBy(dx: origin.x, dy: origin.y), to: scrollView) }
+        let layout = scrollView.tiles.layout
+        func convert(_ rect: CGRect) -> CGRect { scrollView.contentView.convert(layout.layoutRect(rect, page: selection.page), to: scrollView) }
         let start = convert(CGRect(x: first.minX, y: first.minY, width: 0, height: first.height))
         let end = convert(CGRect(x: last.maxX, y: last.minY, width: 0, height: last.height))
         return (start, end)
@@ -76,8 +76,7 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
             let frames = scrollView.tiles.layout.frames
             guard frames.indices.contains(selection.page - 1) else { return }
             let box = text.box(handle.isStart ? selection.range.lowerBound : selection.range.upperBound)
-            let end = CGPoint(x: (handle.isStart ? box.minX : box.maxX) + frames[selection.page - 1].minX,
-                              y: box.midY + frames[selection.page - 1].minY)
+            let end = scrollView.tiles.layout.layoutPoint(CGPoint(x: handle.isStart ? box.minX : box.maxX, y: box.midY), page: selection.page)
             let finger = gesture.location(in: scrollView.contentView)
             grabOffset = CGPoint(x: end.x - finger.x, y: end.y - finger.y)
         case .changed:
@@ -85,7 +84,7 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
             guard frames.indices.contains(selection.page - 1) else { return }
             let finger = gesture.location(in: scrollView.contentView)
             let location = CGPoint(x: finger.x + grabOffset.x, y: finger.y + grabOffset.y)
-            let point = CGPoint(x: location.x - frames[selection.page - 1].minX, y: location.y - frames[selection.page - 1].minY)
+            let point = scrollView.tiles.layout.pagePoint(location, page: selection.page)
             if let index = text.index(nearest: point, reach: 60) {
                 let extended = selection.extended(to: index)
                 if extended != selection {
@@ -132,7 +131,7 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
             let frames = scrollView.tiles.layout.frames
             guard frames.indices.contains(selection.page - 1) else { return }
             let location = gesture.location(in: scrollView.contentView)
-            let point = CGPoint(x: location.x - frames[selection.page - 1].minX, y: location.y - frames[selection.page - 1].minY)
+            let point = scrollView.tiles.layout.pagePoint(location, page: selection.page)
             if let index = text.index(nearest: point, reach: 60) {
                 let extended = selection.extended(to: index)
                 if extended != selection { session.textSelection = extended }
@@ -160,10 +159,10 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
         let location = gesture.location(in: scrollView.contentView)
         let layout = scrollView.tiles.layout
         guard !layout.frames.isEmpty else { return nil }
-        let page = layout.page(atY: location.y)
+        let page = layout.page(at: location)
         let frame = layout.frames[page - 1]
         guard frame.insetBy(dx: -8, dy: -8).contains(location) else { return nil }
-        return (page, CGPoint(x: location.x - frame.minX, y: location.y - frame.minY))
+        return (page, layout.pagePoint(location, page: page))
     }
 
     // MARK: Edit menu
@@ -180,7 +179,7 @@ final class TextSelectionController: NSObject, @preconcurrency UIEditMenuInterac
         let rects = session.selectionRects
         let frames = scrollView.tiles.layout.frames
         guard let first = rects.first, frames.indices.contains(selection.page - 1) else { return nil }
-        let bounds = rects.dropFirst().reduce(first) { $0.union($1) }.offsetBy(dx: frames[selection.page - 1].minX, dy: frames[selection.page - 1].minY)
+        let bounds = scrollView.tiles.layout.layoutRect(rects.dropFirst().reduce(first) { $0.union($1) }, page: selection.page)
         return scrollView.contentView.convert(bounds, to: scrollView)
     }
 

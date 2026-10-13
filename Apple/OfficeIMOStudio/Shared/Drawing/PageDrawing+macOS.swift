@@ -59,7 +59,7 @@ final class PageDragView: NSView, NSMenuItemValidation {
         selectionOutline.strokeColor = accent
         selectionHandles.fillColor = accent
         if tool == .select, let selected = session.selectedPageAnnotation, layout.frames.indices.contains(selected.page - 1) {
-            let paths = SelectionOutline.paths(for: selected.bounds.cgRect, page: layout.frames[selected.page - 1])
+            let paths = SelectionOutline.paths(for: selected.bounds.cgRect, page: selected.page, layout: layout)
             selectionOutline.path = paths.outline
             selectionHandles.path = paths.handles
         } else {

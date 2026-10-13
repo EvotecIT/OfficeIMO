@@ -14,6 +14,7 @@ struct PageCanvas: NSViewRepresentable {
     func updateNSView(_ view: PageScrollView, context: Context) {
         if let engine = session.engine, let facts = session.facts { view.show(engine, facts: facts) }
         view.tiles.highlight(session.searchHits, current: session.currentHit?.occurrence)
+        view.setReadingLayout(session.readingLayout, page: session.currentPage, rotation: session.viewRotation)
         if let request = session.canvasRequest { view.handle(request) }
         let dragTool = session.pageDragTool
         view.setMarkupActive(session.task == .markup && session.canEditAnnotations)
@@ -83,6 +84,16 @@ final class PageScrollView: NSScrollView {
             updateTiles()
             return
         }
+        layoutChanged()
+    }
+
+    /// Lays the pages out for reading: Single Page shows the given page, the others ignore it.
+    func setReadingLayout(_ mode: ReadingLayout, page: Int, rotation: Int) {
+        if tiles.setLayout(mode, shownPage: page, rotation: rotation) { layoutChanged() }
+    }
+
+    /// Sizes the views to a new layout; the next layout pass fits the zoom and shows the current page.
+    private func layoutChanged() {
         pages.frame = CGRect(origin: .zero, size: tiles.layout.size)
         markup.frame = pages.bounds
         drag.frame = pages.bounds
@@ -109,8 +120,7 @@ final class PageScrollView: NSScrollView {
     /// Scrolls a rectangle of a page into the middle of the visible area, unless it is already in view.
     private func reveal(_ rect: CGRect, onPage page: Int) {
         guard tiles.layout.frames.indices.contains(page - 1) else { return }
-        let frame = tiles.layout.frames[page - 1]
-        let target = rect.offsetBy(dx: frame.minX, dy: frame.minY)
+        let target = tiles.layout.layoutRect(rect, page: page)
         var visible = pages.visibleRect
         let hidden = contentInsets.top / magnification
         visible.origin.y += hidden
@@ -204,7 +214,7 @@ final class PageScrollView: NSScrollView {
         guard tiles.layout.frames.indices.contains(page - 1) else { return }
         let frame = tiles.layout.frames[page - 1]
         let middle = CGPoint(x: min(max(visible.midX, frame.minX + 24), frame.maxX - 24), y: min(max(visible.midY, frame.minY + 24), frame.maxY - 24))
-        session.viewCenterOnPage = CGPoint(x: middle.x - frame.minX, y: middle.y - frame.minY)
+        session.viewCenterOnPage = tiles.layout.pagePoint(middle, page: page)
     }
 
     private func setZoom(_ scale: CGFloat) {

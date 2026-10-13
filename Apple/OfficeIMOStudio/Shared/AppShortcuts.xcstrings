@@ -23,6 +23,28 @@
         }
       }
     },
+    "Combine files into a PDF with ${applicationName}" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien mit ${applicationName} zu einem PDF kombinieren"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combiner des fichiers en PDF avec ${applicationName}"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Połącz pliki w PDF w ${applicationName}"
+          }
+        }
+      }
+    },
     "Convert a document to PDF with ${applicationName}" : {
       "localizations" : {
         "de" : {

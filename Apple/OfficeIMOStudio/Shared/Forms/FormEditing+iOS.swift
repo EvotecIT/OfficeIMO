@@ -72,16 +72,16 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         let location = gesture.location(in: scrollView.contentView)
         let layout = scrollView.tiles.layout
         guard !layout.frames.isEmpty else { return nil }
-        let page = layout.page(atY: location.y)
+        let page = layout.page(at: location)
         let frame = layout.frames[page - 1]
         guard frame.contains(location) else { return nil }
-        return (page, CGPoint(x: location.x - frame.minX, y: location.y - frame.minY))
+        return (page, layout.pagePoint(location, page: page))
     }
 
     private func screenFrame(page: Int, box: CGRect) -> CGRect? {
-        let frames = scrollView.tiles.layout.frames
-        guard frames.indices.contains(page - 1) else { return nil }
-        return scrollView.contentView.convert(box.offsetBy(dx: frames[page - 1].minX, dy: frames[page - 1].minY), to: scrollView)
+        let layout = scrollView.tiles.layout
+        guard layout.frames.indices.contains(page - 1) else { return nil }
+        return scrollView.contentView.convert(layout.layoutRect(box, page: page), to: scrollView)
     }
 
     // MARK: Typing

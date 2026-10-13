@@ -63,7 +63,7 @@ final class TextSelectionView: NSView, NSMenuItemValidation {
         guard frames.indices.contains(selection.page - 1) else { return }
         let location = convert(event.locationInWindow, from: nil)
         autoscroll(with: event)
-        let point = CGPoint(x: location.x - frames[selection.page - 1].minX, y: location.y - frames[selection.page - 1].minY)
+        let point = layout().pagePoint(location, page: selection.page)
         if let index = text.index(nearest: point, reach: 80) {
             let extended = selection.extended(to: index)
             if extended != selection { session.textSelection = extended }
@@ -121,10 +121,10 @@ final class TextSelectionView: NSView, NSMenuItemValidation {
     private func pageText(at location: CGPoint) -> (PageText, CGPoint)? {
         let pages = layout()
         guard !pages.frames.isEmpty else { return nil }
-        let page = pages.page(atY: location.y)
+        let page = pages.page(at: location)
         let frame = pages.frames[page - 1]
         guard frame.insetBy(dx: -8, dy: -8).contains(location), let text = session.pageText(page) else { return nil }
-        return (text, CGPoint(x: location.x - frame.minX, y: location.y - frame.minY))
+        return (text, pages.pagePoint(location, page: page))
     }
 }
 #endif

@@ -258,6 +258,8 @@ struct PageDragGesture {
     let action: Action
     let page: Int
     let frame: CGRect
+    /// The layout the drag started in, which turns layout points into points of the upright page.
+    let layout: PageLayout
     private(set) var points: [CGPoint]
 
     private var start: CGPoint { points[0] }
@@ -272,19 +274,19 @@ struct PageDragGesture {
         }
         let frame = layout.frames[index]
         let page = index + 1
-        guard tool == .select else { return PageDragGesture(action: .draw(tool), page: page, frame: frame, points: [point]) }
-        let local = CGPoint(x: point.x - frame.minX, y: point.y - frame.minY)
+        guard tool == .select else { return PageDragGesture(action: .draw(tool), page: page, frame: frame, layout: layout, points: [point]) }
+        let local = layout.pagePoint(point, page: page)
         if let selected = session.selectedPageAnnotation, selected.page == page,
            let fixed = SelectionOutline.fixedCorner(grabbing: local, of: selected.bounds.cgRect) {
             return PageDragGesture(action: .resize(objectNumber: selected.objectNumber, fixed: fixed, original: selected.bounds.cgRect),
-                                   page: page, frame: frame, points: [point])
+                                   page: page, frame: frame, layout: layout, points: [point])
         }
         guard let hit = session.annotation(at: local, page: page) else {
             session.selectedAnnotation = nil
             return nil
         }
         session.selectedAnnotation = hit.objectNumber
-        return PageDragGesture(action: .move(objectNumber: hit.objectNumber, original: hit.bounds.cgRect), page: page, frame: frame, points: [point])
+        return PageDragGesture(action: .move(objectNumber: hit.objectNumber, original: hit.bounds.cgRect), page: page, frame: frame, layout: layout, points: [point])
     }
 
     /// Follows the pointer, kept on the page the drag started on.
@@ -314,7 +316,7 @@ struct PageDragGesture {
         case .draw(let tool):
             return Self.path(for: tool, points: points)
         case .move, .resize:
-            return CGPath(rect: (targetRect ?? .zero).offsetBy(dx: frame.minX, dy: frame.minY), transform: nil)
+            return CGPath(rect: layout.layoutRect(targetRect ?? .zero, page: page), transform: nil)
         }
     }
 
@@ -351,9 +353,11 @@ struct PageDragGesture {
         case .draw:
             return nil
         case .move(_, let original):
-            var rect = original.offsetBy(dx: end.x - start.x, dy: end.y - start.y)
-            rect.origin.x = min(max(rect.minX, 0), max(frame.width - rect.width, 0))
-            rect.origin.y = min(max(rect.minY, 0), max(frame.height - rect.height, 0))
+            let moved = layout.pageVector(CGVector(dx: end.x - start.x, dy: end.y - start.y))
+            let size = layout.pageSize(page)
+            var rect = original.offsetBy(dx: moved.dx, dy: moved.dy)
+            rect.origin.x = min(max(rect.minX, 0), max(size.width - rect.width, 0))
+            rect.origin.y = min(max(rect.minY, 0), max(size.height - rect.height, 0))
             return rect
         case .resize(_, let fixed, _):
             let corner = local(end)
@@ -363,7 +367,7 @@ struct PageDragGesture {
     }
 
     private func local(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: point.x - frame.minX, y: point.y - frame.minY)
+        layout.pagePoint(point, page: page)
     }
 
     private static func path(for tool: PageDragTool, points: [CGPoint]) -> CGPath {
@@ -406,9 +410,9 @@ enum SelectionOutline {
         return corners[3 - index]
     }
 
-    /// The outline and the handles of a rectangle on a page, offset to the page in the page layout.
-    static func paths(for rect: CGRect, page frame: CGRect) -> (outline: CGPath, handles: CGPath) {
-        let rect = rect.offsetBy(dx: frame.minX, dy: frame.minY)
+    /// The outline and the handles of a rectangle of an upright page, where the page layout shows it.
+    static func paths(for rect: CGRect, page: Int, layout: PageLayout) -> (outline: CGPath, handles: CGPath) {
+        let rect = layout.layoutRect(rect, page: page)
         let handles = CGMutablePath()
         for corner in corners(of: rect) { handles.addRect(CGRect(x: corner.x - 3.5, y: corner.y - 3.5, width: 7, height: 7)) }
         return (CGPath(rect: rect, transform: nil), handles)
@@ -427,8 +431,7 @@ enum DragOutline {
     static func path(for areas: [RedactionMark], layout: PageLayout) -> CGPath {
         let path = CGMutablePath()
         for area in areas where layout.frames.indices.contains(area.page - 1) {
-            let origin = layout.frames[area.page - 1].origin
-            path.addRect(area.bounds.cgRect.offsetBy(dx: origin.x, dy: origin.y))
+            path.addRect(layout.layoutRect(area.bounds.cgRect, page: area.page))
         }
         return path
     }

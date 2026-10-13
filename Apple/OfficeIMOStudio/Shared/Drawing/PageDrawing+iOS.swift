@@ -58,7 +58,7 @@ final class PageDragController: NSObject, UIGestureRecognizerDelegate {
         selectionOutline.strokeColor = scrollView.tintColor.cgColor
         selectionHandles.fillColor = scrollView.tintColor.cgColor
         if tool == .select, let selected = session.selectedPageAnnotation, layout.frames.indices.contains(selected.page - 1) {
-            let paths = SelectionOutline.paths(for: selected.bounds.cgRect, page: layout.frames[selected.page - 1])
+            let paths = SelectionOutline.paths(for: selected.bounds.cgRect, page: selected.page, layout: layout)
             selectionOutline.path = paths.outline
             selectionHandles.path = paths.handles
         } else {
@@ -92,8 +92,7 @@ final class PageDragController: NSObject, UIGestureRecognizerDelegate {
         guard let index = scrollView.tiles.layout.frames.firstIndex(where: { $0.contains(location) }) else { return false }
         if gestureRecognizer === tap, tool == .redaction {
             // A tap while marking only unmarks; elsewhere it goes to the page as before.
-            let frame = scrollView.tiles.layout.frames[index]
-            let point = CGPoint(x: location.x - frame.minX, y: location.y - frame.minY)
+            let point = scrollView.tiles.layout.pagePoint(location, page: index + 1)
             return session.redactionAreas?.contains { $0.page == index + 1 && $0.bounds.cgRect.contains(point) } == true
         }
         return true
@@ -128,8 +127,7 @@ final class PageDragController: NSObject, UIGestureRecognizerDelegate {
         }
         let layout = scrollView.tiles.layout
         guard let index = layout.frames.firstIndex(where: { $0.contains(location) }) else { return }
-        let frame = layout.frames[index]
-        let point = CGPoint(x: location.x - frame.minX, y: location.y - frame.minY)
+        let point = layout.pagePoint(location, page: index + 1)
         session.markRedaction(page: index + 1, from: point, to: point)
     }
 

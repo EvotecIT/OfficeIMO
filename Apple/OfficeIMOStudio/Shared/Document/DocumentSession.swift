@@ -82,6 +82,15 @@ final class DocumentSession {
     var zoomToFit = 1.0
     /// Points on screen per PDF point, reported by the page view.
     var zoom = 1.0
+    /// How far the pages are turned on screen, in clockwise degrees; the document itself doesn't change.
+    var viewRotation = 0
+    /// How the pages are laid out for reading; the last choice is kept for new windows.
+    var readingLayout = ReadingLayout(rawValue: UserDefaults.standard.string(forKey: "ReadingLayout") ?? "") ?? .continuous {
+        didSet {
+            UserDefaults.standard.set(readingLayout.rawValue, forKey: "ReadingLayout")
+            zoomToFit = 1
+        }
+    }
     private(set) var canvasRequest: CanvasRequest?
     /// The window's undo manager, which the system's Edit menu, undo gestures and edited state follow.
     @ObservationIgnored weak var undoManager: UndoManager?
@@ -203,6 +212,12 @@ final class DocumentSession {
         canvasRequest = CanvasRequest(kind: .showPage(page))
     }
 
+    /// Turns the pages on screen a quarter, leaving the document as it is.
+    func rotateView(clockwise: Bool) {
+        viewRotation = (viewRotation + (clockwise ? 90 : 270)) % 360
+        zoomToFit = 1
+    }
+
     func showNextPage() { show(page: currentPage + 1) }
     func showPreviousPage() { show(page: currentPage - 1) }
 
@@ -278,10 +293,23 @@ final class DocumentSession {
         }
     }
 
-    /// Inserts the pages of PDFs the user chose after the target pages, as one undoable change.
+    /// Inserts the pages of files the user chose after the target pages, as one undoable change: PDFs, images and
+    /// documents the engine converts, which become PDFs first.
     func importPages(from urls: [URL]) {
         guard !urls.isEmpty, let after = targetPages.last else { return }
-        importPages(urls.map { ImportSource(url: $0) }, before: after + 1)
+        Task {
+            isWorking = true
+            var sources: [ImportSource] = []
+            do {
+                for url in urls { sources.append(ImportSource(url: try await PageSources.pdf(for: url))) }
+            } catch {
+                isWorking = false
+                errorMessage = error.localizedDescription
+                return
+            }
+            isWorking = false
+            importPages(sources, before: after + 1)
+        }
     }
 
     /// Supplies the password a pending import asked for and tries again.

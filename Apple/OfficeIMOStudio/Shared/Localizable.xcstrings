@@ -1686,24 +1686,24 @@
         }
       }
     },
-    "Choose at least two PDFs to combine." : {
+    "Choose at least two files to combine." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle mindestens zwei PDFs zum Kombinieren aus."
+            "value" : "Wähle mindestens zwei Dateien zum Kombinieren."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choisissez au moins deux PDF à combiner."
+            "value" : "Choisissez au moins deux fichiers à combiner."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wybierz co najmniej dwa pliki PDF do połączenia."
+            "value" : "Wybierz co najmniej dwa pliki do połączenia."
           }
         }
       }
@@ -1862,24 +1862,24 @@
         }
       }
     },
-    "Combine PDFs" : {
+    "Combine into PDF" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "PDFs kombinieren"
+            "value" : "Zu PDF kombinieren"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Combiner des PDF"
+            "value" : "Combiner en PDF"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Połącz pliki PDF"
+            "value" : "Połącz w PDF"
           }
         }
       }
@@ -1924,6 +1924,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Treść"
+          }
+        }
+      }
+    },
+    "Continuous" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fortlaufend"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continu"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ciągły"
           }
         }
       }
@@ -3402,6 +3424,28 @@
         }
       }
     },
+    "Files" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fichiers"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pliki"
+          }
+        }
+      }
+    },
     "Fill Form" : {
       "localizations" : {
         "de" : {
@@ -3904,6 +3948,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Idź"
+          }
+        }
+      }
+    },
+    "Grid" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Raster"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grille"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Siatka"
           }
         }
       }
@@ -5778,28 +5844,6 @@
         }
       }
     },
-    "PDFs" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PDFs"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "PDF"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pliki PDF"
-          }
-        }
-      }
-    },
     "Page %lld" : {
       "localizations" : {
         "de" : {
@@ -6592,24 +6636,24 @@
         }
       }
     },
-    "Puts the pages of PDFs together into one PDF, in the order given." : {
+    "Puts PDFs, images and Word, Excel, PowerPoint and other documents together into one PDF, in the order given." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fügt die Seiten von PDFs in der angegebenen Reihenfolge zu einer PDF zusammen."
+            "value" : "Fügt PDFs, Bilder sowie Word-, Excel-, PowerPoint- und andere Dokumente in der angegebenen Reihenfolge zu einem PDF zusammen."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Réunit les pages de plusieurs PDF en un seul PDF, dans l’ordre indiqué."
+            "value" : "Réunit des PDF, des images et des documents Word, Excel, PowerPoint et autres en un seul PDF, dans l’ordre donné."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Łączy strony plików PDF w jeden PDF w podanej kolejności."
+            "value" : "Łączy pliki PDF, obrazy oraz dokumenty Word, Excel, PowerPoint i inne w jeden PDF, w podanej kolejności."
           }
         }
       }
@@ -6632,6 +6676,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Czytanie"
+          }
+        }
+      }
+    },
+    "Reading Layout" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leselayout"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mise en page de lecture"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Układ czytania"
           }
         }
       }
@@ -7296,6 +7362,50 @@
         }
       }
     },
+    "Rotate View Left" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ansicht nach links drehen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire pivoter l’affichage à gauche"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obróć widok w lewo"
+          }
+        }
+      }
+    },
+    "Rotate View Right" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ansicht nach rechts drehen"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Faire pivoter l’affichage à droite"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obróć widok w prawo"
+          }
+        }
+      }
+    },
     "Rotation" : {
       "localizations" : {
         "de" : {
@@ -7930,6 +8040,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Podpisano"
+          }
+        }
+      }
+    },
+    "Single Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einzelseite"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page unique"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pojedyncza strona"
           }
         }
       }
@@ -9364,6 +9496,28 @@
         }
       }
     },
+    "Two Pages" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zwei Seiten"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deux pages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dwie strony"
+          }
+        }
+      }
+    },
     "Type a Value…" : {
       "localizations" : {
         "de" : {
@@ -9954,6 +10108,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "„%@” nie jest listą stron od 1 do %lld."
+          }
+        }
+      }
+    },
+    "“%@” isn’t an image OfficeIMO Studio can read." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ ist kein Bild, das OfficeIMO Studio lesen kann."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "« %@ » n’est pas une image qu’OfficeIMO Studio peut lire."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@” nie jest obrazem, który OfficeIMO Studio potrafi odczytać."
           }
         }
       }
