@@ -49,14 +49,14 @@ internal sealed partial class CsvRecordTextBatch
             ReadOnlySpan<char> value = _text.AsSpan(fields.Start, fields.Length);
             bool isNull = _rawNullValue is not null && value.SequenceEqual(_rawNullValue.AsSpan());
             int index = offset + ordinal++;
-            // Rented arrays can contain arbitrary prior values. Initialize every visible slot.
-            _values[index] = value.IsEmpty ? string.Empty : null;
+            // An existing cache must not retain values from a prior row or slot reuse.
+            if (_values is not null) _values[index] = value.IsEmpty ? string.Empty : null;
             _fields[index] = new CapturedField(fields.Start, fields.Length, (byte)(isNull ? 2 : 0));
         }
         while (ordinal < FieldCount)
         {
             int index = offset + ordinal++;
-            _values[index] = string.Empty;
+            if (_values is not null) _values[index] = string.Empty;
             _fields[index] = new CapturedField(0, 0, 1);
         }
     }

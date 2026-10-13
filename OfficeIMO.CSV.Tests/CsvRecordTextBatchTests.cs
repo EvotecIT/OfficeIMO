@@ -87,6 +87,53 @@ public class CsvRecordTextBatchTests
         Assert.True(input.CanRead);
     }
 
+    [Fact]
+    public async Task LateRawFieldMaterializationKeepsOtherFieldsCorrectAcrossBatchReuse()
+    {
+        var text = new StringBuilder("Id,Name,Tail,Empty,Nullable,Missing\n");
+        for (int id = 1; id <= 6; id++)
+            text.Append(id).Append(",name").Append(id).Append(",tail").Append(id)
+                .Append(",,").Append(id % 2 == 0 ? "NULL" : "").Append('\n');
+
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(text.ToString()), 4096);
+        using var reader = (CsvDataReader)await CsvDocument.OpenDataReaderAsync(input, new CsvLoadOptions
+        {
+            NullValue = "NULL",
+            ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields,
+        });
+        var retained = new List<string>();
+        using (var batch = reader.CreateRecordTextBatch(3))
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                await reader.ReadRecordTextBatchAsync(batch, CancellationToken.None);
+                Assert.Equal(3, batch.Count);
+                for (int offset = 1; offset <= 3; offset++)
+                {
+                    Assert.True(batch.Read());
+                    var record = new CsvRecord(batch);
+                    int id = pass * 3 + offset;
+                    Assert.Equal(id, record.GetInt32(0));
+                    Assert.Equal("name" + id, record.GetSpan(1).ToString());
+                    Assert.Equal(string.Empty, record.GetString(3));
+                    Assert.Equal(string.Empty, record.GetString(5));
+                    if (id >= 2) retained.Add(record.GetString(1));
+                    // The first nonempty string request occurs only after a span-only row.
+                    Assert.Equal("tail" + id, record.GetSpan(2).ToString());
+                    if (id >= 2) Assert.Equal("tail" + id, record.GetString(2));
+                    Assert.Equal(id % 2 == 0 ? "NULL" : "", record.GetString(4));
+                    Assert.Equal(id % 2 == 0, record.IsNull(4));
+                    Assert.True(record.IsMissing(5));
+                    Assert.False(record.IsMissing(3));
+                    Assert.False(record.IsNull(3));
+                    Assert.Equal("name" + id, record.GetSpan(1).ToString());
+                }
+                Assert.False(batch.Read());
+            }
+        }
+        Assert.Equal(new[] { "name2", "name3", "name4", "name5", "name6" }, retained);
+    }
+
     private static string Encode(string value) => value.IndexOfAny(new[] { ',', '\r', '\n', '"' }) < 0
         ? value : "\"" + value.Replace("\"", "\"\"") + "\"";
 }

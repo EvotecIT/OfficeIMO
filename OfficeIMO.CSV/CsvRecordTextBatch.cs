@@ -8,7 +8,7 @@ namespace OfficeIMO.CSV;
 internal sealed partial class CsvRecordTextBatch : IDisposable
 {
     private readonly int _maximumPooledTextLength;
-    private readonly string?[] _values;
+    private string?[]? _values;
     private readonly CapturedField[] _fields;
     private char[]? _text;
     private int _textLength;
@@ -38,9 +38,7 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
         Culture = culture;
         DateTimeFormats = dateFormats;
         int length = Math.Max(1, checked(RowCapacity * fieldCount));
-        _values = ArrayPool<string?>.Shared.Rent(length);
-        try { _fields = ArrayPool<CapturedField>.Shared.Rent(length); }
-        catch { ArrayPool<string?>.Shared.Return(_values, clearArray: true); throw; }
+        _fields = ArrayPool<CapturedField>.Shared.Rent(length);
     }
 
     internal int RowCapacity { get; }
@@ -53,7 +51,7 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
     internal void Reset()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        Array.Clear(_values, 0, Count * FieldCount);
+        if (_values is not null) Array.Clear(_values, 0, Count * FieldCount);
         // Capture initializes metadata for every visible row; only cached strings retain objects.
         Count = 0;
         _row = -1;
@@ -93,18 +91,27 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
     private void CaptureField(int index, ReadOnlySpan<char> value, string? materialized, byte flags)
     {
         int start = _textLength;
-        if (materialized is null)
+        if (materialized is null && !value.IsEmpty)
         {
-            if (value.IsEmpty) materialized = string.Empty;
-            else if (EnsureTextCapacity(value.Length))
+            if (EnsureTextCapacity(value.Length))
             {
                 value.CopyTo(_text.AsSpan(_textLength));
                 _textLength += value.Length;
             }
             else materialized = value.ToString();
         }
-        _values[index] = materialized;
+        if (materialized is { Length: > 0 }) EnsureValues()[index] = materialized;
+        else if (_values is not null) _values[index] = materialized;
         _fields[index] = new CapturedField(start, value.Length, flags);
+    }
+
+    // Span-only batches need no string cache. Clear a late rental for all previously captured slots.
+    private string?[] EnsureValues()
+    {
+        if (_values is not null) return _values;
+        string?[] values = ArrayPool<string?>.Shared.Rent(Math.Max(1, checked(RowCapacity * FieldCount)));
+        Array.Clear(values, 0, values.Length);
+        return _values = values;
     }
 
     // Large records keep an owned string instead of expanding pooled storage without a bound.
@@ -137,14 +144,15 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
     internal string GetString(int ordinal)
     {
         int index = GetIndex(ordinal);
-        if (_values[index] is { } value) return value;
+        if (_values is not null && _values[index] is { } value) return value;
         var field = _fields[index];
-        return _values[index] = _text.AsSpan(field.Start, field.Length).ToString();
+        if (field.Length == 0) return string.Empty;
+        return EnsureValues()[index] = _text.AsSpan(field.Start, field.Length).ToString();
     }
     internal ReadOnlySpan<char> GetSpan(int ordinal)
     {
         int index = GetIndex(ordinal);
-        if (_values[index] is { } value) return value.AsSpan();
+        if (_values is not null && _values[index] is { } value) return value.AsSpan();
         var field = _fields[index];
         return _text.AsSpan(field.Start, field.Length);
     }
@@ -163,7 +171,7 @@ internal sealed partial class CsvRecordTextBatch : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        ArrayPool<string?>.Shared.Return(_values, clearArray: true);
+        if (_values is not null) ArrayPool<string?>.Shared.Return(_values, clearArray: true);
         ArrayPool<CapturedField>.Shared.Return(_fields);
         if (_text is not null) ArrayPool<char>.Shared.Return(_text, clearArray: true);
     }
