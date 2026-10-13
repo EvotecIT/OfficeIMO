@@ -15,15 +15,22 @@ internal static partial class PdfWriter {
 
     private static void ValidateAssociatedFileMetadata(PdfOptions options, PdfFileVersion version) {
         if (version < PdfFileVersion.Pdf20) return;
-        foreach (PdfEmbeddedFile file in options.EmbeddedFileSnapshots) {
+        foreach (PdfEmbeddedFile file in options.EmbeddedFilesForInspection) {
             if (string.IsNullOrWhiteSpace(file.MimeType))
                 throw new InvalidOperationException("A PDF 2.0 associated catalog file requires a MIME type: " + file.FileName);
         }
     }
 
-    private static void ValidateStructureAssociatedFileNames(LayoutResult layout, PdfOptions options,
+    private static void ValidateEmittedAssociatedFiles(LayoutResult layout, PdfOptions options,
         CancellationToken cancellationToken) {
-        var catalogNames = new HashSet<string>(options.EmbeddedFileSnapshots.Select(file => file.FileName), StringComparer.Ordinal);
+        var catalogNames = new HashSet<string>(StringComparer.Ordinal);
+        long totalBytes = 0L;
+        foreach (PdfEmbeddedFile file in options.EmbeddedFilesForInspection) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfAttachmentAdmission.EnsureFileBytes(file.ByteLength, options.MaxEmbeddedFileBytes, file.FileName);
+            totalBytes = PdfAttachmentAdmission.GetProjectedBytes(totalBytes, file.ByteLength, options.MaxTotalEmbeddedFileBytes);
+            catalogNames.Add(file.FileName);
+        }
         var files = new Dictionary<string, PdfEmbeddedFile>(StringComparer.Ordinal);
         foreach (PageStructElement element in layout.Pages.SelectMany(page => page.StructElements)) {
             foreach (PdfEmbeddedFile file in element.AssociatedFiles) {
@@ -33,7 +40,11 @@ internal static partial class PdfWriter {
                 if (files.TryGetValue(file.FileName, out PdfEmbeddedFile? existing)) {
                     if (!file.HasSameDescriptionAndData(existing))
                         throw new InvalidOperationException("Different structure-associated files have the same name: " + file.FileName);
-                } else files.Add(file.FileName, file);
+                } else {
+                    PdfAttachmentAdmission.EnsureFileBytes(file.ByteLength, options.MaxEmbeddedFileBytes, file.FileName);
+                    totalBytes = PdfAttachmentAdmission.GetProjectedBytes(totalBytes, file.ByteLength, options.MaxTotalEmbeddedFileBytes);
+                    files.Add(file.FileName, file);
+                }
             }
         }
     }

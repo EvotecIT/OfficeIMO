@@ -61,11 +61,7 @@ public static partial class WordPdfConverterExtensions {
         // It inherits typography and spacing before, but omits spacing after.
         // Keep the synthetic mark detached so conversion leaves the part unchanged.
         WordParagraph paragraph = CreateNativeImplicitRunningParagraph(story);
-        bool hiddenMark = GetNativeParagraphStyleDefaults(paragraph).Hidden ??
-            ReadNativeOnOff(story.Document._wordprocessingDocument.MainDocumentPart?
-                .StyleDefinitionsPart?.Styles?.DocDefaults?.RunPropertiesDefault?
-                .RunPropertiesBaseStyle?.GetFirstChild<W.Vanish>()) ?? false;
-        if (!hiddenMark) {
+        if (ShouldRenderNativeEmptyParagraphLineBox(paragraph)) {
             PdfCore.PdfParagraphStyle style = CreateNativeParagraphStyle(paragraph, defaults, fontMap);
             flow.Spacer(style.SpacingBefore + MeasureNativeEmptyParagraphLineHeight(paragraph, defaults, fontMap));
         }

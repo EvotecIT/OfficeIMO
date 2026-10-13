@@ -43,8 +43,26 @@ public sealed class PdfTablesToExcelOptions {
 
         /// <summary>
         /// When true, worksheet columns are auto-fitted after the table is inserted.
+        /// With <see cref="PreserveColumnProportions"/>, the fitted total supplies the width budget
+        /// before detected proportions determine individual column widths.
         /// </summary>
         public bool AutoFitColumns { get; set; } = true;
+
+        /// <summary>
+        /// When true, redistributes the worksheet column-width budget using the detected PDF column proportions.
+        /// Default false retains content-based auto-fit or worksheet default widths.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="AutoFitColumns"/> selects a content-fitted total or, when false, the worksheet default-width total.
+        /// Detected proportions take precedence over individual content-fit widths and may leave some text unfitted.
+        /// If any mapped width would exceed Excel's 255-character limit, one common scale reduces the total to retain the proportions.
+        /// Canonical visual column strips supply the proportions when available; otherwise native column ranges are used.
+        /// Missing, mismatched, non-positive or non-finite column geometry retains the existing widths.
+        /// Quarter-turn tables use their visual progression axis. Widths are relative Excel character units;
+        /// physical PDF dimensions, authored ruling boundaries and exact spreadsheet printer geometry are not guaranteed.
+        /// ODS conversion uses the same widths with the spreadsheet owner's approximate unit conversion.
+        /// </remarks>
+        public bool PreserveColumnProportions { get; set; }
 
         /// <summary>
         /// When true, detected numeric PDF table columns are written as numeric Excel cells when every non-empty value can be parsed.
