@@ -2187,11 +2187,14 @@ jobs:
             if [ ! -f "$OFFICEIMO_NATIVE_SWAP_FILE" ] || [ -L "$OFFICEIMO_NATIVE_SWAP_FILE" ]; then
               echo 'Native swap path is not a regular file'; exit 1
             fi
-            active_swaps="$(swapon --show=NAME --json)"
-            swap_enabled="$(python3 -c 'import json, sys; print(any(s["name"] == sys.argv[2] for s in json.loads(sys.argv[1])["swapdevices"]))' "$active_swaps" "$OFFICEIMO_NATIVE_SWAP_FILE")"
-            if [ "$swap_enabled" = 'True' ]; then
-              sudo swapoff "$OFFICEIMO_NATIVE_SWAP_FILE"
-            fi
+            active_swaps="$(swapon --show=NAME --noheadings --raw)"
+            while IFS= read -r active_swap; do
+              # Raw NAME output hex-escapes blanks, backslashes and control bytes.
+              if [ "$(printf '%b_' "$active_swap")" = "${OFFICEIMO_NATIVE_SWAP_FILE}_" ]; then
+                sudo swapoff "$OFFICEIMO_NATIVE_SWAP_FILE"
+                break
+              fi
+            done <<< "$active_swaps"
             rm -- "$OFFICEIMO_NATIVE_SWAP_FILE"
           fi
 
