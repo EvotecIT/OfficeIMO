@@ -26,6 +26,7 @@ public partial class Word {
         var orderedPage = orderedPdf.GetPage(2);
         var orderedFirst = AnchoredRunningLetters(orderedPage, "FIRSTBOX");
         var orderedSecond = AnchoredRunningLetters(orderedPage, "SECONDBOX");
+        if (footer) Assert.Contains("FOOTER COUNT 2", orderedPage.Text);
         // The footer counter-control establishes admission and retained content;
         // its native coordinates are outside this paint-order contract.
         if (!footer) foreach (var letters in new[] { orderedFirst, orderedSecond })
@@ -38,6 +39,7 @@ public partial class Word {
         Assert.Equal(3, pdf.NumberOfPages);
         foreach (string marker in new[] { "PREFIX", "FIRSTBOX", "SUFFIX", "NEXT", "SECONDBOX", "END", "S2" })
             AnchoredRunningLetters(pdf.GetPage(2), marker);
+        if (footer) Assert.Contains("FOOTER COUNT 2", pdf.GetPage(2).Text);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
     }
@@ -109,7 +111,8 @@ public partial class Word {
             first.Descendants<DW.Anchor>().Single().Ancestors<W.Run>().Single().Append(drawing);
         } else header.Append(second);
         if (footer) {
-            W.Footer target = document.Sections[1].Footer!.First!._footer!;
+            WordHeaderFooter footerStory = document.Sections[1].Footer!.First!;
+            W.Footer target = footerStory._footer!;
             foreach (var child in target.ChildElements.ToArray()) child.Remove();
             foreach (W.Paragraph source in header.Elements<W.Paragraph>().ToArray()) {
                 source.Remove();
@@ -121,6 +124,10 @@ public partial class Word {
                 }
                 target.Append(source);
             }
+            // SECTIONPAGES requires the rich running-story route whose paragraph
+            // canvases and story-peer admission are under test. A plain text-box
+            // footer intentionally uses a different projection.
+            footerStory.AddParagraph("FOOTER COUNT ").AddField(WordFieldType.SectionPages);
         }
         return document;
     }
