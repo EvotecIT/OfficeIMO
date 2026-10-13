@@ -216,9 +216,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Anonymous = anonymous;
             HeaderGroup = headerGroup;
             FooterGroup = footerGroup;
+            var headerRows = new List<TableFormattingRow>();
+            var bodyRows = new List<TableFormattingRow>();
+            var footerRows = new List<TableFormattingRow>();
+            foreach (TableFormattingRow row in rows) {
+                if (row.GroupElement != null && ReferenceEquals(row.GroupElement, headerGroup)) headerRows.Add(row);
+                else if (row.GroupElement != null && ReferenceEquals(row.GroupElement, footerGroup)) footerRows.Add(row);
+                else bodyRows.Add(row);
+            }
+            HeaderRows = headerRows;
+            BodyRows = bodyRows;
+            FooterRows = footerRows;
+            SizingRows = headerRows.Concat(bodyRows).Concat(footerRows).ToArray();
         }
         internal IElement Element { get; }
         internal IReadOnlyList<TableFormattingRow> Rows { get; }
+        internal IReadOnlyList<TableFormattingRow> HeaderRows { get; }
+        internal IReadOnlyList<TableFormattingRow> BodyRows { get; }
+        internal IReadOnlyList<TableFormattingRow> FooterRows { get; }
+        /// <summary>Effective row order used for both column sizing and painting, before continuation rows are omitted.</summary>
+        internal IReadOnlyList<TableFormattingRow> SizingRows { get; }
         internal IElement? Caption { get; }
         internal bool Anonymous { get; }
         internal IElement? HeaderGroup { get; }

@@ -11,14 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         IElement? continuationTarget = null,
         TableFormattingStructure? formatting = null) {
-        int legacyBorderWidth = formatting?.Anonymous != true && table.LocalName == "table" ? ReadLegacyTableBorderWidth(table) : 0;
-        if (legacyBorderWidth > 0 && !style.BorderDeclared) {
-            style.Borders = HtmlRenderBorderEdges.Uniform(legacyBorderWidth, "solid", OfficeColor.FromRgb(128, 128, 128));
-        }
-        // Ordinary block placement may have centered the authored width already.
-        // Columns determine the table's final width, so resolve auto margins there.
-        if (style.MarginLeftAuto) style.MarginLeft = 0D;
-        if (style.MarginRightAuto) style.MarginRight = 0D;
+        int legacyBorderWidth = PrepareTableBoxStyleForSizing(table, style, formatting?.Anonymous == true);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double tableWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
@@ -36,28 +29,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 "HTML table row count exceeded the configured maximum.",
                 nameof(HtmlRenderOptions.MaxTableRows), sourceRows.Count, _options.MaxTableRows);
         }
-        var headerRowSet = new HashSet<TableFormattingRow>();
-        var footerRowSet = new HashSet<TableFormattingRow>();
-        var headerRows = new List<TableFormattingRow>();
-        var bodyRows = new List<TableFormattingRow>();
-        var footerRows = new List<TableFormattingRow>();
-        foreach (TableFormattingRow row in sourceRows) {
-            ReportTableRowGroupPercentageHeight(row, style);
-            if (row.GroupElement != null && ReferenceEquals(row.GroupElement, formatting.HeaderGroup)) {
-                headerRows.Add(row);
-                headerRowSet.Add(row);
-            } else if (row.GroupElement != null && ReferenceEquals(row.GroupElement, formatting.FooterGroup)) {
-                footerRows.Add(row);
-                footerRowSet.Add(row);
-            } else bodyRows.Add(row);
-        }
+        foreach (TableFormattingRow row in sourceRows) ReportTableRowGroupPercentageHeight(row, style);
+        IReadOnlyList<TableFormattingRow> headerRows = formatting.HeaderRows;
+        IReadOnlyList<TableFormattingRow> footerRows = formatting.FooterRows;
+        var headerRowSet = new HashSet<TableFormattingRow>(headerRows);
+        var footerRowSet = new HashSet<TableFormattingRow>(footerRows);
+        var bodyRows = formatting.BodyRows.ToList();
 
         // Continuation painting may omit earlier body rows, but their intrinsic
         // contributions still constrain the columns of the same source table.
-        var sizingRows = new List<TableFormattingRow>(headerRows.Count + bodyRows.Count + footerRows.Count);
-        sizingRows.AddRange(headerRows);
-        sizingRows.AddRange(bodyRows);
-        sizingRows.AddRange(footerRows);
+        IReadOnlyList<TableFormattingRow> sizingRows = formatting.SizingRows;
         TableFormattingRow? continuationRow = continuationTarget == null ? null : sizingRows.FirstOrDefault(row => row.Contains(continuationTarget));
         int skippedBodyRows = 0;
         if (continuationRow != null) {
@@ -437,6 +418,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
             forcedBreaks: forcedBreaks);
+    }
+
+    /// <summary>Applies table border fallback and removes provisional auto-margin placement before measuring columns.</summary>
+    private static int PrepareTableBoxStyleForSizing(IElement table, HtmlRenderBoxStyle style, bool anonymous) {
+        int legacyBorderWidth = !anonymous && table.LocalName == "table" ? ReadLegacyTableBorderWidth(table) : 0;
+        if (legacyBorderWidth > 0 && !style.BorderDeclared) {
+            style.Borders = HtmlRenderBorderEdges.Uniform(legacyBorderWidth, "solid", OfficeColor.FromRgb(128, 128, 128));
+        }
+        // Ordinary block placement may have centered the authored width already.
+        // Columns determine the table's final width, so resolve auto margins there.
+        if (style.MarginLeftAuto) style.MarginLeft = 0D;
+        if (style.MarginRightAuto) style.MarginRight = 0D;
+        return legacyBorderWidth;
     }
 
     private static int ReadLegacyTableBorderWidth(IElement table) {

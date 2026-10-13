@@ -145,6 +145,72 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(next.X >= inner.X + inner.Width - 0.001D);
     }
 
+    [Theory]
+    [InlineData(true, "inline-table")]
+    [InlineData(true, "table")]
+    [InlineData(false, "inline-table")]
+    [InlineData(false, "table")]
+    public void HtmlTables_FixedNestedFooterSourceOrderUsesThePaintedFirstRowForIntrinsicWidth(bool native, string display) {
+        string table = native ? "table" : "div";
+        string footer = native ? "tfoot" : "div";
+        string body = native ? "tbody" : "div";
+        string row = native ? "tr" : "div";
+        string cell = native ? "td" : "div";
+        string Row(string prefix, int width) => "<" + row + " style='display:table-row'><" + cell + " id='" + prefix
+            + "-left' style='display:table-cell;width:" + width + "px;height:12px;padding:0;border:0;background:red'></" + cell + "><" + cell
+            + " id='" + prefix + "-right' style='display:table-cell;width:" + width + "px;height:12px;padding:0;border:0;background:blue'></"
+            + cell + "></" + row + ">";
+        HtmlRenderDocument rendered = RenderFixedMinimum("<table><tr><td id='outer-cell' style='background:gray'><" + table
+            + " id='inner' style='display:" + display + ";width:100px;table-layout:fixed;margin:0;padding:0;border:0;border-spacing:0;background:lime'>"
+            + "<" + footer + " style='display:table-footer-group'>" + Row("footer", 40) + "</" + footer + ">"
+            + "<" + body + " style='display:table-row-group'>" + Row("body", 80) + "</" + body + "></" + table + "></td>"
+            + "<td id='next-cell' style='width:20px;background:red'></td></tr></table>");
+
+        HtmlRenderShape inner = FixedMinimumShape(rendered, table + "#inner");
+        HtmlRenderShape outer = FixedMinimumShape(rendered, "td#outer-cell");
+        HtmlRenderShape next = FixedMinimumShape(rendered, "td#next-cell");
+        Assert.Equal(160D, inner.Width, 3);
+        Assert.Equal(inner.Width, outer.Width, 3);
+        Assert.Equal(inner.X + inner.Width, next.X, 3);
+        Assert.Equal(80D, FixedMinimumShape(rendered, cell + "#body-left").Width, 3);
+        Assert.Equal(80D, FixedMinimumShape(rendered, cell + "#footer-left").Width, 3);
+        Assert.True(FixedMinimumShape(rendered, cell + "#body-left").Y < FixedMinimumShape(rendered, cell + "#footer-left").Y);
+    }
+
+    [Theory]
+    [InlineData("inline-table")]
+    [InlineData("table")]
+    public void HtmlTables_FixedNestedLegacyBorderContributesThePaintedBorderBox(string display) {
+        HtmlRenderDocument rendered = RenderFixedMinimum("<table><tr><td id='outer-cell' style='background:gray'>"
+            + "<table id='inner' border='10' style='display:" + display + ";width:100px;table-layout:fixed;background:lime'>"
+            + "<colgroup><col span='2' style='width:80px'></colgroup><tr><td></td><td></td></tr></table></td>"
+            + "<td id='next-cell' style='width:20px;background:red'></td></tr></table>", declareTableBorders: false);
+
+        HtmlRenderShape inner = FixedMinimumShape(rendered, "table#inner", OfficeColor.FromRgb(0, 255, 0));
+        HtmlRenderShape outer = FixedMinimumShape(rendered, "td#outer-cell");
+        HtmlRenderShape next = FixedMinimumShape(rendered, "td#next-cell");
+        Assert.Equal(180D, inner.Width, 3);
+        Assert.Equal(inner.Width, outer.Width, 3);
+        Assert.Equal(inner.X + inner.Width, next.X, 3);
+    }
+
+    [Fact]
+    public void HtmlTables_FixedNestedEmptyTableMeasuresItsPaintedWidthWithoutAllocatingDeclaredColumns() {
+        HtmlRenderDocument rendered = RenderFixedMinimum("<table><tr><td id='outer-cell' style='background:gray'>"
+            + "<table id='inner' style='display:inline-table;width:100px;height:12px;table-layout:fixed;background:lime'>"
+            + "<colgroup><col span='2' style='width:80px'></colgroup></table></td>"
+            + "<td id='next-cell' style='width:20px;background:red'></td></tr></table>");
+
+        HtmlRenderShape inner = FixedMinimumShape(rendered, "table#inner");
+        HtmlRenderShape outer = FixedMinimumShape(rendered, "td#outer-cell");
+        HtmlRenderShape next = FixedMinimumShape(rendered, "td#next-cell");
+        Assert.Equal(100D, inner.Width, 3);
+        Assert.Equal(inner.Width, outer.Width, 3);
+        Assert.Equal(inner.X + inner.Width, next.X, 3);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable
+            && diagnostic.Severity == HtmlDiagnosticSeverity.Info);
+    }
+
     [Fact]
     public void HtmlTables_FixedFirstRowWidthsSurvivePageHeightContinuationReflow() {
         const string html = "<style>@page{size:300px 30px;margin:0}@page:left{size:300px 40px;margin:0}</style>"
@@ -164,9 +230,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.All(tables, table => Assert.Equal(160D, table.Width, 3));
     }
 
-    private static HtmlRenderDocument RenderFixedMinimum(string body, bool paged = false) {
-        const string defaults = "<!doctype html><style>html,body{margin:0;padding:0;font-size:0;line-height:0}"
-            + "table{margin:0;padding:0;border:0;border-spacing:0;border-collapse:separate}"
+    private static HtmlRenderDocument RenderFixedMinimum(string body, bool paged = false, bool declareTableBorders = true) {
+        string defaults = "<!doctype html><style>html,body{margin:0;padding:0;font-size:0;line-height:0}"
+            + "table{margin:0;padding:0;" + (declareTableBorders ? "border:0;" : string.Empty) + "border-spacing:0;border-collapse:separate}"
             + "td{height:12px;padding:0;border:0;vertical-align:top}</style>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(defaults + body, new HtmlRenderOptions {
             Mode = paged ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous,

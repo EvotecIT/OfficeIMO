@@ -27,13 +27,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     /// <summary>Uses the same fixed-track constraints for nested atomic measurement and subsequent paint.</summary>
     private double ResolveFixedTableIntrinsicOuterWidth(IElement table, HtmlRenderBoxStyle style, double availableWidth, int depth) {
+        style = style.Clone();
+        PrepareTableBoxStyleForSizing(table, style, anonymous: false);
         double tableWidth = ResolveBoxWidth(Math.Max(1D, availableWidth - style.MarginLeft - style.MarginRight), style);
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
         TableFormattingStructure formatting = BuildTableFormattingStructure(table, contentWidth, style, depth);
-        int columnCount = Math.Max(DetermineColumnCount(formatting.Rows), DetermineDeclaredColumnCount(table));
-        if (columnCount > 0) {
+        int rowColumnCount = DetermineColumnCount(formatting.SizingRows);
+        // Painting keeps an empty table at its prepared authored width even if
+        // it declares columns; its intrinsic contribution must use that width.
+        if (rowColumnCount > 0) {
+            int columnCount = Math.Max(rowColumnCount, DetermineDeclaredColumnCount(table));
             double spacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX * (columnCount + 1);
-            ResolveFixedTableColumnWidths(formatting.Rows, table, columnCount, Math.Max(0.01D, contentWidth - spacing), style,
+            ResolveFixedTableColumnWidths(formatting.SizingRows, table, columnCount, Math.Max(0.01D, contentWidth - spacing), style,
                 out double usedTrackWidth);
             tableWidth = Math.Max(tableWidth, usedTrackWidth + spacing + style.HorizontalInsets);
         }
