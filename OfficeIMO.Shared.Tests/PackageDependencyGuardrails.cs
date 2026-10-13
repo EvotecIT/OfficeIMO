@@ -491,6 +491,8 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Inspection.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Selective.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Session.cs",
+                "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.SessionAllocation.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileReader.Stream.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundFileWriter.cs",
                 "OfficeIMO.SharedSource/Compound/OfficeCompoundWriterLayout.cs",

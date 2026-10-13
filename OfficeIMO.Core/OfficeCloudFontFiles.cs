@@ -1,0 +1,104 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+
+namespace OfficeIMO.Drawing;
+
+/// <summary>Finds locally cached Office fonts without downloading or installing them.</summary>
+internal static partial class OfficeCloudFontFiles {
+    /// <summary>Finds existing versioned cache roots beneath the current user's local application data.</summary>
+    internal static IEnumerable<string> GetRoots() {
+        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(local)) yield break;
+        foreach (string root in EnumerateRoots(Path.Combine(local, "Microsoft", "FontCache"))) yield return root;
+    }
+
+    /// <summary>Enumerates ordinary cloud-font folders within a bounded local cache.</summary>
+    internal static IEnumerable<string> EnumerateRoots(string cacheDirectory) {
+        foreach (string version in EnumerateChildren(cacheDirectory, directories: true, maximum: 32)) {
+            string root = Path.Combine(version, "CloudFonts");
+            if (IsOrdinaryDirectory(root)) yield return root;
+        }
+    }
+
+    /// <summary>Finds candidate files for a normalized family; loaders retain authority over their metadata.</summary>
+    internal static IEnumerable<string> GetFamilyFiles(string normalizedFamilyKey, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (string root in GetRoots()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (string file in EnumerateFamilyFiles(root, normalizedFamilyKey, cancellationToken)) yield return file;
+        }
+    }
+
+    internal static IEnumerable<string> EnumerateFamilyFiles(string cloudRoot, string normalizedFamilyKey,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        bool matchedFolder = false;
+        foreach (string family in EnumerateChildren(cloudRoot, directories: true, maximum: 512)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!string.Equals(FamilyKey(Path.GetFileName(family)), normalizedFamilyKey, StringComparison.Ordinal)) continue;
+            matchedFolder = true;
+            // Office cache filenames can be numeric. The folder supplies a
+            // candidate hint; the font loader must still validate its family.
+            foreach (string file in EnumerateFontFiles(family)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return file;
+            }
+        }
+        if (!matchedFolder) foreach (string file in GetAliasFiles(cloudRoot, normalizedFamilyKey, cancellationToken)) yield return file;
+    }
+
+    private static IEnumerable<string> EnumerateFontFiles(string family) {
+        foreach (string file in EnumerateChildren(family, directories: false, maximum: 128)) {
+            string extension = Path.GetExtension(file);
+            if (string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase)) yield return file;
+        }
+    }
+
+    private static string FamilyKey(string value) => OfficeFontNameMetadata.FamilyKey(value);
+
+    private static bool IsOrdinaryDirectory(string path) {
+        try {
+            var info = new DirectoryInfo(path);
+            return info.Exists && (info.Attributes & FileAttributes.ReparsePoint) == 0;
+        } catch (Exception exception) when (IsPathFailure(exception)) {
+            return false;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateChildren(string root, bool directories, int maximum) {
+        if (!IsOrdinaryDirectory(root)) yield break;
+        IEnumerator<string>? entries = null;
+        try {
+            entries = (directories ? Directory.EnumerateDirectories(root) : Directory.EnumerateFiles(root)).GetEnumerator();
+        } catch (Exception exception) when (IsPathFailure(exception)) {
+            // An unavailable local cache does not prevent font fallback.
+        }
+        if (entries == null) yield break;
+        using (entries) {
+            for (int inspected = 0; inspected < maximum; inspected++) {
+                string path;
+                try {
+                    if (!entries.MoveNext()) break;
+                    path = entries.Current;
+                } catch (Exception exception) when (IsPathFailure(exception)) {
+                    break;
+                }
+                try {
+                    if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) continue;
+                } catch (Exception exception) when (IsPathFailure(exception)) {
+                    // A cache update can remove one entry while we enumerate.
+                    // Continue to inspect the remaining entries within the bound.
+                    continue;
+                }
+                yield return path;
+            }
+        }
+    }
+
+    private static bool IsPathFailure(Exception exception) => exception is IOException ||
+        exception is UnauthorizedAccessException || exception is ArgumentException || exception is NotSupportedException;
+}

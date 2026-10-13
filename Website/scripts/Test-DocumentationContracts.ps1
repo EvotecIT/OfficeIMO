@@ -371,6 +371,18 @@ foreach ($expectedCount in $expectedRepositoryCounts.GetEnumerator()) {
 if (@(Compare-Object @($catalog.components.name | Sort-Object) @($inventory.Production.BaseName | Sort-Object)).Count -gt 0) {
     Add-Failure 'The documentation catalog does not cover the current production project inventory.'
 }
+foreach ($project in @($inventory.Production)) {
+    $component = @($catalog.components | Where-Object name -eq $project.BaseName)
+    if ($component.Count -ne 1) { continue }
+    $sourceCount = @(Get-ChildItem -LiteralPath $project.DirectoryName -Recurse -File -Filter '*.cs' |
+        Where-Object {
+            $relative = [IO.Path]::GetRelativePath($project.DirectoryName, $_.FullName).Replace('\', '/')
+            $relative -notmatch '(^|/)(?:bin|obj)(?:/|$)'
+        }).Count
+    if ([int] $component[0].sourceFileCount -ne $sourceCount) {
+        Add-Failure "The generated $($project.BaseName) source count is $($component[0].sourceFileCount); expected $sourceCount from the current source tree."
+    }
+}
 if (@($catalog.components | Where-Object { [string]::IsNullOrWhiteSpace($_.description) }).Count -gt 0) {
     Add-Failure 'One or more OfficeIMO catalog components have no description.'
 }
