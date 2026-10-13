@@ -19,10 +19,12 @@ public class PdfUsageRightsFormFillTests {
         Assert.True(security.HasOnlyUsageRightsSignatures);
         Assert.False(preflight.CanFillSimpleFormFields);
         Assert.True(preflight.CanAppendFormFieldRevision);
+        Assert.True(preflight.CanAppendOnlyMutate);
         Assert.False(preflight.CanAppendMetadataRevision);
         Assert.False(preflight.CanPrepareExternalSignatureRevision);
         Assert.Contains("The usage-rights signature grants form fill-in (/Form /FillIn) and is the only signature; form values can be appended as a new revision that keeps the signed bytes.", preflight.SecurityDiagnostics);
-        Assert.Contains("Usage-rights signatures permit only append-only form fill-in revisions; other append-only changes would exceed the granted rights.", preflight.AppendOnlyMutationDiagnostics);
+        Assert.Contains("Usage-rights signatures permit only append-only form fill-in revisions; other append-only changes would exceed the granted rights.", preflight.SecurityDiagnostics);
+        Assert.Empty(preflight.AppendOnlyMutationDiagnostics);
         Assert.Contains("A full rewrite would invalidate the existing signature; fill the form through an append-only form-field revision instead.",
             preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
 
@@ -76,6 +78,25 @@ public class PdfUsageRightsFormFillTests {
         Assert.Contains("Usage-rights entries must be preserved before append-only mutation.", preflight.AppendOnlyMutationDiagnostics);
         Assert.False(PdfMutationPlanner.Plan(original, PdfMutationOperation.FillFormFields, fieldNames: AfterValues.Keys).CanExecute);
         Assert.False(PdfDocument.Load(original).Forms.FillResult(AfterValues).Succeeded);
+    }
+
+    [Theory]
+    [InlineData("/FillIn")]
+    [InlineData("(FillIn)")]
+    [InlineData("[(FillIn)]")]
+    [InlineData("[/Import (FillIn)]")]
+    [InlineData("[/FillIn (Import)]")]
+    public void MalformedFormRights_DoNotAuthorizeARevision(string formRights) {
+        byte[] original = BuildUsageRightsFormPdf(formRights, documentSignature: false);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(original);
+
+        Assert.Empty(preflight.Probe.Security.UsageRightsFormPermissions);
+        Assert.False(preflight.Probe.Security.UsageRightsAllowFormFillIn);
+        Assert.False(PdfSyntax.ReadDocumentSecurityInfo(original).UsageRightsAllowFormFillIn);
+        Assert.False(preflight.CanAppendFormFieldRevision);
+        Assert.False(preflight.CanAppendOnlyMutate);
+        Assert.False(PdfDocument.Load(original).Forms.FillResult(AfterValues).Succeeded);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(original).Forms.AppendRevision(AfterValues));
     }
 
     [Fact]
@@ -139,6 +160,7 @@ public class PdfUsageRightsFormFillTests {
         PdfDocumentPreflight preflight = document.Preflight();
         Assert.True(preflight.Probe.Security.UsageRightsAllowFormFillIn);
         Assert.True(preflight.CanAppendFormFieldRevision);
+        Assert.True(preflight.CanAppendOnlyMutate);
         PdfMutationPlan plan = document.PlanMutation(PdfMutationOperation.FillFormFields, values.Keys);
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
         Assert.Contains("AppendOnly.UsageRightsFormFillIn", plan.Warnings);

@@ -466,7 +466,22 @@ internal static partial class PdfSyntax {
                 continue;
             }
 
-            IReadOnlyList<string> granted = ReadNameOrTextArray(objects, transformParams, "Form", cancellationToken);
+            if (!transformParams.Items.TryGetValue("Form", out PdfObject? formObject) ||
+                ResolveObject(objects, formObject) is not PdfArray formArray) {
+                continue;
+            }
+
+            // Form is an array of names, not the name-or-text shape used by signature seed values.
+            // A malformed array cannot establish a grant that permits changing signed input.
+            var granted = new List<string>();
+            for (int j = 0; j < formArray.Items.Count; j++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (ResolveObject(objects, formArray.Items[j]) is not PdfName name || string.IsNullOrEmpty(name.Name)) {
+                    granted.Clear();
+                    break;
+                }
+                granted.Add(name.Name);
+            }
             for (int j = 0; j < granted.Count; j++) {
                 if (!formPermissions.Contains(granted[j])) {
                     formPermissions.Add(granted[j]);
