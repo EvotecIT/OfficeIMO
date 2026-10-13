@@ -90,6 +90,28 @@
         }
       }
     },
+    "%@ – Images" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – Bilder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – Images"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ – Obrazy"
+          }
+        }
+      }
+    },
     "%@ – Page %lld.pdf" : {
       "localizations" : {
         "de" : {
@@ -1994,6 +2016,28 @@
         }
       }
     },
+    "Converted with Notes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Hinweisen konvertiert"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converti avec des remarques"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Przekonwertowano z uwagami"
+          }
+        }
+      }
+    },
     "Converts a Word, Excel, PowerPoint, RTF, text, HTML, Markdown, XPS, Visio, Draw or Publisher document to PDF on this device." : {
       "localizations" : {
         "de" : {
@@ -2852,6 +2896,28 @@
         }
       }
     },
+    "Drawings, shapes, highlights, notes and stamps become part of the pages and can no longer be moved or changed. Links stay. Undo restores the markup." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeichnungen, Formen, Markierungen, Notizen und Stempel werden Teil der Seiten und lassen sich nicht mehr bewegen oder ändern. Links bleiben erhalten. „Widerrufen“ stellt die Markierungen wieder her."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les dessins, formes, surlignages, notes et tampons font désormais partie des pages et ne peuvent plus être déplacés ni modifiés. Les liens sont conservés. Annuler rétablit les annotations."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rysunki, kształty, wyróżnienia, notatki i pieczątki stają się częścią stron i nie można ich już przesuwać ani zmieniać. Łącza pozostają. Cofnij przywraca oznaczenia."
+          }
+        }
+      }
+    },
     "Duplicate" : {
       "localizations" : {
         "de" : {
@@ -2918,6 +2984,50 @@
         }
       }
     },
+    "Each page as a PNG image at 144 pixels per inch, in a folder." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Seite als PNG-Bild mit 144 Pixeln pro Zoll, in einem Ordner."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque page en image PNG à 144 pixels par pouce, dans un dossier."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każda strona jako obraz PNG o rozdzielczości 144 pikseli na cal, w folderze."
+          }
+        }
+      }
+    },
+    "Each page as an editable slide." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jede Seite als bearbeitbare Folie."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chaque page en diapositive modifiable."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Każda strona jako edytowalny slajd."
+          }
+        }
+      }
+    },
     "Edit Note" : {
       "localizations" : {
         "de" : {
@@ -2962,6 +3072,50 @@
         }
       }
     },
+    "Editable text, tables and images, for Word and Pages." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bearbeitbarer Text, Tabellen und Bilder, für Word und Pages."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte, tableaux et images modifiables, pour Word et Pages."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edytowalny tekst, tabele i obrazy, dla Worda i Pages."
+          }
+        }
+      }
+    },
+    "Embedded Images" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eingebettete Bilder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images incorporées"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Osadzone obrazy"
+          }
+        }
+      }
+    },
     "Enter its password to insert its pages." : {
       "localizations" : {
         "de" : {
@@ -3002,6 +3156,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Co kilka stron"
+          }
+        }
+      }
+    },
+    "Excel Workbook" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excel-Arbeitsmappe"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Classeur Excel"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skoroszyt Excel"
           }
         }
       }
@@ -3072,46 +3248,24 @@
         }
       }
     },
-    "Export Text" : {
+    "Export…" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Text exportieren"
+            "value" : "Exportieren …"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Exporter le texte"
+            "value" : "Exporter…"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eksportuj tekst"
-          }
-        }
-      }
-    },
-    "Export Text…" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Text exportieren …"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Exporter le texte…"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eksportuj tekst…"
+            "value" : "Eksportuj…"
           }
         }
       }
@@ -3512,24 +3666,46 @@
         }
       }
     },
-    "Flatten Form…" : {
+    "Flatten Markup" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Formular reduzieren …"
+            "value" : "Markierungen reduzieren"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aplatir le formulaire…"
+            "value" : "Aplatir les annotations"
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Spłaszcz formularz…"
+            "value" : "Spłaszcz oznaczenia"
+          }
+        }
+      }
+    },
+    "Flatten…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reduzieren …"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aplatir…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spłaszcz…"
           }
         }
       }
@@ -3596,6 +3772,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Do publikacji"
+          }
+        }
+      }
+    },
+    "Form Fields" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formularfelder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Champs de formulaire"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pola formularza"
           }
         }
       }
@@ -5646,6 +5844,28 @@
         }
       }
     },
+    "Page Images" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seitenbilder"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Images des pages"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obrazy stron"
+          }
+        }
+      }
+    },
     "Page Layout" : {
       "localizations" : {
         "de" : {
@@ -6060,6 +6280,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Położenie"
+          }
+        }
+      }
+    },
+    "PowerPoint Presentation" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PowerPoint-Präsentation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Présentation PowerPoint"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prezentacja PowerPoint"
           }
         }
       }
@@ -7758,6 +8000,28 @@
         }
       }
     },
+    "Some content couldn’t be kept exactly as it is in the PDF. Save the file, or cancel to keep the document only." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einige Inhalte konnten nicht genau wie im PDF übernommen werden. Sichere die Datei oder brich ab, um nur das Dokument zu behalten."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Certains contenus n’ont pas pu être conservés exactement comme dans le PDF. Enregistrez le fichier ou annulez pour ne garder que le document."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Części treści nie udało się zachować dokładnie tak jak w PDF. Zapisz plik albo anuluj, aby zachować tylko dokument."
+          }
+        }
+      }
+    },
     "Some of the marked content is still in the document or couldn’t be checked. Undo the redaction and mark a larger area." : {
       "localizations" : {
         "de" : {
@@ -8528,6 +8792,28 @@
         }
       }
     },
+    "The pages laid out for a browser, with links and images." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Seiten für einen Browser aufbereitet, mit Links und Bildern."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les pages mises en page pour un navigateur, avec liens et images."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strony ułożone dla przeglądarki, z łączami i obrazami."
+          }
+        }
+      }
+    },
     "The password is incorrect. Try again." : {
       "localizations" : {
         "de" : {
@@ -8572,6 +8858,28 @@
         }
       }
     },
+    "The pictures inside the document, as their own files, in a folder." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bilder im Dokument als eigene Dateien, in einem Ordner."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les images contenues dans le document, en fichiers séparés, dans un dossier."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obrazy z dokumentu jako osobne pliki, w folderze."
+          }
+        }
+      }
+    },
     "The signature couldn’t be checked" : {
       "localizations" : {
         "de" : {
@@ -8612,6 +8920,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nie można w pełni sprawdzić podpisu"
+          }
+        }
+      }
+    },
+    "The tables on the pages, each as a worksheet." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Tabellen auf den Seiten, jede als Arbeitsblatt."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les tableaux des pages, chacun dans une feuille."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tabele ze stron, każda jako arkusz."
           }
         }
       }
@@ -9276,6 +9606,28 @@
         }
       }
     },
+    "Web Page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webseite"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page web"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strona internetowa"
+          }
+        }
+      }
+    },
     "Web or Email Address" : {
       "localizations" : {
         "de" : {
@@ -9294,6 +9646,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Adres internetowy lub e-mail"
+          }
+        }
+      }
+    },
+    "Word Document" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Word-Dokument"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Document Word"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dokument Word"
           }
         }
       }

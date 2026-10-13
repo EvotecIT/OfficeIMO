@@ -1,5 +1,6 @@
 using System.Globalization;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Conversion;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Workspace;
 
@@ -7,8 +8,8 @@ namespace OfficeIMO.Studio.Native;
 
 /// <summary>
 /// Document-level structure and page production: properties, the outline, attachments, cropping and page sizes, page
-/// numbers, headers and footers, watermarks and Bates numbers, flattening forms, and outputs written beside the document
-/// such as split parts, saved attachments and text exports. Each edit is one undoable change in the shared workspace.
+/// numbers, headers and footers, watermarks and Bates numbers, flattening forms and markup, and outputs written beside the
+/// document such as split parts, saved attachments, text exports and conversions to Office documents and HTML. Each edit is one undoable change in the shared workspace.
 /// </summary>
 internal sealed partial class StudioNativeDocument {
     /// <summary>The document's properties, outline and attachments, with which of them this document lets the host change.</summary>
@@ -26,7 +27,7 @@ internal sealed partial class StudioNativeDocument {
             bool hasForms = _workspace.CreateDocumentSnapshot().Inspect().FormFields.Count > 0;
             return new StudioNativeStructure(StudioNativeAbi.Version, _workspace.Revision, properties, _workspace.CanEditMetadata, outline,
                 _workspace.CanEditBookmarks, attachments, _workspace.CanEditAttachments, _workspace.CanCropPages, _workspace.CanMutatePages,
-                _workspace.CanEditPageContent, hasForms, hasForms && _workspace.CanFlattenForms);
+                _workspace.CanEditPageContent, hasForms, hasForms && _workspace.CanFlattenForms, HasMarkup() && _workspace.CanEditAnnotations);
         } finally { _gate.Release(); }
 
         static string? Timestamp(DateTimeOffset? value) => value?.ToString("o", CultureInfo.InvariantCulture);
@@ -195,6 +196,12 @@ internal sealed partial class StudioNativeDocument {
     }
 
     private Task Flatten(StudioNativeFlattenEdit edit, CancellationToken cancellationToken) {
+        if (edit.Markup == true) {
+            if (edit.Fields is { Count: > 0 }) throw new ArgumentException("Flatten the markup or the form, not both.", nameof(edit));
+            if (!_workspace.CanEditAnnotations) throw new NotSupportedException("This document's annotations can't be changed.");
+            if (!HasMarkup()) throw new ArgumentException("This document has no markup to flatten.", nameof(edit));
+            return _workspace.FlattenAllAnnotationsAsync(cancellationToken);
+        }
         if (!_workspace.CanFlattenForms) throw new NotSupportedException("This document's form can't be flattened.");
         if (edit.Fields is not { Count: > 0 } fields) return _workspace.FlattenFormFieldsAsync(cancellationToken);
         if (fields.Count > 1) throw new ArgumentException("Flatten one field, or the whole form.", nameof(edit));
@@ -250,11 +257,13 @@ internal sealed partial class StudioNativeDocument {
                 (IReadOnlyList<string> copies, string summary) = await WriteHealthCopyAsync(health, kind, cancellationToken).ConfigureAwait(false);
                 return new StudioNativeWriteResult(StudioNativeAbi.Version, _workspace.Revision, copies, summary);
             }
-            IReadOnlyList<string> files = request switch {
-                { Split: { } split } => await SplitAsync(split, cancellationToken).ConfigureAwait(false),
-                { Attachment: { } attachment } => await SaveAttachmentAsync(attachment, cancellationToken).ConfigureAwait(false),
-                _ => await ExportAsync(request.Export!, cancellationToken).ConfigureAwait(false)
-            };
+            if (request.Export is { } export) {
+                (IReadOnlyList<string> exported, string? notes) = await ExportAsync(export, cancellationToken).ConfigureAwait(false);
+                return new StudioNativeWriteResult(StudioNativeAbi.Version, _workspace.Revision, exported, notes);
+            }
+            IReadOnlyList<string> files = request.Split is { } split
+                ? await SplitAsync(split, cancellationToken).ConfigureAwait(false)
+                : await SaveAttachmentAsync(request.Attachment!, cancellationToken).ConfigureAwait(false);
             return new StudioNativeWriteResult(StudioNativeAbi.Version, _workspace.Revision, files);
         } finally { _gate.Release(); }
     }
@@ -313,16 +322,37 @@ internal sealed partial class StudioNativeDocument {
         return [save.Path];
     }
 
-    private async Task<IReadOnlyList<string>> ExportAsync(StudioNativeExport export, CancellationToken cancellationToken) {
+    /// <summary>
+    /// Writes the open revision as text, Markdown, JSON, Word, Excel, PowerPoint or HTML at the path, or its embedded
+    /// images into the folder the path names. Returns the files written and the converter's notes, one per line.
+    /// </summary>
+    private async Task<(IReadOnlyList<string> Files, string? Notes)> ExportAsync(StudioNativeExport export, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(export.Path)) throw new ArgumentException("A destination is required.", nameof(export));
-        if (!_workspace.ViewInfo.CanExtractText) throw new NotSupportedException("This document doesn't allow its text to be read.");
-        PdfExportKind kind = export.Format switch {
+        if (!_workspace.ViewInfo.CanExtractText) throw new NotSupportedException("This document doesn't allow its content to be copied.");
+        string format = export.Format ?? string.Empty;
+        if (PdfConversion.PdfTargets.ContainsKey(format)) {
+            PdfConversionResult result = await PdfConversion.ConvertPdfAsync(_workspace.CopyBytes(), _workspace.ReadOptions?.Password, format,
+                Path.GetFullPath(export.Path), cancellationToken).ConfigureAwait(false);
+            string? notes = result.Notes.Count == 0 ? null : string.Join("\n", result.Notes.Select(static note => note.Message).Distinct(StringComparer.Ordinal));
+            return ([export.Path], notes);
+        }
+        if (format == "images") {
+            Directory.CreateDirectory(export.Path);
+            var before = new HashSet<string>(Directory.EnumerateFiles(export.Path), StringComparer.Ordinal);
+            await _workspace.ExportDocumentAsync(PdfExportKind.Images, export.Path, cancellationToken).ConfigureAwait(false);
+            return (Directory.EnumerateFiles(export.Path).Where(file => !before.Contains(file)).Order(StringComparer.Ordinal).ToArray(), null);
+        }
+        PdfExportKind kind = format switch {
             "text" => PdfExportKind.Text, "markdown" => PdfExportKind.Markdown, "json" => PdfExportKind.Json,
             _ => throw new ArgumentException($"“{export.Format}” isn't an export format.", nameof(export))
         };
         await _workspace.ExportDocumentAsync(kind, export.Path, cancellationToken).ConfigureAwait(false);
-        return [export.Path];
+        return ([export.Path], null);
     }
+
+    // Markup is any annotation but links, form widgets and popups, which flattening leaves alone.
+    private bool HasMarkup() =>
+        _workspace.AnnotationMetadata.Any(static annotation => annotation.Subtype is not ("Link" or "Widget" or "Popup"));
 }
 
 internal sealed record StudioNativeProperties(string? Title, string? Author, string? Subject, string? Keywords, string? Created = null,
@@ -335,7 +365,7 @@ internal sealed record StudioNativeAttachment(string FileName, long Size, string
 
 internal sealed record StudioNativeStructure(int AbiVersion, long Revision, StudioNativeProperties Properties, bool CanEditProperties,
     IReadOnlyList<StudioNativeOutlineItem> Outline, bool CanEditOutline, IReadOnlyList<StudioNativeAttachment> Attachments,
-    bool CanEditAttachments, bool CanCrop, bool CanResize, bool CanStampPages, bool HasForms, bool CanFlattenForms);
+    bool CanEditAttachments, bool CanCrop, bool CanResize, bool CanStampPages, bool HasForms, bool CanFlattenForms, bool CanFlattenMarkup);
 
 /// <summary>One bookmark change: <c>op</c> is add, rename, remove, move, retarget or rebuild.</summary>
 internal sealed record StudioNativeOutlineEdit(string Op, string? Id = null, string? Title = null, int? Page = null, string? ParentId = null,
@@ -359,8 +389,8 @@ internal sealed record StudioNativeWatermarkEdit(string? Text, double? FontSize 
 internal sealed record StudioNativeBatesEdit(string? Prefix = null, string? Suffix = null, long? Start = null, int? Digits = null,
     string? Position = null);
 
-/// <summary>Flattens the named field, or every field when none is named.</summary>
-internal sealed record StudioNativeFlattenEdit(IReadOnlyList<string>? Fields = null);
+/// <summary>Flattens the named field, or every field when none is named; or, with markup, every markup annotation.</summary>
+internal sealed record StudioNativeFlattenEdit(IReadOnlyList<string>? Fields = null, bool? Markup = null);
 
 internal sealed record StudioNativeAttachmentAdd(string? Path, string? FileName = null);
 

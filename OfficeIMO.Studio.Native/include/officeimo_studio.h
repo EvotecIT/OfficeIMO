@@ -334,7 +334,7 @@ int32_t officeimo_document_save_signed_copy_json(officeimo_document document, co
  * The document's structure as JSON: { "abiVersion", "revision", "properties": { "title", "author", "subject", "keywords",
  * "created", "modified" }, "canEditProperties", "outline": [ { "id", "title", "page", "children": [ ] } ], "canEditOutline",
  * "attachments": [ { "fileName", "size", "description", "mimeType" } ], "canEditAttachments", "canCrop", "canResize",
- * "canStampPages", "hasForms", "canFlattenForms" }. created and modified are ISO 8601 times. An outline entry without an id
+ * "canStampPages", "hasForms", "canFlattenForms", "canFlattenMarkup" }. created and modified are ISO 8601 times. An outline entry without an id
  * has no page in this document; it and its children are shown but can't be changed.
  */
 int32_t officeimo_document_structure_json(officeimo_document document, officeimo_cancellation cancellation, char **json,
@@ -354,7 +354,8 @@ int32_t officeimo_document_structure_json(officeimo_document document, officeimo
  *   "watermark": { "text", "fontSize", "opacity", "rotation", "behindContent", "color": { "red", "green", "blue" }, "pages" }.
  *   "bates": { "prefix", "suffix", "start", "digits", "position" }: position is "bottomRight" (default), "bottomCenter",
  *     "bottomLeft", "topLeft", "topCenter" or "topRight"; every page is numbered.
- *   "flatten": { "fields" }: draws the named field, or every field when none is named, into its page.
+ *   "flatten": { "fields" }: draws the named field, or every field when none is named, into its page; or
+ *     { "markup": true }: draws every markup annotation, but links, into its page.
  *   "addAttachment": { "path", "fileName" }, or "removeAttachment": "file name".
  * Leaving out "pages" means every page. The structure's can flags tell which edits the document allows.
  */
@@ -366,14 +367,16 @@ int32_t officeimo_document_edit_json(officeimo_document document, const char *re
  *   "split": { "directory", "pagesPerPart" } or { "directory", "parts": [ { "pages", "name" } ] }: at least two parts,
  *     each a new PDF in directory, named from the document and its pages unless a name is given.
  *   "attachment": { "fileName", "path" }: saves an attachment's contents.
- *   "export": { "format", "path" }: the document's text as "text", "markdown" or structured "json".
+ *   "export": { "format", "path" }: the document's text as "text", "markdown" or structured "json"; the document converted
+ *     to "word", "excel" (its tables), "powerpoint" or "html"; or, with "images", its embedded images saved into the folder
+ *     path names.
  *   "optimize": { "path", "profile" }: a losslessly smaller copy; profile is "balanced" (default), "smallest", "web" or
  *     "archival". The copy is written only when it keeps everything the document contains.
  *   "repair": { "path" }: a copy with the structural problems the reader recovered written out, verified by reopening it.
  *   "sanitize": { "path" }: a copy without scripts, actions, attachments and other active content, verified afterwards.
  * Never replaces an existing part: a name already taken gets a number. A health copy replaces the file at path, which
  * must not be the document's own. Returns { "abiVersion", "revision", "files", "summary" }, summary saying what a
- * health copy changed.
+ * health copy changed or, one per line, what a conversion couldn't keep.
  */
 int32_t officeimo_document_write_json(officeimo_document document, const char *request, officeimo_cancellation cancellation,
                                       char **json, char **error);

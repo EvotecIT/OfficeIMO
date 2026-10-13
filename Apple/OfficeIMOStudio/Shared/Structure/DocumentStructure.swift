@@ -40,6 +40,8 @@ struct DocumentStructure: Decodable, Sendable {
     let canStampPages: Bool
     let hasForms: Bool
     let canFlattenForms: Bool
+    /// Whether the document has markup, other than links, that can become part of its pages.
+    let canFlattenMarkup: Bool
 
     /// The outline as nodes a list can show, each with a key that stays unique for entries without an id.
     var outlineNodes: [OutlineNode] { OutlineNode.nodes(outline, path: "") }
@@ -154,8 +156,10 @@ struct BatesEdit: Encodable, Sendable {
     var position: Position
 }
 
+/// Flattens form fields, the named ones or all; or, with markup, every markup annotation but links.
 struct FlattenEdit: Encodable, Sendable {
     var fields: [String]?
+    var markup: Bool?
 }
 
 struct AttachmentAdd: Encodable, Sendable {
@@ -198,7 +202,7 @@ struct WriteRequest: Encodable, Sendable {
 struct WriteResult: Decodable, Sendable {
     let revision: Int64
     let files: [String]
-    /// What a health copy changed.
+    /// What a health copy changed, or, one per line, what a conversion couldn't keep.
     let summary: String?
 }
 

@@ -264,13 +264,7 @@
           "id": "flatten",
           "title": "Flatten forms and annotations",
           "detail": "Make values and markup part of the page",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
-          "notes": {
-            "mac": "Form fields; flattening markup is planned.",
-            "ipad": "Form fields; flattening markup is planned.",
-            "iphone": "Form fields; flattening markup is planned."
-          },
-          "roadmap": "phase-7-native-apple-apps"
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" }
         }
       ]
     },
@@ -323,13 +317,12 @@
           "id": "from-pdf",
           "title": "Convert from PDF",
           "detail": "Word, Excel, PowerPoint, HTML, Markdown, text and page images",
-          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
+          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
           "notes": {
-            "mac": "Text, Markdown and structured JSON; Word, Excel, PowerPoint, HTML and page images are planned.",
-            "ipad": "Text, Markdown and structured JSON; Word, Excel, PowerPoint, HTML and page images are planned.",
-            "iphone": "Text, Markdown and structured JSON; Word, Excel, PowerPoint, HTML and page images are planned."
-          },
-          "roadmap": "phase-7-native-apple-apps"
+            "mac": "Embedded images too.",
+            "ipad": "Embedded images too.",
+            "iphone": "Embedded images too."
+          }
         }
       ]
     },

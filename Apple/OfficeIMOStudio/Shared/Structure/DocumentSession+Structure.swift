@@ -32,6 +32,7 @@ extension DocumentSession {
     var canResize: Bool { isReady && currentStructure?.canResize == true }
     var canStampPages: Bool { isReady && currentStructure?.canStampPages == true }
     var canFlattenForms: Bool { isReady && currentStructure?.canFlattenForms == true }
+    var canFlattenMarkup: Bool { isReady && currentStructure?.canFlattenMarkup == true }
     var canSplit: Bool { canExtractPages && pageCount > 1 }
     var canExportText: Bool { isReady && facts?.canExtractText != false }
 
@@ -134,6 +135,7 @@ extension DocumentSession {
             do {
                 exportedFile = try await writeOutput(named: attachment.fileName, contentType: .data) { engine, url in
                     _ = try await engine.write(WriteRequest(attachment: .init(fileName: attachment.fileName, path: url.path)))
+                    return nil
                 }
             } catch {
                 errorMessage = error.localizedDescription
@@ -175,19 +177,42 @@ extension DocumentSession {
         editStructure(String(localized: "Flatten Form"), EditRequest(flatten: FlattenEdit()))
     }
 
+    /// Draws every markup annotation but links into its page, as one undoable change.
+    func flattenMarkup() {
+        guard canFlattenMarkup else { return }
+        editStructure(String(localized: "Flatten Markup"), EditRequest(flatten: FlattenEdit(markup: true)))
+    }
+
     // MARK: Outputs
 
     /// Splits the document into a folder of PDFs the window then offers to save.
     func split(pagesPerPart: Int? = nil, parts: [SplitPart]? = nil) async throws {
         pendingExportedFile = try await writeOutput(named: String(localized: "\(documentBaseName) – Parts"), contentType: .folder) { engine, url in
             _ = try await engine.write(WriteRequest(split: .init(directory: url.path, pagesPerPart: pagesPerPart, parts: parts)))
+            return nil
         }
     }
 
-    /// Writes the document's text as plain text, Markdown or JSON, which the window then offers to save.
-    func exportText(_ format: TextExportFormat) async throws {
-        pendingExportedFile = try await writeOutput(named: "\(documentBaseName).\(format.fileExtension)", contentType: format.contentType) { engine, url in
-            _ = try await engine.write(WriteRequest(export: .init(format: format.rawValue, path: url.path)))
+    /// Writes the document in another format, which the export sheet then offers to save: an Office document, a web
+    /// page, its text, its pages as PNG images or its embedded images. The file carries the converter's notes.
+    func export(_ format: ExportFormat) async throws -> ExportedFile? {
+        let name = format.isFolder ? String(localized: "\(documentBaseName) – Images") : "\(documentBaseName).\(format.fileExtension)"
+        let pages = pageCount
+        let base = documentBaseName
+        return try await writeOutput(named: name, contentType: format.contentType) { engine, url in
+            guard format == .pageImages else {
+                return try await engine.writeResult(WriteRequest(export: .init(format: format.rawValue, path: url.path))).summary
+            }
+            // Each page as the reader shows it, at twice its size in points: 144 pixels per inch.
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            let digits = String(pages).count
+            for page in 1...max(pages, 1) {
+                try Task.checkCancellation()
+                let rendered = try await engine.renderPage(page, scale: 2)
+                let number = String(repeating: "0", count: digits - String(page).count) + String(page)
+                try rendered.png.write(to: url.appending(path: "\(base) \(number).png"))
+            }
+            return nil
         }
     }
 
@@ -200,7 +225,7 @@ extension DocumentSession {
 
     /// Writes an output into the app's temporary folder and reads it for the system's export panel.
     private func writeOutput(named name: String, contentType: UTType,
-                             write: @escaping @Sendable (EngineDocument, URL) async throws -> Void) async throws -> ExportedFile? {
+                             write: @escaping @Sendable (EngineDocument, URL) async throws -> String?) async throws -> ExportedFile? {
         guard let engine else { return nil }
         let folder = FileManager.default.temporaryDirectory.appending(path: "Exported/\(UUID().uuidString)", directoryHint: .isDirectory)
         let url = folder.appending(path: name, directoryHint: contentType == .folder ? .isDirectory : .notDirectory)
@@ -208,8 +233,8 @@ extension DocumentSession {
         defer { isWorking = false }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try await write(engine, url)
-            return ExportedFile(document: try ExportedDocument(url: url), contentType: contentType, name: name, folder: folder)
+            let notes = try await write(engine, url)
+            return ExportedFile(document: try ExportedDocument(url: url), contentType: contentType, name: name, folder: folder, notes: notes)
         } catch {
             try? FileManager.default.removeItem(at: folder)
             throw error
@@ -217,31 +242,71 @@ extension DocumentSession {
     }
 }
 
-enum TextExportFormat: String, CaseIterable, Identifiable {
-    case text, markdown, json
+/// The formats a document exports to, as the engine names them.
+enum ExportFormat: String, CaseIterable, Identifiable {
+    case word, excel, powerpoint, html, text, markdown, json, pageImages, images
 
     var id: Self { self }
+
     var title: LocalizedStringKey {
         switch self {
+        case .word: "Word Document"
+        case .excel: "Excel Workbook"
+        case .powerpoint: "PowerPoint Presentation"
+        case .html: "Web Page"
         case .text: "Plain Text"
         case .markdown: "Markdown"
         case .json: "JSON"
+        case .pageImages: "Page Images"
+        case .images: "Embedded Images"
         }
     }
+
+    /// What the export holds, shown under the formats.
+    var detail: LocalizedStringKey {
+        switch self {
+        case .word: "Editable text, tables and images, for Word and Pages."
+        case .excel: "The tables on the pages, each as a worksheet."
+        case .powerpoint: "Each page as an editable slide."
+        case .html: "The pages laid out for a browser, with links and images."
+        case .text: "The text only, in reading order."
+        case .markdown: "Headings, paragraphs, lists and tables, for notes and editors."
+        case .json: "The text with its structure and position on each page, for other programs."
+        case .pageImages: "Each page as a PNG image at 144 pixels per inch, in a folder."
+        case .images: "The pictures inside the document, as their own files, in a folder."
+        }
+    }
+
     var fileExtension: String {
         switch self {
+        case .word: "docx"
+        case .excel: "xlsx"
+        case .powerpoint: "pptx"
+        case .html: "html"
         case .text: "txt"
         case .markdown: "md"
         case .json: "json"
+        case .pageImages, .images: ""
         }
     }
+
+    var isFolder: Bool { self == .pageImages || self == .images }
+
     var contentType: UTType {
         switch self {
         case .text: .plainText
         case .markdown: .markdown
         case .json: .json
+        case .html: .html
+        case .pageImages, .images: .folder
+        default: UTType(filenameExtension: fileExtension) ?? .data
         }
     }
+
+    /// The formats in the sheet's groups.
+    static let documents: [ExportFormat] = [.word, .excel, .powerpoint, .html]
+    static let texts: [ExportFormat] = [.text, .markdown, .json]
+    static let pictures: [ExportFormat] = [.pageImages, .images]
 }
 
 extension UTType {
@@ -254,12 +319,16 @@ struct ExportedFile: Identifiable {
     let contentType: UTType
     let name: String
     let folder: URL
+    /// What a conversion couldn't keep, one per line.
+    var notes: String?
     var id: URL { folder }
 }
 
 /// A written file or folder of files as a document for the system's export panel.
 struct ExportedDocument: FileDocument {
-    static let readableContentTypes: [UTType] = [.pdf, .plainText, .markdown, .json, .folder, .data]
+    static let readableContentTypes: [UTType] = [.pdf, .plainText, .markdown, .json, .html, .folder, .data]
+    /// The export panel saves only these types; anything else would be saved as the first, a PDF.
+    static let writableContentTypes: [UTType] = readableContentTypes + ExportFormat.documents.map(\.contentType)
     let wrapper: FileWrapper
 
     init(url: URL) throws {

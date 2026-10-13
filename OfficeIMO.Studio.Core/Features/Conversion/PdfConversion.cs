@@ -13,7 +13,8 @@ internal sealed record PdfConversionResult(string Route, string Source, long Out
 
 /// <summary>
 /// Converts documents to PDF through the same workflow routes as OfficeIMO Studio's Convert window: Word, Excel,
-/// PowerPoint, RTF, text, HTML, Markdown, XPS, Visio, Draw and Publisher files.
+/// PowerPoint, RTF, text, HTML, Markdown, XPS, Visio, Draw and Publisher files. PDFs convert to Word, Excel,
+/// PowerPoint and HTML the same way.
 /// </summary>
 internal static class PdfConversion {
     /// <summary>The formats that convert to PDF, one per route.</summary>
@@ -42,16 +43,55 @@ internal static class PdfConversion {
         if (!File.Exists(inputPath)) throw new FileNotFoundException("The document to convert was not found.", inputPath);
         PdfConversionSource route = RouteFor(inputPath)
             ?? throw new NotSupportedException($"“{Path.GetFileName(inputPath)}” is not a format OfficeIMO converts to PDF.");
-        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+        return await RunAsync(new OfficeWorkflowRequest {
             Operation = OfficeWorkflowOperation.Convert,
             InputPath = inputPath,
             OutputPath = outputPath,
             ConversionRouteId = route.Route,
             ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
-        }, progress: null, cancellationToken).ConfigureAwait(false);
+        }, route.Name, $"“{Path.GetFileName(inputPath)}” couldn’t be converted", cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The formats a PDF converts to, by the route that converts it: Word, Excel, PowerPoint and HTML.</summary>
+    internal static IReadOnlyDictionary<string, string> PdfTargets { get; } = new Dictionary<string, string>(StringComparer.Ordinal) {
+        ["word"] = "pdf-docx", ["excel"] = "pdf-xlsx", ["powerpoint"] = "pdf-pptx", ["html"] = "pdf-html"
+    };
+
+    /// <summary>
+    /// Converts a PDF, such as the open revision of a document, to Word, Excel, PowerPoint or HTML at
+    /// <paramref name="outputPath"/>, replacing what is there. A password opens an encrypted PDF.
+    /// </summary>
+    internal static async Task<PdfConversionResult> ConvertPdfAsync(byte[] pdf, string? password, string target, string outputPath,
+        CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(pdf);
+        if (!PdfTargets.TryGetValue(target, out string? routeId) || OfficeWorkflowCatalog.FindExecutable(routeId) is null)
+            throw new ArgumentException($"“{target}” isn't a format a PDF converts to.", nameof(target));
+        if (string.IsNullOrWhiteSpace(outputPath) || !Path.IsPathFullyQualified(outputPath))
+            throw new ArgumentException("Give the converted document an absolute destination.", nameof(outputPath));
+        // The runner reads a file; the revision goes to a private temporary folder that is removed afterwards.
+        string folder = Directory.CreateTempSubdirectory("officeimo-convert-").FullName;
+        try {
+            string inputPath = Path.Combine(folder, "document.pdf");
+            await File.WriteAllBytesAsync(inputPath, pdf, cancellationToken).ConfigureAwait(false);
+            return await RunAsync(new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Convert,
+                InputPath = inputPath,
+                OutputPath = outputPath,
+                ConversionRouteId = routeId,
+                PdfPassword = password,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            }, "PDF", "The PDF couldn’t be converted", cancellationToken).ConfigureAwait(false);
+        } finally {
+            try { Directory.Delete(folder, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    private static async Task<PdfConversionResult> RunAsync(OfficeWorkflowRequest request, string source, string failure,
+        CancellationToken cancellationToken) {
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(request, progress: null, cancellationToken).ConfigureAwait(false);
         switch (result.Status) {
             case OfficeWorkflowStatus.Completed:
-                return new PdfConversionResult(route.Route, route.Name, result.OutputBytes, result.Diagnostics
+                return new PdfConversionResult(request.ConversionRouteId!, source, result.OutputBytes, result.Diagnostics
                     .Where(static diagnostic => diagnostic.Severity != OfficeWorkflowDiagnosticSeverity.Information)
                     .Select(static diagnostic => new PdfConversionNote(diagnostic.Severity == OfficeWorkflowDiagnosticSeverity.Error ? "error" : "warning",
                         diagnostic.Message)).ToArray());
@@ -60,7 +100,7 @@ internal static class PdfConversion {
             default:
                 string detail = result.Diagnostics.FirstOrDefault(static diagnostic => diagnostic.Severity == OfficeWorkflowDiagnosticSeverity.Error)?.Message
                     ?? result.Summary;
-                throw new InvalidOperationException($"“{Path.GetFileName(inputPath)}” couldn’t be converted: {detail}");
+                throw new InvalidOperationException($"{failure}: {detail}");
         }
     }
 }
