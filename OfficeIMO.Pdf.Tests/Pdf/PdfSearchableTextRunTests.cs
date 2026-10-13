@@ -31,6 +31,23 @@ public sealed class PdfSearchableTextRunTests {
             .Select(region => region.Text)));
     }
 
+    [Fact]
+    public void ARunEndingInASpaceBeforeAKerningStepKeepsTheGapBetweenWords() {
+        // Word-processor output often ends a TJ string with the space and moves on by a kerning step: the space is
+        // painted, so the letter before it keeps its own width and the next word starts after a gap.
+        byte[] pdf = Encoding.ASCII.GetBytes(BuildPdf("BT /F1 12 Tf 50 700 Td [(packag) 4 (e ) -3 (for) 2 (Example)] TJ ET\n"));
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(pdf, 1);
+        PdfPageInteractionRegion[] regions = map.TextRegions.Where(static region => !string.IsNullOrWhiteSpace(region.Text)).ToArray();
+        PdfPageInteractionRegion e = regions.Single(static region => region.Text == "e" && region.Quad.Left < 100D);
+        PdfPageInteractionRegion f = regions.Single(static region => region.Text == "f");
+        Assert.InRange(e.Quad.Width, 6D, 7.5D);
+        Assert.Equal(PdfTextBreak.Space, PdfPageInteractionMap.GetTextBreak(e, f));
+        Assert.Equal("package forExample", map.GetSelectedText(0, 0, map.Width, map.Height));
+        Assert.Equal("package", string.Concat(map.SelectWord((e.Quad.Left + e.Quad.Right) / 2, (e.Quad.Top + e.Quad.Bottom) / 2)
+            .Select(region => region.Text)));
+    }
+
     private static string BuildPdf(string content) {
         var builder = new StringBuilder("%PDF-1.7\n");
         var objects = new[] {
