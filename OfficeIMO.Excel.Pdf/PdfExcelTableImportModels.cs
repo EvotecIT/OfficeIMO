@@ -41,7 +41,8 @@ public sealed class PdfExcelTableImportEntry {
             IReadOnlyList<string?> currencyTokens,
             IReadOnlyList<OfficeIMO.Pdf.PdfLogicalCurrencyAffixPosition?> currencyAffixPositions,
             IReadOnlyList<bool?> currencyAffixUsesSpacing,
-            bool firstRowUsedAsHeader = false) {
+            bool firstRowUsedAsHeader = false,
+            bool columnProportionsApplied = false) {
             PageIndex = pageIndex;
             PageNumber = pageNumber;
             TableIndex = tableIndex;
@@ -62,10 +63,18 @@ public sealed class PdfExcelTableImportEntry {
             CurrencyAffixPositions = Array.AsReadOnly(currencyAffixPositions.ToArray());
             CurrencyAffixUsesSpacing = Array.AsReadOnly(currencyAffixUsesSpacing.ToArray());
             FirstRowUsedAsHeader = firstRowUsedAsHeader;
+            ColumnProportionsApplied = columnProportionsApplied;
         }
 
         /// <summary>True when the caller confirmed the first source row as headers for a table with unknown schema.</summary>
         public bool FirstRowUsedAsHeader { get; }
+
+        /// <summary>
+        /// True when the requested detected column proportions determined the worksheet widths.
+        /// False when not requested or when unavailable or invalid geometry retained auto-fit or default widths.
+        /// </summary>
+        /// <remarks>Preservation applies to detected proportions, not exact physical PDF or authored grid dimensions.</remarks>
+        public bool ColumnProportionsApplied { get; }
 
         /// <summary>Zero-based page index within the selected logical page collection.</summary>
         public int PageIndex { get; }

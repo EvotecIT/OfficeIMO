@@ -18,6 +18,36 @@ namespace OfficeIMO.Core.Internal {
             destination != null && destination.CanWrite && destination.CanSeek;
 
         /// <summary>
+        /// Copies an existing buffer to the destination's current position without seeking, truncating, flushing,
+        /// or closing it. Cancellable copies check the token before and after each bounded write, including the
+        /// final write. Cancellation may leave an emitted prefix; the caller owns publication and rollback.
+        /// </summary>
+        internal static void CopyBytes(Stream destination, byte[] bytes, CancellationToken cancellationToken) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(bytes);
+#else
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+#endif
+            EnsureWritable(destination);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!cancellationToken.CanBeCanceled) {
+                destination.Write(bytes, 0, bytes.Length);
+                return;
+            }
+
+            const int chunkSize = 81920;
+            for (int offset = 0; offset < bytes.Length;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(chunkSize, bytes.Length - offset);
+                destination.Write(bytes, offset, count);
+                cancellationToken.ThrowIfCancellationRequested();
+                offset += count;
+            }
+        }
+
+        /// <summary>
         /// Writes a complete artifact without closing the destination. Seekable streams are truncated before
         /// writing and rewound after a successful write; non-seekable streams are written at their current position.
         /// </summary>
